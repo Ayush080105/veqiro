@@ -1,0 +1,33 @@
+{
+  "company_name": "NovaBrew",
+  "tagline": "Fuel your mornings, fuel your ambitions.",
+  "industry": "Specialty Coffee & Lifestyle Brand",
+  "description": "NovaBrew is a premium D2C coffee brand that blends science-backed brewing with bold, expressive branding. We target young urban professionals who treat their morning ritual as a form of self-care.",
+  "target_audience": "Urban millennials and Gen Z, 22-38, career-driven, aesthetic-conscious, wellness-oriented.",
+  "brand_voice": "Bold, witty, aspirational but grounded. Never corporate. Uses casual language, occasional humor, and motivational undertones.",
+  "color_theme": {
+    "primary": "#1A0A00",
+    "secondary": "#C8602A",
+    "accent": "#F4C97A",
+    "background": "#FFF8F0",
+    "text": "#1A0A00"
+  },
+  "font_style": {
+    "heading": "Playfair Display",
+    "body": "DM Sans",
+    "accent": "Courier New"
+  },
+  "image_style": "Dark moody photography with warm amber tones. Close-up textures of coffee beans, steam rising from cups, hands wrapped around mugs. Occasional flat-lay product shots. Aesthetic should feel like a high-end magazine editorial meets cozy coffee corner.",
+  "mascot": {
+    "name": "Nova",
+    "description": "A small astronaut character holding a coffee cup, used in playful posts and stories."
+  },
+  "platforms": ["Instagram", "Twitter/X", "LinkedIn"],
+  "hashtags": ["#NovaBrew", "#FuelYourMorning", "#CoffeeScience", "#BrewBold"],
+  "posting_tone_by_platform": {
+    "Instagram": "Visual-first, short punchy captions, heavy emoji use, aesthetic-focused",
+    "Twitter/X": "Witty one-liners, trending hooks, conversational, hot takes on coffee culture",
+    "LinkedIn": "Thought leadership, brand story, professional but still warm and human"
+  },
+  "logo_description": "Minimalist crescent moon shape forming a coffee cup silhouette, in burnt orange on dark background."
+}
