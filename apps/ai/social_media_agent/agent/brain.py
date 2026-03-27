@@ -1,92 +1,169 @@
 """
 brain.py
 --------
-Updated for LangChain v1+ (uses LangGraph instead of deprecated AgentExecutor)
+FINAL production architecture:
+
+- NO index-based logic
+- Fully role-based image pipeline
+- Works with all flag combinations
 """
 
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import HumanMessage, AIMessage
 
 from social_media_agent.agent.intent_detector import detect_intent
-from social_media_agent.agent.brand_kit import load_brand_kit, brand_kit_to_context_string
+from social_media_agent.agent.brand_kit import (
+    load_brand_kit,
+    brand_kit_to_context_string,
+    extract_brand_assets,
+    fetch_images,
+)
+
 from social_media_agent.agent.post_generator import generate_posts
 from social_media_agent.agent.image_generator import generate_image
 from social_media_agent.agent.chat_handler import general_chat
 
-from typing import Optional, List
+from typing import Optional, List, Dict
 import json
+import asyncio
 
-
-# ── Agent system prompt ────────────────────────────────────────────────────────
 
 AGENT_SYSTEM_PROMPT = """You are an expert AI Social Media Manager Employee working for a brand.
 
-You have access to three tools:
-1. `generate_posts`
-2. `generate_image`
-3. `general_chat`
+You have access to two tools:
+1. generate_posts
+2. general_chat
 
 {brand_context}
 
 IMPORTANT RULES:
-- Always pass the full brand_context string to every tool call.
-- If a user asks for posts AND an image in the same message, call both tools.
+- Always maintain brand voice.
+- Always use brand context.
 - Be decisive.
-- Maintain brand voice.
 """
 
 
-# ── Tools ─────────────────────────────────────────────────────────────────────
+# ── Tools ───────────────────────────────────────────
 
-ALL_TOOLS = [generate_posts, generate_image, general_chat]
+def get_tools(brand_context: str):
+
+    def generate_posts_tool(prompt: str):
+        """Generate social media posts using brand context."""
+        return generate_posts.invoke({
+            "user_request": prompt,
+            "brand_context": brand_context
+        })
+
+    def general_chat_tool(prompt: str):
+        """Handle general conversation using brand context."""
+        return general_chat.invoke({
+            "user_request": prompt,
+            "brand_context": brand_context
+        })
+
+    return [generate_posts_tool, general_chat_tool]
 
 
-# ── Main agent runner ─────────────────────────────────────────────────────────
+# ── MAIN RUNNER ─────────────────────────────────────
 
-def run_social_media_agent(
+async def run_social_media_agent(
     user_message: str,
     conversation_history: Optional[List[dict]] = None,
     brand_kit_override: Optional[dict] = None,
+    brand_images: Optional[List[bytes]] = None,
 ) -> dict:
 
-    # ── 1. Load brand kit ─────────────────────────────────────────────────────
+    # ── 1. Load brand kit
     brand_kit = load_brand_kit(override=brand_kit_override)
+
+    image_urls, selected_colors = extract_brand_assets(brand_kit)
+    brand_kit["brand_colors"] = selected_colors or []
+
     brand_context = brand_kit_to_context_string(brand_kit)
 
-    # ── 2. Detect intent ──────────────────────────────────────────────────────
+    # ── 2. Intent detection
     intent_result = detect_intent(user_message)
 
-    # ── 3. Initialize LLM ─────────────────────────────────────────────────────
+    # ── 3. 🔥 FINAL ROLE-BASED IMAGE BUILDING
+    ordered_images: List[Dict] = []
+
+    use_mascot = brand_kit.get("use_mascot", False)
+    use_logo = brand_kit.get("use_logo", False)
+    use_refs = brand_kit.get("use_reference_images", False)
+
+    try:
+        images_to_fetch = []
+
+        # ✅ EXPLICIT URL MAPPING (NO INDEX BUGS)
+
+        if use_mascot and brand_kit.get("mascot_url"):
+            images_to_fetch.append({
+                "type": "mascot",
+                "url": brand_kit["mascot_url"]
+            })
+
+        if use_logo and brand_kit.get("logo_url"):
+            images_to_fetch.append({
+                "type": "logo",
+                "url": brand_kit["logo_url"]
+            })
+
+        if use_refs and brand_kit.get("reference_images"):
+            for url in brand_kit["reference_images"]:
+                images_to_fetch.append({
+                    "type": "reference",
+                    "url": url
+                })
+
+        # ── Fetch images ─────────────────────
+        if images_to_fetch:
+            urls = [img["url"] for img in images_to_fetch]
+
+            print("\n📥 Fetching images:", urls)
+
+            fetched_images = await fetch_images(urls)
+
+            for meta, img_bytes in zip(images_to_fetch, fetched_images):
+                ordered_images.append({
+                    "type": meta["type"],
+                    "data": img_bytes
+                })
+
+    except Exception as e:
+        print("❌ Image fetch failed:", e)
+        ordered_images = []
+
+    # ── Debug
+    print("\n🧠 FINAL ROLE-BASED IMAGES")
+    for img in ordered_images:
+        print(f"{img['type']} → {len(img['data'])} bytes")
+
+    # ── 4. LLM
     llm = ChatOpenAI(
         model="gpt-4o",
         temperature=0.5,
     )
 
-    # ── 4. Create LangGraph agent ─────────────────────────────────────────────
+    tools = get_tools(brand_context=brand_context)
+
     agent = create_react_agent(
         model=llm,
-        tools=ALL_TOOLS,
+        tools=tools,
     )
 
-    # ── 5. Build message history ──────────────────────────────────────────────
+    # ── 5. Messages
     messages = []
 
     if conversation_history:
         for turn in conversation_history:
-            role = turn.get("role", "user")
-            content = turn.get("content", "")
+            messages.append({
+                "role": turn.get("role", "user"),
+                "content": turn.get("content", "")
+            })
 
-            if role == "user":
-                messages.append({"role": "user", "content": content})
-            elif role == "assistant":
-                messages.append({"role": "assistant", "content": content})
-
-    # ── 6. Add current message with intent hint + system prompt ───────────────
     intent_hint = _build_intent_hint(
         intent_result.intent,
-        user_message,
-        brand_context
+        user_message
     )
 
     messages.append({
@@ -94,30 +171,39 @@ def run_social_media_agent(
         "content": f"{AGENT_SYSTEM_PROMPT.format(brand_context=brand_context)}\n\n{intent_hint}"
     })
 
-    # ── 7. Run agent ──────────────────────────────────────────────────────────
-    result = agent.invoke({
-        "messages": messages
-    })
-
-    # ── 8. Extract response ───────────────────────────────────────────────────
+    result = agent.invoke({"messages": messages})
     final_response = result["messages"][-1].content
+
+    # ── 6. IMAGE GENERATION
+    if intent_result.intent in ["generate_image", "post_ideas"]:
+        try:
+            print("\n🔥 IMAGE GENERATION TRIGGERED")
+
+            generate_image.invoke({
+                "user_request": user_message,
+                "brand_context": brand_context,
+                "brand_images": ordered_images
+            })
+
+        except Exception as e:
+            print("❌ Image generation failed:", e)
 
     return {
         "intent": intent_result.intent,
         "intent_confidence": intent_result.confidence,
         "intent_reasoning": intent_result.reasoning,
         "response": final_response,
-        "tool_outputs": []  # No intermediate steps in LangGraph
+        "tool_outputs": []
     }
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers ─────────────────────────────────────────
 
-def _build_intent_hint(intent: str, user_message: str, brand_context: str) -> str:
+def _build_intent_hint(intent: str, user_message: str) -> str:
     hints = {
-        "post_ideas": f"[Route to: generate_posts]\nUser: {user_message}",
-        "generate_image": f"[Route to: generate_image]\nUser: {user_message}",
-        "general_chat": f"[Route to: general_chat]\nUser: {user_message}",
+        "post_ideas": f"[Generate post]\nUser: {user_message}",
+        "generate_image": f"[Generate image]\nUser: {user_message}",
+        "general_chat": f"[Chat]\nUser: {user_message}",
     }
     return hints.get(intent, user_message)
 

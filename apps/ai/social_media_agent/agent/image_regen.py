@@ -11,7 +11,7 @@ load_dotenv()
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
     raise ValueError("GOOGLE_API_KEY not found")
 
@@ -20,7 +20,7 @@ if not GOOGLE_API_KEY:
 # INIT CLIENT
 # ---------------------------------------------------------
 client = genai.Client(api_key=GOOGLE_API_KEY)
-MODEL_NAME = "imagen-4.0-generate-001"
+MODEL_NAME = "gemini-2.5-flash-image"
 
 
 # ---------------------------------------------------------

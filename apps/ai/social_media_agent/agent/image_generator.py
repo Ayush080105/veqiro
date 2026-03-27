@@ -1,121 +1,219 @@
-"""
-image_generator.py
-------------------
-LangChain tool: generates images using Google Gemini Imagen 4.
-Builds a brand-aware prompt via GPT-4o-mini first, then calls Gemini.
-
-IMPORTANT: Base64 image data is stored in module-level `_last_generated_image`
-and never returned to the LLM agent — doing so would send 400k+ tokens back
-into GPT-4o's context and blow the rate limit. The FastAPI layer reads
-`get_last_generated_image()` and attaches it to the final API response.
-"""
-
 from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict
+
 from google import genai
 from google.genai import types
+
 import os
 import base64
 import json
+import logging
 
 
-# ── In-memory image store (last generated image) ──────────────────────────────
+# ── Logging ────────────────────────────────────────────────
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+
+# ── In-memory store ────────────────────────────────────────
 _last_generated_image: dict = {}
 
 
 def get_last_generated_image() -> dict:
-    """Called by main.py to attach image data to the API response."""
     return _last_generated_image.copy()
 
 
 def clear_last_generated_image():
-    """Call before each new request to avoid stale images."""
     _last_generated_image.clear()
 
 
+# ── INPUT SCHEMA ───────────────────────────────────────────
 class ImageGeneratorInput(BaseModel):
     user_request: str
     brand_context: str
     aspect_ratio: Optional[str] = "1:1"
+    brand_images: Optional[List[Dict]] = None
 
 
-PROMPT_BUILDER_SYSTEM = """You are an AI image prompt engineer specializing in brand-consistent visuals.
+# ── Prompt Builder ─────────────────────────────────────────
+PROMPT_BUILDER_SYSTEM = """You are an expert AI image prompt engineer.
 
-Given a brand kit and a user's image request, write a detailed image generation prompt that:
-1. Captures exactly what the user wants
-2. Reflects the brand's visual identity, color palette, and image style
-3. Includes lighting, mood, composition, and style descriptors
-4. Is optimized for photorealistic or stylized AI image generation
+Create a HIGH-QUALITY image generation prompt.
 
-Return ONLY the image prompt as plain text. No explanation, no markdown, just the prompt.
-Keep it under 400 words.
+RULES:
+- Do NOT describe mascot or logo visually (they are provided as images)
+- Focus on scene, action, composition, and mood
+- Use brand colors strongly
+- Keep it realistic and visually appealing
+
+Return ONLY prompt text.
+Max 120 words.
 """
 
 
 def build_image_prompt(user_request: str, brand_context: str) -> str:
-    """Uses GPT-4o-mini to build a brand-aware image generation prompt."""
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.6)
+
     messages = [
         SystemMessage(content=PROMPT_BUILDER_SYSTEM),
-        HumanMessage(content=f"{brand_context}\n\nUser wants: {user_request}"),
+        HumanMessage(content=f"{brand_context}\n\nUser wants: {user_request}")
     ]
-    response = llm.invoke(messages)
-    return response.content.strip()
+
+    return llm.invoke(messages).content.strip()
 
 
+# ── MIME DETECTOR ──────────────────────────────────────────
+def detect_mime(img: bytes) -> str:
+    if img.startswith(b"\x89PNG"):
+        return "image/png"
+    elif img.startswith(b"\xff\xd8"):
+        return "image/jpeg"
+    return "image/jpeg"
+
+
+# ── MAIN TOOL ──────────────────────────────────────────────
 @tool("generate_image", args_schema=ImageGeneratorInput)
 def generate_image(
     user_request: str,
     brand_context: str,
     aspect_ratio: str = "1:1",
+    brand_images: Optional[List[Dict]] = None,
 ) -> str:
     """
-    Generates a brand-consistent image using Google Gemini Imagen 4.
-    Returns only metadata to the agent — base64 is stored separately.
+    Generates a branded image using role-based images.
     """
+
+    logger.info("🚀 Starting image generation...")
+    logger.info(f"🔥 images received: {len(brand_images) if brand_images else 0}")
+
+    # ── Build Prompt ───────────────────────────────────────
     image_prompt = build_image_prompt(user_request, brand_context)
+
+    instruction = f"""
+You are generating a premium branded marketing image.
+
+STRICT RULES:
+
+1. MASCOT (if provided):
+- MUST be actively interacting with the scene
+- NEVER standing idle or pasted
+- Must engage with objects (holding cup, sitting, pouring coffee, etc.)
+- Must follow lighting, perspective, and depth
+
+2. LOGO (if provided):
+- MUST be embedded naturally (NOT floating)
+- Place on real surfaces like:
+  - coffee cup
+  - packaging
+  - table engraving
+  - wall signage
+- Must follow lighting and perspective
+
+3. REALISM:
+- No sticker-like overlays
+- All elements must blend naturally
+- Consistent shadows, lighting, and depth
+
+4. STYLE:
+- Cinematic lighting
+- High realism
+- Clean composition
+- Strong brand colors
+
+---
+
+{image_prompt}
+"""
 
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        return json.dumps({"error": "GOOGLE_API_KEY not set", "prompt_used": image_prompt})
+        return json.dumps({"error": "GOOGLE_API_KEY not set"})
 
     try:
         client = genai.Client(api_key=api_key)
 
-        result = client.models.generate_images(
-            model="imagen-4.0-generate-001",
-            prompt=image_prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                aspect_ratio=aspect_ratio,
-                safety_filter_level="block_low_and_above",
-                person_generation="allow_adult",
-            ),
+        contents = [instruction]
+
+        # ── ROLE-BASED MULTIMODAL INPUT ─────────────────────
+        if brand_images:
+            logger.info(f"🖼️ Processing {len(brand_images)} images")
+
+            for img_obj in brand_images:
+                img_type = img_obj.get("type")
+                img_data = img_obj.get("data")
+
+                if not img_data:
+                    continue
+
+                # 🔥 Stronger semantic binding
+                if img_type == "mascot":
+                    contents.append(
+                        "This is the mascot character. It must be part of the scene and interacting naturally."
+                    )
+
+                elif img_type == "logo":
+                    contents.append(
+                        "This is the official brand logo. Integrate it into the environment realistically."
+                    )
+
+                elif img_type == "reference":
+                    contents.append(
+                        "This is a reference image for style and lighting."
+                    )
+
+                contents.append(
+                    types.Part.from_bytes(
+                        data=img_data,
+                        mime_type=detect_mime(img_data)
+                    )
+                )
+
+        else:
+            logger.warning("⚠️ No brand images provided")
+
+        # ── Generate ───────────────────────────────────────
+        logger.info("🎨 Sending request to Gemini...")
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-image",
+            contents=contents,
         )
 
-        if not result.generated_images:
-            return json.dumps({"error": "No images returned from Gemini", "prompt_used": image_prompt})
+        logger.info("🎨 Response received")
 
-        # Store base64 at module level — never send to LLM
-        image_bytes = result.generated_images[0].image.image_bytes
+        # ── Extract Image ──────────────────────────────────
+        image_bytes = None
+
+        for candidate in getattr(response, "candidates", []):
+            for part in candidate.content.parts:
+                if getattr(part, "inline_data", None):
+                    image_bytes = part.inline_data.data
+                    break
+
+        if not image_bytes:
+            return json.dumps({"error": "No image returned"})
+
+        logger.info("✅ Image generated successfully")
+
+        # ── Store Result ───────────────────────────────────
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-        _last_generated_image["data"] = b64_image
-        _last_generated_image["mime_type"] = "image/png"
-        _last_generated_image["prompt_used"] = image_prompt
-        _last_generated_image["aspect_ratio"] = aspect_ratio
+        _last_generated_image.update({
+            "data": b64_image,
+            "mime_type": "image/png",
+            "prompt_used": instruction,
+            "aspect_ratio": aspect_ratio
+        })
 
-        # Return only metadata to the agent
         return json.dumps({
             "success": True,
             "image_ready": True,
-            "prompt_used": image_prompt,
-            "aspect_ratio": aspect_ratio,
-            "message": "Image generated successfully and is ready in the response.",
+            "aspect_ratio": aspect_ratio
         })
 
     except Exception as e:
-        return json.dumps({"error": str(e), "prompt_used": image_prompt})
+        logger.exception("❌ Generation failed")
+        return json.dumps({"error": str(e)})
