@@ -62,11 +62,6 @@ class BrandKitResponse(BaseModel):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok", "employee": "Social Media Manager", "version": "1.0.0"}
-
-
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     if not request.message.strip():
@@ -152,3 +147,125 @@ def get_last_image():
     </html>
     """
     return HTMLResponse(html)
+
+
+
+
+
+
+import logging
+import uuid
+from pathlib import Path
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from ai.data_analyst_agent.agent import AnalystAgent
+from ai.data_analyst_agent.tools.file_handler import save_upload
+from ai.data_analyst_agent.tools.schema_extractor import extract_schema
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
+log = logging.getLogger("ai-analyst")
+
+# In-memory registry: dataset_id → absolute CSV path
+DATASETS: dict[str, Path] = {}
+
+agent = AnalystAgent()
+
+
+# ── Request / Response Schemas ─────────────────────────────────────────────────
+class QueryRequest(BaseModel):
+    dataset_id: str
+    query: str
+
+
+class InsightsRequest(BaseModel):
+    dataset_id: str
+
+
+class UploadResponse(BaseModel):
+    dataset_id: str
+    columns: list[str]
+    row_count: int
+
+
+# ── Endpoints ──────────────────────────────────────────────────────────────────
+@app.post("/upload", response_model=UploadResponse)
+async def upload_dataset(file: UploadFile = File(...)):
+    """Accept a CSV or Excel file, persist it, and return dataset metadata."""
+    dataset_id = str(uuid.uuid4())
+    try:
+        csv_path = await save_upload(file, dataset_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    DATASETS[dataset_id] = csv_path
+    schema = extract_schema(csv_path)
+    log.info(
+        "Uploaded dataset %s  (%d cols, %d rows)",
+        dataset_id,
+        len(schema["columns"]),
+        schema["row_count"],
+    )
+
+    return UploadResponse(
+        dataset_id=dataset_id,
+        columns=schema["columns"],
+        row_count=schema["row_count"],
+    )
+
+
+@app.post("/query")
+async def query_dataset(req: QueryRequest):
+    """Run a natural-language query against an uploaded dataset."""
+    if req.dataset_id not in DATASETS:
+        raise HTTPException(
+            status_code=404, detail=f"Dataset '{req.dataset_id}' not found."
+        )
+
+    csv_path = DATASETS[req.dataset_id]
+    log.info("Query on dataset %s: %r", req.dataset_id, req.query)
+
+    try:
+        result = await agent.run(csv_path=csv_path, query=req.query)
+    except Exception as exc:
+        log.exception("Agent error for dataset %s", req.dataset_id)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return result
+
+
+@app.post("/insights")
+async def auto_insights(req: InsightsRequest):
+    """Generate automatic insights for a dataset without a specific user query."""
+    if req.dataset_id not in DATASETS:
+        raise HTTPException(
+            status_code=404, detail=f"Dataset '{req.dataset_id}' not found."
+        )
+
+    csv_path = DATASETS[req.dataset_id]
+    log.info("Auto-insights on dataset %s", req.dataset_id)
+
+    try:
+        result = await agent.auto_insights(csv_path=csv_path)
+    except Exception as exc:
+        log.exception("Insights error for dataset %s", req.dataset_id)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return result
+
+
+@app.get("/datasets")
+async def list_datasets():
+    """List all currently loaded dataset IDs."""
+    return {"datasets": list(DATASETS.keys())}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
