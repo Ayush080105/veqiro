@@ -21,11 +21,11 @@ from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 
-from ai.social_media_agent.agent.intent_detector import detect_intent
-from ai.social_media_agent.agent.brand_kit import load_brand_kit, brand_kit_to_context_string
-from ai.social_media_agent.agent.post_generator import generate_posts
-from ai.social_media_agent.agent.image_generator import generate_image
-from ai.social_media_agent.agent.chat_handler import general_chat
+from social_media_agent.agent.intent_detector import detect_intent
+from social_media_agent.agent.brand_kit import load_brand_kit, brand_kit_to_context_string
+from social_media_agent.agent.post_generator import generate_posts
+from social_media_agent.agent.image_generator import generate_image
+from social_media_agent.agent.chat_handler import general_chat
 
 from typing import Optional, List
 import json

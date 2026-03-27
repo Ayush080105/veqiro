@@ -20,12 +20,12 @@ import json
 import logging
 from pathlib import Path
 
-from ai.data_analyst_agent.tools.chart_generator import recommend_chart
-from ai.data_analyst_agent.tools.explaination import generate_explanation
-from ai.data_analyst_agent.tools.schema_extractor import extract_schema
-from ai.data_analyst_agent.tools.sql_executor import execute_sql
-from ai.data_analyst_agent.tools.sql_generator import classify_query, generate_sql
-from ai.data_analyst_agent.tools.sql_validator import validate_sql
+from data_analyst_agent.tools.chart_generator import recommend_chart
+from data_analyst_agent.tools.explaination import generate_explanation
+from data_analyst_agent.tools.schema_extractor import extract_schema
+from data_analyst_agent.tools.sql_executor import execute_sql
+from data_analyst_agent.tools.sql_generator import classify_query, generate_sql
+from data_analyst_agent.tools.sql_validator import validate_sql
 
 log = logging.getLogger("ai-analyst.agent")
 

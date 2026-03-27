@@ -10,7 +10,7 @@ Uses the LLM to:
 import json
 import logging
 
-from ai.data_analyst_agent.tools.llm_client import chat_completion
+from data_analyst_agent.tools.llm_client import chat_completion
 
 log = logging.getLogger("ai-analyst.sql_generator")
 
