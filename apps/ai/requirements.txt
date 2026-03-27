@@ -18,3 +18,4 @@ pandas
 openpyxl
 xlrd         
 litellm["proxy"]
+pillow
