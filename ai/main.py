@@ -13,9 +13,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from agent.brain import run_social_media_agent
-from agent.brand_kit import load_brand_kit, brand_kit_to_context_string
-from agent.image_generator import get_last_generated_image, clear_last_generated_image
+from ai.social_media_agent.agent.brain import run_social_media_agent
+from ai.social_media_agent.agent.brand_kit import load_brand_kit, brand_kit_to_context_string
+from ai.social_media_agent.agent.image_generator import get_last_generated_image, clear_last_generated_image
 
 app = FastAPI(
     title="Social Media Manager AI Employee",
