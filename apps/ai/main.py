@@ -10,6 +10,7 @@ app.include_router(analyst.router, prefix="/analyst", tags=["Analyst"])
 app.include_router(image_regen.router, prefix="/image", tags=["Image"])
 
 
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", reload=True)
