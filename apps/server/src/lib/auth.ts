@@ -6,7 +6,8 @@ import { sendEmail } from "../utils/mailer.js";
 import { admin } from "better-auth/plugins";
 import { organization } from "better-auth/plugins"
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL!,
+  basePath: `/api/${process.env.API_VERSION! || "v1"}/auth`,
+  trustedOrigins: [process.env.CLIENT_URL || "http://localhost:3000"],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),

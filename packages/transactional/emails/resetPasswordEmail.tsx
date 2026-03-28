@@ -1,5 +1,5 @@
 import { Button, Html, Head, Body } from "@react-email/components";
-
+import React from "react";
 interface ResetPasswordEmailProps {
   url: string;
   fullName: string;
