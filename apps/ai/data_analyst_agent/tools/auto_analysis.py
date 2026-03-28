@@ -1,137 +1,118 @@
 """
-Auto Analysis Helper (Production Ready)
+Auto Analysis Pipeline
 
 Features:
-- Intelligent question generation
+- Intelligent question generation (profile-aware)
 - Robust JSON parsing
 - Retry logic for failed queries
 - Parallel execution
 - Logging + fallbacks
 """
 
-from typing import List, Dict, Any
-from openai import AsyncOpenAI
-import os
-import json
 import asyncio
+import json
 import logging
-from dotenv import load_dotenv
+from pathlib import Path
+from typing import Any, Dict, List
 
-# ─────────────────────────────────────────────
-# Setup
-# ─────────────────────────────────────────────
-load_dotenv()
+from data_analyst_agent.tools.data_profiler import profile_dataset, profile_summary_text
+from data_analyst_agent.tools.llm_client import chat_completion
 
 log = logging.getLogger("auto-analysis")
 
-client = AsyncOpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
-
 MAX_QUESTIONS = 5
-LLM_TIMEOUT = 20
 MAX_RETRIES = 2
 
+GENERATE_QUESTIONS_SYSTEM = """\
+You are a senior data analyst. Given a dataset schema and data profile, generate \
+exactly {n} highly specific and practical business questions that can be answered \
+via SQL against the dataset.
 
-# ─────────────────────────────────────────────
-# Utils
-# ─────────────────────────────────────────────
-def safe_json_parse(content: str) -> List[str]:
-    """
-    Safely parse JSON from LLM response.
-    Handles:
-    - ```json blocks
-    - 'json\n[...]'
-    - malformed responses
-    """
+Rules:
+- Focus on insights, trends, anomalies, and comparisons visible in the data
+- Reference actual column names from the schema
+- Must be answerable with a single SQLite SELECT query
+- Mix easy and advanced questions
+- No duplicates
+
+Return ONLY a valid JSON array of strings. No markdown. No explanation.
+Example: ["Q1?", "Q2?", "Q3?"]"""
+
+
+def _safe_parse_questions(content: str) -> List[str]:
+    """Safely parse a JSON array of strings from an LLM response."""
     try:
         content = content.strip()
-
-        # Remove ```json blocks
         if content.startswith("```"):
             content = content.split("```")[1].strip()
-
-        # Remove leading "json"
         if content.lower().startswith("json"):
             content = content[4:].strip()
-
         parsed = json.loads(content)
-
         if not isinstance(parsed, list):
             raise ValueError("Parsed output is not a list")
-
-        return parsed
-
+        return [str(q) for q in parsed]
     except Exception as e:
-        log.error("JSON parsing failed: %s | Raw: %s", str(e), content)
-
-        # Fallback questions
+        log.error("Question JSON parsing failed: %s | Raw: %s", str(e), content[:200])
         return [
             "What are the top trends in this dataset?",
             "Which category has the highest values?",
             "Are there patterns over time?",
             "Which segments perform best?",
-            "What anomalies exist?"
+            "What anomalies exist in the data?",
         ]
 
 
-# ─────────────────────────────────────────────
-# 1. Generate Questions
-# ─────────────────────────────────────────────
-async def generate_questions(schema: str) -> List[str]:
-    prompt = f"""
-You are a senior data analyst.
+async def generate_questions(schema: dict, profile_summary: str = "") -> List[str]:
+    """Ask the LLM to generate business questions tailored to the dataset."""
+    schema_text = json.dumps(
+        {
+            "columns": schema.get("columns", []),
+            "column_types": schema.get("column_types", {}),
+            "row_count": schema.get("row_count", 0),
+            "sample_rows": schema.get("sample_rows", [])[:3],
+        },
+        indent=2,
+        default=str,
+    )
 
-Given this dataset schema:
-{schema}
+    profile_section = (
+        f"\nData profile:\n{profile_summary}\n" if profile_summary else ""
+    )
 
-Generate {MAX_QUESTIONS} highly relevant and practical business questions.
-
-Rules:
-- Focus on insights, trends, comparisons
-- Avoid generic or vague questions
-- Must be answerable via SQL
-- Mix easy + advanced
-- Avoid duplicates
-
-STRICT:
-- Return ONLY a valid JSON array
-- Do NOT include 'json'
-- Do NOT use markdown
-
-Example:
-["Q1", "Q2", "Q3"]
-"""
+    system = GENERATE_QUESTIONS_SYSTEM.format(n=MAX_QUESTIONS)
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                f"Dataset schema:\n{schema_text}"
+                f"{profile_section}\n\n"
+                f"Generate {MAX_QUESTIONS} insightful business questions."
+            ),
+        }
+    ]
 
     try:
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+        content = await chat_completion(
+            system=system,
+            messages=messages,
             temperature=0.7,
-            timeout=LLM_TIMEOUT,
+            max_tokens=400,
         )
-
-        content = response.choices[0].message.content
-        questions = safe_json_parse(content)
-
+        questions = _safe_parse_questions(content)
         return questions[:MAX_QUESTIONS]
-
     except Exception as e:
         log.error("Question generation failed: %s", str(e))
-
         return [
             "What are the top performing categories?",
             "Which entries have the highest values?",
             "How does performance vary across segments?",
             "Are there trends over time?",
-            "What are the key outliers?"
+            "What are the key outliers?",
         ]
 
 
-# ─────────────────────────────────────────────
-# Retry Wrapper
-# ─────────────────────────────────────────────
-async def run_with_retry(agent, csv_path, question: str) -> Dict[str, Any]:
+async def run_with_retry(agent, db_path: Path, question: str) -> Dict[str, Any]:
+    """Execute one question against the agent with up to MAX_RETRIES attempts."""
     attempt = 0
     last_error = None
 
@@ -139,23 +120,17 @@ async def run_with_retry(agent, csv_path, question: str) -> Dict[str, Any]:
         try:
             query = question
 
-            # Add correction hint after first failure
             if attempt > 0:
-                query = f"""
-{question}
+                query = (
+                    f"{question}\n\n"
+                    "IMPORTANT:\n"
+                    "- Fix any SQL errors\n"
+                    "- Column names with spaces MUST use double quotes\n"
+                    "- Use SQLite-compatible syntax (strftime for dates, || for string concat)\n"
+                )
 
-IMPORTANT:
-- Fix SQL errors if any
-- Column names with spaces MUST use double quotes
-- Use valid DuckDB SQL syntax
-"""
+            result = await agent.run(db_path=db_path, query=query)
 
-            result = await agent.run(
-                csv_path=csv_path,
-                query=query
-            )
-
-            # Agent-level error
             if result.get("error"):
                 raise Exception(result["error"])
 
@@ -163,7 +138,7 @@ IMPORTANT:
                 "question": question,
                 "status": "success",
                 "attempt": attempt + 1,
-                "result": result
+                "result": result,
             }
 
         except Exception as e:
@@ -172,7 +147,7 @@ IMPORTANT:
                 "Attempt %d failed for '%s': %s",
                 attempt + 1,
                 question,
-                last_error
+                last_error,
             )
             attempt += 1
 
@@ -180,33 +155,36 @@ IMPORTANT:
         "question": question,
         "status": "error",
         "attempt": MAX_RETRIES + 1,
-        "error": last_error
+        "error": last_error,
     }
 
 
-# ─────────────────────────────────────────────
-# 2. Main Pipeline
-# ─────────────────────────────────────────────
 async def run_auto_analysis(
     agent,
-    csv_path,
-    schema: str
+    db_path: Path,
+    schema: dict,
 ) -> List[Dict[str, Any]]:
+    """
+    Generate business questions from the schema + data profile,
+    then execute them in parallel with retry logic.
+    """
+    # Compute profile to improve question quality
+    try:
+        profile = profile_dataset(db_path)
+        summary = profile_summary_text(profile)
+    except Exception as e:
+        log.warning("Could not compute profile for question generation: %s", e)
+        summary = ""
 
-    questions = await generate_questions(schema)
+    questions = await generate_questions(schema, profile_summary=summary)
 
     if not questions:
         log.warning("No questions generated")
         return []
 
-    log.info("Running analysis for %d questions", len(questions))
+    log.info("Running auto-analysis for %d questions", len(questions))
 
-    # Parallel execution with retry
-    tasks = [
-        run_with_retry(agent, csv_path, q)
-        for q in questions
-    ]
-
+    tasks = [run_with_retry(agent, db_path, q) for q in questions]
     results = await asyncio.gather(*tasks)
 
-    return results
+    return list(results)

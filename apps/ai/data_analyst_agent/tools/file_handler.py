@@ -5,9 +5,12 @@ Handles file uploads:
   - Validates extension (CSV / Excel)
   - Converts Excel → CSV
   - Persists to /storage/<dataset_id>.csv
+  - Imports data into /storage/<dataset_id>.db (SQLite) for fast persistent querying
 """
 
+import io
 import logging
+import sqlite3
 from pathlib import Path
 
 import pandas as pd
@@ -21,16 +24,24 @@ STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTENSIONS = {".csv", ".xls", ".xlsx"}
 
 
-async def save_upload(file: UploadFile, dataset_id: str) -> Path:
+def _csv_to_sqlite(csv_path: Path, db_path: Path) -> None:
+    """Import a CSV file into a SQLite database as table 'dataset'."""
+    df = pd.read_csv(csv_path)
+    with sqlite3.connect(db_path) as conn:
+        df.to_sql("dataset", conn, if_exists="replace", index=False)
+    log.info("Imported %d rows into SQLite DB at %s", len(df), db_path)
+
+
+async def save_upload(file: UploadFile, dataset_id: str) -> tuple[Path, Path]:
     """
-    Persist an uploaded file as a CSV.
+    Persist an uploaded file as a CSV and import it into a SQLite DB.
 
     Args:
         file:       The FastAPI UploadFile object.
         dataset_id: Unique identifier for this dataset.
 
     Returns:
-        Path to the saved CSV file.
+        (csv_path, db_path) — paths to the saved CSV and the SQLite DB.
 
     Raises:
         ValueError: If the file extension is unsupported.
@@ -44,13 +55,13 @@ async def save_upload(file: UploadFile, dataset_id: str) -> Path:
 
     raw_bytes = await file.read()
     dest_path = STORAGE_DIR / f"{dataset_id}.csv"
+    db_path = STORAGE_DIR / f"{dataset_id}.db"
 
     if suffix == ".csv":
         dest_path.write_bytes(raw_bytes)
         log.info("Saved CSV directly to %s", dest_path)
     else:
         # Excel → CSV conversion via pandas
-        import io
         df = pd.read_excel(io.BytesIO(raw_bytes))
         df.to_csv(dest_path, index=False)
         log.info(
@@ -60,4 +71,6 @@ async def save_upload(file: UploadFile, dataset_id: str) -> Path:
             len(df),
         )
 
-    return dest_path
+    _csv_to_sqlite(dest_path, db_path)
+
+    return dest_path, db_path

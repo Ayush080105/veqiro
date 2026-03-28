@@ -1,37 +1,34 @@
 """
 tools/sql_executor.py
 
-Executes a validated SELECT query against a CSV file using DuckDB.
+Executes a validated SELECT query against a SQLite database.
 
-DuckDB can query CSV files directly via read_csv_auto(), which means:
-  - No persistent database needed (fully stateless).
-  - Fast columnar execution.
-  - The table alias in SQL is "dataset" (set in schema_extractor).
+Each dataset is stored as a persistent SQLite DB at storage/<dataset_id>.db.
+The table name inside the DB is always "dataset".
 """
 
 import logging
+import sqlite3
 from pathlib import Path
 
-import duckdb
 import pandas as pd
 
 log = logging.getLogger("ai-analyst.sql_executor")
 
-# DuckDB reads the CSV under this alias
 TABLE_ALIAS = "dataset"
 
 
 def execute_sql(
     *,
-    csv_path: Path,
+    db_path: Path,
     sql: str,
     max_rows: int = 1_000,
 ) -> tuple[pd.DataFrame | None, str | None]:
     """
-    Execute a SQL SELECT query against a CSV file.
+    Execute a SQL SELECT query against a SQLite database.
 
     Args:
-        csv_path: Path to the CSV file.
+        db_path:  Path to the SQLite DB file.
         sql:      Validated SELECT query; must reference table as "dataset".
         max_rows: Hard cap on returned rows to prevent memory blowout.
 
@@ -40,15 +37,9 @@ def execute_sql(
         (None, error_message)     on failure
     """
     try:
-        con = duckdb.connect(database=":memory:")
-
-        # Register the CSV as a virtual table called "dataset"
-        con.execute(
-            f"CREATE VIEW {TABLE_ALIAS} AS SELECT * FROM read_csv_auto('{csv_path}')"
-        )
-
-        df: pd.DataFrame = con.execute(sql).df()
-        con.close()
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        df: pd.DataFrame = pd.read_sql_query(sql, conn)
+        conn.close()
 
         if df.empty:
             log.info("SQL returned 0 rows.")
@@ -61,8 +52,8 @@ def execute_sql(
         log.info("SQL returned %d rows, %d columns.", len(df), len(df.columns))
         return df, None
 
-    except duckdb.Error as exc:
-        msg = f"DuckDB execution error: {exc}"
+    except sqlite3.Error as exc:
+        msg = f"SQLite execution error: {exc}"
         log.error(msg)
         return None, msg
     except Exception as exc:

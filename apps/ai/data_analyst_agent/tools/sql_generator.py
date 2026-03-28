@@ -2,9 +2,10 @@
 tools/sql_generator.py
 
 Uses the LLM to:
-  1. classify_query  – SQL-answerable vs general knowledge question
-  2. generate_sql    – produce a structured JSON {sql, chart, x_col, y_col}
-  3. generate_insights_queries – produce N exploratory SQL queries for /insights
+  1. classify_query         – SQL-answerable vs general knowledge question
+  2. generate_sql           – produce a structured JSON {sql, chart, x_col, y_col}
+  3. fix_sql                – auto-fix a broken SQL query given the error
+  4. generate_insights_queries – produce N exploratory SQL queries for /insights
 """
 
 import json
@@ -82,7 +83,7 @@ No explanation. No markdown. No extra text.
 
 
 SQL_SYSTEM = """\
-You are an expert SQL analyst. Generate a single DuckDB-compatible SELECT query \
+You are an expert SQL analyst. Generate a single SQLite-compatible SELECT query \
 for the user's question based on the dataset schema provided.
 
 STRICT RULES:
@@ -90,7 +91,14 @@ STRICT RULES:
   2. Use the exact table name provided in the schema.
   3. Qualify all column names to avoid ambiguity.
   4. Handle NULL values gracefully (use COALESCE where appropriate).
-  5. Do not use features unsupported by DuckDB (e.g., no MySQL-specific syntax).
+  5. SQLite date functions:
+       - strftime('%Y', col)       instead of YEAR(col)
+       - strftime('%m', col)       instead of MONTH(col)
+       - strftime('%Y-%m', col)    for year-month grouping
+       - julianday() for date arithmetic, DATE('now') for current date
+     No PIVOT, no QUALIFY, no STDDEV(), no MEDIAN().
+     Integer division: CAST(a AS REAL) / b for float result.
+     String concatenation: use || operator.
 
 Respond with ONLY a JSON object in this exact format (no markdown, no explanation):
 {
@@ -106,9 +114,35 @@ Choose chart="line" for time-series data.
 Choose chart="bar" for categorical comparisons."""
 
 
+FIX_SQL_SYSTEM = """\
+You are a SQLite SQL debugger. You will be given a broken SQL query, the error it produced, \
+and the dataset schema. Fix the SQL so it executes correctly.
+
+SQLite reminders:
+  - Use strftime('%Y', col) not YEAR(col)
+  - No PIVOT, no QUALIFY, no STDDEV(), no MEDIAN()
+  - String concat uses || operator
+  - Column names with spaces need double quotes
+  - Integer division: CAST(a AS REAL) / b
+
+Respond ONLY with the same JSON format (no markdown, no explanation):
+{"sql": "<fixed SELECT query>", "chart": "...", "x_col": "...", "y_col": "..."}"""
+
+
 INSIGHTS_SYSTEM = """\
-You are a data analyst generating automatic exploratory insights for a new dataset.
-Given the schema, generate exactly 5 diverse SQL SELECT queries that surface interesting patterns.
+You are a senior data analyst generating automatic exploratory insights for a new dataset.
+
+Generate exactly 5 diverse SQL SELECT queries that surface the most actionable patterns.
+
+Prioritize:
+  1. Categorical breakdowns for high-cardinality columns
+  2. Distribution / spread analysis for numeric columns
+  3. Trend-over-time query if any date/time columns exist
+  4. Top-N and bottom-N rankings
+  5. Cross-column comparisons (e.g., avg metric by category)
+
+All SQL must be SQLite-compatible. Use strftime('%Y', col) for date extraction.
+No PIVOT, no STDDEV(), no MEDIAN(). Use COALESCE for NULLs.
 
 Respond ONLY with a valid JSON array (no markdown, no explanation):
 [
@@ -172,15 +206,48 @@ async def generate_sql(*, query: str, schema: dict) -> dict:
         raise ValueError(f"LLM returned invalid JSON: {raw[:200]}") from exc
 
 
-async def generate_insights_queries(*, schema: dict) -> list[dict]:
+async def fix_sql(*, original_sql: str, error: str, schema: dict) -> dict:
     """
-    Returns a list of insight dicts: [{title, sql, chart, x_col, y_col}, ...]
+    Ask the LLM to repair a broken SQL query.
+
+    Returns a dict: {sql, chart, x_col, y_col}
+    Raises ValueError if the LLM response cannot be parsed.
     """
     messages = [
         {
             "role": "user",
             "content": (
                 f"Dataset schema:\n{_schema_block(schema)}\n\n"
+                f"Broken SQL:\n{original_sql}\n\n"
+                f"Error:\n{error}\n\n"
+                "Fix the SQL query."
+            ),
+        }
+    ]
+    raw = await chat_completion(system=FIX_SQL_SYSTEM, messages=messages, max_tokens=600)
+    clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+    try:
+        result = json.loads(clean)
+        log.info("fix_sql: repaired SQL: %s", result.get("sql", ""))
+        return result
+    except json.JSONDecodeError as exc:
+        log.error("fix_sql: JSON parse failed – %s\nRaw: %r", exc, raw)
+        raise ValueError(f"fix_sql: LLM returned invalid JSON: {raw[:200]}") from exc
+
+
+async def generate_insights_queries(*, schema: dict, profile_summary: str = "") -> list[dict]:
+    """
+    Returns a list of insight dicts: [{title, sql, chart, x_col, y_col}, ...]
+    """
+    profile_section = (
+        f"\nData profile summary:\n{profile_summary}\n" if profile_summary else ""
+    )
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                f"Dataset schema:\n{_schema_block(schema)}"
+                f"{profile_section}\n\n"
                 "Generate 5 insightful exploratory SQL queries."
             ),
         }
