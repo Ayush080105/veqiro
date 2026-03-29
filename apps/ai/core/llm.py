@@ -1,0 +1,328 @@
+import asyncio
+import base64
+from typing import AsyncGenerator
+from core.config import settings
+from core.exceptions import LLMError
+
+# Provider + model constants
+GEMINI_FLASH = ("gemini", "gemini-2.0-flash")
+GPT4O_MINI = ("openai", "gpt-4o-mini")
+CLAUDE_SONNET = ("anthropic", "claude-sonnet-4-20250514")
+EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
+
+# A minimal 1x1 red PNG in base64
+_RED_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8"
+    "z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg=="
+)
+
+_MOCK_CONTENT_RESPONSE = """\
+Exciting news! 🚀 We just launched our AI-powered productivity suite designed specifically for founders and small teams.
+
+Here's what makes it different:
+✅ Automate repetitive tasks in minutes, not months
+✅ Built-in analytics that surface what actually matters
+✅ Integrates with the tools you already use
+
+We've helped 500+ founders reclaim 10+ hours per week. Ready to see what you could build with that time?
+
+👇 Drop a comment below or DM us for early access.
+
+#ProductivityHacks #StartupLife #AITools #FounderLife #SaaS
+"""
+
+_MOCK_ANALYSIS_RESPONSE = """\
+**Business Metrics Analysis – Q1 2025**
+
+**Revenue Trend:** MRR grew from $42,000 to $58,500 (+39.3%) over the past 90 days. ARR now stands at $702,000.
+
+**Key Findings:**
+- Customer acquisition cost (CAC) decreased 12% to $320/customer
+- Average contract value increased to $185/month (up from $162)
+- Churn rate is 2.1% – below the 3% SaaS benchmark ✅
+- Burn rate: $38,000/month with 14.2 months runway
+
+**Anomalies Detected:**
+- Week 8 showed a revenue dip of 18% – correlates with a major competitor pricing announcement
+- Subscriber growth spiked 34% in Week 11 following the ProductHunt launch
+
+**Recommendation:** Focus on expanding the enterprise tier – current NRR of 108% indicates strong expansion revenue potential.
+"""
+
+_MOCK_RESEARCH_RESPONSE = """\
+**Research Report: AI Productivity Tools Market – 2025**
+
+**Market Overview:**
+The AI productivity tools market is projected to reach $23.8B by 2026, growing at 31% CAGR. SMBs represent 42% of total addressable market.
+
+**Key Competitors:**
+1. **Notion AI** – Strong in knowledge management, 20M+ users, recently added AI writing
+2. **Monday.com AI** – Workflow automation focus, strong enterprise presence
+3. **ClickUp AI** – Broad feature set, aggressive pricing, targeting SMBs
+
+**Emerging Trends:**
+- Vertical-specific AI agents (legal, finance, marketing) outperforming generalist tools
+- Founders prioritize integrations over standalone tools (78% in recent survey)
+- Voice-first interfaces gaining traction for mobile-first workflows
+
+**Opportunities:**
+- No dominant player owns the "founder-specific" AI workspace category
+- Integration with accounting software is a significant gap
+- Bilingual AI support (English + regional languages) underserved
+
+**Sources:** TechCrunch, Crunchbase, G2 reviews, founder community surveys.
+"""
+
+_MOCK_LEGAL_RESPONSE = """\
+**Legal Analysis – NDA Review**
+
+**Document Type:** Mutual Non-Disclosure Agreement
+**Jurisdiction:** Delaware, United States
+
+**Risk Assessment: MEDIUM**
+
+**Key Findings:**
+1. **Definition of Confidential Information** (Clause 2) – Broadly defined; recommend narrowing to written/marked materials to avoid disputes.
+2. **Duration** (Clause 5) – 5-year term is longer than market standard (2-3 years); consider negotiating down.
+3. **Residuals Clause** – Present and potentially problematic; allows retained information to be used in future work.
+4. **No Mutual Indemnification** – One-sided indemnification favors the disclosing party.
+
+**Missing Protections:**
+- No dispute resolution mechanism specified
+- No governing law clause for international parties
+- No limitation on remedies beyond injunctive relief
+
+**Recommendation:** Request modifications to Clauses 2, 5, and add a reciprocal indemnification clause before signing.
+
+---
+*DISCLAIMER: This is AI-generated information for educational purposes only. Consult a qualified attorney for specific legal advice.*
+"""
+
+_MOCK_EMAIL_RESPONSE = """\
+Subject: Re: Partnership Opportunity – Veqiro AI Integration
+
+Hi Sarah,
+
+Thank you for reaching out about the partnership opportunity. We've reviewed your proposal and are excited about the potential synergies between our platforms.
+
+I'd love to schedule a 30-minute call this week to discuss:
+1. Technical integration requirements
+2. Revenue share structure
+3. Timeline for pilot launch
+
+Are you available Thursday or Friday between 2–5 PM EST? I'll send a calendar invite once we confirm.
+
+Looking forward to connecting!
+
+Best regards,
+Alex
+Founder, Veqiro AI
+"""
+
+
+def _chunk_text(text: str, chunk_size: int = 8) -> list[str]:
+    """Split text into word chunks for mock streaming."""
+    words = text.split()
+    chunks = []
+    for i in range(0, len(words), chunk_size):
+        chunk = " ".join(words[i : i + chunk_size])
+        chunks.append(chunk + " ")
+    return chunks
+
+
+def _select_mock_response(system: str, messages: list) -> str:
+    """Pick a mock response based on context keywords."""
+    context = (system + " ".join(m.get("content", "") for m in messages)).lower()
+    if any(k in context for k in ["legal", "contract", "nda", "compliance", "law"]):
+        return _MOCK_LEGAL_RESPONSE
+    if any(k in context for k in ["email", "calendar", "inbox", "reply", "draft"]):
+        return _MOCK_EMAIL_RESPONSE
+    if any(k in context for k in ["analytics", "data", "metrics", "revenue", "finance", "forecast"]):
+        return _MOCK_ANALYSIS_RESPONSE
+    if any(k in context for k in ["research", "competitor", "market", "trend"]):
+        return _MOCK_RESEARCH_RESPONSE
+    return _MOCK_CONTENT_RESPONSE
+
+
+class LLMClient:
+    """Unified LLM client supporting Gemini, OpenAI, and Anthropic."""
+
+    async def complete(
+        self,
+        provider: str,
+        model: str,
+        system: str,
+        messages: list,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        response_format=None,
+    ) -> str:
+        if settings.MOCK_MODE:
+            await asyncio.sleep(0.05)  # simulate tiny latency
+            return _select_mock_response(system, messages)
+        return await self._real_complete(provider, model, system, messages, temperature, max_tokens, response_format)
+
+    async def _real_complete(self, provider, model, system, messages, temperature, max_tokens, response_format):
+        retries = [1, 3, 9]
+        last_exc = None
+        for delay in [0] + retries:
+            if delay:
+                await asyncio.sleep(delay)
+            try:
+                if provider == "gemini":
+                    return await self._gemini_complete(model, system, messages, temperature, max_tokens)
+                elif provider == "openai":
+                    return await self._openai_complete(model, system, messages, temperature, max_tokens, response_format)
+                elif provider == "anthropic":
+                    return await self._anthropic_complete(model, system, messages, temperature, max_tokens)
+                else:
+                    raise LLMError(f"Unknown provider: {provider}")
+            except Exception as e:
+                last_exc = e
+        raise LLMError(f"LLM call failed after retries: {last_exc}")
+
+    async def _gemini_complete(self, model, system, messages, temperature, max_tokens):
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        gm = genai.GenerativeModel(
+            model,
+            system_instruction=system,
+            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+        )
+        history = []
+        for m in messages[:-1]:
+            role = "user" if m["role"] == "user" else "model"
+            history.append({"role": role, "parts": [m["content"]]})
+        chat = gm.start_chat(history=history)
+        last_msg = messages[-1]["content"] if messages else ""
+        response = await asyncio.to_thread(chat.send_message, last_msg)
+        return response.text
+
+    async def _openai_complete(self, model, system, messages, temperature, max_tokens, response_format):
+        import openai as _openai
+        client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        oai_messages = [{"role": "system", "content": system}] + messages
+        kwargs = {"model": model, "messages": oai_messages, "temperature": temperature, "max_tokens": max_tokens}
+        if response_format:
+            kwargs["response_format"] = response_format
+        resp = await client.chat.completions.create(**kwargs)
+        return resp.choices[0].message.content
+
+    async def _anthropic_complete(self, model, system, messages, temperature, max_tokens):
+        import anthropic as _anthropic
+        client = _anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        resp = await client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            system=system,
+            messages=messages,
+        )
+        return resp.content[0].text
+
+    async def stream(
+        self,
+        provider: str,
+        model: str,
+        system: str,
+        messages: list,
+        temperature: float = 0.7,
+    ) -> AsyncGenerator[str, None]:
+        if settings.MOCK_MODE:
+            mock_text = _select_mock_response(system, messages)
+            chunks = _chunk_text(mock_text, chunk_size=7)
+            for chunk in chunks:
+                await asyncio.sleep(0.04)
+                yield chunk
+            return
+        async for token in self._real_stream(provider, model, system, messages, temperature):
+            yield token
+
+    async def _real_stream(self, provider, model, system, messages, temperature):
+        retries = [1, 3, 9]
+        last_exc = None
+        for delay in [0] + retries:
+            if delay:
+                await asyncio.sleep(delay)
+            try:
+                if provider == "gemini":
+                    async for token in self._gemini_stream(model, system, messages, temperature):
+                        yield token
+                    return
+                elif provider == "openai":
+                    async for token in self._openai_stream(model, system, messages, temperature):
+                        yield token
+                    return
+                elif provider == "anthropic":
+                    async for token in self._anthropic_stream(model, system, messages, temperature):
+                        yield token
+                    return
+                else:
+                    raise LLMError(f"Unknown provider: {provider}")
+            except Exception as e:
+                last_exc = e
+        raise LLMError(f"LLM stream failed after retries: {last_exc}")
+
+    async def _gemini_stream(self, model, system, messages, temperature):
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        gm = genai.GenerativeModel(
+            model,
+            system_instruction=system,
+            generation_config={"temperature": temperature},
+        )
+        last_msg = messages[-1]["content"] if messages else ""
+
+        def _sync_stream():
+            return gm.generate_content(last_msg, stream=True)
+
+        response = await asyncio.to_thread(_sync_stream)
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
+
+    async def _openai_stream(self, model, system, messages, temperature):
+        import openai as _openai
+        client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        oai_messages = [{"role": "system", "content": system}] + messages
+        async with client.chat.completions.stream(
+            model=model, messages=oai_messages, temperature=temperature
+        ) as stream:
+            async for text in stream.text_stream:
+                yield text
+
+    async def _anthropic_stream(self, model, system, messages, temperature):
+        import anthropic as _anthropic
+        client = _anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        async with client.messages.stream(
+            model=model,
+            max_tokens=4096,
+            temperature=temperature,
+            system=system,
+            messages=messages,
+        ) as stream:
+            async for text in stream.text_stream:
+                yield text
+
+    async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
+        """Returns base64-encoded PNG string."""
+        if settings.MOCK_MODE:
+            await asyncio.sleep(0.05)
+            return _RED_PNG_B64
+        # Real: use DALL-E 3
+        import openai as _openai
+        client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        size_map = {"1:1": "1024x1024", "16:9": "1792x1024", "9:16": "1024x1792"}
+        size = size_map.get(aspect_ratio, "1024x1024")
+        response = await client.images.generate(model="dall-e-3", prompt=prompt, size=size, response_format="b64_json")
+        return response.data[0].b64_json
+
+    def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
+        """Approximate token count."""
+        try:
+            import tiktoken
+            enc = tiktoken.encoding_for_model(model)
+            return len(enc.encode(text))
+        except Exception:
+            # Fallback: ~4 chars per token
+            return len(text) // 4

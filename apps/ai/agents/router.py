@@ -1,0 +1,98 @@
+import uuid
+from fastapi import APIRouter
+from pydantic import BaseModel, ConfigDict
+from core.config import settings
+from core.llm import LLMClient, GPT4O_MINI
+
+router = APIRouter(prefix="/ai/router", tags=["Router"])
+
+_KEYWORD_MAP = {
+    "maya": ["content", "post", "social", "marketing", "caption", "blog", "write", "linkedin", "instagram", "twitter"],
+    "rex": ["analytics", "data", "metrics", "revenue", "finance", "forecast", "numbers", "mrr", "arr", "kpi"],
+    "scout": ["research", "competitor", "market", "trends", "industry", "investigate", "analysis"],
+    "sage": ["seo", "keyword", "blog", "wordpress", "organic", "ranking", "search", "traffic"],
+    "lex": ["legal", "contract", "nda", "terms", "privacy", "compliance", "document", "agreement"],
+    "vega": ["email", "calendar", "schedule", "meeting", "inbox", "reply", "draft", "gmail"],
+}
+
+
+class ClassifyRequest(BaseModel):
+    user_id: str
+    message: str
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "message": "Help me write a LinkedIn post about our Series A funding",
+            }
+        }
+    )
+
+
+class ClassifyResponse(BaseModel):
+    agent_slug: str
+    confidence: float
+    reasoning: str
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "agent_slug": "maya",
+                "confidence": 0.92,
+                "reasoning": "Message contains keywords related to content creation and LinkedIn posting.",
+            }
+        }
+    )
+
+
+def _keyword_classify(message: str) -> ClassifyResponse:
+    message_lower = message.lower()
+    scores: dict[str, int] = {}
+    for agent, keywords in _KEYWORD_MAP.items():
+        hit = sum(1 for k in keywords if k in message_lower)
+        if hit:
+            scores[agent] = hit
+
+    if not scores:
+        return ClassifyResponse(
+            agent_slug="maya",
+            confidence=0.5,
+            reasoning="No strong keyword signals found; defaulting to Maya (content agent).",
+        )
+
+    best_agent = max(scores, key=lambda a: scores[a])
+    total_hits = sum(scores.values())
+    confidence = round(scores[best_agent] / max(total_hits, 1), 2)
+    matched_keywords = [k for k in _KEYWORD_MAP[best_agent] if k in message_lower]
+    return ClassifyResponse(
+        agent_slug=best_agent,
+        confidence=min(confidence + 0.4, 0.99),
+        reasoning=f"Matched keywords: {', '.join(matched_keywords)}",
+    )
+
+
+@router.post("/classify", response_model=ClassifyResponse, summary="Classify message to agent")
+async def classify_message(request: ClassifyRequest) -> ClassifyResponse:
+    """Classify a user message and route to the most appropriate AI agent."""
+    if settings.MOCK_MODE:
+        return _keyword_classify(request.message)
+
+    llm = LLMClient()
+    provider, model = GPT4O_MINI
+    agent_list = "\n".join(
+        f"- {agent}: {', '.join(kws[:5])}" for agent, kws in _KEYWORD_MAP.items()
+    )
+    system = (
+        "You are a routing classifier. Given a user message, determine which AI agent should handle it.\n"
+        f"Available agents and their keywords:\n{agent_list}\n\n"
+        "Respond in JSON: {\"agent_slug\": \"...\", \"confidence\": 0.0-1.0, \"reasoning\": \"...\"}"
+    )
+    messages = [{"role": "user", "content": request.message}]
+    import json
+    raw = await llm.complete(provider=provider, model=model, system=system, messages=messages)
+    try:
+        data = json.loads(raw)
+        return ClassifyResponse(**data)
+    except Exception:
+        return _keyword_classify(request.message)

@@ -1,0 +1,135 @@
+import hashlib
+import difflib
+from core.config import settings
+
+
+async def scrape_url(url: str) -> str:
+    """Scrape and extract main text content from a URL."""
+    if settings.MOCK_MODE:
+        return (
+            f"Mock scraped content from {url}.\n\n"
+            "This company offers an AI-powered project management platform targeting SMBs. "
+            "Key features: automated task assignment, smart scheduling, real-time analytics dashboard, "
+            "and native integrations with Slack, GitHub, and Google Workspace. "
+            "Pricing: Starter $15/user/month, Pro $35/user/month, Enterprise custom. "
+            "Recent updates: launched AI copilot feature in Q1 2025, raised $12M Series A in Feb 2025. "
+            "Team size: 45 employees. Founded: 2022. HQ: San Francisco, CA."
+        )
+    try:
+        import trafilatura
+        import asyncio
+
+        def _fetch():
+            downloaded = trafilatura.fetch_url(url)
+            if downloaded:
+                return trafilatura.extract(downloaded) or ""
+            return ""
+
+        text = await asyncio.to_thread(_fetch)
+        return text or f"[No content extracted from {url}]"
+    except ImportError:
+        import httpx
+        import asyncio
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(url, follow_redirects=True)
+            return resp.text[:5000]
+
+
+def hash_content(content: str) -> str:
+    """Return MD5 hash of content string."""
+    return hashlib.md5(content.encode("utf-8")).hexdigest()
+
+
+def diff_content(old: str, new: str) -> str:
+    """Return a unified diff summary between two content strings."""
+    if old == new:
+        return "No changes detected."
+
+    old_lines = old.splitlines(keepends=True)
+    new_lines = new.splitlines(keepends=True)
+    diff = list(difflib.unified_diff(old_lines, new_lines, fromfile="previous", tofile="current", n=3))
+
+    if not diff:
+        return "No significant text changes."
+
+    added = sum(1 for line in diff if line.startswith("+") and not line.startswith("+++"))
+    removed = sum(1 for line in diff if line.startswith("-") and not line.startswith("---"))
+    summary = f"+{added} lines added, -{removed} lines removed.\n"
+    summary += "".join(diff[:50])  # First 50 diff lines
+    return summary
+
+
+async def fetch_rss(url: str, count: int = 10) -> list[dict]:
+    """Fetch and parse an RSS feed. In mock mode returns sample news items."""
+    if settings.MOCK_MODE:
+        return [
+            {
+                "title": "AI Productivity Tools Market Expected to Hit $23B by 2026",
+                "link": "https://example.com/news/ai-productivity-2026",
+                "published": "2025-03-15",
+                "summary": "New research shows AI-powered productivity platforms are growing at 31% CAGR, driven by SMB adoption.",
+                "source": "TechCrunch",
+            },
+            {
+                "title": "Notion Raises $50M to Expand AI Features",
+                "link": "https://example.com/news/notion-funding",
+                "published": "2025-03-10",
+                "summary": "Notion secures additional funding to build out its AI assistant capabilities for enterprise clients.",
+                "source": "Crunchbase",
+            },
+            {
+                "title": "Founders Report 40% Time Savings with AI Automation Tools",
+                "link": "https://example.com/news/founder-ai-survey",
+                "published": "2025-03-08",
+                "summary": "Survey of 500 early-stage founders shows significant productivity gains from AI workflow automation.",
+                "source": "Forbes",
+            },
+        ][:count]
+
+    try:
+        import feedparser
+        import asyncio
+
+        def _parse():
+            feed = feedparser.parse(url)
+            items = []
+            for entry in feed.entries[:count]:
+                items.append({
+                    "title": getattr(entry, "title", ""),
+                    "link": getattr(entry, "link", ""),
+                    "published": getattr(entry, "published", ""),
+                    "summary": getattr(entry, "summary", "")[:500],
+                    "source": feed.feed.get("title", url),
+                })
+            return items
+
+        return await asyncio.to_thread(_parse)
+    except Exception as e:
+        return [{"title": f"RSS fetch error: {e}", "link": url, "published": "", "summary": "", "source": ""}]
+
+
+async def google_autocomplete(keyword: str) -> list[str]:
+    """Fetch Google autocomplete suggestions. In mock mode returns related keywords."""
+    if settings.MOCK_MODE:
+        base = keyword.lower()
+        return [
+            f"{base} for startups",
+            f"{base} tools 2025",
+            f"best {base} software",
+            f"{base} vs alternatives",
+            f"how to use {base}",
+            f"{base} pricing comparison",
+            f"{base} case studies",
+            f"free {base} tools",
+        ]
+
+    try:
+        import httpx
+        url = "https://suggestqueries.google.com/complete/search"
+        params = {"client": "firefox", "q": keyword}
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url, params=params)
+            data = resp.json()
+            return data[1] if len(data) > 1 else []
+    except Exception:
+        return [f"{keyword} tools", f"{keyword} tips", f"best {keyword}"]
