@@ -14,9 +14,12 @@ from agents.vega.calendar import list_events, create_event, find_free_slots
 
 router = APIRouter(prefix="/ai/vega", tags=["Vega"])
 
+from agents.registry import register_agent
+
 _llm = LLMClient()
 _rag = RAGService()
 _agent = VegaAgent(_llm, _rag)
+register_agent(_agent)
 
 
 # ── Models ───────────────────────────────────────────────────────────────────

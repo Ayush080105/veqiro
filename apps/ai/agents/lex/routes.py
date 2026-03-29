@@ -13,9 +13,12 @@ from agents.lex.agent import LexAgent, LEGAL_DISCLAIMER
 
 router = APIRouter(prefix="/ai/lex", tags=["Lex"])
 
+from agents.registry import register_agent
+
 _llm = LLMClient()
 _rag = RAGService()
 _agent = LexAgent(_llm, _rag)
+register_agent(_agent)
 
 
 # ── Models ───────────────────────────────────────────────────────────────────

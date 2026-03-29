@@ -13,9 +13,12 @@ from agents.scout.scraper import scrape_url, hash_content, diff_content, fetch_r
 
 router = APIRouter(prefix="/ai/scout", tags=["Scout"])
 
+from agents.registry import register_agent
+
 _llm = LLMClient()
 _rag = RAGService()
 _agent = ScoutAgent(_llm, _rag)
+register_agent(_agent)
 
 
 # ── Models ───────────────────────────────────────────────────────────────────

@@ -13,9 +13,12 @@ from agents.maya.agent import MayaAgent
 router = APIRouter(prefix="/ai/maya", tags=["Maya"])
 
 # Shared instances
+from agents.registry import register_agent
+
 _llm = LLMClient()
 _rag = RAGService()
 _agent = MayaAgent(_llm, _rag)
+register_agent(_agent)
 
 
 # ── Request / Response Models ────────────────────────────────────────────────

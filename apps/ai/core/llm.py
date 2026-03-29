@@ -1,8 +1,14 @@
 import asyncio
 import base64
+import json as _json
 from typing import AsyncGenerator
 from core.config import settings
 from core.exceptions import LLMError
+from core.tools import (
+    ToolDefinition, ToolCall, ToolResult, LLMToolResponse,
+    tool_defs_to_openai, tool_defs_to_anthropic, tool_defs_to_gemini,
+    format_tool_result_messages,
+)
 
 # Provider + model constants
 GEMINI_FLASH = ("gemini", "gemini-2.0-flash")
@@ -132,7 +138,18 @@ def _chunk_text(text: str, chunk_size: int = 8) -> list[str]:
 
 def _select_mock_response(system: str, messages: list) -> str:
     """Pick a mock response based on context keywords."""
-    context = (system + " ".join(m.get("content", "") for m in messages)).lower()
+    parts = [system]
+    for m in messages:
+        c = m.get("content", "")
+        if isinstance(c, str) and c:
+            parts.append(c)
+        elif isinstance(c, list):
+            for item in c:
+                if isinstance(item, dict) and isinstance(item.get("content"), str):
+                    parts.append(item["content"])
+                elif isinstance(item, str):
+                    parts.append(item)
+    context = " ".join(parts).lower()
     if any(k in context for k in ["legal", "contract", "nda", "compliance", "law"]):
         return _MOCK_LEGAL_RESPONSE
     if any(k in context for k in ["email", "calendar", "inbox", "reply", "draft"]):
@@ -303,6 +320,328 @@ class LLMClient:
         ) as stream:
             async for text in stream.text_stream:
                 yield text
+
+    # ── Tool-calling completion ───────────────────────────────────────────
+
+    async def complete_with_tools(
+        self,
+        provider: str,
+        model: str,
+        system: str,
+        messages: list,
+        tools: list[ToolDefinition],
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ) -> LLMToolResponse:
+        """Complete with tool/function calling support. Returns text OR tool calls."""
+        if settings.MOCK_MODE:
+            return await self._mock_complete_with_tools(system, messages, tools)
+        return await self._real_complete_with_tools(
+            provider, model, system, messages, tools, temperature, max_tokens
+        )
+
+    async def _real_complete_with_tools(
+        self, provider, model, system, messages, tools, temperature, max_tokens
+    ) -> LLMToolResponse:
+        retries = [1, 3, 9]
+        last_exc = None
+        for delay in [0] + retries:
+            if delay:
+                await asyncio.sleep(delay)
+            try:
+                if provider == "gemini":
+                    return await self._gemini_complete_with_tools(
+                        model, system, messages, tools, temperature, max_tokens
+                    )
+                elif provider == "openai":
+                    return await self._openai_complete_with_tools(
+                        model, system, messages, tools, temperature, max_tokens
+                    )
+                elif provider == "anthropic":
+                    return await self._anthropic_complete_with_tools(
+                        model, system, messages, tools, temperature, max_tokens
+                    )
+                else:
+                    raise LLMError(f"Unknown provider: {provider}")
+            except Exception as e:
+                last_exc = e
+        raise LLMError(f"LLM tool call failed after retries: {last_exc}")
+
+    async def _openai_complete_with_tools(
+        self, model, system, messages, tools, temperature, max_tokens
+    ) -> LLMToolResponse:
+        import openai as _openai
+        client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        oai_messages = [{"role": "system", "content": system}] + messages
+        oai_tools = tool_defs_to_openai(tools)
+        resp = await client.chat.completions.create(
+            model=model,
+            messages=oai_messages,
+            tools=oai_tools,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        choice = resp.choices[0]
+        if choice.message.tool_calls:
+            calls = []
+            for tc in choice.message.tool_calls:
+                try:
+                    args = _json.loads(tc.function.arguments)
+                except Exception:
+                    args = {}
+                calls.append(ToolCall(
+                    id=tc.id,
+                    name=tc.function.name,
+                    arguments=args,
+                ))
+            return LLMToolResponse(
+                content=choice.message.content,
+                tool_calls=calls,
+                finish_reason="tool_calls",
+            )
+        return LLMToolResponse(
+            content=choice.message.content or "",
+            tool_calls=[],
+            finish_reason="stop",
+        )
+
+    async def _anthropic_complete_with_tools(
+        self, model, system, messages, tools, temperature, max_tokens
+    ) -> LLMToolResponse:
+        import anthropic as _anthropic
+        client = _anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        ant_tools = tool_defs_to_anthropic(tools)
+        resp = await client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            system=system,
+            messages=messages,
+            tools=ant_tools,
+        )
+        text_parts = []
+        calls = []
+        for block in resp.content:
+            if block.type == "text":
+                text_parts.append(block.text)
+            elif block.type == "tool_use":
+                calls.append(ToolCall(
+                    id=block.id,
+                    name=block.name,
+                    arguments=block.input if isinstance(block.input, dict) else {},
+                ))
+        if calls:
+            return LLMToolResponse(
+                content="\n".join(text_parts) if text_parts else None,
+                tool_calls=calls,
+                finish_reason="tool_calls",
+            )
+        return LLMToolResponse(
+            content="\n".join(text_parts) or "",
+            tool_calls=[],
+            finish_reason="stop",
+        )
+
+    async def _gemini_complete_with_tools(
+        self, model, system, messages, tools, temperature, max_tokens
+    ) -> LLMToolResponse:
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+
+        # Build Gemini tool declarations
+        gem_declarations = tool_defs_to_gemini(tools)
+        gem_tools = genai.types.Tool(function_declarations=gem_declarations)
+
+        gm = genai.GenerativeModel(
+            model,
+            system_instruction=system,
+            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+            tools=[gem_tools],
+        )
+
+        # Build history for Gemini
+        history = []
+        for m in messages[:-1]:
+            role = "user" if m["role"] == "user" else "model"
+            # Handle dict content (tool results) vs string content
+            if isinstance(m.get("content"), str):
+                history.append({"role": role, "parts": [m["content"]]})
+            elif isinstance(m.get("content"), list):
+                # Gemini function response parts
+                parts = []
+                for part in m["content"]:
+                    if isinstance(part, str):
+                        parts.append(part)
+                    else:
+                        parts.append(part)
+                if parts:
+                    history.append({"role": role, "parts": parts})
+
+        chat = gm.start_chat(history=history)
+        last_msg = messages[-1]["content"] if messages else ""
+
+        if isinstance(last_msg, str):
+            response = await asyncio.to_thread(chat.send_message, last_msg)
+        else:
+            response = await asyncio.to_thread(chat.send_message, last_msg)
+
+        # Check for function calls in response
+        calls = []
+        text_parts = []
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, "function_call") and part.function_call.name:
+                fc = part.function_call
+                args = dict(fc.args) if fc.args else {}
+                calls.append(ToolCall(
+                    name=fc.name,
+                    arguments=args,
+                ))
+            elif hasattr(part, "text") and part.text:
+                text_parts.append(part.text)
+
+        if calls:
+            return LLMToolResponse(
+                content="\n".join(text_parts) if text_parts else None,
+                tool_calls=calls,
+                finish_reason="tool_calls",
+            )
+        return LLMToolResponse(
+            content="\n".join(text_parts) or response.text,
+            tool_calls=[],
+            finish_reason="stop",
+        )
+
+    async def _mock_complete_with_tools(
+        self, system: str, messages: list, tools: list[ToolDefinition]
+    ) -> LLMToolResponse:
+        """Mock mode: detect if a tool should be called based on keywords."""
+        await asyncio.sleep(0.05)
+
+        # Check if this is a follow-up after tool results (tool messages present)
+        has_tool_results = any(
+            m.get("role") == "tool"
+            or (isinstance(m.get("content"), list) and any(
+                isinstance(c, dict) and c.get("type") == "tool_result"
+                for c in m["content"]
+            ))
+            # Also detect assistant messages with tool_calls (OpenAI format)
+            or (m.get("role") == "assistant" and m.get("tool_calls"))
+            for m in messages
+        )
+        if has_tool_results:
+            # Follow-up after tool execution: return final text response
+            return LLMToolResponse(
+                content=_select_mock_response(system, messages),
+                tool_calls=[],
+                finish_reason="stop",
+            )
+
+        # First call: check if user message matches any tool
+        last_user_msg = ""
+        for m in reversed(messages):
+            if m.get("role") == "user" and isinstance(m.get("content"), str):
+                last_user_msg = m["content"].lower()
+                break
+
+        # Keyword matching for tool selection
+        tool_keywords = {
+            "generate_ideas": ["idea", "ideas", "brainstorm", "suggest content"],
+            "draft_content": ["draft", "write a post", "create a post", "write content", "create content"],
+            "generate_variants": ["variant", "adapt", "repurpose", "cross-platform"],
+            "revise_content": ["revise", "rewrite", "improve this", "make it better"],
+            "analyze_metrics": ["analyze metrics", "metric analysis", "data analysis"],
+            "forecast_metric": ["forecast", "predict", "projection"],
+            "financial_analysis": ["financial", "revenue analysis", "burn rate", "runway"],
+            "compile_briefing": ["briefing", "executive summary", "weekly report"],
+            "research_topic": ["research", "find out about", "look into", "investigate"],
+            "research_company": ["company profile", "research company", "tell me about company"],
+            "scan_competitors": ["scan competitor", "monitor competitor", "competitor changes"],
+            "trending_topics": ["trending", "trends", "what's hot", "popular topics"],
+            "keyword_research": ["keyword", "keywords", "search terms"],
+            "generate_blog": ["blog post", "write a blog", "article", "long-form"],
+            "analyze_content": ["analyze content", "seo audit", "content score"],
+            "content_brief": ["content brief", "outline", "content plan"],
+            "analyze_contract": ["contract", "nda", "agreement review", "legal review"],
+            "draft_document": ["draft document", "legal document", "template"],
+            "explain_legal": ["explain legal", "what does this clause", "plain english"],
+            "process_inbox": ["inbox", "emails", "unread", "triage"],
+            "draft_reply": ["reply to", "respond to email", "draft reply"],
+            "calendar_summary": ["calendar", "schedule", "my week", "meetings"],
+            "create_event": ["schedule a", "create event", "book a meeting", "set up a call"],
+            "executive_briefing": ["daily briefing", "morning briefing", "executive brief"],
+            "ask_agent": ["ask maya", "ask rex", "ask scout", "ask sage", "ask lex", "ask vega"],
+        }
+
+        available_tool_names = {t.name for t in tools}
+
+        for tool_name, keywords in tool_keywords.items():
+            if tool_name not in available_tool_names:
+                continue
+            if any(kw in last_user_msg for kw in keywords):
+                # Build mock arguments
+                mock_args = self._build_mock_tool_args(tool_name, last_user_msg)
+                return LLMToolResponse(
+                    content=None,
+                    tool_calls=[ToolCall(name=tool_name, arguments=mock_args)],
+                    finish_reason="tool_calls",
+                )
+
+        # Check for cross-agent patterns like "research X and write a post"
+        cross_agent_patterns = [
+            (["research", "find out", "look into"], "scout"),
+            (["analyze data", "metrics", "financial"], "rex"),
+            (["legal", "contract", "compliance"], "lex"),
+            (["seo", "keyword", "ranking"], "sage"),
+            (["email", "calendar", "schedule"], "vega"),
+            (["content", "post", "write"], "maya"),
+        ]
+        if "ask_agent" in available_tool_names:
+            for keywords, agent_slug in cross_agent_patterns:
+                if any(kw in last_user_msg for kw in keywords):
+                    # Only trigger cross-agent if the matching agent isn't the current one
+                    # (we can't know the current agent here, so skip this heuristic)
+                    pass
+
+        # No tool match: return direct text response
+        return LLMToolResponse(
+            content=_select_mock_response(system, messages),
+            tool_calls=[],
+            finish_reason="stop",
+        )
+
+    def _build_mock_tool_args(self, tool_name: str, user_msg: str) -> dict:
+        """Build plausible mock arguments for a tool call."""
+        # Extract a topic from the user message (simple heuristic)
+        topic = user_msg[:100] if len(user_msg) > 10 else "AI productivity tools"
+
+        mock_args_map = {
+            "generate_ideas": {"content_type": "linkedin_post", "topic_hint": topic, "count": 3},
+            "draft_content": {"topic": topic, "platform": "linkedin", "word_count": 250},
+            "generate_variants": {"original_content": topic, "original_platform": "linkedin", "target_platforms": ["twitter", "instagram"]},
+            "revise_content": {"original_content": topic, "feedback": "Make it more engaging"},
+            "analyze_metrics": {"metrics": {}, "period": "monthly"},
+            "forecast_metric": {"metric_name": "mrr", "historical_data": [], "horizon_days": 30},
+            "financial_analysis": {"revenue_data": [], "expenses_data": [], "subscribers_data": []},
+            "compile_briefing": {"date": "", "all_metrics": {}, "agent_summaries": {}},
+            "research_topic": {"topic": topic, "depth": "standard"},
+            "research_company": {"company_name": topic[:50]},
+            "scan_competitors": {"competitors": []},
+            "trending_topics": {"industry": topic[:50], "count": 5},
+            "keyword_research": {"seed_topic": topic, "count": 10},
+            "generate_blog": {"topic": topic, "target_keyword": topic[:40], "word_count": 2000},
+            "analyze_content": {"content": topic, "target_keyword": topic[:30]},
+            "content_brief": {"topic": topic, "target_keyword": topic[:40]},
+            "analyze_contract": {"contract_text": topic, "analysis_focus": ["risk_assessment"]},
+            "draft_document": {"document_type": "mutual_nda", "requirements": topic},
+            "explain_legal": {"text": topic},
+            "process_inbox": {"max_emails": 10},
+            "draft_reply": {"email_id": "msg_001", "reply_instructions": topic},
+            "calendar_summary": {"days_ahead": 7},
+            "create_event": {"description": topic},
+            "executive_briefing": {},
+            "ask_agent": {"agent_slug": "scout", "question": topic},
+        }
+        return mock_args_map.get(tool_name, {})
 
     async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
         """Returns base64-encoded PNG string."""

@@ -13,9 +13,12 @@ from agents.sage.wordpress import format_for_wordpress, format_for_wix
 
 router = APIRouter(prefix="/ai/sage", tags=["Sage"])
 
+from agents.registry import register_agent
+
 _llm = LLMClient()
 _rag = RAGService()
 _agent = SageAgent(_llm, _rag)
+register_agent(_agent)
 
 
 # ── Models ───────────────────────────────────────────────────────────────────

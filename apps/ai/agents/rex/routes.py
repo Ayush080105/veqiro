@@ -14,9 +14,12 @@ from agents.rex.forecasting import forecast_metric
 
 router = APIRouter(prefix="/ai/rex", tags=["Rex"])
 
+from agents.registry import register_agent
+
 _llm = LLMClient()
 _rag = RAGService()
 _agent = RexAgent(_llm, _rag)
+register_agent(_agent)
 
 
 # ── Models ───────────────────────────────────────────────────────────────────
