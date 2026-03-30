@@ -1,4 +1,3 @@
-import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 from core.config import settings

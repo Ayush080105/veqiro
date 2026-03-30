@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     MOCK_MODE: bool = Field(default=True)
 
+    # Asset fetching (R2 / CDN)
+    R2_FETCH_TIMEOUT: int = Field(default=10)
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

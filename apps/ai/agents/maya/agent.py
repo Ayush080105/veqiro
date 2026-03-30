@@ -1,43 +1,123 @@
 from agents.base import BaseAgent
 from core.llm import LLMClient
+from core.models import ChatRequest, ChatSyncResponse
 from core.rag import RAGService
 from core.tools import ToolDefinition, ToolParameter
+
+# Platform constraints for prompt injection
+PLATFORM_RULES = {
+    "linkedin": {
+        "max_chars": 3000,
+        "hashtag_count": "3-5",
+        "tone": "professional, thought-leadership, insight-driven",
+        "format": "paragraph breaks, bullet points, strong hook first line",
+    },
+    "twitter": {
+        "max_chars": 280,
+        "hashtag_count": "1-3",
+        "tone": "casual, punchy, scroll-stopping",
+        "format": "short, impactful, thread-friendly (use 🧵 for threads)",
+    },
+    "instagram": {
+        "max_chars": 2200,
+        "hashtag_count": "15-30",
+        "tone": "visual-first, inspiring, relatable",
+        "format": "short paragraphs, line breaks, emojis, CTA at end",
+    },
+}
 
 
 class MayaAgent(BaseAgent):
     slug = "maya"
     name = "Maya"
     personality = (
-        "Creative, energetic, trend-aware content marketer with deep expertise in social media, "
-        "copywriting, and brand storytelling. You craft compelling narratives that resonate with "
-        "target audiences and drive engagement. You stay current with platform algorithms and "
-        "best practices. You always write in the brand's voice and tailor content to the specific "
-        "platform's norms and character limits."
+        "Expert marketing strategist and social media manager. You create high-performing, "
+        "platform-native content for Instagram, LinkedIn, and Twitter/X. You understand "
+        "algorithms, engagement patterns, and what makes content go viral on each platform. "
+        "You always write in the brand's voice, include strategic hashtags, and craft CTAs "
+        "that drive action. You think like a growth marketer — every post has a purpose."
     )
-    default_provider = "gemini"
-    default_model = "gemini-2.0-flash"
+    default_provider = "openai"
+    default_model = "gpt-4o-mini"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
 
     async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
-        base = await super().build_system_prompt(user_id, extra_context)
-        maya_specific = (
-            "\n\nAs Maya, you specialize in:\n"
-            "- LinkedIn posts (thought leadership, product launches, personal brand)\n"
-            "- Twitter/X threads (punchy, scroll-stopping, high engagement)\n"
-            "- Instagram captions (visual-first, hashtag strategy)\n"
-            "- Blog articles (SEO-aware, educational, long-form)\n"
-            "- Email newsletters (subject lines, body copy, CTAs)\n"
-            "- YouTube scripts (hooks, storytelling, retention)\n\n"
-            "Content principles:\n"
-            "1. Lead with a strong hook in the first line\n"
-            "2. Use specific numbers and data points when possible\n"
-            "3. Include a clear, action-oriented CTA\n"
-            "4. Match the platform's native format and tone\n"
-            "5. Optimize hashtags for discoverability without being spammy\n"
+        from core.brand_kit import load_brand_kit
+        brand_kit = await load_brand_kit(user_id)
+
+        prompt = (
+            f"You are {self.name}, {self.personality}\n\n"
+            f"Company: {brand_kit.company_name}\n"
+            f"Description: {brand_kit.company_description}\n"
+            f"Industry: {brand_kit.industry}\n"
+            f"Target Audience: {brand_kit.target_audience}\n"
+            f"Brand Voice: {brand_kit.brand_voice}\n"
+            f"Key Differentiators: {brand_kit.key_differentiators}\n"
         )
-        return base + maya_specific
+        if brand_kit.website_url:
+            prompt += f"Website: {brand_kit.website_url}\n"
+        if brand_kit.competitors:
+            prompt += f"Competitors: {', '.join(str(c) for c in brand_kit.competitors)}\n"
+        if brand_kit.brand_colors:
+            colors = ", ".join(f"{k}: {v}" for k, v in brand_kit.brand_colors.items())
+            prompt += f"Brand Colors: {colors}\n"
+
+        prompt += (
+            "\n## Platform Rules\n"
+            "You support 3 platforms: LinkedIn, Instagram, Twitter/X.\n\n"
+            "**LinkedIn** (max 3000 chars): Professional, insight-driven. 3-5 hashtags. "
+            "Lead with a strong hook. Use paragraph breaks and bullet points.\n\n"
+            "**Twitter/X** (max 280 chars per tweet): Casual, punchy, scroll-stopping. "
+            "1-3 hashtags. For longer content, use threads (🧵).\n\n"
+            "**Instagram** (max 2200 chars): Visual-first, inspiring, relatable. "
+            "15-30 hashtags (in a separate block at the end). Short paragraphs, emojis, CTA.\n\n"
+            "## Content Principles\n"
+            "1. Every post starts with a scroll-stopping hook\n"
+            "2. Include specific numbers and data when possible\n"
+            "3. End with a clear CTA that drives engagement or traffic\n"
+        )
+        if brand_kit.website_url:
+            prompt += f"4. Include the website link ({brand_kit.website_url}) in CTAs when relevant\n"
+        prompt += (
+            "5. Match the platform's native format and character limits exactly\n"
+            "6. Hashtags must be platform-appropriate (count and style)\n"
+            "7. Write in the brand voice — never generic\n"
+        )
+        if extra_context:
+            prompt += f"\nAdditional Context:\n{extra_context}\n"
+        return prompt
+
+    # ── Chat with auto image generation ─────────────────────────────────
+
+    async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
+        response = await super().chat_sync(request)
+
+        tool_calls = response.metadata.get("tool_calls", [])
+        content_call = next(
+            (tc for tc in tool_calls if tc["name"] in {"draft_content", "generate_variants"}),
+            None,
+        )
+        if content_call:
+            try:
+                from core.brand_kit import load_brand_kit
+                from core.image_gen import generate_social_image
+                args = content_call["arguments"]
+                topic = args.get("topic", args.get("original_content", "content")[:100])
+                platform = args.get("platform", args.get("original_platform", "linkedin"))
+                if isinstance(platform, list):
+                    platform = platform[0] if platform else "linkedin"
+                brand_kit = await load_brand_kit(request.user_id)
+                response.image = await generate_social_image(
+                    topic, brand_kit, platform,
+                    use_logo=bool(brand_kit.logo_url),
+                    use_mascot=bool(brand_kit.mascot_url),
+                )
+            except Exception:
+                pass  # Image generation is best-effort; text response is already set
+
+        return response
 
     # ── Tool Definitions ────────────────────────────────────────────────
 
@@ -45,39 +125,55 @@ class MayaAgent(BaseAgent):
         return [
             ToolDefinition(
                 name="generate_ideas",
-                description="Generate creative content ideas for a given content type and topic. Returns ideas with hooks, predicted engagement, and hashtags.",
+                description=(
+                    "Generate creative, platform-specific content ideas for Instagram, LinkedIn, or Twitter/X. "
+                    "Returns ideas with hooks, predicted engagement, and strategic hashtags. "
+                    "Use when the user asks for post ideas, content calendar suggestions, or brainstorming."
+                ),
                 parameters=[
-                    ToolParameter(name="content_type", type="string", description="Type of content (e.g., linkedin_post, twitter_thread, blog_post, instagram_caption, email_newsletter, youtube_script)", required=False, default="linkedin_post"),
+                    ToolParameter(name="platform", type="string", description="Target platform: linkedin, twitter, or instagram", required=True),
                     ToolParameter(name="topic_hint", type="string", description="Topic or theme to generate ideas about", required=True),
-                    ToolParameter(name="count", type="integer", description="Number of ideas to generate (1-10)", required=False, default=3),
+                    ToolParameter(name="count", type="integer", description="Number of ideas (1-10)", required=False, default=3),
                 ],
             ),
             ToolDefinition(
                 name="draft_content",
-                description="Draft a full content piece for a specific platform and topic. Returns a complete post with title, body, hashtags, CTA, and meta description.",
+                description=(
+                    "Draft a complete, ready-to-publish social media post for a specific platform. "
+                    "Returns platform-native caption with hashtags, CTA, and formatting. "
+                    "Use when the user wants to create a post, write content, or draft a caption."
+                ),
                 parameters=[
-                    ToolParameter(name="topic", type="string", description="The topic to write about", required=True),
-                    ToolParameter(name="platform", type="string", description="Target platform (linkedin, twitter, instagram, blog, email, youtube)", required=False, default="linkedin"),
-                    ToolParameter(name="tone", type="string", description="Tone override (e.g., professional, casual, inspirational)", required=False),
-                    ToolParameter(name="word_count", type="integer", description="Target word count", required=False, default=250),
+                    ToolParameter(name="topic", type="string", description="What the post is about", required=True),
+                    ToolParameter(name="platform", type="string", description="Target platform: linkedin, twitter, or instagram", required=True),
+                    ToolParameter(name="tone", type="string", description="Tone override (e.g., inspirational, educational, controversial)", required=False),
+                    ToolParameter(name="word_count", type="integer", description="Approximate target word count", required=False, default=200),
                 ],
             ),
             ToolDefinition(
                 name="generate_variants",
-                description="Adapt existing content for multiple platforms. Takes content from one platform and creates optimized versions for other platforms.",
+                description=(
+                    "Adapt existing content for other platforms. Takes a post written for one platform "
+                    "and creates optimized versions for other platforms while preserving the core message. "
+                    "Use when the user says 'now make this for Instagram' or 'adapt for Twitter'."
+                ),
                 parameters=[
-                    ToolParameter(name="original_content", type="string", description="The original content to adapt", required=True),
-                    ToolParameter(name="original_platform", type="string", description="Platform the original was written for", required=False, default="linkedin"),
-                    ToolParameter(name="target_platforms", type="array", description="List of platforms to adapt to", required=True, items_type="string"),
+                    ToolParameter(name="original_content", type="string", description="The original post content to adapt", required=True),
+                    ToolParameter(name="original_platform", type="string", description="Platform the original was for", required=True),
+                    ToolParameter(name="target_platforms", type="array", description="Platforms to adapt to", required=True, items_type="string"),
                 ],
             ),
             ToolDefinition(
                 name="revise_content",
-                description="Revise and improve existing content based on feedback. Returns revised content with a list of changes made.",
+                description=(
+                    "Revise and improve existing content based on feedback. "
+                    "Use when the user wants changes to a post — e.g., 'make it shorter', 'add more emojis', "
+                    "'change the CTA', 'make it more professional'."
+                ),
                 parameters=[
                     ToolParameter(name="original_content", type="string", description="The content to revise", required=True),
-                    ToolParameter(name="feedback", type="string", description="Feedback or instructions for revision", required=True),
-                    ToolParameter(name="specific_instructions", type="string", description="Additional specific instructions", required=False),
+                    ToolParameter(name="feedback", type="string", description="What to change or improve", required=True),
+                    ToolParameter(name="platform", type="string", description="Target platform for formatting rules", required=False, default="linkedin"),
                 ],
             ),
         ]
@@ -88,13 +184,23 @@ class MayaAgent(BaseAgent):
         system = await self.build_system_prompt(user_id)
 
         if name == "generate_ideas":
-            count = arguments.get("count", 3)
-            content_type = arguments.get("content_type", "linkedin_post")
+            platform = arguments.get("platform", "linkedin")
             topic_hint = arguments.get("topic_hint", "")
+            count = arguments.get("count", 3)
+            rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
             prompt = (
-                f"Generate {count} content ideas for {content_type} about: {topic_hint}\n\n"
-                "Return a JSON array of ideas. Each idea should have: title, content_type, platform, "
-                "hook, predicted_engagement, reasoning, suggested_hashtags (array)."
+                f"Generate {count} high-performing content ideas for {platform} about: {topic_hint}\n\n"
+                f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
+                f"tone: {rules['tone']}\n\n"
+                "Return a JSON array. Each idea must have:\n"
+                "- title: compelling post title\n"
+                "- platform: target platform\n"
+                "- hook: the opening line that stops the scroll\n"
+                "- predicted_engagement: High/Medium/Low with reasoning\n"
+                "- suggested_hashtags: array of platform-appropriate hashtags\n"
+                "- content_type: post type (carousel, thread, single post, reel caption, etc.)\n"
+                "- reasoning: why this idea will perform well\n\n"
+                "Return ONLY the JSON array, no markdown fences."
             )
             return await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
@@ -105,14 +211,28 @@ class MayaAgent(BaseAgent):
             topic = arguments.get("topic", "")
             platform = arguments.get("platform", "linkedin")
             tone = arguments.get("tone", "")
-            word_count = arguments.get("word_count", 250)
+            word_count = arguments.get("word_count", 200)
             from core.brand_kit import load_brand_kit, get_platform_tone
             brand_kit = await load_brand_kit(user_id)
             tone = tone or get_platform_tone(brand_kit, platform)
+            rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
+            website_cta = ""
+            if brand_kit.website_url:
+                website_cta = f"\nInclude this link in the CTA where natural: {brand_kit.website_url}"
             prompt = (
-                f"Write a {platform} post about: {topic}\n"
-                f"Tone: {tone}\nTarget words: {word_count}\n\n"
-                "Include a strong hook, body, relevant hashtags, and a CTA."
+                f"Write a ready-to-publish {platform} post about: {topic}\n\n"
+                f"Tone: {tone}\n"
+                f"Target word count: ~{word_count} words\n"
+                f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
+                f"format: {rules['format']}\n"
+                f"{website_cta}\n\n"
+                "The post MUST include:\n"
+                "1. A scroll-stopping hook as the first line\n"
+                "2. Engaging body with value for the reader\n"
+                "3. Platform-appropriate hashtags (correct count for the platform)\n"
+                "4. A clear CTA at the end\n\n"
+                "Return the complete post as plain text, ready to copy-paste and publish. "
+                "Put hashtags in the appropriate place for the platform."
             )
             return await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
@@ -120,32 +240,46 @@ class MayaAgent(BaseAgent):
             )
 
         elif name == "generate_variants":
+            import asyncio
             original = arguments.get("original_content", "")
             original_platform = arguments.get("original_platform", "linkedin")
             targets = arguments.get("target_platforms", [])
-            results = []
-            for platform in targets:
+            from core.brand_kit import load_brand_kit
+            brand_kit = await load_brand_kit(user_id)  # load once
+            website_cta = f"\nInclude this link where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
+
+            async def _adapt(platform: str) -> str:
+                rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
                 prompt = (
                     f"Adapt this {original_platform} content for {platform}:\n\n"
                     f"{original}\n\n"
-                    "Return the adapted content with title, body, hashtags, and character count."
+                    f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
+                    f"tone: {rules['tone']}, format: {rules['format']}\n"
+                    f"{website_cta}\n\n"
+                    "Return the adapted post as plain text, ready to copy-paste and publish. "
+                    "Preserve the core message but make it platform-native."
                 )
                 raw = await self.llm.complete(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                results.append(f"**{platform.upper()}:**\n{raw}")
+                return f"**{platform.upper()}:**\n{raw}"
+
+            results = await asyncio.gather(*[_adapt(p) for p in targets])
             return "\n\n---\n\n".join(results)
 
         elif name == "revise_content":
             original = arguments.get("original_content", "")
             feedback = arguments.get("feedback", "")
-            instructions = arguments.get("specific_instructions", "")
+            platform = arguments.get("platform", "linkedin")
+            rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
             prompt = (
-                f"Revise this content based on feedback:\n\nOriginal:\n{original}\n\n"
-                f"Feedback: {feedback}\n"
-                f"Specific instructions: {instructions or 'None'}\n\n"
-                "Return the revised content and list the changes you made."
+                f"Revise this {platform} post based on feedback:\n\n"
+                f"Original:\n{original}\n\n"
+                f"Feedback: {feedback}\n\n"
+                f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n\n"
+                "Return the revised post as plain text, ready to publish. "
+                "Then on a new line write '---CHANGES---' followed by a bullet list of what you changed."
             )
             return await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,

@@ -1,14 +1,17 @@
+import json
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter
-from pydantic import BaseModel, ConfigDict
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
+from core.brand_kit import load_brand_kit, get_platform_tone
+from core.image_gen import generate_social_image, _fetch_asset, _overlay_logo
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, ImageResult
 from core.config import settings
-from agents.maya.agent import MayaAgent
+from agents.maya.agent import MayaAgent, PLATFORM_RULES
 
 router = APIRouter(prefix="/ai/maya", tags=["Maya"])
 
@@ -24,16 +27,16 @@ register_agent(_agent)
 # ── Request / Response Models ────────────────────────────────────────────────
 
 class IdeationRequest(BaseModel):
-    user_id: str
-    content_type: str = "linkedin_post"
-    topic_hint: str = ""
-    count: int = 5
+    user_id: str = Field(..., min_length=1, max_length=128)
+    platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
+    topic_hint: str = Field("", max_length=500)
+    count: int = Field(3, ge=1, le=10)
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "content_type": "linkedin_post",
+                "platform": "linkedin",
                 "topic_hint": "AI productivity for founders",
                 "count": 3,
             }
@@ -57,25 +60,27 @@ class IdeationResponse(BaseModel):
 
 
 class DraftRequest(BaseModel):
-    user_id: str
-    content_type: str = "linkedin_post"
-    topic: str
-    platform: str = "linkedin"
-    tone_override: str | None = None
-    word_count_target: int = 250
+    user_id: str = Field(..., min_length=1, max_length=128)
+    topic: str = Field(..., min_length=1, max_length=500)
+    platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
+    tone_override: str | None = Field(None, max_length=100)
+    word_count_target: int = Field(200, ge=20, le=2000)
     include_image: bool = False
-    additional_context: str | None = None
+    use_logo: bool = False
+    use_mascot: bool = False
+    additional_context: str | None = Field(None, max_length=1000)
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "content_type": "linkedin_post",
                 "topic": "How AI is saving founders 10 hours per week",
                 "platform": "linkedin",
                 "tone_override": None,
                 "word_count_target": 250,
-                "include_image": False,
+                "include_image": True,
+                "use_logo": True,
+                "use_mascot": False,
                 "additional_context": "Focus on time-saving benefits",
             }
         }
@@ -99,10 +104,10 @@ class DraftResponse(BaseModel):
 
 
 class VariantRequest(BaseModel):
-    user_id: str
-    original_content: str
-    original_platform: str = "linkedin"
-    target_platforms: list[str] = ["twitter", "instagram"]
+    user_id: str = Field(..., min_length=1, max_length=128)
+    original_content: str = Field(..., min_length=1, max_length=5000)
+    original_platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
+    target_platforms: list[str] = Field(["twitter", "instagram"], min_length=1, max_length=3)
     include_images: bool = False
 
     model_config = ConfigDict(
@@ -132,18 +137,18 @@ class VariantResponse(BaseModel):
 
 
 class ReviseRequest(BaseModel):
-    user_id: str
-    content_id: str | None = None
-    original_content: str
-    feedback: str
-    specific_instructions: str | None = None
+    user_id: str = Field(..., min_length=1, max_length=128)
+    original_content: str = Field(..., min_length=1, max_length=5000)
+    platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
+    feedback: str = Field(..., min_length=1, max_length=1000)
+    specific_instructions: str | None = Field(None, max_length=500)
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "content_id": "post_abc123",
                 "original_content": "We launched our AI tool today. It saves time.",
+                "platform": "linkedin",
                 "feedback": "Too vague, needs more specific benefits and a stronger hook",
                 "specific_instructions": "Add a statistic in the first line",
             }
@@ -241,11 +246,14 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id)
+    rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     prompt = (
-        f"Generate {request.count} content ideas for {request.content_type} about: {request.topic_hint}\n\n"
-        "Return JSON array of ideas with fields: title, content_type, platform, hook, predicted_engagement, reasoning, suggested_hashtags"
+        f"Generate {request.count} high-performing content ideas for {request.platform} about: {request.topic_hint}\n\n"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n\n"
+        "Return a JSON array. Each idea must have: title, platform, hook, predicted_engagement, "
+        "suggested_hashtags (array), content_type, reasoning. "
+        "Return ONLY the JSON array, no markdown fences."
     )
-    import json
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
@@ -261,27 +269,34 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
 @router.post("/draft-content", response_model=DraftResponse, summary="Draft content piece")
 async def draft_content(request: DraftRequest) -> DraftResponse:
     """Draft a full content piece for a given platform and topic."""
-    if settings.MOCK_MODE:
-        draft = _mock_draft(request.topic, request.platform, request.tone_override or "")
-        image = None
-        if request.include_image:
-            from core.image_gen import generate_social_image
-            from core.brand_kit import load_brand_kit
-            bk = await load_brand_kit(request.user_id)
-            image = await generate_social_image(draft.title, bk, request.platform)
-        return DraftResponse(draft=draft, image=image)
-
-    from core.brand_kit import load_brand_kit, get_platform_tone
     brand_kit = await load_brand_kit(request.user_id)
     tone = request.tone_override or get_platform_tone(brand_kit, request.platform)
+
+    if settings.MOCK_MODE:
+        draft = _mock_draft(request.topic, request.platform, tone)
+        image = None
+        if request.include_image:
+            try:
+                image = await generate_social_image(
+                    draft.title, brand_kit, request.platform,
+                    use_logo=request.use_logo, use_mascot=request.use_mascot,
+                )
+            except Exception:
+                pass
+        return DraftResponse(draft=draft, image=image)
+
+    rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
+    website_line = f"Include this website link in the CTA: {brand_kit.website_url}" if brand_kit.website_url else ""
     system = await _agent.build_system_prompt(request.user_id)
     prompt = (
-        f"Write a {request.content_type} for {request.platform} about: {request.topic}\n"
-        f"Tone: {tone}\nTarget words: {request.word_count_target}\n"
-        f"Additional context: {request.additional_context or 'None'}\n\n"
-        "Return JSON with fields: title, body, hashtags (list), cta, meta_description, word_count, platform, tone_used"
+        f"Write a ready-to-publish {request.platform} post about: {request.topic}\n"
+        f"Tone: {tone}\nTarget word count: ~{request.word_count_target}\n"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n"
+        f"Additional context: {request.additional_context or 'None'}\n"
+        f"{website_line}\n\n"
+        "Return JSON with: title, body, hashtags (list), cta, meta_description, word_count, platform, tone_used. "
+        "Return ONLY the JSON object, no markdown fences."
     )
-    import json
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
@@ -294,8 +309,13 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
 
     image = None
     if request.include_image:
-        from core.image_gen import generate_social_image
-        image = await generate_social_image(draft.title, brand_kit, request.platform)
+        try:
+            image = await generate_social_image(
+                draft.title, brand_kit, request.platform,
+                use_logo=request.use_logo, use_mascot=request.use_mascot,
+            )
+        except Exception:
+            pass
     return DraftResponse(draft=draft, image=image)
 
 
@@ -335,14 +355,21 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
         ]
         return VariantResponse(variants=variants)
 
+    import asyncio
+    brand_kit = await load_brand_kit(request.user_id)
     system = await _agent.build_system_prompt(request.user_id)
-    import json
-    variants = []
-    for platform in request.target_platforms:
+    website_line = f"Include this link where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
+
+    async def _adapt(platform: str) -> ContentVariant | None:
+        rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
         prompt = (
             f"Adapt this {request.original_platform} content for {platform}:\n\n"
             f"{request.original_content}\n\n"
-            "Return JSON with: platform, title, body, hashtags (list), char_count"
+            f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
+            f"tone: {rules['tone']}, format: {rules['format']}\n"
+            f"{website_line}\n\n"
+            "Return JSON with: platform, title, body, hashtags (list), char_count. "
+            "Return ONLY the JSON object, no markdown fences."
         )
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
@@ -350,10 +377,12 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
         )
         try:
             data = json.loads(raw)
-            variants.append(ContentVariant(**data))
+            return ContentVariant(**data)
         except Exception:
-            pass
-    return VariantResponse(variants=variants)
+            return None
+
+    results = await asyncio.gather(*[_adapt(p) for p in request.target_platforms])
+    return VariantResponse(variants=[v for v in results if v is not None])
 
 
 @router.post("/revise", response_model=ReviseResponse, summary="Revise content with feedback")
@@ -386,13 +415,15 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
             ],
         )
 
+    rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     prompt = (
-        f"Revise this content based on feedback:\n\nOriginal:\n{request.original_content}\n\n"
+        f"Revise this {request.platform} content based on feedback:\n\nOriginal:\n{request.original_content}\n\n"
         f"Feedback: {request.feedback}\n"
         f"Specific instructions: {request.specific_instructions or 'None'}\n\n"
-        "Return JSON with: revised (object with title, body, hashtags, cta), changes_made (list of strings)"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n\n"
+        "Return JSON with: revised (object with title, body, hashtags, cta), changes_made (list of strings). "
+        "Return ONLY the JSON object, no markdown fences."
     )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -410,4 +441,133 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
                 cta="",
             ),
             changes_made=["Content revised based on provided feedback"],
+        )
+
+
+# ── Regeneration Endpoints ──────────────────────────────────────────────────
+
+class ImageRegenRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    image_url: HttpUrl = Field(..., description="R2/CDN URL of the existing image to regenerate")
+    prompt: str = Field(..., min_length=1, max_length=1000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    use_logo: bool = False
+    use_mascot: bool = False
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "image_url": "https://r2.example.com/images/abc.png",
+                "prompt": "Make the background more vibrant and professional",
+                "platform": "instagram",
+                "use_logo": True,
+                "use_mascot": False,
+            }
+        }
+    )
+
+
+class ImageRegenResponse(BaseModel):
+    image: ImageResult
+
+
+class ContentRegenRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    caption: str = Field(..., min_length=1, max_length=5000)
+    prompt: str = Field(..., min_length=1, max_length=1000)
+    platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "caption": "We just launched our new AI tool...",
+                "prompt": "Make it more engaging and add a question at the end",
+                "platform": "linkedin",
+            }
+        }
+    )
+
+
+class ContentRegenResponse(BaseModel):
+    caption: str
+    hashtags: list[str]
+    cta: str
+
+
+@router.post("/regenerate-image", response_model=ImageRegenResponse, summary="Regenerate image")
+async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
+    """Fetch an existing image from R2 URL, regenerate it with a new prompt, return base64."""
+    import base64
+    from core.brand_kit import get_image_prompt_context
+
+    brand_kit = await load_brand_kit(request.user_id)
+
+    if settings.MOCK_MODE:
+        image = await generate_social_image(
+            request.prompt, brand_kit, request.platform,
+            use_logo=request.use_logo, use_mascot=request.use_mascot,
+        )
+        return ImageRegenResponse(image=image)
+
+    # Fetch current image from R2
+    source_bytes = await _fetch_asset(str(request.image_url))
+    if not source_bytes:
+        # Fallback: generate fresh without reference
+        image = await generate_social_image(
+            request.prompt, brand_kit, request.platform,
+            use_logo=request.use_logo, use_mascot=request.use_mascot,
+        )
+        return ImageRegenResponse(image=image)
+
+    context = get_image_prompt_context(brand_kit)
+    full_prompt = f"{context}. {request.prompt}. Optimized for {request.platform}."
+
+    source_b64 = base64.b64encode(source_bytes).decode()
+    b64 = await _llm.generate_image_with_reference(full_prompt, source_b64)
+
+    if request.use_logo and brand_kit.logo_url:
+        logo_bytes = await _fetch_asset(brand_kit.logo_url)
+        if logo_bytes:
+            b64 = _overlay_logo(b64, logo_bytes)
+
+    image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
+    return ImageRegenResponse(image=image)
+
+
+@router.post("/regenerate-content", response_model=ContentRegenResponse, summary="Regenerate content")
+async def regenerate_content(request: ContentRegenRequest) -> ContentRegenResponse:
+    """Revise a caption with a new prompt, returning updated caption with hashtags and CTA."""
+    if settings.MOCK_MODE:
+        return ContentRegenResponse(
+            caption=f"{request.caption}\n\n[Revised: {request.prompt}]",
+            hashtags=["#Updated", "#Content"],
+            cta="Check it out 👇",
+        )
+
+    system = await _agent.build_system_prompt(request.user_id)
+    rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
+    prompt = (
+        f"Revise this {request.platform} caption based on the instruction:\n\n"
+        f"Current caption:\n{request.caption}\n\n"
+        f"Instruction: {request.prompt}\n\n"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
+        f"tone: {rules['tone']}\n\n"
+        "Return JSON with exactly these fields: "
+        '"caption" (updated text, ready to publish), "hashtags" (array), "cta" (string). '
+        "Return ONLY the JSON object, no markdown fences."
+    )
+    raw = await _llm.complete(
+        provider=_agent.default_provider, model=_agent.default_model,
+        system=system, messages=[{"role": "user", "content": prompt}],
+    )
+    try:
+        data = json.loads(raw)
+        return ContentRegenResponse(**data)
+    except Exception:
+        return ContentRegenResponse(
+            caption=request.caption,
+            hashtags=[],
+            cta="",
         )

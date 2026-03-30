@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import json as _json
 from typing import AsyncGenerator
 from core.config import settings
 from core.exceptions import LLMError
@@ -644,17 +643,53 @@ class LLMClient:
         return mock_args_map.get(tool_name, {})
 
     async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
-        """Returns base64-encoded PNG string."""
+        """Returns base64-encoded PNG string via Gemini Imagen."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return _RED_PNG_B64
-        # Real: use DALL-E 3
-        import openai as _openai
-        client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        size_map = {"1:1": "1024x1024", "16:9": "1792x1024", "9:16": "1024x1792"}
-        size = size_map.get(aspect_ratio, "1024x1024")
-        response = await client.images.generate(model="dall-e-3", prompt=prompt, size=size, response_format="b64_json")
-        return response.data[0].b64_json
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.ImageGenerationModel("imagen-3.0-generate-002")
+        aspect_map = {"1:1": "1:1", "16:9": "16:9", "9:16": "9:16"}
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: model.generate_images(
+                prompt=prompt,
+                number_of_images=1,
+                aspect_ratio=aspect_map.get(aspect_ratio, "1:1"),
+            ),
+        )
+        return base64.b64encode(result.images[0]._image_bytes).decode()
+
+    async def generate_image_with_reference(
+        self, prompt: str, reference_image_b64: str, aspect_ratio: str = "1:1"
+    ) -> str:
+        """Gemini image generation with mascot reference for character fidelity.
+        Uses gemini-2.0-flash image generation which accepts image + text input."""
+        if settings.MOCK_MODE:
+            await asyncio.sleep(0.05)
+            return _RED_PNG_B64
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        ref_bytes = base64.b64decode(reference_image_b64)
+        response = await model.generate_content_async(
+            contents=[
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": prompt},
+                        {"inline_data": {"mime_type": "image/png", "data": base64.b64encode(ref_bytes).decode()}},
+                    ],
+                }
+            ],
+            generation_config={"response_modalities": ["IMAGE"]},
+        )
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, "inline_data") and part.inline_data.mime_type.startswith("image"):
+                return base64.b64encode(part.inline_data.data).decode()
+        # Fallback: plain generation without reference
+        return await self.generate_image(prompt, aspect_ratio)
 
     def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
         """Approximate token count."""

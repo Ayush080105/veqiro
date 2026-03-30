@@ -31,6 +31,7 @@ class ChatSyncResponse(BaseModel):
     tokens_used: int
     model_used: str
     metadata: dict = {}
+    image: "ImageResult | None" = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -39,7 +40,7 @@ class ChatSyncResponse(BaseModel):
                 "agent": "maya",
                 "message_id": "msg_abc123",
                 "tokens_used": 420,
-                "model_used": "gemini-2.0-flash",
+                "model_used": "gemini-1.5-flash",
                 "metadata": {},
             }
         }

@@ -15,15 +15,15 @@ class BrandKit(BaseModel):
     platform_tones: dict = {
         "twitter": "casual, punchy",
         "linkedin": "professional",
-        "blog": "educational",
-        "email": "professional",
+        "instagram": "visual-first, inspiring",
     }
     competitors: list = []
     key_differentiators: str = ""
+    website_url: str = ""
 
 
 async def load_brand_kit(user_id: str) -> BrandKit:
-    """Load brand kit for user. In mock mode returns default BrandKit."""
+    """Load brand kit for user. Mock mode returns defaults; real mode queries PostgreSQL."""
     if settings.MOCK_MODE:
         return BrandKit(
             company_name="Veqiro AI",
@@ -35,17 +35,34 @@ async def load_brand_kit(user_id: str) -> BrandKit:
             platform_tones={
                 "twitter": "casual, punchy, uses emojis sparingly",
                 "linkedin": "professional, insight-driven, thought leadership",
-                "blog": "educational, SEO-friendly, actionable",
-                "email": "direct, personalized, value-first",
                 "instagram": "visual-first, inspiring, short captions",
             },
             key_differentiators="Purpose-built AI agents for founders – not generic chatbots",
             competitors=["Notion AI", "Monday.com AI", "ClickUp AI"],
+            website_url="https://veqiro.com",
         )
 
-    # Real mode: load from DB
-    # TODO: implement DB lookup
-    return BrandKit(company_name="My Company")
+    from core.db import fetch_one
+    row = await fetch_one(
+        "SELECT * FROM brand_kits WHERE user_id = $1 LIMIT 1", user_id
+    )
+    if not row:
+        return BrandKit()
+
+    return BrandKit(
+        company_name=row.get("company_name") or "My Company",
+        company_description=row.get("company_description") or "",
+        industry=row.get("industry") or "",
+        target_audience=row.get("target_audience") or "",
+        brand_voice=row.get("brand_voice") or "",
+        logo_url=row.get("logo_url"),
+        mascot_url=row.get("mascot_url"),
+        brand_colors=row.get("brand_colors") or {},
+        brand_fonts=row.get("brand_fonts"),
+        competitors=row.get("competitors") or [],
+        key_differentiators=row.get("key_differentiators") or "",
+        website_url=row.get("website_url") or "",
+    )
 
 
 def get_platform_tone(brand_kit: BrandKit, platform: str) -> str:
@@ -62,10 +79,13 @@ def get_image_prompt_context(brand_kit: BrandKit) -> str:
     if brand_kit.industry:
         parts.append(f"Industry: {brand_kit.industry}")
     colors = brand_kit.brand_colors
-    if colors.get("primary"):
-        parts.append(f"Primary color: {colors['primary']}")
+    if colors:
+        color_str = ", ".join(f"{k}: {v}" for k, v in colors.items())
+        parts.append(f"Brand colors: {color_str}")
     if brand_kit.brand_voice:
         parts.append(f"Visual style: {brand_kit.brand_voice}")
     if brand_kit.target_audience:
         parts.append(f"Audience: {brand_kit.target_audience}")
+    if brand_kit.website_url:
+        parts.append(f"Website: {brand_kit.website_url}")
     return ". ".join(parts)

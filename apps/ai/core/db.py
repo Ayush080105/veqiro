@@ -20,3 +20,16 @@ async def get_db():
             yield session
         finally:
             await session.close()
+
+
+async def fetch_one(query: str, *args) -> dict | None:
+    """Run a raw SQL query and return one row as dict, or None.
+    Uses a short-lived asyncpg connection (no ORM overhead)."""
+    import asyncpg
+    dsn = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+    conn = await asyncpg.connect(dsn)
+    try:
+        row = await conn.fetchrow(query, *args)
+        return dict(row) if row else None
+    finally:
+        await conn.close()

@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from app import create_app
-from routes import image_regen
 
 # New V1 agent routers
 from agents.maya.routes import router as maya_router
