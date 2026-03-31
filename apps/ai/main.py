@@ -38,7 +38,6 @@ async def ready():
         "redis": True,
         "gemini": True,
         "openai": True,
-        "anthropic": True,
     }
 
 

@@ -8,7 +8,6 @@ python-dotenv
 
 # ── LLM providers ─────────────────────────────────────────────────────────────
 openai
-anthropic
 google-generativeai
 litellm[proxy]
 
@@ -16,7 +15,6 @@ litellm[proxy]
 langchain
 langchain-core
 langchain-openai
-langchain-anthropic
 langchain-google-genai
 langchain-community
 

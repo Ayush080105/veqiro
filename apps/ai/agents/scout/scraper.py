@@ -108,6 +108,57 @@ async def fetch_rss(url: str, count: int = 10) -> list[dict]:
         return [{"title": f"RSS fetch error: {e}", "link": url, "published": "", "summary": "", "source": ""}]
 
 
+async def serper_search(query: str, search_type: str = "search") -> list[dict]:
+    """
+    Search the web via Serper.dev API.
+    Returns a list of results with title, link, snippet.
+    search_type: "search" (organic Google results) or "news"
+    Falls back to empty list if SERPER_API_KEY is not configured.
+    """
+    if settings.MOCK_MODE:
+        return [
+            {
+                "title": f"Top strategies for {query} in 2025",
+                "link": "https://example.com/result-1",
+                "snippet": f"Comprehensive guide covering the latest trends and best practices for {query}.",
+            },
+            {
+                "title": f"{query}: Market analysis and competitor landscape",
+                "link": "https://example.com/result-2",
+                "snippet": f"In-depth analysis of key players, pricing, and opportunities in the {query} space.",
+            },
+            {
+                "title": f"How leading companies approach {query}",
+                "link": "https://example.com/result-3",
+                "snippet": f"Case studies and expert insights on {query} from industry leaders.",
+            },
+        ]
+    if not settings.SERPER_API_KEY:
+        return []
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"https://google.serper.dev/{search_type}",
+                json={"q": query, "num": 10},
+                headers={
+                    "X-API-KEY": settings.SERPER_API_KEY,
+                    "Content-Type": "application/json",
+                },
+            )
+            data = resp.json()
+        results = []
+        for item in data.get("organic", data.get("news", [])):
+            results.append({
+                "title": item.get("title", ""),
+                "link": item.get("link", ""),
+                "snippet": item.get("snippet", ""),
+            })
+        return results
+    except Exception:
+        return []
+
+
 async def google_autocomplete(keyword: str) -> list[str]:
     """Fetch Google autocomplete suggestions. In mock mode returns related keywords."""
     if settings.MOCK_MODE:

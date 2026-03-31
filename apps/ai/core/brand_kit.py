@@ -1,3 +1,4 @@
+import time
 from pydantic import BaseModel
 from core.config import settings
 
@@ -22,8 +23,19 @@ class BrandKit(BaseModel):
     website_url: str = ""
 
 
+# ── In-memory cache (user_id → (brand_kit, expires_at)) ─────────────────────
+_CACHE_TTL = 60  # seconds
+_cache: dict[str, tuple[BrandKit, float]] = {}
+
+
 async def load_brand_kit(user_id: str) -> BrandKit:
-    """Load brand kit for user. Mock mode returns defaults; real mode queries PostgreSQL."""
+    """
+    Load brand kit for a user.
+    - MOCK_MODE: returns hardcoded Veqiro defaults.
+    - Real mode: fetches from Express service at GET /api/brand-kit/{user_id}.
+      Results are cached in-memory for 60 seconds to avoid repeated HTTP calls
+      within a single chat session.
+    """
     if settings.MOCK_MODE:
         return BrandKit(
             company_name="Veqiro AI",
@@ -42,27 +54,42 @@ async def load_brand_kit(user_id: str) -> BrandKit:
             website_url="https://veqiro.com",
         )
 
-    from core.db import fetch_one
-    row = await fetch_one(
-        "SELECT * FROM brand_kits WHERE user_id = $1 LIMIT 1", user_id
-    )
-    if not row:
-        return BrandKit()
+    # Check cache
+    cached = _cache.get(user_id)
+    if cached and time.monotonic() < cached[1]:
+        return cached[0]
 
-    return BrandKit(
-        company_name=row.get("company_name") or "My Company",
-        company_description=row.get("company_description") or "",
-        industry=row.get("industry") or "",
-        target_audience=row.get("target_audience") or "",
-        brand_voice=row.get("brand_voice") or "",
-        logo_url=row.get("logo_url"),
-        mascot_url=row.get("mascot_url"),
-        brand_colors=row.get("brand_colors") or {},
-        brand_fonts=row.get("brand_fonts"),
-        competitors=row.get("competitors") or [],
-        key_differentiators=row.get("key_differentiators") or "",
-        website_url=row.get("website_url") or "",
-    )
+    # Fetch from Express service
+    try:
+        import httpx
+        url = f"{settings.BRAND_KIT_SERVICE_URL}/api/brand-kit/{user_id}"
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(url)
+        if resp.status_code == 200:
+            data = resp.json()
+            brand_kit = BrandKit(
+                company_name=data.get("company_name") or "My Company",
+                company_description=data.get("company_description") or "",
+                industry=data.get("industry") or "",
+                target_audience=data.get("target_audience") or "",
+                brand_voice=data.get("brand_voice") or "Professional and friendly",
+                logo_url=data.get("logo_url"),
+                mascot_url=data.get("mascot_url"),
+                brand_colors=data.get("brand_colors") or {},
+                brand_fonts=data.get("brand_fonts"),
+                platform_tones=data.get("platform_tones") or {},
+                competitors=data.get("competitors") or [],
+                key_differentiators=data.get("key_differentiators") or "",
+                website_url=data.get("website_url") or "",
+            )
+        else:
+            brand_kit = BrandKit()
+    except Exception:
+        brand_kit = BrandKit()
+
+    # Store in cache
+    _cache[user_id] = (brand_kit, time.monotonic() + _CACHE_TTL)
+    return brand_kit
 
 
 def get_platform_tone(brand_kit: BrandKit, platform: str) -> str:

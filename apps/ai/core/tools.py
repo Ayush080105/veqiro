@@ -86,18 +86,6 @@ def tool_defs_to_openai(tools: list[ToolDefinition]) -> list[dict]:
     ]
 
 
-def tool_defs_to_anthropic(tools: list[ToolDefinition]) -> list[dict]:
-    """Convert tool definitions to Anthropic tool format."""
-    return [
-        {
-            "name": t.name,
-            "description": t.description,
-            "input_schema": _params_to_json_schema(t.parameters),
-        }
-        for t in tools
-    ]
-
-
 def tool_defs_to_gemini(tools: list[ToolDefinition]) -> list[dict]:
     """Convert tool definitions to Gemini function declaration format."""
     declarations = []
@@ -146,41 +134,6 @@ def tool_results_to_openai(
     return messages
 
 
-def tool_results_to_anthropic(
-    tool_calls: list[ToolCall],
-    results: list[ToolResult],
-) -> list[dict]:
-    """Format tool calls + results as Anthropic messages for the next LLM turn."""
-    messages = []
-    # Assistant message with tool_use blocks
-    messages.append({
-        "role": "assistant",
-        "content": [
-            {
-                "type": "tool_use",
-                "id": tc.id,
-                "name": tc.name,
-                "input": tc.arguments,
-            }
-            for tc in tool_calls
-        ],
-    })
-    # User message with tool_result blocks
-    messages.append({
-        "role": "user",
-        "content": [
-            {
-                "type": "tool_result",
-                "tool_use_id": r.tool_call_id,
-                "content": r.content,
-                "is_error": r.is_error,
-            }
-            for r in results
-        ],
-    })
-    return messages
-
-
 def tool_results_to_gemini(
     tool_calls: list[ToolCall],
     results: list[ToolResult],
@@ -204,8 +157,6 @@ def format_tool_result_messages(
     """Route to the correct provider formatter."""
     if provider == "openai":
         return tool_results_to_openai(tool_calls, results)
-    elif provider == "anthropic":
-        return tool_results_to_anthropic(tool_calls, results)
     elif provider == "gemini":
         # Gemini handled differently in the LLM client (uses chat session)
         return tool_results_to_gemini(tool_calls, results)

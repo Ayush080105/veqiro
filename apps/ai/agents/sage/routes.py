@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from core.llm import LLMClient
@@ -164,8 +164,15 @@ class ContentBriefResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Sage chat")
 async def sage_chat(request: ChatRequest) -> ChatSyncResponse:
-    """Get Sage's SEO response as a standard JSON response."""
-    return await _agent.chat_sync(request)
+    """
+    Sage's intelligent SEO chat. Understands natural language requests and
+    autonomously uses tools for keyword research, blog generation, content auditing,
+    and content briefs. Researches real SERP data before generating content.
+    """
+    try:
+        return await _agent.chat_sync(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/keyword-research", response_model=KeywordResearchResponse, summary="Keyword research")

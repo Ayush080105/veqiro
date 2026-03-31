@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from core.llm import LLMClient
@@ -157,8 +157,15 @@ class TrendingTopicsResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Scout chat")
 async def scout_chat(request: ChatRequest) -> ChatSyncResponse:
-    """Get Scout's research response as a standard JSON response."""
-    return await _agent.chat_sync(request)
+    """
+    Scout's intelligent research chat. Understands natural language requests and
+    autonomously uses tools for web search, company research, competitor scanning,
+    and trend discovery. Optimized for founder competitive intelligence.
+    """
+    try:
+        return await _agent.chat_sync(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/research-topic", response_model=ResearchTopicResponse, summary="Research a topic")

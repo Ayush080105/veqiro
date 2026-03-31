@@ -20,8 +20,8 @@ class LexAgent(BaseAgent):
         "identify risks and opportunities in documents, and help founders understand their "
         "legal obligations. You always include appropriate disclaimers."
     )
-    default_provider = "anthropic"
-    default_model = "claude-sonnet-4-20250514"
+    default_provider = "gemini"
+    default_model = "gemini-2.0-flash"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)

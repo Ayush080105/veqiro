@@ -1,18 +1,18 @@
 import asyncio
 import base64
+import json as _json
 from typing import AsyncGenerator
 from core.config import settings
 from core.exceptions import LLMError
 from core.tools import (
     ToolDefinition, ToolCall, ToolResult, LLMToolResponse,
-    tool_defs_to_openai, tool_defs_to_anthropic, tool_defs_to_gemini,
+    tool_defs_to_openai, tool_defs_to_gemini,
     format_tool_result_messages,
 )
 
 # Provider + model constants
 GEMINI_FLASH = ("gemini", "gemini-2.0-flash")
 GPT4O_MINI = ("openai", "gpt-4o-mini")
-CLAUDE_SONNET = ("anthropic", "claude-sonnet-4-20250514")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
 # A minimal 1x1 red PNG in base64
@@ -189,8 +189,6 @@ class LLMClient:
                     return await self._gemini_complete(model, system, messages, temperature, max_tokens)
                 elif provider == "openai":
                     return await self._openai_complete(model, system, messages, temperature, max_tokens, response_format)
-                elif provider == "anthropic":
-                    return await self._anthropic_complete(model, system, messages, temperature, max_tokens)
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
             except Exception as e:
@@ -223,18 +221,6 @@ class LLMClient:
             kwargs["response_format"] = response_format
         resp = await client.chat.completions.create(**kwargs)
         return resp.choices[0].message.content
-
-    async def _anthropic_complete(self, model, system, messages, temperature, max_tokens):
-        import anthropic as _anthropic
-        client = _anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        resp = await client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system,
-            messages=messages,
-        )
-        return resp.content[0].text
 
     async def stream(
         self,
@@ -269,10 +255,6 @@ class LLMClient:
                     async for token in self._openai_stream(model, system, messages, temperature):
                         yield token
                     return
-                elif provider == "anthropic":
-                    async for token in self._anthropic_stream(model, system, messages, temperature):
-                        yield token
-                    return
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
             except Exception as e:
@@ -303,19 +285,6 @@ class LLMClient:
         oai_messages = [{"role": "system", "content": system}] + messages
         async with client.chat.completions.stream(
             model=model, messages=oai_messages, temperature=temperature
-        ) as stream:
-            async for text in stream.text_stream:
-                yield text
-
-    async def _anthropic_stream(self, model, system, messages, temperature):
-        import anthropic as _anthropic
-        client = _anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        async with client.messages.stream(
-            model=model,
-            max_tokens=4096,
-            temperature=temperature,
-            system=system,
-            messages=messages,
         ) as stream:
             async for text in stream.text_stream:
                 yield text
@@ -354,10 +323,6 @@ class LLMClient:
                     )
                 elif provider == "openai":
                     return await self._openai_complete_with_tools(
-                        model, system, messages, tools, temperature, max_tokens
-                    )
-                elif provider == "anthropic":
-                    return await self._anthropic_complete_with_tools(
                         model, system, messages, tools, temperature, max_tokens
                     )
                 else:
@@ -400,43 +365,6 @@ class LLMClient:
             )
         return LLMToolResponse(
             content=choice.message.content or "",
-            tool_calls=[],
-            finish_reason="stop",
-        )
-
-    async def _anthropic_complete_with_tools(
-        self, model, system, messages, tools, temperature, max_tokens
-    ) -> LLMToolResponse:
-        import anthropic as _anthropic
-        client = _anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        ant_tools = tool_defs_to_anthropic(tools)
-        resp = await client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system,
-            messages=messages,
-            tools=ant_tools,
-        )
-        text_parts = []
-        calls = []
-        for block in resp.content:
-            if block.type == "text":
-                text_parts.append(block.text)
-            elif block.type == "tool_use":
-                calls.append(ToolCall(
-                    id=block.id,
-                    name=block.name,
-                    arguments=block.input if isinstance(block.input, dict) else {},
-                ))
-        if calls:
-            return LLMToolResponse(
-                content="\n".join(text_parts) if text_parts else None,
-                tool_calls=calls,
-                finish_reason="tool_calls",
-            )
-        return LLMToolResponse(
-            content="\n".join(text_parts) or "",
             tool_calls=[],
             finish_reason="stop",
         )
@@ -552,14 +480,15 @@ class LLMClient:
             "forecast_metric": ["forecast", "predict", "projection"],
             "financial_analysis": ["financial", "revenue analysis", "burn rate", "runway"],
             "compile_briefing": ["briefing", "executive summary", "weekly report"],
-            "research_topic": ["research", "find out about", "look into", "investigate"],
-            "research_company": ["company profile", "research company", "tell me about company"],
-            "scan_competitors": ["scan competitor", "monitor competitor", "competitor changes"],
-            "trending_topics": ["trending", "trends", "what's hot", "popular topics"],
-            "keyword_research": ["keyword", "keywords", "search terms"],
-            "generate_blog": ["blog post", "write a blog", "article", "long-form"],
-            "analyze_content": ["analyze content", "seo audit", "content score"],
-            "content_brief": ["content brief", "outline", "content plan"],
+            "web_search": ["search for", "look up", "google", "find information about", "what is the latest", "news about", "search the web"],
+            "research_topic": ["research", "find out about", "look into", "investigate", "market analysis", "analyze the market"],
+            "research_company": ["company profile", "research company", "tell me about company", "who is", "competitor analysis", "analyze competitor", "profile of"],
+            "scan_competitors": ["scan competitor", "monitor competitor", "competitor changes", "check if competitor", "what changed"],
+            "trending_topics": ["trending", "trends", "what's hot", "popular topics", "what's rising", "emerging topics"],
+            "keyword_research": ["keyword", "keywords", "search terms", "what to rank for", "seo keywords", "content strategy"],
+            "generate_blog": ["blog post", "write a blog", "article", "long-form", "write an article", "create a blog"],
+            "analyze_content": ["analyze content", "seo audit", "content score", "audit my", "review my content"],
+            "content_brief": ["content brief", "outline", "content plan", "brief for", "plan a blog"],
             "analyze_contract": ["contract", "nda", "agreement review", "legal review"],
             "draft_document": ["draft document", "legal document", "template"],
             "explain_legal": ["explain legal", "what does this clause", "plain english"],
@@ -622,9 +551,10 @@ class LLMClient:
             "forecast_metric": {"metric_name": "mrr", "historical_data": [], "horizon_days": 30},
             "financial_analysis": {"revenue_data": [], "expenses_data": [], "subscribers_data": []},
             "compile_briefing": {"date": "", "all_metrics": {}, "agent_summaries": {}},
+            "web_search": {"query": topic[:100], "search_type": "search"},
             "research_topic": {"topic": topic, "depth": "standard"},
             "research_company": {"company_name": topic[:50]},
-            "scan_competitors": {"competitors": []},
+            "scan_competitors": {"competitors": [topic[:40]]},
             "trending_topics": {"industry": topic[:50], "count": 5},
             "keyword_research": {"seed_topic": topic, "count": 10},
             "generate_blog": {"topic": topic, "target_keyword": topic[:40], "word_count": 2000},

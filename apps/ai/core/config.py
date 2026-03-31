@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     # LLM API Keys
     GEMINI_API_KEY: str = Field(default="mock-key")
     OPENAI_API_KEY: str = Field(default="mock-key")
-    ANTHROPIC_API_KEY: str = Field(default="mock-key")
+    SERPER_API_KEY: str = Field(default="")
+    BRAND_KIT_SERVICE_URL: str = Field(default="http://localhost:3000")
 
     # Database
     DATABASE_URL: str = Field(default="postgresql+asyncpg://user:pass@localhost/db")
