@@ -9,7 +9,13 @@
 * 🟢 You can import this file directly.
 */
 
+export const Agent = {
+  MAYA: 'MAYA',
+  SAGE: 'SAGE',
+  LEX: 'LEX',
+  MARK: 'MARK',
+  SCOUT: 'SCOUT',
+  VEGA: 'VEGA'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type Agent = (typeof Agent)[keyof typeof Agent]

@@ -12,6 +12,15 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Agent {
+  MAYA
+  SAGE
+  LEX
+  MARK
+  SCOUT
+  VEGA
+}
+
 model User {
   id            String       @id
   name          String
@@ -126,4 +135,21 @@ model Invitation {
   @@index([organizationId])
   @@index([email])
   @@map("invitation")
+}
+
+model Message{
+  id     String @id @default(uuid())
+  organizationId  String
+  role String @default("user")
+  content String
+  createdAt DateTime @default(now())
+  imageUrl String?
+  agent Agent
+  tokensUsed Int @default(0)
+  model String? 
+  userId String?
+  customInput Json?
+
+  @@index([agent,organizationId])
+  @@map("message")
 }
