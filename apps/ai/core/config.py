@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # Security
     API_SECRET: str = Field(default="dev-secret")
+    INTERNAL_API_KEY: str = Field(default="")
 
     # App
     ENVIRONMENT: str = Field(default="development")
