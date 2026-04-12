@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import datetime
 
@@ -200,24 +201,50 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             keywords_found=keywords[:8],
         )
 
-    keywords = await google_autocomplete(request.topic)
+    from agents.scout.scraper import serper_search
+    keywords, search_results = await asyncio.gather(
+        google_autocomplete(request.topic),
+        serper_search(request.topic),
+    )
     sources = request.sources_hint or []
     scraped_texts = []
     for url in sources[:3]:
         text = await scrape_url(url)
         scraped_texts.append(text[:2000])
 
+    search_context = ""
+    if search_results:
+        search_context = "\n\nWeb search results:\n" + "\n".join(
+            f"- {r['title']}: {r['snippet']} ({r['link']})" for r in search_results[:8]
+        )
+    scraped_context = ""
+    if scraped_texts:
+        scraped_context = "\n\nScraped sources:\n" + "\n\n---\n\n".join(scraped_texts)
+
     system = await _agent.build_system_prompt(request.user_id)
-    context = f"Topic: {request.topic}\n\nScraped content:\n" + "\n\n---\n\n".join(scraped_texts)
-    import json
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system,
-        messages=[{"role": "user", "content": f"Research and synthesize findings on: {context}"}],
+    findings_raw, synthesis_raw = await asyncio.gather(
+        _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system,
+            messages=[{"role": "user", "content": (
+                f"Research and synthesize a comprehensive intelligence report on: {request.topic}\n"
+                f"Related keywords: {keywords[:10]}{search_context}{scraped_context}\n\n"
+                "Cover: market size & trends, key players, opportunities, risks. "
+                "Cite sources where possible."
+            )}],
+        ),
+        _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system,
+            messages=[{"role": "user", "content": (
+                f"In 2-3 sentences, what is the single most important strategic insight for a founder "
+                f"researching '{request.topic}'? Be specific and actionable."
+            )}],
+        ),
     )
     return ResearchTopicResponse(
-        findings=raw,
-        synthesis=f"Key insight: {raw[:300]}",
+        findings=findings_raw,
+        synthesis=synthesis_raw,
         sources_scraped=sources,
         keywords_found=keywords[:10],
     )
@@ -262,31 +289,40 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
             scraped_at=datetime.utcnow().isoformat(),
         )
 
-    url = request.company_url or f"https://{request.company_name.lower().replace(' ', '')}.com"
-    content = await scrape_url(url)
-    system = await _agent.build_system_prompt(request.user_id)
     import json
+    from core.utils import safe_json_loads
+    from agents.scout.scraper import serper_search
+    url = request.company_url or f"https://{request.company_name.lower().replace(' ', '')}.com"
+    content, search_results = await asyncio.gather(
+        scrape_url(url),
+        serper_search(f"{request.company_name} company features pricing funding 2025"),
+    )
+    search_context = ""
+    if search_results:
+        search_context = "\n\nWeb search results:\n" + "\n".join(
+            f"- {r['title']}: {r['snippet']}" for r in search_results[:5]
+        )
+    system = await _agent.build_system_prompt(request.user_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Build a company profile for {request.company_name}. Content: {content[:3000]}"}],
+        messages=[{"role": "user", "content": (
+            f"Build a structured company intelligence profile for: {request.company_name}\n"
+            f"Website content:\n{content[:2500]}{search_context}\n\n"
+            "Return JSON with exactly these fields: "
+            "name (string), description (string), founded (string), team_size (string), "
+            "funding (string), key_features (list of strings), pricing (dict of tier→price), "
+            "target_market (string), strengths (list of strings), weaknesses (list of strings), "
+            "recent_news (list of strings). "
+            "Return ONLY the JSON, no markdown fences."
+        )}],
     )
-    return ResearchCompanyResponse(
-        company=CompanyProfile(
-            name=request.company_name,
-            description=raw[:300],
-            founded="Unknown",
-            team_size="Unknown",
-            funding="Unknown",
-            key_features=[],
-            pricing={},
-            target_market="Unknown",
-            strengths=[],
-            weaknesses=[],
-            recent_news=[],
-        ),
-        scraped_at=datetime.utcnow().isoformat(),
-    )
+    try:
+        data = safe_json_loads(raw)
+        profile = CompanyProfile(**data)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to parse company profile — retry. ({exc})")
+    return ResearchCompanyResponse(company=profile, scraped_at=datetime.utcnow().isoformat())
 
 
 @router.post("/scan-competitors", response_model=CompetitorScanResponse, summary="Scan for competitor changes")
@@ -310,23 +346,41 @@ async def scan_competitors(request: CompetitorScanRequest) -> CompetitorScanResp
             ))
         return CompetitorScanResponse(results=results, scanned_at=datetime.utcnow().isoformat())
 
-    results = []
-    for comp in request.competitors:
+    system = await _agent.build_system_prompt(request.user_id)
+
+    async def _scan_one(comp: CompetitorInput) -> CompetitorScanResult:
         content = await scrape_url(comp.url)
         new_hash = hash_content(content)
         has_changes = comp.last_scan_hash is not None and comp.last_scan_hash != new_hash
-        change_summary = "No previous scan available."
+
         if has_changes:
-            change_summary = f"Changes detected. New hash: {new_hash[:8]}..."
-        results.append(CompetitorScanResult(
+            diff = diff_content(comp.last_scan_hash or "", content[:3000])
+            summary_raw = await _llm.complete(
+                provider=_agent.default_provider, model=_agent.default_model,
+                system=system,
+                messages=[{"role": "user", "content": (
+                    f"Analyze these changes on {comp.name}'s website ({comp.url}) "
+                    f"and summarize what changed and its strategic significance for a competing founder:\n\n{diff[:2000]}\n\n"
+                    "Return a 2-3 sentence summary and a significance level: low, medium, or high."
+                )}],
+            )
+            change_summary = summary_raw.strip()
+            significance = "high" if any(w in summary_raw.lower() for w in ["pricing", "feature", "launch", "major"]) else "medium"
+        else:
+            change_summary = "No previous scan available." if comp.last_scan_hash is None else "No significant changes detected since last scan."
+            significance = "low"
+
+        return CompetitorScanResult(
             competitor_name=comp.name,
             url=comp.url,
             has_changes=has_changes,
             change_summary=change_summary,
-            significance="medium" if has_changes else "low",
+            significance=significance,
             new_hash=new_hash,
-        ))
-    return CompetitorScanResponse(results=results, scanned_at=datetime.utcnow().isoformat())
+        )
+
+    results = await asyncio.gather(*[_scan_one(c) for c in request.competitors])
+    return CompetitorScanResponse(results=list(results), scanned_at=datetime.utcnow().isoformat())
 
 
 @router.post("/trending-topics", response_model=TrendingTopicsResponse, summary="Get trending topics")
@@ -352,17 +406,31 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
         ]
         return TrendingTopicsResponse(trends=trends[:request.count], generated_at=datetime.utcnow().isoformat())
 
-    keywords = await google_autocomplete(request.industry)
-    system = await _agent.build_system_prompt(request.user_id)
     import json
+    from core.utils import safe_json_loads
+    from agents.scout.scraper import serper_search
+    keywords, news_results = await asyncio.gather(
+        google_autocomplete(request.industry),
+        serper_search(f"{request.industry} trends news 2025", search_type="news"),
+    )
+    news_context = ""
+    if news_results:
+        news_context = "\n\nRecent news:\n" + "\n".join(f"- {r['title']}: {r['snippet']}" for r in news_results[:6])
+    system = await _agent.build_system_prompt(request.user_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Identify {request.count} trending topics in {request.industry}. Keywords: {keywords}. Return as JSON array with fields: topic, momentum, relevance_score, content_angle, search_volume_estimate"}],
+        messages=[{"role": "user", "content": (
+            f"Identify {request.count} trending topics in {request.industry}.\n"
+            f"Related keywords: {keywords[:10]}{news_context}\n\n"
+            "Return a JSON array. Each item: topic, momentum (rising/stable/declining), "
+            "relevance_score (0.0-1.0), content_angle, search_volume_estimate. "
+            "Return ONLY the JSON array, no markdown fences."
+        )}],
     )
     try:
-        items = json.loads(raw)
+        items = safe_json_loads(raw)
         trends = [TrendItem(**item) for item in items[:request.count]]
-    except Exception:
-        trends = []
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Trending topics returned unparseable data — retry. ({exc})")
     return TrendingTopicsResponse(trends=trends, generated_at=datetime.utcnow().isoformat())

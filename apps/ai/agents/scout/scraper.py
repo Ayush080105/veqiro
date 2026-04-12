@@ -1,6 +1,9 @@
 import hashlib
 import difflib
+import logging
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 async def scrape_url(url: str) -> str:
@@ -134,6 +137,7 @@ async def serper_search(query: str, search_type: str = "search") -> list[dict]:
             },
         ]
     if not settings.SERPER_API_KEY:
+        logger.warning("SERPER_API_KEY not set — web search unavailable")
         return []
     import httpx
     try:
@@ -146,6 +150,7 @@ async def serper_search(query: str, search_type: str = "search") -> list[dict]:
                     "Content-Type": "application/json",
                 },
             )
+            resp.raise_for_status()
             data = resp.json()
         results = []
         for item in data.get("organic", data.get("news", [])):
@@ -154,8 +159,10 @@ async def serper_search(query: str, search_type: str = "search") -> list[dict]:
                 "link": item.get("link", ""),
                 "snippet": item.get("snippet", ""),
             })
+        logger.info("Serper search '%s' returned %d results", query, len(results))
         return results
-    except Exception:
+    except Exception as e:
+        logger.error("Serper search failed for '%s': %s", query, e)
         return []
 
 

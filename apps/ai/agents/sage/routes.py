@@ -203,19 +203,30 @@ async def keyword_research(request: KeywordResearchRequest) -> KeywordResearchRe
         ]
         return KeywordResearchResponse(keywords=keywords[:request.count], clusters=clusters)
 
-    system = await _agent.build_system_prompt(request.user_id)
     import json
+    from core.utils import safe_json_loads
+    system = await _agent.build_system_prompt(request.user_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Generate {request.count} keywords for: {request.seed_topic} in {request.niche}. Return JSON array with fields: keyword, search_intent, estimated_difficulty, relevance_score, suggested_content_type, related_keywords"}],
+        messages=[{"role": "user", "content": (
+            f"Generate {request.count} SEO keywords for: '{request.seed_topic}'"
+            f"{f' in the {request.niche} niche' if request.niche else ''}.\n"
+            "Return JSON with keys 'keywords' (array) and 'clusters' (array). "
+            "Each keyword: keyword, search_intent, estimated_difficulty (1-100), relevance_score (0.0-1.0), suggested_content_type, related_keywords (list of 3). "
+            "Each cluster: cluster_name, keywords (list), primary_intent. "
+            "Return ONLY the JSON, no markdown fences."
+        )}],
     )
     try:
-        items = json.loads(raw)
-        keywords = [KeywordItem(**item) for item in items[:request.count]]
-    except Exception:
-        keywords = []
-    return KeywordResearchResponse(keywords=keywords, clusters=[])
+        data = safe_json_loads(raw)
+        if isinstance(data, list):
+            data = {"keywords": data, "clusters": []}
+        keywords = [KeywordItem(**item) for item in data.get("keywords", [])[:request.count]]
+        clusters = [KeywordCluster(**c) for c in data.get("clusters", [])]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Keyword research returned unparseable data — retry. ({exc})")
+    return KeywordResearchResponse(keywords=keywords, clusters=clusters)
 
 
 @router.post("/generate-blog", response_model=GenerateBlogResponse, summary="Generate SEO blog post")
@@ -312,28 +323,45 @@ Ready to get started? [Try Veqiro AI free for 14 days →]
             ],
         )
 
+    import re as _re
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     tone = request.tone_override or "educational, authoritative"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Write a {request.word_count}-word SEO blog post.\nTopic: {request.topic}\nTarget keyword: {request.target_keyword}\nSecondary keywords: {request.secondary_keywords}\nTone: {tone}\nFormat: {request.output_format}"}],
+        messages=[{"role": "user", "content": (
+            f"Write a {request.word_count}-word SEO blog post.\n"
+            f"Topic: {request.topic}\nTarget keyword: {request.target_keyword}\n"
+            f"Secondary keywords: {', '.join(request.secondary_keywords)}\n"
+            f"Tone: {tone}\nFormat: {request.output_format}\n\n"
+            "Include at the top:\nMeta Title: <under 60 chars>\nMeta Description: <under 160 chars>\n\n"
+            "Then the full blog post content."
+        )}],
         max_tokens=4096,
     )
-    slug = request.target_keyword.lower().replace(" ", "-")
+    # Extract meta title and description from top of response
+    meta_title = f"{request.target_keyword} | Guide 2025"
+    meta_description = f"Complete guide to {request.target_keyword}."
+    for line in raw.splitlines()[:10]:
+        if line.lower().startswith("meta title:"):
+            meta_title = line.split(":", 1)[1].strip()[:60]
+        elif line.lower().startswith("meta description:"):
+            meta_description = line.split(":", 1)[1].strip()[:160]
+    # Extract headings
+    headings = _re.findall(r"^#{1,3} (.+)$", raw, flags=_re.MULTILINE)
+    slug = request.target_keyword.lower().replace(" ", "-").replace("/", "-")
     blog = BlogContent(
         title=request.topic,
-        meta_title=f"{request.target_keyword} | Guide",
-        meta_description=raw[:160],
+        meta_title=meta_title,
+        meta_description=meta_description,
         slug=slug,
         content=raw,
         word_count=len(raw.split()),
-        headings=[],
+        headings=headings,
         target_keyword=request.target_keyword,
         secondary_keywords=request.secondary_keywords,
     )
-    return GenerateBlogResponse(blog=blog, seo_score=75, seo_suggestions=["Add more internal links"])
+    return GenerateBlogResponse(blog=blog, seo_score=75, seo_suggestions=["Add internal links", "Verify keyword density"])
 
 
 @router.post("/analyze-content", response_model=ContentAnalysisResponse, summary="Analyze content SEO")
@@ -361,18 +389,25 @@ async def analyze_content(request: AnalyzeContentRequest) -> ContentAnalysisResp
             readability_grade="Grade 11 (Flesch-Kincaid) – consider simplifying for Grade 8-9",
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
     import json
+    from core.utils import safe_json_loads
+    system = await _agent.build_system_prompt(request.user_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Analyze this content for SEO:\nTarget keyword: {request.target_keyword}\n\nContent:\n{request.content[:3000]}\n\nReturn JSON with: score (0-100), issues (list), improvements (list), missing_keywords (list), readability_grade (string)"}],
+        messages=[{"role": "user", "content": (
+            f"Analyze this content for SEO.\nTarget keyword: {request.target_keyword}\n\n"
+            f"Content:\n{request.content[:3000]}\n\n"
+            "Return JSON with: score (0-100), issues (list of strings), "
+            "improvements (list of strings), missing_keywords (list of strings), readability_grade (string). "
+            "Return ONLY the JSON, no markdown fences."
+        )}],
     )
     try:
-        data = json.loads(raw)
+        data = safe_json_loads(raw)
         return ContentAnalysisResponse(**data)
-    except Exception:
-        return ContentAnalysisResponse(score=60, issues=["Analysis failed"], improvements=["Retry analysis"], missing_keywords=[], readability_grade="Unknown")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Content analysis returned unparseable data — retry. ({exc})")
 
 
 @router.post("/content-brief", response_model=ContentBriefResponse, summary="Generate content brief")
@@ -429,15 +464,24 @@ async def content_brief(request: ContentBriefRequest) -> ContentBriefResponse:
             }
         )
 
+    import json
+    from core.utils import safe_json_loads
     system = await _agent.build_system_prompt(request.user_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Create a comprehensive SEO content brief for:\nTopic: {request.topic}\nTarget keyword: {request.target_keyword}\nReturn as detailed JSON object."}],
+        messages=[{"role": "user", "content": (
+            f"Create a comprehensive SEO content brief.\nTopic: {request.topic}\n"
+            f"Target keyword: {request.target_keyword}\n\n"
+            "Include: search_intent, recommended_word_count, content_type, title_options (list), "
+            "h2_structure (list), must_include_topics (list), must_answer_questions (list), "
+            "competitor_gaps (list), internal_linking_opportunities (list), cta_recommendation, "
+            "estimated_traffic_potential. "
+            "Return as a detailed JSON object. Return ONLY the JSON, no markdown fences."
+        )}],
     )
-    import json
     try:
-        brief = json.loads(raw)
-    except Exception:
-        brief = {"topic": request.topic, "target_keyword": request.target_keyword, "content": raw}
+        brief = safe_json_loads(raw)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Content brief generation failed — retry. ({exc})")
     return ContentBriefResponse(brief=brief)

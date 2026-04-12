@@ -233,7 +233,10 @@ def _mock_draft(topic: str, platform: str, tone: str) -> DraftContent:
 @router.post("/chat", response_model=ChatSyncResponse, summary="Maya chat")
 async def maya_chat(request: ChatRequest) -> ChatSyncResponse:
     """Get Maya's response as a standard JSON response."""
-    return await _agent.chat_sync(request)
+    try:
+        return await _agent.chat_sync(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/generate-ideas", response_model=IdeationResponse, summary="Generate content ideas")
@@ -259,10 +262,11 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         system=system, messages=[{"role": "user", "content": prompt}],
     )
     try:
-        ideas_data = json.loads(raw)
+        from core.utils import safe_json_loads
+        ideas_data = safe_json_loads(raw)
         ideas = [ContentIdea(**i) for i in ideas_data]
-    except Exception:
-        ideas = _mock_ideas(request.count, request.topic_hint)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Idea generation returned unparseable data — retry. ({exc})")
     return IdeationResponse(ideas=ideas, generated_at=datetime.utcnow().isoformat())
 
 
@@ -302,10 +306,11 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         system=system, messages=[{"role": "user", "content": prompt}],
     )
     try:
-        data = json.loads(raw)
+        from core.utils import safe_json_loads
+        data = safe_json_loads(raw)
         draft = DraftContent(**data)
-    except Exception:
-        draft = _mock_draft(request.topic, request.platform, tone)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Draft generation failed — retry. ({exc})")
 
     image = None
     if request.include_image:
@@ -376,13 +381,20 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
             system=system, messages=[{"role": "user", "content": prompt}],
         )
         try:
-            data = json.loads(raw)
+            from core.utils import safe_json_loads
+            data = safe_json_loads(raw)
             return ContentVariant(**data)
         except Exception:
-            return None
+            return ContentVariant(
+                platform=platform,
+                title=f"{platform.capitalize()} variant",
+                body=f"[Failed to adapt for {platform} — please retry]",
+                hashtags=[],
+                char_count=0,
+            )
 
     results = await asyncio.gather(*[_adapt(p) for p in request.target_platforms])
-    return VariantResponse(variants=[v for v in results if v is not None])
+    return VariantResponse(variants=list(results))
 
 
 @router.post("/revise", response_model=ReviseResponse, summary="Revise content with feedback")
@@ -430,18 +442,11 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
         system=system, messages=[{"role": "user", "content": prompt}],
     )
     try:
-        data = json.loads(raw)
+        from core.utils import safe_json_loads
+        data = safe_json_loads(raw)
         return ReviseResponse(**data)
-    except Exception:
-        return ReviseResponse(
-            revised=RevisedContent(
-                title="Revised Content",
-                body=request.original_content + "\n\n[Revised based on feedback]",
-                hashtags=[],
-                cta="",
-            ),
-            changes_made=["Content revised based on provided feedback"],
-        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Content revision failed — retry. ({exc})")
 
 
 # ── Regeneration Endpoints ──────────────────────────────────────────────────
@@ -563,11 +568,8 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
         system=system, messages=[{"role": "user", "content": prompt}],
     )
     try:
-        data = json.loads(raw)
+        from core.utils import safe_json_loads
+        data = safe_json_loads(raw)
         return ContentRegenResponse(**data)
-    except Exception:
-        return ContentRegenResponse(
-            caption=request.caption,
-            hashtags=[],
-            cta="",
-        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Content regeneration failed — retry. ({exc})")

@@ -49,7 +49,7 @@ class LLMToolResponse(BaseModel):
 # ── Provider Format Converters ──────────────────────────────────────────────
 
 
-def _params_to_json_schema(params: list[ToolParameter]) -> dict:
+def _params_to_json_schema(params: list[ToolParameter], include_defaults: bool = True) -> dict:
     """Convert ToolParameter list to JSON Schema properties dict."""
     properties = {}
     required = []
@@ -59,7 +59,7 @@ def _params_to_json_schema(params: list[ToolParameter]) -> dict:
             prop["enum"] = p.enum
         if p.type == "array" and p.items_type:
             prop["items"] = {"type": p.items_type}
-        if p.default is not None:
+        if include_defaults and p.default is not None:
             prop["default"] = p.default
         properties[p.name] = prop
         if p.required:
@@ -90,7 +90,7 @@ def tool_defs_to_gemini(tools: list[ToolDefinition]) -> list[dict]:
     """Convert tool definitions to Gemini function declaration format."""
     declarations = []
     for t in tools:
-        schema = _params_to_json_schema(t.parameters)
+        schema = _params_to_json_schema(t.parameters, include_defaults=False)
         declarations.append({
             "name": t.name,
             "description": t.description,

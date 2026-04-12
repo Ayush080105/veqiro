@@ -19,8 +19,8 @@ class ScoutAgent(BaseAgent):
         "objective, and always separate facts from inferences. You think like a VC analyst combined "
         "with a McKinsey researcher."
     )
-    default_provider = "gemini"
-    default_model = "gemini-2.0-flash"
+    default_provider = "openai"
+    default_model = "gpt-4o-mini"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)

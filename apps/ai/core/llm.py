@@ -439,138 +439,15 @@ class LLMClient:
         )
 
     async def _mock_complete_with_tools(
-        self, system: str, messages: list, tools: list[ToolDefinition]
+        self, system: str, messages: list, tools: list[ToolDefinition]  # noqa: ARG002
     ) -> LLMToolResponse:
-        """Mock mode: detect if a tool should be called based on keywords."""
+        """Mock mode: always return a text response — tool selection is LLM-driven in real mode."""
         await asyncio.sleep(0.05)
-
-        # Check if this is a follow-up after tool results (tool messages present)
-        has_tool_results = any(
-            m.get("role") == "tool"
-            or (isinstance(m.get("content"), list) and any(
-                isinstance(c, dict) and c.get("type") == "tool_result"
-                for c in m["content"]
-            ))
-            # Also detect assistant messages with tool_calls (OpenAI format)
-            or (m.get("role") == "assistant" and m.get("tool_calls"))
-            for m in messages
-        )
-        if has_tool_results:
-            # Follow-up after tool execution: return final text response
-            return LLMToolResponse(
-                content=_select_mock_response(system, messages),
-                tool_calls=[],
-                finish_reason="stop",
-            )
-
-        # First call: check if user message matches any tool
-        last_user_msg = ""
-        for m in reversed(messages):
-            if m.get("role") == "user" and isinstance(m.get("content"), str):
-                last_user_msg = m["content"].lower()
-                break
-
-        # Keyword matching for tool selection
-        tool_keywords = {
-            "generate_ideas": ["idea", "ideas", "brainstorm", "suggest content"],
-            "draft_content": ["draft", "write a post", "create a post", "write content", "create content"],
-            "generate_variants": ["variant", "adapt", "repurpose", "cross-platform"],
-            "revise_content": ["revise", "rewrite", "improve this", "make it better"],
-            "analyze_metrics": ["analyze metrics", "metric analysis", "data analysis"],
-            "forecast_metric": ["forecast", "predict", "projection"],
-            "financial_analysis": ["financial", "revenue analysis", "burn rate", "runway"],
-            "compile_briefing": ["briefing", "executive summary", "weekly report"],
-            "web_search": ["search for", "look up", "google", "find information about", "what is the latest", "news about", "search the web"],
-            "research_topic": ["research", "find out about", "look into", "investigate", "market analysis", "analyze the market"],
-            "research_company": ["company profile", "research company", "tell me about company", "who is", "competitor analysis", "analyze competitor", "profile of"],
-            "scan_competitors": ["scan competitor", "monitor competitor", "competitor changes", "check if competitor", "what changed"],
-            "trending_topics": ["trending", "trends", "what's hot", "popular topics", "what's rising", "emerging topics"],
-            "keyword_research": ["keyword", "keywords", "search terms", "what to rank for", "seo keywords", "content strategy"],
-            "generate_blog": ["blog post", "write a blog", "article", "long-form", "write an article", "create a blog"],
-            "analyze_content": ["analyze content", "seo audit", "content score", "audit my", "review my content"],
-            "content_brief": ["content brief", "outline", "content plan", "brief for", "plan a blog"],
-            "analyze_contract": ["contract", "nda", "agreement review", "legal review"],
-            "draft_document": ["draft document", "legal document", "template"],
-            "explain_legal": ["explain legal", "what does this clause", "plain english"],
-            "process_inbox": ["inbox", "emails", "unread", "triage"],
-            "draft_reply": ["reply to", "respond to email", "draft reply"],
-            "calendar_summary": ["calendar", "schedule", "my week", "meetings"],
-            "create_event": ["schedule a", "create event", "book a meeting", "set up a call"],
-            "executive_briefing": ["daily briefing", "morning briefing", "executive brief"],
-            "ask_agent": ["ask maya", "ask rex", "ask scout", "ask sage", "ask lex", "ask vega"],
-        }
-
-        available_tool_names = {t.name for t in tools}
-
-        for tool_name, keywords in tool_keywords.items():
-            if tool_name not in available_tool_names:
-                continue
-            if any(kw in last_user_msg for kw in keywords):
-                # Build mock arguments
-                mock_args = self._build_mock_tool_args(tool_name, last_user_msg)
-                return LLMToolResponse(
-                    content=None,
-                    tool_calls=[ToolCall(name=tool_name, arguments=mock_args)],
-                    finish_reason="tool_calls",
-                )
-
-        # Check for cross-agent patterns like "research X and write a post"
-        cross_agent_patterns = [
-            (["research", "find out", "look into"], "scout"),
-            (["analyze data", "metrics", "financial"], "rex"),
-            (["legal", "contract", "compliance"], "lex"),
-            (["seo", "keyword", "ranking"], "sage"),
-            (["email", "calendar", "schedule"], "vega"),
-            (["content", "post", "write"], "maya"),
-        ]
-        if "ask_agent" in available_tool_names:
-            for keywords, agent_slug in cross_agent_patterns:
-                if any(kw in last_user_msg for kw in keywords):
-                    # Only trigger cross-agent if the matching agent isn't the current one
-                    # (we can't know the current agent here, so skip this heuristic)
-                    pass
-
-        # No tool match: return direct text response
         return LLMToolResponse(
             content=_select_mock_response(system, messages),
             tool_calls=[],
             finish_reason="stop",
         )
-
-    def _build_mock_tool_args(self, tool_name: str, user_msg: str) -> dict:
-        """Build plausible mock arguments for a tool call."""
-        # Extract a topic from the user message (simple heuristic)
-        topic = user_msg[:100] if len(user_msg) > 10 else "AI productivity tools"
-
-        mock_args_map = {
-            "generate_ideas": {"content_type": "linkedin_post", "topic_hint": topic, "count": 3},
-            "draft_content": {"topic": topic, "platform": "linkedin", "word_count": 250},
-            "generate_variants": {"original_content": topic, "original_platform": "linkedin", "target_platforms": ["twitter", "instagram"]},
-            "revise_content": {"original_content": topic, "feedback": "Make it more engaging"},
-            "analyze_metrics": {"metrics": {}, "period": "monthly"},
-            "forecast_metric": {"metric_name": "mrr", "historical_data": [], "horizon_days": 30},
-            "financial_analysis": {"revenue_data": [], "expenses_data": [], "subscribers_data": []},
-            "compile_briefing": {"date": "", "all_metrics": {}, "agent_summaries": {}},
-            "web_search": {"query": topic[:100], "search_type": "search"},
-            "research_topic": {"topic": topic, "depth": "standard"},
-            "research_company": {"company_name": topic[:50]},
-            "scan_competitors": {"competitors": [topic[:40]]},
-            "trending_topics": {"industry": topic[:50], "count": 5},
-            "keyword_research": {"seed_topic": topic, "count": 10},
-            "generate_blog": {"topic": topic, "target_keyword": topic[:40], "word_count": 2000},
-            "analyze_content": {"content": topic, "target_keyword": topic[:30]},
-            "content_brief": {"topic": topic, "target_keyword": topic[:40]},
-            "analyze_contract": {"contract_text": topic, "analysis_focus": ["risk_assessment"]},
-            "draft_document": {"document_type": "mutual_nda", "requirements": topic},
-            "explain_legal": {"text": topic},
-            "process_inbox": {"max_emails": 10},
-            "draft_reply": {"email_id": "msg_001", "reply_instructions": topic},
-            "calendar_summary": {"days_ahead": 7},
-            "create_event": {"description": topic},
-            "executive_briefing": {},
-            "ask_agent": {"agent_slug": "scout", "question": topic},
-        }
-        return mock_args_map.get(tool_name, {})
 
     async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
         """Returns base64-encoded PNG string via Gemini Imagen."""

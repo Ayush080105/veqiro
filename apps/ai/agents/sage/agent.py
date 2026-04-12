@@ -6,6 +6,7 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
+from core.utils import strip_json_fences
 
 
 class SageAgent(BaseAgent):
@@ -18,8 +19,8 @@ class SageAgent(BaseAgent):
         "updates and E-E-A-T principles. You think like a growth marketer: every piece of content "
         "has a clear keyword target, audience, and conversion goal."
     )
-    default_provider = "gemini"
-    default_model = "gemini-2.0-flash"
+    default_provider = "openai"
+    default_model = "gpt-4o-mini"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
@@ -209,7 +210,12 @@ class SageAgent(BaseAgent):
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return raw
+                cleaned = strip_json_fences(raw)
+                try:
+                    parsed = json.loads(cleaned)
+                    return json.dumps(parsed)
+                except Exception:
+                    return json.dumps({"keywords": [], "clusters": [], "raw": raw[:500]})
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -295,7 +301,7 @@ class SageAgent(BaseAgent):
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return raw
+                return strip_json_fences(raw)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -347,7 +353,7 @@ class SageAgent(BaseAgent):
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return raw
+                return strip_json_fences(raw)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 

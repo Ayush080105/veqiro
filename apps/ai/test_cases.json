@@ -1,0 +1,662 @@
+{
+  "_readme": "Sample test cases for Swagger UI. All use user_id='user_123'. Run with MOCK_MODE=false and valid API keys for real outputs.",
+
+  "scout": {
+
+    "POST /ai/scout/chat": [
+      {
+        "_label": "General capabilities question (no tool needed)",
+        "input": {
+          "conversation_id": "conv_001",
+          "history": [],
+          "message": "Hi, what can you help me with?",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "scout",
+          "response": "Scout introduces its research capabilities — web search, competitor research, trend discovery, company profiles",
+          "tool_calls_in_metadata": []
+        }
+      },
+      {
+        "_label": "Find competitors for a shoe business in Nagpur",
+        "input": {
+          "conversation_id": "conv_002",
+          "history": [],
+          "message": "Find me 2 competitors for my shoe selling business in Nagpur region",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "scout",
+          "tool_called": "web_search or research_company",
+          "response": "Named competitors with descriptions, pricing or location info if available"
+        }
+      },
+      {
+        "_label": "Research a specific company",
+        "input": {
+          "conversation_id": "conv_003",
+          "history": [],
+          "message": "Give me a full profile of Bata as a competitor",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "scout",
+          "tool_called": "research_company",
+          "response": "Profile covering Bata's features, pricing, strengths, weaknesses, target market"
+        }
+      },
+      {
+        "_label": "Market trends query",
+        "input": {
+          "conversation_id": "conv_004",
+          "history": [],
+          "message": "What are the top trending topics in the footwear retail industry right now?",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "scout",
+          "tool_called": "trending_topics",
+          "response": "List of 5 trending topics with momentum and content angles"
+        }
+      },
+      {
+        "_label": "Multi-turn follow-up",
+        "input": {
+          "conversation_id": "conv_005",
+          "history": [
+            { "role": "user", "content": "Who are the main competitors in online shoe retail in India?" },
+            { "role": "assistant", "content": "The main competitors include Myntra, Ajio, and Flipkart Fashion..." }
+          ],
+          "message": "Which one has the weakest pricing strategy?",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "scout",
+          "response": "Comparative analysis using context from previous message"
+        }
+      }
+    ],
+
+    "POST /ai/scout/research-topic": [
+      {
+        "_label": "Standard research on a market",
+        "input": {
+          "user_id": "user_123",
+          "topic": "online shoe retail market in India 2025",
+          "depth": "standard",
+          "sources_hint": []
+        },
+        "expected": {
+          "findings": "Multi-paragraph market research covering size, players, trends",
+          "synthesis": "2-3 sentence strategic insight for a founder",
+          "keywords_found": ["array of 5-10 related keywords"],
+          "sources_scraped": []
+        }
+      },
+      {
+        "_label": "Quick depth with source hints",
+        "input": {
+          "user_id": "user_123",
+          "topic": "D2C footwear brands India",
+          "depth": "quick",
+          "sources_hint": ["https://entrackr.com", "https://inc42.com"]
+        },
+        "expected": {
+          "findings": "Shorter overview with scraped content from provided URLs",
+          "synthesis": "Strategic insight",
+          "sources_scraped": ["https://entrackr.com", "https://inc42.com"]
+        }
+      }
+    ],
+
+    "POST /ai/scout/research-company": [
+      {
+        "_label": "Research Bata with URL",
+        "input": {
+          "user_id": "user_123",
+          "company_name": "Bata India",
+          "company_url": "https://www.bata.in"
+        },
+        "expected": {
+          "company": {
+            "name": "Bata India",
+            "description": "Non-empty string describing the company",
+            "founded": "Not Unknown",
+            "key_features": ["at least 1 feature"],
+            "pricing": { "at least one tier": "price" },
+            "strengths": ["at least 1"],
+            "weaknesses": ["at least 1"]
+          },
+          "scraped_at": "ISO timestamp"
+        }
+      },
+      {
+        "_label": "Research without URL (Scout finds it)",
+        "input": {
+          "user_id": "user_123",
+          "company_name": "Liberty Shoes",
+          "company_url": null
+        },
+        "expected": {
+          "company": {
+            "name": "Liberty Shoes",
+            "description": "Non-empty"
+          }
+        }
+      }
+    ],
+
+    "POST /ai/scout/scan-competitors": [
+      {
+        "_label": "First scan (no previous hash)",
+        "input": {
+          "user_id": "user_123",
+          "competitors": [
+            { "name": "Myntra", "url": "https://www.myntra.com/shoes", "last_scan_hash": null },
+            { "name": "Ajio", "url": "https://www.ajio.com/s/shoes", "last_scan_hash": null }
+          ]
+        },
+        "expected": {
+          "results": [
+            {
+              "competitor_name": "Myntra",
+              "has_changes": false,
+              "change_summary": "No previous scan available.",
+              "significance": "low",
+              "new_hash": "32-char md5 hash string"
+            }
+          ],
+          "scanned_at": "ISO timestamp"
+        }
+      },
+      {
+        "_label": "Re-scan with old hash (will detect changes if site updated)",
+        "input": {
+          "user_id": "user_123",
+          "competitors": [
+            { "name": "Myntra", "url": "https://www.myntra.com/shoes", "last_scan_hash": "abc123fakehashxyz" }
+          ]
+        },
+        "expected": {
+          "results": [
+            {
+              "has_changes": true,
+              "change_summary": "LLM-generated summary of what changed on the page",
+              "significance": "low | medium | high"
+            }
+          ]
+        }
+      }
+    ],
+
+    "POST /ai/scout/trending-topics": [
+      {
+        "_label": "Trends in footwear retail",
+        "input": {
+          "user_id": "user_123",
+          "industry": "footwear retail India",
+          "count": 5
+        },
+        "expected": {
+          "trends": [
+            {
+              "topic": "Non-empty string",
+              "momentum": "rising | stable | declining",
+              "relevance_score": "0.0 to 1.0",
+              "content_angle": "How a founder could use this",
+              "search_volume_estimate": "Estimate string"
+            }
+          ],
+          "generated_at": "ISO timestamp"
+        }
+      }
+    ]
+  },
+
+  "sage": {
+
+    "POST /ai/sage/chat": [
+      {
+        "_label": "Ask for keywords",
+        "input": {
+          "conversation_id": "conv_s01",
+          "history": [],
+          "message": "Give me 10 SEO keywords for a shoe business in Nagpur targeting middle-class buyers",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "sage",
+          "tool_called": "keyword_research",
+          "response": "Formatted table or list of keywords with search intent and difficulty"
+        }
+      },
+      {
+        "_label": "Write a blog post",
+        "input": {
+          "conversation_id": "conv_s02",
+          "history": [],
+          "message": "Write a 1500-word blog post about 'best casual shoes for men in Nagpur under 2000 rupees'",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "sage",
+          "tool_called": "generate_blog",
+          "response": "Full blog post with H1/H2 headings, meta title, meta description, and CTA"
+        }
+      },
+      {
+        "_label": "Content brief request",
+        "input": {
+          "conversation_id": "conv_s03",
+          "history": [],
+          "message": "Create a content brief for ranking on the keyword 'buy running shoes online Nagpur'",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "sage",
+          "tool_called": "content_brief",
+          "response": "Structured brief with H2 outline, must-answer questions, competitor gaps, CTA"
+        }
+      },
+      {
+        "_label": "Audit existing content",
+        "input": {
+          "conversation_id": "conv_s04",
+          "history": [],
+          "message": "Audit this content for SEO: 'We sell shoes in Nagpur. Best quality. Visit us today. We have Nike, Adidas, Bata and more brands available at our store located in Sitabuldi market.'",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "sage",
+          "tool_called": "analyze_content",
+          "response": "SEO score, issues list, improvement suggestions"
+        }
+      }
+    ],
+
+    "POST /ai/sage/keyword-research": [
+      {
+        "_label": "Footwear keywords in Nagpur niche",
+        "input": {
+          "user_id": "user_123",
+          "seed_topic": "shoes shop Nagpur",
+          "niche": "retail footwear",
+          "count": 10
+        },
+        "expected": {
+          "keywords": [
+            {
+              "keyword": "Non-empty string",
+              "search_intent": "informational | navigational | transactional | commercial",
+              "estimated_difficulty": "1-100 integer",
+              "relevance_score": "0.0-1.0 float",
+              "suggested_content_type": "Non-empty string",
+              "related_keywords": ["3 item array"]
+            }
+          ],
+          "clusters": [
+            {
+              "cluster_name": "Non-empty string",
+              "keywords": ["list"],
+              "primary_intent": "Non-empty string"
+            }
+          ]
+        },
+        "should_NOT_return": {
+          "keywords": [],
+          "_reason": "Empty keywords means JSON parsing failed — fix is now in place with safe_json_loads"
+        }
+      }
+    ],
+
+    "POST /ai/sage/generate-blog": [
+      {
+        "_label": "Markdown blog post",
+        "input": {
+          "user_id": "user_123",
+          "topic": "Best Running Shoes for Men in Nagpur Under ₹2000",
+          "target_keyword": "running shoes Nagpur",
+          "secondary_keywords": ["cheap running shoes", "men shoes Nagpur", "affordable sports shoes"],
+          "word_count": 1500,
+          "output_format": "markdown",
+          "include_meta": true,
+          "include_schema_markup": false,
+          "tone_override": null
+        },
+        "expected": {
+          "blog": {
+            "title": "Best Running Shoes for Men in Nagpur Under ₹2000",
+            "meta_title": "Under 60 chars",
+            "meta_description": "Under 160 chars",
+            "slug": "running-shoes-nagpur",
+            "content": "Full blog post with ## headings",
+            "word_count": "~1500",
+            "headings": ["At least 3 headings extracted"],
+            "target_keyword": "running shoes Nagpur"
+          },
+          "seo_score": "Integer 0-100",
+          "seo_suggestions": ["At least 1 suggestion"]
+        }
+      }
+    ],
+
+    "POST /ai/sage/analyze-content": [
+      {
+        "_label": "Audit thin content",
+        "input": {
+          "user_id": "user_123",
+          "content": "We sell shoes in Nagpur. Best quality shoes available. Visit us at Sitabuldi. We have all brands like Nike Adidas Bata Reebok Puma. Call now.",
+          "target_keyword": "shoe shop Nagpur",
+          "url": null
+        },
+        "expected": {
+          "score": "Low score expected, e.g. 20-40",
+          "issues": [
+            "Target keyword not in content",
+            "Content too short",
+            "No heading structure"
+          ],
+          "improvements": ["At least 3 specific fixes"],
+          "missing_keywords": ["At least 3 related terms"],
+          "readability_grade": "Non-empty string"
+        }
+      }
+    ],
+
+    "POST /ai/sage/content-brief": [
+      {
+        "_label": "Brief for local shoe store keyword",
+        "input": {
+          "user_id": "user_123",
+          "topic": "Best shoe stores in Nagpur",
+          "target_keyword": "shoe stores Nagpur",
+          "competitor_urls": []
+        },
+        "expected": {
+          "brief": {
+            "search_intent": "Non-empty",
+            "recommended_word_count": "Integer e.g. 1500",
+            "content_type": "Non-empty",
+            "title_options": ["3 title variations"],
+            "h2_structure": ["At least 4 H2 headings"],
+            "must_include_topics": ["At least 3 topics"],
+            "must_answer_questions": ["At least 3 questions"],
+            "competitor_gaps": ["At least 1 gap"],
+            "cta_recommendation": "Non-empty"
+          }
+        }
+      }
+    ]
+  },
+
+  "maya": {
+
+    "POST /ai/maya/chat": [
+      {
+        "_label": "Request a LinkedIn post",
+        "input": {
+          "conversation_id": "conv_m01",
+          "history": [],
+          "message": "Write a LinkedIn post about how our shoe store in Nagpur just crossed 500 happy customers",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "maya",
+          "tool_called": "draft_content",
+          "response": "Ready-to-publish LinkedIn post with hook, body, hashtags, CTA. Under 3000 chars."
+        }
+      },
+      {
+        "_label": "Generate content ideas",
+        "input": {
+          "conversation_id": "conv_m02",
+          "history": [],
+          "message": "Give me 5 Instagram content ideas for my shoe store this week",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "maya",
+          "tool_called": "generate_ideas",
+          "response": "5 ideas with hooks, predicted engagement, and hashtag suggestions"
+        }
+      },
+      {
+        "_label": "Adapt LinkedIn post to Twitter and Instagram",
+        "input": {
+          "conversation_id": "conv_m03",
+          "history": [
+            {
+              "role": "user",
+              "content": "Write a LinkedIn post about our new Nike collection launch"
+            },
+            {
+              "role": "assistant",
+              "content": "🎉 Exciting news for sneaker lovers in Nagpur!\n\nWe just launched our exclusive Nike collection..."
+            }
+          ],
+          "message": "Now adapt this for Twitter and Instagram",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "maya",
+          "tool_called": "generate_variants",
+          "response": "Twitter version (under 280 chars) and Instagram version (with 15-30 hashtags)"
+        }
+      },
+      {
+        "_label": "Revise content",
+        "input": {
+          "conversation_id": "conv_m04",
+          "history": [
+            {
+              "role": "user",
+              "content": "Write a LinkedIn post about our shoe store sale"
+            },
+            {
+              "role": "assistant",
+              "content": "Big sale at our shoe store! Up to 50% off. Visit us."
+            }
+          ],
+          "message": "Make it more engaging and add a specific number in the hook",
+          "user_id": "user_123"
+        },
+        "expected": {
+          "agent": "maya",
+          "tool_called": "revise_content",
+          "response": "Improved post with data-driven hook and stronger CTA"
+        }
+      }
+    ],
+
+    "POST /ai/maya/generate-ideas": [
+      {
+        "_label": "Instagram ideas for shoe store",
+        "input": {
+          "user_id": "user_123",
+          "platform": "instagram",
+          "topic_hint": "new monsoon footwear collection",
+          "count": 3
+        },
+        "expected": {
+          "ideas": [
+            {
+              "title": "Non-empty",
+              "content_type": "e.g. carousel, reel caption, single post",
+              "platform": "instagram",
+              "hook": "Scroll-stopping first line",
+              "predicted_engagement": "High | Medium | Low with reasoning",
+              "reasoning": "Non-empty",
+              "suggested_hashtags": ["15-30 hashtags for instagram"]
+            }
+          ],
+          "generated_at": "ISO timestamp"
+        }
+      },
+      {
+        "_label": "LinkedIn ideas for B2B",
+        "input": {
+          "user_id": "user_123",
+          "platform": "linkedin",
+          "topic_hint": "bulk corporate shoe orders for offices",
+          "count": 3
+        },
+        "expected": {
+          "ideas": "3 professional LinkedIn post ideas with 3-5 hashtags each"
+        }
+      }
+    ],
+
+    "POST /ai/maya/draft-content": [
+      {
+        "_label": "LinkedIn post with image",
+        "input": {
+          "user_id": "user_123",
+          "topic": "We just crossed 1000 shoe pairs sold in Nagpur this year",
+          "platform": "linkedin",
+          "tone_override": "celebratory and authentic",
+          "word_count_target": 200,
+          "include_image": false,
+          "use_logo": false,
+          "use_mascot": false,
+          "additional_context": "Focus on the community trust we've built"
+        },
+        "expected": {
+          "draft": {
+            "title": "Non-empty post title",
+            "body": "Full post body, under 3000 chars for LinkedIn",
+            "hashtags": ["3-5 hashtags"],
+            "cta": "Non-empty call to action",
+            "meta_description": "Under 160 chars",
+            "word_count": "~200",
+            "platform": "linkedin",
+            "tone_used": "celebratory and authentic"
+          },
+          "image": null
+        }
+      },
+      {
+        "_label": "Twitter post (short)",
+        "input": {
+          "user_id": "user_123",
+          "topic": "Flash sale — 40% off all Nike shoes today only",
+          "platform": "twitter",
+          "tone_override": null,
+          "word_count_target": 40,
+          "include_image": false,
+          "use_logo": false,
+          "use_mascot": false,
+          "additional_context": null
+        },
+        "expected": {
+          "draft": {
+            "body": "Under 280 chars",
+            "hashtags": ["1-3 hashtags"],
+            "platform": "twitter"
+          }
+        }
+      }
+    ],
+
+    "POST /ai/maya/generate-variants": [
+      {
+        "_label": "Adapt LinkedIn post to Twitter + Instagram",
+        "input": {
+          "user_id": "user_123",
+          "original_content": "We're thrilled to announce that Veqiro Shoes in Nagpur has just hit 1,000 happy customers! 🎉\n\nWhen we started 2 years ago, we had one small store and a big dream. Today, over 1,000 families trust us for their footwear needs.\n\nThank you Nagpur! 🙏\n\n#NagpurBusiness #ShoeStore #MilestoneAlert",
+          "original_platform": "linkedin",
+          "target_platforms": ["twitter", "instagram"],
+          "include_images": false
+        },
+        "expected": {
+          "variants": [
+            {
+              "platform": "twitter",
+              "body": "Under 280 chars, punchy version",
+              "hashtags": ["1-3 hashtags"],
+              "char_count": "<=280"
+            },
+            {
+              "platform": "instagram",
+              "body": "Visual-first version under 2200 chars",
+              "hashtags": ["15-30 hashtags at the end"],
+              "char_count": "<=2200"
+            }
+          ]
+        }
+      }
+    ],
+
+    "POST /ai/maya/revise": [
+      {
+        "_label": "Strengthen hook and add data",
+        "input": {
+          "user_id": "user_123",
+          "original_content": "We have new shoes. Come visit our store in Nagpur. Good quality and affordable prices.",
+          "platform": "linkedin",
+          "feedback": "Too generic. Add a specific number in the first line and make it more story-driven.",
+          "specific_instructions": "Start with a stat or concrete achievement"
+        },
+        "expected": {
+          "revised": {
+            "title": "Non-empty",
+            "body": "Improved version with data-driven hook",
+            "hashtags": ["3-5"],
+            "cta": "Non-empty"
+          },
+          "changes_made": ["At least 2 specific changes listed"]
+        }
+      }
+    ],
+
+    "POST /ai/maya/regenerate-content": [
+      {
+        "_label": "Add a question to end of caption",
+        "input": {
+          "user_id": "user_123",
+          "caption": "New Nike Air Max collection just dropped at our Nagpur store. Limited stock — first come first serve.",
+          "prompt": "Add a question at the end to drive comments, and make the opening more exciting",
+          "platform": "instagram"
+        },
+        "expected": {
+          "caption": "Revised caption with engaging opening and a question at the end",
+          "hashtags": ["15-30 instagram hashtags"],
+          "cta": "Non-empty"
+        }
+      }
+    ]
+  },
+
+  "error_cases": {
+    "_note": "These inputs should return 422 (validation error) or 500 (server error), NOT silent empty responses",
+
+    "sage_empty_keywords_was_a_bug": {
+      "_description": "This used to return empty keywords list — now raises 500 if LLM returns invalid JSON",
+      "input": {
+        "user_id": "user_123",
+        "seed_topic": "shoes",
+        "niche": "",
+        "count": 5
+      },
+      "endpoint": "POST /ai/sage/keyword-research",
+      "expected_behavior": "Returns structured keywords OR raises HTTP 500 with detail message — never silent empty array"
+    },
+
+    "missing_required_field": {
+      "input": { "user_id": "user_123" },
+      "endpoint": "POST /ai/scout/research-company",
+      "expected": "HTTP 422 Unprocessable Entity — company_name is required"
+    },
+
+    "invalid_platform": {
+      "input": {
+        "user_id": "user_123",
+        "platform": "tiktok",
+        "topic_hint": "test",
+        "count": 3
+      },
+      "endpoint": "POST /ai/maya/generate-ideas",
+      "expected": "HTTP 422 Unprocessable Entity — platform must be linkedin | twitter | instagram"
+    }
+  }
+}
