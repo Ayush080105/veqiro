@@ -207,10 +207,15 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
         serper_search(request.topic),
     )
     sources = request.sources_hint or []
-    scraped_texts = []
-    for url in sources[:3]:
-        text = await scrape_url(url)
-        scraped_texts.append(text[:2000])
+
+    async def _safe_scrape(url: str) -> str | None:
+        try:
+            return (await scrape_url(url))[:2000]
+        except Exception:
+            return None
+
+    scrape_outcomes = await asyncio.gather(*[_safe_scrape(u) for u in sources[:3]])
+    scraped_texts = [t for t in scrape_outcomes if t is not None]
 
     search_context = ""
     if search_results:

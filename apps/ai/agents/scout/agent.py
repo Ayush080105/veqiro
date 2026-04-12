@@ -25,6 +25,19 @@ class ScoutAgent(BaseAgent):
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
 
+    def get_tool_instructions(self) -> str:
+        return (
+            "\n\n## MANDATORY Tool Usage Rules\n"
+            "You MUST use tools for any competitive, market, or company research question — "
+            "even follow-up questions that build on conversation history. "
+            "NEVER answer competitive intelligence questions from memory alone.\n"
+            "- Any question about a specific company → call `research_company` for that company\n"
+            "- Any comparative question (e.g. 'which has the weakest X?') → call `research_company` "
+            "for EACH company being compared, then synthesize\n"
+            "- Any question about trends, market data, or recent events → call `web_search` or `research_topic`\n"
+            "After gathering real data with tools, synthesize it into a clear, founder-focused analysis."
+        )
+
     async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
         from core.brand_kit import load_brand_kit
         brand_kit = await load_brand_kit(user_id)
@@ -193,13 +206,16 @@ class ScoutAgent(BaseAgent):
                     serper_search(topic),
                 )
 
-                scraped_texts = []
-                for url in sources[:3]:
+                async def _safe_scrape(url: str) -> str | None:
                     try:
-                        text = await scrape_url(url)
-                        scraped_texts.append(text[:2000])
+                        return (await scrape_url(url))[:2000]
                     except Exception:
-                        pass
+                        return None
+
+                scrape_outcomes = await asyncio.gather(
+                    *[_safe_scrape(u) for u in sources[:3]],
+                )
+                scraped_texts = [t for t in scrape_outcomes if t is not None]
 
                 context = f"Topic: {topic}\nRelated keywords: {keywords[:10]}"
                 if search_results:

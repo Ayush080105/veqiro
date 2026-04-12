@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from abc import ABC
 from typing import AsyncGenerator
@@ -23,6 +24,16 @@ class BaseAgent(ABC):
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         self.llm = llm_client
         self.rag = rag_service
+
+    # ── Tool-use instructions (override in subclass for stricter behaviour) ─
+
+    def get_tool_instructions(self) -> str:
+        return (
+            "\n\nYou have access to specialized tools. Use them when the user's request "
+            "would benefit from structured data, analysis, or actions. For simple conversational "
+            "questions, respond directly without using tools. When using tools, synthesize "
+            "the results into a helpful, natural response."
+        )
 
     # ── Tool definitions (override in subclass) ─────────────────────────
 
@@ -131,12 +142,7 @@ class BaseAgent(ABC):
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
 
         # Add tool-use instructions to system prompt
-        system_prompt += (
-            "\n\nYou have access to specialized tools. Use them when the user's request "
-            "would benefit from structured data, analysis, or actions. For simple conversational "
-            "questions, respond directly without using tools. When using tools, synthesize "
-            "the results into a helpful, natural response."
-        )
+        system_prompt += self.get_tool_instructions()
 
         messages = [
             {"role": m.role, "content": m.content} for m in request.history
@@ -169,24 +175,39 @@ class BaseAgent(ABC):
                     metadata=metadata,
                 )
 
-            # Execute tool calls
-            tool_results: list[ToolResult] = []
+            # Execute tool calls — all concurrently, preserving order
             for tc in response.tool_calls:
                 all_tool_calls.append({
                     "id": tc.id,
                     "name": tc.name,
                     "arguments": tc.arguments,
                 })
-                try:
-                    if tc.name == "ask_agent":
-                        result_str = await self._execute_cross_agent_call(
-                            tc.arguments, request.user_id
-                        )
-                    else:
-                        result_str = await self.execute_tool(
-                            tc.name, tc.arguments, request.user_id
-                        )
-                    # Truncate long results
+
+            async def _run_one(tc) -> str:
+                if tc.name == "ask_agent":
+                    return await self._execute_cross_agent_call(
+                        tc.arguments, request.user_id
+                    )
+                return await self.execute_tool(tc.name, tc.arguments, request.user_id)
+
+            # return_exceptions=True: one failing tool returns its exception as a
+            # value instead of cancelling sibling tasks. Order matches tool_calls.
+            raw_results = await asyncio.gather(
+                *[_run_one(tc) for tc in response.tool_calls],
+                return_exceptions=True,
+            )
+
+            tool_results: list[ToolResult] = []
+            for tc, raw in zip(response.tool_calls, raw_results):
+                if isinstance(raw, BaseException):
+                    tool_results.append(ToolResult(
+                        tool_call_id=tc.id,
+                        name=tc.name,
+                        content=f"Error executing tool: {str(raw)}",
+                        is_error=True,
+                    ))
+                else:
+                    result_str = raw
                     if len(result_str) > MAX_TOOL_RESULT_CHARS:
                         result_str = result_str[:MAX_TOOL_RESULT_CHARS] + "\n...[truncated]"
                     tool_results.append(ToolResult(
@@ -194,13 +215,6 @@ class BaseAgent(ABC):
                         name=tc.name,
                         content=result_str,
                         is_error=False,
-                    ))
-                except Exception as e:
-                    tool_results.append(ToolResult(
-                        tool_call_id=tc.id,
-                        name=tc.name,
-                        content=f"Error executing tool: {str(e)}",
-                        is_error=True,
                     ))
 
             # Append tool call + results to messages for next iteration
