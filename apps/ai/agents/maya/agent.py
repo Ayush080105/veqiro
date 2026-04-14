@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from agents.base import BaseAgent
 from core.llm import LLMClient
 from core.models import ChatRequest, ChatSyncResponse
@@ -42,6 +44,19 @@ class MayaAgent(BaseAgent):
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
+        self._conv_cache: OrderedDict[str, dict] = OrderedDict()
+        self._CONV_CACHE_MAX = 500
+
+    # ── Conversation image cache helpers ────────────────────────────────
+
+    def _cache_set(self, conv_id: str, entry: dict) -> None:
+        self._conv_cache.pop(conv_id, None)
+        self._conv_cache[conv_id] = entry
+        while len(self._conv_cache) > self._CONV_CACHE_MAX:
+            self._conv_cache.popitem(last=False)
+
+    def _cache_get(self, conv_id: str) -> dict | None:
+        return self._conv_cache.get(conv_id)
 
     async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
         from core.brand_kit import load_brand_kit
@@ -85,6 +100,19 @@ class MayaAgent(BaseAgent):
             "6. Hashtags must be platform-appropriate (count and style)\n"
             "7. Write in the brand voice — never generic\n"
         )
+        if brand_kit.logo_url or brand_kit.mascot_url:
+            has_logo = "Logo: available." if brand_kit.logo_url else "Logo: not configured."
+            has_mascot = "Mascot: available." if brand_kit.mascot_url else "Mascot: not configured."
+            prompt += (
+                "\n## Image Generation Rules\n"
+                f"Brand assets — {has_logo} {has_mascot}\n\n"
+                "- use_logo defaults to FALSE. Set True ONLY if user explicitly says 'with logo', 'include logo', 'add our logo', etc.\n"
+                "- use_mascot defaults to FALSE. Set True ONLY if user explicitly mentions the mascot.\n"
+                "- 'Make a post' with no logo/mascot mention → both False.\n"
+                "- 'Add logo to the image' after an image was generated → call modify_image, NOT draft_content.\n"
+                "- 'Add mascot' after an image was generated → call modify_image (triggers re-generation with mascot).\n"
+                "- Never assume the user wants logo or mascot just because brand kit has them.\n"
+            )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
         return prompt
@@ -95,6 +123,8 @@ class MayaAgent(BaseAgent):
         response = await super().chat_sync(request)
 
         tool_calls = response.metadata.get("tool_calls", [])
+
+        # Branch A: new content was drafted/adapted — generate image with Gemini references
         content_call = next(
             (tc for tc in tool_calls if tc["name"] in {"draft_content", "generate_variants"}),
             None,
@@ -108,14 +138,60 @@ class MayaAgent(BaseAgent):
                 platform = args.get("platform", args.get("original_platform", "linkedin"))
                 if isinstance(platform, list):
                     platform = platform[0] if platform else "linkedin"
+                use_logo: bool = bool(args.get("use_logo", False))
+                use_mascot: bool = bool(args.get("use_mascot", False))
+
                 brand_kit = await load_brand_kit(request.user_id)
-                response.image = await generate_social_image(
+                image_result = await generate_social_image(
                     topic, brand_kit, platform,
-                    use_logo=bool(brand_kit.logo_url),
-                    use_mascot=bool(brand_kit.mascot_url),
+                    use_logo=use_logo,
+                    use_mascot=use_mascot,
                 )
+
+                # Cache generation params so modify_image can regenerate with updated flags
+                self._cache_set(request.conversation_id, {
+                    "topic": topic,
+                    "platform": platform,
+                    "use_logo": use_logo,
+                    "use_mascot": use_mascot,
+                    "aspect_ratio": "1:1",
+                })
+
+                response.image = image_result
             except Exception:
-                pass  # Image generation is best-effort; text response is already set
+                pass  # image is best-effort; text response is already set
+
+        # Branch B: user wants to modify logo/mascot on the previously generated image
+        modify_call = next(
+            (tc for tc in tool_calls if tc["name"] == "modify_image"),
+            None,
+        )
+        if modify_call:
+            try:
+                from core.brand_kit import load_brand_kit
+                from core.image_gen import generate_social_image
+                args = modify_call["arguments"]
+                use_logo: bool = bool(args.get("use_logo", False))
+                use_mascot: bool = bool(args.get("use_mascot", False))
+
+                cached = self._cache_get(request.conversation_id)
+                if cached is not None:
+                    brand_kit = await load_brand_kit(request.user_id)
+                    # Regenerate with updated flags — Gemini incorporates logo/mascot contextually
+                    new_image = await generate_social_image(
+                        cached["topic"], brand_kit, cached["platform"],
+                        use_logo=use_logo,
+                        use_mascot=use_mascot,
+                        aspect_ratio=cached.get("aspect_ratio", "1:1"),
+                    )
+                    self._cache_set(request.conversation_id, {
+                        **cached,
+                        "use_logo": use_logo,
+                        "use_mascot": use_mascot,
+                    })
+                    response.image = new_image
+            except Exception:
+                pass  # image modification is best-effort
 
         return response
 
@@ -148,6 +224,8 @@ class MayaAgent(BaseAgent):
                     ToolParameter(name="platform", type="string", description="Target platform: linkedin, twitter, or instagram", required=True),
                     ToolParameter(name="tone", type="string", description="Tone override (e.g., inspirational, educational, controversial)", required=False),
                     ToolParameter(name="word_count", type="integer", description="Approximate target word count", required=False, default=200),
+                    ToolParameter(name="use_logo", type="boolean", description="Include brand logo on the generated image. Set true ONLY if user explicitly asks.", required=False, default=False),
+                    ToolParameter(name="use_mascot", type="boolean", description="Include brand mascot in the generated image. Set true ONLY if user explicitly asks.", required=False, default=False),
                 ],
             ),
             ToolDefinition(
@@ -161,6 +239,20 @@ class MayaAgent(BaseAgent):
                     ToolParameter(name="original_content", type="string", description="The original post content to adapt", required=True),
                     ToolParameter(name="original_platform", type="string", description="Platform the original was for", required=True),
                     ToolParameter(name="target_platforms", type="array", description="Platforms to adapt to", required=True, items_type="string"),
+                    ToolParameter(name="use_logo", type="boolean", description="Include brand logo on the generated image. Set true ONLY if user explicitly asks.", required=False, default=False),
+                    ToolParameter(name="use_mascot", type="boolean", description="Include brand mascot in the generated image. Set true ONLY if user explicitly asks.", required=False, default=False),
+                ],
+            ),
+            ToolDefinition(
+                name="modify_image",
+                description=(
+                    "Apply or remove logo/mascot on an image already generated in this conversation. "
+                    "Use ONLY for follow-up requests like 'add the logo', 'remove the mascot', 'now add our logo to it'. "
+                    "Do NOT use this if no image has been generated yet — use draft_content instead."
+                ),
+                parameters=[
+                    ToolParameter(name="use_logo", type="boolean", description="Whether the logo should appear on the final image", required=True),
+                    ToolParameter(name="use_mascot", type="boolean", description="Whether the mascot should appear in the final image", required=True),
                 ],
             ),
             ToolDefinition(
@@ -285,5 +377,8 @@ class MayaAgent(BaseAgent):
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
             )
+
+        elif name == "modify_image":
+            return "Image modification applied. The updated image will appear in the response."
 
         raise ValueError(f"Unknown tool: {name}")

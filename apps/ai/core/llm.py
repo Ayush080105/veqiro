@@ -471,31 +471,37 @@ class LLMClient:
     async def generate_image_with_reference(
         self, prompt: str, reference_image_b64: str, aspect_ratio: str = "1:1"
     ) -> str:
-        """Gemini image generation with mascot reference for character fidelity.
-        Uses gemini-2.0-flash image generation which accepts image + text input."""
+        """Gemini image generation with a single reference image. Delegates to generate_image_with_references."""
+        return await self.generate_image_with_references(prompt, [reference_image_b64], aspect_ratio)
+
+    async def generate_image_with_references(
+        self, prompt: str, reference_images_b64: list[str], aspect_ratio: str = "1:1"
+    ) -> str:
+        """Gemini image generation with one or more reference images (mascot, logo, etc.).
+        Each reference is passed as an inline_data part so Gemini can incorporate all of them."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return _RED_PNG_B64
         import google.generativeai as genai
         genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
-        ref_bytes = base64.b64decode(reference_image_b64)
-        response = await model.generate_content_async(
-            contents=[
-                {
-                    "role": "user",
-                    "parts": [
-                        {"text": prompt},
-                        {"inline_data": {"mime_type": "image/png", "data": base64.b64encode(ref_bytes).decode()}},
-                    ],
+        parts: list[dict] = [{"text": prompt}]
+        for ref_b64 in reference_images_b64:
+            ref_bytes = base64.b64decode(ref_b64)
+            parts.append({
+                "inline_data": {
+                    "mime_type": "image/png",
+                    "data": base64.b64encode(ref_bytes).decode(),
                 }
-            ],
+            })
+        response = await model.generate_content_async(
+            contents=[{"role": "user", "parts": parts}],
             generation_config={"response_modalities": ["IMAGE"]},
         )
         for part in response.candidates[0].content.parts:
             if hasattr(part, "inline_data") and part.inline_data.mime_type.startswith("image"):
                 return base64.b64encode(part.inline_data.data).decode()
-        # Fallback: plain generation without reference
+        # Fallback: plain generation without references
         return await self.generate_image(prompt, aspect_ratio)
 
     def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:

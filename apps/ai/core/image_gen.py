@@ -50,50 +50,53 @@ async def generate_social_image(
     use_mascot: bool = False,
 ) -> ImageResult:
     """Generate a social media image.
-    - use_mascot: fetches mascot from brand_kit.mascot_url and passes as reference to Gemini
-    - use_logo: fetches logo from brand_kit.logo_url and PIL-overlays it bottom-right
+    - use_mascot: passes mascot from brand_kit.mascot_url as a Gemini reference image
+    - use_logo: passes logo from brand_kit.logo_url as a Gemini reference image (contextually placed)
+    Both assets are passed as inline_data to Gemini so it incorporates them naturally into the scene.
     Mock mode returns a placeholder PNG regardless of flags.
     """
     from core.brand_kit import get_image_prompt_context
     context = get_image_prompt_context(brand_kit) if brand_kit else ""
-    full_prompt = f"{context}. {prompt}. Optimized for {platform} ({aspect_ratio} format)." if context else f"{prompt}. Optimized for {platform}."
+    base_prompt = f"{context}. {prompt}. Optimized for {platform} ({aspect_ratio} format)." if context else f"{prompt}. Optimized for {platform}."
 
     if settings.MOCK_MODE:
         return ImageResult(
             image_base64=_PLACEHOLDER_B64,
             content_type="image/png",
-            prompt_used=full_prompt,
+            prompt_used=base_prompt,
         )
 
     from core.llm import LLMClient
     llm = LLMClient()
 
-    # Fetch brand assets if requested
-    mascot_bytes: bytes | None = None
-    logo_bytes: bytes | None = None
+    # Collect reference images and prompt instructions for each
+    references: list[str] = []
+    prompt_additions: list[str] = []
 
     if use_mascot and brand_kit and brand_kit.mascot_url:
         mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
+        if mascot_bytes:
+            references.append(base64.b64encode(mascot_bytes).decode())
+            prompt_additions.append(
+                "The mascot character shown in the reference image should appear naturally "
+                "in the scene, actively engaged with the topic in a contextually appropriate way."
+            )
+
     if use_logo and brand_kit and brand_kit.logo_url:
         logo_bytes = await _fetch_asset(brand_kit.logo_url)
+        if logo_bytes:
+            references.append(base64.b64encode(logo_bytes).decode())
+            prompt_additions.append(
+                "Incorporate the brand logo shown in the reference image naturally and prominently "
+                "into the scene — for example on a product, banner, screen, t-shirt, or signboard — "
+                "in a way that fits the visual context."
+            )
 
-    # Build mascot-aware prompt
-    if mascot_bytes:
-        mascot_prompt = (
-            f"{full_prompt} "
-            "The mascot character shown in the reference image should appear naturally in the scene, "
-            "actively engaged with the topic in a contextually appropriate way."
-        )
-        b64 = await llm.generate_image_with_reference(
-            mascot_prompt,
-            base64.b64encode(mascot_bytes).decode(),
-            aspect_ratio=aspect_ratio,
-        )
+    final_prompt = base_prompt + (" " + " ".join(prompt_additions) if prompt_additions else "")
+
+    if references:
+        b64 = await llm.generate_image_with_references(final_prompt, references, aspect_ratio=aspect_ratio)
     else:
-        b64 = await llm.generate_image(full_prompt, aspect_ratio=aspect_ratio)
+        b64 = await llm.generate_image(base_prompt, aspect_ratio=aspect_ratio)
 
-    # Overlay logo (PIL composite — exact/deterministic placement)
-    if logo_bytes and b64:
-        b64 = _overlay_logo(b64, logo_bytes)
-
-    return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
+    return ImageResult(image_base64=b64, content_type="image/png", prompt_used=final_prompt)
