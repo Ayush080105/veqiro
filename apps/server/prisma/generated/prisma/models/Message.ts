@@ -71,6 +71,7 @@ export type MessageCountAggregateOutputType = {
   tokensUsed: number
   model: number
   userId: number
+  customInput: number
   _all: number
 }
 
@@ -120,6 +121,7 @@ export type MessageCountAggregateInputType = {
   tokensUsed?: true
   model?: true
   userId?: true
+  customInput?: true
   _all?: true
 }
 
@@ -220,6 +222,7 @@ export type MessageGroupByOutputType = {
   tokensUsed: number
   model: string | null
   userId: string | null
+  customInput: runtime.JsonValue | null
   _count: MessageCountAggregateOutputType | null
   _avg: MessageAvgAggregateOutputType | null
   _sum: MessageSumAggregateOutputType | null
@@ -256,6 +259,7 @@ export type MessageWhereInput = {
   tokensUsed?: Prisma.IntFilter<"Message"> | number
   model?: Prisma.StringNullableFilter<"Message"> | string | null
   userId?: Prisma.StringNullableFilter<"Message"> | string | null
+  customInput?: Prisma.JsonNullableFilter<"Message">
 }
 
 export type MessageOrderByWithRelationInput = {
@@ -269,6 +273,7 @@ export type MessageOrderByWithRelationInput = {
   tokensUsed?: Prisma.SortOrder
   model?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
+  customInput?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type MessageWhereUniqueInput = Prisma.AtLeast<{
@@ -285,6 +290,7 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   tokensUsed?: Prisma.IntFilter<"Message"> | number
   model?: Prisma.StringNullableFilter<"Message"> | string | null
   userId?: Prisma.StringNullableFilter<"Message"> | string | null
+  customInput?: Prisma.JsonNullableFilter<"Message">
 }, "id">
 
 export type MessageOrderByWithAggregationInput = {
@@ -298,6 +304,7 @@ export type MessageOrderByWithAggregationInput = {
   tokensUsed?: Prisma.SortOrder
   model?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
+  customInput?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MessageCountOrderByAggregateInput
   _avg?: Prisma.MessageAvgOrderByAggregateInput
   _max?: Prisma.MessageMaxOrderByAggregateInput
@@ -319,6 +326,7 @@ export type MessageScalarWhereWithAggregatesInput = {
   tokensUsed?: Prisma.IntWithAggregatesFilter<"Message"> | number
   model?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   userId?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
+  customInput?: Prisma.JsonNullableWithAggregatesFilter<"Message">
 }
 
 export type MessageCreateInput = {
@@ -332,6 +340,7 @@ export type MessageCreateInput = {
   tokensUsed?: number
   model?: string | null
   userId?: string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MessageUncheckedCreateInput = {
@@ -345,6 +354,7 @@ export type MessageUncheckedCreateInput = {
   tokensUsed?: number
   model?: string | null
   userId?: string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MessageUpdateInput = {
@@ -358,6 +368,7 @@ export type MessageUpdateInput = {
   tokensUsed?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MessageUncheckedUpdateInput = {
@@ -371,6 +382,7 @@ export type MessageUncheckedUpdateInput = {
   tokensUsed?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MessageCreateManyInput = {
@@ -384,6 +396,7 @@ export type MessageCreateManyInput = {
   tokensUsed?: number
   model?: string | null
   userId?: string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MessageUpdateManyMutationInput = {
@@ -397,6 +410,7 @@ export type MessageUpdateManyMutationInput = {
   tokensUsed?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MessageUncheckedUpdateManyInput = {
@@ -410,6 +424,7 @@ export type MessageUncheckedUpdateManyInput = {
   tokensUsed?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MessageCountOrderByAggregateInput = {
@@ -423,6 +438,7 @@ export type MessageCountOrderByAggregateInput = {
   tokensUsed?: Prisma.SortOrder
   model?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  customInput?: Prisma.SortOrder
 }
 
 export type MessageAvgOrderByAggregateInput = {
@@ -484,6 +500,7 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   tokensUsed?: boolean
   model?: boolean
   userId?: boolean
+  customInput?: boolean
 }, ExtArgs["result"]["message"]>
 
 export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -497,6 +514,7 @@ export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   tokensUsed?: boolean
   model?: boolean
   userId?: boolean
+  customInput?: boolean
 }, ExtArgs["result"]["message"]>
 
 export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -510,6 +528,7 @@ export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   tokensUsed?: boolean
   model?: boolean
   userId?: boolean
+  customInput?: boolean
 }, ExtArgs["result"]["message"]>
 
 export type MessageSelectScalar = {
@@ -523,9 +542,10 @@ export type MessageSelectScalar = {
   tokensUsed?: boolean
   model?: boolean
   userId?: boolean
+  customInput?: boolean
 }
 
-export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "role" | "content" | "createdAt" | "imageUrl" | "agent" | "tokensUsed" | "model" | "userId", ExtArgs["result"]["message"]>
+export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "role" | "content" | "createdAt" | "imageUrl" | "agent" | "tokensUsed" | "model" | "userId" | "customInput", ExtArgs["result"]["message"]>
 
 export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Message"
@@ -541,6 +561,7 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     tokensUsed: number
     model: string | null
     userId: string | null
+    customInput: runtime.JsonValue | null
   }, ExtArgs["result"]["message"]>
   composites: {}
 }
@@ -974,6 +995,7 @@ export interface MessageFieldRefs {
   readonly tokensUsed: Prisma.FieldRef<"Message", 'Int'>
   readonly model: Prisma.FieldRef<"Message", 'String'>
   readonly userId: Prisma.FieldRef<"Message", 'String'>
+  readonly customInput: Prisma.FieldRef<"Message", 'Json'>
 }
     
 
