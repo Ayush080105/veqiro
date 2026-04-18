@@ -133,13 +133,21 @@ class MayaAgent(BaseAgent):
             "- User says 'adapt for X' or 'now make it for Instagram' → call `generate_variants`.\n"
             "- User gives feedback on existing content → call `revise_content`.\n"
             "- User says 'add logo' or 'add mascot' after an image was shown → call `modify_image`.\n"
-            "After drafting, output the post text directly. Nothing else."
+            "After drafting, output the post text directly. Nothing else.\n\n"
+            "## When to use ask_agent\n"
+            "- User asks for trending topics, hot news, or what's popular right now → call `ask_agent` with scout FIRST "
+            "(question: 'What are the top trending topics in [industry] right now?'), then use the result as input to `draft_content`.\n"
+            "- User wants SEO-optimized content or asks what keywords to target → call `ask_agent` with sage first.\n"
+            "- User asks a legal question about content (copyright, claims, disclaimers) → call `ask_agent` with lex.\n"
+            "Always call ask_agent BEFORE drafting when external research is needed."
         )
 
     # ── Chat with auto image generation ─────────────────────────────────
 
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
         response = await super().chat_sync(request)
+        if request.metadata.get("_cross_agent_call", False):
+            return response
 
         tool_calls = response.metadata.get("tool_calls", [])
 

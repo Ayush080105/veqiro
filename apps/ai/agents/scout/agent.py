@@ -33,7 +33,13 @@ class ScoutAgent(BaseAgent):
             "- Any comparative question (e.g. 'which has the weakest X?') → call `research_company` "
             "for EACH company being compared, then synthesize\n"
             "- Any question about trends, market data, or recent events → call `web_search` or `research_topic`\n"
-            "After gathering real data with tools, synthesize it into a clear, founder-focused analysis."
+            "After gathering real data with tools, synthesize it into a clear, founder-focused analysis.\n\n"
+            "## When to use ask_agent\n"
+            "- Research is done and user wants a social post or caption written from your findings → call `ask_agent` with maya "
+            "(include the research findings in the question so Maya has full context).\n"
+            "- User wants an SEO blog article written from the research → call `ask_agent` with sage.\n"
+            "- User asks about legal compliance of a company or contract you researched → call `ask_agent` with lex.\n"
+            "Call your own research tools FIRST, then delegate content creation."
         )
 
     async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:

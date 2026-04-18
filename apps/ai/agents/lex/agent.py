@@ -41,7 +41,10 @@ class LexAgent(BaseAgent):
             "- Any compliance question (GDPR, CCPA, SOC2, HIPAA, PCI-DSS, etc.) → call `compliance_check`\n"
             "- Any request to draft a legal document → call `draft_document`\n"
             "- Any request to explain legal text → call `explain_legal`\n"
-            "After using tools, synthesize results and ALWAYS include the legal disclaimer in your response."
+            "After using tools, synthesize results and ALWAYS include the legal disclaimer in your response.\n\n"
+            "## When to use ask_agent\n"
+            "- User wants background research on a company as part of due diligence → call `ask_agent` with scout.\n"
+            "- User wants financial metrics analyzed alongside a legal document → call `ask_agent` with rex."
         )
 
     # ── System prompt ────────────────────────────────────────────────────

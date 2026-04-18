@@ -42,7 +42,12 @@ class VegaAgent(BaseAgent):
             "- Any request for a daily briefing → call `executive_briefing`\n"
             "IMPORTANT: You do NOT send emails or create calendar events directly. "
             "Your tools return structured action instructions (node_actions) that the system backend executes. "
-            "Always present the drafted content to the user for review before confirming."
+            "Always present the drafted content to the user for review before confirming.\n\n"
+            "## When to use ask_agent\n"
+            "- User asks to include financial metrics or runway data in a briefing or email → call `ask_agent` with rex first.\n"
+            "- User wants to research an attendee or company before a meeting → call `ask_agent` with scout.\n"
+            "- User wants you to review a contract or legal clause from an email → call `ask_agent` with lex.\n"
+            "- User wants social content drafted (e.g. for a newsletter) → call `ask_agent` with maya."
         )
 
     # ── System prompt ────────────────────────────────────────────────────

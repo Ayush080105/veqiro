@@ -125,12 +125,13 @@ class BaseAgent(ABC):
         from agents.registry import get_ask_agent_tool
 
         tools = self.get_tools()
-        ask_agent_tool = get_ask_agent_tool()
-        # Remove own agent from ask_agent enum to prevent self-calls
-        for p in ask_agent_tool.parameters:
-            if p.name == "agent_slug" and p.enum:
-                p.enum = [s for s in p.enum if s != self.slug]
-        tools.append(ask_agent_tool)
+        if not request.metadata.get("_cross_agent_call", False):
+            ask_agent_tool = get_ask_agent_tool()
+            # Remove own agent from ask_agent enum to prevent self-calls
+            for p in ask_agent_tool.parameters:
+                if p.name == "agent_slug" and p.enum:
+                    p.enum = [s for s in p.enum if s != self.slug]
+            tools.append(ask_agent_tool)
 
         # If no tools defined (shouldn't happen, but safety), fall back
         if len(tools) <= 1:  # only ask_agent
@@ -272,14 +273,15 @@ class BaseAgent(ABC):
         if not target_agent:
             return f"Error: Agent '{target_slug}' not found or not registered."
 
-        # Use the simple no-tools path to prevent recursion
+        # Run target agent's full tool loop, but block further delegation via flag
         inner_request = ChatRequest(
             user_id=user_id,
             conversation_id=f"cross-agent-{self.slug}-to-{target_slug}",
             message=question,
             history=[],
+            metadata={"_cross_agent_call": True},
         )
-        result = await target_agent._chat_sync_no_tools(inner_request)
+        result = await target_agent.chat_sync(inner_request)
         return result.response
 
     # ── RAG ingestion ───────────────────────────────────────────────────

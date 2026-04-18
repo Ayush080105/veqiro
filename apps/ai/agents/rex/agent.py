@@ -40,7 +40,12 @@ class RexAgent(BaseAgent):
             "- 'What's our CAC?', 'What's our LTV?', 'Are we acquiring customers profitably?' → call `unit_economics`\n"
             "- 'What if I hire...', 'What happens if...', 'Model a scenario where...' → call `scenario_model`\n"
             "- 'Weekly numbers', 'Monday digest', 'How did we do this week?', 'CFO report' → call `weekly_digest`\n"
-            "After using tools, synthesize results with specific numbers and 2-3 actionable next steps."
+            "After using tools, synthesize results with specific numbers and 2-3 actionable next steps.\n\n"
+            "## When to use ask_agent\n"
+            "- User wants a social post or announcement written about financial results → call `ask_agent` with maya (include the key numbers).\n"
+            "- User needs an SEO article about their growth story or metrics → call `ask_agent` with sage.\n"
+            "- User asks about legal or compliance aspects of a financial document → call `ask_agent` with lex.\n"
+            "Note: `compile_briefing` already auto-fetches from maya and scout — use it for full executive briefings."
         )
 
     # ── System prompt ────────────────────────────────────────────────────

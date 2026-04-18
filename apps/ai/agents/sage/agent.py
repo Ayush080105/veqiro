@@ -58,6 +58,17 @@ class SageAgent(BaseAgent):
             prompt += f"\nAdditional Context:\n{extra_context}\n"
         return prompt
 
+    def get_tool_instructions(self) -> str:
+        return (
+            "\n\nUse your tools proactively. For keyword questions → `keyword_research`. "
+            "For writing a blog post → `generate_blog`. For auditing content → `analyze_content`. "
+            "For content strategy → `content_brief`. For SERP research → `web_search` first.\n\n"
+            "## When to use ask_agent\n"
+            "- User wants social posts to promote the blog or content you wrote → call `ask_agent` with maya (include the content).\n"
+            "- User wants competitive research or trending topics before writing → call `ask_agent` with scout first.\n"
+            "- User asks about legal compliance of content (GDPR, copyright, claims) → call `ask_agent` with lex."
+        )
+
     # ── Chat with RAG ingest of generated blog content ──────────────────
 
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
