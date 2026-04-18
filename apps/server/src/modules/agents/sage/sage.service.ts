@@ -1,6 +1,6 @@
-import { aiService } from "../../common/utils/aiService.js";
-import { BadRequestError } from "../../common/errors/badRequest.js";
-import { SAGE_HISTORY_LIMIT } from "../../config/constants.js";
+import { aiService } from "../../../common/utils/aiService.js";
+import { BadRequestError } from "../../../common/errors/badRequest.js";
+import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
 import * as sageRepository from "./sage.repository.js";
 import type { SendMessageInput, AssistantMessagePayload } from "./sage.types.js";
 

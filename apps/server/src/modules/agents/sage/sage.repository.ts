@@ -1,5 +1,5 @@
-import { prisma } from "../../config/prisma.js";
-import { Agent } from "../../../prisma/generated/prisma/client.js";
+import { prisma } from "../../../config/prisma.js";
+import { Agent } from "../../../../prisma/generated/prisma/client.js";
 
 export const createUserMessage = (organizationId: string, content: string) =>
   prisma.message.create({

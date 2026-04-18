@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { sendMessageSchema } from "./sage.schema.js";
 import * as sageService from "./sage.service.js";
-import { BadRequestError } from "../../common/errors/badRequest.js";
+import { BadRequestError } from "../../../common/errors/badRequest.js";
 
 export const msgSage = async (req: Request, res: Response) => {
   const input = sendMessageSchema.parse(req.body);
