@@ -1,32 +1,43 @@
 import { prisma } from "../../../config/prisma.js";
-import { Agent } from "../../../../prisma/generated/prisma/client.js";
+import { Agent, Prisma } from "../../../../prisma/generated/prisma/client.js";
 
-export const createUserMessage = (organizationId: string, content: string) =>
+export const createUserMessage = (data: {
+  organizationId: string;
+  userId: string;
+  content: string;
+  customInput?: unknown;
+}) =>
   prisma.message.create({
     data: {
-      organizationId,
+      organizationId: data.organizationId,
+      userId: data.userId,
       role: "user",
-      content,
+      content: data.content,
       agent: Agent.SAGE,
+      customInput: data.customInput as Prisma.InputJsonValue | undefined,
     },
   });
 
 export const createAssistantMessage = (data: {
   organizationId: string;
+  userId: string;
   content: string;
   imageUrl?: string;
   tokensUsed?: number;
   model?: string;
+  customInput?: unknown;
 }) =>
   prisma.message.create({
     data: {
       organizationId: data.organizationId,
+      userId: data.userId,
       role: "assistant",
       content: data.content,
       agent: Agent.SAGE,
       imageUrl: data.imageUrl,
       tokensUsed: data.tokensUsed,
       model: data.model,
+      customInput: data.customInput as Prisma.InputJsonValue | undefined,
     },
   });
 
@@ -47,5 +58,6 @@ export const findAllSageMessages = (organizationId: string) =>
       content: true,
       imageUrl: true,
       createdAt: true,
+      customInput: true,
     },
   });

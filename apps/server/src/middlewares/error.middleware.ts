@@ -4,7 +4,6 @@ import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 
 const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.log(err);
   let customError = {
     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
     msg: err.message || "Something went wrong try again later",
