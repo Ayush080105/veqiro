@@ -33,11 +33,9 @@ class MayaAgent(BaseAgent):
     slug = "maya"
     name = "Maya"
     personality = (
-        "Expert marketing strategist and social media manager. You create high-performing, "
-        "platform-native content for Instagram, LinkedIn, and Twitter/X. You understand "
-        "algorithms, engagement patterns, and what makes content go viral on each platform. "
-        "You always write in the brand's voice, include strategic hashtags, and craft CTAs "
-        "that drive action. You think like a growth marketer — every post has a purpose."
+        "the content and social media lead. You know what actually works on Instagram, LinkedIn, and X — "
+        "not theory, just what gets engagement. You write in the brand's voice, give real opinions on "
+        "creative direction, and always have a reason for every choice. Enthusiastic but not over the top."
     )
     default_provider = "openai"
     default_model = "gpt-4o-mini"
@@ -83,7 +81,7 @@ class MayaAgent(BaseAgent):
             "\n## Platform Rules\n"
             "You support 3 platforms: LinkedIn, Instagram, Twitter/X.\n\n"
             "**LinkedIn** (max 3000 chars): Professional, insight-driven. 3-5 hashtags. "
-            "Lead with a strong hook. Use paragraph breaks and bullet points.\n\n"
+            "Lead with a strong hook. Short paragraphs — NO bullet points, NO bold headers.\n\n"
             "**Twitter/X** (max 280 chars per tweet): Casual, punchy, scroll-stopping. "
             "1-3 hashtags. For longer content, use threads (🧵).\n\n"
             "**Instagram** (max 2200 chars): Visual-first, inspiring, relatable. "
@@ -99,6 +97,13 @@ class MayaAgent(BaseAgent):
             "5. Match the platform's native format and character limits exactly\n"
             "6. Hashtags must be platform-appropriate (count and style)\n"
             "7. Write in the brand voice — never generic\n"
+        )
+        prompt += (
+            "\nHOW TO RESPOND:\n"
+            "After draft_content: output the post AS-IS — nothing before, nothing after. No headers, no commentary.\n"
+            "After generate_ideas: output the ideas exactly as returned — don't rewrite or summarise them.\n"
+            "Never suggest or describe images — the image is generated automatically by the system.\n"
+            "No filler: 'Certainly!', 'Great choice!', 'Here's your post:' — just deliver.\n"
         )
         if brand_kit.logo_url or brand_kit.mascot_url:
             has_logo = "Logo: available." if brand_kit.logo_url else "Logo: not configured."
@@ -117,16 +122,38 @@ class MayaAgent(BaseAgent):
             prompt += f"\nAdditional Context:\n{extra_context}\n"
         return prompt
 
+    # ── Tool instructions ────────────────────────────────────────────────
+
+    def get_tool_instructions(self) -> str:
+        return (
+            "\n\n## Tool Rules\n"
+            "- User asks for a post on a specific platform → call `draft_content` ONCE for that platform only.\n"
+            "- Don't call `draft_content` for multiple platforms unless the user explicitly asks for all of them.\n"
+            "- User asks for ideas or a content calendar → call `generate_ideas`.\n"
+            "- User says 'adapt for X' or 'now make it for Instagram' → call `generate_variants`.\n"
+            "- User gives feedback on existing content → call `revise_content`.\n"
+            "- User says 'add logo' or 'add mascot' after an image was shown → call `modify_image`.\n"
+            "After drafting, output the post text directly. Nothing else.\n\n"
+            "## When to use ask_agent\n"
+            "- User asks for trending topics, hot news, or what's popular right now → call `ask_agent` with scout FIRST "
+            "(question: 'What are the top trending topics in [industry] right now?'), then use the result as input to `draft_content`.\n"
+            "- User wants SEO-optimized content or asks what keywords to target → call `ask_agent` with sage first.\n"
+            "- User asks a legal question about content (copyright, claims, disclaimers) → call `ask_agent` with lex.\n"
+            "Always call ask_agent BEFORE drafting when external research is needed."
+        )
+
     # ── Chat with auto image generation ─────────────────────────────────
 
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
         response = await super().chat_sync(request)
+        if request.metadata.get("_cross_agent_call", False):
+            return response
 
         tool_calls = response.metadata.get("tool_calls", [])
 
-        # Branch A: new content was drafted/adapted — generate image with Gemini references
+        # Branch A: new content was drafted/adapted/ideated — generate image
         content_call = next(
-            (tc for tc in tool_calls if tc["name"] in {"draft_content", "generate_variants"}),
+            (tc for tc in tool_calls if tc["name"] in {"draft_content", "generate_variants", "generate_ideas"}),
             None,
         )
         if content_call:
@@ -134,7 +161,7 @@ class MayaAgent(BaseAgent):
                 from core.brand_kit import load_brand_kit
                 from core.image_gen import generate_social_image
                 args = content_call["arguments"]
-                topic = args.get("topic", args.get("original_content", "content")[:100])
+                topic = args.get("topic", args.get("topic_hint", args.get("original_content", "content")))[:100]
                 platform = args.get("platform", args.get("original_platform", "linkedin"))
                 if isinstance(platform, list):
                     platform = platform[0] if platform else "linkedin"
@@ -158,8 +185,8 @@ class MayaAgent(BaseAgent):
                 })
 
                 response.image = image_result
-            except Exception:
-                pass  # image is best-effort; text response is already set
+            except Exception as e:
+                response.metadata["image_error"] = str(e)
 
         # Branch B: user wants to modify logo/mascot on the previously generated image
         modify_call = next(
@@ -210,6 +237,8 @@ class MayaAgent(BaseAgent):
                     ToolParameter(name="platform", type="string", description="Target platform: linkedin, twitter, or instagram", required=True),
                     ToolParameter(name="topic_hint", type="string", description="Topic or theme to generate ideas about", required=True),
                     ToolParameter(name="count", type="integer", description="Number of ideas (1-10)", required=False, default=3),
+                    ToolParameter(name="use_logo", type="boolean", description="Include brand logo on the generated image. Set true ONLY if user explicitly asks.", required=False, default=False),
+                    ToolParameter(name="use_mascot", type="boolean", description="Include brand mascot in the generated image. Set true ONLY if user explicitly asks.", required=False, default=False),
                 ],
             ),
             ToolDefinition(
@@ -281,18 +310,15 @@ class MayaAgent(BaseAgent):
             count = arguments.get("count", 3)
             rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
             prompt = (
-                f"Generate {count} high-performing content ideas for {platform} about: {topic_hint}\n\n"
-                f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
-                f"tone: {rules['tone']}\n\n"
-                "Return a JSON array. Each idea must have:\n"
-                "- title: compelling post title\n"
-                "- platform: target platform\n"
-                "- hook: the opening line that stops the scroll\n"
-                "- predicted_engagement: High/Medium/Low with reasoning\n"
-                "- suggested_hashtags: array of platform-appropriate hashtags\n"
-                "- content_type: post type (carousel, thread, single post, reel caption, etc.)\n"
-                "- reasoning: why this idea will perform well\n\n"
-                "Return ONLY the JSON array, no markdown fences."
+                f"Generate {count} {platform} content ideas about: {topic_hint}\n\n"
+                f"Tone: {rules['tone']}. {rules['hashtag_count']} hashtags per post.\n\n"
+                f"Format each idea exactly like this (no JSON, no markdown headers):\n\n"
+                "**Idea 1 — [title]**\n"
+                "Hook: [opening line that stops the scroll]\n"
+                "Why it works: [1 sentence]\n"
+                "Format: [post type — single post, carousel, etc.]\n"
+                "Hashtags: [3-5 hashtags]\n\n"
+                "Repeat for each idea. Be specific to the topic — no generic filler."
             )
             return await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
@@ -312,19 +338,17 @@ class MayaAgent(BaseAgent):
             if brand_kit.website_url:
                 website_cta = f"\nInclude this link in the CTA where natural: {brand_kit.website_url}"
             prompt = (
-                f"Write a ready-to-publish {platform} post about: {topic}\n\n"
+                f"Write a {platform} post about: {topic}\n\n"
                 f"Tone: {tone}\n"
-                f"Target word count: ~{word_count} words\n"
-                f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
-                f"format: {rules['format']}\n"
+                f"Max {rules['max_chars']} chars. {rules['hashtag_count']} hashtags at the end.\n"
                 f"{website_cta}\n\n"
-                "The post MUST include:\n"
-                "1. A scroll-stopping hook as the first line\n"
-                "2. Engaging body with value for the reader\n"
-                "3. Platform-appropriate hashtags (correct count for the platform)\n"
-                "4. A clear CTA at the end\n\n"
-                "Return the complete post as plain text, ready to copy-paste and publish. "
-                "Put hashtags in the appropriate place for the platform."
+                "Rules:\n"
+                "- NO bullet points. NO bold headers. NO numbered lists. Short paragraphs only.\n"
+                "- Start with the specific fact or number — not 'We are thrilled to announce' or 'Excited to share'.\n"
+                "- Sound like the founder typed it themselves, not a PR team.\n"
+                "- Under 150 words for LinkedIn. Cut anything generic.\n"
+                "- CTA at the end that feels natural.\n\n"
+                "Output ONLY the post. Nothing before it, nothing after it."
             )
             return await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,

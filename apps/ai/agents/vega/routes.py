@@ -1,5 +1,6 @@
+import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
@@ -8,8 +9,9 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
+from core.utils import strip_json_fences, safe_json_loads
 from agents.vega.agent import VegaAgent
-from agents.vega.gmail import list_unread, get_message, create_draft, create_label, label_message
+from agents.vega.gmail import list_unread, get_message, create_label, label_message
 from agents.vega.calendar import list_events, create_event, find_free_slots
 
 router = APIRouter(prefix="/ai/vega", tags=["Vega"])
@@ -26,19 +28,19 @@ register_agent(_agent)
 
 class ProcessInboxRequest(BaseModel):
     user_id: str
-    google_access_token: str | None = None
     max_emails: int = 20
     auto_label: bool = True
     draft_replies: bool = True
+    metadata: dict = {}
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "google_access_token": None,
                 "max_emails": 10,
                 "auto_label": True,
                 "draft_replies": True,
+                "metadata": {"google_access_token": "ya29.xxx"},
             }
         }
     )
@@ -69,25 +71,26 @@ class InboxStats(BaseModel):
 class ProcessInboxResponse(BaseModel):
     processed: list[ProcessedEmail]
     stats: InboxStats
+    node_actions: list[dict] = []
 
 
 class DraftReplyRequest(BaseModel):
     user_id: str
-    google_access_token: str | None = None
     email_id: str
     reply_instructions: str
     tone: str = "professional"
     save_as_draft: bool = True
+    metadata: dict = {}
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "google_access_token": None,
                 "email_id": "msg_001",
                 "reply_instructions": "Accept the meeting, propose Thursday 3pm EST, attach our metrics deck",
                 "tone": "professional and enthusiastic",
                 "save_as_draft": True,
+                "metadata": {"google_access_token": "ya29.xxx"},
             }
         }
     )
@@ -96,19 +99,20 @@ class DraftReplyRequest(BaseModel):
 class DraftReplyResponse(BaseModel):
     draft: dict
     suggested_follow_up: str
+    node_actions: list[dict] = []
 
 
 class CalendarSummaryRequest(BaseModel):
     user_id: str
-    google_access_token: str | None = None
     days_ahead: int = 7
+    metadata: dict = {}
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "google_access_token": None,
                 "days_ahead": 7,
+                "metadata": {"google_access_token": "ya29.xxx"},
             }
         }
     )
@@ -123,17 +127,17 @@ class CalendarSummaryResponse(BaseModel):
 
 class CreateEventRequest(BaseModel):
     user_id: str
-    google_access_token: str | None = None
     description: str
     check_conflicts: bool = True
+    metadata: dict = {}
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "google_access_token": None,
                 "description": "Schedule a 30-minute call with Marcus Rivera from GrowthCo on Wednesday April 2nd at 10am EST",
                 "check_conflicts": True,
+                "metadata": {"google_access_token": "ya29.xxx"},
             }
         }
     )
@@ -144,21 +148,22 @@ class CreateEventResponse(BaseModel):
     conflicts: list[dict]
     google_event_id: str
     created: bool
+    node_actions: list[dict] = []
 
 
 class ExecutiveBriefingRequest(BaseModel):
     user_id: str
-    google_access_token: str | None = None
     include_email: bool = True
     include_calendar: bool = True
+    metadata: dict = {}
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
-                "google_access_token": None,
                 "include_email": True,
                 "include_calendar": True,
+                "metadata": {"google_access_token": "ya29.xxx"},
             }
         }
     )
@@ -168,18 +173,47 @@ class ExecutiveBriefingResponse(BaseModel):
     briefing: dict
 
 
+class ComposeEmailRequest(BaseModel):
+    user_id: str
+    to: str
+    subject: str
+    instructions: str
+    tone: str = "professional"
+    include_cta: bool = True
+    metadata: dict = {}
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "to": "investor@accel.com",
+                "subject": "Veqiro AI — March 2025 Update",
+                "instructions": "Write a concise investor update email highlighting MRR growth to $58K and two new enterprise pilots. Request a 30-min call.",
+                "tone": "professional and enthusiastic",
+                "include_cta": True,
+                "metadata": {"google_access_token": "ya29.xxx"},
+            }
+        }
+    )
+
+
+class ComposeEmailResponse(BaseModel):
+    draft: dict
+    node_actions: list[dict] = []
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Vega chat")
 async def vega_chat(request: ChatRequest) -> ChatSyncResponse:
-    """Get Vega's executive assistant response as a standard JSON response."""
+    """Get Vega's executive assistant response. node_actions in metadata for backend to execute."""
     return await _agent.chat_sync(request)
 
 
 @router.post("/process-inbox", response_model=ProcessInboxResponse, summary="Process email inbox")
 async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
-    """Triage, label, and draft replies for unread emails."""
-    token = request.google_access_token or "mock-token"
+    """Triage, label, and draft replies for unread emails. Returns node_actions for backend."""
+    token = request.metadata.get("google_access_token", "") or "mock-token"
     emails = await list_unread(token, max_results=request.max_emails)
 
     if settings.MOCK_MODE:
@@ -218,65 +252,106 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             ),
         ]
         stats = InboxStats(total_processed=3, urgent=1, high=1, medium=0, low=1, drafts_created=2, labels_applied=3)
-        return ProcessInboxResponse(processed=processed, stats=stats)
+        node_actions = [
+            {
+                "node_action": "label_messages",
+                "messages": [
+                    {"email_id": "msg_001", "label": "Investors"},
+                    {"email_id": "msg_002", "label": "Newsletters"},
+                    {"email_id": "msg_003", "label": "Sales Leads"},
+                ],
+            }
+        ]
+        return ProcessInboxResponse(processed=processed, stats=stats, node_actions=node_actions)
 
     system = await _agent.build_system_prompt(request.user_id)
     processed = []
     stats_counts = {"urgent": 0, "high": 0, "medium": 0, "low": 0}
-    drafts = 0
-    labels = 0
+    label_messages_list = []
 
     for email in emails[:request.max_emails]:
-        import json
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
-            messages=[{"role": "user", "content": f"Analyze this email and determine priority (urgent/high/medium/low), summary, and suggested action:\n\nFrom: {email.get('from', '')}\nSubject: {email.get('subject', '')}\nBody: {email.get('body', email.get('snippet', ''))[:500]}"}],
+            messages=[{"role": "user", "content": (
+                "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys: "
+                "priority (urgent/high/medium/low), summary (1-2 sentences), "
+                "suggested_action (string), label (one of: Investors, Sales Leads, Newsletters, Team, Legal, Finance, Other)\n\n"
+                f"From: {email.get('from', '')}\n"
+                f"Subject: {email.get('subject', '')}\n"
+                f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
+            )}],
         )
-        priority = email.get("priority", "medium")
+        try:
+            analysis = safe_json_loads(raw)
+            priority = analysis.get("priority", "medium")
+            summary = analysis.get("summary", raw[:300])
+            suggested_action = analysis.get("suggested_action", "review")
+            label = analysis.get("label", "Other")
+        except Exception:
+            priority = "medium"
+            summary = raw[:300]
+            suggested_action = "review"
+            label = "Other"
+
         stats_counts[priority] = stats_counts.get(priority, 0) + 1
+        label_messages_list.append({"email_id": email.get("id", ""), "label": label})
         processed.append(ProcessedEmail(
-            email_id=email["id"],
+            email_id=email.get("id", ""),
             subject=email.get("subject", ""),
             from_name=email.get("from_name", email.get("from", "")),
             priority=priority,
-            summary=raw[:300],
-            suggested_action=email.get("suggested_action", "review"),
+            summary=summary,
+            suggested_action=suggested_action,
+            label_applied=label,
         ))
 
     stats = InboxStats(
         total_processed=len(processed),
-        **stats_counts,
-        drafts_created=drafts,
-        labels_applied=labels,
+        urgent=stats_counts.get("urgent", 0),
+        high=stats_counts.get("high", 0),
+        medium=stats_counts.get("medium", 0),
+        low=stats_counts.get("low", 0),
+        drafts_created=0,
+        labels_applied=len(label_messages_list),
     )
-    return ProcessInboxResponse(processed=processed, stats=stats)
+    node_actions = [{"node_action": "label_messages", "messages": label_messages_list}]
+    return ProcessInboxResponse(processed=processed, stats=stats, node_actions=node_actions)
 
 
 @router.post("/draft-reply", response_model=DraftReplyResponse, summary="Draft email reply")
 async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
-    """Draft a contextually appropriate email reply."""
-    token = request.google_access_token or "mock-token"
+    """Draft a contextually appropriate email reply. Returns node_action for backend to create Gmail draft."""
+    token = request.metadata.get("google_access_token", "") or "mock-token"
 
     if settings.MOCK_MODE:
+        body = (
+            "Hi Sarah,\n\nThank you so much for following up – and it was great meeting you at Disrupt!\n\n"
+            "Thursday at 3pm EST works perfectly for me. I'll send a calendar invite momentarily.\n\n"
+            "I'll attach our latest metrics deck to this email – happy to walk you through the numbers live, "
+            "but wanted to give you a head start.\n\n"
+            "Quick highlights: MRR hit $58K last month (39% MoM growth), churn is tracking at 2.1%, "
+            "and we have 248 active subscribers with strong expansion revenue.\n\n"
+            "Looking forward to the conversation!\n\n"
+            "Best,\nAlex\nFounder & CEO, Veqiro AI\n+1 (415) 555-0123"
+        )
+        node_action = {
+            "node_action": "create_gmail_draft",
+            "to": "sarah.chen@accelpartners.com",
+            "subject": "RE: Veqiro AI – Seed Round Interest",
+            "body": body,
+            "reply_to_message_id": request.email_id,
+            "reply_to_thread_id": None,
+        }
         return DraftReplyResponse(
             draft={
                 "to": "sarah.chen@accelpartners.com",
                 "subject": "RE: Veqiro AI – Seed Round Interest",
-                "body": (
-                    "Hi Sarah,\n\nThank you so much for following up – and it was great meeting you at Disrupt!\n\n"
-                    "Thursday at 3pm EST works perfectly for me. I'll send a calendar invite momentarily.\n\n"
-                    "I'll attach our latest metrics deck to this email – happy to walk you through the numbers live, "
-                    "but wanted to give you a head start.\n\n"
-                    "Quick highlights: MRR hit $58K last month (39% MoM growth), churn is tracking at 2.1%, "
-                    "and we have 248 active subscribers with strong expansion revenue.\n\n"
-                    "Looking forward to the conversation!\n\n"
-                    "Best,\nAlex\nFounder & CEO, Veqiro AI\n+1 (415) 555-0123"
-                ),
-                "draft_id": "draft_001_mock",
+                "body": body,
                 "saved": request.save_as_draft,
             },
             suggested_follow_up="Follow up Friday April 4th if no confirmation received by Thursday morning",
+            node_actions=[node_action],
         )
 
     email = await get_message(token, request.email_id)
@@ -284,22 +359,34 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Draft a {request.tone} reply to this email:\n\nFrom: {email.get('from', '')}\nSubject: {email.get('subject', '')}\nBody: {email.get('body', '')[:1000]}\n\nInstructions: {request.reply_instructions}"}],
+        messages=[{"role": "user", "content": (
+            f"Draft a {request.tone} reply to this email:\n\n"
+            f"From: {email.get('from', '')}\n"
+            f"Subject: {email.get('subject', '')}\n"
+            f"Body: {email.get('body', '')[:1000]}\n\n"
+            f"Instructions: {request.reply_instructions}"
+        )}],
     )
-    draft_id = None
-    if request.save_as_draft:
-        draft_id = await create_draft(token, email.get("from", ""), f"RE: {email.get('subject', '')}", raw)
 
+    node_action = {
+        "node_action": "create_gmail_draft",
+        "to": email.get("from", ""),
+        "subject": f"RE: {email.get('subject', '')}",
+        "body": raw,
+        "reply_to_message_id": request.email_id,
+        "reply_to_thread_id": email.get("thread_id", ""),
+    }
     return DraftReplyResponse(
-        draft={"to": email.get("from", ""), "subject": f"RE: {email.get('subject', '')}", "body": raw, "draft_id": draft_id, "saved": request.save_as_draft},
+        draft={"to": email.get("from", ""), "subject": f"RE: {email.get('subject', '')}", "body": raw, "saved": request.save_as_draft},
         suggested_follow_up="Follow up in 48 hours if no response",
+        node_actions=[node_action],
     )
 
 
 @router.post("/calendar-summary", response_model=CalendarSummaryResponse, summary="Summarize calendar")
 async def calendar_summary(request: CalendarSummaryRequest) -> CalendarSummaryResponse:
     """Get a comprehensive calendar overview with conflict detection and free slots."""
-    token = request.google_access_token or "mock-token"
+    token = request.metadata.get("google_access_token", "") or "mock-token"
     events = await list_events(token, days_ahead=request.days_ahead)
     free_slots = await find_free_slots(token, {})
 
@@ -316,9 +403,25 @@ async def calendar_summary(request: CalendarSummaryRequest) -> CalendarSummaryRe
             },
         )
 
+    # Detect conflicts: events on the same day whose times overlap
+    conflicts = []
+    sorted_events = sorted(events, key=lambda e: e.get("start", ""))
+    for i in range(len(sorted_events) - 1):
+        e1 = sorted_events[i]
+        e2 = sorted_events[i + 1]
+        e1_end = e1.get("end", "")
+        e2_start = e2.get("start", "")
+        if e1_end and e2_start and e1_end > e2_start:
+            conflicts.append({
+                "event_1": e1.get("title", ""),
+                "event_1_end": e1_end,
+                "event_2": e2.get("title", ""),
+                "event_2_start": e2_start,
+            })
+
     return CalendarSummaryResponse(
         events=events,
-        conflicts=[],
+        conflicts=conflicts,
         free_slots=free_slots,
         daily_summary={},
     )
@@ -326,10 +429,19 @@ async def calendar_summary(request: CalendarSummaryRequest) -> CalendarSummaryRe
 
 @router.post("/create-event", response_model=CreateEventResponse, summary="Create calendar event")
 async def create_calendar_event(request: CreateEventRequest) -> CreateEventResponse:
-    """Parse natural language description and create a calendar event."""
-    token = request.google_access_token or "mock-token"
+    """Parse natural language description and return node_action for backend to create calendar event."""
+    token = request.metadata.get("google_access_token", "") or "mock-token"
 
     if settings.MOCK_MODE:
+        node_action = {
+            "node_action": "create_calendar_event",
+            "title": "Demo Call – Marcus Rivera (GrowthCo)",
+            "start": "2025-04-02T15:00:00Z",
+            "end": "2025-04-02T15:30:00Z",
+            "attendees": ["founder@veqiroai.com", "marcus@growthco.io"],
+            "description": request.description,
+            "add_google_meet": True,
+        }
         return CreateEventResponse(
             event={
                 "id": "event_new_mock",
@@ -343,19 +455,34 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
             conflicts=[],
             google_event_id="event_new_mock",
             created=True,
+            node_actions=[node_action],
         )
 
+    now = datetime.now(timezone.utc)
+    next_day = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Parse this event description into structured data:\n{request.description}\n\nReturn JSON with fields: title, start (ISO datetime), end (ISO datetime), attendees (list of emails), description"}],
+        messages=[{"role": "user", "content": (
+            f"Today is {now.strftime('%A, %Y-%m-%d')} UTC.\n"
+            f"Parse this event description into structured data:\n{request.description}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with keys: "
+            "title (string), start (ISO 8601 UTC datetime), end (ISO 8601 UTC datetime), "
+            "attendees (list of email strings), description (string)"
+        )}],
     )
     try:
-        event_data = json.loads(raw)
+        event_data = safe_json_loads(raw)
     except Exception:
-        event_data = {"title": request.description[:50], "start": "2025-04-01T10:00:00Z", "end": "2025-04-01T11:00:00Z", "attendees": []}
+        event_data = {
+            "title": request.description[:50],
+            "start": f"{next_day}T10:00:00Z",
+            "end": f"{next_day}T11:00:00Z",
+            "attendees": [],
+            "description": request.description,
+        }
 
     conflicts = []
     if request.check_conflicts:
@@ -364,19 +491,28 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
             if e.get("start", "")[:10] == event_data.get("start", "")[:10]:
                 conflicts.append({"event": e.get("title", ""), "time": e.get("start", "")})
 
-    created_event = await create_event(token, event_data)
+    node_action = {
+        "node_action": "create_calendar_event",
+        "title": event_data.get("title", ""),
+        "start": event_data.get("start", ""),
+        "end": event_data.get("end", ""),
+        "attendees": event_data.get("attendees", []),
+        "description": event_data.get("description", ""),
+        "add_google_meet": True,
+    }
     return CreateEventResponse(
-        event=created_event,
+        event=event_data,
         conflicts=conflicts,
-        google_event_id=created_event.get("id", ""),
+        google_event_id=event_data.get("title", "new_event"),
         created=True,
+        node_actions=[node_action],
     )
 
 
 @router.post("/executive-briefing", response_model=ExecutiveBriefingResponse, summary="Executive daily briefing")
 async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBriefingResponse:
     """Generate a comprehensive executive briefing combining email, calendar, and context."""
-    token = request.google_access_token or "mock-token"
+    token = request.metadata.get("google_access_token", "") or "mock-token"
 
     if settings.MOCK_MODE:
         return ExecutiveBriefingResponse(
@@ -419,13 +555,70 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
         events = await list_events(token, days_ahead=7)
 
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     context = f"Unread emails: {json.dumps(emails[:5])}\n\nCalendar events: {json.dumps(events)}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Generate an executive briefing for today:\n{context}"}],
+        messages=[{"role": "user", "content": (
+            f"Generate an executive briefing for today:\n{context}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with keys: "
+            "date, urgent_actions (list of {action, deadline, context, email_id?}), "
+            "today_schedule (list of {time, event, location?, prep_needed}), "
+            "email_summary ({total_unread, urgent, high, medium, low}), "
+            "focus_recommendation (string)"
+        )}],
     )
-    return ExecutiveBriefingResponse(
-        briefing={"narrative": raw, "generated_at": datetime.utcnow().isoformat()}
+    try:
+        data = safe_json_loads(raw)
+    except Exception:
+        data = {"briefing_text": raw}
+    data["generated_at"] = datetime.utcnow().isoformat()
+    return ExecutiveBriefingResponse(briefing=data)
+
+
+@router.post("/compose-email", response_model=ComposeEmailResponse, summary="Compose new outbound email")
+async def compose_email(request: ComposeEmailRequest) -> ComposeEmailResponse:
+    """Draft a brand new outbound email. Returns node_action for backend to create Gmail draft."""
+    if settings.MOCK_MODE:
+        body = (
+            f"Hi,\n\nI hope this message finds you well.\n\n"
+            f"{request.instructions[:200]}\n\n"
+            "I'd love to connect and discuss further. Would you be available for a 30-minute call this week?\n\n"
+            "Best regards,\nFounder, Veqiro AI"
+        )
+        node_action = {
+            "node_action": "create_gmail_draft",
+            "to": request.to,
+            "subject": request.subject,
+            "body": body,
+            "reply_to_message_id": None,
+            "reply_to_thread_id": None,
+        }
+        return ComposeEmailResponse(
+            draft={"to": request.to, "subject": request.subject, "body": body},
+            node_actions=[node_action],
+        )
+
+    system = await _agent.build_system_prompt(request.user_id)
+    raw = await _llm.complete(
+        provider=_agent.default_provider, model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": (
+            f"Compose a {request.tone} email.\n\n"
+            f"To: {request.to}\nSubject: {request.subject}\n"
+            f"Instructions: {request.instructions}\n"
+            f"{'Include a clear call-to-action.' if request.include_cta else 'No CTA needed.'}"
+        )}],
+    )
+    node_action = {
+        "node_action": "create_gmail_draft",
+        "to": request.to,
+        "subject": request.subject,
+        "body": raw,
+        "reply_to_message_id": None,
+        "reply_to_thread_id": None,
+    }
+    return ComposeEmailResponse(
+        draft={"to": request.to, "subject": request.subject, "body": raw},
+        node_actions=[node_action],
     )

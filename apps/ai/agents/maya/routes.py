@@ -31,6 +31,9 @@ class IdeationRequest(BaseModel):
     platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
     topic_hint: str = Field("", max_length=500)
     count: int = Field(3, ge=1, le=10)
+    include_image: bool = False
+    use_logo: bool = False
+    use_mascot: bool = False
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -39,6 +42,9 @@ class IdeationRequest(BaseModel):
                 "platform": "linkedin",
                 "topic_hint": "AI productivity for founders",
                 "count": 3,
+                "include_image": True,
+                "use_logo": False,
+                "use_mascot": False,
             }
         }
     )
@@ -57,6 +63,7 @@ class ContentIdea(BaseModel):
 class IdeationResponse(BaseModel):
     ideas: list[ContentIdea]
     generated_at: str
+    image: ImageResult | None = None
 
 
 class DraftRequest(BaseModel):
@@ -243,9 +250,20 @@ async def maya_chat(request: ChatRequest) -> ChatSyncResponse:
 async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
     """Generate content ideas for a given topic and content type."""
     if settings.MOCK_MODE:
+        image = None
+        if request.include_image:
+            try:
+                brand_kit = await load_brand_kit(request.user_id)
+                image = await generate_social_image(
+                    request.topic_hint or "content ideas", brand_kit, request.platform,
+                    use_logo=request.use_logo, use_mascot=request.use_mascot,
+                )
+            except Exception:
+                pass
         return IdeationResponse(
             ideas=_mock_ideas(request.count, request.topic_hint),
             generated_at=datetime.utcnow().isoformat(),
+            image=image,
         )
 
     system = await _agent.build_system_prompt(request.user_id)
@@ -267,7 +285,19 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         ideas = [ContentIdea(**i) for i in ideas_data]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Idea generation returned unparseable data — retry. ({exc})")
-    return IdeationResponse(ideas=ideas, generated_at=datetime.utcnow().isoformat())
+
+    image = None
+    if request.include_image:
+        try:
+            brand_kit = await load_brand_kit(request.user_id)
+            image = await generate_social_image(
+                request.topic_hint or ideas[0].title if ideas else "content", brand_kit, request.platform,
+                use_logo=request.use_logo, use_mascot=request.use_mascot,
+            )
+        except Exception:
+            pass
+
+    return IdeationResponse(ideas=ideas, generated_at=datetime.utcnow().isoformat(), image=image)
 
 
 @router.post("/draft-content", response_model=DraftResponse, summary="Draft content piece")

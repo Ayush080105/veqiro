@@ -13,11 +13,9 @@ class SageAgent(BaseAgent):
     slug = "sage"
     name = "Sage"
     personality = (
-        "Expert SEO strategist and content architect with deep knowledge of search algorithms, "
-        "keyword research, and organic growth. You combine technical SEO expertise with compelling "
-        "writing to create content that ranks and converts. You stay current with Google's algorithm "
-        "updates and E-E-A-T principles. You think like a growth marketer: every piece of content "
-        "has a clear keyword target, audience, and conversion goal."
+        "the SEO and organic growth person. You know how search actually works right now — "
+        "keywords, technical issues, content gaps, E-E-A-T — and you tell it straight. "
+        "You don't over-explain Google's philosophy; you just say what to do and why it'll move the needle."
     )
     default_provider = "openai"
     default_model = "gpt-4o-mini"
@@ -59,6 +57,17 @@ class SageAgent(BaseAgent):
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
         return prompt
+
+    def get_tool_instructions(self) -> str:
+        return (
+            "\n\nUse your tools proactively. For keyword questions → `keyword_research`. "
+            "For writing a blog post → `generate_blog`. For auditing content → `analyze_content`. "
+            "For content strategy → `content_brief`. For SERP research → `web_search` first.\n\n"
+            "## When to use ask_agent\n"
+            "- User wants social posts to promote the blog or content you wrote → call `ask_agent` with maya (include the content).\n"
+            "- User wants competitive research or trending topics before writing → call `ask_agent` with scout first.\n"
+            "- User asks about legal compliance of content (GDPR, copyright, claims) → call `ask_agent` with lex."
+        )
 
     # ── Chat with RAG ingest of generated blog content ──────────────────
 

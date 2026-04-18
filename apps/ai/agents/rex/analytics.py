@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from core.models import DataPoint
 
 
@@ -145,4 +147,163 @@ def compute_derived_metrics(
         "net_burn": round(net_burn, 2),
         "runway_months": runway_months if runway_months < 999 else None,
         "is_profitable": net_burn <= 0,
+    }
+
+
+def _months_to_zero(cash: float, burn: float, mrr: float, growth_rate: float, max_months: int = 120) -> tuple:
+    """Returns (months: int | None, date_of_zero: str). None means profitable (no zero date)."""
+    if burn == 0:
+        return None, "profitable"
+    if cash <= 0:
+        return 0, datetime.utcnow().strftime("%Y-%m-%d")
+
+    current_cash = cash
+    current_mrr = mrr
+    for m in range(1, max_months + 1):
+        current_mrr = current_mrr * (1 + growth_rate)
+        net = burn - current_mrr
+        if net <= 0:
+            return None, "profitable"
+        current_cash -= net
+        if current_cash <= 0:
+            zero_date = (datetime.utcnow() + timedelta(days=m * 30)).strftime("%Y-%m-%d")
+            return m, zero_date
+
+    zero_date = (datetime.utcnow() + timedelta(days=max_months * 30)).strftime("%Y-%m-%d")
+    return max_months, zero_date
+
+
+def compute_runway_scenarios(
+    cash: float,
+    burn: float,
+    mrr: float = 0.0,
+    growth_rate: float = 0.0,
+) -> dict:
+    """Calculate cash runway with base, optimistic, and pessimistic scenarios."""
+    net_burn = round(burn - mrr, 2)
+
+    base_months, base_date = _months_to_zero(cash, burn, mrr, growth_rate)
+
+    # Optimistic: boost growth by 0.10 absolute if growing, else cut burn 10%
+    if growth_rate > 0:
+        opt_months, opt_date = _months_to_zero(cash, burn, mrr, growth_rate + 0.10)
+        opt_assumption = f"Revenue growth accelerates to {(growth_rate + 0.10) * 100:.0f}% MoM"
+    else:
+        opt_months, opt_date = _months_to_zero(cash, burn * 0.90, mrr, growth_rate)
+        opt_assumption = "Burn reduced 10% through cost optimisation"
+
+    # Pessimistic: +20% burn, growth_rate - 0.10 (floor 0)
+    pess_growth = max(0.0, growth_rate - 0.10)
+    pess_months, pess_date = _months_to_zero(cash, burn * 1.20, mrr, pess_growth)
+    pess_assumption = f"Burn increases 20% and revenue growth drops to {pess_growth * 100:.0f}% MoM"
+
+    # Verdict from base scenario
+    bm = base_months if base_months is not None else 999
+    if bm < 6:
+        verdict = "red"
+        recommendation = "Immediate action required: extend runway within 30 days by cutting burn or closing revenue."
+    elif bm < 12:
+        verdict = "amber"
+        recommendation = "Plan fundraise or burn reduction within 90 days."
+    else:
+        verdict = "green"
+        recommendation = "Healthy runway. Focus on growth milestones before your next raise."
+
+    return {
+        "months_remaining": base_months,
+        "date_of_zero": base_date,
+        "cash_on_hand": cash,
+        "monthly_burn": burn,
+        "monthly_revenue": mrr,
+        "net_burn": net_burn,
+        "scenarios": [
+            {
+                "name": "base",
+                "months": base_months,
+                "date_of_zero": base_date,
+                "assumption": f"Current burn and {growth_rate * 100:.0f}% MoM revenue growth maintained",
+            },
+            {
+                "name": "optimistic",
+                "months": opt_months,
+                "date_of_zero": opt_date,
+                "assumption": opt_assumption,
+            },
+            {
+                "name": "pessimistic",
+                "months": pess_months,
+                "date_of_zero": pess_date,
+                "assumption": pess_assumption,
+            },
+        ],
+        "verdict": verdict,
+        "recommendation": recommendation,
+    }
+
+
+def compute_unit_economics(
+    marketing_data: list[DataPoint],
+    customers_data: list[DataPoint],
+    arpu: float,
+    lifetime_months: float = 24.0,
+) -> dict:
+    """Compute CAC, LTV, LTV:CAC ratio, and payback period from time-series data."""
+    total_spend = sum(dp.value for dp in marketing_data)
+    total_customers = sum(dp.value for dp in customers_data)
+
+    if total_customers == 0:
+        return {"error": "No customers in the provided data — cannot compute CAC"}
+
+    cac = round(total_spend / total_customers, 2)
+    ltv = round(arpu * lifetime_months, 2)
+    ltv_cac_ratio = round(ltv / cac, 2) if cac > 0 else 0.0
+    payback_months = round(cac / arpu, 2) if arpu > 0 else 0.0
+
+    ltv_cac_health = "green" if ltv_cac_ratio >= 3.0 else ("amber" if ltv_cac_ratio >= 2.0 else "red")
+    payback_health = "green" if payback_months < 12 else ("amber" if payback_months <= 18 else "red")
+
+    health_ranks = {"green": 0, "amber": 1, "red": 2}
+    overall = max([ltv_cac_health, payback_health], key=lambda h: health_ranks[h])
+
+    # Benchmark context string
+    ltv_label = "exceptional" if ltv_cac_ratio >= 5 else ("strong" if ltv_cac_ratio >= 3 else ("borderline" if ltv_cac_ratio >= 2 else "below benchmark"))
+    payback_label = "best-in-class" if payback_months < 6 else ("strong" if payback_months < 12 else ("borderline" if payback_months <= 18 else "above benchmark"))
+    benchmark_context = (
+        f"LTV:CAC of {ltv_cac_ratio:.1f}x is {ltv_label} (benchmark: >3x green). "
+        f"Payback period of {payback_months:.1f} months is {payback_label} (benchmark: <12 months green)."
+    )
+
+    # Deterministic recommendations
+    recs = []
+    if ltv_cac_ratio < 2.0:
+        recs.append("CAC exceeds half of LTV — review marketing channel efficiency immediately")
+    elif ltv_cac_ratio < 3.0:
+        recs.append("LTV:CAC is borderline — focus on either increasing ARPU or reducing CAC before scaling spend")
+    else:
+        recs.append(f"LTV:CAC of {ltv_cac_ratio:.1f}x is strong — you can confidently scale acquisition spend")
+
+    if payback_months > 18:
+        recs.append("Payback period exceeds 18 months — evaluate high-CAC channels and reallocate to lower-cost sources")
+    elif payback_months > 12:
+        recs.append("Payback period is borderline — aim to bring it below 12 months through pricing or conversion improvements")
+    else:
+        recs.append(f"Payback of {payback_months:.1f} months is healthy — each acquired customer is in profit quickly")
+
+    if overall == "green":
+        recs.append("Unit economics support aggressive growth — increase acquisition budget with confidence")
+
+    return {
+        "cac": cac,
+        "ltv": ltv,
+        "ltv_cac_ratio": ltv_cac_ratio,
+        "payback_months": payback_months,
+        "total_spend_analyzed": round(total_spend, 2),
+        "total_new_customers_analyzed": int(total_customers),
+        "arpu": arpu,
+        "lifetime_months": lifetime_months,
+        "ltv_cac_health": ltv_cac_health,
+        "payback_health": payback_health,
+        "health": overall,
+        "benchmark_context": benchmark_context,
+        "recommendations": recs,
     }
