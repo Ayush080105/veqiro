@@ -1,2 +1,33 @@
-// TODO: implement scout.schema
-export {};
+import { z } from "zod";
+
+export const sendMessageSchema = z.object({
+  content: z.string().min(1).max(1000),
+});
+
+const depthEnum = z.enum(["quick", "standard", "deep"]);
+
+export const researchTopicSchema = z.object({
+  topic: z.string().min(1).max(300),
+  depth: depthEnum.optional().default("standard"),
+  sourcesHint: z.array(z.string().url()).max(10).optional().default([]),
+});
+
+export const researchCompanySchema = z.object({
+  companyName: z.string().min(1).max(120),
+  companyUrl: z.string().url().nullable().optional().default(null),
+});
+
+const competitorInputSchema = z.object({
+  name: z.string().min(1).max(120),
+  url: z.string().url(),
+  lastScanHash: z.string().nullable().optional().default(null),
+});
+
+export const scanCompetitorsSchema = z.object({
+  competitors: z.array(competitorInputSchema).min(1).max(20),
+});
+
+export const trendingTopicsSchema = z.object({
+  industry: z.string().min(1).max(120),
+  count: z.number().int().min(1).max(50).optional().default(10),
+});

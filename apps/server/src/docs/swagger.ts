@@ -11,6 +11,13 @@ import {
   analyzeContentSchema,
   contentBriefSchema,
 } from "../modules/agents/sage/sage.schema.js";
+import {
+  sendMessageSchema as scoutSendMessageSchema,
+  researchTopicSchema,
+  researchCompanySchema,
+  scanCompetitorsSchema,
+  trendingTopicsSchema,
+} from "../modules/agents/scout/scout.schema.js";
 import { env } from "../config/env.js";
 
 // Internal-Bearer callers must supply userId + organizationId in the body.
@@ -96,6 +103,71 @@ const sageMessageListSchema = z.array(
     content: z.string(),
     imageUrl: z.string().nullable().optional(),
     createdAt: z.string(),
+  })
+);
+
+// ── Scout response schemas (doc-only) ─────────────────────────────────────
+
+const researchTopicResponseSchema = z.object({
+  findings: z.string(),
+  synthesis: z.string(),
+  sources_scraped: z.array(z.string()),
+  keywords_found: z.array(z.string()),
+});
+
+const companyProfileSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  founded: z.string(),
+  team_size: z.string(),
+  funding: z.string(),
+  key_features: z.array(z.string()),
+  pricing: z.record(z.string(), z.string()),
+  target_market: z.string(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  recent_news: z.array(z.string()),
+});
+
+const researchCompanyResponseSchema = z.object({
+  company: companyProfileSchema,
+  scraped_at: z.string(),
+});
+
+const competitorScanResultSchema = z.object({
+  competitor_name: z.string(),
+  url: z.string(),
+  has_changes: z.boolean(),
+  change_summary: z.string(),
+  significance: z.string(),
+  new_hash: z.string(),
+});
+
+const competitorScanResponseSchema = z.object({
+  results: z.array(competitorScanResultSchema),
+  scanned_at: z.string(),
+});
+
+const trendItemSchema = z.object({
+  topic: z.string(),
+  momentum: z.string(),
+  relevance_score: z.number(),
+  content_angle: z.string(),
+  search_volume_estimate: z.string(),
+});
+
+const trendingTopicsResponseSchema = z.object({
+  trends: z.array(trendItemSchema),
+  generated_at: z.string(),
+});
+
+const scoutMessageListSchema = z.array(
+  z.object({
+    role: z.string(),
+    content: z.string(),
+    imageUrl: z.string().nullable().optional(),
+    createdAt: z.string(),
+    customInput: z.unknown().optional(),
   })
 );
 
@@ -305,6 +377,190 @@ const sageChatPath: ZodOpenApiPathItemObject = {
   get: sageChatGet,
 };
 
+// ── Scout Operations ──────────────────────────────────────────────────────
+
+const scoutChatPost: ZodOpenApiOperationObject = {
+  operationId: "scoutChat",
+  summary: "Scout chat",
+  description:
+    "Conversational research chat. Persists the user message and assistant reply to the Messages table (tagged with userId + organizationId, agent=SCOUT).",
+  tags: ["Scout"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(scoutSendMessageSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          content:
+            "Research the AI productivity tools market and tell me who the top 3 competitors are right now.",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Assistant message",
+      content: {
+        "application/json": { schema: assistantMessageResponseSchema },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const scoutChatGet: ZodOpenApiOperationObject = {
+  operationId: "scoutListMessages",
+  summary: "List Scout messages for an organization",
+  tags: ["Scout"],
+  requestParams: {
+    query: z.object({
+      userId: z.string().optional().meta({
+        description: "Required when using bearerAuth; resolved from session for cookieAuth",
+        example: IDENTITY_EXAMPLE.userId,
+      }),
+      organizationId: z.string().optional().meta({
+        description: "Required when using bearerAuth; falls back to session's active org for cookieAuth",
+        example: IDENTITY_EXAMPLE.organizationId,
+      }),
+    }),
+  },
+  responses: {
+    "200": {
+      description: "Messages, newest first",
+      content: {
+        "application/json": { schema: scoutMessageListSchema },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const scoutResearchTopicPost: ZodOpenApiOperationObject = {
+  operationId: "scoutResearchTopic",
+  summary: "Research a topic",
+  description: "Deep web research on any topic using scraping and LLM synthesis.",
+  tags: ["Scout"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(researchTopicSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          topic: "AI productivity tools for founders 2025",
+          depth: "standard",
+          sourcesHint: [],
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Research findings + strategic synthesis",
+      content: {
+        "application/json": { schema: researchTopicResponseSchema },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const scoutResearchCompanyPost: ZodOpenApiOperationObject = {
+  operationId: "scoutResearchCompany",
+  summary: "Research a company",
+  description: "Build a structured company profile (features, pricing, funding, strengths, weaknesses).",
+  tags: ["Scout"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(researchCompanySchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          companyName: "Notion",
+          companyUrl: "https://notion.so",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Company profile",
+      content: {
+        "application/json": { schema: researchCompanyResponseSchema },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const scoutScanCompetitorsPost: ZodOpenApiOperationObject = {
+  operationId: "scoutScanCompetitors",
+  summary: "Scan competitors for changes",
+  description:
+    "Monitor competitor websites. Pass `lastScanHash` from a prior scan's result to detect diffs; omit for a first scan.",
+  tags: ["Scout"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(scanCompetitorsSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          competitors: [
+            { name: "Notion", url: "https://notion.so", lastScanHash: null },
+            { name: "ClickUp", url: "https://clickup.com", lastScanHash: null },
+          ],
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Scan results per competitor",
+      content: {
+        "application/json": { schema: competitorScanResponseSchema },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const scoutTrendingTopicsPost: ZodOpenApiOperationObject = {
+  operationId: "scoutTrendingTopics",
+  summary: "Get trending topics",
+  description: "Discover trending topics and content opportunities in a given industry.",
+  tags: ["Scout"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(trendingTopicsSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          industry: "SaaS / AI Productivity",
+          count: 5,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Trending topics with momentum + content angles",
+      content: {
+        "application/json": { schema: trendingTopicsResponseSchema },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const scoutChatPath: ZodOpenApiPathItemObject = {
+  post: scoutChatPost,
+  get: scoutChatGet,
+};
+
 // ── Document ──────────────────────────────────────────────────────────────
 
 export const openApiDocument = createDocument({
@@ -313,7 +569,7 @@ export const openApiDocument = createDocument({
     title: "Veqiro Server API",
     version: "1.0.0",
     description:
-      "Sage SEO agent endpoints. Two auth modes:\n\n" +
+      "Veqiro agent endpoints (Sage for SEO, Scout for research). Two auth modes:\n\n" +
       "- **cookieAuth** (frontend): Better Auth session cookie. userId + organizationId are resolved from the session.\n" +
       "- **bearerAuth** (internal): `Authorization: Bearer <INTERNAL_API_KEY>` plus `userId` and `organizationId` in the request body or query string.",
   },
@@ -335,12 +591,20 @@ export const openApiDocument = createDocument({
     },
   },
   security: [{ bearerAuth: [] }, { cookieAuth: [] }],
-  tags: [{ name: "Sage", description: "SEO agent — chat and tool endpoints" }],
+  tags: [
+    { name: "Sage", description: "SEO agent — chat and tool endpoints" },
+    { name: "Scout", description: "Research agent — chat and tool endpoints" },
+  ],
   paths: {
     "/api/v1/agents/sage/chat": sageChatPath,
     "/api/v1/agents/sage/keyword-research": { post: keywordResearchPost },
     "/api/v1/agents/sage/generate-blog": { post: generateBlogPost },
     "/api/v1/agents/sage/analyze-content": { post: analyzeContentPost },
     "/api/v1/agents/sage/content-brief": { post: contentBriefPost },
+    "/api/v1/agents/scout/chat": scoutChatPath,
+    "/api/v1/agents/scout/research-topic": { post: scoutResearchTopicPost },
+    "/api/v1/agents/scout/research-company": { post: scoutResearchCompanyPost },
+    "/api/v1/agents/scout/scan-competitors": { post: scoutScanCompetitorsPost },
+    "/api/v1/agents/scout/trending-topics": { post: scoutTrendingTopicsPost },
   },
 });
