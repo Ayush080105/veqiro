@@ -1,0 +1,132 @@
+"use client"
+
+import * as React from "react"
+import type { AgentActionId } from "@/lib/types/agents"
+
+// Sage
+import {
+  KeywordClusterCard,
+  BlogPreviewCard,
+  ContentAuditCard,
+  ContentBriefCard,
+} from "@/components/agents/sage/cards"
+// Maya
+import {
+  IdeasGridCard,
+  DraftCard,
+  VariantsTabsCard,
+  RevisionDiffCard,
+  ImageRegenCard,
+  ContentRegenCard,
+} from "@/components/agents/maya/cards"
+// Scout
+import {
+  ResearchReportCard,
+  CompanyProfileCard,
+  CompetitorScanCard,
+  TrendsBoardCard,
+} from "@/components/agents/scout/cards"
+// Rex
+import {
+  MetricsAnalysisCard,
+  ForecastCard,
+  FinancialHealthCard,
+  BriefingCard,
+} from "@/components/agents/rex/cards"
+// Lex
+import {
+  DocumentIngestCard,
+  ContractAnalysisCard,
+  DraftDocumentCard,
+  ExplainerCard,
+} from "@/components/agents/lex/cards"
+// Vega
+import {
+  InboxTriageCard,
+  DraftReplyCard,
+  CalendarCard,
+  EventCreatedCard,
+  ExecutiveBriefingCard,
+} from "@/components/agents/vega/cards"
+
+export interface ActionResultRendererProps {
+  actionId: AgentActionId
+  result: unknown
+}
+
+/** Dispatches an action result to its matching card. Results are untyped at
+ * the boundary (they come back from JSON); each card validates shape at runtime
+ * by reading the fields it expects. */
+export function ActionResultRenderer({ actionId, result }: ActionResultRendererProps) {
+  // Use any-cast into typed cards - each card declares the precise type.
+  const r = result as never
+
+  switch (actionId) {
+    case "sage:keyword-research":
+      return <KeywordClusterCard result={r} />
+    case "sage:generate-blog":
+      return <BlogPreviewCard result={r} />
+    case "sage:analyze-content":
+      return <ContentAuditCard result={r} />
+    case "sage:content-brief":
+      return <ContentBriefCard result={r} />
+
+    case "maya:generate-ideas":
+      return <IdeasGridCard result={r} />
+    case "maya:draft-content":
+      return <DraftCard result={r} />
+    case "maya:generate-variants":
+      return <VariantsTabsCard result={r} />
+    case "maya:revise":
+      return <RevisionDiffCard result={r} />
+    case "maya:regenerate-image":
+      return <ImageRegenCard result={r} />
+    case "maya:regenerate-content":
+      return <ContentRegenCard result={r} />
+
+    case "scout:research-topic":
+      return <ResearchReportCard result={r} />
+    case "scout:research-company":
+      return <CompanyProfileCard result={r} />
+    case "scout:scan-competitors":
+      return <CompetitorScanCard result={r} />
+    case "scout:trending-topics":
+      return <TrendsBoardCard result={r} />
+
+    case "rex:analyze-metrics":
+      return <MetricsAnalysisCard result={r} />
+    case "rex:forecast":
+      return <ForecastCard result={r} />
+    case "rex:financial-analysis":
+      return <FinancialHealthCard result={r} />
+    case "rex:compile-briefing":
+      return <BriefingCard result={r} />
+
+    case "lex:ingest-document":
+      return <DocumentIngestCard result={r} />
+    case "lex:analyze-contract":
+      return <ContractAnalysisCard result={r} />
+    case "lex:draft-document":
+      return <DraftDocumentCard result={r} />
+    case "lex:explain":
+      return <ExplainerCard result={r} />
+
+    case "vega:process-inbox":
+      return <InboxTriageCard result={r} />
+    case "vega:draft-reply":
+      return <DraftReplyCard result={r} />
+    case "vega:calendar-summary":
+      return <CalendarCard result={r} />
+    case "vega:create-event":
+      return <EventCreatedCard result={r} />
+    case "vega:executive-briefing":
+      return <ExecutiveBriefingCard result={r} />
+
+    default:
+      return (
+        <pre className="max-h-72 overflow-auto rounded border border-border bg-muted/20 p-2 text-[10px]">
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      )
+  }
+}
