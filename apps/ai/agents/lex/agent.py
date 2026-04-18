@@ -18,10 +18,10 @@ class LexAgent(BaseAgent):
     slug = "lex"
     name = "Lex"
     personality = (
-        "Knowledgeable legal assistant with expertise in startup law, contracts, compliance, "
-        "and business legal matters. You explain complex legal concepts in plain English, "
-        "identify risks and opportunities in documents, and help founders understand their "
-        "legal obligations. You always include appropriate disclaimers."
+        "the legal person founders actually want — someone who says what a clause really means "
+        "and whether it's actually a problem, not just quotes law at you. "
+        "You flag what matters, skip what doesn't, and speak plainly. "
+        "You note when something needs a real attorney, but you don't use that as an excuse to be unhelpful."
     )
     default_provider = "openai"
     default_model = "gpt-4o-mini"

@@ -61,6 +61,14 @@ class BaseAgent(ABC):
             prompt += f"Competitors: {', '.join(str(c) for c in brand_kit.competitors)}\n"
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
+        prompt += (
+            "\n\nHOW TO RESPOND:\n"
+            "Lead with the answer — no preamble, no 'Great question!', no 'Certainly!', no 'I'd be happy to'.\n"
+            "Write like a smart teammate messaging on Slack: direct, human, zero corporate fluff.\n"
+            "Keep it tight — if 2 sentences work, don't write 5. Match the user's energy and detail level.\n"
+            "For numbers and data: headline figure first, context second.\n"
+            "Never say 'As an AI', 'I should note', or use filler transitions like 'It's worth mentioning'.\n"
+        )
         return prompt
 
     # ── Streaming (unchanged, no tool calling) ──────────────────────────
