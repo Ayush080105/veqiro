@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     conversation_id: str
     message: str
     history: list[Message] = []
+    metadata: dict = {}
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -19,6 +20,7 @@ class ChatRequest(BaseModel):
                 "conversation_id": "conv_456",
                 "message": "Help me create a LinkedIn post about our product launch",
                 "history": [],
+                "metadata": {},
             }
         }
     )

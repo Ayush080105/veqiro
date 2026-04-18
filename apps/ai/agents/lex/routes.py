@@ -1,3 +1,4 @@
+import json
 import uuid
 import base64
 from datetime import datetime
@@ -9,6 +10,7 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
+from core.utils import strip_json_fences, safe_json_loads
 from agents.lex.agent import LexAgent, LEGAL_DISCLAIMER
 
 router = APIRouter(prefix="/ai/lex", tags=["Lex"])
@@ -70,7 +72,7 @@ class AnalyzeContractRequest(BaseModel):
 
 class ContractAnalysis(BaseModel):
     summary: str
-    risk_level: str  # "low" | "medium" | "high"
+    risk_level: str
     risks: list[dict]
     unusual_clauses: list[str]
     missing_protections: list[str]
@@ -132,12 +134,69 @@ class ExplainResponse(BaseModel):
     practical_implications: list[str]
 
 
+class LegalResearchRequest(BaseModel):
+    user_id: str
+    query: str
+    jurisdiction: str = "United States"
+    legal_areas: list[str] = []
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "query": "What are the GDPR requirements for obtaining valid consent from users in the EU?",
+                "jurisdiction": "EU",
+                "legal_areas": ["data_privacy", "consent"],
+            }
+        }
+    )
+
+
+class LegalResearchResponse(BaseModel):
+    summary: str
+    applicable_laws: list[str]
+    key_requirements: list[str]
+    relevant_cases: list[str]
+    practical_guidance: list[str]
+    jurisdiction_notes: str
+    confidence_level: str
+    disclaimer: str
+
+
+class ComplianceCheckRequest(BaseModel):
+    user_id: str
+    description: str
+    frameworks: list[str]
+    business_context: str = ""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "description": "We store EU user email addresses and behavioral analytics data on AWS US-East servers with 90-day retention and no explicit consent flow.",
+                "frameworks": ["GDPR", "CCPA"],
+                "business_context": "B2B SaaS with EU and California customers",
+            }
+        }
+    )
+
+
+class ComplianceCheckResponse(BaseModel):
+    overall_status: str
+    framework_results: list[dict]
+    critical_gaps: list[str]
+    remediation_steps: list[dict]
+    estimated_effort: str
+    disclaimer: str
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Lex chat")
 async def lex_chat(request: ChatRequest) -> ChatSyncResponse:
-    """Get Lex's legal response as a standard JSON response. Always includes disclaimer in metadata."""
+    """Get Lex's legal response. Always includes disclaimer in metadata."""
     result = await _agent.chat_sync(request)
+    # chat_sync override already injects disclaimer, but ensure it's present
     result.metadata["disclaimer"] = LEGAL_DISCLAIMER
     return result
 
@@ -220,7 +279,6 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             disclaimer=LEGAL_DISCLAIMER,
         )
 
-    # Retrieve RAG context if source_id provided
     contract_text = request.contract_text
     if request.source_id:
         chunks = await _rag.retrieve(request.user_id, "contract analysis key terms risks", top_k=10, source_agent="lex")
@@ -228,14 +286,18 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             contract_text = "\n\n".join(c.get("content", "") for c in chunks)
 
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Analyze this contract:\n{contract_text[:4000]}\n\nFocus on: {request.analysis_focus}\n\nReturn JSON with fields: summary, risk_level, risks (list of objects), unusual_clauses, missing_protections, key_terms (dict), overall_assessment"}],
+        messages=[{"role": "user", "content": (
+            f"Analyze this contract:\n{contract_text[:4000]}\n\n"
+            f"Focus on: {request.analysis_focus}\n\n"
+            "Return JSON with fields: summary, risk_level, risks (list of objects with clause/risk/severity), "
+            "unusual_clauses, missing_protections, key_terms (dict), overall_assessment"
+        )}],
     )
     try:
-        data = json.loads(raw)
+        data = json.loads(strip_json_fences(raw))
         analysis = ContractAnalysis(**data)
     except Exception:
         analysis = ContractAnalysis(
@@ -357,14 +419,17 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Explain this legal text in plain English:\n\n{request.text}\n\nContext: {request.context or 'None'}\n\nReturn JSON with fields: explanation, key_terms (dict), related_concepts (list), practical_implications (list)"}],
+        messages=[{"role": "user", "content": (
+            f"Explain this legal text in plain English:\n\n{request.text}\n\n"
+            f"Context: {request.context or 'None'}\n\n"
+            "Return JSON with fields: explanation, key_terms (dict), related_concepts (list), practical_implications (list)"
+        )}],
     )
     try:
-        data = json.loads(raw)
+        data = json.loads(strip_json_fences(raw))
         return ExplainResponse(**data)
     except Exception:
         return ExplainResponse(
@@ -372,4 +437,155 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
             key_terms={},
             related_concepts=[],
             practical_implications=[],
+        )
+
+
+@router.post("/legal-research", response_model=LegalResearchResponse, summary="Research legal questions")
+async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse:
+    """Research laws, regulations, and case precedents for a legal question."""
+    if settings.MOCK_MODE:
+        return LegalResearchResponse(
+            summary=(
+                "GDPR Article 7 sets strict requirements for consent. Consent must be freely given, specific, "
+                "informed, and unambiguous. Pre-ticked boxes, bundled consent, and vague language are explicitly prohibited. "
+                "Organizations must be able to demonstrate that consent was properly obtained."
+            ),
+            applicable_laws=[
+                "GDPR Article 7 (Conditions for consent)",
+                "GDPR Recital 32 (Affirmative consent requirement)",
+                "GDPR Article 4(11) (Definition of consent)",
+                "ePrivacy Directive (for cookies and electronic communications)",
+                "GDPR Article 17 (Right to erasure — consent withdrawal triggers this)",
+            ],
+            key_requirements=[
+                "Consent must be a clear affirmative act (no pre-ticked boxes or silence)",
+                "Granular consent required — separate consent per distinct processing purpose",
+                "As easy to withdraw consent as to give it",
+                "Maintain records of consent: timestamp, IP address, consent version, method",
+                "Children under 16 require parental consent (age threshold varies by EU member state: 13-16)",
+                "No bundled consent — consent for services cannot be conditioned on unrelated data processing",
+            ],
+            relevant_cases=[
+                "Planet49 GmbH v Bundesverband (CJEU C-673/17, 2019) — pre-ticked boxes invalid",
+                "Fashion ID GmbH v Verbraucherzentrale NRW (CJEU C-40/17, 2019) — joint controller liability",
+                "CNIL enforcement actions (France, 2022-2023) — cookie consent dark patterns fined",
+                "DSK (Germany) — guidance on valid consent for analytics tracking",
+            ],
+            practical_guidance=[
+                "Implement a proper Consent Management Platform (CMP) with granular opt-in toggles",
+                "Store consent records server-side with timestamp, IP, consent version, and method",
+                "Provide a dedicated privacy settings page where users can withdraw individual consents",
+                "Refresh consent if processing purpose changes significantly",
+                "Avoid pre-checked boxes, confusing UX, or consent walls that block access",
+                "Conduct a Legitimate Interest Assessment (LIA) as an alternative basis where consent is impractical",
+            ],
+            jurisdiction_notes="EU-wide requirement under GDPR. Individual member states may impose stricter requirements (e.g., Germany's TTDSG for cookies, France's CNIL guidelines).",
+            confidence_level="high — based on GDPR text, CJEU case law, and supervisory authority guidance",
+            disclaimer=LEGAL_DISCLAIMER,
+        )
+
+    system = await _agent.build_system_prompt(request.user_id)
+    raw = await _llm.complete(
+        provider=_agent.default_provider, model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": (
+            f"Research this legal question:\n{request.query}\n\n"
+            f"Jurisdiction: {request.jurisdiction}\n"
+            f"Legal areas: {', '.join(request.legal_areas) if request.legal_areas else 'general'}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with keys: "
+            "summary, applicable_laws, key_requirements, relevant_cases, "
+            "practical_guidance, jurisdiction_notes, confidence_level"
+        )}],
+    )
+    try:
+        data = json.loads(strip_json_fences(raw))
+        return LegalResearchResponse(**data, disclaimer=LEGAL_DISCLAIMER)
+    except Exception:
+        return LegalResearchResponse(
+            summary=raw[:500],
+            applicable_laws=[], key_requirements=[], relevant_cases=[],
+            practical_guidance=[], jurisdiction_notes=request.jurisdiction,
+            confidence_level="medium — consult an attorney for verified research",
+            disclaimer=LEGAL_DISCLAIMER,
+        )
+
+
+@router.post("/compliance-check", response_model=ComplianceCheckResponse, summary="Check regulatory compliance")
+async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckResponse:
+    """Evaluate compliance against GDPR, CCPA, SOC2, HIPAA and other frameworks."""
+    if settings.MOCK_MODE:
+        return ComplianceCheckResponse(
+            overall_status="partial",
+            framework_results=[
+                {
+                    "framework": "GDPR",
+                    "status": "non_compliant",
+                    "gaps": [
+                        "No explicit consent flow for data collection",
+                        "EU data stored on US servers without valid transfer mechanism (SCCs or adequacy decision required)",
+                        "90-day retention not documented or justified under storage limitation principle",
+                    ],
+                    "requirements": [
+                        "Article 7 — valid consent mechanism",
+                        "Chapter V — lawful EU-to-US data transfer mechanism",
+                        "Article 5(1)(e) — storage limitation with defined retention policy",
+                        "Article 13/14 — privacy notice with processing purposes",
+                    ],
+                },
+                {
+                    "framework": "CCPA",
+                    "status": "partial",
+                    "gaps": [
+                        "No 'Do Not Sell or Share My Personal Information' opt-out link",
+                        "Privacy notice does not describe categories of data collected or purposes",
+                    ],
+                    "requirements": [
+                        "CCPA Section 1798.120 — right to opt out of sale/sharing",
+                        "Section 1798.100 — right to know what data is collected",
+                        "Section 1798.130 — designated methods for submitting requests",
+                    ],
+                },
+            ],
+            critical_gaps=[
+                "Storing EU personal data on US servers without SCCs — active GDPR violation",
+                "No consent mechanism — GDPR Article 7 violation with fines up to 4% of global revenue",
+                "No opt-out mechanism for California residents — CCPA violation",
+            ],
+            remediation_steps=[
+                {"priority": "high", "action": "Execute Standard Contractual Clauses (SCCs) for EU→US data transfers, or migrate EU data to EU-based infrastructure within 30 days"},
+                {"priority": "high", "action": "Implement a consent management platform with GDPR-compliant granular consent flows for each processing purpose"},
+                {"priority": "high", "action": "Add 'Do Not Sell or Share My Personal Information' link to footer and implement opt-out mechanism for California residents"},
+                {"priority": "medium", "action": "Update privacy notice to describe data categories, purposes, retention periods, and user rights"},
+                {"priority": "medium", "action": "Document and justify the 90-day retention period or reduce it to minimum necessary"},
+            ],
+            estimated_effort="2-4 weeks for critical compliance items, 2-3 months for full implementation and documentation",
+            disclaimer=LEGAL_DISCLAIMER,
+        )
+
+    system = await _agent.build_system_prompt(request.user_id)
+    raw = await _llm.complete(
+        provider=_agent.default_provider, model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": (
+            f"Evaluate the regulatory compliance of this practice or document:\n{request.description}\n\n"
+            f"Business context: {request.business_context or 'Not provided'}\n"
+            f"Check against: {', '.join(request.frameworks)}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with keys: "
+            "overall_status (compliant/partial/non_compliant), "
+            "framework_results (list of {framework, status, gaps, requirements}), "
+            "critical_gaps (list of strings), "
+            "remediation_steps (list of {priority: high/medium/low, action: string}), "
+            "estimated_effort (string)"
+        )}],
+    )
+    try:
+        data = json.loads(strip_json_fences(raw))
+        return ComplianceCheckResponse(**data, disclaimer=LEGAL_DISCLAIMER)
+    except Exception:
+        return ComplianceCheckResponse(
+            overall_status="unknown",
+            framework_results=[], critical_gaps=[],
+            remediation_steps=[],
+            estimated_effort="Manual review required",
+            disclaimer=LEGAL_DISCLAIMER,
         )

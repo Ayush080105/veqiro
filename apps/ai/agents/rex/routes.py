@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime
 
@@ -8,6 +9,7 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, DataPoint
 from core.config import settings
+from core.utils import strip_json_fences, safe_json_loads
 from agents.rex.agent import RexAgent
 from agents.rex.analytics import compute_anomalies, compute_health_indicator, compute_derived_metrics
 from agents.rex.forecasting import forecast_metric
@@ -142,6 +144,36 @@ class BriefingResponse(BaseModel):
     briefing: dict
 
 
+class InvestorUpdateRequest(BaseModel):
+    user_id: str
+    period: str
+    metrics: dict = {}
+    highlights: list[str] = []
+    asks: list[str] = []
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "period": "March 2025",
+                "metrics": {"mrr": 58000, "arr": 696000, "growth_rate_pct": 19.7, "churn_rate_pct": 2.1},
+                "highlights": ["Crossed $58K MRR milestone", "Launched enterprise tier", "2 Fortune 500 pilots started"],
+                "asks": ["Introductions to Series A firms", "Advice on enterprise pricing strategy"],
+            }
+        }
+    )
+
+
+class InvestorUpdateResponse(BaseModel):
+    subject_line: str
+    executive_summary: str
+    metrics_section: dict
+    highlights_section: list[str]
+    challenges_section: list[str]
+    asks_section: list[str]
+    full_email_body: str
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Rex chat")
@@ -176,17 +208,33 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
             },
         )
 
-    # Real: compute analytics
     all_anomalies = []
     charts = {}
+    health_inputs: dict = {}
+
     for metric_name, data_points in request.metrics.items():
         anomalies = compute_anomalies(data_points)
         all_anomalies.extend(anomalies)
         charts[metric_name] = [{"date": dp.date, "value": dp.value} for dp in data_points]
 
-    health = compute_health_indicator({"churn_rate": 0.02, "growth_rate": 0.1})
+        # Derive real health inputs from actual data
+        if len(data_points) >= 2:
+            sorted_dps = sorted(data_points, key=lambda d: d.date)
+            prev_val = sorted_dps[-2].value
+            curr_val = sorted_dps[-1].value
+            if metric_name in ("revenue", "mrr") and prev_val:
+                health_inputs["growth_rate"] = (curr_val - prev_val) / prev_val
+            elif metric_name == "churn_rate":
+                health_inputs["churn_rate"] = curr_val
+            elif metric_name in ("subscribers", "users") and prev_val > 0:
+                health_inputs["churn_rate"] = max(0.0, (prev_val - curr_val) / prev_val)
+
+    health = compute_health_indicator({
+        "churn_rate": health_inputs.get("churn_rate", 0.0),
+        "growth_rate": health_inputs.get("growth_rate", 0.0),
+    })
+
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     metrics_summary = json.dumps({k: [{"date": d.date, "value": d.value} for d in v] for k, v in request.metrics.items()})
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -209,8 +257,8 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
 async def forecast(request: ForecastRequest) -> ForecastResponse:
     """Forecast future values for a given metric using Prophet or linear regression."""
     if settings.MOCK_MODE:
-        from datetime import datetime, timedelta
         base_date = datetime(2025, 4, 1)
+        from datetime import timedelta
         forecast_pts = []
         base_val = 58000
         for i in range(min(request.horizon_days, 30)):
@@ -266,17 +314,30 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
     derived = compute_derived_metrics(request.revenue_data, request.expenses_data, request.subscribers_data)
     health = compute_health_indicator(derived)
     system = await _agent.build_system_prompt(request.user_id)
-    import json
+
+    prompt = (
+        f"Provide financial narrative and recommendations for these metrics:\n{json.dumps(derived, default=str)}\n\n"
+        "Return ONLY a JSON object (no markdown fences) with keys: "
+        "narrative (string, 2-4 sentences), recommendations (list of 3-5 specific actionable strings)"
+    )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Provide financial narrative and recommendations for: {json.dumps(derived)}"}],
+        messages=[{"role": "user", "content": prompt}],
     )
+    try:
+        parsed = json.loads(strip_json_fences(raw))
+        narrative = parsed.get("narrative", raw[:600])
+        recommendations = parsed.get("recommendations", [])
+    except Exception:
+        narrative = raw[:600]
+        recommendations = []
+
     return FinancialAnalysisResponse(
         metrics=derived,
         health_indicator=health,
-        narrative=raw[:600],
-        recommendations=["Review metrics regularly", "Optimize CAC", "Monitor churn"],
+        narrative=narrative,
+        recommendations=recommendations,
     )
 
 
@@ -311,7 +372,6 @@ async def compile_briefing(request: BriefingRequest) -> BriefingResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id)
-    import json
     context = f"Date: {request.date}\nMetrics: {json.dumps(request.all_metrics)}\nAgent summaries: {json.dumps(request.agent_summaries)}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -319,3 +379,80 @@ async def compile_briefing(request: BriefingRequest) -> BriefingResponse:
         messages=[{"role": "user", "content": f"Compile an executive briefing:\n{context}"}],
     )
     return BriefingResponse(briefing={"narrative": raw, "generated_at": datetime.utcnow().isoformat()})
+
+
+@router.post("/investor-update", response_model=InvestorUpdateResponse, summary="Generate investor update")
+async def investor_update(request: InvestorUpdateRequest) -> InvestorUpdateResponse:
+    """Generate a structured investor update with metrics, highlights, and asks."""
+    if settings.MOCK_MODE:
+        return InvestorUpdateResponse(
+            subject_line=f"Veqiro AI — {request.period} Investor Update",
+            executive_summary=(
+                f"{request.period} was our strongest month to date: MRR hit $58K (up 19.7% MoM), "
+                "we launched our enterprise tier, and initiated two Fortune 500 pilots. "
+                "Churn remained below 2.5% and the business is now cash-flow positive."
+            ),
+            metrics_section=request.metrics or {
+                "MRR": "$58,000 (+19.7% MoM)",
+                "ARR": "$696,000",
+                "Churn Rate": "2.1% (below 3% benchmark)",
+                "Active Subscribers": "248 (+18 net new)",
+                "Cash Position": "Profitable — $20K net income/month",
+            },
+            highlights_section=request.highlights or [
+                "Crossed $58K MRR milestone",
+                "Launched enterprise tier with custom SLAs",
+                "Two Fortune 500 pilots initiated (details on request)",
+                "Content team grew by 1 FTE",
+            ],
+            challenges_section=[
+                "Enterprise sales cycle is longer than expected (60-90 days vs. 30)",
+                "Onboarding friction identified at day-3 – UX fix in progress",
+            ],
+            asks_section=request.asks or [
+                "Introductions to Series A firms with B2B SaaS focus",
+                "Advice on enterprise pricing and packaging strategy",
+            ],
+            full_email_body=(
+                f"Subject: Veqiro AI — {request.period} Investor Update\n\n"
+                "Hi [Investor name],\n\nHope you're doing well! Here's our monthly update.\n\n"
+                "**TL;DR:** $58K MRR (+19.7%), profitable, enterprise tier launched.\n\n"
+                "**Metrics**\n- MRR: $58,000 (+19.7% MoM)\n- ARR: $696,000\n"
+                "- Churn: 2.1%\n- Active Subscribers: 248\n\n"
+                "**Highlights**\n- Crossed $58K MRR milestone\n"
+                "- Launched enterprise tier with custom SLAs\n"
+                "- Two Fortune 500 pilots underway\n\n"
+                "**Challenges**\n- Enterprise sales cycle longer than expected\n"
+                "- Onboarding friction at day-3 (fix shipping next week)\n\n"
+                "**Where You Can Help**\n- Introductions to Series A firms\n"
+                "- Enterprise pricing advice\n\nBest,\nFounder"
+            ),
+        )
+
+    system = await _agent.build_system_prompt(request.user_id)
+    prompt = (
+        f"Write a professional investor update for {request.period}.\n\n"
+        f"Metrics: {json.dumps(request.metrics)}\n"
+        f"Highlights: {json.dumps(request.highlights)}\n"
+        f"Asks: {json.dumps(request.asks)}\n\n"
+        "Return ONLY a JSON object (no markdown fences) with keys: subject_line, executive_summary, "
+        "metrics_section (dict), highlights_section (list), challenges_section (list), "
+        "asks_section (list), full_email_body (string)"
+    )
+    raw = await _llm.complete(
+        provider=_agent.default_provider, model=_agent.default_model,
+        system=system, messages=[{"role": "user", "content": prompt}],
+    )
+    try:
+        data = json.loads(strip_json_fences(raw))
+        return InvestorUpdateResponse(**data)
+    except Exception:
+        return InvestorUpdateResponse(
+            subject_line=f"Investor Update — {request.period}",
+            executive_summary=raw[:400],
+            metrics_section=request.metrics,
+            highlights_section=request.highlights,
+            challenges_section=[],
+            asks_section=request.asks,
+            full_email_body=raw,
+        )
