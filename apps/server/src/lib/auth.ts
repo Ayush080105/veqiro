@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "./prisma.js";
+import { prisma } from "../config/prisma.js";
 import bcrypt from "bcryptjs";
-import { sendEmail } from "../utils/mailer.js";
+import { sendEmail } from "../common/utils/mailer.js";
 import { admin } from "better-auth/plugins";
 import { organization } from "better-auth/plugins"
 export const auth = betterAuth({
