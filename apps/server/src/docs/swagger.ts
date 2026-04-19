@@ -18,6 +18,25 @@ import {
   scanCompetitorsSchema,
   trendingTopicsSchema,
 } from "../modules/agents/scout/scout.schema.js";
+import {
+  sendMessageSchema as mayaSendMessageSchema,
+  generateIdeasSchema,
+  draftContentSchema,
+  generateVariantsSchema,
+  reviseSchema,
+  regenerateImageSchema,
+  regenerateContentSchema,
+  publishSchema,
+} from "../modules/agents/maya/maya.schema.js";
+import {
+  sendMessageSchema as lexSendMessageSchema,
+  ingestDocumentSchema,
+  analyzeContractSchema,
+  draftDocumentSchema,
+  explainSchema,
+  legalResearchSchema,
+  complianceCheckSchema,
+} from "../modules/agents/lex/lex.schema.js";
 import { env } from "../config/env.js";
 
 // Internal-Bearer callers must supply userId + organizationId in the body.
@@ -561,6 +580,779 @@ const scoutChatPath: ZodOpenApiPathItemObject = {
   get: scoutChatGet,
 };
 
+// ── Maya response schemas (doc-only) ──────────────────────────────────────
+
+const imageResultSchema = z.object({
+  image_base64: z.string().optional(),
+  image_url: z.string().optional(),
+  content_type: z.string(),
+  prompt_used: z.string(),
+});
+
+const contentIdeaSchema = z.object({
+  title: z.string(),
+  content_type: z.string(),
+  platform: z.enum(["linkedin", "twitter", "instagram"]),
+  hook: z.string(),
+  predicted_engagement: z.string(),
+  reasoning: z.string(),
+  suggested_hashtags: z.array(z.string()),
+});
+
+const ideationResponseSchema = z.object({
+  ideas: z.array(contentIdeaSchema),
+  generated_at: z.string(),
+  image: imageResultSchema.nullable().optional(),
+});
+
+const draftResponseSchema = z.object({
+  draft: z.object({
+    title: z.string(),
+    body: z.string(),
+    hashtags: z.array(z.string()),
+    cta: z.string(),
+    meta_description: z.string(),
+    word_count: z.number().int(),
+    platform: z.enum(["linkedin", "twitter", "instagram"]),
+    tone_used: z.string(),
+  }),
+  image: imageResultSchema.nullable().optional(),
+});
+
+const variantResponseSchema = z.object({
+  variants: z.array(
+    z.object({
+      platform: z.enum(["linkedin", "twitter", "instagram"]),
+      title: z.string(),
+      body: z.string(),
+      hashtags: z.array(z.string()),
+      char_count: z.number().int(),
+      image: imageResultSchema.nullable().optional(),
+    })
+  ),
+});
+
+const reviseResponseSchema = z.object({
+  revised: z.object({
+    title: z.string(),
+    body: z.string(),
+    hashtags: z.array(z.string()),
+    cta: z.string(),
+  }),
+  changes_made: z.array(z.string()),
+});
+
+const imageRegenResponseSchema = z.object({
+  image: imageResultSchema,
+});
+
+const contentRegenResponseSchema = z.object({
+  caption: z.string(),
+  hashtags: z.array(z.string()),
+  cta: z.string(),
+});
+
+const publishResponseSchema = z.object({
+  platform: z.enum(["twitter", "linkedin", "instagram"]),
+  platformPostId: z.string(),
+  url: z.string().optional(),
+  publishedAt: z.string(),
+});
+
+const mayaMessageListSchema = z.array(
+  z.object({
+    role: z.string(),
+    content: z.string(),
+    imageUrl: z.string().nullable().optional(),
+    createdAt: z.string(),
+    customInput: z.unknown().optional(),
+  })
+);
+
+// ── Maya Operations ───────────────────────────────────────────────────────
+
+const mayaChatPost: ZodOpenApiOperationObject = {
+  operationId: "mayaChat",
+  summary: "Maya chat",
+  description:
+    "Conversational marketing & content chat. Maya auto-routes to the right tool (ideas, draft, revise, etc.) based on intent.",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(mayaSendMessageSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          content: "Draft a LinkedIn post about how AI saves founders 10 hours a week.",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Assistant message",
+      content: { "application/json": { schema: assistantMessageResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaChatGet: ZodOpenApiOperationObject = {
+  operationId: "mayaListMessages",
+  summary: "List Maya messages for an organization",
+  tags: ["Maya"],
+  requestParams: {
+    query: z.object({
+      userId: z.string().optional().meta({
+        description: "Required when using bearerAuth; resolved from session for cookieAuth",
+        example: IDENTITY_EXAMPLE.userId,
+      }),
+      organizationId: z.string().optional().meta({
+        description: "Required when using bearerAuth; falls back to session's active org for cookieAuth",
+        example: IDENTITY_EXAMPLE.organizationId,
+      }),
+    }),
+  },
+  responses: {
+    "200": {
+      description: "Messages, newest first",
+      content: { "application/json": { schema: mayaMessageListSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaGenerateIdeasPost: ZodOpenApiOperationObject = {
+  operationId: "mayaGenerateIdeas",
+  summary: "Generate content ideas",
+  description: "Brainstorm high-performing content ideas for a platform.",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(generateIdeasSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          platform: "linkedin",
+          topicHint: "AI productivity for founders",
+          count: 3,
+          includeImage: false,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Generated ideas",
+      content: { "application/json": { schema: ideationResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaDraftContentPost: ZodOpenApiOperationObject = {
+  operationId: "mayaDraftContent",
+  summary: "Draft a platform-native post",
+  description:
+    "Generate a publish-ready draft with hashtags, CTA, and (optionally) an on-brand image. Images are uploaded to R2 when configured; the returned `image.image_url` is hosted.",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(draftContentSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          topic: "How AI saved our team 12 hours per week",
+          platform: "linkedin",
+          wordCountTarget: 250,
+          includeImage: true,
+          useLogo: true,
+          useMascot: false,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Draft with optional hosted image",
+      content: { "application/json": { schema: draftResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaGenerateVariantsPost: ZodOpenApiOperationObject = {
+  operationId: "mayaGenerateVariants",
+  summary: "Adapt content for multiple platforms",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(generateVariantsSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          originalContent: "We just launched our AI productivity suite for founders...",
+          originalPlatform: "linkedin",
+          targetPlatforms: ["twitter", "instagram"],
+          includeImages: false,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Platform-specific variants",
+      content: { "application/json": { schema: variantResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaRevisePost: ZodOpenApiOperationObject = {
+  operationId: "mayaRevise",
+  summary: "Revise content with feedback",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(reviseSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          originalContent: "We launched our AI tool today. It saves time.",
+          platform: "linkedin",
+          feedback: "Too vague — add a specific stat and a stronger hook",
+          specificInstructions: "Open with a number",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Revised post + change log",
+      content: { "application/json": { schema: reviseResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaRegenerateImagePost: ZodOpenApiOperationObject = {
+  operationId: "mayaRegenerateImage",
+  summary: "Regenerate an existing image",
+  description:
+    "Fetches an existing image by URL (typically an R2 URL from a prior draft) and regenerates it with a new prompt.",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(regenerateImageSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          imageUrl: "https://pub-xxx.r2.dev/org_test_01/maya/abc.png",
+          prompt: "Make the background more vibrant",
+          platform: "instagram",
+          useLogo: true,
+          useMascot: false,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Regenerated image",
+      content: { "application/json": { schema: imageRegenResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaRegenerateContentPost: ZodOpenApiOperationObject = {
+  operationId: "mayaRegenerateContent",
+  summary: "Refresh caption with new instructions",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(regenerateContentSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          caption: "We just launched our new AI tool...",
+          prompt: "Make it more engaging and end with a question",
+          platform: "linkedin",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Updated caption + hashtags + CTA",
+      content: { "application/json": { schema: contentRegenResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaPublishPost: ZodOpenApiOperationObject = {
+  operationId: "mayaPublish",
+  summary: "Publish a draft to a connected social account",
+  description:
+    "Publishes `caption` (with optional hashtags and image) to the social platform for the given SocialAccount. " +
+    "If `imageBase64` is provided it's uploaded to R2 first; `imageUrl` is used as-is. " +
+    "Instagram requires an image.",
+  tags: ["Maya"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(publishSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          socialAccountId: "acc_01HX...",
+          caption: "How we saved 12 hours per week using AI.",
+          hashtags: ["#FounderLife", "#AIProductivity"],
+          imageUrl: "https://pub-xxx.r2.dev/org_test_01/maya/abc.png",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Published post metadata",
+      content: { "application/json": { schema: publishResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const mayaChatPath: ZodOpenApiPathItemObject = {
+  post: mayaChatPost,
+  get: mayaChatGet,
+};
+
+// ── Integrations Operations ────────────────────────────────────────────────
+
+const socialAccountSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  userId: z.string(),
+  platform: z.enum(["TWITTER", "LINKEDIN", "INSTAGRAM"]),
+  providerAccountId: z.string(),
+  accountName: z.string().nullable(),
+  scope: z.string().nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
+  accessTokenExpiresAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+const integrationsListGet: ZodOpenApiOperationObject = {
+  operationId: "listIntegrations",
+  summary: "List connected social accounts for the active org",
+  description:
+    "Access tokens and refresh tokens are redacted from this response. Use `/agents/maya/publish` to publish with a connected account by `id`.",
+  tags: ["Integrations"],
+  responses: {
+    "200": {
+      description: "Connected SocialAccounts",
+      content: { "application/json": { schema: z.array(socialAccountSchema) } },
+    },
+    "401": { description: "Unauthorized" },
+  },
+};
+
+const integrationsAuthorizeGet: ZodOpenApiOperationObject = {
+  operationId: "integrationsAuthorize",
+  summary: "Begin OAuth for a platform (302 redirect)",
+  description:
+    "Requires a session. Builds the platform's OAuth authorize URL with an HMAC-signed `state` (carries orgId + userId + PKCE verifier for Twitter) and 302-redirects. " +
+    "After the user approves, the platform bounces to `/integrations/{platform}/callback`.",
+  tags: ["Integrations"],
+  requestParams: {
+    path: z.object({
+      platform: z.enum(["twitter", "linkedin", "instagram"]),
+    }),
+  },
+  responses: {
+    "302": { description: "Redirect to platform OAuth" },
+    "401": { description: "Unauthorized (no session)" },
+  },
+};
+
+const integrationsCallbackGet: ZodOpenApiOperationObject = {
+  operationId: "integrationsCallback",
+  summary: "OAuth callback (public; state-verified)",
+  description:
+    "Exchanges the authorization code for tokens, fetches platform-native identity metadata " +
+    "(Twitter handle, LinkedIn person URN, Instagram Business account id + FB Page token), " +
+    "upserts a SocialAccount row, and redirects to `${CLIENT_URL}/settings/integrations?connected={platform}`. " +
+    "This endpoint is NOT protected by authMiddleware — authenticity comes from the HMAC-signed `state` param.",
+  tags: ["Integrations"],
+  security: [],
+  requestParams: {
+    path: z.object({
+      platform: z.enum(["twitter", "linkedin", "instagram"]),
+    }),
+    query: z.object({
+      code: z.string().optional(),
+      state: z.string().optional(),
+      error: z.string().optional(),
+      error_description: z.string().optional(),
+    }),
+  },
+  responses: {
+    "302": { description: "Redirect back to /settings/integrations (with ?connected or ?error)" },
+  },
+};
+
+// ── Lex response schemas (doc-only) ────────────────────────────────────────
+
+const ingestDocumentResponseSchema = z.object({
+  source_id: z.string(),
+  chunks_created: z.number().int(),
+  page_count: z.number().int(),
+  summary: z.string(),
+  key_topics: z.array(z.string()),
+  document_type_detected: z.string(),
+});
+
+const contractRiskSchema = z.object({
+  clause: z.string(),
+  risk: z.string(),
+  severity: z.enum(["low", "medium", "high"]),
+});
+
+const analyzeContractResponseSchema = z.object({
+  analysis: z.object({
+    summary: z.string(),
+    risk_level: z.string(),
+    risks: z.array(contractRiskSchema),
+    unusual_clauses: z.array(z.string()),
+    missing_protections: z.array(z.string()),
+    key_terms: z.record(z.string(), z.string()),
+    overall_assessment: z.string(),
+  }),
+  disclaimer: z.string(),
+});
+
+const draftDocumentResponseSchema = z.object({
+  document: z.string(),
+  review_notes: z.array(z.string()),
+  disclaimer: z.string(),
+});
+
+const explainResponseSchema = z.object({
+  explanation: z.string(),
+  key_terms: z.record(z.string(), z.string()),
+  related_concepts: z.array(z.string()),
+  practical_implications: z.array(z.string()),
+});
+
+const legalResearchResponseSchema = z.object({
+  summary: z.string(),
+  applicable_laws: z.array(z.string()),
+  key_requirements: z.array(z.string()),
+  relevant_cases: z.array(z.string()),
+  practical_guidance: z.array(z.string()),
+  jurisdiction_notes: z.string(),
+  confidence_level: z.string(),
+  disclaimer: z.string(),
+});
+
+const frameworkResultSchema = z.object({
+  framework: z.string(),
+  status: z.string(),
+  gaps: z.array(z.string()),
+  requirements: z.array(z.string()),
+});
+
+const remediationStepSchema = z.object({
+  priority: z.enum(["low", "medium", "high"]),
+  action: z.string(),
+});
+
+const complianceCheckResponseSchema = z.object({
+  overall_status: z.string(),
+  framework_results: z.array(frameworkResultSchema),
+  critical_gaps: z.array(z.string()),
+  remediation_steps: z.array(remediationStepSchema),
+  estimated_effort: z.string(),
+  disclaimer: z.string(),
+});
+
+const lexMessageListSchema = z.array(
+  z.object({
+    role: z.string(),
+    content: z.string(),
+    imageUrl: z.string().nullable().optional(),
+    createdAt: z.string(),
+    customInput: z.unknown().optional(),
+  })
+);
+
+const lexAssistantMessageResponseSchema = z.object({
+  role: z.literal("assistant"),
+  content: z.string(),
+  imageUrl: z.string().optional(),
+  disclaimer: z.string().optional(),
+  createdAt: z.string(),
+});
+
+// ── Lex Operations ─────────────────────────────────────────────────────────
+
+const lexChatPost: ZodOpenApiOperationObject = {
+  operationId: "lexChat",
+  summary: "Lex chat",
+  description:
+    "Conversational legal chat. Responses include a standard legal disclaimer. Lex auto-routes to the right tool (ingest, analyze, draft, explain, research, compliance check) based on intent.",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(lexSendMessageSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          content:
+            "What are the key risks in a typical mutual NDA for a SaaS partnership discussion?",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Assistant message with disclaimer",
+      content: {
+        "application/json": { schema: lexAssistantMessageResponseSchema },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexChatGet: ZodOpenApiOperationObject = {
+  operationId: "lexListMessages",
+  summary: "List Lex messages for an organization",
+  tags: ["Lex"],
+  requestParams: {
+    query: z.object({
+      userId: z.string().optional().meta({
+        description: "Required when using bearerAuth; resolved from session for cookieAuth",
+        example: IDENTITY_EXAMPLE.userId,
+      }),
+      organizationId: z.string().optional().meta({
+        description: "Required when using bearerAuth; falls back to session's active org for cookieAuth",
+        example: IDENTITY_EXAMPLE.organizationId,
+      }),
+    }),
+  },
+  responses: {
+    "200": {
+      description: "Messages, newest first",
+      content: { "application/json": { schema: lexMessageListSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexIngestDocumentPost: ZodOpenApiOperationObject = {
+  operationId: "lexIngestDocument",
+  summary: "Ingest a legal document (PDF)",
+  description:
+    "Uploads a PDF (base64) to Lex's RAG store. Returns a `source_id` that can be passed to `/analyze-contract` to analyze the full document without re-sending the bytes.",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(ingestDocumentSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          documentName: "Acme Corp NDA 2025",
+          documentType: "nda",
+          pdfBase64: "JVBERi0xLjQK... (base64 PDF bytes)",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Ingested document metadata",
+      content: { "application/json": { schema: ingestDocumentResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexAnalyzeContractPost: ZodOpenApiOperationObject = {
+  operationId: "lexAnalyzeContract",
+  summary: "Analyze a contract for risks",
+  description:
+    "Pass either `sourceId` (from a prior `/ingest-document` call) or raw `contractText`. Returns risk level, risks with clause-level severity, unusual clauses, missing protections, and an overall assessment.",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(analyzeContractSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          sourceId: "doc_abc123",
+          contractText: "",
+          analysisFocus: ["risk_assessment", "unusual_clauses"],
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Contract analysis with risks and disclaimer",
+      content: { "application/json": { schema: analyzeContractResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexDraftDocumentPost: ZodOpenApiOperationObject = {
+  operationId: "lexDraftDocument",
+  summary: "Draft a legal document template",
+  description:
+    "Generates a template for common legal documents (NDAs, MSAs, privacy policies, etc.). Output is marked DRAFT ONLY with review notes.",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(draftDocumentSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          documentType: "mutual_nda",
+          requirements:
+            "Mutual NDA between two SaaS companies for a potential partnership. 2-year term, covers product roadmap and customer data.",
+          jurisdiction: "United States (Delaware)",
+          additionalClauses: ["data_protection", "ip_assignment_exclusion"],
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Drafted document with review notes",
+      content: { "application/json": { schema: draftDocumentResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexExplainPost: ZodOpenApiOperationObject = {
+  operationId: "lexExplain",
+  summary: "Explain legal text in plain English",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(explainSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          text:
+            "The Receiving Party agrees to hold the Confidential Information in strict confidence and not to disclose it to any third party without the prior written consent of the Disclosing Party.",
+          context: "This is from an NDA we're about to sign with a potential investor",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Plain-English explanation with key terms and implications",
+      content: { "application/json": { schema: explainResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexLegalResearchPost: ZodOpenApiOperationObject = {
+  operationId: "lexLegalResearch",
+  summary: "Research laws, regulations, and case precedents",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(legalResearchSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          query:
+            "What are the GDPR requirements for obtaining valid consent from users in the EU?",
+          jurisdiction: "EU",
+          legalAreas: ["data_privacy", "consent"],
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Applicable laws, cases, guidance, and confidence level",
+      content: { "application/json": { schema: legalResearchResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexComplianceCheckPost: ZodOpenApiOperationObject = {
+  operationId: "lexComplianceCheck",
+  summary: "Evaluate compliance against regulatory frameworks",
+  description:
+    "Checks a practice or document against frameworks like GDPR, CCPA, SOC2, HIPAA. Returns per-framework status, critical gaps, and prioritized remediation steps.",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(complianceCheckSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          description:
+            "We store EU user email addresses and behavioral analytics data on AWS US-East servers with 90-day retention and no explicit consent flow.",
+          frameworks: ["GDPR", "CCPA"],
+          businessContext: "B2B SaaS with EU and California customers",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Compliance assessment with remediation steps",
+      content: { "application/json": { schema: complianceCheckResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexChatPath: ZodOpenApiPathItemObject = {
+  post: lexChatPost,
+  get: lexChatGet,
+};
+
+const integrationsDeleteOp: ZodOpenApiOperationObject = {
+  operationId: "integrationsDisconnect",
+  summary: "Disconnect (and best-effort revoke) a social account",
+  tags: ["Integrations"],
+  requestParams: {
+    path: z.object({ id: z.string() }),
+  },
+  responses: {
+    "204": { description: "Disconnected" },
+    "401": { description: "Unauthorized" },
+    "404": { description: "Integration not found or not owned by this org" },
+  },
+};
+
 // ── Document ──────────────────────────────────────────────────────────────
 
 export const openApiDocument = createDocument({
@@ -594,6 +1386,13 @@ export const openApiDocument = createDocument({
   tags: [
     { name: "Sage", description: "SEO agent — chat and tool endpoints" },
     { name: "Scout", description: "Research agent — chat and tool endpoints" },
+    { name: "Maya", description: "Marketing & content agent — chat, drafts, and publishing" },
+    { name: "Lex", description: "Legal & compliance agent — contracts, drafting, research, and compliance" },
+    {
+      name: "Integrations",
+      description:
+        "OAuth flows for connecting social platforms (X, LinkedIn, Instagram) that Maya publishes to.",
+    },
   ],
   paths: {
     "/api/v1/agents/sage/chat": sageChatPath,
@@ -606,5 +1405,24 @@ export const openApiDocument = createDocument({
     "/api/v1/agents/scout/research-company": { post: scoutResearchCompanyPost },
     "/api/v1/agents/scout/scan-competitors": { post: scoutScanCompetitorsPost },
     "/api/v1/agents/scout/trending-topics": { post: scoutTrendingTopicsPost },
+    "/api/v1/agents/maya/chat": mayaChatPath,
+    "/api/v1/agents/maya/generate-ideas": { post: mayaGenerateIdeasPost },
+    "/api/v1/agents/maya/draft-content": { post: mayaDraftContentPost },
+    "/api/v1/agents/maya/generate-variants": { post: mayaGenerateVariantsPost },
+    "/api/v1/agents/maya/revise": { post: mayaRevisePost },
+    "/api/v1/agents/maya/regenerate-image": { post: mayaRegenerateImagePost },
+    "/api/v1/agents/maya/regenerate-content": { post: mayaRegenerateContentPost },
+    "/api/v1/agents/maya/publish": { post: mayaPublishPost },
+    "/api/v1/agents/lex/chat": lexChatPath,
+    "/api/v1/agents/lex/ingest-document": { post: lexIngestDocumentPost },
+    "/api/v1/agents/lex/analyze-contract": { post: lexAnalyzeContractPost },
+    "/api/v1/agents/lex/draft-document": { post: lexDraftDocumentPost },
+    "/api/v1/agents/lex/explain": { post: lexExplainPost },
+    "/api/v1/agents/lex/legal-research": { post: lexLegalResearchPost },
+    "/api/v1/agents/lex/compliance-check": { post: lexComplianceCheckPost },
+    "/api/v1/integrations": { get: integrationsListGet },
+    "/api/v1/integrations/{platform}/authorize": { get: integrationsAuthorizeGet },
+    "/api/v1/integrations/{platform}/callback": { get: integrationsCallbackGet },
+    "/api/v1/integrations/{id}": { delete: integrationsDeleteOp },
   },
 });

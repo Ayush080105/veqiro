@@ -15,6 +15,8 @@ import type {
   LexAnalyzeContractRequest,
   LexDraftDocumentRequest,
   LexExplainRequest,
+  LexLegalResearchRequest,
+  LexComplianceCheckRequest,
 } from "@/lib/types/agents"
 
 const DOC_TYPES = ["contract", "agreement", "policy", "nda", "tos", "other"]
@@ -194,6 +196,76 @@ export function LexExplainForm({
           value={value.context ?? ""}
           rows={3}
           onChange={(v) => onChange({ context: v })}
+        />
+      </FormRow>
+    </>
+  )
+}
+
+export function LexLegalResearchForm({
+  value,
+  onChange,
+}: {
+  value: LexLegalResearchRequest
+  onChange: (patch: Partial<LexLegalResearchRequest>) => void
+}) {
+  return (
+    <>
+      <FormRow label="Question" required>
+        <CountedTextarea
+          value={value.query}
+          rows={4}
+          onChange={(v) => onChange({ query: v })}
+          placeholder="e.g. What are the GDPR requirements for valid consent?"
+        />
+      </FormRow>
+      <FormRow label="Jurisdiction">
+        <Input
+          value={value.jurisdiction ?? ""}
+          placeholder="e.g. EU, United States, California"
+          onChange={(e) => onChange({ jurisdiction: e.target.value })}
+        />
+      </FormRow>
+      <FormRow label="Legal areas" hint="Optional tags to focus the research.">
+        <StringListInput
+          value={value.legal_areas ?? []}
+          onChange={(next) => onChange({ legal_areas: next })}
+          placeholder="e.g. data_privacy, consent"
+        />
+      </FormRow>
+    </>
+  )
+}
+
+export function LexComplianceCheckForm({
+  value,
+  onChange,
+}: {
+  value: LexComplianceCheckRequest
+  onChange: (patch: Partial<LexComplianceCheckRequest>) => void
+}) {
+  return (
+    <>
+      <FormRow label="What are you checking?" required>
+        <CountedTextarea
+          value={value.description}
+          rows={5}
+          onChange={(v) => onChange({ description: v })}
+          placeholder="e.g. We store EU user emails on US servers with no consent flow."
+        />
+      </FormRow>
+      <FormRow label="Frameworks" required hint="e.g. GDPR, CCPA, SOC2, HIPAA">
+        <StringListInput
+          value={value.frameworks}
+          onChange={(next) => onChange({ frameworks: next })}
+          placeholder="Add a framework and press Enter"
+        />
+      </FormRow>
+      <FormRow label="Business context" hint="Optional — helps Lex calibrate recommendations.">
+        <CountedTextarea
+          value={value.business_context ?? ""}
+          rows={3}
+          onChange={(v) => onChange({ business_context: v })}
         />
       </FormRow>
     </>

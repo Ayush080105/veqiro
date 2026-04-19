@@ -424,6 +424,43 @@ export interface LexExplainResult {
   practical_implications: string[]
 }
 
+export interface LexLegalResearchRequest {
+  query: string
+  jurisdiction?: string
+  legal_areas?: string[]
+}
+
+export interface LexLegalResearchResult {
+  summary: string
+  applicable_laws: string[]
+  key_requirements: string[]
+  relevant_cases: string[]
+  practical_guidance: string[]
+  jurisdiction_notes: string
+  confidence_level: string
+  disclaimer: string
+}
+
+export interface LexComplianceCheckRequest {
+  description: string
+  frameworks: string[]
+  business_context?: string
+}
+
+export interface LexComplianceCheckResult {
+  overall_status: string
+  framework_results: Array<{
+    framework: string
+    status: string
+    gaps: string[]
+    requirements: string[]
+  }>
+  critical_gaps: string[]
+  remediation_steps: Array<{ priority: "low" | "medium" | "high"; action: string }>
+  estimated_effort: string
+  disclaimer: string
+}
+
 // ─── Vega ────────────────────────────────────────────────────────────────────
 
 export interface VegaProcessInboxRequest {
@@ -545,6 +582,8 @@ export type AgentActionId =
   | "lex:analyze-contract"
   | "lex:draft-document"
   | "lex:explain"
+  | "lex:legal-research"
+  | "lex:compliance-check"
   | "vega:process-inbox"
   | "vega:draft-reply"
   | "vega:calendar-summary"

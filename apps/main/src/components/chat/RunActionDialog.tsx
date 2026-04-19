@@ -41,6 +41,8 @@ import {
   LexAnalyzeContractForm,
   LexDraftDocumentForm,
   LexExplainForm,
+  LexLegalResearchForm,
+  LexComplianceCheckForm,
 } from "@/components/agents/lex/forms"
 // Vega forms
 import {
@@ -264,6 +266,21 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     defaultValue: { text: "", context: "" },
     Form: LexExplainForm,
     validate: (v) => (v.text?.trim() ? null : "Legal text is required."),
+  },
+  "lex:legal-research": {
+    defaultValue: { query: "", jurisdiction: "United States", legal_areas: [] },
+    Form: LexLegalResearchForm,
+    validate: (v) => (v.query?.trim() ? null : "Question is required."),
+  },
+  "lex:compliance-check": {
+    defaultValue: { description: "", frameworks: [], business_context: "" },
+    Form: LexComplianceCheckForm,
+    validate: (v) =>
+      !v.description?.trim()
+        ? "Describe what you're checking."
+        : !v.frameworks?.length
+          ? "Add at least one framework."
+          : null,
   },
 
   "vega:process-inbox": {

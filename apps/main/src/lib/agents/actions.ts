@@ -201,6 +201,22 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       description: "Plain-English explanation with key terms glossary.",
       icon: "BookOpen",
     },
+    {
+      id: "lex:legal-research",
+      agent: "lex",
+      endpoint: "legal-research",
+      label: "Research a legal question",
+      description: "Applicable laws, cases, and practical guidance for a jurisdiction.",
+      icon: "Scale",
+    },
+    {
+      id: "lex:compliance-check",
+      agent: "lex",
+      endpoint: "compliance-check",
+      label: "Compliance check",
+      description: "Evaluate practice or doc against GDPR, CCPA, SOC2, HIPAA.",
+      icon: "ShieldCheck",
+    },
   ],
   vega: [
     {
