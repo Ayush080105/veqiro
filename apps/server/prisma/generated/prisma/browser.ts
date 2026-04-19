@@ -57,3 +57,13 @@ export type Invitation = Prisma.InvitationModel
  * 
  */
 export type Message = Prisma.MessageModel
+/**
+ * Model SocialAccount
+ * 
+ */
+export type SocialAccount = Prisma.SocialAccountModel
+/**
+ * Model PublishedPost
+ * 
+ */
+export type PublishedPost = Prisma.PublishedPostModel

@@ -11,7 +11,7 @@ export async function sendMessage(
   content: string,
   conversationId?: string
 ): Promise<Message> {
-  return apiFetch<Message>(`/${agentSlug}/chat`, {
+  return apiFetch<Message>(`/agents/${agentSlug}/chat`, {
     method: "POST",
     body: { organizationId, content, conversationId },
     agentSlugForNotFound: agentSlug,
@@ -24,7 +24,7 @@ export async function getMessages(
 ): Promise<Message[]> {
   try {
     return await apiFetch<Message[]>(
-      `/${agentSlug}/chat?organizationId=${encodeURIComponent(organizationId)}`,
+      `/agents/${agentSlug}/chat?organizationId=${encodeURIComponent(organizationId)}`,
       { agentSlugForNotFound: agentSlug }
     )
   } catch (err) {
@@ -45,10 +45,36 @@ export async function runAgentAction<TInput, TResult>(
 ): Promise<TResult> {
   const meta = findAction(actionId)
   if (!meta) throw new Error(`Unknown action: ${actionId}`)
-  return apiFetch<TResult>(`/${meta.agent}/${meta.endpoint}`, {
+  return apiFetch<TResult>(`/agents/${meta.agent}/${meta.endpoint}`, {
     method: "POST",
     body: { organizationId, conversationId, ...input },
     agentSlugForNotFound: meta.agent,
+  })
+}
+
+export interface PublishPostInput {
+  socialAccountId: string
+  caption: string
+  hashtags?: string[]
+  imageUrl?: string
+  imageBase64?: string
+}
+
+export interface PublishPostResult {
+  platform: "twitter" | "linkedin" | "instagram"
+  platformPostId: string
+  url?: string
+  publishedAt: string
+}
+
+export async function publishPost(
+  organizationId: string,
+  input: PublishPostInput
+): Promise<PublishPostResult> {
+  return apiFetch<PublishPostResult>("/agents/maya/publish", {
+    method: "POST",
+    body: { organizationId, ...input },
+    agentSlugForNotFound: "maya",
   })
 }
 

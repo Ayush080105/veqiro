@@ -21,6 +21,12 @@ enum Agent {
   VEGA
 }
 
+enum SocialPlatform {
+  TWITTER
+  LINKEDIN
+  INSTAGRAM
+}
+
 model User {
   id            String       @id
   name          String
@@ -146,10 +152,53 @@ model Message{
   imageUrl String?
   agent Agent
   tokensUsed Int @default(0)
-  model String? 
+  model String?
   userId String?
   customInput Json?
 
   @@index([agent,organizationId])
   @@map("message")
+}
+
+model SocialAccount {
+  id                   String         @id @default(uuid())
+  organizationId       String
+  userId               String
+  platform             SocialPlatform
+  providerAccountId    String
+  accountName          String?
+  accessToken          String
+  refreshToken         String?
+  accessTokenExpiresAt DateTime?
+  scope                String?
+  metadata             Json?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  publishedPosts PublishedPost[]
+
+  @@unique([organizationId, platform, providerAccountId])
+  @@index([organizationId])
+  @@map("social_account")
+}
+
+model PublishedPost {
+  id              String         @id @default(uuid())
+  organizationId  String
+  userId          String
+  socialAccountId String
+  socialAccount   SocialAccount  @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  platform        SocialPlatform
+  platformPostId  String?
+  caption         String
+  hashtags        String[]
+  imageUrl        String?
+  status          String         @default("pending")
+  error           String?
+  publishedAt     DateTime?
+  createdAt       DateTime       @default(now())
+
+  @@index([organizationId])
+  @@index([socialAccountId])
+  @@map("published_post")
 }

@@ -58,7 +58,9 @@ export const ModelName = {
   Organization: 'Organization',
   Member: 'Member',
   Invitation: 'Invitation',
-  Message: 'Message'
+  Message: 'Message',
+  SocialAccount: 'SocialAccount',
+  PublishedPost: 'PublishedPost'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -193,6 +195,44 @@ export const MessageScalarFieldEnum = {
 } as const
 
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
+
+
+export const SocialAccountScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  platform: 'platform',
+  providerAccountId: 'providerAccountId',
+  accountName: 'accountName',
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
+  scope: 'scope',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SocialAccountScalarFieldEnum = (typeof SocialAccountScalarFieldEnum)[keyof typeof SocialAccountScalarFieldEnum]
+
+
+export const PublishedPostScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  socialAccountId: 'socialAccountId',
+  platform: 'platform',
+  platformPostId: 'platformPostId',
+  caption: 'caption',
+  hashtags: 'hashtags',
+  imageUrl: 'imageUrl',
+  status: 'status',
+  error: 'error',
+  publishedAt: 'publishedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
 export const SortOrder = {

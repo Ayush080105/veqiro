@@ -19,3 +19,12 @@ export const Agent = {
 } as const
 
 export type Agent = (typeof Agent)[keyof typeof Agent]
+
+
+export const SocialPlatform = {
+  TWITTER: 'TWITTER',
+  LINKEDIN: 'LINKEDIN',
+  INSTAGRAM: 'INSTAGRAM'
+} as const
+
+export type SocialPlatform = (typeof SocialPlatform)[keyof typeof SocialPlatform]

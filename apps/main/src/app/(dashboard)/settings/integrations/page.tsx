@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { CheckCircle2, XCircle, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 
@@ -8,6 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SettingsNav } from "@/components/settings/SettingsNav"
+import {
+  authorizeUrl,
+  disconnectIntegration,
+  listIntegrations,
+  platformSlugToEnum,
+  type SocialAccount,
+  type SocialPlatformSlug,
+} from "@/lib/api/integrations"
 
 // ─── Integration Config ───────────────────────────────────────────────────────
 
@@ -16,12 +25,11 @@ interface IntegrationDef {
   name: string
   description: string
   requiredBy: string[]
-  connected: boolean
-  connectedAt?: string
   docsUrl?: string
+  /** If set, this integration is wired to /api/v1/integrations/:slug */
+  platformSlug?: SocialPlatformSlug
 }
 
-// TODO: Replace with GET /api/v1/integrations?organizationId=xxx
 const INTEGRATIONS: IntegrationDef[] = [
   {
     id: "google",
@@ -29,7 +37,30 @@ const INTEGRATIONS: IntegrationDef[] = [
     description:
       "Required for Vega to read your inbox, draft replies, and manage calendar events on your behalf.",
     requiredBy: ["Vega"],
-    connected: false,
+  },
+  {
+    id: "twitter",
+    name: "Twitter / X",
+    description:
+      "Publish Maya's drafts straight to X — tweets, threads, and posts with generated images.",
+    requiredBy: ["Maya"],
+    platformSlug: "twitter",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    description:
+      "Share Maya's long-form posts and images directly to your personal LinkedIn feed.",
+    requiredBy: ["Maya"],
+    platformSlug: "linkedin",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    description:
+      "Publish Maya's visual posts to an Instagram Business account linked to a Facebook Page.",
+    requiredBy: ["Maya"],
+    platformSlug: "instagram",
   },
   {
     id: "slack",
@@ -37,7 +68,6 @@ const INTEGRATIONS: IntegrationDef[] = [
     description:
       "Send briefing summaries and agent updates directly to your Slack channels.",
     requiredBy: ["Vega", "Rex"],
-    connected: false,
   },
   {
     id: "notion",
@@ -45,7 +75,6 @@ const INTEGRATIONS: IntegrationDef[] = [
     description:
       "Sync generated content drafts and research reports to your Notion workspace.",
     requiredBy: ["Sage", "Maya"],
-    connected: false,
   },
   {
     id: "github",
@@ -53,7 +82,6 @@ const INTEGRATIONS: IntegrationDef[] = [
     description:
       "Allow Lex and Scout to monitor your repositories for compliance and dependency updates.",
     requiredBy: ["Lex", "Scout"],
-    connected: false,
   },
   {
     id: "stripe",
@@ -61,46 +89,46 @@ const INTEGRATIONS: IntegrationDef[] = [
     description:
       "Rex reads your MRR, churn, and revenue metrics directly from Stripe for financial briefings.",
     requiredBy: ["Rex"],
-    connected: false,
-  },
-  {
-    id: "twitter",
-    name: "Twitter / X",
-    description:
-      "Post and schedule content directly from the Content Hub without leaving Veqiro.",
-    requiredBy: ["Maya"],
-    connected: false,
   },
 ]
 
 // ─── Integration Card ─────────────────────────────────────────────────────────
 
-function IntegrationCard({ integration }: { integration: IntegrationDef }) {
-  const [connected, setConnected] = useState(integration.connected)
+function IntegrationCard({
+  integration,
+  account,
+  onDisconnected,
+}: {
+  integration: IntegrationDef
+  account?: SocialAccount
+  onDisconnected?: () => void
+}) {
   const [loading, setLoading] = useState(false)
+  const connected = Boolean(account)
+  const isWired = Boolean(integration.platformSlug)
 
   async function handleToggle() {
+    if (!isWired) {
+      toast.info(`${integration.name} integration isn't wired up yet.`)
+      return
+    }
     setLoading(true)
     try {
-      if (connected) {
-        // TODO: DELETE /api/v1/integrations/:id  Body: { organizationId }
-        await new Promise((r) => setTimeout(r, 600))
-        setConnected(false)
+      if (connected && account) {
+        await disconnectIntegration(account.id)
         toast.success(`${integration.name} disconnected`)
-      } else {
-        if (integration.id === "google") {
-          // Google uses Better Auth OAuth flow
-          // TODO: authClient.signIn.social({ provider: "google", scopes: ["gmail", "calendar"] })
-          await new Promise((r) => setTimeout(r, 600))
-        } else {
-          // TODO: POST /api/v1/integrations/:id/connect  — opens OAuth flow
-          await new Promise((r) => setTimeout(r, 600))
-        }
-        setConnected(true)
-        toast.success(`${integration.name} connected`)
+        onDisconnected?.()
+      } else if (integration.platformSlug) {
+        // Full-page redirect carries the session cookie to /authorize
+        window.location.href = authorizeUrl(integration.platformSlug)
+        return
       }
-    } catch {
-      toast.error(`Failed to ${connected ? "disconnect" : "connect"} ${integration.name}`)
+    } catch (err) {
+      toast.error(
+        `Failed to ${connected ? "disconnect" : "connect"} ${integration.name}: ${
+          (err as Error).message
+        }`
+      )
     } finally {
       setLoading(false)
     }
@@ -130,18 +158,19 @@ function IntegrationCard({ integration }: { integration: IntegrationDef }) {
           ))}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {connected && (
+          {connected && account?.accountName && (
             <Badge variant="secondary" className="text-[10px]">
-              Connected
+              {account.accountName}
             </Badge>
           )}
           <Button
             variant={connected ? "outline" : "default"}
             size="sm"
             onClick={handleToggle}
-            disabled={loading}
+            disabled={loading || !isWired}
+            title={!isWired ? "Coming soon" : undefined}
           >
-            {loading ? "…" : connected ? "Disconnect" : "Connect"}
+            {loading ? "…" : connected ? "Disconnect" : isWired ? "Connect" : "Coming soon"}
           </Button>
         </div>
       </CardContent>
@@ -152,6 +181,42 @@ function IntegrationCard({ integration }: { integration: IntegrationDef }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [accounts, setAccounts] = useState<SocialAccount[]>([])
+
+  const refresh = async () => {
+    try {
+      const list = await listIntegrations()
+      setAccounts(list)
+    } catch {
+      /* unauth / empty — leave as-is */
+    }
+  }
+
+  useEffect(() => {
+    refresh()
+  }, [])
+
+  useEffect(() => {
+    const connected = searchParams.get("connected")
+    const error = searchParams.get("error")
+    if (connected) {
+      toast.success(`${connected.charAt(0).toUpperCase()}${connected.slice(1)} connected`)
+      refresh()
+      router.replace("/settings/integrations")
+    } else if (error) {
+      toast.error(`Connection failed: ${error}`)
+      router.replace("/settings/integrations")
+    }
+  }, [searchParams, router])
+
+  const accountByPlatform = useMemo(() => {
+    const map = new Map<string, SocialAccount>()
+    for (const a of accounts) map.set(a.platform, a)
+    return map
+  }, [accounts])
+
   return (
     <div className="flex flex-col gap-6 pb-8">
       <div className="flex flex-col gap-1">
@@ -180,9 +245,19 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {INTEGRATIONS.map((integration) => (
-          <IntegrationCard key={integration.id} integration={integration} />
-        ))}
+        {INTEGRATIONS.map((integration) => {
+          const account = integration.platformSlug
+            ? accountByPlatform.get(platformSlugToEnum[integration.platformSlug])
+            : undefined
+          return (
+            <IntegrationCard
+              key={integration.id}
+              integration={integration}
+              account={account}
+              onDisconnected={refresh}
+            />
+          )
+        })}
       </div>
     </div>
   )

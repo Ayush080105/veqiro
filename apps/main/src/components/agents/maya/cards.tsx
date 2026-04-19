@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { PublishDialog } from "./publish-dialog"
 import type {
   MayaIdeationResult,
   MayaDraftResult,
@@ -166,6 +167,12 @@ export function DraftPreview({
             <Download className="size-3" /> Image
           </a>
         )}
+        <PublishDialog
+          platform={platform}
+          caption={`${body}${cta ? `\n\n${cta}` : ""}`}
+          hashtags={hashtags}
+          image={image}
+        />
       </div>
     </div>
   )
