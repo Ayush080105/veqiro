@@ -2,21 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import {
-  InputGroup,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,165 +10,284 @@ import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { loginSchema } from "@/models/auth/loginSchema";
 import OAuthButtons from "@/components/oauth-buttons";
+import { Button, FieldLabel, FONT, VqInput } from "@/components/veqiro/shared";
 
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      remember: false,
-    },
+    defaultValues: { email: "", password: "", remember: false },
   });
 
   const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     try {
-    setError(null);
-    setLoading(true);
-    const { error } = await authClient.signIn.email({
-      email: data.email,
-      password: data.password,
-      rememberMe: data.remember,
-      callbackURL: "/dashboard",
-    });
-    if (error) {
-      toast.error(error.message || "Something went wrong");
-      setError(error.message || "Something went wrong");
-    } else {
-      toast.success("Login successful");
+      setError(null);
+      setLoading(true);
+      const { error: authErr } = await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+        rememberMe: data.remember,
+        callbackURL: "/dashboard",
+      });
+      if (authErr) {
+        toast.error(authErr.message || "Something went wrong");
+        setError(authErr.message || "Something went wrong");
+      } else {
+        toast.success("Login successful");
+      }
+      setLoading(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      setError("Something went wrong");
+      setLoading(false);
     }
-    setLoading(false);
-  } catch (error) {
-    toast.error(error instanceof Error ? error.message : "Something went wrong");
-    setError("Something went wrong");
-  }
   };
 
   return (
-    <div>
-      <div className="flex flex-col items-center gap-2 text-center py-2">
-        <h1 className="text-2xl font-bold">Welcome back!</h1>
-        <p className="text-muted-foreground text-sm text-balance">
-          Enter your details to login to your account
+    <div style={{ fontFamily: FONT.body }}>
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <h1
+          style={{
+            fontFamily: FONT.display,
+            fontSize: 44,
+            lineHeight: 1,
+            color: "#111",
+            margin: 0,
+            letterSpacing: -1,
+          }}
+        >
+          welcome back
+        </h1>
+        <p
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#555",
+            marginTop: 8,
+          }}
+        >
+          // sign in to your crew
         </p>
       </div>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         {error && (
-          <p className="text-destructive text-lg text-center mt-4 font-semibold">
+          <div
+            style={{
+              background: "#FFE0E0",
+              border: "3px solid #111",
+              borderRadius: 10,
+              padding: "10px 14px",
+              color: "#7A1717",
+              fontFamily: FONT.mono,
+              fontSize: 12,
+              marginBottom: 16,
+              boxShadow: "3px 3px 0 #F06464",
+            }}
+          >
             {error}
-          </p>
+          </div>
         )}
 
-        <FieldGroup>
-          <Controller
-            name="email"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="login-email">Email</FieldLabel>
-                <Input
-                  {...field}
-                  id="login-email"
-                  placeholder="name@example.com"
+        <Controller
+          name="email"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <div>
+              <FieldLabel label="Email">
+                <VqInput
                   type="email"
-                  autoCapitalize="none"
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
+                  placeholder="name@example.com"
                   autoComplete="email"
-                  autoCorrect="off"
                   disabled={loading}
-                  aria-invalid={fieldState.invalid}
-                  className="h-11"
                 />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="password"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel
-                  htmlFor="login-password"
-                  className="flex items-center justify-between"
+              </FieldLabel>
+              {fieldState.error && (
+                <div
+                  style={{
+                    marginTop: -12,
+                    marginBottom: 20,
+                    color: "#7A1717",
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                  }}
                 >
-                  <span className="text-muted-foreground">Password</span>
-                  <Link
-                    href="/forgot-password"
-                    className="hover:underline hover:underline-offset-4"
-                  >
-                    Forgot password?
-                  </Link>
-                </FieldLabel>
-                <InputGroup className="h-11">
-                  <InputGroupInput
-                    {...field}
-                    id="login-password"
-                    placeholder="••••••••"
-                    type={showPassword ? "text" : "password"}
-                    disabled={loading}
-                    aria-invalid={fieldState.invalid}
-                    className="h-11"
-                  />
-                  <InputGroupButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="cursor-pointer mr-2"
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="size-4" />
-                    ) : (
-                      <EyeIcon className="size-4" />
-                    )}
-                  </InputGroupButton>
-                </InputGroup>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+                  {fieldState.error.message}
+                </div>
+              )}
+            </div>
+          )}
+        />
 
-          <Controller
-            name="remember"
-            control={form.control}
-            render={({ field }) => (
-              <Field orientation="horizontal">
-                <Checkbox
-                  id="login-remember"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
+        <Controller
+          name="password"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 6,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                    letterSpacing: 2,
+                    textTransform: "uppercase",
+                    color: "#555",
+                  }}
+                >
+                  Password
+                </span>
+                <Link
+                  href="/forgot-password"
+                  style={{
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    color: "#7A1717",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Forgot?
+                </Link>
+              </div>
+              <div style={{ position: "relative" }}>
+                <VqInput
+                  type={showPassword ? "text" : "password"}
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
+                  placeholder="••••••••"
                   disabled={loading}
                 />
-                <FieldLabel htmlFor="login-remember" className="font-normal">
-                  Remember me
-                </FieldLabel>
-              </Field>
-            )}
-          />
-        </FieldGroup>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#111",
+                    padding: 8,
+                  }}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
+              {fieldState.error && (
+                <div
+                  style={{
+                    marginTop: 6,
+                    color: "#7A1717",
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                  }}
+                >
+                  {fieldState.error.message}
+                </div>
+              )}
+              <div style={{ height: 20 }} />
+            </div>
+          )}
+        />
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Controller
+          name="remember"
+          control={form.control}
+          render={({ field }) => (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 20,
+                cursor: "pointer",
+                fontFamily: FONT.mono,
+                fontSize: 12,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                color: "#111",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(field.value)}
+                onChange={(e) => field.onChange(e.target.checked)}
+                disabled={loading}
+                style={{
+                  width: 18,
+                  height: 18,
+                  accentColor: "#111",
+                  cursor: "pointer",
+                }}
+              />
+              Remember me
+            </label>
+          )}
+        />
+
+        <Button type="submit" variant="primary" disabled={loading} style={{ width: "100%" }}>
           {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Loader2 className="size-4 animate-spin" /> Signing in…
+            </span>
           ) : (
-            <span>Login</span>
+            "Login"
           )}
         </Button>
 
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-          <span className="bg-background text-muted-foreground relative z-10 px-2">
-            Or
-          </span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            margin: "20px 0 16px",
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#888",
+          }}
+        >
+          <div style={{ flex: 1, height: 0, borderTop: "2px dashed #111", opacity: 0.5 }} />
+          <span>or</span>
+          <div style={{ flex: 1, height: 0, borderTop: "2px dashed #111", opacity: 0.5 }} />
         </div>
+
         <OAuthButtons />
-        <div className="text-center text-sm">
+
+        <div
+          style={{
+            marginTop: 20,
+            textAlign: "center",
+            fontFamily: FONT.body,
+            fontSize: 14,
+            color: "#111",
+          }}
+        >
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="underline underline-offset-4">
+          <Link href="/signup" style={{ fontFamily: FONT.head, textTransform: "uppercase", letterSpacing: 1, color: "#111", textDecoration: "underline" }}>
             Sign up
           </Link>
         </div>

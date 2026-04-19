@@ -1,6 +1,5 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { FONT } from "@/components/veqiro/shared"
 
 interface MetricCardProps {
   label: string
@@ -9,46 +8,76 @@ interface MetricCardProps {
   trend?: "up" | "down" | "neutral"
 }
 
+const TREND_COLORS: Record<"up" | "down" | "neutral", string> = {
+  up: "var(--vq-green)",
+  down: "var(--vq-red)",
+  neutral: "var(--vq-yellow)",
+}
+
 export function MetricCard({ label, value, change, trend }: MetricCardProps) {
+  const accent = TREND_COLORS[trend ?? "neutral"]
+  const Icon =
+    trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus
+
   return (
-    <Card className="flex-1">
-      <CardContent className="flex flex-col gap-2 py-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-          {label}
-        </p>
-        <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
-        {change && trend && (
-          <div className="flex items-center gap-1">
-            {trend === "up" && (
-              <Badge
-                variant="outline"
-                className="gap-1 border-transparent bg-chart-2/10 text-chart-2 px-1.5"
-              >
-                <TrendingUp className="size-3" />
-                {change}
-              </Badge>
-            )}
-            {trend === "down" && (
-              <Badge
-                variant="destructive"
-                className="gap-1 px-1.5"
-              >
-                <TrendingDown className="size-3" />
-                {change}
-              </Badge>
-            )}
-            {trend === "neutral" && (
-              <Badge
-                variant="outline"
-                className="gap-1 px-1.5"
-              >
-                <Minus className="size-3" />
-                {change}
-              </Badge>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div
+      style={{
+        background: "#fff",
+        border: "3px solid #111",
+        borderRadius: 14,
+        boxShadow: `6px 6px 0 ${accent}`,
+        padding: "18px 20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <p
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 11,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "#555",
+          margin: 0,
+        }}
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          fontFamily: FONT.display,
+          fontSize: 44,
+          lineHeight: 1,
+          color: "#111",
+          margin: 0,
+          letterSpacing: -1,
+        }}
+      >
+        {value}
+      </p>
+      {change && trend && (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 10px",
+            background: accent,
+            border: "2px solid #111",
+            borderRadius: 999,
+            alignSelf: "flex-start",
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            color: "#111",
+          }}
+        >
+          <Icon className="size-3" />
+          {change}
+        </div>
+      )}
+    </div>
   )
 }

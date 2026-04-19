@@ -1,7 +1,9 @@
 'use client';
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { FONT } from './shared';
+
+const MAIN_APP =
+  process.env.NEXT_PUBLIC_MAIN_APP_URL || 'http://localhost:3001';
 
 export function HowItWorks() {
   const steps = [
@@ -104,12 +106,12 @@ export function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Link href="/onboarding" style={{
+              <a href={`${MAIN_APP}/signup`} style={{
                 display: 'block', textAlign: 'center', textDecoration: 'none',
                 background: '#111', color: '#EFE7D6', padding: '14px',
                 border: '3px solid #111', borderRadius: 10,
                 fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1,
-              }}>Hire {p.name.toLowerCase()}</Link>
+              }}>Hire {p.name.toLowerCase()}</a>
             </div>
           ))}
         </div>
@@ -185,11 +187,11 @@ export function FinalCTA() {
           Seven days free. No credit card. No weird onboarding call. Just the work.
         </p>
         <div style={{ marginTop: 36, display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/onboarding" style={{
+          <a href={`${MAIN_APP}/signup`} style={{
             background: '#111', color: '#F5C518', padding: '20px 40px',
             fontFamily: FONT.head, fontSize: 18, textTransform: 'uppercase', letterSpacing: 1,
             textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #EFE7D6',
-          }}>Hire the crew →</Link>
+          }}>Hire the crew →</a>
           <a href="#" style={{
             background: 'transparent', color: '#111', padding: '20px 40px',
             fontFamily: FONT.head, fontSize: 18, textTransform: 'uppercase', letterSpacing: 1,

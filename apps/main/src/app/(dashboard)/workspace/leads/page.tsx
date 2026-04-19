@@ -18,6 +18,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 // TODO: Connect to GET /api/v1/leads?organizationId=xxx (via Scout)
@@ -316,21 +317,17 @@ function TrendsTab() {
 export default function LeadsPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
-      {/* Page header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-foreground">Leads & Research</h1>
-            <Badge variant="secondary">Powered by Scout & Sage</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Lead pipeline, competitor monitoring, and market trends — all in one place.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" asChild>
-          <a href="/assistants/scout">Ask Scout to find leads</a>
-        </Button>
-      </div>
+      <PageHeader
+        kicker="powered by scout & sage"
+        title="leads & research"
+        subtitle="Lead pipeline, competitor monitoring, and market trends — all in one place."
+        sticker={{ label: "hunt & gather", rot: 5, color: "var(--vq-green)" }}
+        right={
+          <Button variant="outline" size="sm" asChild>
+            <a href="/assistants/scout">Ask Scout to find leads</a>
+          </Button>
+        }
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="pipeline">

@@ -8,9 +8,9 @@ import Link from "next/link"
 import {
   Pencil,
   Calendar,
-  Linkedin,
-  Twitter,
-  Instagram,
+  AtSign,
+  X as TwitterX,
+  Camera,
   Sparkles,
   FileText,
 } from "lucide-react"
@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -95,9 +96,9 @@ const PLATFORM_CONSTRAINTS: Record<ContentPlatform, string> = {
 
 function platformBadge(platform: ContentPlatform) {
   const map: Record<ContentPlatform, { label: string; Icon: React.ElementType }> = {
-    linkedin: { label: "LI", Icon: Linkedin },
-    twitter: { label: "TW", Icon: Twitter },
-    instagram: { label: "IG", Icon: Instagram },
+    linkedin: { label: "LI", Icon: AtSign },
+    twitter: { label: "X", Icon: TwitterX },
+    instagram: { label: "IG", Icon: Camera },
   }
   const { label, Icon } = map[platform]
   return (
@@ -407,18 +408,12 @@ function BrandVoiceTab() {
 export default function ContentPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
-      {/* Page header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-foreground">Content Hub</h1>
-            <Badge variant="secondary">Powered by Maya</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Create, schedule, and manage content across every platform.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        kicker="powered by maya"
+        title="content hub"
+        subtitle="Create, schedule, and manage content across every platform."
+        sticker={{ label: "maya's desk", rot: -4, color: "var(--vq-red)" }}
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="library">

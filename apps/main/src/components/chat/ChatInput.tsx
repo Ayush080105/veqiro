@@ -2,9 +2,7 @@
 
 import * as React from "react"
 import { Plus, Send, Paperclip, HelpCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { FONT } from "@/components/veqiro/shared"
 
 export interface ChatInputProps {
   value: string
@@ -18,6 +16,56 @@ export interface ChatInputProps {
   max?: number
 }
 
+function IconButton({
+  onClick,
+  ariaLabel,
+  title,
+  children,
+  disabled,
+}: {
+  onClick: () => void
+  ariaLabel: string
+  title?: string
+  children: React.ReactNode
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      title={title}
+      disabled={disabled}
+      style={{
+        width: 40,
+        height: 40,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center",
+        background: "#FFF9ED",
+        border: "2.5px solid #111",
+        borderRadius: "50%",
+        boxShadow: "2px 2px 0 #111",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        color: "#111",
+        transition: "transform 120ms ease",
+      }}
+      onMouseDown={(e) => {
+        if (!disabled) e.currentTarget.style.transform = "translate(2px,2px)"
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = "translate(0,0)"
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translate(0,0)"
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function ChatInput({
   value,
   onChange,
@@ -29,6 +77,9 @@ export function ChatInput({
   disabled = false,
   max = 1000,
 }: ChatInputProps) {
+  const charCount = value.length
+  const canSend = charCount > 0 && charCount <= max && !disabled
+
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -40,72 +91,122 @@ export function ChatInput({
     }
   }
 
-  const charCount = value.length
-  const canSend = charCount > 0 && charCount <= max && !disabled
-
   return (
-    <div className="flex flex-col gap-1.5 p-3">
-      <div className="flex items-end gap-1.5">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
+    <div
+      style={{
+        background: "#EFE7D6",
+        borderTop: "3px solid #111",
+        padding: "14px 16px 10px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+        <IconButton
           onClick={onPlusClick}
-          aria-label="Open actions menu"
+          ariaLabel="Open actions menu"
           title="Actions (Ctrl/Cmd+K)"
         >
-          <Plus />
-        </Button>
+          <Plus className="size-4" />
+        </IconButton>
 
         {onAttachClick && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
+          <IconButton
             onClick={onAttachClick}
-            aria-label="Attach document"
+            ariaLabel="Attach document"
             title="Attach PDF"
           >
-            <Paperclip />
-          </Button>
+            <Paperclip className="size-4" />
+          </IconButton>
         )}
 
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder={placeholder}
-          disabled={disabled}
-          className="flex-1 resize-none min-h-[40px] max-h-[160px]"
-        />
+        <div style={{ flex: 1, position: "relative" }}>
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder={placeholder}
+            disabled={disabled}
+            rows={1}
+            style={{
+              width: "100%",
+              resize: "none",
+              minHeight: 44,
+              maxHeight: 160,
+              padding: "11px 18px",
+              background: "#fff",
+              border: "2.5px solid #111",
+              borderRadius: 999,
+              boxShadow: "2px 2px 0 #111",
+              fontFamily: FONT.body,
+              fontSize: 14,
+              lineHeight: 1.4,
+              color: "#111",
+              outline: "none",
+            }}
+          />
+        </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
+        <IconButton
           onClick={onHelpClick}
-          aria-label="What can this agent do?"
+          ariaLabel="What can this agent do?"
           title="Capabilities"
         >
-          <HelpCircle />
-        </Button>
+          <HelpCircle className="size-4" />
+        </IconButton>
 
-        <Button
+        <button
           type="button"
-          size="icon"
           onClick={onSend}
           disabled={!canSend}
           aria-label="Send"
+          style={{
+            height: 40,
+            padding: "0 18px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: "#111",
+            color: "#EFE7D6",
+            border: "2.5px solid #111",
+            borderRadius: 999,
+            boxShadow: canSend ? "3px 3px 0 var(--vq-red)" : "3px 3px 0 #555",
+            fontFamily: FONT.head,
+            fontSize: 12,
+            letterSpacing: 1.5,
+            textTransform: "uppercase",
+            cursor: canSend ? "pointer" : "not-allowed",
+            opacity: canSend ? 1 : 0.6,
+            transition: "transform 120ms ease",
+          }}
+          onMouseDown={(e) => {
+            if (canSend) e.currentTarget.style.transform = "translate(2px,2px)"
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = "translate(0,0)"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translate(0,0)"
+          }}
         >
-          <Send />
-        </Button>
+          Send <Send className="size-4" />
+        </button>
       </div>
-      <div className="flex justify-end">
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginTop: 6,
+          paddingRight: 8,
+        }}
+      >
         <span
-          className={cn(
-            "text-[10px]",
-            charCount > max ? "text-destructive" : "text-muted-foreground"
-          )}
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 10,
+            letterSpacing: 1.5,
+            textTransform: "uppercase",
+            color: charCount > max ? "#7A1717" : "#555",
+          }}
         >
           {charCount}/{max}
         </span>

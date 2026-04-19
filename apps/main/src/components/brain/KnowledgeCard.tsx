@@ -4,10 +4,7 @@ import { FileText, Globe, StickyNote, ImageIcon, Trash2 } from "lucide-react"
 
 import type { KnowledgeItem, KnowledgeType } from "@/lib/types"
 import { AGENTS } from "@/lib/config/agents"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { FONT } from "@/components/veqiro/shared"
 
 interface KnowledgeCardProps {
   item: KnowledgeItem
@@ -16,12 +13,12 @@ interface KnowledgeCardProps {
 
 const typeConfig: Record<
   KnowledgeType,
-  { icon: typeof FileText; label: string }
+  { icon: typeof FileText; label: string; color: string }
 > = {
-  document: { icon: FileText, label: "Document" },
-  webpage: { icon: Globe, label: "Webpage" },
-  note: { icon: StickyNote, label: "Note" },
-  image: { icon: ImageIcon, label: "Image" },
+  document: { icon: FileText, label: "Document", color: "var(--vq-blue)" },
+  webpage: { icon: Globe, label: "Webpage", color: "var(--vq-green)" },
+  note: { icon: StickyNote, label: "Note", color: "var(--vq-yellow)" },
+  image: { icon: ImageIcon, label: "Image", color: "var(--vq-pink)" },
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -33,16 +30,16 @@ function formatRelativeTime(dateStr: string): string {
   if (seconds < 60) return "just now"
 
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes} min ago`
+  if (minutes < 60) return `${minutes}m ago`
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`
+  if (hours < 24) return `${hours}h ago`
 
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days} day${days > 1 ? "s" : ""} ago`
+  if (days < 30) return `${days}d ago`
 
   const months = Math.floor(days / 30)
-  return `${months} month${months > 1 ? "s" : ""} ago`
+  return `${months}mo ago`
 }
 
 export function KnowledgeCard({ item, onDelete }: KnowledgeCardProps) {
@@ -52,46 +49,132 @@ export function KnowledgeCard({ item, onDelete }: KnowledgeCardProps) {
   const accessAgents = AGENTS.filter((a) => item.agentAccess.includes(a.id))
 
   return (
-    <Card className="group relative transition-colors hover:bg-muted/30">
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Icon className="size-4 text-muted-foreground" />
-            <Badge variant="secondary">{config.label}</Badge>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-            onClick={() => onDelete(item.id)}
-          >
-            <Trash2 className="size-3.5" />
-            <span className="sr-only">Delete</span>
-          </Button>
-        </div>
+    <div
+      style={{
+        position: "relative",
+        background: "#FFF9ED",
+        border: "3px solid #111",
+        borderRadius: 14,
+        boxShadow: `5px 5px 0 ${config.color}`,
+        padding: 16,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "3px 10px",
+            background: config.color,
+            border: "2px solid #111",
+            borderRadius: 999,
+            fontFamily: FONT.mono,
+            fontSize: 10,
+            letterSpacing: 1.5,
+            textTransform: "uppercase",
+            color: "#111",
+          }}
+        >
+          <Icon className="size-3" /> {config.label}
+        </span>
+        <button
+          type="button"
+          onClick={() => onDelete(item.id)}
+          title="Delete"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#7A1717",
+            padding: 4,
+            cursor: "pointer",
+          }}
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
 
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium leading-snug">{item.title}</p>
-          <p className="line-clamp-2 text-xs text-muted-foreground">
-            {item.content}
-          </p>
-        </div>
+      <div>
+        <p
+          style={{
+            fontFamily: FONT.head,
+            fontSize: 14,
+            color: "#111",
+            margin: 0,
+            lineHeight: 1.3,
+          }}
+        >
+          {item.title}
+        </p>
+        <p
+          style={{
+            fontFamily: FONT.body,
+            fontSize: 13,
+            lineHeight: 1.4,
+            color: "#555",
+            margin: "6px 0 0",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {item.content}
+        </p>
+      </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex -space-x-1.5">
-            {accessAgents.map((agent) => (
-              <Avatar key={agent.id} size="sm" className="size-5 ring-2 ring-background">
-                <AvatarFallback className="text-[9px]">
-                  {agent.initials}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-          </div>
-          <span className="text-[10px] text-muted-foreground">
-            {formatRelativeTime(item.updatedAt)}
-          </span>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 4,
+        }}
+      >
+        <div style={{ display: "flex" }}>
+          {accessAgents.map((agent, i) => (
+            <span
+              key={agent.id}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: agent.color,
+                border: "1.5px solid #111",
+                display: "grid",
+                placeItems: "center",
+                fontFamily: FONT.head,
+                fontSize: 9,
+                color: "#111",
+                marginLeft: i === 0 ? 0 : -6,
+              }}
+              title={agent.name}
+            >
+              {agent.initials}
+            </span>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+        <span
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 10,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            color: "#555",
+          }}
+        >
+          {formatRelativeTime(item.updatedAt)}
+        </span>
+      </div>
+    </div>
   )
 }

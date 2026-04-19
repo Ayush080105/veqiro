@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
+import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 // TODO: Replace with authClient.organization.getMembers({ organizationId })
@@ -193,10 +194,12 @@ export default function MembersPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-        <p className="text-xs text-muted-foreground">Manage your account and organization preferences.</p>
-      </div>
+      <PageHeader
+        kicker="preferences"
+        title="members"
+        subtitle="Invite teammates and manage their roles."
+        sticker={{ label: "your crew", rot: 5, color: "var(--vq-green)" }}
+      />
 
       <SettingsNav />
 

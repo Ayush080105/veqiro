@@ -2,16 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,17 +10,14 @@ import { Loader2 } from "lucide-react";
 import { registerSchema } from "@/models/auth/registerSchema";
 import { authClient } from "@/lib/auth-client";
 import OAuthButtons from "@/components/oauth-buttons";
+import { Button, FieldLabel, FONT, VqInput } from "@/components/veqiro/shared";
 
 export function RegisterForm() {
   const router = useRouter();
+
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
 
   const onSubmit = async (data: z.infer<typeof registerSchema>) => {
@@ -37,136 +25,220 @@ export function RegisterForm() {
       email: data.email,
       password: data.password,
       name: data.name,
-      callbackURL: "/login",
+      callbackURL: "/onboarding",
     });
     if (error) {
       toast.error(error.message || "Something went wrong");
-    } else {
-      toast.success("Account created successfully");
+      return;
     }
+    toast.success("Account created");
     form.reset();
-    router.push("/verify");
+    // New users land on onboarding; existing users skipping signup and
+    // already logged in hit the session-gated onboarding page which
+    // redirects to /dashboard if their brand kit is already populated.
+    router.push("/onboarding");
   };
 
+  const isSubmitting = form.formState.isSubmitting;
+
   return (
-    <div>
-      <div className="flex flex-col items-center gap-2 text-center py-2">
-        <h1 className="text-2xl font-bold">Create an account</h1>
-        <p className="text-muted-foreground text-sm text-balance">
-          Enter your details to create an account
+    <div style={{ fontFamily: FONT.body }}>
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <h1
+          style={{
+            fontFamily: FONT.display,
+            fontSize: 40,
+            lineHeight: 1,
+            color: "#111",
+            margin: 0,
+            letterSpacing: -1,
+          }}
+        >
+          join the crew
+        </h1>
+        <p
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#555",
+            marginTop: 8,
+          }}
+        >
+          // six AI employees, one login
         </p>
       </div>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-        <FieldGroup>
-          <Controller
-            name="name"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="register-name">Full Name</FieldLabel>
-                <Input
-                  {...field}
-                  id="register-name"
-                  placeholder="John Doe"
-                  type="text"
-                  autoCapitalize="none"
+
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Controller
+          name="name"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <div>
+              <FieldLabel label="Full name">
+                <VqInput
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
+                  placeholder="Jane Doe"
                   autoComplete="name"
-                  autoCorrect="off"
-                  aria-invalid={fieldState.invalid}
-                  className="h-11"
+                  disabled={isSubmitting}
                 />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+              </FieldLabel>
+              {fieldState.error && (
+                <div
+                  style={{
+                    marginTop: -12,
+                    marginBottom: 20,
+                    color: "#7A1717",
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                  }}
+                >
+                  {fieldState.error.message}
+                </div>
+              )}
+            </div>
+          )}
+        />
 
-          <Controller
-            name="email"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="register-email">Email</FieldLabel>
-                <Input
-                  {...field}
-                  id="register-email"
-                  placeholder="name@example.com"
+        <Controller
+          name="email"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <div>
+              <FieldLabel label="Email" hint="We will send a verification link to your email">
+                <VqInput
                   type="email"
-                  autoCapitalize="none"
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
+                  placeholder="name@example.com"
                   autoComplete="email"
-                  autoCorrect="off"
-                  aria-invalid={fieldState.invalid}
-                  className="h-11"
+                  disabled={isSubmitting}
                 />
-                <FieldDescription>
-                  We will send a verification link to your email
-                </FieldDescription>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+              </FieldLabel>
+              {fieldState.error && (
+                <div
+                  style={{
+                    marginTop: -12,
+                    marginBottom: 20,
+                    color: "#7A1717",
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                  }}
+                >
+                  {fieldState.error.message}
+                </div>
+              )}
+            </div>
+          )}
+        />
 
-          <Controller
-            name="password"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="register-password">Password</FieldLabel>
-                <Input
-                  {...field}
-                  id="register-password"
+        <Controller
+          name="password"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <div>
+              <FieldLabel label="Password">
+                <VqInput
                   type="password"
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
                   placeholder="••••••••"
-                  aria-invalid={fieldState.invalid}
-                  className="h-11"
+                  autoComplete="new-password"
+                  disabled={isSubmitting}
                 />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+              </FieldLabel>
+              {fieldState.error && (
+                <div
+                  style={{
+                    marginTop: -12,
+                    marginBottom: 20,
+                    color: "#7A1717",
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                  }}
+                >
+                  {fieldState.error.message}
+                </div>
+              )}
+            </div>
+          )}
+        />
 
-          <Controller
-            name="confirmPassword"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="register-confirm-password">
-                  Confirm Password
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id="register-confirm-password"
+        <Controller
+          name="confirmPassword"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <div>
+              <FieldLabel label="Confirm password">
+                <VqInput
                   type="password"
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
                   placeholder="••••••••"
-                  aria-invalid={fieldState.invalid}
-                  className="h-11"
+                  autoComplete="new-password"
+                  disabled={isSubmitting}
                 />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-        </FieldGroup>
+              </FieldLabel>
+              {fieldState.error && (
+                <div
+                  style={{
+                    marginTop: -12,
+                    marginBottom: 20,
+                    color: "#7A1717",
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                  }}
+                >
+                  {fieldState.error.message}
+                </div>
+              )}
+            </div>
+          )}
+        />
 
-        <Button type="submit" className="w-full">
-          <span>Create Account</span>
+        <Button type="submit" variant="primary" disabled={isSubmitting} style={{ width: "100%" }}>
+          {isSubmitting ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Loader2 className="size-4 animate-spin" /> Creating account…
+            </span>
+          ) : (
+            "Create account"
+          )}
         </Button>
 
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-          <span className="bg-background text-muted-foreground relative z-10 px-2">
-            Or
-          </span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            margin: "20px 0 16px",
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#888",
+          }}
+        >
+          <div style={{ flex: 1, height: 0, borderTop: "2px dashed #111", opacity: 0.5 }} />
+          <span>or</span>
+          <div style={{ flex: 1, height: 0, borderTop: "2px dashed #111", opacity: 0.5 }} />
         </div>
+
         <OAuthButtons />
-        <div className="text-center text-sm">
-          Already have an account?{" "}
-          <Link href="/login" className="underline underline-offset-4">
+
+        <div
+          style={{
+            marginTop: 20,
+            textAlign: "center",
+            fontFamily: FONT.body,
+            fontSize: 14,
+            color: "#111",
+          }}
+        >
+          Already on the team?{" "}
+          <Link href="/login" style={{ fontFamily: FONT.head, textTransform: "uppercase", letterSpacing: 1, color: "#111", textDecoration: "underline" }}>
             Login
           </Link>
         </div>

@@ -3,7 +3,20 @@
     "allow": [
       "Read(//c/Users/Mohit Bhalotia/**)",
       "Read(//c/Users/Mohit Bhalotia/.claude/**)",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "Bash(grep -E \"\\(layout|page\\)\\\\.tsx$\")",
+      "Bash(find /d/Projects/veqiro/apps/main/src/app -name \"page.tsx\" -exec head -15 {} +)",
+      "Bash(xargs -I {} head -30 {})",
+      "Bash(xargs -I {} basename {})",
+      "Bash(pnpm --filter main check-types)",
+      "Bash(npx tsc *)",
+      "Bash(pnpm exec *)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm --filter landing build)",
+      "Bash(rm -rf D:/Projects/veqiro/apps/main/.next)",
+      "Bash(pnpm --filter main build)",
+      "Bash(pnpm why *)",
+      "Bash(pnpm list *)"
     ]
   }
 }

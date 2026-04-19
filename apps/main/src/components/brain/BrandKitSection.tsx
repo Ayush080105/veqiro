@@ -16,12 +16,11 @@ import {
 } from "lucide-react"
 
 import type { BrainFormValues } from "@/lib/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field"
+import { Field, FieldGroup, FieldError } from "@/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -33,6 +32,67 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 import { BrainCompletionBar } from "@/components/brain/BrainCompletionBar"
 import { AgentReadiness } from "@/components/brain/AgentReadiness"
+import { FONT, VqCard } from "@/components/veqiro/shared"
+
+// ─── Veqiro-themed Card + Label primitives ────────────────────────────────────
+
+function VqSectionCard({
+  title,
+  description,
+  shadow = "#111",
+  children,
+}: {
+  title: string
+  description?: string
+  shadow?: string
+  children: React.ReactNode
+}) {
+  return (
+    <VqCard shadow={shadow} padding={20} style={{ marginTop: 16 }}>
+      <div
+        style={{
+          fontFamily: FONT.head,
+          fontSize: 18,
+          letterSpacing: -0.3,
+          color: "#111",
+          marginBottom: description ? 4 : 16,
+        }}
+      >
+        {title}
+      </div>
+      {description && (
+        <p
+          style={{
+            fontFamily: FONT.body,
+            fontSize: 13,
+            color: "#555",
+            margin: "0 0 16px",
+          }}
+        >
+          {description}
+        </p>
+      )}
+      {children}
+    </VqCard>
+  )
+}
+
+function VqFieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontFamily: FONT.mono,
+        fontSize: 11,
+        letterSpacing: 2,
+        textTransform: "uppercase",
+        color: "#555",
+        marginBottom: 6,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
 
 interface BrandKitSectionProps {
   control: Control<BrainFormValues>
@@ -61,14 +121,14 @@ function ColorField({
 }) {
   return (
     <Field>
-      <FieldLabel>{label}</FieldLabel>
+      <VqFieldLabel>{label}</VqFieldLabel>
       <div className="flex items-center gap-2">
         <input
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
-          className="h-8 w-10 cursor-pointer rounded-none border border-input bg-transparent p-0.5"
+          className="h-9 w-12 cursor-pointer rounded-md border-[2.5px] border-foreground bg-transparent p-0.5"
         />
         <Input
           value={value}
@@ -142,15 +202,14 @@ export function BrandKitSection({
 
         {/* Identity */}
         <TabsContent value="identity">
-          <Card>
-            <CardHeader>
-              <CardTitle>Company Identity</CardTitle>
-              <CardDescription>Core facts about your business.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
+          <VqSectionCard
+            title="Company Identity"
+            description="Core facts about your business."
+            shadow="var(--vq-red)"
+          >
+            <FieldGroup>
                 <Field>
-                  <FieldLabel>Company Name</FieldLabel>
+                  <VqFieldLabel>Company Name</VqFieldLabel>
                   <Controller
                     name="company_name"
                     control={control}
@@ -175,7 +234,7 @@ export function BrandKitSection({
                 </Field>
 
                 <Field>
-                  <FieldLabel>Company Description</FieldLabel>
+                  <VqFieldLabel>Company Description</VqFieldLabel>
                   <Controller
                     name="company_description"
                     control={control}
@@ -193,7 +252,7 @@ export function BrandKitSection({
                 </Field>
 
                 <Field>
-                  <FieldLabel>Website URL</FieldLabel>
+                  <VqFieldLabel>Website URL</VqFieldLabel>
                   <div className="flex items-center gap-2">
                     <Controller
                       name="website_url"
@@ -228,7 +287,7 @@ export function BrandKitSection({
                 </Field>
 
                 <Field>
-                  <FieldLabel>Industry</FieldLabel>
+                  <VqFieldLabel>Industry</VqFieldLabel>
                   <Controller
                     name="industry"
                     control={control}
@@ -245,275 +304,258 @@ export function BrandKitSection({
                   />
                 </Field>
               </FieldGroup>
-            </CardContent>
-          </Card>
+          </VqSectionCard>
         </TabsContent>
 
         {/* Audience */}
         <TabsContent value="audience">
-          <Card>
-            <CardHeader>
-              <CardTitle>Target Audience</CardTitle>
-              <CardDescription>
-                Who your agents are writing and selling to.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Ideal Customer</FieldLabel>
-                  <Controller
-                    name="target_audience"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea
-                        {...field}
-                        onBlur={() => {
-                          field.onBlur()
-                          scheduleAutoSave()
-                        }}
-                        placeholder="Who is your ideal customer? Job titles, company sizes, challenges..."
-                        className="min-h-24"
-                      />
-                    )}
-                  />
-                </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <VqSectionCard
+            title="Target Audience"
+            description="Who your agents are writing and selling to."
+            shadow="var(--vq-pink)"
+          >
+            <FieldGroup>
+              <Field>
+                <VqFieldLabel>Ideal Customer</VqFieldLabel>
+                <Controller
+                  name="target_audience"
+                  control={control}
+                  render={({ field }) => (
+                    <Textarea
+                      {...field}
+                      onBlur={() => {
+                        field.onBlur()
+                        scheduleAutoSave()
+                      }}
+                      placeholder="Who is your ideal customer? Job titles, company sizes, challenges..."
+                      className="min-h-24"
+                    />
+                  )}
+                />
+              </Field>
+            </FieldGroup>
+          </VqSectionCard>
         </TabsContent>
 
         {/* Voice & Tone */}
         <TabsContent value="voice">
-          <Card>
-            <CardHeader>
-              <CardTitle>Brand Voice &amp; Tone</CardTitle>
-              <CardDescription>
-                How your brand communicates across channels.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Brand Voice Preset</FieldLabel>
-                  <Controller
-                    name="brand_voice"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={(v) => {
-                          field.onChange(v)
-                          scheduleAutoSave()
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select voice" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Professional">
-                            Professional
-                          </SelectItem>
-                          <SelectItem value="Casual">Casual</SelectItem>
-                          <SelectItem value="Bold">Bold</SelectItem>
-                          <SelectItem value="Minimal">Minimal</SelectItem>
-                          <SelectItem value="Technical">Technical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </Field>
+          <VqSectionCard
+            title="Brand Voice & Tone"
+            description="How your brand communicates across channels."
+            shadow="var(--vq-violet)"
+          >
+            <FieldGroup>
+              <Field>
+                <VqFieldLabel>Brand Voice Preset</VqFieldLabel>
+                <Controller
+                  name="brand_voice"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v)
+                        scheduleAutoSave()
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select voice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Professional">
+                          Professional
+                        </SelectItem>
+                        <SelectItem value="Casual">Casual</SelectItem>
+                        <SelectItem value="Bold">Bold</SelectItem>
+                        <SelectItem value="Minimal">Minimal</SelectItem>
+                        <SelectItem value="Technical">Technical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
 
-                <Field>
-                  <FieldLabel>Twitter / X Tone</FieldLabel>
-                  <Controller
-                    name="platform_tones.twitter"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        onBlur={() => {
-                          field.onBlur()
-                          scheduleAutoSave()
-                        }}
-                        placeholder="Punchy and direct"
-                      />
-                    )}
-                  />
-                </Field>
+              <Field>
+                <VqFieldLabel>Twitter / X Tone</VqFieldLabel>
+                <Controller
+                  name="platform_tones.twitter"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      onBlur={() => {
+                        field.onBlur()
+                        scheduleAutoSave()
+                      }}
+                      placeholder="Punchy and direct"
+                    />
+                  )}
+                />
+              </Field>
 
-                <Field>
-                  <FieldLabel>LinkedIn Tone</FieldLabel>
-                  <Controller
-                    name="platform_tones.linkedin"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        onBlur={() => {
-                          field.onBlur()
-                          scheduleAutoSave()
-                        }}
-                        placeholder="Professional and insightful"
-                      />
-                    )}
-                  />
-                </Field>
+              <Field>
+                <VqFieldLabel>LinkedIn Tone</VqFieldLabel>
+                <Controller
+                  name="platform_tones.linkedin"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      onBlur={() => {
+                        field.onBlur()
+                        scheduleAutoSave()
+                      }}
+                      placeholder="Professional and insightful"
+                    />
+                  )}
+                />
+              </Field>
 
-                <Field>
-                  <FieldLabel>Instagram Tone</FieldLabel>
-                  <Controller
-                    name="platform_tones.instagram"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        onBlur={() => {
-                          field.onBlur()
-                          scheduleAutoSave()
-                        }}
-                        placeholder="Visual and hashtag-heavy"
-                      />
-                    )}
-                  />
-                </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+              <Field>
+                <VqFieldLabel>Instagram Tone</VqFieldLabel>
+                <Controller
+                  name="platform_tones.instagram"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      onBlur={() => {
+                        field.onBlur()
+                        scheduleAutoSave()
+                      }}
+                      placeholder="Visual and hashtag-heavy"
+                    />
+                  )}
+                />
+              </Field>
+            </FieldGroup>
+          </VqSectionCard>
         </TabsContent>
 
         {/* Visual */}
         <TabsContent value="visual">
-          <Card>
-            <CardHeader>
-              <CardTitle>Visual Identity</CardTitle>
-              <CardDescription>
-                Brand colours used in generated assets.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Controller
-                  name="brand_colors.primary"
-                  control={control}
-                  render={({ field }) => (
-                    <ColorField
-                      label="Primary"
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={scheduleAutoSave}
-                    />
-                  )}
-                />
-                <Controller
-                  name="brand_colors.secondary"
-                  control={control}
-                  render={({ field }) => (
-                    <ColorField
-                      label="Secondary"
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={scheduleAutoSave}
-                    />
-                  )}
-                />
-                <Controller
-                  name="brand_colors.accent"
-                  control={control}
-                  render={({ field }) => (
-                    <ColorField
-                      label="Accent"
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={scheduleAutoSave}
-                    />
-                  )}
-                />
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <VqSectionCard
+            title="Visual Identity"
+            description="Brand colours used in generated assets."
+            shadow="var(--vq-blue)"
+          >
+            <FieldGroup>
+              <Controller
+                name="brand_colors.primary"
+                control={control}
+                render={({ field }) => (
+                  <ColorField
+                    label="Primary"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={scheduleAutoSave}
+                  />
+                )}
+              />
+              <Controller
+                name="brand_colors.secondary"
+                control={control}
+                render={({ field }) => (
+                  <ColorField
+                    label="Secondary"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={scheduleAutoSave}
+                  />
+                )}
+              />
+              <Controller
+                name="brand_colors.accent"
+                control={control}
+                render={({ field }) => (
+                  <ColorField
+                    label="Accent"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={scheduleAutoSave}
+                  />
+                )}
+              />
+            </FieldGroup>
+          </VqSectionCard>
         </TabsContent>
 
         {/* Competitive */}
         <TabsContent value="competitive">
-          <Card>
-            <CardHeader>
-              <CardTitle>Competitors &amp; Differentiators</CardTitle>
-              <CardDescription>
-                Help your agents position you correctly.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Competitors</FieldLabel>
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {competitorFields.map((f, i) => (
-                      <Badge key={f.id} variant="outline" className="gap-1 pr-1">
-                        <Controller
-                          name={`competitors.${i}.value`}
-                          control={control}
-                          render={({ field }) => <span>{field.value}</span>}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            removeCompetitor(i)
-                            scheduleAutoSave()
-                          }}
-                          className="ml-0.5 text-muted-foreground hover:text-foreground"
-                        >
-                          <XIcon className="size-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={newCompetitor}
-                      onChange={(e) => setNewCompetitor(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault()
-                          handleAddCompetitor()
-                        }
-                      }}
-                      placeholder="Type a competitor name and press Enter"
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddCompetitor}
-                    >
-                      <PlusIcon className="size-3.5" />
-                      Add
-                    </Button>
-                  </div>
-                </Field>
-
-                <Field>
-                  <FieldLabel>Key Differentiators</FieldLabel>
-                  <Controller
-                    name="key_differentiators"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea
-                        {...field}
-                        onBlur={() => {
-                          field.onBlur()
+          <VqSectionCard
+            title="Competitors & Differentiators"
+            description="Help your agents position you correctly."
+            shadow="var(--vq-yellow)"
+          >
+            <FieldGroup>
+              <Field>
+                <VqFieldLabel>Competitors</VqFieldLabel>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {competitorFields.map((f, i) => (
+                    <Badge key={f.id} variant="outline" className="gap-1 pr-1">
+                      <Controller
+                        name={`competitors.${i}.value`}
+                        control={control}
+                        render={({ field }) => <span>{field.value}</span>}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeCompetitor(i)
                           scheduleAutoSave()
                         }}
-                        placeholder="What makes you stand out from the competition?"
-                        className="min-h-24"
-                      />
-                    )}
+                        className="ml-0.5 text-muted-foreground hover:text-foreground"
+                      >
+                        <XIcon className="size-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newCompetitor}
+                    onChange={(e) => setNewCompetitor(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleAddCompetitor()
+                      }
+                    }}
+                    placeholder="Type a competitor name and press Enter"
+                    className="flex-1"
                   />
-                </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddCompetitor}
+                  >
+                    <PlusIcon className="size-3.5" />
+                    Add
+                  </Button>
+                </div>
+              </Field>
+
+              <Field>
+                <VqFieldLabel>Key Differentiators</VqFieldLabel>
+                <Controller
+                  name="key_differentiators"
+                  control={control}
+                  render={({ field }) => (
+                    <Textarea
+                      {...field}
+                      onBlur={() => {
+                        field.onBlur()
+                        scheduleAutoSave()
+                      }}
+                      placeholder="What makes you stand out from the competition?"
+                      className="min-h-24"
+                    />
+                  )}
+                />
+              </Field>
+            </FieldGroup>
+          </VqSectionCard>
         </TabsContent>
       </Tabs>
     </div>
