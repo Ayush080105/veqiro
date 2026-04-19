@@ -557,6 +557,20 @@ export interface VegaExecutiveBriefingResult {
   }
 }
 
+export interface VegaComposeEmailRequest {
+  to: string
+  subject: string
+  instructions: string
+  tone?: string
+  include_cta?: boolean
+}
+
+export interface VegaComposeEmailResult {
+  draft: { to: string; subject: string; body: string; draft_id?: string }
+  draft_id?: string
+  errors?: string[]
+}
+
 // ─── Union result type (discriminated by action id) ─────────────────────────
 
 export type AgentActionId =
@@ -589,6 +603,7 @@ export type AgentActionId =
   | "vega:calendar-summary"
   | "vega:create-event"
   | "vega:executive-briefing"
+  | "vega:compose-email"
 
 export interface ActionMessagePayload {
   actionId: AgentActionId

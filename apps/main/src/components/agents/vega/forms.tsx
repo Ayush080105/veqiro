@@ -13,6 +13,7 @@ import type {
   VegaCalendarSummaryRequest,
   VegaCreateEventRequest,
   VegaExecutiveBriefingRequest,
+  VegaComposeEmailRequest,
 } from "@/lib/types/agents"
 
 export function VegaProcessInboxForm({
@@ -167,5 +168,55 @@ export function VegaExecutiveBriefingForm({
         Include calendar
       </label>
     </div>
+  )
+}
+
+export function VegaComposeEmailForm({
+  value,
+  onChange,
+}: {
+  value: VegaComposeEmailRequest
+  onChange: (patch: Partial<VegaComposeEmailRequest>) => void
+}) {
+  return (
+    <>
+      <FormRow label="To" required>
+        <Input
+          type="email"
+          value={value.to}
+          placeholder="recipient@example.com"
+          onChange={(e) => onChange({ to: e.target.value })}
+        />
+      </FormRow>
+      <FormRow label="Subject" required>
+        <Input
+          value={value.subject}
+          placeholder="Monthly investor update — March"
+          onChange={(e) => onChange({ subject: e.target.value })}
+        />
+      </FormRow>
+      <FormRow label="Instructions" required>
+        <CountedTextarea
+          value={value.instructions}
+          rows={5}
+          onChange={(v) => onChange({ instructions: v })}
+          placeholder="What should Vega say? Include the key points and any numbers."
+        />
+      </FormRow>
+      <FormRow label="Tone">
+        <Input
+          value={value.tone ?? ""}
+          placeholder="e.g. professional and enthusiastic"
+          onChange={(e) => onChange({ tone: e.target.value })}
+        />
+      </FormRow>
+      <label className="flex items-center gap-2 text-xs">
+        <Switch
+          checked={value.include_cta ?? true}
+          onCheckedChange={(v) => onChange({ include_cta: v })}
+        />
+        Include a clear CTA
+      </label>
+    </>
   )
 }

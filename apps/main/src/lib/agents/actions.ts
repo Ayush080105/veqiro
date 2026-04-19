@@ -252,6 +252,14 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       icon: "CalendarPlus",
     },
     {
+      id: "vega:compose-email",
+      agent: "vega",
+      endpoint: "compose-email",
+      label: "Compose an email",
+      description: "Draft a new outbound Gmail — saves directly as a Gmail draft.",
+      icon: "Mail",
+    },
+    {
       id: "vega:executive-briefing",
       agent: "vega",
       endpoint: "executive-briefing",

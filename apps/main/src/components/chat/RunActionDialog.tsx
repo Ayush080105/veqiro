@@ -51,6 +51,7 @@ import {
   VegaCalendarSummaryForm,
   VegaCreateEventForm,
   VegaExecutiveBriefingForm,
+  VegaComposeEmailForm,
 } from "@/components/agents/vega/forms"
 
 type FormComponent = React.ComponentType<{
@@ -309,6 +310,24 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   "vega:executive-briefing": {
     defaultValue: { include_email: true, include_calendar: true },
     Form: VegaExecutiveBriefingForm,
+  },
+  "vega:compose-email": {
+    defaultValue: {
+      to: "",
+      subject: "",
+      instructions: "",
+      tone: "professional",
+      include_cta: true,
+    },
+    Form: VegaComposeEmailForm,
+    validate: (v) =>
+      !v.to?.trim()
+        ? "Recipient email is required."
+        : !v.subject?.trim()
+          ? "Subject is required."
+          : !v.instructions?.trim()
+            ? "Instructions are required."
+            : null,
   },
 }
 

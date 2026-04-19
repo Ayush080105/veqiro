@@ -37,6 +37,15 @@ import {
   legalResearchSchema,
   complianceCheckSchema,
 } from "../modules/agents/lex/lex.schema.js";
+import {
+  sendMessageSchema as vegaSendMessageSchema,
+  processInboxSchema,
+  draftReplySchema,
+  calendarSummarySchema,
+  createEventSchema,
+  executiveBriefingSchema,
+  composeEmailSchema,
+} from "../modules/agents/vega/vega.schema.js";
 import { env } from "../config/env.js";
 
 // Internal-Bearer callers must supply userId + organizationId in the body.
@@ -1339,6 +1348,320 @@ const lexChatPath: ZodOpenApiPathItemObject = {
   get: lexChatGet,
 };
 
+// ── Vega response schemas (doc-only) ───────────────────────────────────────
+
+const processedEmailSchema = z.object({
+  email_id: z.string(),
+  subject: z.string(),
+  from_name: z.string(),
+  priority: z.enum(["urgent", "high", "medium", "low"]),
+  summary: z.string(),
+  suggested_action: z.string(),
+  label_applied: z.string().nullable().optional(),
+  draft_created: z.boolean().optional(),
+  draft_id: z.string().nullable().optional(),
+});
+
+const inboxStatsSchema = z.object({
+  total_processed: z.number().int(),
+  urgent: z.number().int(),
+  high: z.number().int(),
+  medium: z.number().int(),
+  low: z.number().int(),
+  drafts_created: z.number().int(),
+  labels_applied: z.number().int(),
+});
+
+const processInboxResponseSchema = z.object({
+  processed: z.array(processedEmailSchema),
+  stats: inboxStatsSchema,
+  executed: z.number().int().optional(),
+  errors: z.array(z.string()).optional(),
+});
+
+const draftReplyResponseSchema = z.object({
+  draft: z.object({
+    to: z.string(),
+    subject: z.string(),
+    body: z.string(),
+    draft_id: z.string().optional(),
+    saved: z.boolean().optional(),
+  }),
+  suggested_follow_up: z.string(),
+  draft_id: z.string().optional(),
+  errors: z.array(z.string()).optional(),
+});
+
+const calendarSummaryResponseSchema = z.object({
+  events: z.array(z.record(z.string(), z.unknown())),
+  conflicts: z.array(z.record(z.string(), z.unknown())),
+  free_slots: z.array(z.record(z.string(), z.unknown())),
+  daily_summary: z.record(z.string(), z.unknown()),
+});
+
+const createEventResponseSchema = z.object({
+  event: z.record(z.string(), z.unknown()),
+  conflicts: z.array(z.record(z.string(), z.unknown())),
+  google_event_id: z.string().optional(),
+  created: z.boolean(),
+  errors: z.array(z.string()).optional(),
+});
+
+const executiveBriefingResponseSchema = z.object({
+  briefing: z.record(z.string(), z.unknown()),
+});
+
+const composeEmailResponseSchema = z.object({
+  draft: z.object({
+    to: z.string(),
+    subject: z.string(),
+    body: z.string(),
+    draft_id: z.string().optional(),
+  }),
+  draft_id: z.string().optional(),
+  errors: z.array(z.string()).optional(),
+});
+
+const vegaMessageListSchema = z.array(
+  z.object({
+    role: z.string(),
+    content: z.string(),
+    imageUrl: z.string().nullable().optional(),
+    createdAt: z.string(),
+    customInput: z.unknown().optional(),
+  })
+);
+
+const vegaAssistantMessageResponseSchema = z.object({
+  role: z.literal("assistant"),
+  content: z.string(),
+  imageUrl: z.string().optional(),
+  nodeActionsExecuted: z.number().int().optional(),
+  nodeActionErrors: z.array(z.string()).optional(),
+  googleNotConnected: z.boolean().optional(),
+  createdAt: z.string(),
+});
+
+// ── Vega Operations ────────────────────────────────────────────────────────
+
+const vegaChatPost: ZodOpenApiOperationObject = {
+  operationId: "vegaChat",
+  summary: "Vega chat",
+  description:
+    "Conversational executive-assistant chat. If Google is connected, Vega can read emails, label, draft, and create events — the server fetches the user's Google access token automatically and executes any `node_actions` returned by the AI.",
+  tags: ["Vega"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(vegaSendMessageSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          content: "Summarize my inbox and schedule a 30-min demo with marcus@growthco.io Thursday 3pm ET.",
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Assistant message with exec summary",
+      content: { "application/json": { schema: vegaAssistantMessageResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaChatGet: ZodOpenApiOperationObject = {
+  operationId: "vegaListMessages",
+  summary: "List Vega messages for an organization",
+  tags: ["Vega"],
+  requestParams: {
+    query: z.object({
+      userId: z.string().optional().meta({
+        description: "Required when using bearerAuth; resolved from session for cookieAuth",
+        example: IDENTITY_EXAMPLE.userId,
+      }),
+      organizationId: z.string().optional().meta({
+        description: "Required when using bearerAuth; falls back to session's active org for cookieAuth",
+        example: IDENTITY_EXAMPLE.organizationId,
+      }),
+    }),
+  },
+  responses: {
+    "200": {
+      description: "Messages, newest first",
+      content: { "application/json": { schema: vegaMessageListSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaProcessInboxPost: ZodOpenApiOperationObject = {
+  operationId: "vegaProcessInbox",
+  summary: "Triage inbox: prioritize, label, and optionally draft replies",
+  description:
+    "Reads unread emails via the user's Gmail token, classifies them, and applies labels. Returns `executed` = number of server-side node_actions run.",
+  tags: ["Vega"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(processInboxSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          maxEmails: 20,
+          autoLabel: true,
+          draftReplies: false,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Triage results + execution summary",
+      content: { "application/json": { schema: processInboxResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaDraftReplyPost: ZodOpenApiOperationObject = {
+  operationId: "vegaDraftReply",
+  summary: "Draft a Gmail reply (and optionally save it as a draft)",
+  tags: ["Vega"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(draftReplySchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          emailId: "msg_001",
+          replyInstructions:
+            "Accept the meeting, propose Thursday 3pm EST, attach our metrics deck",
+          tone: "professional and enthusiastic",
+          saveAsDraft: true,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Reply body + Gmail draft id (if saved)",
+      content: { "application/json": { schema: draftReplyResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaCalendarSummaryPost: ZodOpenApiOperationObject = {
+  operationId: "vegaCalendarSummary",
+  summary: "Summarize upcoming calendar with conflicts + free slots",
+  tags: ["Vega"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(calendarSummarySchema),
+        example: { ...IDENTITY_EXAMPLE, daysAhead: 7 },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Calendar overview",
+      content: { "application/json": { schema: calendarSummaryResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaCreateEventPost: ZodOpenApiOperationObject = {
+  operationId: "vegaCreateEvent",
+  summary: "Parse natural-language description and create a Google Calendar event",
+  description:
+    "Vega parses the description, checks for conflicts, and — on success — creates the event via the user's Calendar token. Returns the `google_event_id` and Meet link when applicable.",
+  tags: ["Vega"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(createEventSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          description:
+            "Schedule a 30-minute call with marcus@growthco.io Wednesday at 10am EST. Add Google Meet.",
+          checkConflicts: true,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Event result with Google event id and meet link",
+      content: { "application/json": { schema: createEventResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaExecutiveBriefingPost: ZodOpenApiOperationObject = {
+  operationId: "vegaExecutiveBriefing",
+  summary: "Generate an executive daily briefing",
+  tags: ["Vega"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(executiveBriefingSchema),
+        example: { ...IDENTITY_EXAMPLE, includeEmail: true, includeCalendar: true },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Briefing payload",
+      content: { "application/json": { schema: executiveBriefingResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaComposeEmailPost: ZodOpenApiOperationObject = {
+  operationId: "vegaComposeEmail",
+  summary: "Compose a new outbound Gmail draft",
+  tags: ["Vega"],
+  requestBody: {
+    required: true,
+    content: {
+      "application/json": {
+        schema: withInternalIdentity(composeEmailSchema),
+        example: {
+          ...IDENTITY_EXAMPLE,
+          to: "investor@accel.com",
+          subject: "Veqiro AI — Monthly Update",
+          instructions:
+            "Write a concise investor update highlighting MRR growth to $58K and two new enterprise pilots. Request a 30-min call.",
+          tone: "professional and enthusiastic",
+          includeCta: true,
+        },
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Composed draft + Gmail draft id",
+      content: { "application/json": { schema: composeEmailResponseSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const vegaChatPath: ZodOpenApiPathItemObject = {
+  post: vegaChatPost,
+  get: vegaChatGet,
+};
+
 const integrationsDeleteOp: ZodOpenApiOperationObject = {
   operationId: "integrationsDisconnect",
   summary: "Disconnect (and best-effort revoke) a social account",
@@ -1388,6 +1711,7 @@ export const openApiDocument = createDocument({
     { name: "Scout", description: "Research agent — chat and tool endpoints" },
     { name: "Maya", description: "Marketing & content agent — chat, drafts, and publishing" },
     { name: "Lex", description: "Legal & compliance agent — contracts, drafting, research, and compliance" },
+    { name: "Vega", description: "Executive assistant agent — inbox, calendar, briefings (Gmail + Calendar)" },
     {
       name: "Integrations",
       description:
@@ -1420,6 +1744,13 @@ export const openApiDocument = createDocument({
     "/api/v1/agents/lex/explain": { post: lexExplainPost },
     "/api/v1/agents/lex/legal-research": { post: lexLegalResearchPost },
     "/api/v1/agents/lex/compliance-check": { post: lexComplianceCheckPost },
+    "/api/v1/agents/vega/chat": vegaChatPath,
+    "/api/v1/agents/vega/process-inbox": { post: vegaProcessInboxPost },
+    "/api/v1/agents/vega/draft-reply": { post: vegaDraftReplyPost },
+    "/api/v1/agents/vega/calendar-summary": { post: vegaCalendarSummaryPost },
+    "/api/v1/agents/vega/create-event": { post: vegaCreateEventPost },
+    "/api/v1/agents/vega/executive-briefing": { post: vegaExecutiveBriefingPost },
+    "/api/v1/agents/vega/compose-email": { post: vegaComposeEmailPost },
     "/api/v1/integrations": { get: integrationsListGet },
     "/api/v1/integrations/{platform}/authorize": { get: integrationsAuthorizeGet },
     "/api/v1/integrations/{platform}/callback": { get: integrationsCallbackGet },

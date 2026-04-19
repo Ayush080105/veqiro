@@ -37,6 +37,17 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Request Gmail + Calendar scopes so Vega can read inbox, label, draft, and
+      // manage events. accessType=offline + prompt=consent forces a refresh_token.
+      scope: [
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/calendar",
+      ],
+      accessType: "offline",
+      prompt: "consent",
     },
   },
   plugins: [admin(), organization()],
