@@ -60,6 +60,8 @@ class AnalysisSummary(BaseModel):
 class MetricsAnalysisResponse(BaseModel):
     analysis: AnalysisSummary
     charts_data: dict
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ForecastRequest(BaseModel):
@@ -89,6 +91,8 @@ class ForecastResponse(BaseModel):
     confidence: float
     methodology: str
     summary: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class FinancialAnalysisRequest(BaseModel):
@@ -121,6 +125,8 @@ class FinancialAnalysisResponse(BaseModel):
     health_indicator: str
     narrative: str
     recommendations: list[str]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class BriefingRequest(BaseModel):
@@ -143,6 +149,8 @@ class BriefingRequest(BaseModel):
 
 class BriefingResponse(BaseModel):
     briefing: dict
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class InvestorUpdateRequest(BaseModel):
@@ -173,6 +181,8 @@ class InvestorUpdateResponse(BaseModel):
     challenges_section: list[str]
     asks_section: list[str]
     full_email_body: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class RunwayRequest(BaseModel):
@@ -207,6 +217,8 @@ class RunwayResponse(BaseModel):
     scenarios: list[dict]
     verdict: str
     recommendation: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class UnitEconomicsRequest(BaseModel):
@@ -253,6 +265,8 @@ class UnitEconomicsResponse(BaseModel):
     health: str
     benchmark_context: str
     recommendations: list[str]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ScenarioRequest(BaseModel):
@@ -280,6 +294,8 @@ class ScenarioResponse(BaseModel):
     base_case: dict
     scenarios: list[dict]
     recommendation: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class WeeklyDigestRequest(BaseModel):
@@ -316,6 +332,8 @@ class WeeklyDigestResponse(BaseModel):
     green_flags: list[dict]
     focus_this_week: list[str]
     generated_at: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -361,7 +379,6 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
         all_anomalies.extend(anomalies)
         charts[metric_name] = [{"date": dp.date, "value": dp.value} for dp in data_points]
 
-        # Derive real health inputs from actual data
         if len(data_points) >= 2:
             sorted_dps = sorted(data_points, key=lambda d: d.date)
             prev_val = sorted_dps[-2].value
@@ -385,6 +402,7 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
         system=system,
         messages=[{"role": "user", "content": f"Analyze these metrics:\n{metrics_summary}"}],
     )
+    tokens_used = _llm.count_tokens(raw)
     return MetricsAnalysisResponse(
         analysis=AnalysisSummary(
             summary=raw[:500],
@@ -394,6 +412,8 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
             health_indicator=health,
         ),
         charts_data=charts,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
     )
 
 
@@ -469,6 +489,7 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
         system=system,
         messages=[{"role": "user", "content": prompt}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         parsed = json.loads(strip_json_fences(raw))
         narrative = parsed.get("narrative", raw[:600])
@@ -482,6 +503,8 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
         health_indicator=health,
         narrative=narrative,
         recommendations=recommendations,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
     )
 
 
@@ -522,7 +545,12 @@ async def compile_briefing(request: BriefingRequest) -> BriefingResponse:
         system=system,
         messages=[{"role": "user", "content": f"Compile an executive briefing:\n{context}"}],
     )
-    return BriefingResponse(briefing={"narrative": raw, "generated_at": datetime.utcnow().isoformat()})
+    tokens_used = _llm.count_tokens(raw)
+    return BriefingResponse(
+        briefing={"narrative": raw, "generated_at": datetime.utcnow().isoformat()},
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/investor-update", response_model=InvestorUpdateResponse, summary="Generate investor update")
@@ -587,9 +615,10 @@ async def investor_update(request: InvestorUpdateRequest) -> InvestorUpdateRespo
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
-        return InvestorUpdateResponse(**data)
+        return InvestorUpdateResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception:
         return InvestorUpdateResponse(
             subject_line=f"Investor Update — {request.period}",
@@ -599,6 +628,8 @@ async def investor_update(request: InvestorUpdateRequest) -> InvestorUpdateRespo
             challenges_section=[],
             asks_section=request.asks,
             full_email_body=raw,
+            tokens_used=tokens_used,
+            model_used=_agent.default_model,
         )
 
 
@@ -808,6 +839,7 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
         system=system,
         messages=[{"role": "user", "content": prompt}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = safe_json_loads(raw)
     except Exception:
@@ -827,4 +859,4 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
         source_id=f"rex-weekly-digest-{request.user_id}",
         metadata={"tool": "weekly_digest", "agent": "rex", "priority": "high"},
     ))
-    return WeeklyDigestResponse(**data)
+    return WeeklyDigestResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)

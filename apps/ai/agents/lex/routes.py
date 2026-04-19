@@ -50,6 +50,8 @@ class IngestDocumentResponse(BaseModel):
     summary: str
     key_topics: list[str]
     document_type_detected: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class AnalyzeContractRequest(BaseModel):
@@ -83,6 +85,8 @@ class ContractAnalysis(BaseModel):
 class AnalyzeContractResponse(BaseModel):
     analysis: ContractAnalysis
     disclaimer: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class DraftDocumentRequest(BaseModel):
@@ -109,6 +113,8 @@ class DraftDocumentResponse(BaseModel):
     document: str
     review_notes: list[str]
     disclaimer: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ExplainRequest(BaseModel):
@@ -132,6 +138,8 @@ class ExplainResponse(BaseModel):
     key_terms: dict
     related_concepts: list[str]
     practical_implications: list[str]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class LegalResearchRequest(BaseModel):
@@ -161,6 +169,8 @@ class LegalResearchResponse(BaseModel):
     jurisdiction_notes: str
     confidence_level: str
     disclaimer: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ComplianceCheckRequest(BaseModel):
@@ -188,6 +198,8 @@ class ComplianceCheckResponse(BaseModel):
     remediation_steps: list[dict]
     estimated_effort: str
     disclaimer: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -296,6 +308,7 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             "unusual_clauses, missing_protections, key_terms (dict), overall_assessment"
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
         analysis = ContractAnalysis(**data)
@@ -309,7 +322,7 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             key_terms={},
             overall_assessment="Manual review recommended.",
         )
-    return AnalyzeContractResponse(analysis=analysis, disclaimer=LEGAL_DISCLAIMER)
+    return AnalyzeContractResponse(analysis=analysis, disclaimer=LEGAL_DISCLAIMER, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/draft-document", response_model=DraftDocumentResponse, summary="Draft legal document")
@@ -376,10 +389,13 @@ Date: ______________________           Date: ______________________
         messages=[{"role": "user", "content": f"Draft a {request.document_type} with these requirements:\n{request.requirements}\nJurisdiction: {request.jurisdiction}\nAdditional clauses needed: {request.additional_clauses}"}],
         max_tokens=4096,
     )
+    tokens_used = _llm.count_tokens(raw)
     return DraftDocumentResponse(
         document=raw,
         review_notes=["DRAFT ONLY – not legal advice", "Have reviewed by a qualified attorney"],
         disclaimer=LEGAL_DISCLAIMER,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
     )
 
 
@@ -428,15 +444,18 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
             "Return JSON with fields: explanation, key_terms (dict), related_concepts (list), practical_implications (list)"
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
-        return ExplainResponse(**data)
+        return ExplainResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception:
         return ExplainResponse(
             explanation=raw,
             key_terms={},
             related_concepts=[],
             practical_implications=[],
+            tokens_used=tokens_used,
+            model_used=_agent.default_model,
         )
 
 
@@ -497,9 +516,10 @@ async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse
             "practical_guidance, jurisdiction_notes, confidence_level"
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
-        return LegalResearchResponse(**data, disclaimer=LEGAL_DISCLAIMER)
+        return LegalResearchResponse(**data, disclaimer=LEGAL_DISCLAIMER, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception:
         return LegalResearchResponse(
             summary=raw[:500],
@@ -507,6 +527,8 @@ async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse
             practical_guidance=[], jurisdiction_notes=request.jurisdiction,
             confidence_level="medium — consult an attorney for verified research",
             disclaimer=LEGAL_DISCLAIMER,
+            tokens_used=tokens_used,
+            model_used=_agent.default_model,
         )
 
 
@@ -578,9 +600,10 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
             "estimated_effort (string)"
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
-        return ComplianceCheckResponse(**data, disclaimer=LEGAL_DISCLAIMER)
+        return ComplianceCheckResponse(**data, disclaimer=LEGAL_DISCLAIMER, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception:
         return ComplianceCheckResponse(
             overall_status="unknown",
@@ -588,4 +611,6 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
             remediation_steps=[],
             estimated_effort="Manual review required",
             disclaimer=LEGAL_DISCLAIMER,
+            tokens_used=tokens_used,
+            model_used=_agent.default_model,
         )

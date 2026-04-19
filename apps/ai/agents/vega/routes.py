@@ -72,6 +72,8 @@ class ProcessInboxResponse(BaseModel):
     processed: list[ProcessedEmail]
     stats: InboxStats
     node_actions: list[dict] = []
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class DraftReplyRequest(BaseModel):
@@ -100,6 +102,8 @@ class DraftReplyResponse(BaseModel):
     draft: dict
     suggested_follow_up: str
     node_actions: list[dict] = []
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class CalendarSummaryRequest(BaseModel):
@@ -123,6 +127,8 @@ class CalendarSummaryResponse(BaseModel):
     conflicts: list[dict]
     free_slots: list[dict]
     daily_summary: dict
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class CreateEventRequest(BaseModel):
@@ -149,6 +155,8 @@ class CreateEventResponse(BaseModel):
     google_event_id: str
     created: bool
     node_actions: list[dict] = []
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ExecutiveBriefingRequest(BaseModel):
@@ -171,6 +179,8 @@ class ExecutiveBriefingRequest(BaseModel):
 
 class ExecutiveBriefingResponse(BaseModel):
     briefing: dict
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ComposeEmailRequest(BaseModel):
@@ -200,6 +210,8 @@ class ComposeEmailRequest(BaseModel):
 class ComposeEmailResponse(BaseModel):
     draft: dict
     node_actions: list[dict] = []
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -268,6 +280,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
     processed = []
     stats_counts = {"urgent": 0, "high": 0, "medium": 0, "low": 0}
     label_messages_list = []
+    total_tokens = 0
 
     for email in emails[:request.max_emails]:
         raw = await _llm.complete(
@@ -282,6 +295,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
                 f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
             )}],
         )
+        total_tokens += _llm.count_tokens(raw)
         try:
             analysis = safe_json_loads(raw)
             priority = analysis.get("priority", "medium")
@@ -316,7 +330,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
         labels_applied=len(label_messages_list),
     )
     node_actions = [{"node_action": "label_messages", "messages": label_messages_list}]
-    return ProcessInboxResponse(processed=processed, stats=stats, node_actions=node_actions)
+    return ProcessInboxResponse(processed=processed, stats=stats, node_actions=node_actions, tokens_used=total_tokens, model_used=_agent.default_model)
 
 
 @router.post("/draft-reply", response_model=DraftReplyResponse, summary="Draft email reply")
@@ -367,7 +381,7 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
             f"Instructions: {request.reply_instructions}"
         )}],
     )
-
+    tokens_used = _llm.count_tokens(raw)
     node_action = {
         "node_action": "create_gmail_draft",
         "to": email.get("from", ""),
@@ -380,6 +394,8 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
         draft={"to": email.get("from", ""), "subject": f"RE: {email.get('subject', '')}", "body": raw, "saved": request.save_as_draft},
         suggested_follow_up="Follow up in 48 hours if no response",
         node_actions=[node_action],
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
     )
 
 
@@ -473,6 +489,7 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
             "attendees (list of email strings), description (string)"
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         event_data = safe_json_loads(raw)
     except Exception:
@@ -506,6 +523,8 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
         google_event_id=event_data.get("title", "new_event"),
         created=True,
         node_actions=[node_action],
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
     )
 
 
@@ -568,12 +587,13 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
             "focus_recommendation (string)"
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = safe_json_loads(raw)
     except Exception:
         data = {"briefing_text": raw}
     data["generated_at"] = datetime.utcnow().isoformat()
-    return ExecutiveBriefingResponse(briefing=data)
+    return ExecutiveBriefingResponse(briefing=data, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/compose-email", response_model=ComposeEmailResponse, summary="Compose new outbound email")
@@ -610,6 +630,7 @@ async def compose_email(request: ComposeEmailRequest) -> ComposeEmailResponse:
             f"{'Include a clear call-to-action.' if request.include_cta else 'No CTA needed.'}"
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     node_action = {
         "node_action": "create_gmail_draft",
         "to": request.to,
@@ -621,4 +642,6 @@ async def compose_email(request: ComposeEmailRequest) -> ComposeEmailResponse:
     return ComposeEmailResponse(
         draft={"to": request.to, "subject": request.subject, "body": raw},
         node_actions=[node_action],
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
     )
