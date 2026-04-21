@@ -17,6 +17,7 @@ import {
   type SocialAccount,
   type SocialPlatformSlug,
 } from "@/lib/api/integrations"
+import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Integration Config ───────────────────────────────────────────────────────
 
@@ -219,10 +220,12 @@ export default function IntegrationsPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-        <p className="text-xs text-muted-foreground">Manage your account and organization preferences.</p>
-      </div>
+      <PageHeader
+        kicker="preferences"
+        title="integrations"
+        subtitle="Connect external tools to unlock the full power of your AI team."
+        sticker={{ label: "plug it in", rot: -4, color: "var(--vq-yellow)" }}
+      />
 
       <SettingsNav />
 

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
+import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -267,11 +268,13 @@ export default function BriefingPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      {/* Page header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-foreground">Daily Briefing</h1>
-        <p className="text-xs text-muted-foreground">{formatBriefingDate(today)}</p>
-      </div>
+      <PageHeader
+        kicker={formatBriefingDate(today)}
+        title="daily briefing"
+        subtitle="Your AI team's morning report — compiled fresh while you slept."
+        sticker={{ label: "today's brief", rot: -5, color: "var(--vq-green)" }}
+      />
+
 
       {loading ? (
         <BriefingLoadingSkeleton />

@@ -12,11 +12,8 @@ import {
   getMessages,
   AgentNotAvailableError,
 } from "@/lib/api/assistants"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { getBrandKit } from "@/lib/api/brain"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
@@ -25,45 +22,213 @@ import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
 
-import type { Message, AgentStatus, AgentConfig, AgentSlug } from "@/lib/types"
+import { FONT, Button as VqButton, Sticker } from "@/components/veqiro/shared"
+import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
+
+import type {
+  Message,
+  AgentConfig,
+  AgentSlug,
+  BrandKit,
+} from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 
-// ─── Suggested prompts per agent ─────────────────────────────────────────────
+// ─── Header strip ────────────────────────────────────────────────────────────
 
-const SUGGESTED_PROMPTS: Record<string, string[]> = {
-  maya: ["Draft a LinkedIn post", "Create a tweet thread", "Write blog intro"],
-  rex: ["Analyze my MRR", "What's my burn rate?", "Forecast next quarter"],
-  scout: ["Research a competitor", "Find market trends", "Find me leads"],
-  sage: ["Keyword research", "Generate a blog post", "Audit my content"],
-  lex: ["Review this contract", "Draft an NDA", "Explain this clause"],
-  vega: ["Triage my inbox", "Schedule a meeting", "Write a briefing"],
-}
-
-function StatusIndicator({ status }: { status?: AgentStatus }) {
-  if (status === "working") {
-    return (
-      <div className="flex items-center gap-1.5">
-        <span className="h-2 w-2 shrink-0 rounded-full bg-chart-2" />
-        <span className="text-xs text-muted-foreground">Working</span>
-      </div>
-    )
-  }
-  if (status === "needs-attention") {
-    return (
-      <div className="flex items-center gap-1.5">
-        <span className="h-2 w-2 shrink-0 rounded-full bg-destructive" />
-        <span className="text-xs text-muted-foreground">Needs attention</span>
-      </div>
-    )
-  }
+function AgentHeader({ agent }: { agent: AgentConfig }) {
+  const Portrait = CHARACTER_COMPONENTS[agent.id]
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="h-2 w-2 shrink-0 rounded-full bg-chart-1" />
-      <span className="text-xs text-muted-foreground">Ready</span>
+    <div
+      style={{
+        background: agent.color,
+        borderBottom: "3px solid #111",
+        padding: "16px 24px",
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+      }}
+    >
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: "50%",
+          overflow: "hidden",
+          border: "2.5px solid #111",
+          background: "#FFF9ED",
+          flexShrink: 0,
+          boxShadow: "3px 3px 0 #111",
+        }}
+      >
+        {Portrait ? <Portrait size={48} /> : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "grid",
+              placeItems: "center",
+              fontFamily: FONT.head,
+              fontSize: 14,
+              color: "#111",
+            }}
+          >
+            {agent.initials}
+          </div>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: FONT.head,
+            fontSize: 16,
+            color: "#111",
+            letterSpacing: -0.3,
+          }}
+        >
+          {agent.name} <span style={{ opacity: 0.6 }}>·</span> {agent.role}
+        </div>
+        <div
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 1.5,
+            textTransform: "uppercase",
+            color: "#111",
+            opacity: 0.75,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 2,
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#1DBC87",
+              boxShadow: "0 0 0 2px #111",
+              display: "inline-block",
+            }}
+          />
+          online · ready to work
+        </div>
+      </div>
+      <Link
+        href="/assistants"
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 11,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "#111",
+          textDecoration: "none",
+          padding: "8px 12px",
+          border: "2px solid #111",
+          borderRadius: 999,
+          background: "#FFF9ED",
+          boxShadow: "2px 2px 0 #111",
+        }}
+      >
+        ← team
+      </Link>
     </div>
   )
 }
+
+// ─── Context strip ───────────────────────────────────────────────────────────
+
+function ContextStrip({ kit }: { kit: BrandKit | null }) {
+  if (!kit || !kit.company_name) return null
+  const swatches = [
+    kit.brand_colors?.primary,
+    kit.brand_colors?.secondary,
+    kit.brand_colors?.accent,
+  ].filter(Boolean) as string[]
+
+  const bits: { k: string; v: string }[] = []
+  if (kit.company_name) bits.push({ k: "brand", v: kit.company_name })
+  if (kit.industry) bits.push({ k: "industry", v: kit.industry })
+  if (kit.brand_voice) bits.push({ k: "voice", v: kit.brand_voice })
+
+  return (
+    <div
+      style={{
+        background: "#FFF9ED",
+        border: "2px dashed #111",
+        margin: "12px 16px 0",
+        borderRadius: 10,
+        padding: "10px 14px",
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 14,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "#111",
+          opacity: 0.75,
+        }}
+      >
+        CONTEXT:
+      </span>
+      {bits.map((b) => (
+        <span
+          key={b.k}
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 0.5,
+            color: "#111",
+            display: "inline-flex",
+            gap: 4,
+          }}
+        >
+          <span style={{ opacity: 0.5 }}>{b.k}:</span>
+          <span style={{ fontWeight: 600 }}>{b.v}</span>
+        </span>
+      ))}
+      {swatches.length > 0 && (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 10,
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+              color: "#111",
+              opacity: 0.55,
+            }}
+          >
+            palette
+          </span>
+          {swatches.map((c, i) => (
+            <span
+              key={i}
+              title={c}
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 4,
+                background: c,
+                border: "1.5px solid #111",
+                display: "inline-block",
+              }}
+            />
+          ))}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// ─── Empty state ─────────────────────────────────────────────────────────────
 
 function EmptyState({
   agent,
@@ -72,51 +237,299 @@ function EmptyState({
   agent: AgentConfig
   onPrompt: (prompt: string) => void
 }) {
-  const prompts = SUGGESTED_PROMPTS[agent.id] ?? []
+  const Portrait = CHARACTER_COMPONENTS[agent.id]
   return (
-    <div className="flex flex-1 items-center justify-center p-8">
-      <div className="flex max-w-md flex-col items-center gap-5 text-center">
-        <Avatar className="size-20 text-xl font-semibold">
-          <AvatarFallback
-            style={{
-              backgroundColor: `hsl(var(--${agent.color}))`,
-              color: "hsl(var(--primary-foreground))",
-            }}
-          >
-            {agent.initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-foreground">
-            Start a conversation with {agent.name}
-          </p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {agent.description}
-          </p>
-          <div className="mt-1 flex flex-wrap justify-center gap-1">
-            {agent.specialties.map((s) => (
-              <Badge key={s} variant="outline" className="text-[10px]">
-                {s}
-              </Badge>
-            ))}
-          </div>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 24px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 560,
+          width: "100%",
+          textAlign: "center",
+          position: "relative",
+        }}
+      >
+        <div style={{ position: "absolute", top: -8, left: 20 }}>
+          <Sticker rot={-6} color={agent.color as string}>
+            {agent.tag}
+          </Sticker>
         </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          {prompts.map((prompt) => (
-            <Button
+        <div
+          style={{
+            width: 140,
+            height: 140,
+            margin: "0 auto",
+            borderRadius: 20,
+            overflow: "hidden",
+            border: "3px solid #111",
+            boxShadow: "8px 8px 0 #111",
+            background: agent.color,
+            transform: "rotate(-2deg)",
+          }}
+        >
+          {Portrait ? <Portrait size={140} /> : (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "grid",
+                placeItems: "center",
+                fontFamily: FONT.display,
+                fontSize: 56,
+                color: "#111",
+              }}
+            >
+              {agent.initials}
+            </div>
+          )}
+        </div>
+
+        <h2
+          style={{
+            fontFamily: FONT.display,
+            fontSize: 56,
+            lineHeight: 1,
+            color: "#111",
+            margin: "28px 0 4px",
+            letterSpacing: -1,
+          }}
+        >
+          say hi to {agent.name.toLowerCase()}
+        </h2>
+        <p
+          style={{
+            fontFamily: FONT.body,
+            fontSize: 15,
+            lineHeight: 1.5,
+            color: "#333",
+            margin: "0 auto 8px",
+            maxWidth: 440,
+          }}
+        >
+          {agent.description}
+        </p>
+        <p
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 10,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#555",
+            margin: "0 0 20px",
+          }}
+        >
+          // try one of these
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 10,
+          }}
+        >
+          {agent.quickPrompts.map((prompt) => (
+            <button
               key={prompt}
-              variant="outline"
-              size="sm"
               onClick={() => onPrompt(prompt)}
+              style={{
+                fontFamily: FONT.body,
+                fontSize: 13,
+                padding: "10px 14px",
+                background: "#FFF9ED",
+                border: "2.5px solid #111",
+                borderRadius: 999,
+                boxShadow: "3px 3px 0 #111",
+                cursor: "pointer",
+                color: "#111",
+                transition: "transform 120ms ease",
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = "translate(2px,2px)"
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = "translate(0,0)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translate(0,0)"
+              }}
             >
               {prompt}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
     </div>
   )
 }
+
+// ─── Left rail ───────────────────────────────────────────────────────────────
+
+function LeftRail({ agent }: { agent: AgentConfig }) {
+  const Portrait = CHARACTER_COMPONENTS[agent.id]
+  return (
+    <aside
+      style={{
+        width: 280,
+        flexShrink: 0,
+        background: "#FFF9ED",
+        borderRight: "3px solid #111",
+        overflow: "auto",
+        padding: "24px 20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 18,
+      }}
+    >
+      <div
+        style={{
+          background: agent.color,
+          border: "3px solid #111",
+          borderRadius: 14,
+          overflow: "hidden",
+          boxShadow: "6px 6px 0 #111",
+          transform: "rotate(-1.5deg)",
+        }}
+      >
+        {Portrait ? <Portrait size="100%" /> : null}
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 10,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#555",
+          }}
+        >
+          {agent.role}
+        </div>
+        <div
+          style={{
+            fontFamily: FONT.display,
+            fontSize: 44,
+            lineHeight: 1,
+            color: "#111",
+            letterSpacing: -1,
+            marginTop: 2,
+          }}
+        >
+          {agent.name.toLowerCase()}
+        </div>
+      </div>
+
+      <p
+        style={{
+          fontFamily: FONT.body,
+          fontSize: 14,
+          lineHeight: 1.5,
+          color: "#333",
+          margin: 0,
+          fontStyle: "italic",
+        }}
+      >
+        &ldquo;{agent.tag}&rdquo;
+      </p>
+
+      <div>
+        <div
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 10,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#555",
+            marginBottom: 8,
+          }}
+        >
+          specialties
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {agent.specialties.map((s) => (
+            <span
+              key={s}
+              style={{
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                padding: "4px 10px",
+                background: "#fff",
+                border: "2px solid #111",
+                borderRadius: 999,
+                color: "#111",
+              }}
+            >
+              {s}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 10,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#555",
+            marginBottom: 8,
+          }}
+        >
+          stats
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {agent.stats.map((s) => (
+            <div
+              key={s.k}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                padding: "6px 10px",
+                background: "#fff",
+                border: "2px solid #111",
+                borderRadius: 8,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 10,
+                  letterSpacing: 1.5,
+                  textTransform: "uppercase",
+                  color: "#555",
+                }}
+              >
+                {s.k}
+              </span>
+              <span
+                style={{
+                  fontFamily: FONT.head,
+                  fontSize: 13,
+                  color: "#111",
+                }}
+              >
+                {s.v}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 function genConversationId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -137,6 +550,7 @@ export default function AssistantChatPage() {
   const [content, setContent] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [brandKit, setBrandKit] = useState<BrandKit | null>(null)
 
   const [plusOpen, setPlusOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -158,6 +572,11 @@ export default function AssistantChatPage() {
       })
       .catch(() => setHistoryLoaded(true))
   }, [id, organizationId, agent])
+
+  useEffect(() => {
+    if (!organizationId) return
+    getBrandKit(organizationId).then((k) => setBrandKit(k))
+  }, [organizationId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -227,6 +646,8 @@ export default function AssistantChatPage() {
     openAction(actionId)
   }
 
+  const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
+
   if (!agent) return null
 
   const isLex = agent.id === "lex"
@@ -235,91 +656,81 @@ export default function AssistantChatPage() {
   const agentSlug = agent.id as AgentSlug
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-3rem)] overflow-hidden">
-      {/* ── Left panel: Agent profile ─────────────────────────────────────── */}
-      <aside className="flex w-[280px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-card p-4">
-        <div className="flex flex-col items-center gap-3 pt-2">
-          <Avatar className="size-16 text-base font-semibold">
-            <AvatarFallback
-              style={{
-                backgroundColor: `hsl(var(--${agent.color}))`,
-                color: "hsl(var(--primary-foreground))",
-              }}
-            >
-              {agent.initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col items-center gap-1 text-center">
-            <h2 className="text-sm font-semibold text-foreground">{agent.name}</h2>
-            <Badge variant="secondary">{agent.role}</Badge>
-          </div>
-          <StatusIndicator />
-        </div>
+    <div
+      className="-m-4"
+      style={{
+        display: "flex",
+        height: "calc(100vh - 3rem)",
+        overflow: "hidden",
+        background: "#EFE7D6",
+      }}
+    >
+      <LeftRail agent={agent} />
 
-        <Separator />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <AgentHeader agent={agent} />
+        <ContextStrip kit={brandKit} />
 
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-foreground">
-            Specialties
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {agent.specialties.map((s) => (
-              <Badge key={s} variant="outline">
-                {s}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        <Separator />
-
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          {agent.description}
-        </p>
-
-        <div className="mt-auto pt-4">
-          <Link
-            href="/assistants"
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            &larr; Back to team
-          </Link>
-        </div>
-      </aside>
-
-      {/* ── Right panel: Chat ─────────────────────────────────────────────── */}
-      <div className="flex min-w-0 flex-1 flex-col">
         {historyLoaded && !hasMessages ? (
           <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
         ) : (
           <ScrollArea className="flex-1">
-            <div className="flex flex-col gap-4 p-4">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                padding: "20px 24px",
+              }}
+            >
               {messages.map((msg, i) => (
                 <ChatMessage
                   key={msg.id ?? `msg-${i}`}
                   message={msg}
+                  agentName={agent.name}
                   agentInitials={agent.initials}
+                  agentColor={agentColor}
                   isLex={isLex}
                 />
               ))}
-              {isLoading && <TypingIndicator agentInitials={agent.initials} />}
+              {isLoading && (
+                <TypingIndicator
+                  agentInitials={agent.initials}
+                  agentColor={agentColor}
+                />
+              )}
               <div ref={bottomRef} />
             </div>
           </ScrollArea>
         )}
 
-        {/* Input area */}
-        <div className="shrink-0 border-t border-border bg-background">
+        <div style={{ flexShrink: 0 }}>
           {isVega && (
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-muted px-4 py-2">
-              <p className="text-xs text-muted-foreground">
-                Connect Google Calendar to let Vega schedule meetings on your behalf.
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                background: "#FFF9ED",
+                borderTop: "3px solid #111",
+                padding: "10px 20px",
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  color: "#333",
+                  margin: 0,
+                }}
+              >
+                // connect google calendar to let vega schedule on your behalf
               </p>
-              <Link href="/settings/integrations">
-                <Button variant="outline" size="sm">
-                  Connect Google
-                </Button>
-              </Link>
+              <VqButton href="/settings/integrations" variant="dark">
+                Connect Google
+              </VqButton>
             </div>
           )}
 
@@ -330,13 +741,12 @@ export default function AssistantChatPage() {
             onPlusClick={() => setPlusOpen(true)}
             onHelpClick={() => setHelpOpen(true)}
             onAttachClick={isLex ? () => openAction("lex:ingest-document") : undefined}
-            placeholder={`Message ${agent.name}…`}
+            placeholder={`Message ${agent.name.toLowerCase()}…`}
             disabled={isLoading}
           />
         </div>
       </div>
 
-      {/* ── Overlays ──────────────────────────────────────────────────────── */}
       <PlusMenu
         open={plusOpen}
         onOpenChange={setPlusOpen}

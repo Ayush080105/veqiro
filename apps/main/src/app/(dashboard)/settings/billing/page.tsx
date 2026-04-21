@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SettingsNav } from "@/components/settings/SettingsNav"
+import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 // TODO: GET /api/v1/billing?organizationId=xxx  (Stripe customer data)
@@ -59,10 +60,12 @@ function formatDate(iso: string) {
 export default function BillingPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-        <p className="text-xs text-muted-foreground">Manage your account and organization preferences.</p>
-      </div>
+      <PageHeader
+        kicker="preferences"
+        title="billing"
+        subtitle="Your plan, payment methods, and invoice history."
+        sticker={{ label: "money matters", rot: -6, color: "var(--vq-blue)" }}
+      />
 
       <SettingsNav />
 

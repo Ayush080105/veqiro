@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
+import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Form Schema ──────────────────────────────────────────────────────────────
 
@@ -100,11 +101,12 @@ export default function SettingsProfilePage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      {/* Page header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-        <p className="text-xs text-muted-foreground">Manage your account and organization preferences.</p>
-      </div>
+      <PageHeader
+        kicker="preferences"
+        title="settings"
+        subtitle="Manage your account and organization preferences."
+        sticker={{ label: "your space", rot: 4, color: "var(--vq-yellow)" }}
+      />
 
       <SettingsNav />
 
@@ -173,7 +175,7 @@ export default function SettingsProfilePage() {
               <Label htmlFor="timezone" className="text-xs font-medium">
                 Timezone
               </Label>
-              <Select value={watchedTimezone} onValueChange={(v) => setValue("timezone", v, { shouldDirty: true })}>
+              <Select value={watchedTimezone} onValueChange={(v) => setValue("timezone", v ?? "", { shouldDirty: true })}>
                 <SelectTrigger id="timezone" className="w-full max-w-xs">
                   <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>

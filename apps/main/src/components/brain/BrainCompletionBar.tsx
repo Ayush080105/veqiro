@@ -3,12 +3,11 @@
 import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
+import { FONT } from "@/components/veqiro/shared"
 
 interface BrainCompletionBarProps {
   values: BrainFormValues
 }
-
-// ─── Scoring ──────────────────────────────────────────────────────────────────
 
 function computeScore(values: BrainFormValues) {
   let score = 0
@@ -60,33 +59,80 @@ function getNextSuggestion(values: BrainFormValues): string | null {
   return null
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function BrainCompletionBar({ values }: BrainCompletionBarProps) {
   const percentage = useMemo(() => computeScore(values), [values])
   const suggestion = useMemo(() => getNextSuggestion(values), [values])
 
+  const fillColor =
+    percentage >= 80
+      ? "var(--vq-green)"
+      : percentage >= 40
+        ? "var(--vq-yellow)"
+        : "var(--vq-red)"
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground">
-          Brand Kit Completion
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#555",
+          }}
+        >
+          brand kit completion
         </span>
-        <span className="text-xs font-medium tabular-nums text-foreground">
+        <span
+          style={{
+            fontFamily: FONT.head,
+            fontSize: 14,
+            color: "#111",
+          }}
+        >
           {percentage}%
         </span>
       </div>
 
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      <div
+        style={{
+          height: 14,
+          width: "100%",
+          background: "#FFF9ED",
+          border: "2.5px solid #111",
+          borderRadius: 999,
+          overflow: "hidden",
+        }}
+      >
         <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${percentage}%` }}
+          style={{
+            height: "100%",
+            background: fillColor,
+            width: `${percentage}%`,
+            borderRight: percentage > 0 && percentage < 100 ? "2px solid #111" : "none",
+            transition: "width 500ms ease",
+          }}
         />
       </div>
 
       {percentage < 100 && suggestion && (
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
-          {suggestion}
+        <p
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            lineHeight: 1.5,
+            color: "#555",
+            margin: 0,
+          }}
+        >
+          // {suggestion}
         </p>
       )}
     </div>

@@ -32,6 +32,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
+import { FONT } from "@/components/veqiro/shared"
 
 interface AddKnowledgeDialogProps {
   open: boolean
@@ -142,8 +143,10 @@ export function AddKnowledgeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Knowledge</DialogTitle>
-          <DialogDescription>
+          <DialogTitle style={{ fontFamily: FONT.display, fontSize: 28, letterSpacing: -0.5, color: "#111" }}>
+            add knowledge
+          </DialogTitle>
+          <DialogDescription style={{ fontFamily: FONT.body, fontSize: 14, color: "#555" }}>
             Add a new piece of knowledge to your brain.
           </DialogDescription>
         </DialogHeader>

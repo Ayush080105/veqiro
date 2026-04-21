@@ -4,13 +4,11 @@ import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
 import { AGENTS } from "@/lib/config/agents"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { FONT } from "@/components/veqiro/shared"
 
 interface AgentReadinessProps {
   values: BrainFormValues
 }
-
-// ─── Readiness Rules ──────────────────────────────────────────────────────────
 
 function isAgentReady(agentId: string, values: BrainFormValues): boolean {
   const voiceSet = values.brand_voice !== "Professional"
@@ -39,8 +37,6 @@ function isAgentReady(agentId: string, values: BrainFormValues): boolean {
   }
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function AgentReadiness({ values }: AgentReadinessProps) {
   const readiness = useMemo(
     () =>
@@ -52,35 +48,83 @@ export function AgentReadiness({ values }: AgentReadinessProps) {
   )
 
   return (
-    <div className="rounded-lg bg-muted/30 p-3">
-      <p className="mb-2 text-xs font-medium text-foreground">
-        Agent Readiness
+    <div
+      style={{
+        background: "#FFF9ED",
+        border: "2.5px solid #111",
+        borderRadius: 12,
+        boxShadow: "4px 4px 0 #111",
+        padding: "14px 16px",
+      }}
+    >
+      <p
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 11,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "#555",
+          margin: "0 0 12px",
+        }}
+      >
+        agent readiness
       </p>
-      <div className="flex items-start gap-3">
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 16,
+        }}
+      >
         {readiness.map((agent) => (
           <div
             key={agent.id}
-            className="flex flex-col items-center gap-1"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 4,
+            }}
           >
-            <div className="relative">
-              <Avatar className="size-7">
-                <AvatarFallback
-                  className="text-[10px]"
-                  style={{
-                    backgroundColor: `hsl(var(--${agent.color}))`,
-                    color: "hsl(var(--primary-foreground))",
-                  }}
-                >
-                  {agent.initials}
-                </AvatarFallback>
-              </Avatar>
+            <div style={{ position: "relative" }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: agent.color,
+                  border: "2px solid #111",
+                  display: "grid",
+                  placeItems: "center",
+                  fontFamily: FONT.head,
+                  fontSize: 11,
+                  color: "#111",
+                }}
+              >
+                {agent.initials}
+              </div>
               <span
-                className={`absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-background ${
-                  agent.ready ? "bg-emerald-500" : "bg-amber-400"
-                }`}
+                style={{
+                  position: "absolute",
+                  right: -2,
+                  bottom: -2,
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  background: agent.ready ? "#1DBC87" : "#F5C518",
+                  border: "2px solid #111",
+                }}
               />
             </div>
-            <span className="text-[10px] leading-none text-muted-foreground">
+            <span
+              style={{
+                fontFamily: FONT.mono,
+                fontSize: 10,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                color: "#333",
+              }}
+            >
               {agent.name}
             </span>
           </div>

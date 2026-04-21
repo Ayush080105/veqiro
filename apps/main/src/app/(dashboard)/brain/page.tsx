@@ -6,15 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
 import {
-  Loader2,
-  PlusIcon,
   Brain,
   Layers,
   FileText,
   Globe,
   StickyNote,
   ImageIcon,
-  Search,
 } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
@@ -22,7 +19,6 @@ import { getBrandKit, saveBrandKit, scrapeBrandKit } from "@/lib/api/brain"
 import { useKnowledgeStore } from "@/hooks/useKnowledgeStore"
 import type { BrandKit, KnowledgeType } from "@/lib/types"
 
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
@@ -30,6 +26,7 @@ import { BrainSearch } from "@/components/brain/BrainSearch"
 import { KnowledgeGrid } from "@/components/brain/KnowledgeGrid"
 import { AddKnowledgeDialog } from "@/components/brain/AddKnowledgeDialog"
 import { BrandKitSection } from "@/components/brain/BrandKitSection"
+import { Button as VqButton, PageHeader, FONT } from "@/components/veqiro/shared"
 
 // ─── Schema ────────────────────────────────────────────────────────────────────
 
@@ -258,11 +255,8 @@ export default function BrainPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl pb-24">
-        <div className="mb-6 flex flex-col gap-1">
-          <h1 className="text-xl font-semibold text-foreground">Brain</h1>
-          <p className="text-sm text-muted-foreground">
-            Your AI team&apos;s central memory.
-          </p>
+        <div className="mb-6">
+          <PageHeader kicker="knowledge base" title="brain" subtitle="Your AI team's central memory." />
         </div>
         <BrainSkeleton />
       </div>
@@ -272,28 +266,36 @@ export default function BrainPage() {
   return (
     <form onSubmit={handleSubmit(onSave)} className="mx-auto max-w-4xl pb-24">
       {/* Header */}
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-semibold text-foreground">Brain</h1>
-          <p className="text-sm text-muted-foreground">
-            Your AI team&apos;s central memory — everything they know about your
-            company, brand, and business.
-          </p>
-        </div>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setAddDialogOpen(true)}
-        >
-          <PlusIcon className="size-3.5" />
-          Add Knowledge
-        </Button>
+      <div className="mb-6">
+        <PageHeader
+          kicker="knowledge base"
+          title="brain"
+          subtitle="Your AI team's central memory — everything they know about your company, brand, and business."
+          right={
+            <VqButton variant="dark" onClick={() => setAddDialogOpen(true)}>
+              + Add Knowledge
+            </VqButton>
+          }
+        />
       </div>
 
       {/* Backend unavailable notice */}
       {backendUnavailable && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          Brain storage is being set up. You can still configure everything — data will sync once the backend is connected.
+        <div
+          style={{
+            marginBottom: 16,
+            background: 'var(--vq-yellow)',
+            border: '2.5px solid #111',
+            borderRadius: 10,
+            boxShadow: '3px 3px 0 #111',
+            padding: '10px 14px',
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 1,
+            color: '#111',
+          }}
+        >
+          // Brain storage is being set up. You can still configure everything — data will sync once the backend is connected.
         </div>
       )}
 
@@ -349,17 +351,35 @@ export default function BrainPage() {
       </Tabs>
 
       {/* Sticky Save Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background p-3 flex items-center justify-end gap-2">
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 40,
+          borderTop: '3px solid #111',
+          background: '#EFE7D6',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: 12,
+        }}
+      >
         {!hasPending && !saving && (
-          <span className="text-xs text-muted-foreground">Changes auto-saved</span>
+          <span style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: '#555' }}>
+            changes auto-saved
+          </span>
         )}
         {hasPending && (
-          <span className="text-xs text-muted-foreground">Unsaved changes...</span>
+          <span style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: '#7A5A00' }}>
+            unsaved changes...
+          </span>
         )}
-        <Button type="submit" disabled={saving}>
-          {saving && <Loader2 className="size-3.5 animate-spin" />}
-          Save Brain
-        </Button>
+        <VqButton type="submit" variant="primary" disabled={saving}>
+          {saving ? 'Saving...' : 'Save Brain'}
+        </VqButton>
       </div>
 
       {/* Add Knowledge Dialog */}

@@ -120,8 +120,10 @@ export function Sticker({ children, rot = -4, color = '#F5C518', style = {} }: S
 }
 
 // ---- NavBar ----
-interface NavBarProps { active: 'onboarding' | 'dashboard' | 'landing'; }
-export function NavBar({ active }: NavBarProps) {
+const MAIN_APP =
+  process.env.NEXT_PUBLIC_MAIN_APP_URL || 'http://localhost:3001';
+
+export function NavBar() {
   return (
     <nav style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -139,16 +141,19 @@ export function NavBar({ active }: NavBarProps) {
         <span style={{ fontFamily: FONT.head, fontSize: 20, letterSpacing: -0.5 }}>veqiro</span>
       </Link>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        {(['onboarding', 'dashboard'] as const).map(x => (
-          <Link key={x} href={x === 'onboarding' ? '/onboarding' : '/dashboard'}
-            style={{
-              textDecoration: 'none', fontFamily: FONT.mono, fontSize: 11, letterSpacing: 2,
-              textTransform: 'uppercase', padding: '8px 14px', borderRadius: 999,
-              background: active === x ? '#111' : 'transparent',
-              color: active === x ? '#EFE7D6' : '#111',
-              border: '2px solid #111',
-            }}>{x}</Link>
-        ))}
+        <a href={`${MAIN_APP}/login`}
+          style={{
+            textDecoration: 'none', fontFamily: FONT.mono, fontSize: 11, letterSpacing: 2,
+            textTransform: 'uppercase', padding: '8px 14px', borderRadius: 999,
+            background: 'transparent', color: '#111', border: '2px solid #111',
+          }}>Login</a>
+        <a href={`${MAIN_APP}/signup`}
+          style={{
+            textDecoration: 'none', fontFamily: FONT.head, fontSize: 13, letterSpacing: 1,
+            textTransform: 'uppercase', padding: '10px 18px', borderRadius: 10,
+            background: '#F06464', color: '#111', border: '3px solid #111',
+            boxShadow: '4px 4px 0 #111',
+          }}>Start free</a>
       </div>
     </nav>
   );

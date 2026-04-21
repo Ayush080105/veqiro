@@ -22,6 +22,11 @@ export interface Message {
   } | null
 }
 
+export interface AgentStat {
+  k: string
+  v: string
+}
+
 export interface AgentConfig {
   id: AgentSlug
   name: string
@@ -30,8 +35,21 @@ export interface AgentConfig {
   personality: string
   description: string
   specialties: string[]
+  /** CSS colour token or literal (e.g. `var(--vq-red)` or `#F06464`). */
   color: string
+  /** Darker ink variant used for borders, headings, accents on this agent's colour. */
+  ink: string
   initials: string
+  /** Short marketing tagline from the landing crew copy. */
+  tag: string
+  /** First-person quote from this agent, shown in chat empty-states and cards. */
+  quote: string
+  /** Vanity stats, shown on crew cards. */
+  stats: AgentStat[]
+  /** Canonical skill labels used on crew cards (shorter than `specialties`). */
+  skills: string[]
+  /** Quick-prompt suggestions shown on the chat empty-state. */
+  quickPrompts: string[]
 }
 
 export interface AgentStatusData {

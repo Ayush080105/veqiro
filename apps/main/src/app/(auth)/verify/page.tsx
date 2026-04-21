@@ -1,32 +1,96 @@
 "use client";
 
-import { Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Mail } from "lucide-react";
+import Logo from "@/components/logo";
+import { Button, FONT, Sticker } from "@/components/veqiro/shared";
 
 export default function VerifyAccount() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-background px-4 sm:px-6 md:px-10">
-      <div className="w-full max-w-md bg-card border rounded-xl shadow-lg py-10 px-5 sm:px-8">
-        <div className="flex flex-col items-center text-center space-y-4">
-          <div className="bg-primary/10 p-4 rounded-full">
-            <Mail className="h-10 w-10 text-primary" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold">
-            Check your email
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            We&apos;ve sent a verification link to your email address. Click the
-            link in the email to verify your account.
-          </p>
-          <p className="text-muted-foreground text-xs">
-            Check your spam folder if you don&apos;t see the email.
-          </p>
-          <div className="pt-4">
-            <Button  variant="outline">
-              <Link href="/login">Back to Login</Link>
-            </Button>
-          </div>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
+      style={{ background: "#EFE7D6", fontFamily: FONT.body }}
+    >
+      <Link href="/" className="flex items-center gap-3 mb-8">
+        <Logo className="w-12 h-12" />
+        <span style={{ fontFamily: FONT.head, fontSize: 20, letterSpacing: -0.5, color: "#111" }}>
+          veqiro
+        </span>
+      </Link>
+
+      <div
+        className="w-full max-w-md relative text-center"
+        style={{
+          background: "#FFF9ED",
+          border: "3px solid #111",
+          borderRadius: 18,
+          boxShadow: "6px 6px 0 #111",
+          padding: "36px 28px",
+        }}
+      >
+        <div style={{ position: "absolute", top: -20, left: 20 }}>
+          <Sticker rot={-6} color="#F5C518">
+            check inbox
+          </Sticker>
+        </div>
+
+        <div
+          className="mx-auto"
+          style={{
+            width: 72,
+            height: 72,
+            background: "#F5C518",
+            border: "3px solid #111",
+            borderRadius: 18,
+            display: "grid",
+            placeItems: "center",
+            transform: "rotate(-4deg)",
+            boxShadow: "4px 4px 0 #111",
+          }}
+        >
+          <Mail className="h-9 w-9" style={{ color: "#111" }} />
+        </div>
+
+        <h1
+          style={{
+            fontFamily: FONT.display,
+            fontSize: 36,
+            color: "#111",
+            margin: "24px 0 6px",
+            letterSpacing: -1,
+          }}
+        >
+          check your email
+        </h1>
+        <p
+          style={{
+            fontFamily: FONT.body,
+            fontSize: 15,
+            color: "#333",
+            lineHeight: 1.5,
+            margin: 0,
+          }}
+        >
+          We&apos;ve sent a verification link to your email. Click the link to
+          activate your account.
+        </p>
+        <p
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#888",
+            marginTop: 10,
+          }}
+        >
+          // check spam if nothing shows
+        </p>
+
+        <div style={{ marginTop: 22 }}>
+          <Button href="/login" variant="dark">
+            Back to login
+          </Button>
         </div>
       </div>
     </div>

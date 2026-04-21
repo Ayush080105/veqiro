@@ -1,7 +1,9 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { FONT, Sticker } from './shared';
+
+const MAIN_APP =
+  process.env.NEXT_PUBLIC_MAIN_APP_URL || 'http://localhost:3001';
 
 function CursorEye({ size = 70, offset = [0, 0] }: { size?: number; offset?: number[] }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -83,12 +85,12 @@ export function Hero() {
             </a>
           ))}
         </div>
-        <Link href="/onboarding" style={{
+        <a href={`${MAIN_APP}/signup`} style={{
           background: '#111', color: '#EFE7D6', padding: '12px 22px', borderRadius: 999,
           fontFamily: FONT.head, fontSize: 13, letterSpacing: 1,
           textTransform: 'uppercase', textDecoration: 'none',
           boxShadow: '4px 4px 0 #F06464', border: '2px solid #111',
-        }}>Hire the Crew →</Link>
+        }}>Hire the Crew →</a>
       </nav>
 
       <div style={{ maxWidth: 1400, margin: '0 auto', position: 'relative' }}>
@@ -126,12 +128,12 @@ export function Hero() {
           </p>
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 36, flexWrap: 'wrap' }}>
-            <Link href="/onboarding" style={{
+            <a href={`${MAIN_APP}/signup`} style={{
               background: '#F06464', color: '#111', padding: '18px 32px',
               fontFamily: FONT.head, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1,
               textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '6px 6px 0 #111',
               display: 'inline-block',
-            }}>Start hiring — free 7 days</Link>
+            }}>Start hiring — free 7 days</a>
             <a href="#crew" style={{
               background: 'transparent', color: '#111', padding: '18px 32px',
               fontFamily: FONT.head, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1,
