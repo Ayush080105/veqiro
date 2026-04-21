@@ -16,7 +16,8 @@
       "Bash(rm -rf D:/Projects/veqiro/apps/main/.next)",
       "Bash(pnpm --filter main build)",
       "Bash(pnpm why *)",
-      "Bash(pnpm list *)"
+      "Bash(pnpm list *)",
+      "Bash(pnpm lint *)"
     ]
   }
 }

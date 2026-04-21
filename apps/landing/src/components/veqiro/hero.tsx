@@ -1,9 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { FONT, Sticker } from './shared';
-
-const MAIN_APP =
-  process.env.NEXT_PUBLIC_MAIN_APP_URL || 'http://localhost:3001';
+import { mainAppUrl, nav as navLinks } from '@/lib/site-config';
 
 function CursorEye({ size = 70, offset = [0, 0] }: { size?: number; offset?: number[] }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -79,13 +77,13 @@ export function Hero() {
           <span style={{ fontFamily: FONT.head, fontSize: 22, letterSpacing: -0.5 }}>veqiro</span>
         </div>
         <div style={{ display: 'flex', gap: 32, fontFamily: FONT.body, fontWeight: 600, fontSize: 15 }}>
-          {[['#crew', 'The Crew'], ['#how', 'How it Works'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+          {navLinks.map(({ href, label }) => (
             <a key={href} href={href} style={{ color: '#111', textDecoration: 'none', borderBottom: '2px solid transparent', paddingBottom: 2 }}>
               {label}
             </a>
           ))}
         </div>
-        <a href={`${MAIN_APP}/signup`} style={{
+        <a href={`${mainAppUrl}/signup`} style={{
           background: '#111', color: '#EFE7D6', padding: '12px 22px', borderRadius: 999,
           fontFamily: FONT.head, fontSize: 13, letterSpacing: 1,
           textTransform: 'uppercase', textDecoration: 'none',
@@ -128,7 +126,7 @@ export function Hero() {
           </p>
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 36, flexWrap: 'wrap' }}>
-            <a href={`${MAIN_APP}/signup`} style={{
+            <a href={`${mainAppUrl}/signup`} style={{
               background: '#F06464', color: '#111', padding: '18px 32px',
               fontFamily: FONT.head, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1,
               textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '6px 6px 0 #111',

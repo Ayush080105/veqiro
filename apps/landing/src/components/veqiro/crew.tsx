@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { EMPLOYEES, Employee } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 import { FONT } from './shared';
+import { crewReplies, crewFollows } from '@/lib/site-config';
 
 function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; active: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
@@ -68,25 +69,11 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
 }
 
 function getReply(k: string): string {
-  return ({
-    vega: "Move the Thursday one — investor call takes priority.",
-    scout: "Show me the weird one.",
-    maya: "Spicy. Always spicy.",
-    sage: "Do it. Coffee's on me.",
-    lex: "Redline it, send to counsel.",
-    rex: "Show me the weird thing.",
-  } as Record<string, string>)[k] ?? "Got it.";
+  return crewReplies[k] ?? "Got it.";
 }
 
 function getFollow(k: string): string {
-  return ({
-    vega: "Done. Also blocked 2hrs tomorrow for deep work — you're welcome.",
-    scout: "K. Company in Tallinn, 4 employees, shipping faster than Stripe did in 2012. Worth a call.",
-    maya: "Drafting now. I'll slack you 3 options in 6 minutes. Brace.",
-    sage: "Cool. Starting with the long-tails. First wins in ~10 days.",
-    lex: "Redlined. Sending to counsel with a summary. Est read time: 3 min.",
-    rex: "Paid CAC spiked 3x on Meta last Tuesday. Want the chart or just the fix?",
-  } as Record<string, string>)[k] ?? "On it.";
+  return crewFollows[k] ?? "On it.";
 }
 
 export function DeskPanel({ active }: { active: string }) {
