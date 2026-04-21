@@ -135,7 +135,7 @@ function ResetPasswordContent() {
             textAlign: "center",
           }}
         >
-          // pick a fresh one
+          {"// pick a fresh one"}
         </p>
 
         <form onSubmit={onSubmit}>

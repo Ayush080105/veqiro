@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Controller } from "react-hook-form"
-import type { Control, UseFormGetValues, FieldArrayWithId } from "react-hook-form"
+import type { Control, UseFormGetValues, FieldArrayWithId, FieldErrors } from "react-hook-form"
 import {
   Building2,
   Target,
@@ -96,7 +96,7 @@ function VqFieldLabel({ children }: { children: React.ReactNode }) {
 
 interface BrandKitSectionProps {
   control: Control<BrainFormValues>
-  errors: Record<string, any>
+  errors: FieldErrors<BrainFormValues>
   competitorFields: FieldArrayWithId<BrainFormValues, "competitors", "id">[]
   appendCompetitor: (value: { value: string }) => void
   removeCompetitor: (index: number) => void

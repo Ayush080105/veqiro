@@ -5,26 +5,12 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import {
-  Brain,
-  Layers,
-  FileText,
-  Globe,
-  StickyNote,
-  ImageIcon,
-} from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 import { getBrandKit, saveBrandKit, scrapeBrandKit } from "@/lib/api/brain"
-import { useKnowledgeStore } from "@/hooks/useKnowledgeStore"
-import type { BrandKit, KnowledgeType } from "@/lib/types"
+import type { BrandKit } from "@/lib/types"
 
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-
-import { BrainSearch } from "@/components/brain/BrainSearch"
-import { KnowledgeGrid } from "@/components/brain/KnowledgeGrid"
-import { AddKnowledgeDialog } from "@/components/brain/AddKnowledgeDialog"
 import { BrandKitSection } from "@/components/brain/BrandKitSection"
 import { Button as VqButton, PageHeader, FONT } from "@/components/veqiro/shared"
 
@@ -68,18 +54,24 @@ const DEFAULT_VALUES: BrainFormValues = {
   key_differentiators: "",
 }
 
+const LOCAL_KEY = "veqiro.brandKitLocal"
+
 function brandKitToForm(kit: BrandKit): BrainFormValues {
   return {
-    company_name: kit.company_name,
-    company_description: kit.company_description,
-    website_url: kit.website_url,
-    industry: kit.industry,
-    target_audience: kit.target_audience,
-    brand_voice: kit.brand_voice,
-    platform_tones: kit.platform_tones,
-    brand_colors: kit.brand_colors,
+    company_name: kit.company_name ?? "",
+    company_description: kit.company_description ?? "",
+    website_url: kit.website_url ?? "",
+    industry: kit.industry ?? "",
+    target_audience: kit.target_audience ?? "",
+    brand_voice: kit.brand_voice ?? "Professional",
+    platform_tones: kit.platform_tones ?? { twitter: "", linkedin: "", instagram: "" },
+    brand_colors: kit.brand_colors ?? {
+      primary: "#000000",
+      secondary: "#ffffff",
+      accent: "#888888",
+    },
     competitors: (kit.competitors ?? []).map((c) => ({ value: c })),
-    key_differentiators: kit.key_differentiators,
+    key_differentiators: kit.key_differentiators ?? "",
   }
 }
 
@@ -90,36 +82,15 @@ function formToBrandKit(values: BrainFormValues): Partial<BrandKit> {
   }
 }
 
-// ─── Skeleton ──────────────────────────────────────────────────────────────────
-
 function BrainSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      <Skeleton className="h-8 w-full" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Skeleton key={i} className="h-32 w-full" />
-        ))}
-      </div>
+      <Skeleton className="h-10 w-2/3" />
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-56 w-full" />
     </div>
   )
 }
-
-// ─── Tab filter config ─────────────────────────────────────────────────────────
-
-const KNOWLEDGE_TABS: {
-  value: string
-  label: string
-  icon: typeof Layers
-  filterType?: KnowledgeType
-}[] = [
-  { value: "all", label: "All", icon: Layers },
-  { value: "brand-kit", label: "Brand Kit", icon: Brain },
-  { value: "documents", label: "Documents", icon: FileText, filterType: "document" },
-  { value: "webpages", label: "Webpages", icon: Globe, filterType: "webpage" },
-  { value: "notes", label: "Notes", icon: StickyNote, filterType: "note" },
-  { value: "images", label: "Images", icon: ImageIcon, filterType: "image" },
-]
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -132,9 +103,6 @@ export default function BrainPage() {
   const [scraping, setScraping] = useState(false)
   const [hasPending, setHasPending] = useState(false)
   const [backendUnavailable, setBackendUnavailable] = useState(false)
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState("all")
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -154,36 +122,67 @@ export default function BrainPage() {
     name: "competitors",
   })
 
-  const knowledge = useKnowledgeStore(organizationId)
-
-  // Load brand kit on mount
+  // Load brand kit on mount: backend first, then localStorage fallback.
   useEffect(() => {
     if (!organizationId) return
+    let cancelled = false
     setLoading(true)
+
     getBrandKit(organizationId)
       .then((kit) => {
+        if (cancelled) return
         if (kit) {
           reset(brandKitToForm(kit))
+          setBackendUnavailable(false)
         } else {
           setBackendUnavailable(true)
+          try {
+            const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
+            if (local) {
+              const parsed = JSON.parse(local) as BrandKit
+              reset(brandKitToForm(parsed))
+            }
+          } catch {
+            /* ignore */
+          }
         }
       })
       .catch(() => {
+        if (cancelled) return
         setBackendUnavailable(true)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [organizationId, reset])
 
-  // Debounced auto-save
+  const persistLocally = (values: BrainFormValues) => {
+    if (!organizationId) return
+    try {
+      localStorage.setItem(
+        `${LOCAL_KEY}.${organizationId}`,
+        JSON.stringify(formToBrandKit(values))
+      )
+    } catch {
+      /* ignore */
+    }
+  }
+
   const scheduleAutoSave = () => {
     setHasPending(true)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
+      const values = getValues()
+      persistLocally(values)
       try {
-        const values = getValues()
         const result = await saveBrandKit(organizationId, formToBrandKit(values))
         if (result.ok) {
           setHasPending(false)
+          setBackendUnavailable(false)
         } else if (result.unavailable) {
           setBackendUnavailable(true)
           setHasPending(false)
@@ -199,16 +198,18 @@ export default function BrainPage() {
   const onSave = async (values: BrainFormValues) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     setSaving(true)
+    persistLocally(values)
     try {
       const result = await saveBrandKit(organizationId, formToBrandKit(values))
       if (result.ok) {
         setHasPending(false)
-        toast.success("Brain saved successfully")
+        setBackendUnavailable(false)
+        toast.success("Brand kit saved")
       } else if (result.unavailable) {
         setBackendUnavailable(true)
-        toast.info("Brain storage is being set up — your changes are saved locally")
+        toast.info("Backend offline — your changes are saved locally")
       } else {
-        toast.error("Failed to save Brain")
+        toast.error("Failed to save brand kit")
       }
     } finally {
       setSaving(false)
@@ -239,6 +240,7 @@ export default function BrainPage() {
           : current.competitors,
       } as BrainFormValues)
       toast.success("Auto-filled from URL")
+      scheduleAutoSave()
     } catch {
       toast.error("Failed to scrape URL")
     } finally {
@@ -246,17 +248,15 @@ export default function BrainPage() {
     }
   }
 
-  // Filter knowledge items
-  const currentTabConfig = KNOWLEDGE_TABS.find((t) => t.value === activeTab)
-  const filteredItems = currentTabConfig?.filterType
-    ? knowledge.searchItems(searchQuery, currentTabConfig.filterType)
-    : knowledge.searchItems(searchQuery)
-
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl pb-24">
         <div className="mb-6">
-          <PageHeader kicker="knowledge base" title="brain" subtitle="Your AI team's central memory." />
+          <PageHeader
+            kicker="your crew's memory"
+            title="brain"
+            subtitle="The single source of truth every agent reads before they speak."
+          />
         </div>
         <BrainSkeleton />
       </div>
@@ -268,14 +268,9 @@ export default function BrainPage() {
       {/* Header */}
       <div className="mb-6">
         <PageHeader
-          kicker="knowledge base"
+          kicker="your crew's memory"
           title="brain"
-          subtitle="Your AI team's central memory — everything they know about your company, brand, and business."
-          right={
-            <VqButton variant="dark" onClick={() => setAddDialogOpen(true)}>
-              + Add Knowledge
-            </VqButton>
-          }
+          subtitle="The single source of truth every agent reads before they speak."
         />
       </div>
 
@@ -284,110 +279,80 @@ export default function BrainPage() {
         <div
           style={{
             marginBottom: 16,
-            background: 'var(--vq-yellow)',
-            border: '2.5px solid #111',
+            background: "var(--vq-yellow)",
+            border: "2.5px solid #111",
             borderRadius: 10,
-            boxShadow: '3px 3px 0 #111',
-            padding: '10px 14px',
+            boxShadow: "3px 3px 0 #111",
+            padding: "10px 14px",
             fontFamily: FONT.mono,
             fontSize: 11,
             letterSpacing: 1,
-            color: '#111',
+            color: "#111",
           }}
         >
-          // Brain storage is being set up. You can still configure everything — data will sync once the backend is connected.
+          {"// Brand Kit storage isn't connected yet — your changes save locally and will sync when the backend ships."}
         </div>
       )}
 
-      {/* Search */}
-      <div className="mb-4">
-        <BrainSearch value={searchQuery} onChange={setSearchQuery} />
-      </div>
-
-      {/* Primary tabs */}
-      <Tabs
-        defaultValue="all"
-        onValueChange={(v) => {
-          setActiveTab(v as string)
-          setSearchQuery("")
-        }}
-      >
-        <TabsList variant="line" className="mb-4">
-          {KNOWLEDGE_TABS.map((tab) => {
-            const Icon = tab.icon
-            return (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                <Icon className="size-3.5" />
-                {tab.label}
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
-
-        {/* All / category tabs — show knowledge grid */}
-        {KNOWLEDGE_TABS.filter((t) => t.value !== "brand-kit").map((tab) => (
-          <TabsContent key={tab.value} value={tab.value}>
-            <KnowledgeGrid
-              items={filteredItems}
-              onDelete={knowledge.removeItem}
-            />
-          </TabsContent>
-        ))}
-
-        {/* Brand Kit tab — show the form */}
-        <TabsContent value="brand-kit">
-          <BrandKitSection
-            control={control}
-            errors={errors}
-            competitorFields={competitorFields}
-            appendCompetitor={append}
-            removeCompetitor={remove}
-            scheduleAutoSave={scheduleAutoSave}
-            getValues={getValues}
-            scraping={scraping}
-            onAutoFill={handleAutoFill}
-          />
-        </TabsContent>
-      </Tabs>
+      <BrandKitSection
+        control={control}
+        errors={errors}
+        competitorFields={competitorFields}
+        appendCompetitor={append}
+        removeCompetitor={remove}
+        scheduleAutoSave={scheduleAutoSave}
+        getValues={getValues}
+        scraping={scraping}
+        onAutoFill={handleAutoFill}
+      />
 
       {/* Sticky Save Bar */}
       <div
         style={{
-          position: 'fixed',
+          position: "fixed",
           bottom: 0,
           left: 0,
           right: 0,
           zIndex: 40,
-          borderTop: '3px solid #111',
-          background: '#EFE7D6',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
+          borderTop: "3px solid #111",
+          background: "#EFE7D6",
+          padding: "12px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
           gap: 12,
         }}
       >
         {!hasPending && !saving && (
-          <span style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: '#555' }}>
+          <span
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 11,
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+              color: "#555",
+            }}
+          >
             changes auto-saved
           </span>
         )}
         {hasPending && (
-          <span style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: '#7A5A00' }}>
+          <span
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 11,
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+              color: "#7A5A00",
+            }}
+          >
             unsaved changes...
           </span>
         )}
         <VqButton type="submit" variant="primary" disabled={saving}>
-          {saving ? 'Saving...' : 'Save Brain'}
+          {saving ? "Saving..." : "Save brain"}
         </VqButton>
       </div>
-
-      {/* Add Knowledge Dialog */}
-      <AddKnowledgeDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        onAdd={knowledge.addItem}
-      />
     </form>
   )
 }

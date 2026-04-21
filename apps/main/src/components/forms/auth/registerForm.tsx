@@ -66,7 +66,7 @@ export function RegisterForm() {
             marginTop: 8,
           }}
         >
-          // six AI employees, one login
+          {"// six AI employees, one login"}
         </p>
       </div>
 

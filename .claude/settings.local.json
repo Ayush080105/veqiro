@@ -17,7 +17,10 @@
       "Bash(pnpm --filter main build)",
       "Bash(pnpm why *)",
       "Bash(pnpm list *)",
-      "Bash(pnpm lint *)"
+      "Bash(pnpm lint *)",
+      "Bash(npm run *)",
+      "Read(//d/d/Projects/veqiro/apps/main/**)",
+      "Read(//d/d/Projects/veqiro/apps/landing/**)"
     ]
   }
 }

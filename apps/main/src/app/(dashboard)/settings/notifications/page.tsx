@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Save } from "lucide-react"
-import { toast } from "sonner"
 
 import { type NotificationFrequency } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -30,22 +29,9 @@ export default function NotificationsPage() {
   const [deliveryTime, setDeliveryTime] = useState(DEFAULT_SETTINGS.deliveryTime)
   const [channels, setChannels] = useState(DEFAULT_SETTINGS.channels)
   const [frequency, setFrequency] = useState<NotificationFrequency>(DEFAULT_SETTINGS.frequency)
-  const [saving, setSaving] = useState(false)
 
   function toggleChannel(key: keyof typeof channels) {
     setChannels((prev) => ({ ...prev, [key]: !prev[key] }))
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await new Promise((r) => setTimeout(r, 600))
-      toast.success("Notification preferences saved")
-    } catch {
-      toast.error("Failed to save preferences")
-    } finally {
-      setSaving(false)
-    }
   }
 
   return (
@@ -171,10 +157,13 @@ export default function NotificationsPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
+        <div className="flex items-center justify-end gap-3">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Notification preferences · coming soon
+          </span>
+          <Button disabled>
             <Save className="size-3.5" />
-            {saving ? "Saving…" : "Save preferences"}
+            Save preferences
           </Button>
         </div>
       </div>

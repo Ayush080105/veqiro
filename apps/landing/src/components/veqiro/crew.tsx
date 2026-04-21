@@ -83,6 +83,8 @@ export function DeskPanel({ active }: { active: string }) {
   const Comp = CHARACTER_COMPONENTS[emp.key];
 
   useEffect(() => {
+    // Replay chat animation when active employee changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMsgs([]);
     setTyping(true);
     const t1 = setTimeout(() => { setTyping(false); setMsgs([{ who: emp.name, text: emp.quote }]); }, 900);

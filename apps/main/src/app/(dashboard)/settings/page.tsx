@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Save } from "lucide-react"
-import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -57,10 +56,9 @@ export default function SettingsProfilePage() {
 
   const {
     register,
-    handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -76,17 +74,6 @@ export default function SettingsProfilePage() {
       setValue("email", user.email ?? "")
     }
   }, [user, setValue])
-
-  async function onSubmit(data: ProfileForm) {
-    try {
-      // TODO: PATCH /api/v1/user/profile  Body: { name, timezone }
-      // authClient doesn't expose a direct update — call Express endpoint
-      await new Promise((r) => setTimeout(r, 600))
-      toast.success("Profile updated")
-    } catch {
-      toast.error("Failed to update profile")
-    }
-  }
 
   const initials = user?.name
     ? user.name
@@ -110,7 +97,7 @@ export default function SettingsProfilePage() {
 
       <SettingsNav />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         {/* Avatar */}
         <Card>
           <CardHeader>
@@ -146,7 +133,7 @@ export default function SettingsProfilePage() {
               <Label htmlFor="name" className="text-xs font-medium">
                 Full name
               </Label>
-              <Input id="name" {...register("name")} placeholder="Your name" />
+              <Input id="name" {...register("name")} placeholder="Your name" disabled />
               {errors.name && (
                 <p className="text-xs text-destructive">{errors.name.message}</p>
               )}
@@ -175,7 +162,11 @@ export default function SettingsProfilePage() {
               <Label htmlFor="timezone" className="text-xs font-medium">
                 Timezone
               </Label>
-              <Select value={watchedTimezone} onValueChange={(v) => setValue("timezone", v ?? "", { shouldDirty: true })}>
+              <Select
+                value={watchedTimezone}
+                onValueChange={(v) => setValue("timezone", v ?? "", { shouldDirty: true })}
+                disabled
+              >
                 <SelectTrigger id="timezone" className="w-full max-w-xs">
                   <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>
@@ -195,13 +186,16 @@ export default function SettingsProfilePage() {
         </Card>
 
         {/* Save button */}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting || !isDirty}>
+        <div className="flex items-center justify-end gap-3">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Profile editing · coming soon
+          </span>
+          <Button type="button" disabled>
             <Save className="size-3.5" />
-            {isSubmitting ? "Saving…" : "Save changes"}
+            Save changes
           </Button>
         </div>
-      </form>
+      </div>
     </div>
   )
 }

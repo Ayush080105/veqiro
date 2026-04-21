@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { CheckCircle2, XCircle, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SettingsNav } from "@/components/settings/SettingsNav"
+import { authClient } from "@/lib/auth-client"
 import {
   authorizeUrl,
   disconnectIntegration,
@@ -29,6 +30,8 @@ interface IntegrationDef {
   docsUrl?: string
   /** If set, this integration is wired to /api/v1/integrations/:slug */
   platformSlug?: SocialPlatformSlug
+  /** If true, this integration uses Better Auth's social sign-in for OAuth */
+  useBetterAuth?: boolean
 }
 
 const INTEGRATIONS: IntegrationDef[] = [
@@ -38,6 +41,7 @@ const INTEGRATIONS: IntegrationDef[] = [
     description:
       "Required for Vega to read your inbox, draft replies, and manage calendar events on your behalf.",
     requiredBy: ["Vega"],
+    useBetterAuth: true,
   },
   {
     id: "twitter",
@@ -106,7 +110,7 @@ function IntegrationCard({
 }) {
   const [loading, setLoading] = useState(false)
   const connected = Boolean(account)
-  const isWired = Boolean(integration.platformSlug)
+  const isWired = Boolean(integration.platformSlug) || Boolean(integration.useBetterAuth)
 
   async function handleToggle() {
     if (!isWired) {
@@ -115,6 +119,14 @@ function IntegrationCard({
     }
     setLoading(true)
     try {
+      if (integration.useBetterAuth) {
+        // Better Auth's social sign-in links the provider to the existing session.
+        await authClient.signIn.social({
+          provider: "google",
+          callbackURL: "/settings/integrations?connected=google",
+        })
+        return
+      }
       if (connected && account) {
         await disconnectIntegration(account.id)
         toast.success(`${integration.name} disconnected`)
@@ -186,31 +198,34 @@ export default function IntegrationsPage() {
   const router = useRouter()
   const [accounts, setAccounts] = useState<SocialAccount[]>([])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
       const list = await listIntegrations()
       setAccounts(list)
     } catch {
       /* unauth / empty — leave as-is */
     }
-  }
+  }, [])
 
   useEffect(() => {
-    refresh()
-  }, [])
+    // Fetching on mount is intentional — this is the standard data-load pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh()
+  }, [refresh])
 
   useEffect(() => {
     const connected = searchParams.get("connected")
     const error = searchParams.get("error")
     if (connected) {
       toast.success(`${connected.charAt(0).toUpperCase()}${connected.slice(1)} connected`)
-      refresh()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void refresh()
       router.replace("/settings/integrations")
     } else if (error) {
       toast.error(`Connection failed: ${error}`)
       router.replace("/settings/integrations")
     }
-  }, [searchParams, router])
+  }, [searchParams, router, refresh])
 
   const accountByPlatform = useMemo(() => {
     const map = new Map<string, SocialAccount>()

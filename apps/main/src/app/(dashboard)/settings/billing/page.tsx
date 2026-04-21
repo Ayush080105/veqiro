@@ -128,12 +128,12 @@ export default function BillingPage() {
               ))}
             </ul>
 
-            <Button className="self-start">
+            <Button className="self-start" disabled>
               <Zap className="size-3.5" />
               Upgrade to Pro
             </Button>
             <p className="text-[10px] text-muted-foreground">
-              Cancel anytime. Billed monthly via Stripe. No hidden fees.
+              Billing & Stripe checkout · coming soon. Cancel anytime once live.
             </p>
           </CardContent>
         </Card>

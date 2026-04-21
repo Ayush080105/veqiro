@@ -10,6 +10,8 @@ import {
   ShieldAlert,
   BookOpen,
   FilePlus,
+  Scale,
+  ClipboardCheck,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,6 +27,8 @@ import type {
   LexAnalyzeContractResult,
   LexDraftDocumentResult,
   LexExplainResult,
+  LexLegalResearchResult,
+  LexComplianceCheckResult,
 } from "@/lib/types/agents"
 
 function copy(text: string, label = "Copied") {
@@ -305,6 +309,201 @@ export function ExplainerCard({ result }: { result: LexExplainResult }) {
           ))}
         </div>
       )}
+    </Card>
+  )
+}
+
+// ─── Legal research card ─────────────────────────────────────────────────────
+
+export function LegalResearchCard({ result }: { result: LexLegalResearchResult }) {
+  return (
+    <Card className="gap-3 p-3">
+      <div className="flex items-center gap-2">
+        <Scale className="size-3.5 text-muted-foreground" />
+        <p className="text-xs font-medium">Legal research</p>
+        <Badge variant="secondary" className="ml-auto text-[10px] capitalize">
+          {result.confidence_level} confidence
+        </Badge>
+      </div>
+      <p className="text-[11px] leading-relaxed">{result.summary}</p>
+
+      {result.applicable_laws.length > 0 && (
+        <div>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Applicable laws
+          </p>
+          <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+            {result.applicable_laws.map((l, i) => (
+              <li key={i}>{l}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.key_requirements.length > 0 && (
+        <div>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Key requirements
+          </p>
+          <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+            {result.key_requirements.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.practical_guidance.length > 0 && (
+        <div>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Practical guidance
+          </p>
+          <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+            {result.practical_guidance.map((g, i) => (
+              <li key={i}>{g}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.relevant_cases.length > 0 && (
+        <Collapsible>
+          <CollapsibleTrigger className="text-[10px] font-medium text-muted-foreground hover:text-foreground">
+            Show relevant cases ({result.relevant_cases.length})
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ul className="mt-1 list-disc pl-4 text-[11px] leading-relaxed">
+              {result.relevant_cases.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {result.jurisdiction_notes && (
+        <p className="rounded border border-border bg-muted/30 px-2 py-1 text-[11px] italic">
+          Jurisdiction: {result.jurisdiction_notes}
+        </p>
+      )}
+      <Disclaimer text={result.disclaimer} />
+    </Card>
+  )
+}
+
+// ─── Compliance check card ───────────────────────────────────────────────────
+
+export function ComplianceCheckCard({ result }: { result: LexComplianceCheckResult }) {
+  const status = result.overall_status.toLowerCase()
+  const statusCls = status.includes("non") || status.includes("fail")
+    ? "bg-destructive/10 border-destructive/30 text-destructive"
+    : status.includes("partial") || status.includes("gap")
+      ? "bg-chart-3/10 border-chart-3/30 text-chart-3"
+      : "bg-chart-2/10 border-chart-2/30 text-chart-2"
+
+  return (
+    <Card className="gap-3 p-3">
+      <div className="flex items-center gap-2">
+        <ClipboardCheck className="size-3.5 text-muted-foreground" />
+        <p className="text-xs font-medium">Compliance check</p>
+      </div>
+      <div className={cn("flex items-center gap-2 border p-2", statusCls)}>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] uppercase tracking-wide">Overall status</p>
+          <p className="text-xs font-semibold">{result.overall_status}</p>
+        </div>
+        <Badge variant="outline" className="text-[10px]">
+          {result.estimated_effort}
+        </Badge>
+      </div>
+
+      {result.framework_results.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {result.framework_results.map((f, i) => (
+            <Collapsible key={i}>
+              <div className="border border-border bg-muted/20 p-2">
+                <CollapsibleTrigger className="flex w-full items-center gap-2 text-left">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">{f.framework}</p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    {f.status}
+                  </Badge>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {f.gaps.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-destructive">
+                          Gaps
+                        </p>
+                        <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+                          {f.gaps.map((g, j) => (
+                            <li key={j}>{g}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {f.requirements.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Requirements
+                        </p>
+                        <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+                          {f.requirements.map((r, j) => (
+                            <li key={j}>{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          ))}
+        </div>
+      )}
+
+      {result.critical_gaps.length > 0 && (
+        <div className="border border-destructive/30 bg-destructive/10 p-2">
+          <p className="mb-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-destructive">
+            <ShieldAlert className="size-3" /> Critical gaps
+          </p>
+          <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+            {result.critical_gaps.map((g, i) => (
+              <li key={i}>{g}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.remediation_steps.length > 0 && (
+        <div>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Remediation steps
+          </p>
+          <div className="flex flex-col gap-1">
+            {result.remediation_steps.map((s, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-2 border border-border bg-muted/20 p-2"
+              >
+                <span
+                  className={cn(
+                    "shrink-0 border px-1.5 py-0.5 text-[10px] uppercase",
+                    sev(s.priority)
+                  )}
+                >
+                  {s.priority}
+                </span>
+                <p className="flex-1 text-[11px] leading-relaxed">{s.action}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Disclaimer text={result.disclaimer} />
     </Card>
   )
 }

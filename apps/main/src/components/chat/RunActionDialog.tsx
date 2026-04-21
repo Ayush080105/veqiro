@@ -54,6 +54,7 @@ import {
   VegaComposeEmailForm,
 } from "@/components/agents/vega/forms"
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- heterogeneous form dispatch across agent actions */
 type FormComponent = React.ComponentType<{
   value: any
   onChange: (patch: any) => void
@@ -64,6 +65,7 @@ interface ActionSpec {
   Form: FormComponent
   validate?: (v: any) => string | null
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const today = () => new Date().toISOString().slice(0, 10)
 

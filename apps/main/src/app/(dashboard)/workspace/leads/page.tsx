@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import Link from "next/link"
 import {
   Building2,
   User,
@@ -17,7 +17,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -166,7 +165,7 @@ function PipelineTab() {
             Chat with Scout to start sourcing leads for your ICP.
           </p>
           <Button variant="outline" size="sm" asChild>
-            <a href="/assistants/scout">Ask Scout</a>
+            <Link href="/assistants/scout">Ask Scout</Link>
           </Button>
         </CardContent>
       </Card>
@@ -299,10 +298,10 @@ function TrendsTab() {
             <p className="text-xs/relaxed text-muted-foreground">{trend.summary}</p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" asChild>
-                <a href="/workspace/content">Create content</a>
+                <Link href="/workspace/content">Create content</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <a href="/assistants/sage">Ask Sage</a>
+                <Link href="/assistants/sage">Ask Sage</Link>
               </Button>
             </div>
           </CardContent>
@@ -324,7 +323,7 @@ export default function LeadsPage() {
         sticker={{ label: "hunt & gather", rot: 5, color: "var(--vq-green)" }}
         right={
           <Button variant="outline" size="sm" asChild>
-            <a href="/assistants/scout">Ask Scout to find leads</a>
+            <Link href="/assistants/scout">Ask Scout to find leads</Link>
           </Button>
         }
       />

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import Logo from "@/components/logo";
 import { Button, FieldLabel, FONT, Sticker, VqInput } from "@/components/veqiro/shared";
@@ -13,18 +13,23 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const [sent, setSent] = useState(false);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
       const res = await authClient.requestPasswordReset({
         email,
-        redirectTo: "/reset-password",
+        redirectTo: `${origin}/reset-password`,
       });
       if (res.error) {
         toast.error(res.error.message || "Failed to send reset email");
         return;
       }
+      setSent(true);
       toast.success("Reset link sent. Check your email.");
     } catch {
       toast.error("An error occurred. Please try again.");
@@ -61,67 +66,131 @@ export default function ForgotPassword() {
           </Sticker>
         </div>
 
-        <h1
-          style={{
-            fontFamily: FONT.display,
-            fontSize: 36,
-            lineHeight: 1,
-            color: "#111",
-            margin: 0,
-            letterSpacing: -1,
-            textAlign: "center",
-          }}
-        >
-          reset password
-        </h1>
-        <p
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#555",
-            marginTop: 8,
-            marginBottom: 24,
-            textAlign: "center",
-          }}
-        >
-          // we&apos;ll mail you a fresh link
-        </p>
-
-        <form onSubmit={submit}>
-          <FieldLabel label="Email address">
-            <VqInput
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-              disabled={isLoading}
-            />
-          </FieldLabel>
-
-          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => router.replace("/login")}
-              style={{ flex: 1 }}
+        {sent ? (
+          <div style={{ textAlign: "center" }}>
+            <div
+              className="mx-auto"
+              style={{
+                width: 64,
+                height: 64,
+                background: "#1DBC87",
+                border: "3px solid #111",
+                borderRadius: 16,
+                display: "grid",
+                placeItems: "center",
+                transform: "rotate(-4deg)",
+                boxShadow: "4px 4px 0 #111",
+                marginBottom: 18,
+              }}
             >
-              Back
-            </Button>
-            <Button type="submit" variant="primary" disabled={isLoading} style={{ flex: 1.3 }}>
-              {isLoading ? (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <Loader2 className="size-4 animate-spin" /> Sending…
-                </span>
-              ) : (
-                "Send link"
-              )}
+              <CheckCircle2 className="h-8 w-8" style={{ color: "#111" }} />
+            </div>
+            <h1
+              style={{
+                fontFamily: FONT.display,
+                fontSize: 32,
+                lineHeight: 1,
+                color: "#111",
+                margin: 0,
+                letterSpacing: -1,
+              }}
+            >
+              check your email
+            </h1>
+            <p
+              style={{
+                fontFamily: FONT.body,
+                fontSize: 14,
+                color: "#333",
+                marginTop: 10,
+                marginBottom: 18,
+                lineHeight: 1.5,
+              }}
+            >
+              We sent a reset link to <strong>{email}</strong>. Click the link
+              to choose a new password.
+            </p>
+            <p
+              style={{
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                color: "#888",
+                marginBottom: 20,
+              }}
+            >
+              {"// check spam if nothing shows"}
+            </p>
+            <Button variant="dark" onClick={() => router.replace("/login")}>
+              Back to login
             </Button>
           </div>
-        </form>
+        ) : (
+          <>
+            <h1
+              style={{
+                fontFamily: FONT.display,
+                fontSize: 36,
+                lineHeight: 1,
+                color: "#111",
+                margin: 0,
+                letterSpacing: -1,
+                textAlign: "center",
+              }}
+            >
+              reset password
+            </h1>
+            <p
+              style={{
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                color: "#555",
+                marginTop: 8,
+                marginBottom: 24,
+                textAlign: "center",
+              }}
+            >
+              {"// we'll mail you a fresh link"}
+            </p>
+
+            <form onSubmit={submit}>
+              <FieldLabel label="Email address">
+                <VqInput
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                  disabled={isLoading}
+                />
+              </FieldLabel>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => router.replace("/login")}
+                  style={{ flex: 1 }}
+                >
+                  Back
+                </Button>
+                <Button type="submit" variant="primary" disabled={isLoading} style={{ flex: 1.3 }}>
+                  {isLoading ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      <Loader2 className="size-4 animate-spin" /> Sending…
+                    </span>
+                  ) : (
+                    "Send link"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

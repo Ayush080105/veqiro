@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { UserPlus, Trash2, Crown, Shield, User } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { UserPlus, Trash2, Crown, Shield, User, Mail, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { type OrgMember, type OrgRole } from "@/lib/types"
+import { type OrgRole } from "@/lib/types"
 import { authClient } from "@/lib/auth-client"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -41,14 +41,26 @@ import {
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { PageHeader } from "@/components/veqiro/shared"
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-// TODO: Replace with authClient.organization.getMembers({ organizationId })
+// ─── Local row types (match Better Auth organization plugin response) ────────
 
-const MOCK_MEMBERS: OrgMember[] = [
-  { id: "1", name: "Naresh Mahiya", email: "naresh@veqiro.com", role: "owner", image: null },
-  { id: "2", name: "Arjun Mehta", email: "arjun@veqiro.com", role: "admin", image: null },
-  { id: "3", name: "Priya Singh", email: "priya@veqiro.com", role: "member", image: null },
-]
+interface MemberRow {
+  id: string
+  role: OrgRole
+  user: {
+    id: string
+    email: string
+    name: string
+    image?: string | null
+  }
+}
+
+interface InvitationRow {
+  id: string
+  email: string
+  role: OrgRole
+  status: string
+  expiresAt: string | Date
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,7 +71,8 @@ const ROLE_CONFIG: Record<OrgRole, { label: string; icon: React.ElementType; var
 }
 
 function roleBadge(role: OrgRole) {
-  const { label, icon: Icon, variant } = ROLE_CONFIG[role]
+  const cfg = ROLE_CONFIG[role] ?? ROLE_CONFIG.member
+  const { label, icon: Icon, variant } = cfg
   return (
     <Badge variant={variant} className="gap-1">
       <Icon className="size-2.5" />
@@ -82,9 +95,11 @@ function getInitials(name: string) {
 function InviteDialog({
   open,
   onClose,
+  onInvited,
 }: {
   open: boolean
   onClose: () => void
+  onInvited: () => void
 }) {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [email, setEmail] = useState("")
@@ -98,21 +113,29 @@ function InviteDialog({
       setEmailError("Valid email is required")
       return
     }
-    if (!activeOrg?.id) return
+    if (!activeOrg?.id) {
+      toast.error("No active organization")
+      return
+    }
 
     setLoading(true)
     try {
-      await authClient.organization.inviteMember({
+      const { error } = await authClient.organization.inviteMember({
         email,
         role,
         organizationId: activeOrg.id,
       })
+      if (error) {
+        toast.error(error.message ?? "Failed to send invitation")
+        return
+      }
       toast.success(`Invitation sent to ${email}`)
       setEmail("")
       setRole("member")
+      onInvited()
       onClose()
-    } catch {
-      toast.error("Failed to send invitation")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send invitation")
     } finally {
       setLoading(false)
     }
@@ -176,21 +199,82 @@ function InviteDialog({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MembersPage() {
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [removeTarget, setRemoveTarget] = useState<OrgMember | null>(null)
-  const [members] = useState<OrgMember[]>(MOCK_MEMBERS)
+  const [removeTarget, setRemoveTarget] = useState<MemberRow | null>(null)
+  const [members, setMembers] = useState<MemberRow[]>([])
+  const [invitations, setInvitations] = useState<InvitationRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const refresh = useCallback(async () => {
+    if (!activeOrg?.id) {
+      setMembers([])
+      setInvitations([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    try {
+      const [mRes, iRes] = await Promise.all([
+        authClient.organization.listMembers({ query: { organizationId: activeOrg.id } }),
+        authClient.organization.listInvitations({ query: { organizationId: activeOrg.id } }),
+      ])
+      if (mRes.data) {
+        setMembers(mRes.data.members as unknown as MemberRow[])
+      }
+      if (iRes.data) {
+        setInvitations(
+          (iRes.data as unknown as InvitationRow[]).filter((inv) => inv.status === "pending")
+        )
+      }
+    } catch (err) {
+      console.error("Failed to load members:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [activeOrg?.id])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   async function handleRemove() {
-    if (!removeTarget) return
+    if (!removeTarget || !activeOrg?.id) return
     try {
-      // TODO: authClient.organization.removeMember({ memberId: removeTarget.id, organizationId })
-      toast.success(`${removeTarget.name} removed`)
-    } catch {
-      toast.error("Failed to remove member")
+      const { error } = await authClient.organization.removeMember({
+        memberIdOrEmail: removeTarget.id,
+        organizationId: activeOrg.id,
+      })
+      if (error) {
+        toast.error(error.message ?? "Failed to remove member")
+        return
+      }
+      toast.success(`${removeTarget.user.name} removed`)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove member")
     } finally {
       setRemoveTarget(null)
     }
   }
+
+  async function handleCancelInvite(inv: InvitationRow) {
+    try {
+      const { error } = await authClient.organization.cancelInvitation({
+        invitationId: inv.id,
+      })
+      if (error) {
+        toast.error(error.message ?? "Failed to cancel invitation")
+        return
+      }
+      toast.success(`Invitation to ${inv.email} canceled`)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel invitation")
+    }
+  }
+
+  const memberCount = members.length
 
   return (
     <div className="flex flex-col gap-6 pb-8">
@@ -206,9 +290,13 @@ export default function MembersPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-semibold text-foreground">Team members</h2>
-          <p className="text-xs text-muted-foreground">{members.length} member{members.length !== 1 ? "s" : ""} in your organization</p>
+          <p className="text-xs text-muted-foreground">
+            {loading
+              ? "Loading…"
+              : `${memberCount} member${memberCount !== 1 ? "s" : ""} in your organization`}
+          </p>
         </div>
-        <Button size="sm" onClick={() => setInviteOpen(true)}>
+        <Button size="sm" onClick={() => setInviteOpen(true)} disabled={!activeOrg?.id}>
           <UserPlus className="size-3.5" />
           Invite member
         </Button>
@@ -225,21 +313,28 @@ export default function MembersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {!loading && members.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">
+                  No members yet.
+                </TableCell>
+              </TableRow>
+            )}
             {members.map((member) => (
               <TableRow key={member.id}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
                     <Avatar size="sm">
-                      {member.image && <AvatarImage src={member.image} alt={member.name} />}
+                      {member.user.image && <AvatarImage src={member.user.image} alt={member.user.name} />}
                       <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-semibold">
-                        {getInitials(member.name)}
+                        {getInitials(member.user.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-xs font-medium text-foreground">{member.name}</span>
+                    <span className="text-xs font-medium text-foreground">{member.user.name}</span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-xs text-muted-foreground font-mono">{member.email}</span>
+                  <span className="text-xs text-muted-foreground font-mono">{member.user.email}</span>
                 </TableCell>
                 <TableCell>{roleBadge(member.role)}</TableCell>
                 <TableCell>
@@ -263,12 +358,70 @@ export default function MembersPage() {
         </Table>
       </Card>
 
-      <InviteDialog open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      {invitations.length > 0 && (
+        <>
+          <div className="flex flex-col gap-0.5 mt-2">
+            <h2 className="text-sm font-semibold text-foreground">Pending invitations</h2>
+            <p className="text-xs text-muted-foreground">
+              {invitations.length} invitation{invitations.length !== 1 ? "s" : ""} awaiting response
+            </p>
+          </div>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Expires</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invitations.map((inv) => (
+                  <TableRow key={inv.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Mail className="size-3.5 text-muted-foreground" />
+                        <span className="text-xs font-mono text-foreground">{inv.email}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{roleBadge(inv.role)}</TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(inv.expiresAt).toLocaleDateString()}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleCancelInvite(inv)}
+                          title="Cancel invitation"
+                        >
+                          <X className="size-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
+
+      <InviteDialog
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onInvited={refresh}
+      />
 
       <AlertDialog open={!!removeTarget} onOpenChange={() => setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {removeTarget?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Remove {removeTarget?.user.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               They will lose access to this organization immediately. This action cannot be undone.
             </AlertDialogDescription>

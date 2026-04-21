@@ -71,7 +71,7 @@ export function LoginForm() {
             marginTop: 8,
           }}
         >
-          // sign in to your crew
+          {"// sign in to your crew"}
         </p>
       </div>
 

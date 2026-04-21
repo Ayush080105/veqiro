@@ -39,6 +39,8 @@ import {
   ContractAnalysisCard,
   DraftDocumentCard,
   ExplainerCard,
+  LegalResearchCard,
+  ComplianceCheckCard,
 } from "@/components/agents/lex/cards"
 // Vega
 import {
@@ -47,6 +49,7 @@ import {
   CalendarCard,
   EventCreatedCard,
   ExecutiveBriefingCard,
+  ComposeEmailCard,
 } from "@/components/agents/vega/cards"
 
 export interface ActionResultRendererProps {
@@ -110,6 +113,10 @@ export function ActionResultRenderer({ actionId, result }: ActionResultRendererP
       return <DraftDocumentCard result={r} />
     case "lex:explain":
       return <ExplainerCard result={r} />
+    case "lex:legal-research":
+      return <LegalResearchCard result={r} />
+    case "lex:compliance-check":
+      return <ComplianceCheckCard result={r} />
 
     case "vega:process-inbox":
       return <InboxTriageCard result={r} />
@@ -121,6 +128,8 @@ export function ActionResultRenderer({ actionId, result }: ActionResultRendererP
       return <EventCreatedCard result={r} />
     case "vega:executive-briefing":
       return <ExecutiveBriefingCard result={r} />
+    case "vega:compose-email":
+      return <ComposeEmailCard result={r} />
 
     default:
       return (

@@ -6,12 +6,16 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { FONT } from "@/components/veqiro/shared";
 
-export default function OAuthButtons() {
+export default function OAuthButtons({
+  callbackURL = "/onboarding",
+}: {
+  callbackURL?: string;
+} = {}) {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleClick = () => {
     setGoogleLoading(true);
-    signIn.social({ provider: "google", callbackURL: "/dashboard" });
+    signIn.social({ provider: "google", callbackURL });
   };
 
   return (

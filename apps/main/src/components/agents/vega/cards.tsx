@@ -11,6 +11,7 @@ import {
   Sunrise,
   ExternalLink,
   AlertTriangle,
+  Mail,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,7 @@ import type {
   VegaCalendarSummaryResult,
   VegaCreateEventResult,
   VegaExecutiveBriefingResult,
+  VegaComposeEmailResult,
 } from "@/lib/types/agents"
 
 function copy(text: string, label = "Copied") {
@@ -404,6 +406,54 @@ export function ExecutiveBriefingCard({
           Free time today: {b.free_time_today}
         </p>
       )}
+    </Card>
+  )
+}
+
+// ─── Compose email card ─────────────────────────────────────────────────────
+
+export function ComposeEmailCard({ result }: { result: VegaComposeEmailResult }) {
+  const d = result.draft
+  const full = `To: ${d.to}\nSubject: ${d.subject}\n\n${d.body}`
+  const draftId = d.draft_id ?? result.draft_id
+  return (
+    <Card className="gap-3 p-3">
+      <div className="flex items-center gap-2">
+        <Mail className="size-3.5 text-muted-foreground" />
+        <p className="text-xs font-medium">Composed email</p>
+        {draftId && (
+          <Badge variant="secondary" className="ml-auto text-[10px]">
+            saved in Gmail
+          </Badge>
+        )}
+      </div>
+      <div className="flex flex-col gap-1 border border-border bg-muted/20 p-2 text-[11px]">
+        <p>
+          <span className="text-muted-foreground">To:</span> {d.to}
+        </p>
+        <p>
+          <span className="text-muted-foreground">Subject:</span> {d.subject}
+        </p>
+        <hr className="border-border" />
+        <p className="whitespace-pre-wrap leading-relaxed">{d.body}</p>
+      </div>
+      {result.errors && result.errors.length > 0 && (
+        <div className="border border-destructive/30 bg-destructive/10 p-2">
+          <p className="mb-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-destructive">
+            <AlertTriangle className="size-3" /> Errors
+          </p>
+          <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+            {result.errors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="flex justify-end">
+        <Button variant="outline" size="xs" onClick={() => copy(full)}>
+          <Copy data-icon="inline-start" /> Copy
+        </Button>
+      </div>
     </Card>
   )
 }

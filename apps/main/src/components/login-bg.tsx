@@ -65,7 +65,7 @@ const LoginBg = () => {
             opacity: 0.7,
           }}
         >
-          // hire the whole crew in 60 seconds
+          {"// hire the whole crew in 60 seconds"}
         </p>
       </div>
     </div>

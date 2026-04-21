@@ -86,22 +86,6 @@ export interface BrandKit {
   website_url: string
 }
 
-// ─── Knowledge / Brain Types ─────────────────────────────────────────────────
-
-export type KnowledgeType = "document" | "webpage" | "note" | "image"
-
-export interface KnowledgeItem {
-  id: string
-  type: KnowledgeType
-  title: string
-  content: string
-  fileName?: string
-  fileSize?: number
-  agentAccess: AgentSlug[]
-  createdAt: string
-  updatedAt: string
-}
-
 // ─── Brain Form Types ────────────────────────────────────────────────────────
 
 export interface BrainFormValues {

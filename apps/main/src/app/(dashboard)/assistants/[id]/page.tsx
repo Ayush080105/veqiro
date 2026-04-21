@@ -325,7 +325,7 @@ function EmptyState({
             margin: "0 0 20px",
           }}
         >
-          // try one of these
+          {"// try one of these"}
         </p>
 
         <div
@@ -726,9 +726,17 @@ export default function AssistantChatPage() {
                   margin: 0,
                 }}
               >
-                // connect google calendar to let vega schedule on your behalf
+                {"// connect google calendar to let vega schedule on your behalf"}
               </p>
-              <VqButton href="/settings/integrations" variant="dark">
+              <VqButton
+                variant="dark"
+                onClick={() => {
+                  authClient.signIn.social({
+                    provider: "google",
+                    callbackURL: "/assistants/vega",
+                  })
+                }}
+              >
                 Connect Google
               </VqButton>
             </div>

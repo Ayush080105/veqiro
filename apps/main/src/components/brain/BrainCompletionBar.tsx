@@ -132,7 +132,7 @@ export function BrainCompletionBar({ values }: BrainCompletionBarProps) {
             margin: 0,
           }}
         >
-          // {suggestion}
+          {`// ${suggestion}`}
         </p>
       )}
     </div>
