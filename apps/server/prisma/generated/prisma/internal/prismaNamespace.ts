@@ -391,6 +391,7 @@ export const ModelName = {
   Organization: 'Organization',
   Member: 'Member',
   Invitation: 'Invitation',
+  BrandKit: 'BrandKit',
   Message: 'Message',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost'
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "message" | "socialAccount" | "publishedPost"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -931,6 +932,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BrandKit: {
+      payload: Prisma.$BrandKitPayload<ExtArgs>
+      fields: Prisma.BrandKitFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrandKitFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrandKitFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>
+        }
+        findFirst: {
+          args: Prisma.BrandKitFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrandKitFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>
+        }
+        findMany: {
+          args: Prisma.BrandKitFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>[]
+        }
+        create: {
+          args: Prisma.BrandKitCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>
+        }
+        createMany: {
+          args: Prisma.BrandKitCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrandKitCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>[]
+        }
+        delete: {
+          args: Prisma.BrandKitDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>
+        }
+        update: {
+          args: Prisma.BrandKitUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrandKitDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrandKitUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrandKitUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrandKitUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandKitPayload>
+        }
+        aggregate: {
+          args: Prisma.BrandKitAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrandKit>
+        }
+        groupBy: {
+          args: Prisma.BrandKitGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandKitGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrandKitCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandKitCountAggregateOutputType> | number
+        }
+      }
+    }
     Message: {
       payload: Prisma.$MessagePayload<ExtArgs>
       fields: Prisma.MessageFieldRefs
@@ -1293,6 +1368,28 @@ export const InvitationScalarFieldEnum = {
 export type InvitationScalarFieldEnum = (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
 
 
+export const BrandKitScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  company_name: 'company_name',
+  company_description: 'company_description',
+  industry: 'industry',
+  target_audience: 'target_audience',
+  brand_voice: 'brand_voice',
+  logo_url: 'logo_url',
+  mascot_url: 'mascot_url',
+  brand_colors: 'brand_colors',
+  platform_tones: 'platform_tones',
+  competitors: 'competitors',
+  key_differentiators: 'key_differentiators',
+  website_url: 'website_url',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrandKitScalarFieldEnum = (typeof BrandKitScalarFieldEnum)[keyof typeof BrandKitScalarFieldEnum]
+
+
 export const MessageScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1354,6 +1451,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {
@@ -1431,6 +1535,20 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'Agent'
  */
 export type EnumAgentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Agent'>
@@ -1455,20 +1573,6 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -1601,6 +1705,7 @@ export type GlobalOmitConfig = {
   organization?: Prisma.OrganizationOmit
   member?: Prisma.MemberOmit
   invitation?: Prisma.InvitationOmit
+  brandKit?: Prisma.BrandKitOmit
   message?: Prisma.MessageOmit
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit

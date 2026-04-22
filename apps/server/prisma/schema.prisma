@@ -143,6 +143,28 @@ model Invitation {
   @@map("invitation")
 }
 
+model BrandKit {
+  id                  String   @id @default(uuid())
+  organizationId      String   @unique
+  company_name        String   @default("")
+  company_description String   @default("")
+  industry            String   @default("")
+  target_audience     String   @default("")
+  brand_voice         String   @default("")
+  logo_url            String?
+  mascot_url          String?
+  brand_colors        Json     @default("{}")
+  platform_tones      Json     @default("{}")
+  competitors         Json     @default("[]")
+  key_differentiators String   @default("")
+  website_url         String   @default("")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("brand_kit")
+}
+
 model Message{
   id     String @id @default(uuid())
   organizationId  String

@@ -58,6 +58,7 @@ export const ModelName = {
   Organization: 'Organization',
   Member: 'Member',
   Invitation: 'Invitation',
+  BrandKit: 'BrandKit',
   Message: 'Message',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost'
@@ -180,6 +181,28 @@ export const InvitationScalarFieldEnum = {
 export type InvitationScalarFieldEnum = (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
 
 
+export const BrandKitScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  company_name: 'company_name',
+  company_description: 'company_description',
+  industry: 'industry',
+  target_audience: 'target_audience',
+  brand_voice: 'brand_voice',
+  logo_url: 'logo_url',
+  mascot_url: 'mascot_url',
+  brand_colors: 'brand_colors',
+  platform_tones: 'platform_tones',
+  competitors: 'competitors',
+  key_differentiators: 'key_differentiators',
+  website_url: 'website_url',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrandKitScalarFieldEnum = (typeof BrandKitScalarFieldEnum)[keyof typeof BrandKitScalarFieldEnum]
+
+
 export const MessageScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -241,6 +264,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {
