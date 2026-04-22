@@ -20,7 +20,11 @@
       "Bash(pnpm lint *)",
       "Bash(npm run *)",
       "Read(//d/d/Projects/veqiro/apps/main/**)",
-      "Read(//d/d/Projects/veqiro/apps/landing/**)"
+      "Read(//d/d/Projects/veqiro/apps/landing/**)",
+      "Bash(xargs wc *)",
+      "Bash(xargs grep *)",
+      "Bash(pnpm --filter main exec tsc --noEmit)",
+      "Bash(echo \"Exit: $?\")"
     ]
   }
 }

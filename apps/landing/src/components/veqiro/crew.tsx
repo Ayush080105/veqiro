@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EMPLOYEES, Employee } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 import { FONT } from './shared';
@@ -81,6 +81,8 @@ export function DeskPanel({ active }: { active: string }) {
   const [msgs, setMsgs] = useState<{ who: string; text: string }[]>([]);
   const [typing, setTyping] = useState(false);
   const Comp = CHARACTER_COMPONENTS[emp.key];
+  const sectionRef = useRef<HTMLElement>(null);
+  const firstRunRef = useRef(true);
 
   useEffect(() => {
     // Replay chat animation when active employee changes.
@@ -91,11 +93,26 @@ export function DeskPanel({ active }: { active: string }) {
     const t2 = setTimeout(() => { setMsgs(m => [...m, { who: 'you', text: getReply(emp.key) }]); }, 2400);
     const t3 = setTimeout(() => { setTyping(true); }, 2800);
     const t4 = setTimeout(() => { setTyping(false); setMsgs(m => [...m, { who: emp.name, text: getFollow(emp.key) }]); }, 3800);
+
+    // Smooth-scroll the panel into view on every change except the first mount,
+    // so visiting the landing page doesn't jump past the hero.
+    if (firstRunRef.current) {
+      firstRunRef.current = false;
+    } else if (sectionRef.current) {
+      const reduceMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      sectionRef.current.scrollIntoView({
+        behavior: reduceMotion ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    }
+
     return () => [t1, t2, t3, t4].forEach(clearTimeout);
   }, [active, emp.name, emp.quote, emp.key]);
 
   return (
-    <section style={{ background: '#EFE7D6', padding: '80px 32px', borderTop: '3px solid #111' }}>
+    <section ref={sectionRef} style={{ background: '#EFE7D6', padding: '80px 32px', borderTop: '3px solid #111' }}>
       <div style={{ maxWidth: 1400, margin: '0 auto' }}>
         <div className="desk-grid">
           {/* LEFT: portrait + meta */}

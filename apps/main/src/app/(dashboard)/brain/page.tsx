@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -94,7 +95,14 @@ function BrainSkeleton() {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
+function formatLastSaved(ts: number | null): string {
+  if (!ts) return ""
+  const d = new Date(ts)
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+}
+
 export default function BrainPage() {
+  const router = useRouter()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
@@ -103,6 +111,9 @@ export default function BrainPage() {
   const [scraping, setScraping] = useState(false)
   const [hasPending, setHasPending] = useState(false)
   const [backendUnavailable, setBackendUnavailable] = useState(false)
+  const [isEmpty, setIsEmpty] = useState(false)
+  const [seededHint, setSeededHint] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -131,20 +142,38 @@ export default function BrainPage() {
     getBrandKit(organizationId)
       .then((kit) => {
         if (cancelled) return
-        if (kit) {
+        if (kit && kit.company_name?.trim()) {
           reset(brandKitToForm(kit))
           setBackendUnavailable(false)
+          setIsEmpty(false)
         } else {
-          setBackendUnavailable(true)
+          setBackendUnavailable(!kit)
           try {
             const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
             if (local) {
               const parsed = JSON.parse(local) as BrandKit
-              reset(brandKitToForm(parsed))
+              if (parsed.company_name?.trim()) {
+                reset(brandKitToForm(parsed))
+                setIsEmpty(false)
+              } else {
+                setIsEmpty(true)
+              }
+            } else {
+              setIsEmpty(true)
             }
           } catch {
-            /* ignore */
+            setIsEmpty(true)
           }
+        }
+        // One-time "seeded from onboarding" hint.
+        try {
+          const key = `veqiro.brain.seeded.${organizationId}`
+          if (localStorage.getItem(key) === "1") {
+            setSeededHint(true)
+            localStorage.removeItem(key)
+          }
+        } catch {
+          /* ignore */
         }
       })
       .catch(() => {
@@ -174,6 +203,8 @@ export default function BrainPage() {
 
   const scheduleAutoSave = () => {
     setHasPending(true)
+    setIsEmpty(false)
+    setSeededHint(false)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       const values = getValues()
@@ -183,9 +214,11 @@ export default function BrainPage() {
         if (result.ok) {
           setHasPending(false)
           setBackendUnavailable(false)
+          setLastSavedAt(Date.now())
         } else if (result.unavailable) {
           setBackendUnavailable(true)
           setHasPending(false)
+          setLastSavedAt(Date.now())
         } else {
           toast.error("Auto-save failed")
         }
@@ -204,9 +237,11 @@ export default function BrainPage() {
       if (result.ok) {
         setHasPending(false)
         setBackendUnavailable(false)
+        setLastSavedAt(Date.now())
         toast.success("Brand kit saved")
       } else if (result.unavailable) {
         setBackendUnavailable(true)
+        setLastSavedAt(Date.now())
         toast.info("Backend offline — your changes are saved locally")
       } else {
         toast.error("Failed to save brand kit")
@@ -225,6 +260,10 @@ export default function BrainPage() {
     setScraping(true)
     try {
       const scraped = await scrapeBrandKit(url, organizationId)
+      if (!scraped || Object.keys(scraped).length === 0) {
+        toast.info("Auto-fill isn't connected yet — fill fields manually for now.")
+        return
+      }
       const current = getValues()
       reset({
         ...current,
@@ -242,7 +281,7 @@ export default function BrainPage() {
       toast.success("Auto-filled from URL")
       scheduleAutoSave()
     } catch {
-      toast.error("Failed to scrape URL")
+      toast.error("Could not reach that URL")
     } finally {
       setScraping(false)
     }
@@ -294,6 +333,58 @@ export default function BrainPage() {
         </div>
       )}
 
+      {/* Seeded-from-onboarding hint (shown once after completing onboarding) */}
+      {seededHint && !isEmpty && (
+        <div
+          style={{
+            marginBottom: 16,
+            background: "#DDF5E8",
+            border: "2.5px solid #0E5C3F",
+            borderRadius: 10,
+            boxShadow: "3px 3px 0 #0E5C3F",
+            padding: "10px 14px",
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            letterSpacing: 1,
+            color: "#0E5C3F",
+          }}
+        >
+          {"// Seeded from onboarding — edit anything and it auto-saves."}
+        </div>
+      )}
+
+      {/* Empty-state CTA: neither backend nor localStorage had anything */}
+      {isEmpty && (
+        <div
+          style={{
+            marginBottom: 16,
+            background: "#FFF",
+            border: "2.5px solid #111",
+            borderRadius: 10,
+            boxShadow: "4px 4px 0 #F06464",
+            padding: "16px 20px",
+            fontFamily: FONT.body,
+            fontSize: 14,
+            color: "#111",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontFamily: FONT.head, fontSize: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+            Brain is empty
+          </div>
+          <div style={{ color: "#555" }}>
+            The fastest way to populate this is by running the onboarding flow — it collects everything your crew needs.
+          </div>
+          <div>
+            <VqButton variant="primary" onClick={() => router.push("/onboarding")}>
+              Run onboarding
+            </VqButton>
+          </div>
+        </div>
+      )}
+
       <BrandKitSection
         control={control}
         errors={errors}
@@ -334,6 +425,7 @@ export default function BrainPage() {
             }}
           >
             changes auto-saved
+            {lastSavedAt ? ` · ${formatLastSaved(lastSavedAt)}` : ""}
           </span>
         )}
         {hasPending && (

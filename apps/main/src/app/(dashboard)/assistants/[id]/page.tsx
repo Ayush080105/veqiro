@@ -13,6 +13,7 @@ import {
   AgentNotAvailableError,
 } from "@/lib/api/assistants"
 import { getBrandKit } from "@/lib/api/brain"
+import { hasGoogleConnected } from "@/lib/api/auth-accounts"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 import { ChatInput } from "@/components/chat/ChatInput"
@@ -555,6 +556,7 @@ export default function AssistantChatPage() {
   const [plusOpen, setPlusOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
+  const [googleLinked, setGoogleLinked] = useState<boolean | null>(null)
 
   const conversationIdRef = useRef<string>(genConversationId())
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -577,6 +579,21 @@ export default function AssistantChatPage() {
     if (!organizationId) return
     getBrandKit(organizationId).then((k) => setBrandKit(k))
   }, [organizationId])
+
+  useEffect(() => {
+    if (agent?.id !== "vega") return
+    let cancelled = false
+    hasGoogleConnected()
+      .then((ok) => {
+        if (!cancelled) setGoogleLinked(ok)
+      })
+      .catch(() => {
+        if (!cancelled) setGoogleLinked(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [agent?.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -705,7 +722,7 @@ export default function AssistantChatPage() {
         )}
 
         <div style={{ flexShrink: 0 }}>
-          {isVega && (
+          {isVega && googleLinked === false && (
             <div
               style={{
                 display: "flex",

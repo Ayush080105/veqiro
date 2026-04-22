@@ -30,7 +30,7 @@ export function LoginForm() {
         email: data.email,
         password: data.password,
         rememberMe: data.remember,
-        callbackURL: "/dashboard",
+        callbackURL: "/onboarding",
       });
       if (authErr) {
         toast.error(authErr.message || "Something went wrong");

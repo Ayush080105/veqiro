@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import { authClient } from '@/lib/auth-client';
 import { getBrandKit, saveBrandKit } from '@/lib/api/brain';
+import { createOrganization, setActiveOrganization, slugify } from '@/lib/api/organizations';
 import Logo from '@/components/logo';
 import type { BrandKit } from '@/lib/types';
 import {
@@ -291,6 +292,81 @@ function Chip({
 // ───────────────────── Steps ────────────────────────────────────────────────
 
 type SetFn = <K extends keyof OnboardingKit>(k: K, v: OnboardingKit[K]) => void;
+
+function Step0({
+  name,
+  slug,
+  slugEdited,
+  error,
+  onName,
+  onSlug,
+}: {
+  name: string;
+  slug: string;
+  slugEdited: boolean;
+  error: string | null;
+  onName: (v: string) => void;
+  onSlug: (v: string) => void;
+}) {
+  return (
+    <StepShell
+      emoji="⁕"
+      title="Name your workspace"
+      subtitle="Your crew works inside a workspace. Name it whatever your team is called — you can rename later."
+    >
+      <FieldLabel label="Workspace name">
+        <VqInput
+          value={name}
+          onChange={onName}
+          placeholder="e.g. Lumen Beverage Co."
+        />
+      </FieldLabel>
+      <FieldLabel label="Workspace URL" hint="Lowercase letters, numbers, dashes. This is the slug used in routes.">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 13,
+              color: '#666',
+              padding: '10px 0',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            veqiro.app/
+          </div>
+          <div style={{ flex: 1 }}>
+            <VqInput
+              value={slug}
+              onChange={onSlug}
+              placeholder="lumen-beverage"
+            />
+          </div>
+        </div>
+        {!slugEdited && slug && (
+          <div style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 6 }}>
+            auto-generated from name — feel free to edit
+          </div>
+        )}
+      </FieldLabel>
+      {error && (
+        <div
+          style={{
+            marginTop: 4,
+            padding: '12px 16px',
+            background: '#FFE4E4',
+            border: '2px solid #F06464',
+            borderRadius: 10,
+            fontFamily: FONT.body,
+            fontSize: 14,
+            color: '#8B1E1E',
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </StepShell>
+  );
+}
 
 function Step1({ kit, set }: { kit: OnboardingKit; set: SetFn }) {
   return (
@@ -610,16 +686,24 @@ function Step6({ kit }: { kit: OnboardingKit }) {
 
 // ───────────────────── Page ─────────────────────────────────────────────────
 
-const TOTAL = 6;
+const TOTAL = 7;
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = authClient.useSession();
-  const { data: activeOrg } = authClient.useActiveOrganization();
+  const { data: activeOrg, isPending: orgLoading } = authClient.useActiveOrganization();
   const organizationId = activeOrg?.id ?? '';
 
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // Step-0 (create workspace) state
+  const [orgName, setOrgName] = useState('');
+  const [orgSlug, setOrgSlug] = useState('');
+  const [slugEdited, setSlugEdited] = useState(false);
+  const [orgError, setOrgError] = useState<string | null>(null);
+  const [creatingOrg, setCreatingOrg] = useState(false);
+
   const [kit, setKit] = useState<OnboardingKit>(() => {
     if (typeof window === 'undefined') return DEFAULT_KIT;
     try {
@@ -630,22 +714,31 @@ export default function OnboardingPage() {
     }
   });
 
+  // If user already has an active org, skip Step 0 automatically.
+  useEffect(() => {
+    if (orgLoading) return;
+    if (organizationId && step === 0) {
+      setStep(1);
+    }
+  }, [organizationId, orgLoading, step]);
+
   // Hydrate from backend once we have an org. Backend wins over local draft.
+  // Also: if kit is already complete, bounce to dashboard (returning user).
   useEffect(() => {
     if (!organizationId) return;
     let cancelled = false;
     getBrandKit(organizationId).then((bk) => {
       if (cancelled || !bk) return;
-      // Only hydrate if backend has a non-empty company name —
-      // otherwise assume it's an empty skeleton and keep local draft.
       if (bk.company_name?.trim()) {
         setKit(fromBrandKit(bk));
+        // Returning, already-onboarded user landed here — send them home.
+        router.replace('/dashboard');
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [organizationId]);
+  }, [organizationId, router]);
 
   // Session gate — redirect unauth'd users.
   useEffect(() => {
@@ -662,23 +755,69 @@ export default function OnboardingPage() {
     }
   }, [kit]);
 
+  // Keep slug auto-derived from name until the user edits it.
+  useEffect(() => {
+    if (!slugEdited) setOrgSlug(slugify(orgName));
+  }, [orgName, slugEdited]);
+
   const set: SetFn = (k, v) => setKit((prev) => ({ ...prev, [k]: v }));
 
   const canAdvance = () => {
-    if (step === 0) return kit.company_name.trim().length > 1;
-    if (step === 1) return kit.industry.length > 0 && kit.target_audience.trim().length > 2;
-    if (step === 2) return !!kit.brand_voice;
+    if (step === 0) return orgName.trim().length >= 2 && orgSlug.trim().length >= 2;
+    if (step === 1) return kit.company_name.trim().length > 1;
+    if (step === 2) return kit.industry.length > 0 && kit.target_audience.trim().length > 2;
+    if (step === 3) return !!kit.brand_voice;
     return true;
+  };
+
+  const handleNext = async () => {
+    if (step === 0) {
+      // Create the org, then set active, then advance.
+      setOrgError(null);
+      setCreatingOrg(true);
+      const created = await createOrganization({
+        name: orgName.trim(),
+        slug: orgSlug.trim() || slugify(orgName),
+      });
+      if (!created.ok) {
+        setOrgError(created.message);
+        setCreatingOrg(false);
+        return;
+      }
+      const activated = await setActiveOrganization(created.id);
+      setCreatingOrg(false);
+      if (!activated.ok) {
+        setOrgError(activated.message ?? 'Workspace created but could not be activated. Refresh and try again.');
+        return;
+      }
+      // Pre-fill company_name from workspace name for convenience.
+      if (!kit.company_name) setKit((prev) => ({ ...prev, company_name: orgName.trim() }));
+      setStep((s) => s + 1);
+      return;
+    }
+    setStep((s) => s + 1);
   };
 
   const finish = async () => {
     if (!organizationId) {
       toast.error('No workspace found. Create one first.');
+      setStep(0);
       return;
     }
     setSaving(true);
     try {
-      const result = await saveBrandKit(organizationId, toBrandKit(kit));
+      const payload = toBrandKit(kit);
+      const result = await saveBrandKit(organizationId, payload);
+      // Always persist to localStorage so /brain has data even if backend is offline.
+      try {
+        localStorage.setItem(
+          `veqiro.brandKitLocal.${organizationId}`,
+          JSON.stringify(payload),
+        );
+        localStorage.setItem(`veqiro.brain.seeded.${organizationId}`, '1');
+      } catch {
+        /* ignore */
+      }
       if (result.unavailable) {
         toast.info("Brain storage is being set up — we'll keep your draft locally.");
       } else if (!result.ok) {
@@ -701,12 +840,24 @@ export default function OnboardingPage() {
   };
 
   const steps = [
-    <Step1 key={0} kit={kit} set={set} />,
-    <Step2 key={1} kit={kit} set={set} />,
-    <Step3 key={2} kit={kit} set={set} />,
-    <Step4 key={3} kit={kit} set={set} />,
-    <Step5 key={4} kit={kit} set={set} />,
-    <Step6 key={5} kit={kit} />,
+    <Step0
+      key={0}
+      name={orgName}
+      slug={orgSlug}
+      slugEdited={slugEdited}
+      error={orgError}
+      onName={(v) => setOrgName(v)}
+      onSlug={(v) => {
+        setSlugEdited(true);
+        setOrgSlug(slugify(v));
+      }}
+    />,
+    <Step1 key={1} kit={kit} set={set} />,
+    <Step2 key={2} kit={kit} set={set} />,
+    <Step3 key={3} kit={kit} set={set} />,
+    <Step4 key={4} kit={kit} set={set} />,
+    <Step5 key={5} kit={kit} set={set} />,
+    <Step6 key={6} kit={kit} />,
   ];
 
   return (
@@ -760,17 +911,17 @@ export default function OnboardingPage() {
           <Button
             variant="ghost"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
-            disabled={step === 0 || saving}
+            disabled={step === 0 || saving || creatingOrg}
           >
             ← Back
           </Button>
           {step < TOTAL - 1 ? (
             <Button
               variant="primary"
-              onClick={() => setStep((s) => s + 1)}
-              disabled={!canAdvance()}
+              onClick={handleNext}
+              disabled={!canAdvance() || creatingOrg}
             >
-              Continue →
+              {creatingOrg ? 'Creating…' : 'Continue →'}
             </Button>
           ) : (
             <Button variant="dark" onClick={finish} disabled={saving}>
