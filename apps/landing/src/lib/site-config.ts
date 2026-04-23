@@ -121,14 +121,14 @@ export const faqItems = [
     q: 'do they judge my ideas?',
     a: "Never. Even your \"Uber for dogs but crypto-powered\" idea is safe here.",
   },
-  {
-    q: 'how fast are they?',
-    a: "Faster than your motivation after watching one startup reel.",
-  },
-  {
-    q: 'can they handle pressure?',
-    a: "They don't feel pressure. They apply pressure — on your pending tasks.",
-  },
+  // {
+  //   q: 'how fast are they?',
+  //   a: "Faster than your motivation after watching one startup reel.",
+  // },
+  // {
+  //   q: 'can they handle pressure?',
+  //   a: "They don't feel pressure. They apply pressure — on your pending tasks.",
+  // },
   {
     q: "what if I don't know what I'm doing?",
     a: "Perfect. That's literally why they exist.",

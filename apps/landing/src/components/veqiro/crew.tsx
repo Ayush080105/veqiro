@@ -28,10 +28,8 @@ function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; activ
         outlineOffset: active ? 4 : 0,
         position: 'relative',
       }}>
-      <a
-        href={`${mainAppUrl}/assistants/${emp.key}`}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        href={`/agents/${emp.key}`}
         onClick={e => e.stopPropagation()}
         aria-label={`Open ${emp.name}'s page in the app`}
         style={{
@@ -53,7 +51,7 @@ function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; activ
         }}
       >
         <ExternalLink size={16} strokeWidth={2.5} />
-      </a>
+      </Link>
       <div style={{ background: emp.color }}>
         <Comp size="100%" />
       </div>
@@ -80,7 +78,7 @@ function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; activ
             paddingBottom: 1,
           }}
         >
-          Meet {emp.name} →
+          {/* Meet {emp.name} → */}
         </Link>
       </div>
     </div>
