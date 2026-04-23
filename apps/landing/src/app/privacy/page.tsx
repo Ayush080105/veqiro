@@ -85,6 +85,33 @@ export default function PrivacyPage() {
       {/* Content */}
       <section style={{ padding: '80px 32px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
+
+          {/* TL;DR */}
+          <div style={{
+            background: '#FFF9ED', border: '3px solid #111', borderRadius: 14,
+            padding: '24px 28px', boxShadow: '5px 5px 0 #111', marginBottom: 56,
+          }}>
+            <div style={{
+              fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase',
+              letterSpacing: 2, color: '#666', marginBottom: 12,
+            }}>
+              Short version
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'grid', gap: 8 }}>
+              {[
+                "Your data stays yours. We don't train AI models on your content.",
+                "We collect only what's needed to run the service (account info, usage, integrations).",
+                "You can delete your account and all data at any time.",
+                "We're SOC 2 Type II certified. Data is encrypted at rest and in transit.",
+                "Questions? hello@veqiro.com — we respond within 24 hours.",
+              ].map(item => (
+                <li key={item} style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.55, color: '#333' }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <Section title="1. Overview">
             <P>Veqiro Labs ("we", "us", "our") operates the Veqiro platform — a suite of AI-powered assistants. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our services.</P>
             <P>By using Veqiro, you agree to the terms of this policy. If you disagree, please do not use the platform.</P>

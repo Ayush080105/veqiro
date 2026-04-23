@@ -1,7 +1,9 @@
+import React from 'react';
 import type { Metadata } from 'next';
 import { Footer } from '@/components/veqiro/sections';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { FONT, Button } from '@/components/veqiro/shared';
+import { AboutCrewGrid } from '@/components/veqiro/about-crew-grid';
 import { mainAppUrl } from '@/lib/site-config';
 
 export const metadata: Metadata = {
@@ -138,6 +140,25 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── MEET THE CREW ── */}
+      <section style={{ padding: '88px 32px', borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 48 }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+            }}>
+              [ THE CREW ]
+            </div>
+            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
+              meet your new<br />team members.
+            </h2>
+          </div>
+
+          <AboutCrewGrid />
         </div>
       </section>
 

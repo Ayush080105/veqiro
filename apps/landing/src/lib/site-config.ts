@@ -146,20 +146,29 @@ export const footerColumns: FooterColumn[] = [
     ],
   },
   {
+    h: 'Product',
+    links: [
+      { label: 'Pricing', href: '/#pricing' },
+      { label: 'How it works', href: '/#how' },
+      { label: 'FAQ', href: '/#faq' },
+      { label: 'Changelog', href: demoCtaHref },
+    ],
+  },
+  {
     h: 'Company',
     links: [
       { label: 'About', href: '/about' },
       { label: 'Careers', href: demoCtaHref },
-      { label: 'Manifesto', href: demoCtaHref },
+      { label: 'Blog', href: demoCtaHref },
       { label: 'Press kit', href: demoCtaHref },
     ],
   },
   {
-    h: 'Resources',
+    h: 'Legal',
     links: [
-      { label: 'Docs', href: demoCtaHref },
-      { label: 'Changelog', href: demoCtaHref },
-      { label: 'Status', href: demoCtaHref },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' },
+      { label: 'Cookie Policy', href: '/privacy#cookies' },
       { label: 'Security', href: demoCtaHref },
     ],
   },
@@ -167,11 +176,7 @@ export const footerColumns: FooterColumn[] = [
 
 export const footerBottom = {
   copyright: '© 2026 veqiro labs · made by humans (mostly)',
-  links: [
-    { label: 'terms', href: '/terms' },
-    { label: 'privacy', href: '/privacy' },
-    { label: 'cookies (chocolate chip)', href: '/privacy#cookies' },
-  ],
+  links: [] as { label: string; href: string }[],
 };
 
 export const siteConfig = {

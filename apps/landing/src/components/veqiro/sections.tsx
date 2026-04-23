@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { FONT } from './shared';
 import {
   mainAppUrl,
@@ -8,6 +9,7 @@ import {
   pricingTiers,
   faqItems,
   footerColumns,
+  social,
   footerBottom,
 } from '@/lib/site-config';
 
@@ -217,47 +219,152 @@ export function FinalCTA() {
   );
 }
 
+const SOCIAL_LINKS = [
+  { label: 'X', href: social.twitter },
+  { label: 'Li', href: social.linkedin },
+  { label: 'Ig', href: social.instagram },
+  { label: 'Gh', href: social.github },
+];
+
 export function Footer() {
   return (
-    <footer style={{ background: '#111', color: '#EFE7D6', padding: '64px 32px 32px' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 40, marginBottom: 48 }}>
-        <div>
-          <div style={{ fontFamily: FONT.display, fontSize: 42, color: '#EFE7D6', lineHeight: 1 }}>veqiro</div>
-          <p style={{ fontFamily: FONT.body, fontSize: 14, marginTop: 12, color: '#CFC6B2', maxWidth: 260 }}>
-            AI employees with real jobs. Made in a small room, loud.
-          </p>
-        </div>
-        {footerColumns.map(col => (
-          <div key={col.h}>
-            <div style={{ fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase', letterSpacing: 2, color: '#F5C518', marginBottom: 16 }}>
-              {col.h}
-            </div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
-              {col.links.map(link => (
-                <li key={link.label}>
-                  <a href={link.href} style={{ color: '#EFE7D6', textDecoration: 'none', fontFamily: FONT.body, fontSize: 15 }}>
-                    {link.label}
-                  </a>
-                </li>
+    <footer style={{ background: '#111', color: '#EFE7D6', padding: '72px 32px 36px' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+
+        {/* Top grid: brand + columns */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: 40,
+          marginBottom: 56,
+        }}>
+          {/* Brand */}
+          <div>
+            <Link href="/" style={{ textDecoration: 'none' }}>
+              <div style={{ fontFamily: FONT.display, fontSize: 40, color: '#EFE7D6', lineHeight: 1 }}>veqiro</div>
+            </Link>
+            <p style={{ fontFamily: FONT.body, fontSize: 14, marginTop: 14, color: '#CFC6B2', lineHeight: 1.65, maxWidth: 200 }}>
+              Six AI employees that do real work. Made in a small room, loud.
+            </p>
+            {/* Social icons */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              {SOCIAL_LINKS.map(s => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 8,
+                    border: '2px solid #333',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: '#888',
+                    textDecoration: 'none',
+                    fontFamily: FONT.mono,
+                    fontSize: 10,
+                    textTransform: 'uppercase' as const,
+                    letterSpacing: 0.5,
+                    transition: 'border-color 150ms, color 150ms',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#F5C518';
+                    (e.currentTarget as HTMLAnchorElement).style.color = '#F5C518';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#333';
+                    (e.currentTarget as HTMLAnchorElement).style.color = '#888';
+                  }}
+                >
+                  {s.label}
+                </a>
               ))}
-            </ul>
+            </div>
           </div>
-        ))}
-      </div>
-      <div style={{
-        maxWidth: 1400, margin: '0 auto', paddingTop: 24, borderTop: '2px solid #333',
-        display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
-        fontFamily: FONT.mono, fontSize: 12, color: '#888',
-      }}>
-        <div>{footerBottom.copyright}</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {footerBottom.links.map((l, i) => (
-            <React.Fragment key={l.label}>
-              {i > 0 && <span>·</span>}
-              <a href={l.href} style={{ color: '#888', textDecoration: 'none' }}>{l.label}</a>
-            </React.Fragment>
+
+          {/* Link columns */}
+          {footerColumns.map(col => (
+            <div key={col.h}>
+              <div style={{
+                fontFamily: FONT.head,
+                fontSize: 11,
+                textTransform: 'uppercase' as const,
+                letterSpacing: 2,
+                color: '#F5C518',
+                marginBottom: 18,
+              }}>
+                {col.h}
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }}>
+                {col.links.map(link => {
+                  const isInternal = link.href.startsWith('/') || link.href.startsWith('#');
+                  const linkStyle: React.CSSProperties = {
+                    color: '#AAA',
+                    textDecoration: 'none',
+                    fontFamily: FONT.body,
+                    fontSize: 14,
+                    lineHeight: 1,
+                    transition: 'color 120ms',
+                  };
+                  return (
+                    <li key={link.label}>
+                      {isInternal ? (
+                        <Link
+                          href={link.href}
+                          style={linkStyle}
+                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#EFE7D6')}
+                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#AAA')}
+                        >
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <a
+                          href={link.href}
+                          style={linkStyle}
+                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#EFE7D6')}
+                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#AAA')}
+                        >
+                          {link.label}
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           ))}
         </div>
+
+        {/* Bottom bar */}
+        <div style={{
+          paddingTop: 24,
+          borderTop: '1px solid #2a2a2a',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <div style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555' }}>
+            {footerBottom.copyright}
+          </div>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+            <Link href="/privacy" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+              Privacy
+            </Link>
+            <span style={{ color: '#333' }}>·</span>
+            <Link href="/terms" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+              Terms
+            </Link>
+            <span style={{ color: '#333' }}>·</span>
+            <Link href="/privacy#cookies" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+              Cookies
+            </Link>
+          </div>
+        </div>
+
       </div>
     </footer>
   );

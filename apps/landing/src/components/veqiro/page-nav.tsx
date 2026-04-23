@@ -5,8 +5,8 @@ import { mainAppUrl } from '@/lib/site-config';
 
 const NAV_LINKS = [
   { href: '/#crew', label: 'The Crew' },
+  { href: '/pricing', label: 'Pricing' },
   { href: '/#how', label: 'How it Works' },
-  { href: '/#pricing', label: 'Pricing' },
   { href: '/#faq', label: 'FAQ' },
 ];
 

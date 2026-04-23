@@ -85,6 +85,33 @@ export default function TermsPage() {
       {/* Content */}
       <section style={{ padding: '80px 32px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
+
+          {/* TL;DR */}
+          <div style={{
+            background: '#FFF9ED', border: '3px solid #111', borderRadius: 14,
+            padding: '24px 28px', boxShadow: '5px 5px 0 #111', marginBottom: 56,
+          }}>
+            <div style={{
+              fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase',
+              letterSpacing: 2, color: '#666', marginBottom: 12,
+            }}>
+              Short version
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'grid', gap: 8 }}>
+              {[
+                "Use Veqiro for legitimate business work. Don't use it to spam or deceive.",
+                "You own your content. We own the platform. AI outputs are yours.",
+                "7-day free trial, then monthly or annual billing — cancel anytime.",
+                "AI outputs are not legal, financial, or medical advice. Always review before acting.",
+                "Governed by Indian law (Bengaluru). Questions? hello@veqiro.com",
+              ].map(item => (
+                <li key={item} style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.55, color: '#333' }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <Section title="1. Acceptance">
             <P>By accessing or using Veqiro, you agree to be bound by these Terms. If you don't agree, do not use the service. If you're using Veqiro on behalf of an organization, you represent you have authority to bind that organization.</P>
           </Section>
