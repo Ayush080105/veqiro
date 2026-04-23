@@ -119,46 +119,6 @@ const STARS = [
   { t: 570, l: '',    r: '8%', color: '#8A8AF0', sz: 36, rot: -10, dur: 4.8, d: 0.7, dense: false },
 ];
 
-const HERO_CARDS = [
-  { top: 145, l: '14%', r: '',   rot: -2,   dur: 4.5, d: 0.0, agent: 'Vega',  ac: '#6FCDE8', text: 'Calendar sorted. Blocked 2hrs tomorrow for deep work — you\'re welcome.' },
-  { top: 380, l: '5%',  r: '',   rot:  1.5, dur: 5.2, d: 0.7, agent: 'Scout', ac: '#F5C518', text: 'Found the weird one — Tallinn startup, 4 people, shipping faster than Stripe in 2012.' },
-  { top: 565, l: '13%', r: '',   rot: -1,   dur: 4.8, d: 1.4, agent: 'Maya',  ac: '#F06464', text: 'Drafted 3 posts. Image generated. Publishing directly. I vote spicy — brace.' },
-  { top: 180, l: '',    r: '5%', rot:  2,   dur: 4.2, d: 0.4, agent: 'Lex',   ac: '#8A8AF0', text: 'Clause 7.3 is a trap. Redlined it. Sending to counsel with a summary.' },
-  { top: 390, l: '',    r: '14%',rot: -1.5, dur: 5.6, d: 1.1, agent: 'Sage',  ac: '#F79FD4', text: '12 keywords ranking this week. Starting with long-tails. First wins ~10 days.' },
-  { top: 570, l: '',    r: '4%', rot:  1,   dur: 5.0, d: 0.3, agent: 'Rex',   ac: '#1DBC87', text: 'CAC spiked 3× on Meta last Tuesday. Want the chart or just the fix?' },
-];
-
-function HeroCard({ c, inStrip }: { c: typeof HERO_CARDS[number]; inStrip?: boolean }) {
-  const absStyle: React.CSSProperties = inStrip
-    ? {}
-    : {
-        position: 'absolute',
-        top: c.top,
-        ...(c.l ? { left: c.l } : { right: c.r }),
-        transform: `rotate(${c.rot}deg)`,
-        animation: `hfloat ${c.dur}s ${c.d}s ease-in-out infinite`,
-      };
-  return (
-    <div
-      className={inStrip ? 'hero-card' : 'hero-card hero-card-abs'}
-      aria-hidden
-      style={{
-        width: 194, background: '#fff', border: '2px solid #111', borderRadius: 10,
-        padding: '12px 14px', boxShadow: `4px 4px 0 ${c.ac}`,
-        pointerEvents: 'none',
-        ...absStyle,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-        <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.ac, display: 'inline-block', flexShrink: 0 }} />
-        <span style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: '#777' }}>{c.agent}</span>
-        <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 9, color: '#aaa' }}>just now</span>
-      </div>
-      <div style={{ fontFamily: FONT.body, fontSize: 12.5, lineHeight: 1.45, color: '#111' }}>{c.text}</div>
-    </div>
-  );
-}
-
 export function Hero() {
   const [count, setCount] = useState(0);
   const stageRef = useRef<HTMLElement>(null);
@@ -252,11 +212,6 @@ export function Hero() {
         lineHeight: 1, pointerEvents: 'none', userSelect: 'none',
       }}>✦</div>
 
-      {/* Floating agent action cards (desktop: absolute; mobile: horizontal scroll strip below) */}
-      {HERO_CARDS.map((c, i) => (
-        <HeroCard key={`abs-${i}`} c={c} />
-      ))}
-
       {/* Shared top nav */}
       <NavShared variant="hero" />
 
@@ -312,12 +267,6 @@ export function Hero() {
         </div>
       </div>
 
-      {/* Mobile/tablet: horizontal scroll strip of the same hero cards */}
-      <div className="hero-card-strip" aria-hidden data-testid="hero-card-strip">
-        {HERO_CARDS.map((c, i) => (
-          <HeroCard key={`strip-${i}`} c={c} inStrip />
-        ))}
-      </div>
     </>
   );
 
