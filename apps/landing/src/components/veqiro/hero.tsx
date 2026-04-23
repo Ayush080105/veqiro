@@ -67,6 +67,8 @@ export function Hero() {
       <style>{`
         @keyframes hfloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
         @media (max-width: 1180px) { .hero-card { display: none !important; } }
+        .nav-pill-link { color: #111; text-decoration: none; font-family: var(--font-archivo), sans-serif; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; padding: 10px 18px; display: block; border-radius: 999px; transition: background 150ms, color 150ms; }
+        .nav-pill-link:hover { background: #111 !important; color: #EFE7D6 !important; }
       `}</style>
       {([
         { t: 90,  l: '3%',  r: '',   color: '#F5C518', sz: 52, rot: -15, dur: 4,   d: 0    },
@@ -127,31 +129,46 @@ export function Hero() {
       {/* Nav */}
       <nav style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        maxWidth: 1400, margin: '0 auto 60px',
+        maxWidth: 1400, margin: '0 auto 64px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Logo */}
+        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit' }}>
           <div style={{
-            width: 42, height: 42, background: '#111', borderRadius: 10,
+            width: 50, height: 50, background: '#111', borderRadius: 12,
             display: 'grid', placeItems: 'center', transform: 'rotate(-6deg)',
-            boxShadow: '3px 3px 0 #F5C518',
+            boxShadow: '4px 4px 0 #F5C518', flexShrink: 0,
           }}>
-            <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 24 }}>v</span>
+            <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 28 }}>v</span>
           </div>
-          <span style={{ fontFamily: FONT.display, fontSize: 30, letterSpacing: 1 }}>veqiro</span>
-        </div>
-        <div style={{ display: 'flex', gap: 32, fontFamily: FONT.body, fontWeight: 600, fontSize: 15 }}>
+          <div>
+            <div style={{ fontFamily: FONT.display, fontSize: 36, lineHeight: 1, color: '#111' }}>veqiro</div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase', color: '#888', marginTop: 2 }}>AI Workforce</div>
+          </div>
+        </a>
+
+        {/* Pill nav */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 2,
+          background: '#fff', border: '2.5px solid #111', borderRadius: 999,
+          padding: '5px 6px', boxShadow: '4px 4px 0 #111',
+        }}>
           {navLinks.map(({ href, label }) => (
-            <a key={href} href={href} style={{ color: '#111', textDecoration: 'none', borderBottom: '2px solid transparent', paddingBottom: 2 }}>
-              {label}
-            </a>
+            <a key={href} href={href} className="nav-pill-link">{label}</a>
           ))}
         </div>
-        <a href={`${mainAppUrl}/signup`} style={{
-          background: '#111', color: '#EFE7D6', padding: '12px 22px', borderRadius: 999,
-          fontFamily: FONT.head, fontSize: 13, letterSpacing: 1,
-          textTransform: 'uppercase', textDecoration: 'none',
-          boxShadow: '4px 4px 0 #F06464', border: '2px solid #111',
-        }}>Hire the Crew →</a>
+
+        {/* Right actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <a href={`${mainAppUrl}/login`} style={{
+            color: '#555', textDecoration: 'none',
+            fontFamily: FONT.head, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase',
+          }}>Log in</a>
+          <a href={`${mainAppUrl}/signup`} style={{
+            background: '#F06464', color: '#111', padding: '14px 26px', borderRadius: 12,
+            fontFamily: FONT.head, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase',
+            textDecoration: 'none', border: '2.5px solid #111', boxShadow: '4px 4px 0 #111',
+          }}>Start free →</a>
+        </div>
       </nav>
 
       {/* Content */}

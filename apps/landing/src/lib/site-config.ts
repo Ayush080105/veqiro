@@ -81,11 +81,12 @@ export const pricingTiers: PricingTier[] = [
     tag: 'the full gang',
     color: '#F06464',
     includes: [
-      'All AI employees',
-      'Shared memory + context',
-      'Priority processing',
-      'Custom brand voice',
-      'Slack + CRM + 30 tools',
+      'Your 6-Member AI Team (All Included)',
+      'Lex, Maya, Rex, Sage, Scout & Vega — Ready to Work',
+      'Everything Stays Connected (Shared Context)',
+      'Faster Than Traditional Workflows',
+      'Speaks Exactly Like Your Brand',
+      'Works With Your Existing Tools',
     ],
     popular: true,
   },
@@ -93,20 +94,52 @@ export const pricingTiers: PricingTier[] = [
 
 export const faqItems = [
   {
-    q: 'wait, are these real people?',
-    a: "Nope. They're AI agents — but they have names, personalities, and specialties so you don't have to keep retyping \"act as a senior copywriter with 10 years of experience...\".",
+    q: 'wait… are these real people?',
+    a: "No. Real people need sleep, salaries, and validation. These don't.",
   },
   {
-    q: 'what do they actually do?',
-    a: "Real work. Vega books meetings via email. Sage pushes SEO changes to your CMS. Rex pulls data from your warehouse. They connect to the tools you already use.",
+    q: "so they won't ghost me like freelancers?",
+    a: "Exactly. They don't disappear mid-project or \"circle back next week.\"",
   },
   {
     q: 'will they replace my team?',
-    a: "Your team will become a 3x team. They take the grunt work, your humans stay on the strategy. Also your humans can sleep.",
+    a: "Only the part of your team that says \"let's do it tomorrow.\"",
+  },
+  {
+    q: 'do they take breaks?',
+    a: "No lunch. No coffee. No burnout. Just work. Constantly. Slightly terrifying.",
+  },
+  {
+    q: 'what if they make mistakes?',
+    a: "They fix them. Unlike that one guy who still blames \"miscommunication.\"",
   },
   {
     q: 'is my data safe?',
-    a: "SOC 2 Type II. Zero training on your data. EU + US regions. Delete any time. Lex will quote the fine print at you if you ask.",
+    a: "Safer than your \"123456\" password era. We take security more seriously than your last startup idea.",
+  },
+  {
+    q: 'do they judge my ideas?',
+    a: "Never. Even your \"Uber for dogs but crypto-powered\" idea is safe here.",
+  },
+  {
+    q: 'how fast are they?',
+    a: "Faster than your motivation after watching one startup reel.",
+  },
+  {
+    q: 'can they handle pressure?',
+    a: "They don't feel pressure. They apply pressure — on your pending tasks.",
+  },
+  {
+    q: "what if I don't know what I'm doing?",
+    a: "Perfect. That's literally why they exist.",
+  },
+  {
+    q: 'is this just another AI tool?',
+    a: "If it was, you'd already have 5 tabs open and still be confused.",
+  },
+  {
+    q: 'why Veqiro?',
+    a: "Because doing everything yourself was never a flex. It was just inefficient.",
   },
 ];
 
