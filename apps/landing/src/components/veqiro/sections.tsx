@@ -244,7 +244,7 @@ export function Footer() {
               <div style={{ fontFamily: FONT.display, fontSize: 40, color: '#EFE7D6', lineHeight: 1 }}>veqiro</div>
             </Link>
             <p style={{ fontFamily: FONT.body, fontSize: 14, marginTop: 14, color: '#CFC6B2', lineHeight: 1.65, maxWidth: 200 }}>
-              Six AI employees that do real work. Made in a small room, loud.
+              AI employees that do real work. Made in a small room, loud.
             </p>
             {/* Social icons */}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>

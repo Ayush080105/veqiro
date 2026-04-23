@@ -56,10 +56,10 @@ export function MobileChatDemo({ employee }: Props) {
       <div style={{
         width: 300,
         height: 560,
-        background: '#111',
+        background: '#EFE7D6',
         borderRadius: 42,
-        border: '3px solid #333',
-        boxShadow: `0 0 0 6px #111, 0 0 0 9px ${employee.color}, 10px 20px 0 rgba(0,0,0,0.25)`,
+        border: '3px solid #111',
+        boxShadow: `8px 8px 0 ${employee.color}, 12px 12px 0 #111`,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -72,47 +72,51 @@ export function MobileChatDemo({ employee }: Props) {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0,
+          background: '#EFE7D6',
         }}>
-          <span style={{ color: '#888', fontFamily: FONT.mono, fontSize: 11 }}>9:41</span>
+          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 11, fontWeight: 600 }}>9:41</span>
+          {/* Veqiro logo mark */}
           <div style={{
-            width: 88,
-            height: 20,
-            background: '#1a1a1a',
-            borderRadius: 999,
-            border: '1px solid #333',
-          }} />
-          <span style={{ color: '#888', fontFamily: FONT.mono, fontSize: 11 }}>●●●</span>
+            width: 26, height: 26, background: '#111', borderRadius: 6,
+            display: 'grid', placeItems: 'center', transform: 'rotate(-6deg)',
+            boxShadow: '2px 2px 0 #F5C518', flexShrink: 0,
+          }}>
+            <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 15, lineHeight: 1 }}>v</span>
+          </div>
+          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 11 }}>●●●</span>
         </div>
 
         {/* Chat header */}
         <div style={{
           padding: '6px 16px 12px',
-          borderBottom: '1px solid #222',
+          borderBottom: '2px solid #111',
+          borderTop: '2px solid #111',
+          background: '#fff',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
           flexShrink: 0,
         }}>
-          <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            background: employee.color,
-            border: '2px solid #333',
-            display: 'grid',
-            placeItems: 'center',
-            fontFamily: FONT.head,
-            fontSize: 14,
-            color: employee.ink,
-            flexShrink: 0,
-          }}>
-            {employee.name[0]}
-          </div>
+          <img
+            src={`/${employee.name}.jpeg`}
+            alt={employee.name}
+            style={{
+              width: 34, height: 34, borderRadius: '50%',
+              border: '2px solid #111', objectFit: 'cover', flexShrink: 0,
+            }}
+          />
           <div>
-            <div style={{ color: '#eee', fontFamily: FONT.head, fontSize: 13, lineHeight: 1.2 }}>
+            <div style={{ color: '#111', fontFamily: FONT.head, fontSize: 13, lineHeight: 1.2 }}>
               {employee.name}
             </div>
             <div style={{ color: '#1DBC87', fontFamily: FONT.mono, fontSize: 10 }}>● online</div>
+          </div>
+          <div style={{
+            marginLeft: 'auto',
+            fontFamily: FONT.mono, fontSize: 9, letterSpacing: 1,
+            textTransform: 'uppercase', color: '#aaa',
+          }}>
+            veqiro
           </div>
         </div>
 
@@ -127,6 +131,7 @@ export function MobileChatDemo({ employee }: Props) {
             flexDirection: 'column',
             gap: 8,
             scrollbarWidth: 'none',
+            background: '#EFE7D6',
           }}
         >
           {messages.map(msg => (
@@ -139,14 +144,15 @@ export function MobileChatDemo({ employee }: Props) {
             >
               <div style={{
                 maxWidth: '80%',
-                background: msg.role === 'user' ? employee.color : '#1e1e1e',
-                color: msg.role === 'user' ? employee.ink : '#ddd',
+                background: msg.role === 'user' ? employee.color : '#fff',
+                color: '#111',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 padding: '9px 13px',
                 fontFamily: FONT.body,
                 fontSize: 12,
                 lineHeight: 1.5,
-                border: `1px solid ${msg.role === 'user' ? 'transparent' : '#2a2a2a'}`,
+                border: '2px solid #111',
+                boxShadow: msg.role === 'agent' ? `2px 2px 0 ${employee.color}` : '2px 2px 0 #111',
               }}>
                 {msg.content}
               </div>
@@ -156,10 +162,11 @@ export function MobileChatDemo({ employee }: Props) {
           {typing && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{
-                background: '#1e1e1e',
+                background: '#fff',
                 borderRadius: '16px 16px 16px 4px',
                 padding: '11px 16px',
-                border: '1px solid #2a2a2a',
+                border: '2px solid #111',
+                boxShadow: `2px 2px 0 ${employee.color}`,
                 display: 'flex',
                 gap: 5,
                 alignItems: 'center',
@@ -171,7 +178,7 @@ export function MobileChatDemo({ employee }: Props) {
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      background: '#555',
+                      background: '#111',
                       animation: 'bounce 1s infinite',
                       animationDelay: `${i * 0.2}s`,
                     }}
@@ -185,7 +192,8 @@ export function MobileChatDemo({ employee }: Props) {
         {/* Input bar */}
         <div style={{
           padding: '10px 12px',
-          borderTop: '1px solid #222',
+          borderTop: '2px solid #111',
+          background: '#fff',
           display: 'flex',
           gap: 8,
           alignItems: 'center',
@@ -193,13 +201,13 @@ export function MobileChatDemo({ employee }: Props) {
         }}>
           <div style={{
             flex: 1,
-            background: '#1a1a1a',
+            background: '#EFE7D6',
             borderRadius: 999,
             padding: '9px 14px',
-            color: '#444',
+            color: '#888',
             fontFamily: FONT.body,
             fontSize: 12,
-            border: '1px solid #2a2a2a',
+            border: '2px solid #111',
           }}>
             Message {employee.name}…
           </div>
@@ -208,11 +216,13 @@ export function MobileChatDemo({ employee }: Props) {
             height: 32,
             borderRadius: '50%',
             background: employee.color,
+            border: '2px solid #111',
+            boxShadow: '2px 2px 0 #111',
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
           }}>
-            <span style={{ color: employee.ink, fontSize: 14, lineHeight: 1 }}>↑</span>
+            <span style={{ color: '#111', fontSize: 14, lineHeight: 1 }}>↑</span>
           </div>
         </div>
       </div>

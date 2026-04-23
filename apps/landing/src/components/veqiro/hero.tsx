@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { FONT, Sticker } from './shared';
+import { EMPLOYEES } from './data';
 import { mainAppUrl, nav as navLinks } from '@/lib/site-config';
 
 function CursorEye({ size = 70, offset = [0, 0] }: { size?: number; offset?: number[] }) {
@@ -69,6 +70,13 @@ export function Hero() {
         @media (max-width: 1180px) { .hero-card { display: none !important; } }
         .nav-pill-link { color: #111; text-decoration: none; font-family: var(--font-archivo), sans-serif; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; padding: 10px 18px; display: block; border-radius: 999px; transition: background 150ms, color 150ms; }
         .nav-pill-link:hover { background: #111 !important; color: #EFE7D6 !important; }
+        .nav-crew-wrap { position: relative; color: #111; font-family: var(--font-archivo), sans-serif; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; padding: 10px 18px; border-radius: 999px; transition: background 150ms, color 150ms; cursor: pointer; user-select: none; }
+        .nav-crew-wrap:hover { background: #111 !important; color: #EFE7D6 !important; }
+        .nav-crew-wrap::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 14px; }
+        .nav-crew-menu { display: none; position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%); background: #fff; border: 2.5px solid #111; border-radius: 14px; padding: 6px; box-shadow: 4px 4px 0 #111; min-width: 248px; z-index: 200; }
+        .nav-crew-wrap:hover .nav-crew-menu { display: flex; flex-direction: column; }
+        .nav-crew-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; text-decoration: none; color: #111 !important; transition: background 120ms; }
+        .nav-crew-item:hover { background: #F5F0E8; }
       `}</style>
       {([
         { t: 90,  l: '3%',  r: '',   color: '#F5C518', sz: 52, rot: -15, dur: 4,   d: 0    },
@@ -104,7 +112,7 @@ export function Hero() {
       {([
         { top: 145, l: '14%', r: '',   rot: -2,   dur: 4.5, d: 0.0, agent: 'Vega',  ac: '#6FCDE8', text: 'Calendar sorted. Blocked 2hrs tomorrow for deep work — you\'re welcome.' },
         { top: 380, l: '5%',  r: '',   rot:  1.5, dur: 5.2, d: 0.7, agent: 'Scout', ac: '#F5C518', text: 'Found the weird one — Tallinn startup, 4 people, shipping faster than Stripe in 2012.' },
-        { top: 565, l: '13%', r: '',   rot: -1,   dur: 4.8, d: 1.4, agent: 'Maya',  ac: '#F06464', text: 'Drafted 3 posts. I vote spicy. Options in 6 min. Brace.' },
+        { top: 565, l: '13%', r: '',   rot: -1,   dur: 4.8, d: 1.4, agent: 'Maya',  ac: '#F06464', text: 'Drafted 3 posts. Image generated. Publishing directly. I vote spicy — brace.' },
         { top: 180, l: '',    r: '5%', rot:  2,   dur: 4.2, d: 0.4, agent: 'Lex',   ac: '#8A8AF0', text: 'Clause 7.3 is a trap. Redlined it. Sending to counsel with a summary.' },
         { top: 390, l: '',    r: '14%',rot: -1.5, dur: 5.6, d: 1.1, agent: 'Sage',  ac: '#F79FD4', text: '12 keywords ranking this week. Starting with long-tails. First wins ~10 days.' },
         { top: 570, l: '',    r: '4%', rot:  1,   dur: 5.0, d: 0.3, agent: 'Rex',   ac: '#1DBC87', text: 'CAC spiked 3× on Meta last Tuesday. Want the chart or just the fix?' },
@@ -154,6 +162,18 @@ export function Hero() {
           {navLinks.map(({ href, label }) => (
             <a key={href} href={href} className="nav-pill-link">{label}</a>
           ))}
+          <div className="nav-crew-wrap">
+            The Employees ▾
+            <div className="nav-crew-menu">
+              {EMPLOYEES.map(emp => (
+                <a key={emp.key} href={`/agents/${emp.key}`} className="nav-crew-item">
+                  <img src={`/${emp.name}.jpeg`} alt={emp.name} style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #111', objectFit: 'cover', flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>{emp.name}</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{emp.role}</span>
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Right actions */}
@@ -163,9 +183,9 @@ export function Hero() {
             fontFamily: FONT.head, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase',
           }}>Log in</a>
           <a href={`${mainAppUrl}/signup`} style={{
-            background: '#F06464', color: '#111', padding: '14px 26px', borderRadius: 12,
+            background: '#111', color: '#EFE7D6', padding: '14px 26px', borderRadius: 12,
             fontFamily: FONT.head, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase',
-            textDecoration: 'none', border: '2.5px solid #111', boxShadow: '4px 4px 0 #111',
+            textDecoration: 'none', border: '2.5px solid #111', boxShadow: '4px 4px 0 #6FCDE8',
           }}>Start free →</a>
         </div>
       </nav>
@@ -194,7 +214,7 @@ export function Hero() {
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 36, flexWrap: 'wrap' }}>
             <a href={`${mainAppUrl}/signup`} style={{
-              background: '#F06464', color: '#111', padding: '18px 32px',
+              background: '#F5C518', color: '#111', padding: '18px 32px',
               fontFamily: FONT.head, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1,
               textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '6px 6px 0 #111',
               display: 'inline-block',
