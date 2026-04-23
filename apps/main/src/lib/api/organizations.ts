@@ -24,6 +24,7 @@ export async function createOrganization(input: CreateOrganizationInput): Promis
     const res = await authClient.organization.create({
       name: input.name,
       slug: input.slug,
+      onboarded: false,
       ...(input.logo ? { logo: input.logo } : {}),
     });
 

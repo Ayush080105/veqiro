@@ -6,6 +6,7 @@ interface MetricCardProps {
   value: string
   change?: string
   trend?: "up" | "down" | "neutral"
+  sparkline?: number[]
 }
 
 const TREND_COLORS: Record<"up" | "down" | "neutral", string> = {
@@ -14,7 +15,34 @@ const TREND_COLORS: Record<"up" | "down" | "neutral", string> = {
   neutral: "var(--vq-yellow)",
 }
 
-export function MetricCard({ label, value, change, trend }: MetricCardProps) {
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  if (!values.length) return null
+  const w = 120
+  const h = 32
+  const max = Math.max(1, ...values)
+  const stepX = values.length > 1 ? w / (values.length - 1) : 0
+  const points = values.map((v, i) => {
+    const x = i * stepX
+    const y = h - (v / max) * h
+    return `${x.toFixed(2)},${y.toFixed(2)}`
+  })
+  const path = `M ${points.join(" L ")}`
+  const area = `${path} L ${w},${h} L 0,${h} Z`
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      width="100%"
+      height="32"
+      style={{ display: "block" }}
+    >
+      <path d={area} fill={color} fillOpacity={0.25} stroke="none" />
+      <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function MetricCard({ label, value, change, trend, sparkline }: MetricCardProps) {
   const accent = TREND_COLORS[trend ?? "neutral"]
   const Icon =
     trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus
@@ -47,7 +75,7 @@ export function MetricCard({ label, value, change, trend }: MetricCardProps) {
       <p
         style={{
           fontFamily: FONT.display,
-          fontSize: 44,
+          fontSize: 40,
           lineHeight: 1,
           color: "#111",
           margin: 0,
@@ -56,6 +84,11 @@ export function MetricCard({ label, value, change, trend }: MetricCardProps) {
       >
         {value}
       </p>
+      {sparkline && sparkline.length > 0 && (
+        <div style={{ marginTop: 2, marginBottom: 2 }}>
+          <Sparkline values={sparkline} color={accent} />
+        </div>
+      )}
       {change && trend && (
         <div
           style={{

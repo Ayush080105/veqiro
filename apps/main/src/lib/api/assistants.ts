@@ -1,7 +1,9 @@
-import type { Message, AgentSlug, AgentStatusData } from "@/lib/types"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { Message, AgentSlug, AgentStatusData, LastMessage } from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
 import { apiFetch, AgentNotAvailableError } from "@/lib/api/client"
 import { findAction } from "@/lib/agents/actions"
+import { qk } from "@/lib/query-keys"
 
 export { AgentNotAvailableError }
 
@@ -97,4 +99,145 @@ export async function getAssistantStatuses(
       vega: { status: "idle", lastActivity: "—" },
     }
   }
+}
+
+const EMPTY_LAST_MESSAGES: Record<AgentSlug, LastMessage | null> = {
+  maya: null,
+  rex: null,
+  scout: null,
+  sage: null,
+  lex: null,
+  vega: null,
+}
+
+export async function getLastMessages(): Promise<
+  Record<AgentSlug, LastMessage | null>
+> {
+  try {
+    return await apiFetch<Record<AgentSlug, LastMessage | null>>(
+      `/agents/last-messages`
+    )
+  } catch {
+    return { ...EMPTY_LAST_MESSAGES }
+  }
+}
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+export function useAgentStatuses(organizationId: string) {
+  return useQuery({
+    queryKey: qk.assistantStatuses(organizationId),
+    queryFn: () => getAssistantStatuses(organizationId),
+    enabled: !!organizationId,
+  })
+}
+
+export function useLastMessages() {
+  return useQuery({
+    queryKey: qk.lastMessages(),
+    queryFn: () => getLastMessages(),
+  })
+}
+
+export function useMessages(agentSlug: string, organizationId: string) {
+  return useQuery({
+    queryKey: qk.chat(agentSlug, organizationId),
+    queryFn: () => getMessages(agentSlug, organizationId),
+    enabled: !!agentSlug && !!organizationId,
+  })
+}
+
+export function useSendMessage(
+  agentSlug: string,
+  organizationId: string,
+  conversationId?: string,
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (content: string) =>
+      sendMessage(agentSlug, organizationId, content, conversationId),
+
+    onMutate: async (content: string) => {
+      const key = qk.chat(agentSlug, organizationId)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<Message[]>(key) ?? []
+      const optimistic: Message = {
+        role: "user",
+        content,
+        imageUrl: null,
+        createdAt: new Date().toISOString(),
+      }
+      queryClient.setQueryData<Message[]>(key, [...previous, optimistic])
+      return { previous }
+    },
+
+    onSuccess: (serverMsg: Message, content: string) => {
+      const key = qk.chat(agentSlug, organizationId)
+      queryClient.setQueryData<Message[]>(key, (prev) => [
+        ...(prev ?? []),
+        serverMsg,
+      ])
+
+      queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(
+        qk.lastMessages(),
+        (prev) => {
+          if (!prev) return prev
+          const slug = agentSlug as AgentSlug
+          return {
+            ...prev,
+            [slug]: {
+              content: serverMsg.content || content,
+              createdAt: serverMsg.createdAt ?? new Date().toISOString(),
+              role: serverMsg.role,
+            },
+          }
+        },
+      )
+    },
+
+    onError: (_err, _content, ctx) => {
+      if (!ctx) return
+      queryClient.setQueryData<Message[]>(
+        qk.chat(agentSlug, organizationId),
+        ctx.previous,
+      )
+    },
+  })
+}
+
+export function useRunAgentAction(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (args: {
+      actionId: AgentActionId
+      input: unknown
+      conversationId?: string
+    }): Promise<{ agentSlug: string; result: unknown }> => {
+      const meta = findAction(args.actionId)
+      if (!meta) throw new Error(`Unknown action: ${args.actionId}`)
+      const result = await runAgentAction<unknown, unknown>(
+        args.actionId,
+        organizationId,
+        args.input,
+        args.conversationId,
+      )
+      return { agentSlug: meta.agent, result }
+    },
+    onSuccess: ({ agentSlug }) => {
+      queryClient.invalidateQueries({
+        queryKey: qk.chat(agentSlug, organizationId),
+      })
+    },
+  })
+}
+
+export function usePublishPost(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: PublishPostInput) => publishPost(organizationId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.integrations() })
+    },
+  })
 }

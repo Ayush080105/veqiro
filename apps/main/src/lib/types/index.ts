@@ -57,6 +57,12 @@ export interface AgentStatusData {
   lastActivity: string
 }
 
+export interface LastMessage {
+  content: string
+  createdAt: string
+  role: "user" | "assistant"
+}
+
 // ─── Brain / Brand Kit Types ──────────────────────────────────────────────────
 
 export interface BrandColors {

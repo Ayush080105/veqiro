@@ -1,4 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { BrandKit } from "@/lib/types"
+import { qk } from "@/lib/query-keys"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -54,4 +56,30 @@ export async function scrapeBrandKit(
   })
   if (!res.ok) throw new Error("Failed to scrape URL")
   return res.json()
+}
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+export function useBrandKit(organizationId: string) {
+  return useQuery({
+    queryKey: qk.brandKit(organizationId),
+    queryFn: () => getBrandKit(organizationId),
+    enabled: !!organizationId,
+  })
+}
+
+export function useSaveBrandKit(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<BrandKit>) => saveBrandKit(organizationId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.brandKit(organizationId) })
+    },
+  })
+}
+
+export function useScrapeBrandKit(organizationId: string) {
+  return useMutation({
+    mutationFn: (url: string) => scrapeBrandKit(url, organizationId),
+  })
 }

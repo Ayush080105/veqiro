@@ -8,7 +8,7 @@ import { z } from "zod"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
-import { getBrandKit, saveBrandKit, scrapeBrandKit } from "@/lib/api/brain"
+import { useBrandKit, useSaveBrandKit, useScrapeBrandKit } from "@/lib/api/brain"
 import type { BrandKit } from "@/lib/types"
 
 import { Skeleton } from "@/components/ui/skeleton"
@@ -106,9 +106,12 @@ export default function BrainPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [scraping, setScraping] = useState(false)
+  const { data: kit, isPending: kitPending, isError: kitError } = useBrandKit(organizationId)
+  const saveMutation = useSaveBrandKit(organizationId)
+  const scrapeMutation = useScrapeBrandKit(organizationId)
+  const loading = !organizationId || kitPending
+
+  const [hydrated, setHydrated] = useState(false)
   const [hasPending, setHasPending] = useState(false)
   const [backendUnavailable, setBackendUnavailable] = useState(false)
   const [isEmpty, setIsEmpty] = useState(false)
@@ -133,61 +136,43 @@ export default function BrainPage() {
     name: "competitors",
   })
 
-  // Load brand kit on mount: backend first, then localStorage fallback.
   useEffect(() => {
-    if (!organizationId) return
-    let cancelled = false
-    setLoading(true)
+    if (!organizationId || kitPending || hydrated) return
 
-    getBrandKit(organizationId)
-      .then((kit) => {
-        if (cancelled) return
-        if (kit && kit.company_name?.trim()) {
-          reset(brandKitToForm(kit))
-          setBackendUnavailable(false)
-          setIsEmpty(false)
-        } else {
-          setBackendUnavailable(!kit)
-          try {
-            const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
-            if (local) {
-              const parsed = JSON.parse(local) as BrandKit
-              if (parsed.company_name?.trim()) {
-                reset(brandKitToForm(parsed))
-                setIsEmpty(false)
-              } else {
-                setIsEmpty(true)
-              }
-            } else {
-              setIsEmpty(true)
-            }
-          } catch {
+    if (kit && kit.company_name?.trim()) {
+      reset(brandKitToForm(kit))
+      setBackendUnavailable(false)
+      setIsEmpty(false)
+    } else {
+      setBackendUnavailable(kitError || !kit)
+      try {
+        const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
+        if (local) {
+          const parsed = JSON.parse(local) as BrandKit
+          if (parsed.company_name?.trim()) {
+            reset(brandKitToForm(parsed))
+            setIsEmpty(false)
+          } else {
             setIsEmpty(true)
           }
+        } else {
+          setIsEmpty(true)
         }
-        // One-time "seeded from onboarding" hint.
-        try {
-          const key = `veqiro.brain.seeded.${organizationId}`
-          if (localStorage.getItem(key) === "1") {
-            setSeededHint(true)
-            localStorage.removeItem(key)
-          }
-        } catch {
-          /* ignore */
-        }
-      })
-      .catch(() => {
-        if (cancelled) return
-        setBackendUnavailable(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
+      } catch {
+        setIsEmpty(true)
+      }
     }
-  }, [organizationId, reset])
+    try {
+      const key = `veqiro.brain.seeded.${organizationId}`
+      if (localStorage.getItem(key) === "1") {
+        setSeededHint(true)
+        localStorage.removeItem(key)
+      }
+    } catch {
+      /* ignore */
+    }
+    setHydrated(true)
+  }, [organizationId, kit, kitPending, kitError, hydrated, reset])
 
   const persistLocally = (values: BrainFormValues) => {
     if (!organizationId) return
@@ -210,7 +195,7 @@ export default function BrainPage() {
       const values = getValues()
       persistLocally(values)
       try {
-        const result = await saveBrandKit(organizationId, formToBrandKit(values))
+        const result = await saveMutation.mutateAsync(formToBrandKit(values))
         if (result.ok) {
           setHasPending(false)
           setBackendUnavailable(false)
@@ -230,10 +215,9 @@ export default function BrainPage() {
 
   const onSave = async (values: BrainFormValues) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    setSaving(true)
     persistLocally(values)
     try {
-      const result = await saveBrandKit(organizationId, formToBrandKit(values))
+      const result = await saveMutation.mutateAsync(formToBrandKit(values))
       if (result.ok) {
         setHasPending(false)
         setBackendUnavailable(false)
@@ -246,8 +230,8 @@ export default function BrainPage() {
       } else {
         toast.error("Failed to save brand kit")
       }
-    } finally {
-      setSaving(false)
+    } catch {
+      toast.error("Failed to save brand kit")
     }
   }
 
@@ -257,9 +241,8 @@ export default function BrainPage() {
       toast.error("Enter a website URL first")
       return
     }
-    setScraping(true)
     try {
-      const scraped = await scrapeBrandKit(url, organizationId)
+      const scraped = await scrapeMutation.mutateAsync(url)
       if (!scraped || Object.keys(scraped).length === 0) {
         toast.info("Auto-fill isn't connected yet — fill fields manually for now.")
         return
@@ -282,10 +265,11 @@ export default function BrainPage() {
       scheduleAutoSave()
     } catch {
       toast.error("Could not reach that URL")
-    } finally {
-      setScraping(false)
     }
   }
+
+  const saving = saveMutation.isPending
+  const scraping = scrapeMutation.isPending
 
   if (loading) {
     return (

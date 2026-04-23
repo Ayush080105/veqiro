@@ -28,3 +28,16 @@ export async function hasGoogleConnected(): Promise<boolean> {
   const accounts = await listLinkedAccounts()
   return accounts.some((a) => a.providerId === "google")
 }
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useQuery } from "@tanstack/react-query"
+import { qk } from "@/lib/query-keys"
+
+export function useGoogleConnected(enabled = true) {
+  return useQuery({
+    queryKey: qk.googleConnected(),
+    queryFn: () => hasGoogleConnected(),
+    enabled,
+  })
+}

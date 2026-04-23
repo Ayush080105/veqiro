@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 140" shape-rendering="geometricPrecision" role="img" aria-label="veqiro">
+  <title>veqiro</title>
+  <g transform="rotate(-2 240 70)">
+    <rect x="16" y="28" width="448" height="100" rx="22" fill="#F5C518"/>
+    <rect x="8" y="20" width="448" height="100" rx="22" fill="#FFF9ED" stroke="#111" stroke-width="3"/>
+    <g transform="rotate(-6 74 70)">
+      <rect x="40" y="40" width="68" height="68" rx="14" fill="#F5C518"/>
+      <rect x="34" y="34" width="68" height="68" rx="14" fill="#111"/>
+      <text x="68" y="88" text-anchor="middle" fill="#EFE7D6" font-family="'Bagel Fat One','Archivo Black',ui-sans-serif,system-ui,sans-serif" font-size="56">v</text>
+    </g>
+    <text x="138" y="94" font-family="'Bagel Fat One','Archivo Black',ui-sans-serif,system-ui,sans-serif" font-size="62" fill="#111" letter-spacing="-2">veqiro</text>
+    <circle cx="438" cy="38" r="7" fill="#1DBC87" stroke="#111" stroke-width="2"/>
+  </g>
+</svg>

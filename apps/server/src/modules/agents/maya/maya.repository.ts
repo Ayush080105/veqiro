@@ -52,7 +52,7 @@ export const findRecentMessages = (organizationId: string, limit: number) =>
 export const findAllMayaMessages = (organizationId: string) =>
   prisma.message.findMany({
     where: { organizationId, agent: Agent.MAYA },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
     select: {
       role: true,
       content: true,

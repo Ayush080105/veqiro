@@ -1,12 +1,12 @@
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "../config/prisma.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../common/utils/mailer.js";
-import { admin } from "better-auth/plugins";
-import { organization } from "better-auth/plugins"
-export const auth = betterAuth({
-  url: process.env.BETTER_AUTH_URL || "http://localhost:5000",
+import { admin, organization, customSession } from "better-auth/plugins";
+
+const options = {
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
   basePath: `/api/${process.env.API_VERSION! || "v1"}/auth`,
   trustedOrigins: [process.env.CLIENT_URL || "http://localhost:3001"],
   database: prismaAdapter(prisma, {
@@ -23,7 +23,7 @@ export const auth = betterAuth({
         return await bcrypt.compare(password, hash);
       },
     },
-    async sendResetPassword({ user, url, }) {
+    async sendResetPassword({ user, url }) {
       await sendEmail("resetPassword", user.email, url, user.name);
     },
   },
@@ -51,7 +51,36 @@ export const auth = betterAuth({
       prompt: "consent",
     },
   },
-  plugins: [admin(), organization()],
+  plugins: [
+    admin(),
+    organization({
+      schema: {
+        organization: {
+          additionalFields: {
+            onboarded: {
+              type: "boolean",
+              input: false,
+              defaultValue: false,
+            },
+          },
+        },
+      },
+    }),
+  ],
+} satisfies BetterAuthOptions;
+
+export const auth = betterAuth({
+  ...options,
+  plugins: [
+    ...options.plugins,
+    customSession(async ({ user, session }) => {
+      const activeOrganization = session.activeOrganizationId
+        ? await prisma.organization.findUnique({
+            where: { id: session.activeOrganizationId },
+            select: { id: true, name: true, slug: true, onboarded: true },
+          })
+        : null;
+      return { user, session, activeOrganization };
+    }, options),
+  ],
 });
-
-

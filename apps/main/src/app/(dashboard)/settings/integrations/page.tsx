@@ -1,7 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { CheckCircle2, XCircle, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 
@@ -12,12 +13,13 @@ import { SettingsNav } from "@/components/settings/SettingsNav"
 import { authClient } from "@/lib/auth-client"
 import {
   authorizeUrl,
-  disconnectIntegration,
-  listIntegrations,
   platformSlugToEnum,
+  useDisconnectIntegration,
+  useIntegrations,
   type SocialAccount,
   type SocialPlatformSlug,
 } from "@/lib/api/integrations"
+import { qk } from "@/lib/query-keys"
 import { PageHeader } from "@/components/veqiro/shared"
 
 // ─── Integration Config ───────────────────────────────────────────────────────
@@ -102,25 +104,22 @@ const INTEGRATIONS: IntegrationDef[] = [
 function IntegrationCard({
   integration,
   account,
-  onDisconnected,
 }: {
   integration: IntegrationDef
   account?: SocialAccount
-  onDisconnected?: () => void
 }) {
-  const [loading, setLoading] = useState(false)
+  const disconnect = useDisconnectIntegration()
   const connected = Boolean(account)
   const isWired = Boolean(integration.platformSlug) || Boolean(integration.useBetterAuth)
+  const loading = disconnect.isPending
 
   async function handleToggle() {
     if (!isWired) {
       toast.info(`${integration.name} integration isn't wired up yet.`)
       return
     }
-    setLoading(true)
     try {
       if (integration.useBetterAuth) {
-        // Better Auth's social sign-in links the provider to the existing session.
         await authClient.signIn.social({
           provider: "google",
           callbackURL: "/settings/integrations?connected=google",
@@ -128,11 +127,9 @@ function IntegrationCard({
         return
       }
       if (connected && account) {
-        await disconnectIntegration(account.id)
+        await disconnect.mutateAsync(account.id)
         toast.success(`${integration.name} disconnected`)
-        onDisconnected?.()
       } else if (integration.platformSlug) {
-        // Full-page redirect carries the session cookie to /authorize
         window.location.href = authorizeUrl(integration.platformSlug)
         return
       }
@@ -142,8 +139,6 @@ function IntegrationCard({
           (err as Error).message
         }`
       )
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -196,36 +191,21 @@ function IntegrationCard({
 export default function IntegrationsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [accounts, setAccounts] = useState<SocialAccount[]>([])
-
-  const refresh = useCallback(async () => {
-    try {
-      const list = await listIntegrations()
-      setAccounts(list)
-    } catch {
-      /* unauth / empty — leave as-is */
-    }
-  }, [])
-
-  useEffect(() => {
-    // Fetching on mount is intentional — this is the standard data-load pattern.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refresh()
-  }, [refresh])
+  const queryClient = useQueryClient()
+  const { data: accounts = [] } = useIntegrations()
 
   useEffect(() => {
     const connected = searchParams.get("connected")
     const error = searchParams.get("error")
     if (connected) {
       toast.success(`${connected.charAt(0).toUpperCase()}${connected.slice(1)} connected`)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      void refresh()
+      queryClient.invalidateQueries({ queryKey: qk.integrations() })
       router.replace("/settings/integrations")
     } else if (error) {
       toast.error(`Connection failed: ${error}`)
       router.replace("/settings/integrations")
     }
-  }, [searchParams, router, refresh])
+  }, [searchParams, router, queryClient])
 
   const accountByPlatform = useMemo(() => {
     const map = new Map<string, SocialAccount>()
@@ -272,7 +252,6 @@ export default function IntegrationsPage() {
               key={integration.id}
               integration={integration}
               account={account}
-              onDisconnected={refresh}
             />
           )
         })}

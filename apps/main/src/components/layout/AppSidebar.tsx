@@ -72,15 +72,16 @@ export function AppSidebar() {
   const isWorkspaceActive = pathname.startsWith("/workspace")
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader className="gap-3 px-4 py-3">
         <a
           href={LANDING_URL}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center"
           title="Back to veqiro.com"
         >
-          <Logo className="w-8 h-8" />
+          <Logo className="w-8 h-8 shrink-0" />
           <span
+            className="group-data-[collapsible=icon]:hidden"
             style={{
               fontFamily: FONT.head,
               fontSize: 18,
@@ -93,10 +94,8 @@ export function AppSidebar() {
         </a>
         {activeOrg && (
           <div
+            className="flex items-center gap-2 group-data-[collapsible=icon]:hidden"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
               padding: "6px 10px",
               background: "#FFF9ED",
               border: "2px solid #111",
@@ -231,8 +230,11 @@ export function AppSidebar() {
       <SidebarSeparator />
 
       <SidebarFooter className="px-3 py-3">
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center"
+        >
           <div
+            title={session?.user?.name ?? "User"}
             style={{
               width: 32,
               height: 32,
@@ -259,7 +261,10 @@ export function AppSidebar() {
               (session?.user?.name?.charAt(0)?.toUpperCase() ?? "U")
             )}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            className="group-data-[collapsible=icon]:hidden"
+            style={{ flex: 1, minWidth: 0 }}
+          >
             <p
               style={{
                 fontFamily: FONT.head,
@@ -298,6 +303,7 @@ export function AppSidebar() {
               })
             }
             title="Sign out"
+            className="group-data-[collapsible=icon]:hidden"
             style={{
               background: "transparent",
               border: "none",

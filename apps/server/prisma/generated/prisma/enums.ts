@@ -13,7 +13,7 @@ export const Agent = {
   MAYA: 'MAYA',
   SAGE: 'SAGE',
   LEX: 'LEX',
-  MARK: 'MARK',
+  REX: 'REX',
   SCOUT: 'SCOUT',
   VEGA: 'VEGA'
 } as const

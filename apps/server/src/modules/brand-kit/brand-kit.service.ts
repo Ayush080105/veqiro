@@ -30,5 +30,5 @@ export const saveBrandKit = async (
     data.competitors = competitors as Prisma.InputJsonValue;
   }
 
-  return repo.upsertBrandKit(organizationId, data);
+  return repo.upsertBrandKitAndMarkOnboarded(organizationId, data);
 };

@@ -9,6 +9,8 @@ import integrationsProtectedRouter, {
   integrationsPublicRouter,
 } from "./modules/integrations/integrations.routes.js";
 import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
+import messagesRouter from "./modules/messages/messages.routes.js";
+import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
 
 const router = Router();
 
@@ -17,6 +19,8 @@ router.use("/agents/scout", authMiddleware, scoutRouter);
 router.use("/agents/maya", authMiddleware, mayaRouter);
 router.use("/agents/lex", authMiddleware, lexRouter);
 router.use("/agents/vega", authMiddleware, vegaRouter);
+router.use("/agents", authMiddleware, messagesRouter);
+router.use("/dashboard", authMiddleware, dashboardRouter);
 
 router.use("/brand-kit", authMiddleware, brandKitRouter);
 

@@ -2,19 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
+import { useQueryClient } from "@tanstack/react-query"
+import { Info, HelpCircle } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
 import { getAgent } from "@/lib/config/agents"
 import {
-  sendMessage,
-  getMessages,
+  useMessages,
+  useSendMessage,
   AgentNotAvailableError,
 } from "@/lib/api/assistants"
-import { getBrandKit } from "@/lib/api/brain"
-import { hasGoogleConnected } from "@/lib/api/auth-accounts"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useBrandKit } from "@/lib/api/brain"
+import { useGoogleConnected } from "@/lib/api/auth-accounts"
+import { qk } from "@/lib/query-keys"
 
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
@@ -23,6 +24,7 @@ import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
 
+import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { FONT, Button as VqButton, Sticker } from "@/components/veqiro/shared"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 
@@ -30,39 +32,51 @@ import type {
   Message,
   AgentConfig,
   AgentSlug,
-  BrandKit,
 } from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 
-// ─── Header strip ────────────────────────────────────────────────────────────
-
-function AgentHeader({ agent }: { agent: AgentConfig }) {
+function ChatHeader({
+  agent,
+  onInfoClick,
+  onHelpClick,
+}: {
+  agent: AgentConfig
+  onInfoClick: () => void
+  onHelpClick: () => void
+}) {
   const Portrait = CHARACTER_COMPONENTS[agent.id]
   return (
     <div
       style={{
         background: agent.color,
         borderBottom: "3px solid #111",
-        padding: "16px 24px",
+        padding: "12px 20px",
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 12,
       }}
     >
-      <div
+      <button
+        type="button"
+        onClick={onInfoClick}
         style={{
-          width: 48,
-          height: 48,
+          width: 44,
+          height: 44,
           borderRadius: "50%",
           overflow: "hidden",
           border: "2.5px solid #111",
           background: "#FFF9ED",
           flexShrink: 0,
           boxShadow: "3px 3px 0 #111",
+          cursor: "pointer",
+          padding: 0,
         }}
+        aria-label="Agent info"
       >
-        {Portrait ? <Portrait size={48} /> : (
+        {Portrait ? (
+          <Portrait size={44} />
+        ) : (
           <div
             style={{
               width: "100%",
@@ -77,8 +91,21 @@ function AgentHeader({ agent }: { agent: AgentConfig }) {
             {agent.initials}
           </div>
         )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      </button>
+      <button
+        type="button"
+        onClick={onInfoClick}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          textAlign: "left",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+        }}
+        aria-label="Agent info"
+      >
         <div
           style={{
             fontFamily: FONT.head,
@@ -87,7 +114,8 @@ function AgentHeader({ agent }: { agent: AgentConfig }) {
             letterSpacing: -0.3,
           }}
         >
-          {agent.name} <span style={{ opacity: 0.6 }}>·</span> {agent.role}
+          {agent.name}{" "}
+          <span style={{ opacity: 0.6 }}>·</span> {agent.role}
         </div>
         <div
           style={{
@@ -115,121 +143,44 @@ function AgentHeader({ agent }: { agent: AgentConfig }) {
           />
           online · ready to work
         </div>
-      </div>
-      <Link
-        href="/assistants"
+      </button>
+      <button
+        type="button"
+        onClick={onHelpClick}
+        aria-label="Help"
         style={{
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#111",
-          textDecoration: "none",
-          padding: "8px 12px",
+          background: "#FFF9ED",
           border: "2px solid #111",
           borderRadius: 999,
-          background: "#FFF9ED",
+          padding: 8,
+          cursor: "pointer",
           boxShadow: "2px 2px 0 #111",
+          display: "grid",
+          placeItems: "center",
         }}
       >
-        ← team
-      </Link>
-    </div>
-  )
-}
-
-// ─── Context strip ───────────────────────────────────────────────────────────
-
-function ContextStrip({ kit }: { kit: BrandKit | null }) {
-  if (!kit || !kit.company_name) return null
-  const swatches = [
-    kit.brand_colors?.primary,
-    kit.brand_colors?.secondary,
-    kit.brand_colors?.accent,
-  ].filter(Boolean) as string[]
-
-  const bits: { k: string; v: string }[] = []
-  if (kit.company_name) bits.push({ k: "brand", v: kit.company_name })
-  if (kit.industry) bits.push({ k: "industry", v: kit.industry })
-  if (kit.brand_voice) bits.push({ k: "voice", v: kit.brand_voice })
-
-  return (
-    <div
-      style={{
-        background: "#FFF9ED",
-        border: "2px dashed #111",
-        margin: "12px 16px 0",
-        borderRadius: 10,
-        padding: "10px 14px",
-        display: "flex",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: 14,
-      }}
-    >
-      <span
+        <HelpCircle className="size-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onInfoClick}
+        aria-label="Agent info"
         style={{
-          fontFamily: FONT.mono,
-          fontSize: 10,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#111",
-          opacity: 0.75,
+          background: "#FFF9ED",
+          border: "2px solid #111",
+          borderRadius: 999,
+          padding: 8,
+          cursor: "pointer",
+          boxShadow: "2px 2px 0 #111",
+          display: "grid",
+          placeItems: "center",
         }}
       >
-        CONTEXT:
-      </span>
-      {bits.map((b) => (
-        <span
-          key={b.k}
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 0.5,
-            color: "#111",
-            display: "inline-flex",
-            gap: 4,
-          }}
-        >
-          <span style={{ opacity: 0.5 }}>{b.k}:</span>
-          <span style={{ fontWeight: 600 }}>{b.v}</span>
-        </span>
-      ))}
-      {swatches.length > 0 && (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 10,
-              letterSpacing: 1.5,
-              textTransform: "uppercase",
-              color: "#111",
-              opacity: 0.55,
-            }}
-          >
-            palette
-          </span>
-          {swatches.map((c, i) => (
-            <span
-              key={i}
-              title={c}
-              style={{
-                width: 14,
-                height: 14,
-                borderRadius: 4,
-                background: c,
-                border: "1.5px solid #111",
-                display: "inline-block",
-              }}
-            />
-          ))}
-        </span>
-      )}
+        <Info className="size-4" />
+      </button>
     </div>
   )
 }
-
-// ─── Empty state ─────────────────────────────────────────────────────────────
 
 function EmptyState({
   agent,
@@ -275,7 +226,9 @@ function EmptyState({
             transform: "rotate(-2deg)",
           }}
         >
-          {Portrait ? <Portrait size={140} /> : (
+          {Portrait ? (
+            <Portrait size={140} />
+          ) : (
             <div
               style={{
                 width: "100%",
@@ -372,166 +325,6 @@ function EmptyState({
   )
 }
 
-// ─── Left rail ───────────────────────────────────────────────────────────────
-
-function LeftRail({ agent }: { agent: AgentConfig }) {
-  const Portrait = CHARACTER_COMPONENTS[agent.id]
-  return (
-    <aside
-      style={{
-        width: 280,
-        flexShrink: 0,
-        background: "#FFF9ED",
-        borderRight: "3px solid #111",
-        overflow: "auto",
-        padding: "24px 20px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 18,
-      }}
-    >
-      <div
-        style={{
-          background: agent.color,
-          border: "3px solid #111",
-          borderRadius: 14,
-          overflow: "hidden",
-          boxShadow: "6px 6px 0 #111",
-          transform: "rotate(-1.5deg)",
-        }}
-      >
-        {Portrait ? <Portrait size="100%" /> : null}
-      </div>
-
-      <div>
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#555",
-          }}
-        >
-          {agent.role}
-        </div>
-        <div
-          style={{
-            fontFamily: FONT.display,
-            fontSize: 44,
-            lineHeight: 1,
-            color: "#111",
-            letterSpacing: -1,
-            marginTop: 2,
-          }}
-        >
-          {agent.name.toLowerCase()}
-        </div>
-      </div>
-
-      <p
-        style={{
-          fontFamily: FONT.body,
-          fontSize: 14,
-          lineHeight: 1.5,
-          color: "#333",
-          margin: 0,
-          fontStyle: "italic",
-        }}
-      >
-        &ldquo;{agent.tag}&rdquo;
-      </p>
-
-      <div>
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#555",
-            marginBottom: 8,
-          }}
-        >
-          specialties
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {agent.specialties.map((s) => (
-            <span
-              key={s}
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 11,
-                padding: "4px 10px",
-                background: "#fff",
-                border: "2px solid #111",
-                borderRadius: 999,
-                color: "#111",
-              }}
-            >
-              {s}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#555",
-            marginBottom: 8,
-          }}
-        >
-          stats
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {agent.stats.map((s) => (
-            <div
-              key={s.k}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                padding: "6px 10px",
-                background: "#fff",
-                border: "2px solid #111",
-                borderRadius: 8,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 10,
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  color: "#555",
-                }}
-              >
-                {s.k}
-              </span>
-              <span
-                style={{
-                  fontFamily: FONT.head,
-                  fontSize: 13,
-                  color: "#111",
-                }}
-              >
-                {s.v}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </aside>
-  )
-}
-
-// ─── Page ────────────────────────────────────────────────────────────────────
-
 function genConversationId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID()
@@ -542,58 +335,35 @@ function genConversationId(): string {
 export default function AssistantChatPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const agent = getAgent(id)
 
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
-  const [messages, setMessages] = useState<Message[]>([])
-  const [content, setContent] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [historyLoaded, setHistoryLoaded] = useState(false)
-  const [brandKit, setBrandKit] = useState<BrandKit | null>(null)
+  const { data: messages = [], isPending: messagesPending } = useMessages(
+    id,
+    organizationId,
+  )
+  const { data: brandKit = null } = useBrandKit(organizationId)
+  const { data: googleLinked } = useGoogleConnected(agent?.id === "vega")
 
+  const [content, setContent] = useState("")
   const [plusOpen, setPlusOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
-  const [googleLinked, setGoogleLinked] = useState<boolean | null>(null)
 
   const conversationIdRef = useRef<string>(genConversationId())
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current)
+  const isLoading = sendMutation.isPending
+  const historyLoaded = !messagesPending
+
   useEffect(() => {
     if (!agent) router.push("/assistants")
   }, [agent, router])
-
-  useEffect(() => {
-    if (!agent || !organizationId) return
-    getMessages(id, organizationId)
-      .then((msgs) => {
-        setMessages(msgs)
-        setHistoryLoaded(true)
-      })
-      .catch(() => setHistoryLoaded(true))
-  }, [id, organizationId, agent])
-
-  useEffect(() => {
-    if (!organizationId) return
-    getBrandKit(organizationId).then((k) => setBrandKit(k))
-  }, [organizationId])
-
-  useEffect(() => {
-    if (agent?.id !== "vega") return
-    let cancelled = false
-    hasGoogleConnected()
-      .then((ok) => {
-        if (!cancelled) setGoogleLinked(ok)
-      })
-      .catch(() => {
-        if (!cancelled) setGoogleLinked(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [agent?.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -603,24 +373,9 @@ export default function AssistantChatPage() {
     const trimmed = content.trim()
     if (!trimmed || trimmed.length > 1000 || isLoading) return
 
-    const userMsg: Message = {
-      role: "user",
-      content: trimmed,
-      imageUrl: null,
-      createdAt: new Date().toISOString(),
-    }
-    setMessages((prev) => [...prev, userMsg])
     setContent("")
-    setIsLoading(true)
-
     try {
-      const response = await sendMessage(
-        id,
-        organizationId,
-        trimmed,
-        conversationIdRef.current
-      )
-      setMessages((prev) => [...prev, response])
+      await sendMutation.mutateAsync(trimmed)
     } catch (err) {
       if (err instanceof AgentNotAvailableError) {
         toast.error(
@@ -629,10 +384,8 @@ export default function AssistantChatPage() {
       } else {
         toast.error("Failed to send message. Please try again.")
       }
-    } finally {
-      setIsLoading(false)
     }
-  }, [content, id, isLoading, organizationId, agent])
+  }, [content, isLoading, sendMutation, agent])
 
   const handleActionComplete = useCallback(
     (ctx: ActionResultContext<unknown, unknown>) => {
@@ -648,10 +401,13 @@ export default function AssistantChatPage() {
           result: ctx.result,
         },
       }
-      setMessages((prev) => [...prev, msg])
+      queryClient.setQueryData<Message[]>(
+        qk.chat(id, organizationId),
+        (prev) => [...(prev ?? []), msg],
+      )
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
     },
-    []
+    [queryClient, id, organizationId],
   )
 
   const openAction = (actionId: AgentActionId) => {
@@ -674,103 +430,109 @@ export default function AssistantChatPage() {
 
   return (
     <div
-      className="-m-4"
       style={{
+        flex: 1,
+        minWidth: 0,
         display: "flex",
-        height: "calc(100vh - 3rem)",
+        flexDirection: "column",
+        position: "relative",
         overflow: "hidden",
-        background: "#EFE7D6",
       }}
     >
-      <LeftRail agent={agent} />
+      <ChatHeader
+        agent={agent}
+        onInfoClick={() => setInfoOpen(true)}
+        onHelpClick={() => setHelpOpen(true)}
+      />
 
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <AgentHeader agent={agent} />
-        <ContextStrip kit={brandKit} />
+      {historyLoaded && !hasMessages ? (
+        <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
+      ) : (
+        <div
+          className="flex-1 min-h-0 overflow-y-auto"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            padding: "20px 24px",
+          }}
+        >
+          {messages.map((msg, i) => (
+            <ChatMessage
+              key={msg.id ?? `msg-${i}`}
+              message={msg}
+              agentName={agent.name}
+              agentInitials={agent.initials}
+              agentColor={agentColor}
+              isLex={isLex}
+            />
+          ))}
+          {isLoading && (
+            <TypingIndicator
+              agentInitials={agent.initials}
+              agentColor={agentColor}
+            />
+          )}
+          <div ref={bottomRef} />
+        </div>
+      )}
 
-        {historyLoaded && !hasMessages ? (
-          <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
-        ) : (
-          <ScrollArea className="flex-1">
-            <div
+      <div style={{ flexShrink: 0 }}>
+        {isVega && googleLinked === false && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              background: "#FFF9ED",
+              borderTop: "3px solid #111",
+              padding: "10px 20px",
+            }}
+          >
+            <p
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-                padding: "20px 24px",
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 1,
+                color: "#333",
+                margin: 0,
               }}
             >
-              {messages.map((msg, i) => (
-                <ChatMessage
-                  key={msg.id ?? `msg-${i}`}
-                  message={msg}
-                  agentName={agent.name}
-                  agentInitials={agent.initials}
-                  agentColor={agentColor}
-                  isLex={isLex}
-                />
-              ))}
-              {isLoading && (
-                <TypingIndicator
-                  agentInitials={agent.initials}
-                  agentColor={agentColor}
-                />
-              )}
-              <div ref={bottomRef} />
-            </div>
-          </ScrollArea>
+              {"// connect google calendar to let vega schedule on your behalf"}
+            </p>
+            <VqButton
+              variant="dark"
+              onClick={() => {
+                authClient.signIn.social({
+                  provider: "google",
+                  callbackURL: "/assistants/vega",
+                })
+              }}
+            >
+              Connect Google
+            </VqButton>
+          </div>
         )}
 
-        <div style={{ flexShrink: 0 }}>
-          {isVega && googleLinked === false && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                background: "#FFF9ED",
-                borderTop: "3px solid #111",
-                padding: "10px 20px",
-              }}
-            >
-              <p
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  letterSpacing: 1,
-                  color: "#333",
-                  margin: 0,
-                }}
-              >
-                {"// connect google calendar to let vega schedule on your behalf"}
-              </p>
-              <VqButton
-                variant="dark"
-                onClick={() => {
-                  authClient.signIn.social({
-                    provider: "google",
-                    callbackURL: "/assistants/vega",
-                  })
-                }}
-              >
-                Connect Google
-              </VqButton>
-            </div>
-          )}
-
-          <ChatInput
-            value={content}
-            onChange={setContent}
-            onSend={handleSend}
-            onPlusClick={() => setPlusOpen(true)}
-            onHelpClick={() => setHelpOpen(true)}
-            onAttachClick={isLex ? () => openAction("lex:ingest-document") : undefined}
-            placeholder={`Message ${agent.name.toLowerCase()}…`}
-            disabled={isLoading}
-          />
-        </div>
+        <ChatInput
+          value={content}
+          onChange={setContent}
+          onSend={handleSend}
+          onPlusClick={() => setPlusOpen(true)}
+          onHelpClick={() => setHelpOpen(true)}
+          onAttachClick={isLex ? () => openAction("lex:ingest-document") : undefined}
+          placeholder={`Message ${agent.name.toLowerCase()}…`}
+          disabled={isLoading}
+        />
       </div>
+
+      <AgentInfoPanel
+        agent={agent}
+        kit={brandKit}
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+      />
 
       <PlusMenu
         open={plusOpen}
@@ -779,11 +541,7 @@ export default function AssistantChatPage() {
         agentName={agent.name}
         onPick={(a) => handlePlusPick(a.id)}
       />
-      <HelpSheet
-        open={helpOpen}
-        onOpenChange={setHelpOpen}
-        agent={agent}
-      />
+      <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} agent={agent} />
       <RunActionDialog
         open={!!activeActionId}
         onOpenChange={(v) => !v && setActiveActionId(null)}

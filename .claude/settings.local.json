@@ -24,7 +24,8 @@
       "Bash(xargs wc *)",
       "Bash(xargs grep *)",
       "Bash(pnpm --filter main exec tsc --noEmit)",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "mcp__context7__resolve-library-id"
     ]
   }
 }

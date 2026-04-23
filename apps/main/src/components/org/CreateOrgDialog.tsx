@@ -70,6 +70,7 @@ export function CreateOrgDialog() {
       const { data: org, error: orgError } = await authClient.organization.create({
         name: data.name,
         slug: data.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        onboarded: false,
       })
 
       if (orgError || !org) {
