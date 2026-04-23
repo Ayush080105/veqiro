@@ -64,6 +64,65 @@ export function Hero() {
 
   return (
     <section style={{ position: 'relative', padding: '48px 32px 0', background: '#EFE7D6' }}>
+      <style>{`
+        @keyframes hfloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @media (max-width: 1180px) { .hero-card { display: none !important; } }
+      `}</style>
+      {([
+        { t: 90,  l: '3%',  r: '',   color: '#F5C518', sz: 52, rot: -15, dur: 4,   d: 0    },
+        { t: 200, l: '6%',  r: '',   color: '#F06464', sz: 22, rot:  20, dur: 5.5, d: 0.4  },
+        { t: 310, l: '2%',  r: '',   color: '#8A8AF0', sz: 38, rot:  -8, dur: 3.8, d: 0.8  },
+        { t: 420, l: '8%',  r: '',   color: '#F79FD4', sz: 26, rot:  15, dur: 4.2, d: 1.1  },
+        { t: 530, l: '4%',  r: '',   color: '#1DBC87', sz: 46, rot: -20, dur: 5,   d: 0.2  },
+        { t: 100, l: '',    r: '4%', color: '#F79FD4', sz: 42, rot:  12, dur: 4.5, d: 0.6  },
+        { t: 240, l: '',    r: '2%', color: '#1DBC87', sz: 20, rot: -20, dur: 6,   d: 0.9  },
+        { t: 350, l: '',    r: '7%', color: '#F5C518', sz: 48, rot:  30, dur: 5,   d: 0.3  },
+        { t: 465, l: '',    r: '3%', color: '#F06464', sz: 30, rot: -25, dur: 3.5, d: 1.5  },
+        { t: 570, l: '',    r: '8%', color: '#8A8AF0', sz: 36, rot: -10, dur: 4.8, d: 0.7  },
+      ] as { t: number; l: string; r: string; color: string; sz: number; rot: number; dur: number; d: number }[]).map(({ t, l, r, color, sz, rot, dur, d }, i) => (
+        <div key={i} aria-hidden style={{
+          position: 'absolute', top: t,
+          ...(l ? { left: l } : { right: r }),
+          transform: `rotate(${rot}deg)`,
+          pointerEvents: 'none',
+        }}>
+          <span style={{ display: 'block', color, fontSize: sz, lineHeight: 1, animation: `hfloat ${dur}s ${d}s ease-in-out infinite` }}>✦</span>
+        </div>
+      ))}
+
+      {/* Faint giant star for depth — same trick as FinalCTA section */}
+      <div aria-hidden style={{
+        position: 'absolute', top: '32%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        fontSize: '42vw', color: '#F5C518', opacity: 0.045,
+        lineHeight: 1, pointerEvents: 'none', userSelect: 'none',
+      }}>✦</div>
+
+      {/* Floating agent action cards — hidden below 1180px */}
+      {([
+        { top: 145, l: '14%', r: '',   rot: -2,   dur: 4.5, d: 0.0, agent: 'Vega',  ac: '#6FCDE8', text: 'Calendar sorted. Blocked 2hrs tomorrow for deep work — you\'re welcome.' },
+        { top: 380, l: '5%',  r: '',   rot:  1.5, dur: 5.2, d: 0.7, agent: 'Scout', ac: '#F5C518', text: 'Found the weird one — Tallinn startup, 4 people, shipping faster than Stripe in 2012.' },
+        { top: 565, l: '13%', r: '',   rot: -1,   dur: 4.8, d: 1.4, agent: 'Maya',  ac: '#F06464', text: 'Drafted 3 posts. I vote spicy. Options in 6 min. Brace.' },
+        { top: 180, l: '',    r: '5%', rot:  2,   dur: 4.2, d: 0.4, agent: 'Lex',   ac: '#8A8AF0', text: 'Clause 7.3 is a trap. Redlined it. Sending to counsel with a summary.' },
+        { top: 390, l: '',    r: '14%',rot: -1.5, dur: 5.6, d: 1.1, agent: 'Sage',  ac: '#F79FD4', text: '12 keywords ranking this week. Starting with long-tails. First wins ~10 days.' },
+        { top: 570, l: '',    r: '4%', rot:  1,   dur: 5.0, d: 0.3, agent: 'Rex',   ac: '#1DBC87', text: 'CAC spiked 3× on Meta last Tuesday. Want the chart or just the fix?' },
+      ] as { top: number; l: string; r: string; rot: number; dur: number; d: number; agent: string; ac: string; text: string }[]).map((c, i) => (
+        <div key={i} className="hero-card" aria-hidden style={{
+          position: 'absolute', top: c.top,
+          ...(c.l ? { left: c.l } : { right: c.r }),
+          width: 194, background: '#fff', border: '2px solid #111', borderRadius: 10,
+          padding: '12px 14px', boxShadow: `4px 4px 0 ${c.ac}`,
+          transform: `rotate(${c.rot}deg)`, pointerEvents: 'none',
+          animation: `hfloat ${c.dur}s ${c.d}s ease-in-out infinite`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.ac, display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: '#777' }}>{c.agent}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 9, color: '#aaa' }}>just now</span>
+          </div>
+          <div style={{ fontFamily: FONT.body, fontSize: 12.5, lineHeight: 1.45, color: '#111' }}>{c.text}</div>
+        </div>
+      ))}
 
       {/* Nav */}
       <nav style={{
@@ -97,16 +156,6 @@ export function Hero() {
 
       {/* Content */}
       <div style={{ maxWidth: 1400, margin: '0 auto', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: -10, right: 60, zIndex: 3 }}>
-          <Sticker color="#F06464" rot={8}>✦ Now hiring: you</Sticker>
-        </div>
-        <div style={{ position: 'absolute', top: 180, left: -10, zIndex: 3 }}>
-          <Sticker color="#1DBC87" rot={-10}>No payroll. No PTO.</Sticker>
-        </div>
-        <div style={{ position: 'absolute', top: 340, right: 0, zIndex: 3 }}>
-          <Sticker color="#8A8AF0" rot={6}>works at 3am</Sticker>
-        </div>
-
         <div style={{ textAlign: 'center', position: 'relative', marginTop: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 20 }}>
             <CursorEye size={54} />
@@ -161,9 +210,9 @@ export function Hero() {
         {/* Soft side fades */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div style={{ position: 'absolute', bottom: 18, left: 40, zIndex: 10 }}>
+        {/* <div style={{ position: 'absolute', bottom: 18, left: 40, zIndex: 10 }}>
           <Sticker color="#F5C518" rot={-5}>zero sick days</Sticker>
-        </div>
+        </div> */}
       </div>
     </section>
   );
