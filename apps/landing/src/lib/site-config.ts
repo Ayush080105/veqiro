@@ -30,8 +30,9 @@ export const nav: { href: string; label: string }[] = [
 export const demoCtaHref = `mailto:${contact.email}?subject=Veqiro%20demo%20request`;
 
 export const marqueeItems = [
-  '★ vega', '★ scout', '★ maya', '★ sage', '★ lex', '★ rex',
-  '★ 6 AI hires, 1 bill', '★ veqiro',
+  '★ zero sick days', '★ works at 3am', '★ no payroll', '★ ships fast',
+  '★ zero drama', '★ never sleeps', '★ no small talk', '★ always on',
+  '★ no HR incidents', '★ hire today',
 ];
 
 export const marqueeRedItems = [

@@ -41,9 +41,20 @@ function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; activ
 }
 
 export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => void; activeKey: string }) {
+  const cards = [...EMPLOYEES, ...EMPLOYEES];
+
   return (
-    <section id="crew" style={{ background: '#111', padding: '80px 32px', color: '#EFE7D6' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <section id="crew" style={{ background: '#111', padding: '80px 0', color: '#EFE7D6' }}>
+      <style>{`
+        @keyframes crew-scroll {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .crew-track { animation: crew-scroll 22s linear infinite; }
+        .crew-track:hover { animation-play-state: paused; }
+      `}</style>
+
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 32px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, marginBottom: 48 }}>
           <div>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 12 }}>
@@ -58,9 +69,15 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
             Click a card to put them to work.
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 28 }}>
-          {EMPLOYEES.map((emp, i) => (
-            <CrewCard key={emp.key} emp={emp} i={i} active={activeKey === emp.key} onClick={() => onSelect(emp.key)} />
+      </div>
+
+      {/* Carousel — full bleed, overflows the section padding */}
+      <div style={{ overflow: 'hidden' }}>
+        <div className="crew-track" style={{ display: 'flex', gap: 24, width: 'max-content' }}>
+          {cards.map((emp, i) => (
+            <div key={`${emp.key}-${i}`} style={{ width: 280, flexShrink: 0 }}>
+              <CrewCard emp={emp} i={i % EMPLOYEES.length} active={activeKey === emp.key} onClick={() => onSelect(emp.key)} />
+            </div>
           ))}
         </div>
       </div>

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { FONT, Sticker } from './shared';
 import { mainAppUrl, nav as navLinks } from '@/lib/site-config';
 
@@ -47,6 +48,7 @@ function CursorEye({ size = 70, offset = [0, 0] }: { size?: number; offset?: num
   );
 }
 
+
 export function Hero() {
   const [count, setCount] = useState(0);
 
@@ -61,7 +63,9 @@ export function Hero() {
   }, []);
 
   return (
-    <section style={{ position: 'relative', padding: '48px 32px 24px', background: '#EFE7D6' }}>
+    <section style={{ position: 'relative', padding: '48px 32px 0', background: '#EFE7D6' }}>
+
+      {/* Nav */}
       <nav style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         maxWidth: 1400, margin: '0 auto 60px',
@@ -91,6 +95,7 @@ export function Hero() {
         }}>Hire the Crew →</a>
       </nav>
 
+      {/* Content */}
       <div style={{ maxWidth: 1400, margin: '0 auto', position: 'relative' }}>
         <div style={{ position: 'absolute', top: -10, right: 60, zIndex: 3 }}>
           <Sticker color="#F06464" rot={8}>✦ Now hiring: you</Sticker>
@@ -142,6 +147,25 @@ export function Hero() {
             <span style={{ color: '#1DBC87', marginRight: 8 }}>●</span>
             {count.toLocaleString()} tasks completed this morning
           </div>
+        </div>
+      </div>
+
+      {/* Image zone — starts after the CTA, fades in from top */}
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '1610 / 1232', overflow: 'hidden', marginTop: 32 }}>
+        <Image
+          src="/Hero_Image.jpg"
+          alt="The Veqiro crew"
+          fill
+          style={{ objectFit: 'cover', objectPosition: 'center 40%' }}
+          priority
+        />
+        {/* Fade from beige at top to fully visible at bottom */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #EFE7D6 0%, rgba(239,231,214,0.7) 25%, rgba(239,231,214,0.15) 55%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
+        {/* Soft side fades */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
+        <div style={{ position: 'absolute', bottom: 18, left: 40, zIndex: 10 }}>
+          <Sticker color="#F5C518" rot={-5}>zero sick days</Sticker>
         </div>
       </div>
     </section>
