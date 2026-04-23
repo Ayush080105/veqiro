@@ -162,8 +162,14 @@ function HeroCard({ c, inStrip }: { c: typeof HERO_CARDS[number]; inStrip?: bool
 export function Hero() {
   const [count, setCount] = useState(0);
   const stageRef = useRef<HTMLElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
   const isDesktop = useIsDesktop();
   const progress = useScrollProgress(stageRef, isDesktop);
+
+  // Cursor-following spotlight: the scrim over the hero image is masked out
+  // in a soft circle wherever the cursor is, revealing the full image there.
+  // Off-screen default (`-9999, -9999`) means no visible hole when not hovered.
+  const [spot, setSpot] = useState({ x: -9999, y: -9999 });
 
   useEffect(() => {
     let n = 0;
@@ -174,6 +180,37 @@ export function Hero() {
     setTimeout(() => clearInterval(id), 1800);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    const el = stickyRef.current;
+    if (!el) return;
+    let raf: number | null = null;
+    let latest = { x: -9999, y: -9999 };
+    const apply = () => {
+      raf = null;
+      setSpot(latest);
+    };
+    const onMove = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      latest = { x: e.clientX - r.left, y: e.clientY - r.top };
+      if (raf === null) raf = requestAnimationFrame(apply);
+    };
+    const onLeave = () => {
+      if (raf !== null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+      setSpot({ x: -9999, y: -9999 });
+    };
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseleave', onLeave);
+      if (raf !== null) cancelAnimationFrame(raf);
+    };
+  }, [isDesktop]);
 
   // Image is full-bleed from the start, dimmed by a top-biased beige scrim so
   // the hero text reads clearly. As the user scrolls the scrim thins in the
@@ -294,6 +331,7 @@ export function Hero() {
       }}
     >
       <div
+        ref={stickyRef}
         style={{
           position: isDesktop ? 'sticky' : 'relative',
           top: 0,
@@ -301,8 +339,7 @@ export function Hero() {
           overflow: 'hidden',
         }}
       >
-        {/* Background image layer — desktop only. Translates from 60% → 0 as the
-            user scrolls through the stage, ending as the hero's background. */}
+        {/* Background image layer — desktop only. Scales slightly on scroll. */}
         {isDesktop && (
           <div
             aria-hidden
@@ -316,26 +353,37 @@ export function Hero() {
               pointerEvents: 'none',
             }}
           >
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-              <Image
-                src="/Hero_Image.jpg"
-                alt=""
-                fill
-                sizes="100vw"
-                style={{ objectFit: 'cover', objectPosition: 'center 40%' }}
-                priority
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: `linear-gradient(180deg, rgba(239,231,214,${topOpacity}) 0%, rgba(239,231,214,${topOpacity}) 35%, rgba(239,231,214,${midOpacity}) 65%, rgba(239,231,214,${bottomOpacity}) 100%)`,
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
+            <Image
+              src="/Hero_Image.jpg"
+              alt=""
+              fill
+              sizes="100vw"
+              style={{ objectFit: 'cover', objectPosition: 'center 40%' }}
+              priority
+            />
           </div>
         )}
+
+        {/* Scrim layer — sibling of image so its coordinate system isn't affected
+            by the image's scale transform. A radial-gradient mask cuts a soft
+            hole in the scrim wherever the cursor is, revealing the full image. */}
+        {isDesktop && (() => {
+          const maskImage = `radial-gradient(circle at ${spot.x}px ${spot.y}px, transparent 0px, transparent 150px, black 280px)`;
+          return (
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+                background: `linear-gradient(180deg, rgba(239,231,214,${topOpacity}) 0%, rgba(239,231,214,${topOpacity}) 35%, rgba(239,231,214,${midOpacity}) 65%, rgba(239,231,214,${bottomOpacity}) 100%)`,
+                pointerEvents: 'none',
+                maskImage,
+                WebkitMaskImage: maskImage,
+              }}
+            />
+          );
+        })()}
 
         {/* Foreground layer — hero nav, decorations, content, mobile card strip */}
         <div
