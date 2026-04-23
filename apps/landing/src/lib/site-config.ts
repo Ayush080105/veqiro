@@ -8,9 +8,9 @@ export const landingUrl =
   process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
 
 export const contact = {
-  email: 'hello@veqiro.com',
+  email: 'info@veqiro.com',
   phone: '+1 (555) 010-0000',
-  address: 'Made in a small room, loud — Bengaluru, IN',
+  address: 'Made in a small room, loud — IN',
 };
 
 export const social = {
@@ -184,16 +184,12 @@ export const footerColumns: FooterColumn[] = [
       { label: 'Pricing', href: '/#pricing' },
       { label: 'How it works', href: '/#how' },
       { label: 'FAQ', href: '/#faq' },
-      { label: 'Changelog', href: demoCtaHref },
     ],
   },
   {
     h: 'Company',
     links: [
       { label: 'About', href: '/about' },
-      { label: 'Careers', href: demoCtaHref },
-      { label: 'Blog', href: demoCtaHref },
-      { label: 'Press kit', href: demoCtaHref },
     ],
   },
   {
@@ -201,8 +197,6 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: 'Privacy Policy', href: '/privacy' },
       { label: 'Terms of Service', href: '/terms' },
-      { label: 'Cookie Policy', href: '/privacy#cookies' },
-      { label: 'Security', href: demoCtaHref },
     ],
   },
 ];

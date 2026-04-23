@@ -362,10 +362,6 @@ export function Footer() {
             <Link href="/terms" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
               Terms
             </Link>
-            <span style={{ color: '#333' }}>·</span>
-            <Link href="/privacy#cookies" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
-              Cookies
-            </Link>
           </div>
         </div>
 
