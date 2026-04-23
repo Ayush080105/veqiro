@@ -142,7 +142,6 @@ export function Hero() {
           </div>
           <div>
             <div style={{ fontFamily: FONT.display, fontSize: 36, lineHeight: 1, color: '#111' }}>veqiro</div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase', color: '#888', marginTop: 2 }}>AI Workforce</div>
           </div>
         </a>
 
