@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { EMPLOYEES, Employee } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 import { FONT } from './shared';
@@ -35,6 +36,24 @@ function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; activ
         <div style={{ fontFamily: FONT.display, fontSize: 56, lineHeight: 1, color: emp.color, marginTop: 4 }}>
           {emp.name}
         </div>
+        <Link
+          href={`/agents/${emp.key}`}
+          onClick={e => e.stopPropagation()}
+          style={{
+            display: 'inline-block',
+            marginTop: 12,
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            textTransform: 'uppercase',
+            letterSpacing: 2,
+            color: emp.color,
+            textDecoration: 'none',
+            borderBottom: `1px solid ${emp.color}`,
+            paddingBottom: 1,
+          }}
+        >
+          Meet {emp.name} →
+        </Link>
       </div>
     </div>
   );
