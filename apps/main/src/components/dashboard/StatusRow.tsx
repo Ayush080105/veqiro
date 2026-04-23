@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
+import { Skeleton } from "@/components/ui/skeleton"
+import { authClient } from "@/lib/auth-client"
 import { AGENTS } from "@/lib/config/agents"
-import { getAssistantStatuses } from "@/lib/api/assistants"
+import { useAgentStatuses } from "@/lib/api/assistants"
 import { FONT } from "@/components/veqiro/shared"
-import type { AgentSlug, AgentStatus, AgentStatusData } from "@/lib/types"
-
-type StatusMap = Record<AgentSlug, AgentStatusData>
+import type { AgentSlug, AgentStatus } from "@/lib/types"
 
 function statusDotColor(status: AgentStatus): string {
   if (status === "working") return "#1DBC87"
@@ -22,31 +21,15 @@ function statusLabel(status: AgentStatus): string {
 }
 
 export function StatusRow() {
-  const [statuses, setStatuses] = useState<StatusMap | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const organizationId = activeOrg?.id ?? ""
+  const { data: statuses, isPending } = useAgentStatuses(organizationId)
 
-  useEffect(() => {
-    getAssistantStatuses("")
-      .then((data) => setStatuses(data as StatusMap))
-      .catch(() => setStatuses(null))
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) {
+  if (isPending) {
     return (
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
         {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              width: 150,
-              height: 54,
-              border: "2.5px solid #111",
-              borderRadius: 12,
-              background: "#FFF9ED",
-              opacity: 0.5,
-            }}
-          />
+          <Skeleton key={i} className="h-[54px] w-[150px] rounded-xl" />
         ))}
       </div>
     )
