@@ -1,12 +1,25 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { MessageSquare, FileText, Users, BookOpen, Bot } from "lucide-react"
+import { Bot, AlertTriangle } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
-import { StatusRow } from "@/components/dashboard/StatusRow"
+import { useDashboardSummary, ALL_SLUGS, type Range } from "@/lib/api/dashboard"
 import { MetricCard } from "@/components/dashboard/MetricCard"
+import { ActivityChart } from "@/components/dashboard/ActivityChart"
+import { CrewLeaderboard } from "@/components/dashboard/CrewLeaderboard"
+import { ContentPipeline } from "@/components/dashboard/ContentPipeline"
+import { IntegrationHealth } from "@/components/dashboard/IntegrationHealth"
+import { BrandSnapshot } from "@/components/dashboard/BrandSnapshot"
 import { Button as VqButton, FONT, Sticker } from "@/components/veqiro/shared"
+import { DashboardFilters } from "@/components/dashboard/DashboardFilters"
+import { DashboardProgressBar } from "@/components/dashboard/DashboardProgressBar"
+import { MetricCardSkeleton } from "@/components/dashboard/MetricCardSkeleton"
+import { ActivityChartSkeleton } from "@/components/dashboard/ActivityChartSkeleton"
+import { CrewLeaderboardSkeleton } from "@/components/dashboard/CrewLeaderboardSkeleton"
+import { ContentPipelineSkeleton } from "@/components/dashboard/ContentPipelineSkeleton"
+import type { AgentSlug } from "@/lib/types"
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -24,48 +37,6 @@ function formatDate(date: Date): string {
   })
 }
 
-const QUICK_ACTIONS = [
-  {
-    title: "Chat with assistant",
-    description: "Start a conversation with any member of your AI team.",
-    href: "/assistants",
-    icon: MessageSquare,
-    color: "var(--vq-red)",
-  },
-  {
-    title: "Create content",
-    description: "Generate social posts, blogs, and ad copy instantly.",
-    href: "/workspace/content",
-    icon: FileText,
-    color: "var(--vq-yellow)",
-  },
-  {
-    title: "Find leads",
-    description: "Scout new prospects and surface high-fit companies.",
-    href: "/workspace/leads",
-    icon: Users,
-    color: "var(--vq-pink)",
-  },
-  {
-    title: "View briefing",
-    description: "Read your daily executive summary from Vega.",
-    href: "/workspace/briefing",
-    icon: BookOpen,
-    color: "var(--vq-blue)",
-  },
-]
-
-const METRICS = [
-  { label: "MRR", value: "$12,400", change: "8%", trend: "up" as const },
-  { label: "Leads this week", value: "7", change: "+3", trend: "up" as const },
-  {
-    label: "Content published",
-    value: "12",
-    change: "stable",
-    trend: "neutral" as const,
-  },
-]
-
 const sectionLabel: React.CSSProperties = {
   fontFamily: FONT.mono,
   fontSize: 11,
@@ -74,22 +45,56 @@ const sectionLabel: React.CSSProperties = {
   color: "#555",
 }
 
+function trendFromDelta(current: number, prev: number): "up" | "down" | "neutral" {
+  if (current > prev) return "up"
+  if (current < prev) return "down"
+  return "neutral"
+}
+
+function formatDelta(current: number, prev: number): string {
+  const diff = current - prev
+  if (diff === 0) return "stable"
+  const sign = diff > 0 ? "+" : ""
+  if (prev === 0) return `${sign}${diff}`
+  const pct = Math.round((diff / Math.max(1, prev)) * 100)
+  return `${sign}${pct}%`
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return `${n}`
+}
+
 export default function DashboardPage() {
   const { data: session } = authClient.useSession()
+  const [range, setRange] = useState<Range>({ kind: "7d" })
+  const [agents, setAgents] = useState<AgentSlug[]>([...ALL_SLUGS])
+  const { data: summary, isPending, isFetching } = useDashboardSummary({ range, agents })
+  const showSkeletons = isPending && !summary
+  const showProgressBar = isFetching && !isPending
   const name = session?.user?.name?.split(" ")[0] ?? "there"
   const today = new Date()
 
+  const metrics = summary?.metrics
+  const activity = summary?.activityChart ?? []
+  const leaderboard = summary?.leaderboard ?? []
+  const pipeline = summary?.contentPipeline ?? {
+    byPlatform: { twitter: 0, linkedin: 0, instagram: 0 },
+    byStatus: { draft: 0, scheduled: 0, published: 0, failed: 0 },
+  }
+  const attention = summary?.attention ?? []
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 36, paddingBottom: 40 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
+      {/* Hero */}
       <div style={{ position: "relative" }}>
         <div style={{ position: "absolute", top: -10, right: 10 }}>
           <Sticker rot={6} color="#F5C518">
             your day
           </Sticker>
         </div>
-        <div style={{ ...sectionLabel, marginBottom: 8 }}>
-          [ {formatDate(today)} ]
-        </div>
+        <div style={{ ...sectionLabel, marginBottom: 8 }}>[ {formatDate(today)} ]</div>
         <h1
           style={{
             fontFamily: FONT.display,
@@ -114,157 +119,68 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* briefing card */}
-      <div
-        style={{
-          background: "#FFF9ED",
-          border: "3px solid #111",
-          borderRadius: 16,
-          boxShadow: "6px 6px 0 #111",
-          padding: 22,
-          position: "relative",
-        }}
-      >
-        <div style={{ position: "absolute", top: -18, left: 18 }}>
-          <Sticker rot={-4} color="#1DBC87">
-            daily brief
-          </Sticker>
-        </div>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: "#111",
-              color: "#EFE7D6",
-              display: "grid",
-              placeItems: "center",
-              flexShrink: 0,
-              border: "2.5px solid #111",
-              boxShadow: "3px 3px 0 var(--vq-yellow)",
-              transform: "rotate(-4deg)",
-            }}
-          >
-            <Bot className="size-5" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontFamily: FONT.head,
-                fontSize: 20,
-                color: "#111",
-                letterSpacing: -0.3,
-              }}
-            >
-              Today&apos;s briefing
-            </div>
-            <p
-              style={{
-                fontFamily: FONT.body,
-                fontSize: 14,
-                lineHeight: 1.55,
-                color: "#333",
-                margin: "8px 0 14px",
-              }}
-            >
-              Your AI team worked through the night. 3 new leads surfaced by Scout,
-              content pipeline is healthy with 4 posts scheduled, and revenue is on
-              track — MRR up 8% month-over-month.
-            </p>
-            <VqButton href="/workspace/briefing" variant="dark">
-              Read full briefing
-            </VqButton>
-          </div>
-        </div>
-      </div>
+      <DashboardProgressBar active={showProgressBar} />
+      <DashboardFilters
+        range={range}
+        agents={agents}
+        onRangeChange={setRange}
+        onAgentsChange={setAgents}
+      />
 
-      {/* status row */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={sectionLabel}>[ crew status ]</div>
-        <StatusRow />
-      </div>
-
-      {/* quick actions */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={sectionLabel}>[ quick actions ]</div>
+      {/* Needs attention banner (conditional) */}
+      {attention.length > 0 && (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            background: "#111",
+            color: "#EFE7D6",
+            border: "3px solid #111",
+            borderRadius: 14,
+            boxShadow: "6px 6px 0 #F06464",
+            padding: "14px 18px",
+            display: "flex",
+            alignItems: "center",
             gap: 14,
+            flexWrap: "wrap",
           }}
         >
-          {QUICK_ACTIONS.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <AlertTriangle className="size-5" style={{ color: "#F5C518" }} />
+            <div
               style={{
-                textDecoration: "none",
-                background: "#FFF9ED",
-                border: "3px solid #111",
-                borderRadius: 14,
-                boxShadow: `5px 5px 0 ${action.color}`,
-                padding: 18,
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                transition: "transform 160ms ease, box-shadow 160ms ease",
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = "translate(2px,2px)"
-                e.currentTarget.style.boxShadow = `3px 3px 0 ${action.color}`
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = "translate(0,0)"
-                e.currentTarget.style.boxShadow = `5px 5px 0 ${action.color}`
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translate(0,0)"
-                e.currentTarget.style.boxShadow = `5px 5px 0 ${action.color}`
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                color: "#F5C518",
               }}
             >
-              <div
+              needs attention
+            </div>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {attention.map((a, i) => (
+              <Link
+                key={i}
+                href={a.href}
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: action.color,
-                  border: "2.5px solid #111",
-                  display: "grid",
-                  placeItems: "center",
+                  fontFamily: FONT.mono,
+                  fontSize: 12,
+                  padding: "6px 12px",
+                  background: a.severity === "critical" ? "#F06464" : "#F5C518",
                   color: "#111",
+                  border: "2px solid #EFE7D6",
+                  borderRadius: 999,
+                  textDecoration: "none",
                 }}
               >
-                <action.icon className="size-4" />
-              </div>
-              <div
-                style={{
-                  fontFamily: FONT.head,
-                  fontSize: 15,
-                  color: "#111",
-                  letterSpacing: -0.2,
-                }}
-              >
-                {action.title}
-              </div>
-              <p
-                style={{
-                  fontFamily: FONT.body,
-                  fontSize: 13,
-                  lineHeight: 1.4,
-                  color: "#555",
-                  margin: 0,
-                }}
-              >
-                {action.description}
-              </p>
-            </Link>
-          ))}
+                {a.message}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* metrics */}
+      {/* Metrics strip */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={sectionLabel}>[ at a glance ]</div>
         <div
@@ -274,11 +190,136 @@ export default function DashboardPage() {
             gap: 14,
           }}
         >
-          {METRICS.map((metric) => (
-            <MetricCard key={metric.label} {...metric} />
-          ))}
+          {showSkeletons ? (
+            <>
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+            </>
+          ) : (
+            <>
+              <MetricCard
+                label="Messages"
+                value={metrics ? formatNumber(metrics.messagesWeek) : "—"}
+                change={metrics ? formatDelta(metrics.messagesWeek, metrics.messagesPrevWeek) : undefined}
+                trend={metrics ? trendFromDelta(metrics.messagesWeek, metrics.messagesPrevWeek) : undefined}
+                sparkline={metrics?.messagesSparkline}
+              />
+              <MetricCard
+                label="Posts published"
+                value={metrics ? formatNumber(metrics.contentPublishedWeek) : "—"}
+                change={
+                  metrics
+                    ? formatDelta(metrics.contentPublishedWeek, metrics.contentPublishedPrevWeek)
+                    : undefined
+                }
+                trend={
+                  metrics
+                    ? trendFromDelta(metrics.contentPublishedWeek, metrics.contentPublishedPrevWeek)
+                    : undefined
+                }
+              />
+              <MetricCard
+                label="Hours saved · est."
+                value={metrics ? `${metrics.hoursSavedEstimate}h` : "—"}
+                change={metrics && metrics.hoursSavedEstimate > 0 ? "this window" : undefined}
+                trend={metrics && metrics.hoursSavedEstimate > 0 ? "up" : "neutral"}
+              />
+            </>
+          )}
         </div>
       </div>
+
+      {/* Activity chart */}
+      {showSkeletons ? <ActivityChartSkeleton /> : <ActivityChart data={activity} />}
+
+      {/* Crew leaderboard + workspace snapshot (integrations + brand) */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
+          gap: 16,
+        }}
+      >
+        {showSkeletons ? <CrewLeaderboardSkeleton /> : <CrewLeaderboard data={leaderboard} />}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <IntegrationHealth />
+          <BrandSnapshot />
+        </div>
+      </div>
+
+      {/* Content pipeline */}
+      {showSkeletons ? <ContentPipelineSkeleton /> : <ContentPipeline data={pipeline} />}
+
+      {/* Daily briefing — compact footer */}
+      <Link
+        href="/workspace/briefing"
+        style={{
+          textDecoration: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          background: "#FFF9ED",
+          border: "3px solid #111",
+          borderRadius: 14,
+          boxShadow: "5px 5px 0 #1DBC87",
+          padding: "16px 20px",
+          position: "relative",
+        }}
+      >
+        <div style={{ position: "absolute", top: -16, left: 18 }}>
+          <Sticker rot={-4} color="#1DBC87">
+            daily brief
+          </Sticker>
+        </div>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: "#111",
+            color: "#EFE7D6",
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+            border: "2.5px solid #111",
+            transform: "rotate(-4deg)",
+          }}
+        >
+          <Bot className="size-4" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: FONT.head,
+              fontSize: 15,
+              color: "#111",
+              letterSpacing: -0.2,
+            }}
+          >
+            Today&apos;s briefing
+          </div>
+          <p
+            style={{
+              fontFamily: FONT.body,
+              fontSize: 13,
+              lineHeight: 1.45,
+              color: "#555",
+              margin: "2px 0 0",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+            }}
+          >
+            {metrics && metrics.messagesWeek > 0
+              ? `Your crew handled ${metrics.messagesWeek} conversations and published ${metrics.contentPublishedWeek} posts this week. Read Vega's full rundown →`
+              : "Your crew hasn't clocked in yet this week. Vega will write up a briefing once there's activity."}
+          </p>
+        </div>
+        <VqButton variant="dark">Read →</VqButton>
+      </Link>
     </div>
   )
 }
