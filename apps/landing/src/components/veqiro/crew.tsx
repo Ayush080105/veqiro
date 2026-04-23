@@ -61,7 +61,7 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
               [ THE CREW ]
             </div>
             <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 104px)', margin: 0, lineHeight: 0.9, letterSpacing: -1, color: '#EFE7D6' }}>
-              six hires, <span style={{ color: '#F5C518' }}>one bill.</span>
+              your crew, <span style={{ color: '#F5C518' }}>one bill.</span>
             </h2>
           </div>
           <p style={{ maxWidth: 420, fontFamily: FONT.body, fontSize: 18, lineHeight: 1.5, color: '#CFC6B2', margin: 0 }}>
@@ -159,7 +159,7 @@ export function DeskPanel({ active }: { active: string }) {
           </div>
 
           {/* RIGHT: chat mock */}
-          <div style={{ background: '#fff', border: '3px solid #111', borderRadius: 16, boxShadow: '10px 10px 0 #111', overflow: 'hidden', transform: 'rotate(-0.6deg)' }}>
+          <div style={{ background: '#fff', border: '3px solid #111', borderRadius: 16, boxShadow: '10px 10px 0 #111', overflow: 'hidden', transform: 'rotate(-0.6deg)', marginTop: 60 }}>
             <div style={{ background: emp.color, padding: '14px 18px', borderBottom: '3px solid #111', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid #111', background: '#fff', flexShrink: 0 }}>
                 <Comp size={40} />

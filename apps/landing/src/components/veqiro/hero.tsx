@@ -117,7 +117,7 @@ export function Hero() {
             fontSize: 'clamp(64px, 12vw, 180px)',
             lineHeight: 0.88, letterSpacing: -2, margin: 0, color: '#111',
           }}>
-            hire six<br />
+            hire your<br />
             <span style={{ color: '#F06464', WebkitTextStroke: '2px #111' }}>weirdos</span>
             {' '}
             <span style={{ fontFamily: FONT.body, fontWeight: 400, fontSize: '0.32em', verticalAlign: 'middle', fontStyle: 'italic' }}>
@@ -125,7 +125,7 @@ export function Hero() {
             </span>
           </h1>
           <p style={{ maxWidth: 720, margin: '28px auto 0', fontFamily: FONT.body, fontSize: 20, lineHeight: 1.5, color: '#2a2a2a' }}>
-            Veqiro is a crew of six AI employees with real jobs, real personalities,
+            Veqiro is a crew of AI employees with real jobs, real personalities,
             and zero chill. They do the work. You take the credit.
             <span style={{ background: '#F5C518', padding: '0 6px' }}> We&apos;re cool with that.</span>
           </p>
