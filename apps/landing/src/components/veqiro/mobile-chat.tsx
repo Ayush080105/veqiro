@@ -51,69 +51,64 @@ export function MobileChatDemo({ employee }: Props) {
   }, [messages, typing]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, width: '100%' }}>
       {/* Phone frame */}
-      <div style={{
-        width: 300,
-        height: 560,
-        background: '#EFE7D6',
-        borderRadius: 42,
-        border: '3px solid #111',
-        boxShadow: `8px 8px 0 ${employee.color}, 12px 12px 0 #111`,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
+      <div
+        className="vq-phone-frame"
+        style={{
+          boxShadow: `clamp(4px, 1.5vw, 8px) clamp(4px, 1.5vw, 8px) 0 ${employee.color}, clamp(6px, 2.2vw, 12px) clamp(6px, 2.2vw, 12px) 0 #111`,
+        }}
+      >
         {/* Status bar */}
         <div style={{
-          padding: '14px 20px 8px',
+          padding: 'clamp(10px, 2vw, 14px) clamp(14px, 3vw, 20px) clamp(6px, 1.2vw, 8px)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0,
           background: '#EFE7D6',
         }}>
-          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 11, fontWeight: 600 }}>9:41</span>
+          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)', fontWeight: 600 }}>9:41</span>
           {/* Veqiro logo mark */}
           <div style={{
-            width: 26, height: 26, background: '#111', borderRadius: 6,
+            width: 'clamp(20px, 5vw, 26px)', height: 'clamp(20px, 5vw, 26px)',
+            background: '#111', borderRadius: 6,
             display: 'grid', placeItems: 'center', transform: 'rotate(-6deg)',
             boxShadow: '2px 2px 0 #F5C518', flexShrink: 0,
           }}>
-            <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 15, lineHeight: 1 }}>v</span>
+            <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 'clamp(12px, 3vw, 15px)', lineHeight: 1 }}>v</span>
           </div>
-          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 11 }}>●●●</span>
+          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)' }}>●●●</span>
         </div>
 
         {/* Chat header */}
         <div style={{
-          padding: '6px 16px 12px',
+          padding: 'clamp(4px, 1vw, 6px) clamp(12px, 3vw, 16px) clamp(8px, 2vw, 12px)',
           borderBottom: '2px solid #111',
           borderTop: '2px solid #111',
           background: '#fff',
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 'clamp(6px, 2vw, 10px)',
           flexShrink: 0,
         }}>
           <img
             src={`/${employee.name}.jpeg`}
             alt={employee.name}
             style={{
-              width: 34, height: 34, borderRadius: '50%',
+              width: 'clamp(26px, 6.5vw, 34px)', height: 'clamp(26px, 6.5vw, 34px)', borderRadius: '50%',
               border: '2px solid #111', objectFit: 'cover', flexShrink: 0,
             }}
           />
-          <div>
-            <div style={{ color: '#111', fontFamily: FONT.head, fontSize: 13, lineHeight: 1.2 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: '#111', fontFamily: FONT.head, fontSize: 'clamp(11px, 2.6vw, 13px)', lineHeight: 1.2 }}>
               {employee.name}
             </div>
-            <div style={{ color: '#1DBC87', fontFamily: FONT.mono, fontSize: 10 }}>● online</div>
+            <div style={{ color: '#1DBC87', fontFamily: FONT.mono, fontSize: 'clamp(8px, 2vw, 10px)' }}>● online</div>
           </div>
           <div style={{
             marginLeft: 'auto',
-            fontFamily: FONT.mono, fontSize: 9, letterSpacing: 1,
+            fontFamily: FONT.mono, fontSize: 'clamp(7px, 1.8vw, 9px)', letterSpacing: 1,
             textTransform: 'uppercase', color: '#aaa',
           }}>
             veqiro
@@ -126,7 +121,7 @@ export function MobileChatDemo({ employee }: Props) {
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '14px 10px',
+            padding: 'clamp(10px, 2.6vw, 14px) clamp(8px, 2vw, 10px)',
             display: 'flex',
             flexDirection: 'column',
             gap: 8,
@@ -147,9 +142,9 @@ export function MobileChatDemo({ employee }: Props) {
                 background: msg.role === 'user' ? employee.color : '#fff',
                 color: '#111',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                padding: '9px 13px',
+                padding: 'clamp(7px, 1.6vw, 9px) clamp(10px, 2.4vw, 13px)',
                 fontFamily: FONT.body,
-                fontSize: 12,
+                fontSize: 'clamp(10px, 2.4vw, 12px)',
                 lineHeight: 1.5,
                 border: '2px solid #111',
                 boxShadow: msg.role === 'agent' ? `2px 2px 0 ${employee.color}` : '2px 2px 0 #111',
@@ -164,7 +159,7 @@ export function MobileChatDemo({ employee }: Props) {
               <div style={{
                 background: '#fff',
                 borderRadius: '16px 16px 16px 4px',
-                padding: '11px 16px',
+                padding: 'clamp(8px, 2vw, 11px) clamp(12px, 3vw, 16px)',
                 border: '2px solid #111',
                 boxShadow: `2px 2px 0 ${employee.color}`,
                 display: 'flex',
@@ -191,7 +186,7 @@ export function MobileChatDemo({ employee }: Props) {
 
         {/* Input bar */}
         <div style={{
-          padding: '10px 12px',
+          padding: 'clamp(8px, 2vw, 10px) clamp(10px, 2.4vw, 12px)',
           borderTop: '2px solid #111',
           background: '#fff',
           display: 'flex',
@@ -203,17 +198,21 @@ export function MobileChatDemo({ employee }: Props) {
             flex: 1,
             background: '#EFE7D6',
             borderRadius: 999,
-            padding: '9px 14px',
+            padding: 'clamp(7px, 1.8vw, 9px) clamp(10px, 2.6vw, 14px)',
             color: '#888',
             fontFamily: FONT.body,
-            fontSize: 12,
+            fontSize: 'clamp(10px, 2.4vw, 12px)',
             border: '2px solid #111',
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}>
             Message {employee.name}…
           </div>
           <div style={{
-            width: 32,
-            height: 32,
+            width: 'clamp(26px, 6.5vw, 32px)',
+            height: 'clamp(26px, 6.5vw, 32px)',
             borderRadius: '50%',
             background: employee.color,
             border: '2px solid #111',
@@ -222,7 +221,7 @@ export function MobileChatDemo({ employee }: Props) {
             placeItems: 'center',
             flexShrink: 0,
           }}>
-            <span style={{ color: '#111', fontSize: 14, lineHeight: 1 }}>↑</span>
+            <span style={{ color: '#111', fontSize: 'clamp(12px, 3vw, 14px)', lineHeight: 1 }}>↑</span>
           </div>
         </div>
       </div>

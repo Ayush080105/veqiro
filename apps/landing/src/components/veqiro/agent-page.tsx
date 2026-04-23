@@ -24,17 +24,14 @@ export function AgentPage({ employee }: Props) {
         background: employee.color,
         borderTop: '3px solid #111',
         borderBottom: '3px solid #111',
-        padding: '64px 32px 80px',
+        padding: 'clamp(40px, 7vw, 64px) clamp(20px, 4vw, 32px) clamp(56px, 8vw, 80px)',
       }}>
         <div
           className="agent-hero-grid"
           style={{
             maxWidth: 1400,
             margin: '0 auto',
-            display: 'grid',
             gridTemplateColumns: 'minmax(220px, 280px) 1fr minmax(280px, 320px)',
-            gap: 48,
-            alignItems: 'center',
           }}
         >
           {/* LEFT: Character ID card */}
@@ -155,9 +152,9 @@ export function AgentPage({ employee }: Props) {
       </section>
 
       {/* ── CAPABILITIES ── */}
-      <section style={{ padding: '88px 32px', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-          <div style={{ marginBottom: 56 }}>
+          <div style={{ marginBottom: 'clamp(36px, 6vw, 56px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase' as const, color: '#666', marginBottom: 16,
@@ -208,7 +205,7 @@ export function AgentPage({ employee }: Props) {
         }}>
           {[...employee.skills, ...employee.skills, ...employee.skills, ...employee.skills, ...employee.skills].map((s, i) => (
             <span key={i} style={{
-              fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase' as const, letterSpacing: 2,
+              fontFamily: FONT.head, fontSize: 'clamp(11px, 2vw, 13px)', textTransform: 'uppercase' as const, letterSpacing: 2,
             }}>
               ★ {s}
             </span>
@@ -217,9 +214,9 @@ export function AgentPage({ employee }: Props) {
       </div>
 
       {/* ── USE CASES ── */}
-      <section style={{ padding: '88px 32px', background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-          <div style={{ marginBottom: 48 }}>
+          <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase' as const, color: '#666', marginBottom: 16,
@@ -252,7 +249,7 @@ export function AgentPage({ employee }: Props) {
       </section>
 
       {/* ── QUOTE ── */}
-      <section style={{ padding: '88px 32px', background: '#111', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
           <div style={{
             fontFamily: FONT.display, fontSize: 'clamp(24px, 3.5vw, 48px)',
@@ -270,7 +267,7 @@ export function AgentPage({ employee }: Props) {
       </section>
 
       {/* ── CTA ── */}
-      <section style={{ padding: '88px 32px' }}>
+      <section className="vq-section-pad">
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
           <div style={{
             fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
@@ -287,7 +284,7 @@ export function AgentPage({ employee }: Props) {
               today.
             </span>
           </h2>
-          <p style={{ fontFamily: FONT.body, fontSize: 18, color: '#555', marginBottom: 44 }}>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', color: '#555', marginBottom: 44 }}>
             Start with {employee.name} on the Crew plan at $39/mo, or try free for 7 days — no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>

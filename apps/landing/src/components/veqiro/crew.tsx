@@ -63,7 +63,7 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
   const cards = [...EMPLOYEES, ...EMPLOYEES];
 
   return (
-    <section id="crew" style={{ background: '#111', padding: '80px 0', color: '#EFE7D6' }}>
+    <section id="crew" style={{ background: '#111', padding: 'clamp(56px, 8vw, 80px) 0', color: '#EFE7D6' }}>
       <style>{`
         @keyframes crew-scroll {
           from { transform: translateX(0); }
@@ -73,17 +73,17 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
         .crew-track:hover { animation-play-state: paused; }
       `}</style>
 
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 32px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, marginBottom: 48 }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 clamp(16px, 4vw, 32px)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, marginBottom: 'clamp(32px, 5vw, 48px)' }}>
           <div>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 12 }}>
               [ THE CREW ]
             </div>
-            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 104px)', margin: 0, lineHeight: 0.9, letterSpacing: -1, color: '#EFE7D6' }}>
+            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 7vw, 104px)', margin: 0, lineHeight: 0.9, letterSpacing: -1, color: '#EFE7D6' }}>
               your crew, <span style={{ color: '#F5C518' }}>one bill.</span>
             </h2>
           </div>
-          <p style={{ maxWidth: 420, fontFamily: FONT.body, fontSize: 18, lineHeight: 1.5, color: '#CFC6B2', margin: 0 }}>
+          <p style={{ maxWidth: 420, fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.5, color: '#CFC6B2', margin: 0 }}>
             Each one has a specialty, a personality, and opinions about your brand voice.
             Click a card to put them to work.
           </p>
@@ -92,9 +92,9 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
 
       {/* Carousel — full bleed, overflows the section padding */}
       <div style={{ overflow: 'hidden' }}>
-        <div className="crew-track" style={{ display: 'flex', gap: 24, width: 'max-content' }}>
+        <div className="crew-track" style={{ display: 'flex', gap: 'clamp(14px, 2.5vw, 24px)', width: 'max-content' }}>
           {cards.map((emp, i) => (
-            <div key={`${emp.key}-${i}`} style={{ width: 280, flexShrink: 0 }}>
+            <div key={`${emp.key}-${i}`} className="vq-crew-card">
               <CrewCard emp={emp} i={i % EMPLOYEES.length} active={activeKey === emp.key} onClick={() => onSelect(emp.key)} />
             </div>
           ))}
@@ -148,7 +148,7 @@ export function DeskPanel({ active }: { active: string }) {
   }, [active, emp.name, emp.quote, emp.key]);
 
   return (
-    <section ref={sectionRef} style={{ background: '#EFE7D6', padding: '80px 32px', borderTop: '3px solid #111' }}>
+    <section ref={sectionRef} style={{ background: '#EFE7D6', padding: 'clamp(56px, 8vw, 80px) clamp(16px, 4vw, 32px)', borderTop: '3px solid #111' }}>
       <div style={{ maxWidth: 1400, margin: '0 auto' }}>
         <div className="desk-grid">
           {/* LEFT: portrait + meta */}
@@ -156,16 +156,16 @@ export function DeskPanel({ active }: { active: string }) {
             <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: '#111', opacity: 0.7, marginBottom: 12 }}>
               {`>`} currently working with:
             </div>
-            <div style={{ background: emp.color, border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #111', overflow: 'hidden', maxWidth: 420 }}>
+            <div style={{ background: emp.color, border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #111', overflow: 'hidden', maxWidth: 'min(420px, 90vw)' }}>
               <Comp size="100%" />
             </div>
-            <h3 style={{ fontFamily: FONT.display, fontSize: 96, lineHeight: 0.9, margin: '24px 0 0', color: '#111' }}>
+            <h3 style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 12vw, 96px)', lineHeight: 0.9, margin: '24px 0 0', color: '#111' }}>
               {emp.name}
             </h3>
             <div style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', marginTop: 8, color: emp.ink, display: 'inline-block', background: emp.color, padding: '6px 12px', border: '2px solid #111', borderRadius: 6 }}>
               {emp.role}
             </div>
-            <p style={{ fontFamily: FONT.body, fontSize: 20, fontStyle: 'italic', marginTop: 20, color: '#333' }}>
+            <p style={{ fontFamily: FONT.body, fontSize: 'clamp(16px, 2.2vw, 20px)', fontStyle: 'italic', marginTop: 20, color: '#333' }}>
               &ldquo;{emp.tag}&rdquo;
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
@@ -178,7 +178,7 @@ export function DeskPanel({ active }: { active: string }) {
           </div>
 
           {/* RIGHT: chat mock */}
-          <div style={{ background: '#fff', border: '3px solid #111', borderRadius: 16, boxShadow: '10px 10px 0 #111', overflow: 'hidden', transform: 'rotate(-0.6deg)', marginTop: 60 }}>
+          <div style={{ background: '#fff', border: '3px solid #111', borderRadius: 16, boxShadow: '10px 10px 0 #111', overflow: 'hidden', transform: 'rotate(-0.6deg)', marginTop: 'clamp(24px, 5vw, 60px)' }}>
             <div style={{ background: emp.color, padding: '14px 18px', borderBottom: '3px solid #111', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid #111', background: '#fff', flexShrink: 0 }}>
                 <Comp size={40} />
@@ -191,7 +191,7 @@ export function DeskPanel({ active }: { active: string }) {
                 </div>
               </div>
             </div>
-            <div style={{ padding: '24px 20px', minHeight: 320, display: 'flex', flexDirection: 'column', gap: 14, background: '#FFF9ED' }}>
+            <div style={{ padding: 'clamp(16px, 3vw, 24px) clamp(14px, 3vw, 20px)', minHeight: 320, display: 'flex', flexDirection: 'column', gap: 14, background: '#FFF9ED' }}>
               {msgs.map((m, i) => (
                 <div key={i} style={{
                   alignSelf: m.who === 'you' ? 'flex-end' : 'flex-start', maxWidth: '78%',
@@ -228,10 +228,10 @@ export function DeskPanel({ active }: { active: string }) {
         </div>
 
         {/* stats strip */}
-        <div className="stats-grid" style={{ marginTop: 64 }}>
+        <div className="stats-grid" style={{ marginTop: 'clamp(32px, 6vw, 64px)' }}>
           {emp.stats.map(s => (
-            <div key={s.k} style={{ border: '3px solid #111', borderRadius: 12, padding: '24px 20px', background: '#fff', boxShadow: `6px 6px 0 ${emp.color}` }}>
-              <div style={{ fontFamily: FONT.display, fontSize: 56, lineHeight: 1, color: emp.ink }}>{s.v}</div>
+            <div key={s.k} style={{ border: '3px solid #111', borderRadius: 12, padding: 'clamp(18px, 3vw, 24px) clamp(16px, 3vw, 20px)', background: '#fff', boxShadow: `6px 6px 0 ${emp.color}` }}>
+              <div style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 6vw, 56px)', lineHeight: 1, color: emp.ink }}>{s.v}</div>
               <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', marginTop: 6 }}>{s.k}</div>
             </div>
           ))}

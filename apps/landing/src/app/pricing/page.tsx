@@ -45,8 +45,7 @@ export default function PricingPage() {
       <PageNav />
 
       {/* ── HERO ── */}
-      <section style={{
-        padding: '80px 32px',
+      <section className="vq-section-pad" style={{
         borderTop: '3px solid #111',
         borderBottom: '3px solid #111',
         background: '#111',
@@ -67,7 +66,7 @@ export default function PricingPage() {
             <span style={{ color: '#F5C518' }}>a bad hire.</span>
           </h1>
           <p style={{
-            fontFamily: FONT.body, fontSize: 18, color: '#CFC6B2',
+            fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#CFC6B2',
             marginTop: 28, lineHeight: 1.6,
           }}>
             Six AI employees with real specialties. One monthly bill.
@@ -75,7 +74,7 @@ export default function PricingPage() {
           </p>
 
           {/* Trust strip */}
-          <div style={{ display: 'flex', gap: 32, justifyContent: 'center', marginTop: 44, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'clamp(16px, 3vw, 32px)', justifyContent: 'center', marginTop: 44, flexWrap: 'wrap' }}>
             {[
               { v: '7 days', k: 'free trial' },
               { v: 'No CC', k: 'to start' },
@@ -92,7 +91,7 @@ export default function PricingPage() {
       </section>
 
       {/* ── PRICING CARD ── */}
-      <section style={{ padding: '80px 32px', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 580, margin: '0 auto' }}>
           {/* Billing toggle */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
@@ -124,7 +123,7 @@ export default function PricingPage() {
             overflow: 'hidden', boxShadow: '10px 10px 0 #111',
           }}>
             {/* Header */}
-            <div style={{ background: tier.color, padding: '32px 36px', borderBottom: '3px solid #111' }}>
+            <div style={{ background: tier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
               <div style={{
                 display: 'inline-block', background: '#111', color: tier.color,
                 fontFamily: FONT.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: 2,
@@ -132,7 +131,7 @@ export default function PricingPage() {
               }}>
                 Most hired
               </div>
-              <h2 style={{ fontFamily: FONT.display, fontSize: 64, margin: 0, lineHeight: 1, color: '#111' }}>
+              <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 8vw, 64px)', margin: 0, lineHeight: 1, color: '#111' }}>
                 {tier.name}
               </h2>
               <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
@@ -141,12 +140,12 @@ export default function PricingPage() {
             </div>
 
             {/* Price */}
-            <div style={{ background: '#fff', padding: '28px 36px', borderBottom: '3px solid #111' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-                <div style={{ fontFamily: FONT.display, fontSize: 72, color: '#111', lineHeight: 1 }}>
+            <div style={{ background: '#fff', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 12vw, 72px)', color: '#111', lineHeight: 1 }}>
                   ${price}
                 </div>
-                <div style={{ fontFamily: FONT.body, fontSize: 18, color: '#888', paddingBottom: 8 }}>
+                <div style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#888', paddingBottom: 8 }}>
                   /mo{yearly ? ' · billed annually' : ''}
                 </div>
               </div>
@@ -162,7 +161,7 @@ export default function PricingPage() {
             </div>
 
             {/* Features */}
-            <div style={{ background: '#FFF9ED', padding: '28px 36px', borderBottom: '3px solid #111' }}>
+            <div style={{ background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 14 }}>
                 {tier.includes.map(f => (
                   <li key={f} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -174,7 +173,7 @@ export default function PricingPage() {
             </div>
 
             {/* CTA */}
-            <div style={{ background: '#fff', padding: '24px 36px', textAlign: 'center' }}>
+            <div style={{ background: '#fff', padding: 'clamp(18px, 4vw, 24px) clamp(20px, 5vw, 36px)', textAlign: 'center' }}>
               <a
                 href={`${mainAppUrl}/signup`}
                 style={{
@@ -196,7 +195,7 @@ export default function PricingPage() {
       </section>
 
       {/* ── WHO YOU GET ── */}
-      <section style={{ padding: '80px 32px', background: '#111', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <div style={{
@@ -254,7 +253,7 @@ export default function PricingPage() {
       </section>
 
       {/* ── FEATURES BREAKDOWN ── */}
-      <section style={{ padding: '80px 32px', background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 16 }}>
@@ -288,7 +287,7 @@ export default function PricingPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section style={{ padding: '80px 32px', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 16 }}>
@@ -301,7 +300,8 @@ export default function PricingPage() {
           <div style={{ display: 'grid', gap: 16 }}>
             {PRICING_FAQ.map(item => (
               <div key={item.q} style={{
-                border: '3px solid #111', borderRadius: 12, padding: '22px 24px',
+                border: '3px solid #111', borderRadius: 12,
+                padding: 'clamp(18px, 3.4vw, 22px) clamp(18px, 3.4vw, 24px)',
                 background: '#fff', boxShadow: '4px 4px 0 #111',
               }}>
                 <div style={{ fontFamily: FONT.head, fontSize: 16, marginBottom: 8 }}>{item.q}</div>
@@ -313,9 +313,9 @@ export default function PricingPage() {
       </section>
 
       {/* ── FINAL CTA ── */}
-      <section style={{ padding: '88px 32px' }}>
+      <section className="vq-section-pad">
         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 96px)', margin: '0 0 28px', lineHeight: 0.9 }}>
+          <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 7vw, 96px)', margin: '0 0 28px', lineHeight: 0.9 }}>
             start free.<br />
             <span style={{
               background: '#F5C518', padding: '0 18px', display: 'inline-block',
@@ -324,7 +324,7 @@ export default function PricingPage() {
               hire today.
             </span>
           </h2>
-          <p style={{ fontFamily: FONT.body, fontSize: 18, color: '#555', marginBottom: 44 }}>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#555', marginBottom: 44 }}>
             7 days free. No credit card. Cancel anytime.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
