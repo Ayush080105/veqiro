@@ -8,9 +8,9 @@ export const landingUrl =
   process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
 
 export const contact = {
-  email: 'hello@veqiro.com',
+  email: 'info@veqiro.com',
   phone: '+1 (555) 010-0000',
-  address: 'Made in a small room, loud — Bengaluru, IN',
+  address: 'Made in a small room, loud — IN',
 };
 
 export const social = {
@@ -52,13 +52,13 @@ export const howItWorksSteps = [
   {
     n: '02',
     t: 'Brief them',
-    d: "Forward an email. Paste a doc. Share a Loom. They read. They ask questions. They get it.",
+    d: "Drop in your brand kit — voice, goals, context. Then just talk to them. They brief themselves and show up ready every day.",
     c: '#F06464',
   },
   {
     n: '03',
     t: 'Go touch grass',
-    d: "They ping you on Slack when they're stuck or shipping. Everyone else, they handle.",
+    d: "They get to work — no check-ins, no hand-holding. You hear from them when it's done.",
     c: '#1DBC87',
   },
 ];
@@ -121,14 +121,14 @@ export const faqItems = [
     q: 'do they judge my ideas?',
     a: "Never. Even your \"Uber for dogs but crypto-powered\" idea is safe here.",
   },
-  {
-    q: 'how fast are they?',
-    a: "Faster than your motivation after watching one startup reel.",
-  },
-  {
-    q: 'can they handle pressure?',
-    a: "They don't feel pressure. They apply pressure — on your pending tasks.",
-  },
+  // {
+  //   q: 'how fast are they?',
+  //   a: "Faster than your motivation after watching one startup reel.",
+  // },
+  // {
+  //   q: 'can they handle pressure?',
+  //   a: "They don't feel pressure. They apply pressure — on your pending tasks.",
+  // },
   {
     q: "what if I don't know what I'm doing?",
     a: "Perfect. That's literally why they exist.",
@@ -184,16 +184,12 @@ export const footerColumns: FooterColumn[] = [
       { label: 'Pricing', href: '/#pricing' },
       { label: 'How it works', href: '/#how' },
       { label: 'FAQ', href: '/#faq' },
-      { label: 'Changelog', href: demoCtaHref },
     ],
   },
   {
     h: 'Company',
     links: [
       { label: 'About', href: '/about' },
-      { label: 'Careers', href: demoCtaHref },
-      { label: 'Blog', href: demoCtaHref },
-      { label: 'Press kit', href: demoCtaHref },
     ],
   },
   {
@@ -201,8 +197,6 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: 'Privacy Policy', href: '/privacy' },
       { label: 'Terms of Service', href: '/terms' },
-      { label: 'Cookie Policy', href: '/privacy#cookies' },
-      { label: 'Security', href: demoCtaHref },
     ],
   },
 ];

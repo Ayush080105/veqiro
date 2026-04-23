@@ -26,7 +26,12 @@
       "Bash(pnpm --filter main exec tsc --noEmit)",
       "Bash(echo \"Exit: $?\")",
       "mcp__context7__resolve-library-id",
-      "WebFetch(domain:veqiro.com)"
+      "WebFetch(domain:veqiro.com)",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_close"
     ]
   }
 }

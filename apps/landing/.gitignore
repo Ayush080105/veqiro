@@ -9,7 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+ 
 # testing
 /coverage
 
@@ -35,6 +35,12 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/e2e/screenshots/
 
 # typescript
 *.tsbuildinfo

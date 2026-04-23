@@ -40,8 +40,7 @@ export default function AboutPage() {
       <PageNav />
 
       {/* ── HERO ── */}
-      <section style={{
-        padding: '80px 32px',
+      <section className="vq-section-pad" style={{
         borderTop: '3px solid #111',
         borderBottom: '3px solid #111',
         background: '#111',
@@ -71,7 +70,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── MISSION ── */}
-      <section style={{ padding: '88px 32px', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono,
@@ -91,17 +90,17 @@ export default function AboutPage() {
           }}>
             Lean teams deserve the same leverage as teams ten times their size.
           </p>
-          <p style={{ fontFamily: FONT.body, fontSize: 18, lineHeight: 1.75, color: '#333', margin: '0 0 24px' }}>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: '#333', margin: '0 0 24px' }}>
             We built Veqiro because we kept watching great companies stall — not because the ideas were bad, but because a 3-person team can only do so much in a day. The grunt work piles up. The emails go unanswered. The blog gets abandoned. The competitor analysis never gets done.
           </p>
-          <p style={{ fontFamily: FONT.body, fontSize: 18, lineHeight: 1.75, color: '#333', margin: 0 }}>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: '#333', margin: 0 }}>
             So we built six. Not a chat interface with a generic prompt. Six actual AI employees — each with a name, a specialty, a personality, and a bias toward shipping. They share memory. They talk to each other. They work while you sleep.
           </p>
         </div>
       </section>
 
       {/* ── VALUES ── */}
-      <section style={{ padding: '88px 32px', background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono,
@@ -144,7 +143,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── MEET THE CREW ── */}
-      <section style={{ padding: '88px 32px', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
             <div style={{
@@ -163,7 +162,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── ORIGIN ── */}
-      <section style={{ padding: '88px 32px', background: '#111', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center' }}>
           <p style={{
             fontFamily: FONT.display,
@@ -188,7 +187,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section style={{ padding: '88px 32px' }}>
+      <section className="vq-section-pad">
         <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
           <div style={{
             fontFamily: FONT.mono,
