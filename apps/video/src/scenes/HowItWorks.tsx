@@ -1,3 +1,4 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-export const HowItWorks: React.FC = () => <AbsoluteFill style={{ background: "#111" }} />;
+import { COLORS } from "../shared/constants";
+export const HowItWorks: React.FC = () => <AbsoluteFill style={{ background: COLORS.ink }} />;

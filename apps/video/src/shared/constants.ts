@@ -1,3 +1,4 @@
+import { staticFile } from "remotion";
 import { loadFont as loadBagel } from "@remotion/google-fonts/BagelFatOne";
 import { loadFont as loadArchivo } from "@remotion/google-fonts/ArchivoBlack";
 import { loadFont as loadSpace } from "@remotion/google-fonts/SpaceGrotesk";
@@ -23,10 +24,12 @@ export const COLORS = {
 } as const;
 
 export const CREW = [
-  { name: "VEGA",  role: "Executive Assistant",   color: "#6FCDE8", photo: "Vega.jpeg"  },
-  { name: "SCOUT", role: "Research & Strategist", color: "#F5C518", photo: "Scout.jpeg" },
-  { name: "MAYA",  role: "Content & Marketing",   color: "#F06464", photo: "Maya.jpeg"  },
-  { name: "SAGE",  role: "SEO Specialist",         color: "#F79FD4", photo: "Sage.jpeg"  },
-  { name: "LEX",   role: "Legal Assistant",        color: "#8A8AF0", photo: "Lex.jpeg"   },
-  { name: "REX",   role: "Data Analyst & Finance", color: "#1DBC87", photo: "Rex.jpeg"   },
+  { name: "VEGA",  role: "Executive Assistant",   color: "#6FCDE8", photo: staticFile("Vega.jpeg")  },
+  { name: "SCOUT", role: "Research & Strategist", color: "#F5C518", photo: staticFile("Scout.jpeg") },
+  { name: "MAYA",  role: "Content & Marketing",   color: "#F06464", photo: staticFile("Maya.jpeg")  },
+  { name: "SAGE",  role: "SEO Specialist",         color: "#F79FD4", photo: staticFile("Sage.jpeg")  },
+  { name: "LEX",   role: "Legal Assistant",        color: "#8A8AF0", photo: staticFile("Lex.jpeg")   },
+  { name: "REX",   role: "Data Analyst & Finance", color: "#1DBC87", photo: staticFile("Rex.jpeg")   },
 ] as const;
+
+export type CrewMember = (typeof CREW)[number];

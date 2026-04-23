@@ -9,6 +9,7 @@ import { PricingPunch } from "./scenes/PricingPunch";
 import { CTAClose } from "./scenes/CTAClose";
 
 export const VideoDemo: React.FC = () => (
+  // Scene durations must sum to 1200 (40s × 30fps = composition total)
   <Series>
     <Series.Sequence durationInFrames={90}  premountFor={30}><ChaosHook /></Series.Sequence>
     <Series.Sequence durationInFrames={90}  premountFor={30}><PivotLine /></Series.Sequence>
