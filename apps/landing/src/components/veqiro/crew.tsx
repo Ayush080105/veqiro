@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 import { EMPLOYEES, Employee } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 import { FONT } from './shared';
-import { crewReplies, crewFollows } from '@/lib/site-config';
+import { crewReplies, crewFollows, mainAppUrl } from '@/lib/site-config';
 
 function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; active: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
@@ -25,7 +26,34 @@ function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; activ
         overflow: 'hidden',
         outline: active ? `4px solid ${emp.color}` : 'none',
         outlineOffset: active ? 4 : 0,
+        position: 'relative',
       }}>
+      <a
+        href={`${mainAppUrl}/assistants/${emp.key}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={e => e.stopPropagation()}
+        aria-label={`Open ${emp.name}'s page in the app`}
+        style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          zIndex: 2,
+          width: 34,
+          height: 34,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#fff',
+          color: '#111',
+          border: '2px solid #111',
+          borderRadius: 8,
+          boxShadow: `3px 3px 0 ${emp.color}`,
+          textDecoration: 'none',
+        }}
+      >
+        <ExternalLink size={16} strokeWidth={2.5} />
+      </a>
       <div style={{ background: emp.color }}>
         <Comp size="100%" />
       </div>
