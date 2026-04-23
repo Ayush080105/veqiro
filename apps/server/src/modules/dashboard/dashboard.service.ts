@@ -92,10 +92,12 @@ function bucketByHourAndAgent(
   rows: MessageRow[],
   endExclusive: Date,
 ): Array<{ date: string } & Record<AgentSlug, number>> {
+  const endFloor = new Date(endExclusive.getTime());
+  endFloor.setUTCMinutes(0, 0, 0);
+  const start = new Date(endFloor.getTime() - 23 * HOUR_MS);
   const out: Array<{ date: string } & Record<AgentSlug, number>> = [];
-  for (let i = 23; i >= 0; i--) {
-    const d = new Date(endExclusive.getTime() - (i + 1) * HOUR_MS);
-    d.setUTCMinutes(0, 0, 0);
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(start.getTime() + i * HOUR_MS);
     out.push({ date: d.toISOString(), ...emptyAgentMap() });
   }
   const index = new Map(out.map((row, i) => [row.date, i]));

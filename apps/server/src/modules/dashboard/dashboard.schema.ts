@@ -18,8 +18,12 @@ export const dashboardQuerySchema = z
     agents: agentArraySchema.optional(),
   })
   .refine(
-    (v) => v.range !== "custom" || (v.from && v.to),
+    (v) => v.range !== "custom" || (v.from !== undefined && v.to !== undefined),
     { message: "from and to are required when range=custom" },
+  )
+  .refine(
+    (v) => v.range !== "custom" || !v.from || !v.to || v.from <= v.to,
+    { message: "from must be on or before to" },
   );
 
 export type DashboardQueryInput = z.infer<typeof dashboardQuerySchema>;
