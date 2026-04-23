@@ -14,11 +14,11 @@ const SITE_URL =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Veqiro — Hire Six AI Employees",
+    default: "Veqiro — Hire Your AI Crew",
     template: "%s · Veqiro",
   },
   description:
-    "Veqiro is a crew of six AI employees with real jobs, real personalities, and zero chill. They do the work. You take the credit.",
+    "Veqiro is a crew of AI employees with real jobs, real personalities, and zero chill. They do the work. You take the credit.",
   keywords: [
     "AI employees",
     "AI workforce",
@@ -30,24 +30,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: SITE_URL,
-    title: "Veqiro — Hire Six AI Employees",
+    title: "Veqiro — Hire Your AI Crew",
     description:
-      "Six AI employees with real jobs, real personalities, and zero chill.",
+      "AI employees with real jobs, real personalities, and zero chill.",
     siteName: "Veqiro",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Veqiro — Hire six AI employees",
+        alt: "Veqiro — Hire your AI crew",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Veqiro — Hire Six AI Employees",
+    title: "Veqiro — Hire Your AI Crew",
     description:
-      "Six AI employees with real jobs, real personalities, and zero chill.",
+      "AI employees with real jobs, real personalities, and zero chill.",
     images: ["/og-image.png"],
   },
   alternates: {

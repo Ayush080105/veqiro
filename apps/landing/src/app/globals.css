@@ -52,7 +52,7 @@ html, body {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
   gap: 48px;
-  align-items: center;
+  align-items: start;
 }
 
 @media (max-width: 900px) {

@@ -46,7 +46,7 @@ export const howItWorksSteps = [
   {
     n: '01',
     t: 'Pick your crew',
-    d: "Hire all six or start with one. Each has their own inbox, voice, and weirdly specific taste.",
+    d: "Each has their own inbox, voice, and weirdly specific taste. Your whole crew, ready day one.",
     c: '#F5C518',
   },
   {
@@ -75,41 +75,19 @@ export interface PricingTier {
 
 export const pricingTiers: PricingTier[] = [
   {
-    name: 'Solo',
-    monthly: 24,
-    yearly: 19,
-    tag: 'pick one crew member',
-    color: '#6FCDE8',
-    includes: ['1 AI employee', 'Slack + email + docs', 'Unlimited tasks', 'Cancel anytime'],
-  },
-  {
     name: 'Crew',
-    monthly: 99,
-    yearly: 79,
+    monthly: 39,
+    yearly: 29,
     tag: 'the full gang',
     color: '#F06464',
     includes: [
-      'All 6 AI employees',
+      'All AI employees',
       'Shared memory + context',
       'Priority processing',
       'Custom brand voice',
       'Slack + CRM + 30 tools',
     ],
     popular: true,
-  },
-  {
-    name: 'Studio',
-    monthly: 299,
-    yearly: 249,
-    tag: 'for small teams',
-    color: '#1DBC87',
-    includes: [
-      'Everything in Crew',
-      '5 human seats',
-      'SSO + audit logs',
-      'Custom integrations',
-      'A human in the loop',
-    ],
   },
 ];
 
@@ -129,10 +107,6 @@ export const faqItems = [
   {
     q: 'is my data safe?',
     a: "SOC 2 Type II. Zero training on your data. EU + US regions. Delete any time. Lex will quote the fine print at you if you ask.",
-  },
-  {
-    q: 'can I hire just one?',
-    a: "Yep — the Solo plan gets you one employee. Most teams start with Maya or Sage and add the rest within a month.",
   },
 ];
 
