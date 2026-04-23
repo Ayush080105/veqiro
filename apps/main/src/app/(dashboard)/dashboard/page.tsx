@@ -87,45 +87,58 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32, paddingBottom: 40 }}>
-      {/* Hero */}
-      <div style={{ position: "relative" }}>
+      <DashboardProgressBar active={showProgressBar} />
+
+      {/* Hero + inline filters */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}
+      >
         <div style={{ position: "absolute", top: -10, right: 10 }}>
           <Sticker rot={6} color="#F5C518">
             your day
           </Sticker>
         </div>
-        <div style={{ ...sectionLabel, marginBottom: 8 }}>[ {formatDate(today)} ]</div>
-        <h1
-          style={{
-            fontFamily: FONT.display,
-            fontSize: "clamp(44px, 5vw, 68px)",
-            lineHeight: 0.95,
-            letterSpacing: -1,
-            color: "#111",
-            margin: 0,
-          }}
-        >
-          {getGreeting().toLowerCase()}, {name.toLowerCase()}.
-        </h1>
-        <p
-          style={{
-            fontFamily: FONT.body,
-            fontSize: 16,
-            color: "#333",
-            margin: "10px 0 0",
-          }}
-        >
-          Here&apos;s what your team is working on.
-        </p>
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <div style={{ ...sectionLabel, marginBottom: 8 }}>[ {formatDate(today)} ]</div>
+          <h1
+            style={{
+              fontFamily: FONT.display,
+              fontSize: "clamp(44px, 5vw, 68px)",
+              lineHeight: 0.95,
+              letterSpacing: -1,
+              color: "#111",
+              margin: 0,
+            }}
+          >
+            {getGreeting().toLowerCase()}, {name.toLowerCase()}.
+          </h1>
+          <p
+            style={{
+              fontFamily: FONT.body,
+              fontSize: 16,
+              color: "#333",
+              margin: "10px 0 0",
+            }}
+          >
+            Here&apos;s what your team is working on.
+          </p>
+        </div>
+        <div style={{ flex: "0 0 auto" }}>
+          <DashboardFilters
+            range={range}
+            agents={agents}
+            onRangeChange={setRange}
+            onAgentsChange={setAgents}
+          />
+        </div>
       </div>
-
-      <DashboardProgressBar active={showProgressBar} />
-      <DashboardFilters
-        range={range}
-        agents={agents}
-        onRangeChange={setRange}
-        onAgentsChange={setAgents}
-      />
 
       {/* Needs attention banner (conditional) */}
       {attention.length > 0 && (
