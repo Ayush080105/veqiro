@@ -20,7 +20,8 @@ html {
 html, body {
   background: var(--vq-bg);
   color: var(--vq-ink);
-  overflow-x: hidden;
+  /* `clip` instead of `hidden` so position: sticky on descendants still works */
+  overflow-x: clip;
 }
 
 @keyframes marquee {

@@ -5,6 +5,62 @@ import { FONT } from './shared';
 import { NavShared } from './nav-shared';
 import { mainAppUrl } from '@/lib/site-config';
 
+// Drives a 0..1 progress value from how far the `ref`'d element has been scrolled
+// past its own height. Disabled (always 0) when `enabled` is false — used to skip
+// scroll math on mobile where the parallax layout is bypassed.
+function useScrollProgress(
+  ref: React.RefObject<HTMLElement | null>,
+  enabled: boolean,
+) {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    if (!enabled) {
+      setProgress(0);
+      return;
+    }
+    let raf: number | null = null;
+    const update = () => {
+      raf = null;
+      const el = ref.current;
+      if (!el) return;
+      const { top, height } = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const total = height - vh;
+      if (total <= 0) {
+        setProgress(0);
+        return;
+      }
+      const p = Math.max(0, Math.min(1, -top / total));
+      setProgress(p);
+    };
+    const onScroll = () => {
+      if (raf !== null) return;
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf !== null) cancelAnimationFrame(raf);
+    };
+  }, [ref, enabled]);
+  return progress;
+}
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+  return isDesktop;
+}
+
 function CursorEye({ size = 70, offset = [0, 0] }: { size?: number; offset?: number[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pupil, setPupil] = useState({ x: 0, y: 0 });
@@ -105,6 +161,9 @@ function HeroCard({ c, inStrip }: { c: typeof HERO_CARDS[number]; inStrip?: bool
 
 export function Hero() {
   const [count, setCount] = useState(0);
+  const stageRef = useRef<HTMLElement>(null);
+  const isDesktop = useIsDesktop();
+  const progress = useScrollProgress(stageRef, isDesktop);
 
   useEffect(() => {
     let n = 0;
@@ -116,8 +175,17 @@ export function Hero() {
     return () => clearInterval(id);
   }, []);
 
-  return (
-    <section style={{ position: 'relative', padding: 'clamp(28px, 5vw, 48px) clamp(16px, 4vw, 32px) 0', background: '#EFE7D6' }}>
+  // Image is full-bleed from the start, dimmed by a top-biased beige scrim so
+  // the hero text reads clearly. As the user scrolls the scrim thins in the
+  // middle/bottom only and the image zooms in slightly — giving the sense that
+  // the image is "filling" the hero more completely without washing out text.
+  const imageTransform = `scale(${1 + progress * 0.06})`;
+  const topOpacity = 0.92;
+  const midOpacity = 0.82 - progress * 0.1;
+  const bottomOpacity = 0.55 - progress * 0.2;
+
+  const foreground = (
+    <>
       <style>{`
         @keyframes hfloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
       `}</style>
@@ -166,6 +234,7 @@ export function Hero() {
             fontFamily: FONT.display,
             fontSize: 'clamp(52px, 12vw, 180px)',
             lineHeight: 0.88, letterSpacing: -2, margin: 0, color: '#111',
+            textShadow: '0 2px 0 rgba(239,231,214,0.9), 0 4px 12px rgba(239,231,214,0.5)',
           }}>
             hire your<br />
             <span style={{ color: '#F06464', WebkitTextStroke: '2px #111' }}>weirdos</span>
@@ -196,7 +265,10 @@ export function Hero() {
               textDecoration: 'none', border: '3px solid #111', borderRadius: 12, display: 'inline-block',
             }}>Meet the crew ↓</a>
           </div>
-          <div style={{ marginTop: 24, fontFamily: FONT.mono, fontSize: 13, color: '#555' }}>
+          <div style={{
+            marginTop: 24, fontFamily: FONT.mono, fontSize: 13, color: '#111',
+            textShadow: '0 1px 0 rgba(239,231,214,0.95), 0 0 6px rgba(239,231,214,0.85)',
+          }}>
             <span style={{ color: '#1DBC87', marginRight: 8 }}>●</span>
             {count.toLocaleString()} tasks completed this morning
           </div>
@@ -209,21 +281,90 @@ export function Hero() {
           <HeroCard key={`strip-${i}`} c={c} inStrip />
         ))}
       </div>
+    </>
+  );
 
-      {/* Image zone */}
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '1610 / 1232', overflow: 'hidden', marginTop: 32 }}>
-        <Image
-          src="/Hero_Image.jpg"
-          alt="The Veqiro crew"
-          fill
-          sizes="100vw"
-          style={{ objectFit: 'cover', objectPosition: 'center 40%' }}
-          priority
-        />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #EFE7D6 0%, rgba(239,231,214,0.7) 25%, rgba(239,231,214,0.15) 55%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
+  return (
+    <section
+      ref={stageRef}
+      style={{
+        position: 'relative',
+        background: '#EFE7D6',
+        height: isDesktop ? '200vh' : 'auto',
+      }}
+    >
+      <div
+        style={{
+          position: isDesktop ? 'sticky' : 'relative',
+          top: 0,
+          height: isDesktop ? '100vh' : 'auto',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Background image layer — desktop only. Translates from 60% → 0 as the
+            user scrolls through the stage, ending as the hero's background. */}
+        {isDesktop && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 0,
+              transform: imageTransform,
+              transformOrigin: 'center',
+              willChange: 'transform',
+              pointerEvents: 'none',
+            }}
+          >
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <Image
+                src="/Hero_Image.jpg"
+                alt=""
+                fill
+                sizes="100vw"
+                style={{ objectFit: 'cover', objectPosition: 'center 40%' }}
+                priority
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(180deg, rgba(239,231,214,${topOpacity}) 0%, rgba(239,231,214,${topOpacity}) 35%, rgba(239,231,214,${midOpacity}) 65%, rgba(239,231,214,${bottomOpacity}) 100%)`,
+                  pointerEvents: 'none',
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Foreground layer — hero nav, decorations, content, mobile card strip */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            padding: 'clamp(28px, 5vw, 48px) clamp(16px, 4vw, 32px) 0',
+          }}
+        >
+          {foreground}
+        </div>
       </div>
+
+      {/* Mobile/tablet fallback: render the image below the hero, as before */}
+      {!isDesktop && (
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '1610 / 1232', overflow: 'hidden', marginTop: 32 }}>
+          <Image
+            src="/Hero_Image.jpg"
+            alt="The Veqiro crew"
+            fill
+            sizes="100vw"
+            style={{ objectFit: 'cover', objectPosition: 'center 40%' }}
+            priority
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #EFE7D6 0%, rgba(239,231,214,0.7) 25%, rgba(239,231,214,0.15) 55%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, #EFE7D6 0%, transparent 20%)', pointerEvents: 'none', zIndex: 1 }} />
+        </div>
+      )}
     </section>
   );
 }
