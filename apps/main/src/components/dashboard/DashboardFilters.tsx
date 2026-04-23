@@ -60,6 +60,7 @@ export function DashboardFilters({
   }
 
   const onCustomSelect = (picked: DateRange | undefined) => {
+    // First click sets `from`; popover stays open until `to` is selected too.
     if (picked?.from && picked.to) {
       onRangeChange({ kind: "custom", from: picked.from, to: picked.to })
       setPickerOpen(false)
@@ -136,18 +137,6 @@ export function DashboardFilters({
           >
             <CalendarIcon className="mr-1 size-3.5" />
             {range.kind === "custom" ? formatRangeLabel(range) : "Custom"}
-            {range.kind === "custom" && (
-              <span
-                role="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  clearCustom()
-                }}
-                className="ml-2 inline-flex size-4 items-center justify-center rounded-full hover:bg-[#11111111]"
-              >
-                <X className="size-3" />
-              </span>
-            )}
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
             <Calendar
@@ -162,6 +151,17 @@ export function DashboardFilters({
             />
           </PopoverContent>
         </Popover>
+        {range.kind === "custom" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Clear custom range"
+            onClick={clearCustom}
+            className="size-7 p-0"
+          >
+            <X className="size-3.5" />
+          </Button>
+        )}
       </div>
     </div>
   )
