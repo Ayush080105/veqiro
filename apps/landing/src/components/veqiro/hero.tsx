@@ -120,9 +120,6 @@ export function Hero() {
             hire your<br />
             <span style={{ color: '#F06464', WebkitTextStroke: '2px #111' }}>weirdos</span>
             {' '}
-            <span style={{ fontFamily: FONT.body, fontWeight: 400, fontSize: '0.32em', verticalAlign: 'middle', fontStyle: 'italic' }}>
-              (they&apos;re AI)
-            </span>
           </h1>
           <p style={{ maxWidth: 720, margin: '28px auto 0', fontFamily: FONT.body, fontSize: 20, lineHeight: 1.5, color: '#2a2a2a' }}>
             Veqiro is a crew of AI employees with real jobs, real personalities,
