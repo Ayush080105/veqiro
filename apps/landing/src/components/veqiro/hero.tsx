@@ -78,7 +78,7 @@ export function Hero() {
           }}>
             <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 24 }}>v</span>
           </div>
-          <span style={{ fontFamily: FONT.head, fontSize: 22, letterSpacing: -0.5 }}>veqiro</span>
+          <span style={{ fontFamily: FONT.display, fontSize: 30, letterSpacing: 1 }}>veqiro</span>
         </div>
         <div style={{ display: 'flex', gap: 32, fontFamily: FONT.body, fontWeight: 600, fontSize: 15 }}>
           {navLinks.map(({ href, label }) => (
