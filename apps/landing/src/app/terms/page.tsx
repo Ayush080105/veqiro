@@ -1,0 +1,168 @@
+import type { Metadata } from 'next';
+import { PageNav } from '@/components/veqiro/page-nav';
+import { Footer } from '@/components/veqiro/sections';
+import { FONT } from '@/components/veqiro/shared';
+import { contact } from '@/lib/site-config';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | Veqiro',
+  description: 'The terms governing your use of the Veqiro platform.',
+};
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 48 }}>
+      <h2 style={{
+        fontFamily: FONT.head,
+        fontSize: 18,
+        margin: '0 0 16px',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        borderBottom: '3px solid #111',
+        paddingBottom: 8,
+      }}>
+        {title}
+      </h2>
+      {children}
+    </div>
+  );
+}
+
+function P({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{ fontFamily: FONT.body, fontSize: 16, lineHeight: 1.8, color: '#333', margin: '0 0 16px' }}>
+      {children}
+    </p>
+  );
+}
+
+export default function TermsPage() {
+  const updated = 'April 23, 2026';
+
+  return (
+    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+      <PageNav />
+
+      {/* Header */}
+      <section style={{
+        padding: '64px 32px 48px',
+        borderTop: '3px solid #111',
+        borderBottom: '3px solid #111',
+        background: '#111',
+      }}>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div style={{
+            fontFamily: FONT.mono,
+            fontSize: 12,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: '#F5C518',
+            marginBottom: 16,
+          }}>
+            [ LEGAL ]
+          </div>
+          <h1 style={{
+            fontFamily: FONT.display,
+            fontSize: 'clamp(40px, 6vw, 80px)',
+            margin: 0,
+            color: '#EFE7D6',
+            lineHeight: 0.9,
+          }}>
+            Terms of Service
+          </h1>
+          <p style={{
+            fontFamily: FONT.mono,
+            fontSize: 13,
+            color: '#666',
+            marginTop: 20,
+            marginBottom: 0,
+          }}>
+            Last updated: {updated}
+          </p>
+        </div>
+      </section>
+
+      {/* Content */}
+      <section style={{ padding: '80px 32px' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+
+          {/* TL;DR */}
+          <div style={{
+            background: '#FFF9ED', border: '3px solid #111', borderRadius: 14,
+            padding: '24px 28px', boxShadow: '5px 5px 0 #111', marginBottom: 56,
+          }}>
+            <div style={{
+              fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase',
+              letterSpacing: 2, color: '#666', marginBottom: 12,
+            }}>
+              Short version
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'grid', gap: 8 }}>
+              {[
+                "Use Veqiro for legitimate business work. Don't use it to spam or deceive.",
+                "You own your content. We own the platform. AI outputs are yours.",
+                "7-day free trial, then monthly or annual billing — cancel anytime.",
+                "AI outputs are not legal, financial, or medical advice. Always review before acting.",
+                "Governed by Indian law (Bengaluru). Questions? hello@veqiro.com",
+              ].map(item => (
+                <li key={item} style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.55, color: '#333' }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <Section title="1. Acceptance">
+            <P>By accessing or using Veqiro, you agree to be bound by these Terms. If you don't agree, do not use the service. If you're using Veqiro on behalf of an organization, you represent you have authority to bind that organization.</P>
+          </Section>
+
+          <Section title="2. The Service">
+            <P>Veqiro provides a suite of AI-powered assistants ("Agents") that perform specialized business tasks including content creation, financial analysis, research, SEO, legal review, and executive assistance.</P>
+            <P>We reserve the right to modify, suspend, or discontinue any part of the service with reasonable notice.</P>
+          </Section>
+
+          <Section title="3. Account & Eligibility">
+            <P>You must be at least 18 years old to use Veqiro. You are responsible for maintaining the security of your account credentials and for all activities under your account.</P>
+            <P>You may not share accounts or use automated means to create accounts.</P>
+          </Section>
+
+          <Section title="4. Acceptable Use">
+            <P>You may not use Veqiro to: generate spam, disinformation, or content intended to deceive; violate any applicable law; infringe third-party intellectual property; harass or harm others; attempt to reverse-engineer or extract our AI models.</P>
+            <P>We may suspend accounts that violate these terms without prior notice.</P>
+          </Section>
+
+          <Section title="5. Payment & Billing">
+            <P>Subscriptions are billed monthly or annually in advance. All fees are non-refundable except as required by law or as explicitly stated in our refund policy. We may change pricing with 30 days' notice.</P>
+            <P>If payment fails, access may be suspended until the outstanding balance is settled.</P>
+          </Section>
+
+          <Section title="6. Intellectual Property">
+            <P><strong>Your content:</strong> You own all content you create or upload. By using the service, you grant us a limited license to process your content solely to provide the service.</P>
+            <P><strong>Our platform:</strong> All platform code, agent personalities, interfaces, and brand elements are owned by Veqiro Labs. You may not copy, redistribute, or create derivative works.</P>
+            <P><strong>Output ownership:</strong> Content generated by AI Agents in response to your prompts is owned by you, subject to applicable law and third-party model terms.</P>
+          </Section>
+
+          <Section title="7. Disclaimer & Limitation of Liability">
+            <P>The service is provided "as is." We disclaim all warranties, express or implied. AI Agent outputs are not professional advice (legal, financial, medical, or otherwise). Always review Agent outputs before acting on them.</P>
+            <P>To the maximum extent permitted by law, Veqiro Labs's liability is limited to the fees paid by you in the 12 months preceding any claim.</P>
+          </Section>
+
+          <Section title="8. Termination">
+            <P>Either party may terminate at any time. Upon termination, your access ceases and your data is deleted per our Privacy Policy. Provisions that should survive termination (IP, limitations of liability) will do so.</P>
+          </Section>
+
+          <Section title="9. Governing Law">
+            <P>These Terms are governed by the laws of India, without regard to conflict of law principles. Disputes shall be resolved in the courts of Bengaluru, Karnataka, India.</P>
+          </Section>
+
+          <Section title="10. Contact">
+            <P>For questions: <a href={`mailto:${contact.email}`} style={{ color: '#111', fontWeight: 700 }}>{contact.email}</a></P>
+            <P>Veqiro Labs · {contact.address}</P>
+          </Section>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}

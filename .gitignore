@@ -42,3 +42,6 @@ venv/
 __pycache__/
 __pycache__
 /.playwright-mcp/
+
+#packages
+packages/transactional/.react-email/

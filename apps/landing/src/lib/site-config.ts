@@ -23,15 +23,16 @@ export const social = {
 export const nav: { href: string; label: string }[] = [
   { href: '#crew', label: 'The Crew' },
   { href: '#how', label: 'How it Works' },
-  { href: '#pricing', label: 'Pricing' },
+  { href: 'pricing', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ];
 
 export const demoCtaHref = `mailto:${contact.email}?subject=Veqiro%20demo%20request`;
 
 export const marqueeItems = [
-  '★ vega', '★ scout', '★ maya', '★ sage', '★ lex', '★ rex',
-  '★ 6 AI hires, 1 bill', '★ veqiro',
+  ' zero sick days', ' works at 3am', ' no payroll', ' ships fast',
+  ' zero drama', ' never sleeps', ' no small talk', ' always on',
+  ' no HR incidents', ' hire today',
 ];
 
 export const marqueeRedItems = [
@@ -45,7 +46,7 @@ export const howItWorksSteps = [
   {
     n: '01',
     t: 'Pick your crew',
-    d: "Hire all six or start with one. Each has their own inbox, voice, and weirdly specific taste.",
+    d: "Each has their own inbox, voice, and weirdly specific taste. Your whole crew, ready day one.",
     c: '#F5C518',
   },
   {
@@ -74,64 +75,71 @@ export interface PricingTier {
 
 export const pricingTiers: PricingTier[] = [
   {
-    name: 'Solo',
-    monthly: 24,
-    yearly: 19,
-    tag: 'pick one crew member',
-    color: '#6FCDE8',
-    includes: ['1 AI employee', 'Slack + email + docs', 'Unlimited tasks', 'Cancel anytime'],
-  },
-  {
     name: 'Crew',
-    monthly: 99,
-    yearly: 79,
+    monthly: 39,
+    yearly: 29,
     tag: 'the full gang',
     color: '#F06464',
     includes: [
-      'All 6 AI employees',
-      'Shared memory + context',
-      'Priority processing',
-      'Custom brand voice',
-      'Slack + CRM + 30 tools',
+      'Your 6-Member AI Team (All Included)',
+      'Lex, Maya, Rex, Sage, Scout & Vega — Ready to Work',
+      'Everything Stays Connected (Shared Context)',
+      'Faster Than Traditional Workflows',
+      'Speaks Exactly Like Your Brand',
+      'Works With Your Existing Tools',
     ],
     popular: true,
-  },
-  {
-    name: 'Studio',
-    monthly: 299,
-    yearly: 249,
-    tag: 'for small teams',
-    color: '#1DBC87',
-    includes: [
-      'Everything in Crew',
-      '5 human seats',
-      'SSO + audit logs',
-      'Custom integrations',
-      'A human in the loop',
-    ],
   },
 ];
 
 export const faqItems = [
   {
-    q: 'wait, are these real people?',
-    a: "Nope. They're AI agents — but they have names, personalities, and specialties so you don't have to keep retyping \"act as a senior copywriter with 10 years of experience...\".",
+    q: 'wait… are these real people?',
+    a: "No. Real people need sleep, salaries, and validation. These don't.",
   },
   {
-    q: 'what do they actually do?',
-    a: "Real work. Vega books meetings via email. Sage pushes SEO changes to your CMS. Rex pulls data from your warehouse. They connect to the tools you already use.",
+    q: "so they won't ghost me like freelancers?",
+    a: "Exactly. They don't disappear mid-project or \"circle back next week.\"",
   },
   {
     q: 'will they replace my team?',
-    a: "Your team will become a 3x team. They take the grunt work, your humans stay on the strategy. Also your humans can sleep.",
+    a: "Only the part of your team that says \"let's do it tomorrow.\"",
+  },
+  {
+    q: 'do they take breaks?',
+    a: "No lunch. No coffee. No burnout. Just work. Constantly. Slightly terrifying.",
+  },
+  {
+    q: 'what if they make mistakes?',
+    a: "They fix them. Unlike that one guy who still blames \"miscommunication.\"",
   },
   {
     q: 'is my data safe?',
-    a: "SOC 2 Type II. Zero training on your data. EU + US regions. Delete any time. Lex will quote the fine print at you if you ask.",
+    a: "Safer than your \"123456\" password era. We take security more seriously than your last startup idea.",
   },
   {
-    q: 'can I hire just one?',
-    a: "Yep — the Solo plan gets you one employee. Most teams start with Maya or Sage and add the rest within a month.",
+    q: 'do they judge my ideas?',
+    a: "Never. Even your \"Uber for dogs but crypto-powered\" idea is safe here.",
+  },
+  {
+    q: 'how fast are they?',
+    a: "Faster than your motivation after watching one startup reel.",
+  },
+  {
+    q: 'can they handle pressure?',
+    a: "They don't feel pressure. They apply pressure — on your pending tasks.",
+  },
+  {
+    q: "what if I don't know what I'm doing?",
+    a: "Perfect. That's literally why they exist.",
+  },
+  {
+    q: 'is this just another AI tool?',
+    a: "If it was, you'd already have 5 tabs open and still be confused.",
+  },
+  {
+    q: 'why Veqiro?',
+    a: "Because doing everything yourself was never a flex. It was just inefficient.",
   },
 ];
 
@@ -162,29 +170,38 @@ export const footerColumns: FooterColumn[] = [
   {
     h: 'The Crew',
     links: [
-      { label: 'Vega', href: '#crew' },
-      { label: 'Scout', href: '#crew' },
-      { label: 'Maya', href: '#crew' },
-      { label: 'Sage', href: '#crew' },
-      { label: 'Lex', href: '#crew' },
-      { label: 'Rex', href: '#crew' },
+      { label: 'Vega', href: '/agents/vega' },
+      { label: 'Scout', href: '/agents/scout' },
+      { label: 'Maya', href: '/agents/maya' },
+      { label: 'Sage', href: '/agents/sage' },
+      { label: 'Lex', href: '/agents/lex' },
+      { label: 'Rex', href: '/agents/rex' },
+    ],
+  },
+  {
+    h: 'Product',
+    links: [
+      { label: 'Pricing', href: '/#pricing' },
+      { label: 'How it works', href: '/#how' },
+      { label: 'FAQ', href: '/#faq' },
+      { label: 'Changelog', href: demoCtaHref },
     ],
   },
   {
     h: 'Company',
     links: [
-      { label: 'About', href: demoCtaHref },
+      { label: 'About', href: '/about' },
       { label: 'Careers', href: demoCtaHref },
-      { label: 'Manifesto', href: demoCtaHref },
+      { label: 'Blog', href: demoCtaHref },
       { label: 'Press kit', href: demoCtaHref },
     ],
   },
   {
-    h: 'Resources',
+    h: 'Legal',
     links: [
-      { label: 'Docs', href: demoCtaHref },
-      { label: 'Changelog', href: demoCtaHref },
-      { label: 'Status', href: demoCtaHref },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' },
+      { label: 'Cookie Policy', href: '/privacy#cookies' },
       { label: 'Security', href: demoCtaHref },
     ],
   },
@@ -192,11 +209,7 @@ export const footerColumns: FooterColumn[] = [
 
 export const footerBottom = {
   copyright: '© 2026 veqiro labs · made by humans (mostly)',
-  links: [
-    { label: 'terms', href: demoCtaHref },
-    { label: 'privacy', href: demoCtaHref },
-    { label: 'cookies (chocolate chip)', href: demoCtaHref },
-  ],
+  links: [] as { label: string; href: string }[],
 };
 
 export const siteConfig = {

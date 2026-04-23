@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { FONT } from './shared';
 import {
   mainAppUrl,
@@ -8,6 +9,7 @@ import {
   pricingTiers,
   faqItems,
   footerColumns,
+  social,
   footerBottom,
 } from '@/lib/site-config';
 
@@ -49,10 +51,31 @@ export function HowItWorks() {
 
 export function Pricing() {
   const [yearly, setYearly] = useState(false);
+  const [phase, setPhase] = useState<'idle' | 'out' | 'in'>('idle');
+  const p = pricingTiers[0];
+  const price = yearly ? p.yearly : p.monthly;
+
+  // Monthly: red card, yellow shadow/badge
+  // Yearly:  yellow card, red shadow/badge
+  const cardBg    = yearly ? '#F5C518' : '#F06464';
+  const shadowClr = yearly ? '#F06464' : '#F5C518';
+  const badgeBg   = yearly ? '#F06464' : '#F5C518';
+  const badgeTxt  = yearly ? '#EFE7D6' : '#111';
+
+  const handleToggle = (toYearly: boolean) => {
+    if (toYearly === yearly || phase !== 'idle') return;
+    setPhase('out');
+    setTimeout(() => { setYearly(toYearly); setPhase('in'); }, 280);
+    setTimeout(() => { setPhase('idle'); }, 560);
+  };
+
+  const cardTransform = phase === 'out' ? 'perspective(900px) rotateY(90deg) scale(0.95)' : 'perspective(900px) rotateY(0deg) scale(1)';
+  const cardTransition = phase === 'out' ? 'transform 280ms ease-in' : 'transform 280ms ease-out';
+
   return (
     <section id="pricing" style={{ padding: '100px 32px', background: '#111', color: '#EFE7D6' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, color: '#F5C518' }}>
             [ PRICING ]
           </div>
@@ -60,56 +83,60 @@ export function Pricing() {
             less than<br /><span style={{ color: '#F5C518' }}>a bad intern.</span>
           </h2>
           <div style={{ display: 'inline-flex', marginTop: 28, background: '#EFE7D6', borderRadius: 999, padding: 4, border: '3px solid #EFE7D6' }}>
-            {['Monthly', 'Yearly · save 20%'].map((l, i) => (
-              <button key={l} onClick={() => setYearly(i === 1)} style={{
+            {['Monthly', 'Yearly · save 25%'].map((l, i) => (
+              <button key={l} onClick={() => handleToggle(i === 1)} style={{
                 background: (yearly ? 1 : 0) === i ? '#111' : 'transparent',
                 color: (yearly ? 1 : 0) === i ? '#EFE7D6' : '#111',
                 border: 'none', borderRadius: 999, padding: '10px 20px',
                 fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, cursor: 'pointer',
+                transition: 'background 200ms, color 200ms',
               }}>{l}</button>
             ))}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24 }}>
-          {pricingTiers.map((p) => {
-            const price = yearly ? p.yearly : p.monthly;
-            return (
-              <div key={p.name} style={{
-                background: p.popular ? p.color : '#EFE7D6', color: '#111',
-                border: '3px solid #EFE7D6', borderRadius: 16, padding: '32px 28px',
-                position: 'relative', transform: `translateY(${p.popular ? -8 : 0}px)`,
-                boxShadow: p.popular ? `10px 10px 0 ${p.color}` : '6px 6px 0 #EFE7D6',
-              }}>
-                {p.popular && (
-                  <div style={{
-                    position: 'absolute', top: -14, right: 20, background: '#F5C518', border: '3px solid #111',
-                    borderRadius: 999, padding: '4px 14px', fontFamily: FONT.head, fontSize: 11,
-                    letterSpacing: 1, textTransform: 'uppercase', transform: 'rotate(4deg)', boxShadow: '3px 3px 0 #111',
-                  }}>most hired ✦</div>
-                )}
-                <div style={{ fontFamily: FONT.head, fontSize: 24 }}>{p.name}</div>
-                <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 2 }}>{p.tag}</div>
-                <div style={{ marginTop: 20, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontFamily: FONT.display, fontSize: 72, lineHeight: 1 }}>${price}</span>
-                  <span style={{ fontFamily: FONT.body, fontSize: 16 }}>/{yearly ? 'mo, billed yearly' : 'month'}</span>
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '24px 0', display: 'grid', gap: 10 }}>
-                  {p.includes.map(it => (
-                    <li key={it} style={{ fontFamily: FONT.body, fontSize: 15, display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ width: 20, height: 20, background: '#111', color: p.color, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 11, fontFamily: FONT.head }}>✓</span>
-                      {it}
-                    </li>
-                  ))}
-                </ul>
-                <a href={`${mainAppUrl}/signup`} style={{
-                  display: 'block', textAlign: 'center', textDecoration: 'none',
-                  background: '#111', color: '#EFE7D6', padding: '14px',
-                  border: '3px solid #111', borderRadius: 10,
-                  fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1,
-                }}>Hire {p.name.toLowerCase()}</a>
-              </div>
-            );
-          })}
+
+        <div style={{
+          background: cardBg, color: '#111',
+          border: '3px solid #EFE7D6', borderRadius: 20, padding: '40px 36px',
+          position: 'relative', boxShadow: `10px 10px 0 ${shadowClr}`,
+          transform: cardTransform, transition: cardTransition,
+          willChange: 'transform',
+        }}>
+          <div style={{
+            position: 'absolute', top: -14, right: 24,
+            background: badgeBg, color: badgeTxt,
+            border: '3px solid #111', borderRadius: 999, padding: '4px 14px',
+            fontFamily: FONT.head, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
+            transform: 'rotate(4deg)', boxShadow: '3px 3px 0 #111',
+          }}>most hired ✦</div>
+
+          <div style={{ fontFamily: FONT.head, fontSize: 28 }}>{p.name}</div>
+          <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{p.tag}</div>
+
+          <div style={{ marginTop: 24, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontFamily: FONT.display, fontSize: 88, lineHeight: 1 }}>${price}</span>
+            <span style={{ fontFamily: FONT.body, fontSize: 18 }}>/{yearly ? 'mo, billed yearly' : 'month'}</span>
+          </div>
+
+          <ul style={{ listStyle: 'none', padding: 0, margin: '28px 0', display: 'grid', gap: 12 }}>
+            {p.includes.map(it => (
+              <li key={it} style={{ fontFamily: FONT.body, fontSize: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ width: 22, height: 22, background: '#111', color: cardBg, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontFamily: FONT.head, flexShrink: 0 }}>✓</span>
+                {it}
+              </li>
+            ))}
+          </ul>
+
+          <a href={`${mainAppUrl}/signup`} style={{
+            display: 'block', textAlign: 'center', textDecoration: 'none',
+            background: '#111', color: '#EFE7D6', padding: '16px',
+            border: '3px solid #111', borderRadius: 12, boxShadow: '5px 5px 0 #111',
+            fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
+          }}>Start hiring — free 7 days →</a>
+
+          <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
+            No credit card needed · Cancel anytime
+          </p>
         </div>
       </div>
     </section>
@@ -192,47 +219,152 @@ export function FinalCTA() {
   );
 }
 
+const SOCIAL_LINKS = [
+  { label: 'X', href: social.twitter },
+  { label: 'Li', href: social.linkedin },
+  { label: 'Ig', href: social.instagram },
+  { label: 'Gh', href: social.github },
+];
+
 export function Footer() {
   return (
-    <footer style={{ background: '#111', color: '#EFE7D6', padding: '64px 32px 32px' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 40, marginBottom: 48 }}>
-        <div>
-          <div style={{ fontFamily: FONT.display, fontSize: 42, color: '#EFE7D6', lineHeight: 1 }}>veqiro</div>
-          <p style={{ fontFamily: FONT.body, fontSize: 14, marginTop: 12, color: '#CFC6B2', maxWidth: 260 }}>
-            Six AI employees with real jobs. Made in a small room, loud.
-          </p>
-        </div>
-        {footerColumns.map(col => (
-          <div key={col.h}>
-            <div style={{ fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase', letterSpacing: 2, color: '#F5C518', marginBottom: 16 }}>
-              {col.h}
-            </div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
-              {col.links.map(link => (
-                <li key={link.label}>
-                  <a href={link.href} style={{ color: '#EFE7D6', textDecoration: 'none', fontFamily: FONT.body, fontSize: 15 }}>
-                    {link.label}
-                  </a>
-                </li>
+    <footer style={{ background: '#111', color: '#EFE7D6', padding: '72px 32px 36px' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+
+        {/* Top grid: brand + columns */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: 40,
+          marginBottom: 56,
+        }}>
+          {/* Brand */}
+          <div>
+            <Link href="/" style={{ textDecoration: 'none' }}>
+              <div style={{ fontFamily: FONT.display, fontSize: 40, color: '#EFE7D6', lineHeight: 1 }}>veqiro</div>
+            </Link>
+            <p style={{ fontFamily: FONT.body, fontSize: 14, marginTop: 14, color: '#CFC6B2', lineHeight: 1.65, maxWidth: 200 }}>
+              AI employees that do real work. Made in a small room, loud.
+            </p>
+            {/* Social icons */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              {SOCIAL_LINKS.map(s => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 8,
+                    border: '2px solid #333',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: '#888',
+                    textDecoration: 'none',
+                    fontFamily: FONT.mono,
+                    fontSize: 10,
+                    textTransform: 'uppercase' as const,
+                    letterSpacing: 0.5,
+                    transition: 'border-color 150ms, color 150ms',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#F5C518';
+                    (e.currentTarget as HTMLAnchorElement).style.color = '#F5C518';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#333';
+                    (e.currentTarget as HTMLAnchorElement).style.color = '#888';
+                  }}
+                >
+                  {s.label}
+                </a>
               ))}
-            </ul>
+            </div>
           </div>
-        ))}
-      </div>
-      <div style={{
-        maxWidth: 1400, margin: '0 auto', paddingTop: 24, borderTop: '2px solid #333',
-        display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
-        fontFamily: FONT.mono, fontSize: 12, color: '#888',
-      }}>
-        <div>{footerBottom.copyright}</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {footerBottom.links.map((l, i) => (
-            <React.Fragment key={l.label}>
-              {i > 0 && <span>·</span>}
-              <a href={l.href} style={{ color: '#888', textDecoration: 'none' }}>{l.label}</a>
-            </React.Fragment>
+
+          {/* Link columns */}
+          {footerColumns.map(col => (
+            <div key={col.h}>
+              <div style={{
+                fontFamily: FONT.head,
+                fontSize: 11,
+                textTransform: 'uppercase' as const,
+                letterSpacing: 2,
+                color: '#F5C518',
+                marginBottom: 18,
+              }}>
+                {col.h}
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }}>
+                {col.links.map(link => {
+                  const isInternal = link.href.startsWith('/') || link.href.startsWith('#');
+                  const linkStyle: React.CSSProperties = {
+                    color: '#AAA',
+                    textDecoration: 'none',
+                    fontFamily: FONT.body,
+                    fontSize: 14,
+                    lineHeight: 1,
+                    transition: 'color 120ms',
+                  };
+                  return (
+                    <li key={link.label}>
+                      {isInternal ? (
+                        <Link
+                          href={link.href}
+                          style={linkStyle}
+                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#EFE7D6')}
+                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#AAA')}
+                        >
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <a
+                          href={link.href}
+                          style={linkStyle}
+                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#EFE7D6')}
+                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#AAA')}
+                        >
+                          {link.label}
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           ))}
         </div>
+
+        {/* Bottom bar */}
+        <div style={{
+          paddingTop: 24,
+          borderTop: '1px solid #2a2a2a',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <div style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555' }}>
+            {footerBottom.copyright}
+          </div>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+            <Link href="/privacy" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+              Privacy
+            </Link>
+            <span style={{ color: '#333' }}>·</span>
+            <Link href="/terms" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+              Terms
+            </Link>
+            <span style={{ color: '#333' }}>·</span>
+            <Link href="/privacy#cookies" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+              Cookies
+            </Link>
+          </div>
+        </div>
+
       </div>
     </footer>
   );

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { EMPLOYEES, Employee } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 import { FONT } from './shared';
@@ -35,22 +36,51 @@ function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; activ
         <div style={{ fontFamily: FONT.display, fontSize: 56, lineHeight: 1, color: emp.color, marginTop: 4 }}>
           {emp.name}
         </div>
+        <Link
+          href={`/agents/${emp.key}`}
+          onClick={e => e.stopPropagation()}
+          style={{
+            display: 'inline-block',
+            marginTop: 12,
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            textTransform: 'uppercase',
+            letterSpacing: 2,
+            color: emp.color,
+            textDecoration: 'none',
+            borderBottom: `1px solid ${emp.color}`,
+            paddingBottom: 1,
+          }}
+        >
+          Meet {emp.name} →
+        </Link>
       </div>
     </div>
   );
 }
 
 export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => void; activeKey: string }) {
+  const cards = [...EMPLOYEES, ...EMPLOYEES];
+
   return (
-    <section id="crew" style={{ background: '#111', padding: '80px 32px', color: '#EFE7D6' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <section id="crew" style={{ background: '#111', padding: '80px 0', color: '#EFE7D6' }}>
+      <style>{`
+        @keyframes crew-scroll {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .crew-track { animation: crew-scroll 22s linear infinite; }
+        .crew-track:hover { animation-play-state: paused; }
+      `}</style>
+
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 32px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, marginBottom: 48 }}>
           <div>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 12 }}>
               [ THE CREW ]
             </div>
             <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 104px)', margin: 0, lineHeight: 0.9, letterSpacing: -1, color: '#EFE7D6' }}>
-              six hires, <span style={{ color: '#F5C518' }}>one bill.</span>
+              your crew, <span style={{ color: '#F5C518' }}>one bill.</span>
             </h2>
           </div>
           <p style={{ maxWidth: 420, fontFamily: FONT.body, fontSize: 18, lineHeight: 1.5, color: '#CFC6B2', margin: 0 }}>
@@ -58,9 +88,15 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
             Click a card to put them to work.
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 28 }}>
-          {EMPLOYEES.map((emp, i) => (
-            <CrewCard key={emp.key} emp={emp} i={i} active={activeKey === emp.key} onClick={() => onSelect(emp.key)} />
+      </div>
+
+      {/* Carousel — full bleed, overflows the section padding */}
+      <div style={{ overflow: 'hidden' }}>
+        <div className="crew-track" style={{ display: 'flex', gap: 24, width: 'max-content' }}>
+          {cards.map((emp, i) => (
+            <div key={`${emp.key}-${i}`} style={{ width: 280, flexShrink: 0 }}>
+              <CrewCard emp={emp} i={i % EMPLOYEES.length} active={activeKey === emp.key} onClick={() => onSelect(emp.key)} />
+            </div>
           ))}
         </div>
       </div>
@@ -142,7 +178,7 @@ export function DeskPanel({ active }: { active: string }) {
           </div>
 
           {/* RIGHT: chat mock */}
-          <div style={{ background: '#fff', border: '3px solid #111', borderRadius: 16, boxShadow: '10px 10px 0 #111', overflow: 'hidden', transform: 'rotate(-0.6deg)' }}>
+          <div style={{ background: '#fff', border: '3px solid #111', borderRadius: 16, boxShadow: '10px 10px 0 #111', overflow: 'hidden', transform: 'rotate(-0.6deg)', marginTop: 60 }}>
             <div style={{ background: emp.color, padding: '14px 18px', borderBottom: '3px solid #111', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid #111', background: '#fff', flexShrink: 0 }}>
                 <Comp size={40} />
