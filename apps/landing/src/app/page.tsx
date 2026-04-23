@@ -14,7 +14,7 @@ export default function LandingPage() {
       <Hero />
       <Marquee items={marqueeItems} bg="#111" color="#F5C518" />
       <CrewSection onSelect={setActive} activeKey={active} />
-      <DeskPanel active={active} />
+      <DeskPanel active={active} onNavigate={setActive} />
       <Marquee items={marqueeRedItems} bg="#F06464" color="#111" />
       <HowItWorks />
       <Pricing />

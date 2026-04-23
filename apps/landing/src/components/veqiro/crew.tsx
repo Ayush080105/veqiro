@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { EMPLOYEES, Employee } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 import { FONT } from './shared';
@@ -140,8 +140,11 @@ function getFollow(k: string): string {
   return crewFollows[k] ?? "On it.";
 }
 
-export function DeskPanel({ active }: { active: string }) {
+export function DeskPanel({ active, onNavigate }: { active: string; onNavigate: (key: string) => void }) {
   const emp = EMPLOYEES.find(e => e.key === active)!;
+  const idx = EMPLOYEES.findIndex(e => e.key === active);
+  const prevKey = EMPLOYEES[(idx - 1 + EMPLOYEES.length) % EMPLOYEES.length].key;
+  const nextKey = EMPLOYEES[(idx + 1) % EMPLOYEES.length].key;
   const [msgs, setMsgs] = useState<{ who: string; text: string }[]>([]);
   const [typing, setTyping] = useState(false);
   const Comp = CHARACTER_COMPONENTS[emp.key];
@@ -184,8 +187,42 @@ export function DeskPanel({ active }: { active: string }) {
             <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: '#111', opacity: 0.7, marginBottom: 12 }}>
               {`>`} currently working with:
             </div>
-            <div style={{ background: emp.color, border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #111', overflow: 'hidden', maxWidth: 'min(420px, 90vw)' }}>
-              <Comp size="100%" />
+            <div style={{ position: 'relative', maxWidth: 'min(420px, 90vw)' }}>
+              <div style={{ background: emp.color, border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #111', overflow: 'hidden' }}>
+                <Comp size="100%" />
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate(prevKey)}
+                aria-label={`Switch to previous agent (${EMPLOYEES.find(e => e.key === prevKey)?.name})`}
+                style={{
+                  position: 'absolute', top: '50%', left: -22,
+                  transform: 'translateY(-50%)',
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: '#fff', color: '#111',
+                  border: '3px solid #111', boxShadow: '3px 3px 0 #111',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', padding: 0,
+                }}
+              >
+                <ChevronLeft size={22} strokeWidth={2.5} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate(nextKey)}
+                aria-label={`Switch to next agent (${EMPLOYEES.find(e => e.key === nextKey)?.name})`}
+                style={{
+                  position: 'absolute', top: '50%', right: -22,
+                  transform: 'translateY(-50%)',
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: '#fff', color: '#111',
+                  border: '3px solid #111', boxShadow: '3px 3px 0 #111',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', padding: 0,
+                }}
+              >
+                <ChevronRight size={22} strokeWidth={2.5} />
+              </button>
             </div>
             <h3 style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 12vw, 96px)', lineHeight: 0.9, margin: '24px 0 0', color: '#111' }}>
               {emp.name}
