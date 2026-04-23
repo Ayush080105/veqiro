@@ -47,6 +47,8 @@ class ResearchTopicResponse(BaseModel):
     synthesis: str
     sources_scraped: list[str]
     keywords_found: list[str]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ResearchCompanyRequest(BaseModel):
@@ -82,6 +84,8 @@ class CompanyProfile(BaseModel):
 class ResearchCompanyResponse(BaseModel):
     company: CompanyProfile
     scraped_at: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class CompetitorInput(BaseModel):
@@ -123,6 +127,8 @@ class CompetitorScanResult(BaseModel):
 class CompetitorScanResponse(BaseModel):
     results: list[CompetitorScanResult]
     scanned_at: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class TrendingTopicsRequest(BaseModel):
@@ -152,6 +158,8 @@ class TrendItem(BaseModel):
 class TrendingTopicsResponse(BaseModel):
     trends: list[TrendItem]
     generated_at: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -247,11 +255,14 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             )}],
         ),
     )
+    total_tokens = _llm.count_tokens(findings_raw) + _llm.count_tokens(synthesis_raw)
     return ResearchTopicResponse(
         findings=findings_raw,
         synthesis=synthesis_raw,
         sources_scraped=sources,
         keywords_found=keywords[:10],
+        tokens_used=total_tokens,
+        model_used=_agent.default_model,
     )
 
 
@@ -322,12 +333,18 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
             "Return ONLY the JSON, no markdown fences."
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = safe_json_loads(raw)
         profile = CompanyProfile(**data)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to parse company profile — retry. ({exc})")
-    return ResearchCompanyResponse(company=profile, scraped_at=datetime.utcnow().isoformat())
+    return ResearchCompanyResponse(
+        company=profile,
+        scraped_at=datetime.utcnow().isoformat(),
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/scan-competitors", response_model=CompetitorScanResponse, summary="Scan for competitor changes")
@@ -353,7 +370,7 @@ async def scan_competitors(request: CompetitorScanRequest) -> CompetitorScanResp
 
     system = await _agent.build_system_prompt(request.user_id)
 
-    async def _scan_one(comp: CompetitorInput) -> CompetitorScanResult:
+    async def _scan_one(comp: CompetitorInput) -> tuple[CompetitorScanResult, int]:
         content = await scrape_url(comp.url)
         new_hash = hash_content(content)
         has_changes = comp.last_scan_hash is not None and comp.last_scan_hash != new_hash
@@ -369,11 +386,13 @@ async def scan_competitors(request: CompetitorScanRequest) -> CompetitorScanResp
                     "Return a 2-3 sentence summary and a significance level: low, medium, or high."
                 )}],
             )
+            _tokens = _llm.count_tokens(summary_raw)
             change_summary = summary_raw.strip()
             significance = "high" if any(w in summary_raw.lower() for w in ["pricing", "feature", "launch", "major"]) else "medium"
         else:
             change_summary = "No previous scan available." if comp.last_scan_hash is None else "No significant changes detected since last scan."
             significance = "low"
+            _tokens = 0
 
         return CompetitorScanResult(
             competitor_name=comp.name,
@@ -382,10 +401,17 @@ async def scan_competitors(request: CompetitorScanRequest) -> CompetitorScanResp
             change_summary=change_summary,
             significance=significance,
             new_hash=new_hash,
-        )
+        ), _tokens
 
-    results = await asyncio.gather(*[_scan_one(c) for c in request.competitors])
-    return CompetitorScanResponse(results=list(results), scanned_at=datetime.utcnow().isoformat())
+    pairs = await asyncio.gather(*[_scan_one(c) for c in request.competitors])
+    results = [r for r, _ in pairs]
+    total_tokens = sum(t for _, t in pairs)
+    return CompetitorScanResponse(
+        results=list(results),
+        scanned_at=datetime.utcnow().isoformat(),
+        tokens_used=total_tokens,
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/trending-topics", response_model=TrendingTopicsResponse, summary="Get trending topics")
@@ -433,9 +459,15 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
             "Return ONLY the JSON array, no markdown fences."
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         items = safe_json_loads(raw)
         trends = [TrendItem(**item) for item in items[:request.count]]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Trending topics returned unparseable data — retry. ({exc})")
-    return TrendingTopicsResponse(trends=trends, generated_at=datetime.utcnow().isoformat())
+    return TrendingTopicsResponse(
+        trends=trends,
+        generated_at=datetime.utcnow().isoformat(),
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )

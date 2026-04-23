@@ -61,6 +61,8 @@ class KeywordCluster(BaseModel):
 class KeywordResearchResponse(BaseModel):
     keywords: list[KeywordItem]
     clusters: list[KeywordCluster]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class GenerateBlogRequest(BaseModel):
@@ -110,6 +112,8 @@ class GenerateBlogResponse(BaseModel):
     blog: BlogContent
     seo_score: int
     seo_suggestions: list[str]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class AnalyzeContentRequest(BaseModel):
@@ -136,6 +140,8 @@ class ContentAnalysisResponse(BaseModel):
     improvements: list[str]
     missing_keywords: list[str]
     readability_grade: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ContentBriefRequest(BaseModel):
@@ -158,6 +164,8 @@ class ContentBriefRequest(BaseModel):
 
 class ContentBriefResponse(BaseModel):
     brief: dict
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -218,6 +226,7 @@ async def keyword_research(request: KeywordResearchRequest) -> KeywordResearchRe
             "Return ONLY the JSON, no markdown fences."
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = safe_json_loads(raw)
         if isinstance(data, list):
@@ -226,7 +235,12 @@ async def keyword_research(request: KeywordResearchRequest) -> KeywordResearchRe
         clusters = [KeywordCluster(**c) for c in data.get("clusters", [])]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Keyword research returned unparseable data — retry. ({exc})")
-    return KeywordResearchResponse(keywords=keywords, clusters=clusters)
+    return KeywordResearchResponse(
+        keywords=keywords,
+        clusters=clusters,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/generate-blog", response_model=GenerateBlogResponse, summary="Generate SEO blog post")
@@ -296,7 +310,7 @@ Ready to get started? [Try Veqiro AI free for 14 days →]
         if request.output_format == "wordpress":
             wp_format = format_for_wordpress(request.topic, body, tags=request.secondary_keywords)
         elif request.output_format == "wix":
-            wix_format = format_for_wix(request.topic, body, excerpt=f"Discover the best {request.target_keyword} and how to build an AI-powered workflow.", tags=request.secondary_keywords)
+            wix_format = format_for_wix(request.topic, body, excerpt=f"Discover the best {request.target_keyword}.", tags=request.secondary_keywords)
 
         blog = BlogContent(
             title=request.topic,
@@ -339,7 +353,7 @@ Ready to get started? [Try Veqiro AI free for 14 days →]
         )}],
         max_tokens=4096,
     )
-    # Extract meta title and description from top of response
+    tokens_used = _llm.count_tokens(raw)
     meta_title = f"{request.target_keyword} | Guide 2025"
     meta_description = f"Complete guide to {request.target_keyword}."
     for line in raw.splitlines()[:10]:
@@ -347,7 +361,6 @@ Ready to get started? [Try Veqiro AI free for 14 days →]
             meta_title = line.split(":", 1)[1].strip()[:60]
         elif line.lower().startswith("meta description:"):
             meta_description = line.split(":", 1)[1].strip()[:160]
-    # Extract headings
     headings = _re.findall(r"^#{1,3} (.+)$", raw, flags=_re.MULTILINE)
     slug = request.target_keyword.lower().replace(" ", "-").replace("/", "-")
     blog = BlogContent(
@@ -361,7 +374,13 @@ Ready to get started? [Try Veqiro AI free for 14 days →]
         target_keyword=request.target_keyword,
         secondary_keywords=request.secondary_keywords,
     )
-    return GenerateBlogResponse(blog=blog, seo_score=75, seo_suggestions=["Add internal links", "Verify keyword density"])
+    return GenerateBlogResponse(
+        blog=blog,
+        seo_score=75,
+        seo_suggestions=["Add internal links", "Verify keyword density"],
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/analyze-content", response_model=ContentAnalysisResponse, summary="Analyze content SEO")
@@ -403,9 +422,10 @@ async def analyze_content(request: AnalyzeContentRequest) -> ContentAnalysisResp
             "Return ONLY the JSON, no markdown fences."
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         data = safe_json_loads(raw)
-        return ContentAnalysisResponse(**data)
+        return ContentAnalysisResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content analysis returned unparseable data — retry. ({exc})")
 
@@ -480,8 +500,9 @@ async def content_brief(request: ContentBriefRequest) -> ContentBriefResponse:
             "Return as a detailed JSON object. Return ONLY the JSON, no markdown fences."
         )}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         brief = safe_json_loads(raw)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content brief generation failed — retry. ({exc})")
-    return ContentBriefResponse(brief=brief)
+    return ContentBriefResponse(brief=brief, tokens_used=tokens_used, model_used=_agent.default_model)

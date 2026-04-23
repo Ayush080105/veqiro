@@ -64,6 +64,8 @@ class IdeationResponse(BaseModel):
     ideas: list[ContentIdea]
     generated_at: str
     image: ImageResult | None = None
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class DraftRequest(BaseModel):
@@ -108,6 +110,8 @@ class DraftContent(BaseModel):
 class DraftResponse(BaseModel):
     draft: DraftContent
     image: ImageResult | None = None
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class VariantRequest(BaseModel):
@@ -141,6 +145,8 @@ class ContentVariant(BaseModel):
 
 class VariantResponse(BaseModel):
     variants: list[ContentVariant]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ReviseRequest(BaseModel):
@@ -173,6 +179,8 @@ class RevisedContent(BaseModel):
 class ReviseResponse(BaseModel):
     revised: RevisedContent
     changes_made: list[str]
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -279,6 +287,7 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         from core.utils import safe_json_loads
         ideas_data = safe_json_loads(raw)
@@ -297,7 +306,13 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         except Exception:
             pass
 
-    return IdeationResponse(ideas=ideas, generated_at=datetime.utcnow().isoformat(), image=image)
+    return IdeationResponse(
+        ideas=ideas,
+        generated_at=datetime.utcnow().isoformat(),
+        image=image,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/draft-content", response_model=DraftResponse, summary="Draft content piece")
@@ -335,6 +350,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         from core.utils import safe_json_loads
         data = safe_json_loads(raw)
@@ -351,7 +367,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
             )
         except Exception:
             pass
-    return DraftResponse(draft=draft, image=image)
+    return DraftResponse(draft=draft, image=image, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/generate-variants", response_model=VariantResponse, summary="Generate platform variants")
@@ -395,7 +411,7 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
     system = await _agent.build_system_prompt(request.user_id)
     website_line = f"Include this link where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
 
-    async def _adapt(platform: str) -> ContentVariant | None:
+    async def _adapt(platform: str) -> tuple[ContentVariant, int]:
         rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
         prompt = (
             f"Adapt this {request.original_platform} content for {platform}:\n\n"
@@ -410,10 +426,11 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
             provider=_agent.default_provider, model=_agent.default_model,
             system=system, messages=[{"role": "user", "content": prompt}],
         )
+        _tokens = _llm.count_tokens(raw)
         try:
             from core.utils import safe_json_loads
             data = safe_json_loads(raw)
-            return ContentVariant(**data)
+            return ContentVariant(**data), _tokens
         except Exception:
             return ContentVariant(
                 platform=platform,
@@ -421,10 +438,12 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
                 body=f"[Failed to adapt for {platform} — please retry]",
                 hashtags=[],
                 char_count=0,
-            )
+            ), _tokens
 
-    results = await asyncio.gather(*[_adapt(p) for p in request.target_platforms])
-    return VariantResponse(variants=list(results))
+    pairs = await asyncio.gather(*[_adapt(p) for p in request.target_platforms])
+    variants = [v for v, _ in pairs]
+    total_tokens = sum(t for _, t in pairs)
+    return VariantResponse(variants=variants, tokens_used=total_tokens, model_used=_agent.default_model)
 
 
 @router.post("/revise", response_model=ReviseResponse, summary="Revise content with feedback")
@@ -471,10 +490,11 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         from core.utils import safe_json_loads
         data = safe_json_loads(raw)
-        return ReviseResponse(**data)
+        return ReviseResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content revision failed — retry. ({exc})")
 
@@ -505,6 +525,8 @@ class ImageRegenRequest(BaseModel):
 
 class ImageRegenResponse(BaseModel):
     image: ImageResult
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 class ContentRegenRequest(BaseModel):
@@ -529,6 +551,8 @@ class ContentRegenResponse(BaseModel):
     caption: str
     hashtags: list[str]
     cta: str
+    tokens_used: int = 0
+    model_used: str = ""
 
 
 @router.post("/regenerate-image", response_model=ImageRegenResponse, summary="Regenerate image")
@@ -568,7 +592,7 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
             b64 = _overlay_logo(b64, logo_bytes)
 
     image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
-    return ImageRegenResponse(image=image)
+    return ImageRegenResponse(image=image, model_used=_agent.default_model)
 
 
 @router.post("/regenerate-content", response_model=ContentRegenResponse, summary="Regenerate content")
@@ -597,9 +621,10 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
     )
+    tokens_used = _llm.count_tokens(raw)
     try:
         from core.utils import safe_json_loads
         data = safe_json_loads(raw)
-        return ContentRegenResponse(**data)
+        return ContentRegenResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content regeneration failed — retry. ({exc})")

@@ -33,6 +33,8 @@ class ClassifyResponse(BaseModel):
     agent_slug: str
     confidence: float
     reasoning: str
+    tokens_used: int = 0
+    model_used: str = ""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -40,6 +42,8 @@ class ClassifyResponse(BaseModel):
                 "agent_slug": "maya",
                 "confidence": 0.92,
                 "reasoning": "Message contains keywords related to content creation and LinkedIn posting.",
+                "tokens_used": 148,
+                "model_used": "gpt-4o-mini",
             }
         }
     )
@@ -90,8 +94,9 @@ async def classify_message(request: ClassifyRequest) -> ClassifyResponse:
     messages = [{"role": "user", "content": request.message}]
     import json
     raw = await llm.complete(provider=provider, model=model, system=system, messages=messages)
+    tokens_used = llm.count_tokens(raw)
     try:
         data = json.loads(raw)
-        return ClassifyResponse(**data)
+        return ClassifyResponse(**data, tokens_used=tokens_used, model_used=model)
     except Exception:
         return _keyword_classify(request.message)
