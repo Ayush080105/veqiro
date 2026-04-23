@@ -39,21 +39,48 @@ export type MessageRow = {
   tokensUsed: number;
 };
 
-export const findMessagesInWindow = (organizationId: string, since: Date): Promise<MessageRow[]> =>
+export const findMessagesInWindow = (
+  organizationId: string,
+  from: Date,
+  to: Date,
+  agentFilter?: Agent[],
+): Promise<MessageRow[]> =>
   prisma.message.findMany({
-    where: { organizationId, createdAt: { gte: since } },
+    where: {
+      organizationId,
+      createdAt: { gte: from, lt: to },
+      ...(agentFilter ? { agent: { in: agentFilter } } : {}),
+    },
     orderBy: { createdAt: "asc" },
     select: { agent: true, role: true, content: true, createdAt: true, tokensUsed: true },
   });
 
-export const countMessagesBetween = (organizationId: string, from: Date, to: Date) =>
+export const countMessagesBetween = (
+  organizationId: string,
+  from: Date,
+  to: Date,
+  agentFilter?: Agent[],
+) =>
   prisma.message.count({
-    where: { organizationId, createdAt: { gte: from, lt: to } },
+    where: {
+      organizationId,
+      createdAt: { gte: from, lt: to },
+      ...(agentFilter ? { agent: { in: agentFilter } } : {}),
+    },
   });
 
-export const sumTokensSince = async (organizationId: string, since: Date): Promise<number> => {
+export const sumTokensSince = async (
+  organizationId: string,
+  from: Date,
+  to: Date,
+  agentFilter?: Agent[],
+): Promise<number> => {
   const agg = await prisma.message.aggregate({
-    where: { organizationId, createdAt: { gte: since } },
+    where: {
+      organizationId,
+      createdAt: { gte: from, lt: to },
+      ...(agentFilter ? { agent: { in: agentFilter } } : {}),
+    },
     _sum: { tokensUsed: true },
   });
   return agg._sum.tokensUsed ?? 0;
@@ -69,17 +96,30 @@ export const countPublishedBetween = (
     where: { organizationId, status, publishedAt: { gte: from, lt: to } },
   });
 
-export const groupPostsByPlatform = (organizationId: string) =>
+export const groupPostsByPlatform = (
+  organizationId: string,
+  window?: { from: Date; to: Date },
+) =>
   prisma.publishedPost.groupBy({
     by: ["platform"],
-    where: { organizationId, status: "success" },
+    where: {
+      organizationId,
+      status: "success",
+      ...(window ? { createdAt: { gte: window.from, lt: window.to } } : {}),
+    },
     _count: { _all: true },
   });
 
-export const groupPostsByStatus = (organizationId: string) =>
+export const groupPostsByStatus = (
+  organizationId: string,
+  window?: { from: Date; to: Date },
+) =>
   prisma.publishedPost.groupBy({
     by: ["status"],
-    where: { organizationId },
+    where: {
+      organizationId,
+      ...(window ? { createdAt: { gte: window.from, lt: window.to } } : {}),
+    },
     _count: { _all: true },
   });
 
