@@ -52,13 +52,13 @@ export const howItWorksSteps = [
   {
     n: '02',
     t: 'Brief them',
-    d: "Forward an email. Paste a doc. Share a Loom. They read. They ask questions. They get it.",
+    d: "Drop in your brand kit — voice, goals, context. Then just talk to them. They brief themselves and show up ready every day.",
     c: '#F06464',
   },
   {
     n: '03',
     t: 'Go touch grass',
-    d: "They ping you on Slack when they're stuck or shipping. Everyone else, they handle.",
+    d: "They get to work — no check-ins, no hand-holding. You hear from them when it's done.",
     c: '#1DBC87',
   },
 ];
