@@ -9,10 +9,14 @@ interface BreadcrumbItem {
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
+  theme?: 'light' | 'dark';
 }
 
-export function Breadcrumbs({ items }: BreadcrumbsProps) {
+export function Breadcrumbs({ items, theme = 'light' }: BreadcrumbsProps) {
   const schema = breadcrumbJsonLd(items);
+  const isDark = theme === 'dark';
+  const activeColor = isDark ? '#EFE7D6' : '#111';
+  const mutedColor = isDark ? '#888' : '#666';
 
   return (
     <>
@@ -46,7 +50,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
                 {isLast ? (
                   <span
                     aria-current="page"
-                    style={{ color: '#111' }}
+                    style={{ color: activeColor }}
                   >
                     {item.name}
                   </span>
@@ -55,13 +59,13 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
                     <a
                       href={item.url}
                       style={{
-                        color: '#666',
+                        color: mutedColor,
                         textDecoration: 'none',
                       }}
                     >
                       {item.name}
                     </a>
-                    <span aria-hidden="true" style={{ color: '#666' }}>
+                    <span aria-hidden="true" style={{ color: mutedColor }}>
                       {' / '}
                     </span>
                   </>

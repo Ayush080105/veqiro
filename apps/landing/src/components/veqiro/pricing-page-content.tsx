@@ -72,6 +72,12 @@ export default function PricingPageContent() {
             Six AI employees with real specialties. One monthly bill.
             No payroll. No HR drama. No sick days.
           </p>
+          <p style={{
+            fontFamily: FONT.body, fontSize: 'clamp(13px, 1.8vw, 15px)', color: '#888',
+            marginTop: 14, lineHeight: 1.6, maxWidth: 620, marginLeft: 'auto', marginRight: 'auto',
+          }}>
+            Veqiro pricing is simple: one subscription gets you all six AI employees — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst. $39/mo, or $29/mo billed annually. No per-seat fees, no tier decisions.
+          </p>
 
           {/* Trust strip */}
           <div style={{ display: 'flex', gap: 'clamp(16px, 3vw, 32px)', justifyContent: 'center', marginTop: 44, flexWrap: 'wrap' }}>

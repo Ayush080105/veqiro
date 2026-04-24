@@ -24,6 +24,17 @@ export interface WorkflowStep {
   color: string;
 }
 
+export interface Outcome {
+  title: string;
+  body: string;
+}
+
+export interface ScenarioBlock {
+  title: string;
+  before: string[];
+  after: string[];
+}
+
 export interface UseCaseContent {
   path: string;
   persona: string;
@@ -35,8 +46,11 @@ export interface UseCaseContent {
     stats: string[];
   };
   painPoints: string[];
+  whyNow: string;
   agents: AgentSpotlight[];
   steps: WorkflowStep[];
+  scenario: ScenarioBlock;
+  outcomes: Outcome[];
   faq: { q: string; a: string }[];
 }
 
@@ -60,7 +74,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
         padding: 'clamp(40px, 7vw, 80px) clamp(20px, 4vw, 40px)',
       }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-          <Breadcrumbs items={crumbs} />
+          <Breadcrumbs items={crumbs} theme="dark" />
 
           <div style={{
             fontFamily: FONT.mono, fontSize: 12, letterSpacing: 3,
@@ -138,6 +152,47 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           </span>
         </div>
       </div>
+
+      {/* ── WHY NOW ── */}
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto' }}>
+          <div style={{
+            fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+            textTransform: 'uppercase', color: '#666', marginBottom: 16,
+          }}>
+            [ WHY THIS MATTERS ]
+          </div>
+          <h2 style={{
+            fontFamily: FONT.display,
+            fontSize: 'clamp(32px, 4.5vw, 56px)',
+            margin: '0 0 24px',
+            lineHeight: 1.05,
+            letterSpacing: -1,
+          }}>
+            the real job Veqiro does for{' '}
+            <span style={{
+              background: content.accentColor,
+              color: content.accentInk,
+              padding: '0 14px',
+              display: 'inline-block',
+              border: '3px solid #111',
+              borderRadius: 8,
+              boxShadow: '4px 4px 0 #111',
+            }}>
+              {content.persona.toLowerCase()}.
+            </span>
+          </h2>
+          <p style={{
+            fontFamily: FONT.body,
+            fontSize: 'clamp(15px, 1.9vw, 18px)',
+            lineHeight: 1.75,
+            color: '#333',
+            margin: 0,
+          }}>
+            {content.whyNow}
+          </p>
+        </div>
+      </section>
 
       {/* ── YOUR AI CREW ── */}
       <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
@@ -320,8 +375,227 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
         </div>
       </section>
 
-      {/* ── FAQ ── */}
+      {/* ── SCENARIO: BEFORE / AFTER ── */}
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)', maxWidth: 720 }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+            }}>
+              [ A REAL SCENARIO ]
+            </div>
+            <h2 style={{
+              fontFamily: FONT.display,
+              fontSize: 'clamp(32px, 4.5vw, 56px)',
+              margin: 0,
+              lineHeight: 1.02,
+              letterSpacing: -1,
+            }}>
+              {content.scenario.title}
+            </h2>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 24,
+          }}>
+            {/* Before */}
+            <div style={{
+              border: '3px solid #111',
+              borderRadius: 14,
+              padding: '28px 26px',
+              background: '#EFE7D6',
+              boxShadow: '6px 6px 0 #111',
+            }}>
+              <div style={{
+                display: 'inline-block',
+                background: '#111',
+                color: '#EFE7D6',
+                border: '2px solid #111',
+                borderRadius: 999,
+                padding: '5px 14px',
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                marginBottom: 18,
+              }}>
+                Before Veqiro
+              </div>
+              <ul style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 0,
+                display: 'grid',
+                gap: 12,
+              }}>
+                {content.scenario.before.map((b) => (
+                  <li key={b} style={{
+                    fontFamily: FONT.body,
+                    fontSize: 15,
+                    lineHeight: 1.65,
+                    color: '#444',
+                    display: 'flex',
+                    gap: 10,
+                    alignItems: 'flex-start',
+                  }}>
+                    <span aria-hidden style={{
+                      color: '#B94141',
+                      fontFamily: FONT.head,
+                      fontSize: 18,
+                      lineHeight: 1,
+                      flexShrink: 0,
+                      marginTop: 2,
+                    }}>
+                      ✕
+                    </span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* After */}
+            <div style={{
+              border: '3px solid #111',
+              borderRadius: 14,
+              padding: '28px 26px',
+              background: content.accentColor,
+              boxShadow: `6px 6px 0 #111`,
+            }}>
+              <div style={{
+                display: 'inline-block',
+                background: '#111',
+                color: content.accentColor,
+                border: '2px solid #111',
+                borderRadius: 999,
+                padding: '5px 14px',
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                marginBottom: 18,
+              }}>
+                With Veqiro
+              </div>
+              <ul style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 0,
+                display: 'grid',
+                gap: 12,
+              }}>
+                {content.scenario.after.map((a) => (
+                  <li key={a} style={{
+                    fontFamily: FONT.body,
+                    fontSize: 15,
+                    lineHeight: 1.65,
+                    color: content.accentInk,
+                    display: 'flex',
+                    gap: 10,
+                    alignItems: 'flex-start',
+                  }}>
+                    <span aria-hidden style={{
+                      color: content.accentInk,
+                      fontFamily: FONT.head,
+                      fontSize: 18,
+                      lineHeight: 1,
+                      flexShrink: 0,
+                      marginTop: 2,
+                      fontWeight: 900,
+                    }}>
+                      ✓
+                    </span>
+                    <span>{a}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── OUTCOMES ── */}
       <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+            }}>
+              [ OUTCOMES ]
+            </div>
+            <h2 style={{
+              fontFamily: FONT.display,
+              fontSize: 'clamp(36px, 5vw, 64px)',
+              margin: 0, lineHeight: 0.95,
+            }}>
+              what changes<br />
+              <span style={{
+                background: content.accentColor,
+                color: content.accentInk,
+                padding: '0 16px',
+                display: 'inline-block',
+                border: '3px solid #111',
+                borderRadius: 8,
+                boxShadow: '4px 4px 0 #111',
+                transform: 'rotate(-1deg)',
+              }}>
+                in week one.
+              </span>
+            </h2>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: 20,
+          }}>
+            {content.outcomes.map((out, i) => (
+              <div key={out.title} style={{
+                border: '3px solid #111',
+                borderRadius: 12,
+                padding: '24px 22px',
+                background: '#EFE7D6',
+                boxShadow: '5px 5px 0 #111',
+                transform: `rotate(${i % 2 === 0 ? -0.4 : 0.4}deg)`,
+              }}>
+                <div style={{
+                  fontFamily: FONT.display,
+                  fontSize: 36,
+                  color: content.accentInk,
+                  lineHeight: 1,
+                  marginBottom: 14,
+                }}>
+                  {String(i + 1).padStart(2, '0')}
+                </div>
+                <h3 style={{
+                  fontFamily: FONT.head,
+                  fontSize: 17,
+                  margin: '0 0 10px',
+                  lineHeight: 1.3,
+                }}>
+                  {out.title}
+                </h3>
+                <p style={{
+                  fontFamily: FONT.body,
+                  fontSize: 14.5,
+                  lineHeight: 1.65,
+                  color: '#444',
+                  margin: 0,
+                }}>
+                  {out.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
             <div style={{

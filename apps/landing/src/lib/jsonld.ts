@@ -1,6 +1,10 @@
 import type { Employee } from '@/components/veqiro/data';
 import type { PricingTier } from '@/lib/site-config';
 import { contact, social } from '@/lib/site-config';
+import { SITE_URL } from '@/lib/seo';
+
+const ORG_ID = `${SITE_URL}/#organization`;
+const WEBSITE_ID = `${SITE_URL}/#website`;
 
 // ---------------------------------------------------------------------------
 // Organization
@@ -10,10 +14,10 @@ export function organizationJsonLd(): object {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    '@id': 'https://veqiro.com/#organization',
+    '@id': ORG_ID,
     name: 'Veqiro',
-    url: 'https://veqiro.com',
-    logo: 'https://veqiro.com/logo.png',
+    url: SITE_URL,
+    logo: `${SITE_URL}/logo.png`,
     description:
       'Veqiro provides AI employees — autonomous AI agents that handle executive assistance, research, content, SEO, legal review, and financial analysis for founders and lean teams.',
     email: contact.email,
@@ -39,11 +43,11 @@ export function websiteJsonLd(): object {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    '@id': 'https://veqiro.com/#website',
-    url: 'https://veqiro.com',
+    '@id': WEBSITE_ID,
+    url: SITE_URL,
     name: 'Veqiro',
     publisher: {
-      '@id': 'https://veqiro.com/#organization',
+      '@id': ORG_ID,
     },
   };
 }
@@ -71,7 +75,7 @@ export function softwareApplicationJsonLd(): object {
       },
     },
     publisher: {
-      '@id': 'https://veqiro.com/#organization',
+      '@id': ORG_ID,
     },
   };
 }
@@ -87,6 +91,8 @@ export function productJsonLd(tiers: PricingTier[]): object {
       name: `${tier.name} — Monthly`,
       price: tier.monthly,
       priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      url: `${SITE_URL}/pricing`,
       priceSpecification: {
         '@type': 'UnitPriceSpecification',
         billingDuration: 'P1M',
@@ -97,6 +103,8 @@ export function productJsonLd(tiers: PricingTier[]): object {
       name: `${tier.name} — Annual`,
       price: tier.yearly * 12,
       priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      url: `${SITE_URL}/pricing`,
       priceSpecification: {
         '@type': 'UnitPriceSpecification',
         billingDuration: 'P1Y',
@@ -108,9 +116,10 @@ export function productJsonLd(tiers: PricingTier[]): object {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: 'Veqiro Crew',
+    description:
+      'One subscription, all six AI employees — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst.',
     brand: {
-      '@type': 'Brand',
-      name: 'Veqiro',
+      '@id': ORG_ID,
     },
     offers,
   };
@@ -127,9 +136,10 @@ export function personAgentJsonLd(emp: Employee): object {
     name: emp.name,
     jobTitle: `${emp.role} (AI)`,
     description: emp.description,
-    image: `https://veqiro.com/${emp.name}.jpeg`,
+    image: `${SITE_URL}/${emp.name}.jpeg`,
+    url: `${SITE_URL}/agents/${emp.key}`,
     worksFor: {
-      '@id': 'https://veqiro.com/#organization',
+      '@id': ORG_ID,
     },
     knowsAbout: emp.skills,
     disambiguatingDescription: `${emp.name} is an AI agent, not a human.`,

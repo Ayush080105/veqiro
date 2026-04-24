@@ -23,6 +23,7 @@ const content: UseCaseContent = {
     'doing everything yourself', 'content never consistent', 'emails eat your mornings',
     'legal is intimidating', 'metrics get ignored', 'SEO never started',
   ],
+  whyNow: "You're running a business alone. You can't hire specialists — every dollar out the door matters — and most AI tools for solopreneurs are one-trick utilities that don't talk to each other. Veqiro is the opposite: a single subscription that gives you six specialists with shared context. Your AI executive assistant knows about your content calendar. Your AI financial analyst sees what Scout found in your market. It's less like buying six tools and more like hiring six specialists who actually know each other's work.",
   agents: [
     { key: 'vega', name: 'Vega', color: '#6FCDE8', ink: '#0E5C74', blurb: 'Your inbox manager, scheduler, and email writer. Never fall behind again.' },
     { key: 'scout', name: 'Scout', color: '#F5C518', ink: '#7A5A00', blurb: 'Researches your market, tracks your competition, finds your opportunities.' },
@@ -51,12 +52,48 @@ const content: UseCaseContent = {
       color: '#F06464',
     },
   ],
+  scenario: {
+    title: "Your week as a team of one, before and after.",
+    before: [
+      "Monday: 180 unread emails. You spend the morning triaging and answering the urgent ones.",
+      "Tuesday: Wanted to write a blog post. Ended up doing tax paperwork and client onboarding instead.",
+      "Wednesday: A prospect asks for your NDA. You ghost them for 2 days while you dig up a template.",
+      "Thursday: Your most-read newsletter in 3 weeks — because you skipped weeks 1 and 2.",
+      "Friday: You have no idea what your real MRR is. Or runway. Or CAC.",
+    ],
+    after: [
+      "Monday: Vega has cleared the inbox. Your first read is her 5-line briefing with 3 items that need you.",
+      "Tuesday: Maya drafted 2 newsletters, a LinkedIn post, and a blog opener. You edit, you ship.",
+      "Wednesday: Lex reviewed the prospect's NDA in 4 minutes. You sign and send back before lunch.",
+      "Thursday: Your newsletter is out. Your blog post is indexed. Your LinkedIn is active.",
+      "Friday: Rex sends the weekly financial read — MRR, runway, CAC by channel. You know where you stand.",
+    ],
+  },
+  outcomes: [
+    {
+      title: "Your mornings back",
+      body: "Vega handles the inbox triage that used to eat the first two hours of your day.",
+    },
+    {
+      title: "A consistent content rhythm",
+      body: "Maya makes it possible to actually publish weekly — newsletter, blog, social — without it becoming a second job.",
+    },
+    {
+      title: "Legal comfort",
+      body: "Lex reviews contracts and generates standard docs so you stop avoiding the legal side of running a business.",
+    },
+    {
+      title: "Finance visibility",
+      body: "Rex tracks MRR, burn, runway, and CAC — finally you know the numbers without hiring an accountant or building a spreadsheet.",
+    },
+  ],
   faq: [
-    { q: 'Is this worth it if I\'m just one person?', a: "Especially if you\'re one person. You can\'t afford to hire six specialists. You can afford $39/mo — and that\'s the whole point." },
-    { q: 'Will I have time to manage the agents?', a: "15 minutes a day. They\'re not interns who need constant guidance — they\'re specialists who need a brief and a direction." },
-    { q: 'What\'s the first agent I should start with?', a: "Start with Vega for your inbox. Most solopreneurs get 2 hours back on day one. Then you\'ll see why the other five matter." },
-    { q: 'Can I cancel if I don\'t love it?', a: "Yes. Monthly billing, cancel anytime. No contracts, no pressure. But most solopreneurs who try it don\'t go back." },
-    { q: 'Do I need any technical knowledge?', a: "None. You talk to them like you\'d talk to a new hire. They take it from there — no prompts, no settings, no configuration required." },
+    { q: "Is Veqiro worth it if I'm just one person?", a: "Especially if you're one person. You can't afford to hire six specialists and don't need full-time versions of any of them. $39/mo gets you all six — cheaper than a single part-time contractor, and they don't sleep." },
+    { q: 'Will I have time to manage the agents?', a: "15 minutes a day. They're not interns who need constant guidance — they're specialists who need a brief and a direction. Most solopreneurs spend more time reading Veqiro's briefings than giving instructions." },
+    { q: "What's the first AI agent I should start with as a solopreneur?", a: "Vega, for inbox and calendar. Most solopreneurs get 2 hours back on day one. Once that's reclaimed, you have the bandwidth to actually use Maya for content and Rex for finances." },
+    { q: 'Can I cancel if I don\'t love it?', a: "Yes. Monthly billing, cancel anytime. 7-day free trial with no credit card required. No contracts, no pressure. But most solopreneurs who try it don't go back." },
+    { q: 'Do I need any technical knowledge to use Veqiro?', a: "None. You talk to the agents like you'd talk to a new hire. They take it from there — no prompts, no settings, no configuration. If you can write an email, you can run the crew." },
+    { q: "Can Veqiro replace all the separate AI tools I'm using?", a: "For most solopreneurs, yes — ChatGPT, Jasper, Surfer, Motion, and a contract template tool all collapse into one subscription. The bigger win is that Veqiro's agents share context, so they don't ask you to re-explain your business six times." },
   ],
 };
 

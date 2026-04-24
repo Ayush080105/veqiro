@@ -35,6 +35,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly" as const,
       priority: 0.9,
     })),
+    {
+      url: `${SITE_URL}/use-cases`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
     ...USE_CASE_SLUGS.map(slug => ({
       url: `${SITE_URL}/use-cases/${slug}`,
       lastModified,
