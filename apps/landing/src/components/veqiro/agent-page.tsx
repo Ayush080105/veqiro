@@ -7,6 +7,11 @@ import { MobileChatDemo } from './mobile-chat';
 import { CHARACTER_COMPONENTS } from './characters';
 import { mainAppUrl } from '@/lib/site-config';
 import type { Employee } from './data';
+import { EMPLOYEES } from './data';
+import { JsonLd } from '@/components/veqiro/json-ld';
+import { Breadcrumbs } from '@/components/veqiro/breadcrumbs';
+import { personAgentJsonLd, faqPageJsonLd } from '@/lib/jsonld';
+import { SITE_URL, AGENT_META } from '@/lib/seo';
 
 interface Props {
   employee: Employee;
@@ -14,10 +19,27 @@ interface Props {
 
 export function AgentPage({ employee }: Props) {
   const Comp = CHARACTER_COMPONENTS[employee.key];
+  const crumbs = [
+    { name: 'Home', url: SITE_URL },
+    { name: 'Agents', url: `${SITE_URL}/#crew` },
+    { name: employee.name, url: `${SITE_URL}/agents/${employee.key}` },
+  ];
 
   return (
     <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
       <PageNav />
+      <JsonLd data={[personAgentJsonLd(employee), faqPageJsonLd(employee.faq)]} />
+
+      {/* ── BREADCRUMBS ── */}
+      <div style={{
+        background: '#111',
+        borderTop: '3px solid #111',
+        padding: '4px clamp(20px, 4vw, 32px)',
+      }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <Breadcrumbs items={crumbs} theme="dark" />
+        </div>
+      </div>
 
       {/* ── HERO ── */}
       <section style={{
@@ -93,6 +115,24 @@ export function AgentPage({ employee }: Props) {
             }}>
               {employee.name}
             </h1>
+
+            {AGENT_META[employee.key] && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center',
+                marginTop: 10,
+                background: employee.color,
+                border: '2px solid #111',
+                borderRadius: 999,
+                padding: '5px 14px',
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                color: employee.ink,
+              }}>
+                {AGENT_META[employee.key].seoTitleSuffix.replace(' | Veqiro', '')}
+              </div>
+            )}
 
             <div style={{
               fontFamily: FONT.head, fontSize: 'clamp(16px, 2vw, 22px)',
@@ -213,8 +253,117 @@ export function AgentPage({ employee }: Props) {
         </div>
       </div>
 
-      {/* ── USE CASES ── */}
+      {/* ── HOW IT HELPS + WORKFLOW ── */}
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)', maxWidth: 820 }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase' as const, color: '#666', marginBottom: 16,
+            }}>
+              [ HOW {employee.name.toUpperCase()} HELPS ]
+            </div>
+            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: '0 0 24px', lineHeight: 0.95 }}>
+              what {employee.name.toLowerCase()} actually<br />
+              <span style={{
+                background: employee.color, padding: '0 16px', display: 'inline-block',
+                border: '3px solid #111', borderRadius: 8, boxShadow: '4px 4px 0 #111',
+                transform: 'rotate(-1deg)',
+              }}>
+                does for you.
+              </span>
+            </h2>
+            <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 1.9vw, 18px)', color: '#333', lineHeight: 1.75, margin: 0 }}>
+              {employee.howItHelps}
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 20,
+            marginTop: 32,
+          }}>
+            {employee.workflow.map((step, i) => (
+              <div key={step.title} style={{
+                border: '3px solid #111', borderRadius: 14, padding: '24px 22px',
+                background: '#FFF9ED', boxShadow: '5px 5px 0 #111',
+                transform: `rotate(${i % 2 === 0 ? -0.4 : 0.4}deg)`,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', background: employee.color,
+                  border: '2.5px solid #111', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontFamily: FONT.display, fontSize: 18,
+                  color: employee.ink, marginBottom: 16,
+                }}>
+                  {i + 1}
+                </div>
+                <h3 style={{ fontFamily: FONT.head, fontSize: 17, margin: '0 0 10px', lineHeight: 1.3 }}>
+                  {step.title}
+                </h3>
+                <p style={{ fontFamily: FONT.body, fontSize: 14.5, lineHeight: 1.65, color: '#444', margin: 0 }}>
+                  {step.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── OUTCOMES ── */}
       <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase' as const, color: '#666', marginBottom: 16,
+            }}>
+              [ WHAT YOU GET ]
+            </div>
+            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
+              real outcomes.<br />
+              <span style={{
+                background: employee.color, padding: '0 16px', display: 'inline-block',
+                border: '3px solid #111', borderRadius: 8, boxShadow: '4px 4px 0 #111',
+              }}>
+                not vibes.
+              </span>
+            </h2>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: 18,
+          }}>
+            {employee.outcomes.map((out, i) => (
+              <div key={out.title} style={{
+                border: '3px solid #111', borderRadius: 12, padding: '22px 20px',
+                background: '#EFE7D6', boxShadow: '4px 4px 0 #111',
+                transform: `rotate(${i % 2 === 0 ? 0.3 : -0.3}deg)`,
+              }}>
+                <div style={{
+                  display: 'inline-block', background: employee.color, color: employee.ink,
+                  border: '2px solid #111', borderRadius: 999, padding: '4px 12px',
+                  fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2,
+                  textTransform: 'uppercase' as const, marginBottom: 14,
+                }}>
+                  Outcome {String(i + 1).padStart(2, '0')}
+                </div>
+                <h3 style={{ fontFamily: FONT.head, fontSize: 17, margin: '0 0 10px', lineHeight: 1.3 }}>
+                  {out.title}
+                </h3>
+                <p style={{ fontFamily: FONT.body, fontSize: 14.5, lineHeight: 1.65, color: '#444', margin: 0 }}>
+                  {out.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── USE CASES ── */}
+      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
             <div style={{
@@ -232,7 +381,7 @@ export function AgentPage({ employee }: Props) {
             {employee.useCases.map((uc, i) => (
               <div key={i} style={{
                 border: '3px solid #111', borderRadius: 12, padding: '24px 20px',
-                background: '#EFE7D6', boxShadow: '5px 5px 0 #111',
+                background: '#FFF9ED', boxShadow: '5px 5px 0 #111',
               }}>
                 <div style={{
                   display: 'inline-block', background: employee.color, border: '2px solid #111',
@@ -243,6 +392,72 @@ export function AgentPage({ employee }: Props) {
                 </div>
                 <p style={{ fontFamily: FONT.body, fontSize: 16, margin: 0, lineHeight: 1.55 }}>{uc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── AGENT FAQ ── */}
+      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto' }}>
+          <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase' as const, color: '#666', marginBottom: 16,
+            }}>
+              [ FAQ ]
+            </div>
+            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(32px, 4.5vw, 56px)', margin: 0, lineHeight: 0.95 }}>
+              about {employee.name.toLowerCase()}.
+            </h2>
+          </div>
+
+          <div style={{ display: 'grid', gap: 14 }}>
+            {employee.faq.map((item) => (
+              <details
+                key={item.q}
+                style={{
+                  border: '3px solid #111', borderRadius: 12,
+                  background: '#EFE7D6', boxShadow: '4px 4px 0 #111',
+                  overflow: 'hidden',
+                }}
+              >
+                <summary style={{
+                  cursor: 'pointer',
+                  padding: '18px 22px',
+                  fontFamily: FONT.head,
+                  fontSize: 'clamp(14px, 1.6vw, 16px)',
+                  lineHeight: 1.4,
+                  listStyle: 'none',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 16,
+                }}>
+                  <span>{item.q}</span>
+                  <span
+                    aria-hidden
+                    style={{
+                      fontFamily: FONT.display,
+                      fontSize: 22,
+                      color: employee.ink,
+                      flexShrink: 0,
+                      lineHeight: 1,
+                    }}
+                  >
+                    +
+                  </span>
+                </summary>
+                <div style={{
+                  padding: '0 22px 20px',
+                  fontFamily: FONT.body,
+                  fontSize: 15,
+                  lineHeight: 1.75,
+                  color: '#333',
+                }}>
+                  {item.a}
+                </div>
+              </details>
             ))}
           </div>
         </div>
@@ -262,6 +477,55 @@ export function AgentPage({ employee }: Props) {
             textTransform: 'uppercase' as const, color: employee.color,
           }}>
             — {employee.name}, {employee.role}
+          </div>
+        </div>
+      </section>
+
+      {/* ── REST OF THE CREW ── */}
+      <section style={{ borderBottom: '3px solid #111', background: '#FFF9ED', padding: 'clamp(40px, 6vw, 60px) clamp(20px, 4vw, 32px)' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{
+            fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+            textTransform: 'uppercase', color: '#666', marginBottom: 32,
+          }}>
+            [ THE REST OF THE CREW ]
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: 16,
+          }}>
+            {EMPLOYEES.filter(e => e.key !== employee.key).map(e => {
+              const EmpComp = CHARACTER_COMPONENTS[e.key];
+              return (
+                <a
+                  key={e.key}
+                  href={`/agents/${e.key}`}
+                  style={{
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    border: '3px solid #111',
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    boxShadow: '4px 4px 0 #111',
+                    display: 'block',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                >
+                  <div style={{ aspectRatio: '3/4', background: e.color, position: 'relative' }}>
+                    <EmpComp size="100%" />
+                  </div>
+                  <div style={{
+                    background: '#111',
+                    padding: '10px 12px',
+                    borderTop: '2px solid #333',
+                  }}>
+                    <div style={{ fontFamily: FONT.display, fontSize: 18, color: e.color, lineHeight: 1 }}>{e.name}</div>
+                    <div style={{ fontFamily: FONT.mono, fontSize: 9, color: '#666', marginTop: 4, textTransform: 'uppercase', letterSpacing: 1.5 }}>{e.role}</div>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </div>
       </section>
