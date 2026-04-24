@@ -213,6 +213,7 @@ export const footerColumns: FooterColumn[] = [
     h: 'Company',
     links: [
       { label: 'About', href: '/about' },
+      { label: 'Blog', href: '/blog' },
     ],
   },
   {

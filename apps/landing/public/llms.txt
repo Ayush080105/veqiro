@@ -21,3 +21,18 @@
 - [For Marketing Teams](https://veqiro.com/use-cases/marketing-teams): AI tools for marketing teams
 - [For Agencies](https://veqiro.com/use-cases/agencies): AI for agencies managing multiple clients
 - [For Solopreneurs](https://veqiro.com/use-cases/solopreneurs): AI tools for solopreneurs and solo founders
+
+## Blog
+- [Blog Index](https://veqiro.com/blog): Guides on AI employees, startup operations, SEO, legal, and finance
+- [What is an AI Employee?](https://veqiro.com/blog/what-is-an-ai-employee): Founder's guide to AI employees — what they are, how they work, and how to hire one
+- [AI Employee vs Freelancer Cost Breakdown](https://veqiro.com/blog/ai-employee-vs-freelancer): Real numbers on AI employees vs freelancers vs full-time hires across six business functions
+- [Automate Your Inbox With AI](https://veqiro.com/blog/automate-inbox-with-ai): System for automating email triage, drafts, and follow-ups with an AI executive assistant
+- [AI Competitor Research Workflow](https://veqiro.com/blog/ai-competitor-research-workflow): The 2-hour weekly competitive intelligence workflow using an AI research agent
+- [Writing Content That Doesn't Sound Like AI](https://veqiro.com/blog/writing-content-brand-voice): Brand-voice framework for AI-generated content that sounds like you
+- [Modern SEO Workflow for Founders](https://veqiro.com/blog/modern-seo-workflow-founders): Building and maintaining SEO strategy using an AI SEO agent
+- [Contract Red Flags for Founders](https://veqiro.com/blog/contract-red-flags-founders): 12 contract clauses that most often hurt founders, caught by AI in under 5 minutes
+- [SaaS Metrics Explained](https://veqiro.com/blog/saas-metrics-founders): MRR, burn rate, CAC, LTV — the eight metrics that matter and how AI automates tracking
+- [How to Build an AI Team for Your Startup](https://veqiro.com/blog/build-ai-team-startup): Step-by-step guide to assembling an AI crew — which functions first, how to onboard, how to manage
+- [Lindy vs Sintra vs Veqiro](https://veqiro.com/blog/lindy-vs-sintra-vs-veqiro): Direct comparison of three leading AI employee platforms — features, pricing, ideal user
+- [Best AI Tools for Agencies 2026](https://veqiro.com/blog/best-ai-tools-agencies-2026): AI tools that move the needle for agencies — content, research, SEO, reporting, operations
+- [How a 3-Person Startup Ships Like a 10-Person Team](https://veqiro.com/blog/startup-ships-like-big-team): Operating model for lean startups using AI employees to cover execution
