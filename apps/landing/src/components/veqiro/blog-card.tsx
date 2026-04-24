@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import type { BlogPostMeta, BlogCategory } from '@/lib/blog';
 
