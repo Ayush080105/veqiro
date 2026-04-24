@@ -377,7 +377,7 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
             f"Draft a {request.tone} reply to this email:\n\n"
             f"From: {email.get('from', '')}\n"
             f"Subject: {email.get('subject', '')}\n"
-            f"Body: {email.get('body', '')[:1000]}\n\n"
+            f"Body: {email.get('body', email.get('snippet', ''))[:1500]}\n\n"
             f"Instructions: {request.reply_instructions}"
         )}],
     )
@@ -404,7 +404,12 @@ async def calendar_summary(request: CalendarSummaryRequest) -> CalendarSummaryRe
     """Get a comprehensive calendar overview with conflict detection and free slots."""
     token = request.metadata.get("google_access_token", "") or "mock-token"
     events = await list_events(token, days_ahead=request.days_ahead)
-    free_slots = await find_free_slots(token, {})
+    now = datetime.now(timezone.utc)
+    date_range = {
+        "start": now.isoformat(),
+        "end": (now + timedelta(days=request.days_ahead)).isoformat(),
+    }
+    free_slots = await find_free_slots(token, date_range)
 
     if settings.MOCK_MODE:
         return CalendarSummaryResponse(

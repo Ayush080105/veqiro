@@ -184,6 +184,7 @@ class RevisedContent(BaseModel):
 class ReviseResponse(BaseModel):
     revised: RevisedContent
     changes_made: list[str]
+    platform: str = "linkedin"
     tokens_used: int = 0
     model_used: str = ""
 
@@ -464,6 +465,7 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
     """Revise existing content based on feedback."""
     if settings.MOCK_MODE:
         return ReviseResponse(
+            platform=request.platform,
             revised=RevisedContent(
                 title="10 Hours Saved Weekly: Inside Our AI-Powered Founder Workflow",
                 body=(
@@ -507,7 +509,7 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
     try:
         from core.utils import safe_json_loads
         data = safe_json_loads(raw)
-        return ReviseResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
+        return ReviseResponse(**data, platform=request.platform, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content revision failed — retry. ({exc})")
 
@@ -564,6 +566,7 @@ class ContentRegenResponse(BaseModel):
     caption: str
     hashtags: list[str]
     cta: str
+    platform: str = "linkedin"
     tokens_used: int = 0
     model_used: str = ""
 
@@ -628,6 +631,7 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
             caption=f"{request.caption}\n\n[Revised: {request.prompt}]",
             hashtags=["#Updated", "#Content"],
             cta="Check it out 👇",
+            platform=request.platform,
         )
 
     system = await _agent.build_system_prompt(request.user_id)
@@ -650,6 +654,6 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
     try:
         from core.utils import safe_json_loads
         data = safe_json_loads(raw)
-        return ContentRegenResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
+        return ContentRegenResponse(**data, platform=request.platform, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content regeneration failed — retry. ({exc})")

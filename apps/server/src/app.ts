@@ -12,6 +12,30 @@ import morgan from "morgan";
 
 export const app = express();
 
+function deepCamelize(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(deepCamelize);
+  if (obj !== null && typeof obj === "object") {
+    return Object.fromEntries(
+      Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
+        k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
+        deepCamelize(v),
+      ])
+    );
+  }
+  return obj;
+}
+
+function camelizeBody(
+  req: express.Request,
+  _res: express.Response,
+  next: express.NextFunction
+) {
+  if (req.body && typeof req.body === "object") {
+    req.body = deepCamelize(req.body);
+  }
+  next();
+}
+
 app.use(
   cors({
     origin: env.CLIENT_URL,
@@ -25,6 +49,7 @@ app.use(morgan("dev"));
 app.use(`/api/${env.API_VERSION}/auth`, toNodeHandler(auth));
 
 app.use(express.json());
+app.use(camelizeBody);
 app.use(`/api/${env.API_VERSION}`, router);
 
 app.get("/docs.json", (_req, res) => res.json(openApiDocument));

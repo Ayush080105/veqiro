@@ -5,6 +5,7 @@ import type {
   ExchangeResult,
   PublishArgs,
   PublishResult,
+  RefreshResult,
   SocialProvider,
 } from "../integrations.types.js";
 
@@ -130,6 +131,35 @@ export const instagram: SocialProvider = {
         pageName: page.name,
         username,
       },
+    };
+  },
+
+  async refresh(currentToken: string): Promise<RefreshResult> {
+    const appId = process.env.META_APP_ID;
+    const appSecret = process.env.META_APP_SECRET;
+    if (!appId || !appSecret) {
+      throw new Error("META_APP_ID / META_APP_SECRET not configured");
+    }
+    const params = new URLSearchParams({
+      grant_type: "fb_exchange_token",
+      client_id: appId,
+      client_secret: appSecret,
+      fb_exchange_token: currentToken,
+    });
+    const res = await fetch(`${TOKEN_URL}?${params.toString()}`);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Instagram token refresh failed (${res.status}): ${err}`);
+    }
+    const json = (await res.json()) as {
+      access_token: string;
+      expires_in?: number;
+    };
+    return {
+      accessToken: json.access_token,
+      expiresAt: json.expires_in
+        ? new Date(Date.now() + json.expires_in * 1000)
+        : null,
     };
   },
 

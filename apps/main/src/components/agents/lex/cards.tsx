@@ -220,7 +220,7 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "lex-draft.txt"
+    a.download = "lex-draft.md"
     a.click()
     URL.revokeObjectURL(url)
   }

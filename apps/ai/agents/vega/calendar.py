@@ -128,19 +128,58 @@ async def find_free_slots(access_token: str, date_range: dict) -> list[dict]:
 
     from googleapiclient.discovery import build
     from google.oauth2.credentials import Credentials
+    from datetime import datetime, timedelta, timezone
     import asyncio
+
+    now = datetime.now(timezone.utc)
+    start_dt = datetime.fromisoformat(date_range.get("start", now.isoformat()))
+    end_dt = datetime.fromisoformat(date_range.get("end", (now + timedelta(days=7)).isoformat()))
 
     def _find():
         creds = Credentials(token=access_token)
         service = build("calendar", "v3", credentials=creds)
         body = {
-            "timeMin": date_range.get("start", ""),
-            "timeMax": date_range.get("end", ""),
+            "timeMin": start_dt.isoformat(),
+            "timeMax": end_dt.isoformat(),
             "items": [{"id": "primary"}],
         }
         result = service.freebusy().query(body=body).execute()
         busy = result.get("calendars", {}).get("primary", {}).get("busy", [])
-        # Simple: return what's NOT busy (simplified implementation)
-        return [{"busy_slots": busy}]
+
+        free_slots = []
+        current = start_dt.replace(hour=9, minute=0, second=0, microsecond=0)
+        while current.date() < end_dt.date():
+            day_start = current
+            day_end = current.replace(hour=18, minute=0)
+            slot_start = day_start
+
+            day_busy = [b for b in busy if b["start"][:10] == current.strftime("%Y-%m-%d")]
+            day_busy.sort(key=lambda x: x["start"])
+
+            for b in day_busy:
+                b_start = datetime.fromisoformat(b["start"].replace("Z", "+00:00"))
+                b_end = datetime.fromisoformat(b["end"].replace("Z", "+00:00"))
+                if slot_start < b_start:
+                    duration = (b_start - slot_start).total_seconds() / 3600
+                    if duration >= 0.5:
+                        free_slots.append({
+                            "date": current.strftime("%Y-%m-%d"),
+                            "start": slot_start.strftime("%H:%M"),
+                            "end": b_start.strftime("%H:%M"),
+                            "duration_hours": round(duration, 1),
+                        })
+                slot_start = max(slot_start, b_end)
+
+            if slot_start < day_end:
+                duration = (day_end - slot_start).total_seconds() / 3600
+                if duration >= 0.5:
+                    free_slots.append({
+                        "date": current.strftime("%Y-%m-%d"),
+                        "start": slot_start.strftime("%H:%M"),
+                        "end": "18:00",
+                        "duration_hours": round(duration, 1),
+                    })
+            current += timedelta(days=1)
+        return free_slots
 
     return await asyncio.to_thread(_find)

@@ -206,9 +206,15 @@ export const linkedin: SocialProvider = {
     }
 
     const postUrn =
-      res.headers.get("x-restli-id") ?? res.headers.get("X-RestLi-Id") ?? "";
+      res.headers.get("x-restli-id") ??
+      res.headers.get("X-RestLi-Id") ??
+      res.headers.get("location")?.split("/").pop() ??
+      "";
     const id = postUrn.split(":").pop() ?? postUrn;
-    const url = id ? `https://www.linkedin.com/feed/update/${postUrn}` : undefined;
+    const url = postUrn ? `https://www.linkedin.com/feed/update/${postUrn}/` : undefined;
+    if (!postUrn) {
+      console.warn("[linkedin] publish succeeded but no post URN in response headers");
+    }
     return { platformPostId: postUrn || id, url };
   },
 };
