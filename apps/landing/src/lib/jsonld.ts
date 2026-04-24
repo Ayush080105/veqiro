@@ -183,3 +183,53 @@ export function breadcrumbJsonLd(
     })),
   };
 }
+
+// ---------------------------------------------------------------------------
+// BlogPosting (Article JSON-LD for blog posts)
+// ---------------------------------------------------------------------------
+
+interface ArticleJsonLdInput {
+  title: string;
+  description: string;
+  slug: string;
+  date: string;
+  updatedDate?: string;
+  ogImage?: string;
+  keywords: string[];
+  category: string;
+}
+
+export function articleJsonLd(post: ArticleJsonLdInput): object {
+  const url = `${SITE_URL}/blog/${post.slug}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    '@id': `${url}#article`,
+    headline: post.title,
+    description: post.description,
+    url,
+    datePublished: post.date,
+    dateModified: post.updatedDate ?? post.date,
+    author: {
+      '@type': 'Organization',
+      '@id': ORG_ID,
+      name: 'Veqiro',
+    },
+    publisher: {
+      '@id': ORG_ID,
+    },
+    image: {
+      '@type': 'ImageObject',
+      url: `${SITE_URL}${post.ogImage ?? `/og/blog/${post.slug}.png`}`,
+      width: 1200,
+      height: 630,
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': url,
+    },
+    keywords: post.keywords.join(', '),
+    articleSection: post.category,
+    inLanguage: 'en-US',
+  };
+}
