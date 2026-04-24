@@ -27,6 +27,20 @@ export const nav: { href: string; label: string }[] = [
   { href: '#faq', label: 'FAQ' },
 ];
 
+export interface UseCaseNavItem {
+  slug: string;
+  persona: string;
+  tagline: string;
+  color: string;
+}
+
+export const useCaseNavItems: UseCaseNavItem[] = [
+  { slug: 'founders',         persona: 'Founders',         tagline: '6 hires, no payroll',  color: '#F5C518' },
+  { slug: 'marketing-teams',  persona: 'Marketing Teams',  tagline: 'Ship at 3x pace',       color: '#F06464' },
+  { slug: 'agencies',         persona: 'Agencies',         tagline: 'Multi-client ready',    color: '#8A8AF0' },
+  { slug: 'solopreneurs',     persona: 'Solopreneurs',     tagline: 'Team of one → six',     color: '#1DBC87' },
+];
+
 export const demoCtaHref = `mailto:${contact.email}?subject=Veqiro%20demo%20request`;
 
 export const marqueeItems = [
