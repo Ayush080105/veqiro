@@ -25,11 +25,29 @@ const basicAuth = () => {
   return `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`;
 };
 
+function detectMimeFromBuffer(buffer: Buffer): string {
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) return "image/jpeg";
+  if (buffer[0] === 0x89 && buffer[1] === 0x50) return "image/png";
+  if (buffer[0] === 0x47 && buffer[1] === 0x49) return "image/gif";
+  if (buffer.slice(0, 4).toString() === "RIFF") return "image/webp";
+  return "image/png";
+}
+
 const uploadMedia = async (accessToken: string, imageUrl: string): Promise<string> => {
   const buffer = await fetchImageAsBuffer(imageUrl);
+  const ext = imageUrl.split("?")[0].split(".").pop()?.toLowerCase();
+  const mimeMap: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  const mimeType = (ext && mimeMap[ext]) || detectMimeFromBuffer(buffer);
+  const filename = `image.${ext ?? "png"}`;
   const form = new FormData();
-  const blob = new Blob([new Uint8Array(buffer)], { type: "image/png" });
-  form.append("media", blob, "image.png");
+  const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
+  form.append("media", blob, filename);
   form.append("media_category", "tweet_image");
 
   const res = await fetch(MEDIA_UPLOAD_URL, {

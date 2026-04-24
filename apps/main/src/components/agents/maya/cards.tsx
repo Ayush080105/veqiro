@@ -136,6 +136,7 @@ export function DraftPreview({
           src={src}
           alt="generated"
           className="max-h-72 w-full rounded-none object-cover"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
         />
       )}
       {title && <p className="text-xs font-medium">{title}</p>}
@@ -282,7 +283,7 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
           </ul>
         </div>
       )}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-1.5">
         <Button
           variant="outline"
           size="xs"
@@ -294,6 +295,12 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
         >
           <Copy data-icon="inline-start" /> Copy
         </Button>
+        <PublishDialog
+          platform={result.platform}
+          caption={`${result.revised.body}${result.revised.cta ? `\n\n${result.revised.cta}` : ""}`}
+          hashtags={result.revised.hashtags}
+          image={undefined}
+        />
       </div>
     </Card>
   )
@@ -310,10 +317,15 @@ export function ImageRegenCard({ result }: { result: MayaImageRegenResult }) {
         <p className="text-xs font-medium">Regenerated image</p>
       </div>
       {src && (
-        <img src={src} alt="regenerated" className="w-full rounded-none" />
+        <img
+          src={src}
+          alt="regenerated"
+          className="w-full rounded-none"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+        />
       )}
       <p className="text-[10px] italic text-muted-foreground">
-        Prompt: {result.image.prompt_used}
+        Prompt: {result.image?.prompt_used ?? "—"}
       </p>
       {src && (
         <div className="flex justify-end">
@@ -357,10 +369,16 @@ export function ContentRegenCard({ result }: { result: MayaContentRegenResult })
           ))}
         </div>
       )}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-1.5">
         <Button variant="outline" size="xs" onClick={() => copy(full)}>
           <Copy data-icon="inline-start" /> Copy
         </Button>
+        <PublishDialog
+          platform={result.platform}
+          caption={result.caption}
+          hashtags={result.hashtags}
+          image={undefined}
+        />
       </div>
     </Card>
   )

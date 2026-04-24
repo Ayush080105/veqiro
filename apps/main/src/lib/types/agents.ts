@@ -196,6 +196,7 @@ export interface MayaReviseResult {
     cta: string
   }
   changes_made: string[]
+  platform: ContentPlatform
 }
 
 export interface MayaImageRegenRequest {
@@ -220,6 +221,7 @@ export interface MayaContentRegenResult {
   caption: string
   hashtags: string[]
   cta: string
+  platform: ContentPlatform
 }
 
 // ─── Scout ───────────────────────────────────────────────────────────────────
