@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getAllPostMetas } from "@/lib/blog";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_LANDING_URL || "https://veqiro.com";
@@ -7,7 +8,8 @@ const AGENT_SLUGS = ['vega', 'scout', 'maya', 'sage', 'lex', 'rex'];
 
 const USE_CASE_SLUGS = ['founders', 'marketing-teams', 'agencies', 'solopreneurs'];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const posts = await getAllPostMetas();
   const lastModified = new Date();
 
   return [
@@ -46,6 +48,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified,
       changeFrequency: "monthly" as const,
       priority: 0.8,
+    })),
+    {
+      url: `${SITE_URL}/blog`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+    ...posts.map(post => ({
+      url: `${SITE_URL}/blog/${post.slug}`,
+      lastModified: new Date(post.updatedDate ?? post.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
   ];
 }
