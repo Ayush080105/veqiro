@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FONT } from './shared';
 import { EMPLOYEES } from './data';
-import { mainAppUrl, nav as navLinks } from '@/lib/site-config';
+import { mainAppUrl, nav as navLinks, useCaseNavItems } from '@/lib/site-config';
 
 type Variant = 'hero' | 'page';
 
@@ -104,6 +104,46 @@ export function NavShared({ variant = 'page' }: Props) {
                 <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{emp.role}</span>
               </Link>
             ))}
+          </div>
+        </div>
+        <div className="nav-crew-wrap">
+          Use Cases ▾
+          <div className="nav-crew-menu">
+            {useCaseNavItems.map(uc => (
+              <Link key={uc.slug} href={`/use-cases/${uc.slug}`} className="nav-crew-item">
+                <span
+                  aria-hidden
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    border: '2px solid #111', background: uc.color,
+                    flexShrink: 0, display: 'inline-block',
+                  }}
+                />
+                <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>{uc.persona}</span>
+                <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{uc.tagline}</span>
+              </Link>
+            ))}
+            <div
+              style={{
+                height: 1,
+                background: '#eee',
+                margin: '4px 6px',
+              }}
+            />
+            <Link href="/use-cases" className="nav-crew-item">
+              <span
+                aria-hidden
+                style={{
+                  width: 28, height: 28, borderRadius: '50%',
+                  border: '2px dashed #111', display: 'inline-flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  fontFamily: FONT.display, fontSize: 16, color: '#111', flexShrink: 0,
+                }}
+              >
+                →
+              </span>
+              <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>All use cases</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -207,6 +247,46 @@ export function NavShared({ variant = 'page' }: Props) {
                   <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{emp.role}</span>
                 </Link>
               ))}
+
+              <div className="vq-drawer-section">Use Cases</div>
+              {useCaseNavItems.map(uc => (
+                <Link
+                  key={uc.slug}
+                  href={`/use-cases/${uc.slug}`}
+                  className="vq-drawer-crew"
+                  onClick={() => setOpen(false)}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      border: '2px solid #111', background: uc.color,
+                      flexShrink: 0, display: 'inline-block',
+                    }}
+                  />
+                  <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>{uc.persona}</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{uc.tagline}</span>
+                </Link>
+              ))}
+              <Link
+                href="/use-cases"
+                className="vq-drawer-crew"
+                onClick={() => setOpen(false)}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    border: '2px dashed #111', display: 'inline-flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontFamily: FONT.display, fontSize: 20, color: '#111',
+                    flexShrink: 0,
+                  }}
+                >
+                  →
+                </span>
+                <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>All use cases</span>
+              </Link>
 
               <div className="vq-drawer-divider" />
 

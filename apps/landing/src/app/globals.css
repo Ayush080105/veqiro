@@ -29,6 +29,11 @@ html, body {
   to   { transform: translateX(-33.333%); }
 }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes bounce {
   0%, 60%, 100% { transform: translateY(0); }
   30%           { transform: translateY(-6px); }
@@ -223,9 +228,12 @@ html, body {
   color: #EFE7D6;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1040px) {
   .vq-nav-desktop { display: none !important; }
   .vq-hamburger { display: inline-flex; }
+}
+
+@media (max-width: 900px) {
   .vq-nav-right .vq-nav-login { display: none; }
   .vq-nav-right .vq-nav-cta {
     padding: 10px 16px !important;

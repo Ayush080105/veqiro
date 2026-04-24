@@ -1,13 +1,15 @@
-import type { Metadata } from 'next';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT } from '@/components/veqiro/shared';
 import { contact } from '@/lib/site-config';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Terms of Service | Veqiro',
+export const metadata = buildPageMetadata({
+  title: 'Terms of Service',
   description: 'The terms governing your use of the Veqiro platform.',
-};
+  path: '/terms',
+  noindex: true,
+});
 
 function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (

@@ -223,11 +223,51 @@ export function FinalCTA() {
   );
 }
 
-const SOCIAL_LINKS = [
-  { label: 'X', href: social.twitter },
-  { label: 'Li', href: social.linkedin },
-  { label: 'Ig', href: social.instagram },
-  { label: 'Gh', href: social.github },
+const iconProps = {
+  width: 16,
+  height: 16,
+  viewBox: '0 0 24 24',
+  fill: 'currentColor',
+  'aria-hidden': true as const,
+};
+
+const SOCIAL_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
+  {
+    label: 'Twitter / X',
+    href: social.twitter,
+    icon: (
+      <svg {...iconProps}>
+        <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.828l-5.348-6.99L4.7 22H1.44l8.03-9.18L1 2h7l4.83 6.38L18.244 2Zm-2.39 18h1.88L7.25 4H5.24l10.614 16Z" />
+      </svg>
+    ),
+  },
+  {
+    label: 'LinkedIn',
+    href: social.linkedin,
+    icon: (
+      <svg {...iconProps}>
+        <path d="M19 3A2 2 0 0 1 21 5v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14ZM8.34 18.34v-7.96H5.67v7.96h2.67Zm-1.34-9.1a1.55 1.55 0 1 0 0-3.1 1.55 1.55 0 0 0 0 3.1ZM18.34 18.34v-4.36c0-2.38-1.27-3.49-2.97-3.49-1.37 0-1.98.76-2.33 1.29v-1.1h-2.67c.04.75 0 7.96 0 7.96h2.67v-4.45c0-.24.02-.48.09-.65.19-.48.63-.98 1.37-.98.97 0 1.36.74 1.36 1.82v4.26h2.48Z" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Instagram',
+    href: social.instagram,
+    icon: (
+      <svg {...iconProps}>
+        <path d="M12 2c2.72 0 3.05.01 4.12.06 1.06.05 1.79.22 2.43.47a4.9 4.9 0 0 1 1.77 1.15 4.9 4.9 0 0 1 1.15 1.77c.25.64.42 1.37.47 2.43C21.99 8.95 22 9.28 22 12s-.01 3.05-.06 4.12c-.05 1.06-.22 1.79-.47 2.43a4.9 4.9 0 0 1-1.15 1.77 4.9 4.9 0 0 1-1.77 1.15c-.64.25-1.37.42-2.43.47-1.07.05-1.4.06-4.12.06s-3.05-.01-4.12-.06c-1.06-.05-1.79-.22-2.43-.47a4.9 4.9 0 0 1-1.77-1.15 4.9 4.9 0 0 1-1.15-1.77c-.25-.64-.42-1.37-.47-2.43C2.01 15.05 2 14.72 2 12s.01-3.05.06-4.12c.05-1.06.22-1.79.47-2.43a4.9 4.9 0 0 1 1.15-1.77A4.9 4.9 0 0 1 5.45 2.53c.64-.25 1.37-.42 2.43-.47C8.95 2.01 9.28 2 12 2Zm0 1.8c-2.67 0-2.99.01-4.04.06-.98.04-1.51.2-1.86.34-.47.18-.8.4-1.15.75-.35.35-.57.68-.75 1.15-.14.35-.3.88-.34 1.86-.05 1.05-.06 1.37-.06 4.04s.01 2.99.06 4.04c.04.98.2 1.51.34 1.86.18.47.4.8.75 1.15.35.35.68.57 1.15.75.35.14.88.3 1.86.34 1.05.05 1.37.06 4.04.06s2.99-.01 4.04-.06c.98-.04 1.51-.2 1.86-.34.47-.18.8-.4 1.15-.75.35-.35.57-.68.75-1.15.14-.35.3-.88.34-1.86.05-1.05.06-1.37.06-4.04s-.01-2.99-.06-4.04c-.04-.98-.2-1.51-.34-1.86a3.1 3.1 0 0 0-.75-1.15 3.1 3.1 0 0 0-1.15-.75c-.35-.14-.88-.3-1.86-.34-1.05-.05-1.37-.06-4.04-.06Zm0 3.06a5.14 5.14 0 1 1 0 10.28 5.14 5.14 0 0 1 0-10.28Zm0 1.8a3.34 3.34 0 1 0 0 6.68 3.34 3.34 0 0 0 0-6.68Zm5.35-2.95a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Z" />
+      </svg>
+    ),
+  },
+  {
+    label: 'GitHub',
+    href: social.github,
+    icon: (
+      <svg {...iconProps}>
+        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.48 2 2 6.58 2 12.24c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.67.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 2.5-.34c.85.01 1.7.12 2.5.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.59.69.49A10.06 10.06 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z" />
+      </svg>
+    ),
+  },
 ];
 
 export function Footer() {
@@ -258,31 +298,34 @@ export function Footer() {
                   href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={s.label}
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
                     border: '2px solid #333',
                     display: 'grid',
                     placeItems: 'center',
-                    color: '#888',
+                    color: '#CFC6B2',
                     textDecoration: 'none',
-                    fontFamily: FONT.mono,
-                    fontSize: 10,
-                    textTransform: 'uppercase' as const,
-                    letterSpacing: 0.5,
-                    transition: 'border-color 150ms, color 150ms',
+                    transition: 'border-color 150ms, color 150ms, background 150ms, transform 150ms',
                   }}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#F5C518';
-                    (e.currentTarget as HTMLAnchorElement).style.color = '#F5C518';
+                    const el = e.currentTarget as HTMLAnchorElement;
+                    el.style.borderColor = '#F5C518';
+                    el.style.color = '#111';
+                    el.style.background = '#F5C518';
+                    el.style.transform = 'translateY(-2px)';
                   }}
                   onMouseLeave={e => {
-                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#333';
-                    (e.currentTarget as HTMLAnchorElement).style.color = '#888';
+                    const el = e.currentTarget as HTMLAnchorElement;
+                    el.style.borderColor = '#333';
+                    el.style.color = '#CFC6B2';
+                    el.style.background = 'transparent';
+                    el.style.transform = 'translateY(0)';
                   }}
                 >
-                  {s.label}
+                  {s.icon}
                 </a>
               ))}
             </div>
