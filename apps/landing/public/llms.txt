@@ -1,0 +1,23 @@
+# Veqiro
+
+> Veqiro is a crew of six specialized AI employees (Vega, Scout, Maya, Sage, Lex, Rex) for lean teams and founders. One subscription, $39/mo.
+
+## Agents
+- [Vega — AI Executive Assistant](https://veqiro.com/agents/vega): inbox management, calendar, email drafting, meeting prep
+- [Scout — AI Research & Strategy](https://veqiro.com/agents/scout): competitor teardowns, market scans, lead research, research memos
+- [Maya — AI Content & Marketing](https://veqiro.com/agents/maya): social posts, blogs, ad copy, brand voice
+- [Sage — AI SEO Specialist](https://veqiro.com/agents/sage): keyword research, blog generation, content audits, content briefs
+- [Lex — AI Legal Assistant](https://veqiro.com/agents/lex): contract review, document drafting, compliance checks
+- [Rex — AI Financial Analyst](https://veqiro.com/agents/rex): MRR/burn/runway tracking, revenue forecasting, anomaly detection
+
+## Pricing
+- [Pricing](https://veqiro.com/pricing): $39/mo or $29/mo billed annually. 7-day free trial. No credit card required.
+
+## Company
+- [About Veqiro](https://veqiro.com/about): Built in Bengaluru, India. Made for lean teams who deserve enterprise-level leverage.
+
+## Use Cases
+- [For Founders](https://veqiro.com/use-cases/founders): AI tools for founders and early-stage startups
+- [For Marketing Teams](https://veqiro.com/use-cases/marketing-teams): AI tools for marketing teams
+- [For Agencies](https://veqiro.com/use-cases/agencies): AI for agencies managing multiple clients
+- [For Solopreneurs](https://veqiro.com/use-cases/solopreneurs): AI tools for solopreneurs and solo founders

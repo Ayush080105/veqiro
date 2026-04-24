@@ -1,15 +1,19 @@
 import React from 'react';
-import type { Metadata } from 'next';
 import { Footer } from '@/components/veqiro/sections';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { FONT, Button } from '@/components/veqiro/shared';
 import { AboutCrewGrid } from '@/components/veqiro/about-crew-grid';
 import { mainAppUrl } from '@/lib/site-config';
+import { buildPageMetadata } from '@/lib/seo';
+import { JsonLd } from '@/components/veqiro/json-ld';
+import { organizationJsonLd } from '@/lib/jsonld';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'About Veqiro — Six AI Employees, One Bill',
-  description: 'We built Veqiro because lean teams deserve the same leverage as big ones. Six AI employees that do real work, together.',
-};
+  description: 'We built Veqiro because lean teams deserve the same leverage as big ones. Meet the six AI employees behind your crew.',
+  path: '/about',
+  keywords: ['who is veqiro', 'veqiro team', 'ai crew', 'all in one ai platform for startups'],
+});
 
 const VALUES = [
   {
@@ -37,6 +41,7 @@ const VALUES = [
 export default function AboutPage() {
   return (
     <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+      <JsonLd data={organizationJsonLd()} />
       <PageNav />
 
       {/* ── HERO ── */}

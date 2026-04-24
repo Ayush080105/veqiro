@@ -7,6 +7,10 @@ import { MobileChatDemo } from './mobile-chat';
 import { CHARACTER_COMPONENTS } from './characters';
 import { mainAppUrl } from '@/lib/site-config';
 import type { Employee } from './data';
+import { EMPLOYEES } from './data';
+import { JsonLd } from '@/components/veqiro/json-ld';
+import { personAgentJsonLd, breadcrumbJsonLd } from '@/lib/jsonld';
+import { SITE_URL, AGENT_META } from '@/lib/seo';
 
 interface Props {
   employee: Employee;
@@ -14,10 +18,16 @@ interface Props {
 
 export function AgentPage({ employee }: Props) {
   const Comp = CHARACTER_COMPONENTS[employee.key];
+  const crumbs = [
+    { name: 'Home', url: SITE_URL },
+    { name: 'Agents', url: `${SITE_URL}/#crew` },
+    { name: employee.name, url: `${SITE_URL}/agents/${employee.key}` },
+  ];
 
   return (
     <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
       <PageNav />
+      <JsonLd data={[personAgentJsonLd(employee), breadcrumbJsonLd(crumbs)]} />
 
       {/* ── HERO ── */}
       <section style={{
@@ -93,6 +103,24 @@ export function AgentPage({ employee }: Props) {
             }}>
               {employee.name}
             </h1>
+
+            {AGENT_META[employee.key] && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center',
+                marginTop: 10,
+                background: employee.color,
+                border: '2px solid #111',
+                borderRadius: 999,
+                padding: '5px 14px',
+                fontFamily: FONT.mono,
+                fontSize: 11,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                color: employee.ink,
+              }}>
+                {AGENT_META[employee.key].seoTitleSuffix.replace(' | Veqiro', '')}
+              </div>
+            )}
 
             <div style={{
               fontFamily: FONT.head, fontSize: 'clamp(16px, 2vw, 22px)',
@@ -262,6 +290,55 @@ export function AgentPage({ employee }: Props) {
             textTransform: 'uppercase' as const, color: employee.color,
           }}>
             — {employee.name}, {employee.role}
+          </div>
+        </div>
+      </section>
+
+      {/* ── REST OF THE CREW ── */}
+      <section style={{ borderBottom: '3px solid #111', background: '#FFF9ED', padding: 'clamp(40px, 6vw, 60px) clamp(20px, 4vw, 32px)' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{
+            fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+            textTransform: 'uppercase', color: '#666', marginBottom: 32,
+          }}>
+            [ THE REST OF THE CREW ]
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: 16,
+          }}>
+            {EMPLOYEES.filter(e => e.key !== employee.key).map(e => {
+              const EmpComp = CHARACTER_COMPONENTS[e.key];
+              return (
+                <a
+                  key={e.key}
+                  href={`/agents/${e.key}`}
+                  style={{
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    border: '3px solid #111',
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    boxShadow: '4px 4px 0 #111',
+                    display: 'block',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                >
+                  <div style={{ aspectRatio: '3/4', background: e.color, position: 'relative' }}>
+                    <EmpComp size="100%" />
+                  </div>
+                  <div style={{
+                    background: '#111',
+                    padding: '10px 12px',
+                    borderTop: '2px solid #333',
+                  }}>
+                    <div style={{ fontFamily: FONT.display, fontSize: 18, color: e.color, lineHeight: 1 }}>{e.name}</div>
+                    <div style={{ fontFamily: FONT.mono, fontSize: 9, color: '#666', marginTop: 4, textTransform: 'uppercase', letterSpacing: 1.5 }}>{e.role}</div>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </div>
       </section>

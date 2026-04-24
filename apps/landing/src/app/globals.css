@@ -29,6 +29,11 @@ html, body {
   to   { transform: translateX(-33.333%); }
 }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes bounce {
   0%, 60%, 100% { transform: translateY(0); }
   30%           { transform: translateY(-6px); }
