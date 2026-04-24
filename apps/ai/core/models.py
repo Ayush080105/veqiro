@@ -53,6 +53,7 @@ class ImageResult(BaseModel):
     image_base64: str
     content_type: str = "image/png"
     prompt_used: str
+    local_path: str | None = None   # /files/images/<filename> — served by FastAPI static mount
 
 
 class DataPoint(BaseModel):

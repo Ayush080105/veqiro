@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "./middlewares/auth.middleware.js";
+import { internalKeyMiddleware } from "./middlewares/internal.middleware.js";
 import sageRouter from "./modules/agents/sage/sage.routes.js";
 import scoutRouter from "./modules/agents/scout/scout.routes.js";
 import mayaRouter from "./modules/agents/maya/maya.routes.js";
@@ -9,6 +10,7 @@ import integrationsProtectedRouter, {
   integrationsPublicRouter,
 } from "./modules/integrations/integrations.routes.js";
 import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
+import { getBrandKitInternal } from "./modules/brand-kit/brand-kit.controller.js";
 import messagesRouter from "./modules/messages/messages.routes.js";
 import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
 
@@ -23,6 +25,7 @@ router.use("/agents", authMiddleware, messagesRouter);
 router.use("/dashboard", authMiddleware, dashboardRouter);
 
 router.use("/brand-kit", authMiddleware, brandKitRouter);
+router.get("/internal/brand-kit/:organizationId", internalKeyMiddleware, getBrandKitInternal);
 
 // Public OAuth callbacks (state-verified) mounted BEFORE the protected router
 router.use("/integrations", integrationsPublicRouter);

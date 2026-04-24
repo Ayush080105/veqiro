@@ -1,6 +1,8 @@
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import Depends
+from fastapi.staticfiles import StaticFiles
 from app import create_app
 from core.auth import verify_internal_key
 
@@ -15,6 +17,12 @@ from agents.router import router as agent_router
 from briefing import router as briefing_router
 
 app = create_app()
+
+_LOCAL_STORAGE = Path(__file__).parent / "local_storage"
+_LOCAL_STORAGE.mkdir(exist_ok=True)
+((_LOCAL_STORAGE / "images")).mkdir(exist_ok=True)
+((_LOCAL_STORAGE / "drafts")).mkdir(exist_ok=True)
+app.mount("/files", StaticFiles(directory=str(_LOCAL_STORAGE)), name="files")
 
 _auth = [Depends(verify_internal_key)]
 

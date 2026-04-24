@@ -170,9 +170,9 @@ class MayaAgent(BaseAgent):
 
                 brand_kit = await load_brand_kit(request.user_id)
                 image_result = await generate_social_image(
-                    topic, brand_kit, platform,
-                    use_logo=use_logo,
-                    use_mascot=use_mascot,
+                    topic, platform,
+                    use_logo=use_logo, use_mascot=use_mascot,
+                    user_id=request.user_id, brand_kit=brand_kit,
                 )
 
                 # Cache generation params so modify_image can regenerate with updated flags
@@ -204,12 +204,11 @@ class MayaAgent(BaseAgent):
                 cached = self._cache_get(request.conversation_id)
                 if cached is not None:
                     brand_kit = await load_brand_kit(request.user_id)
-                    # Regenerate with updated flags — Gemini incorporates logo/mascot contextually
                     new_image = await generate_social_image(
-                        cached["topic"], brand_kit, cached["platform"],
-                        use_logo=use_logo,
-                        use_mascot=use_mascot,
+                        cached["topic"], cached["platform"],
+                        use_logo=use_logo, use_mascot=use_mascot,
                         aspect_ratio=cached.get("aspect_ratio", "1:1"),
+                        user_id=request.user_id, brand_kit=brand_kit,
                     )
                     self._cache_set(request.conversation_id, {
                         **cached,

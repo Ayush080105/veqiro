@@ -15,6 +15,34 @@ GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
 GPT4O_MINI = ("openai", "gpt-4o-mini")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
+def _aspect_to_size(aspect_ratio: str, model: str = "dall-e-3") -> str:
+    """Map aspect ratio to the correct size string for the given model."""
+    if "dall-e-3" in model:
+        return {
+            "1:1":  "1024x1024",
+            "16:9": "1792x1024",
+            "9:16": "1024x1792",
+            "4:3":  "1792x1024",
+        }.get(aspect_ratio, "1024x1024")
+    return {
+        "1:1":  "1024x1024",
+        "16:9": "1536x1024",
+        "9:16": "1024x1536",
+        "4:3":  "1536x1024",
+    }.get(aspect_ratio, "1024x1024")
+
+
+def _detect_image_mime(data: bytes) -> str:
+    """Detect image mime type from magic bytes. Defaults to image/jpeg."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    return "image/jpeg"  # FF D8 FF or unknown
+
+
 # A minimal 1x1 red PNG in base64
 _RED_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8"
@@ -450,59 +478,77 @@ class LLMClient:
         )
 
     async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
-        """Returns base64-encoded PNG string via Gemini Flash image generation."""
+        """Text-to-image via OpenAI. Model controlled by IMAGE_MODEL env var. Returns base64 PNG."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return _RED_PNG_B64
-        from google import genai
-        from google.genai import types
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash-image",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-            ),
+        import openai as _openai
+        model = settings.IMAGE_MODEL
+        client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        kwargs: dict = dict(
+            model=model,
+            prompt=prompt,
+            size=_aspect_to_size(aspect_ratio, model),
+            n=1,
         )
-        for part in response.candidates[0].content.parts:
-            if part.inline_data and part.inline_data.mime_type.startswith("image"):
-                return base64.b64encode(part.inline_data.data).decode()
-        raise RuntimeError("No image returned by model")
+        if model == "dall-e-3":
+            kwargs["quality"] = "hd"
+            kwargs["response_format"] = "b64_json"
+        response = await client.images.generate(**kwargs)
+        return response.data[0].b64_json
 
     async def generate_image_with_reference(
         self, prompt: str, reference_image_b64: str, aspect_ratio: str = "1:1"
     ) -> str:
-        """Gemini image generation with a single reference image."""
-        return await self.generate_image_with_references(prompt, [reference_image_b64], aspect_ratio)
+        """Image generation with a single base64 reference image."""
+        return await self.generate_image_with_image_bytes(
+            prompt, [base64.b64decode(reference_image_b64)], aspect_ratio
+        )
 
     async def generate_image_with_references(
         self, prompt: str, reference_images_b64: list[str], aspect_ratio: str = "1:1"
     ) -> str:
-        """Gemini image generation with reference images (mascot, logo, etc.)."""
+        """Image generation with multiple base64 reference images."""
+        return await self.generate_image_with_image_bytes(
+            prompt, [base64.b64decode(b64) for b64 in reference_images_b64], aspect_ratio
+        )
+
+    async def generate_image_with_image_bytes(
+        self, prompt: str, images: list[bytes], aspect_ratio: str = "1:1"
+    ) -> str:
+        """Image editing/generation with raw reference image bytes via gpt-image-2.
+        Uses images.edit so the model incorporates the references into the output."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return _RED_PNG_B64
-        from google import genai
-        from google.genai import types
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        parts: list = [types.Part.from_text(text=prompt)]
-        for ref_b64 in reference_images_b64:
-            parts.append(types.Part.from_bytes(
-                data=base64.b64decode(ref_b64),
-                mime_type="image/png",
-            ))
-        response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash-image",
-            contents=parts,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-            ),
-        )
-        for part in response.candidates[0].content.parts:
-            if part.inline_data and part.inline_data.mime_type.startswith("image"):
-                return base64.b64encode(part.inline_data.data).decode()
-        # Fallback: plain Imagen without references
-        return await self.generate_image(prompt, aspect_ratio)
+        import io
+        import openai as _openai
+        client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+        # Wrap each bytes blob as a named file-like object for the multipart upload
+        def _to_file(data: bytes, idx: int) -> io.BytesIO:
+            mime = _detect_image_mime(data)
+            ext = "png" if "png" in mime else "jpg"
+            buf = io.BytesIO(data)
+            buf.name = f"ref_{idx}.{ext}"
+            return buf
+
+        ref_files = [_to_file(img, i) for i, img in enumerate(images)]
+
+        model = settings.IMAGE_MODEL
+        try:
+            response = await client.images.edit(
+                model=model,
+                image=ref_files,
+                prompt=prompt,
+                size=_aspect_to_size(aspect_ratio, model),
+                n=1,
+            )
+            return response.data[0].b64_json
+        except Exception as e:
+            import logging
+            logging.getLogger("llm").warning("images.edit failed (%s) — falling back to images.generate", e)
+            return await self.generate_image(prompt, aspect_ratio)
 
     async def complete_with_vision(
         self,

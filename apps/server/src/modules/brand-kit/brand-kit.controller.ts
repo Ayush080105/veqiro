@@ -31,3 +31,18 @@ export const saveBrandKit = async (req: Request, res: Response) => {
   const kit = await brandKitService.saveBrandKit(organizationId, input);
   res.status(StatusCodes.OK).json(kit);
 };
+
+// Internal — called by AI backend with x-internal-key, no session required
+export const getBrandKitInternal = async (req: Request, res: Response) => {
+  const organizationId = req.params.organizationId;
+  if (!organizationId) {
+    res.status(StatusCodes.BAD_REQUEST).json({ message: "organizationId required" });
+    return;
+  }
+  const kit = await brandKitService.getBrandKit(organizationId);
+  if (!kit) {
+    res.status(StatusCodes.NOT_FOUND).json({ message: "Brand kit not found" });
+    return;
+  }
+  res.status(StatusCodes.OK).json(kit);
+};

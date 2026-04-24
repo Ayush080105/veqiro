@@ -1,12 +1,15 @@
 import json
+import logging
 import uuid
 from datetime import datetime
+
+logger = logging.getLogger("agents")
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from core.brand_kit import load_brand_kit, get_platform_tone
-from core.image_gen import generate_social_image, _fetch_asset, _overlay_logo
+from core.image_gen import generate_social_image, _fetch_asset
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, ImageResult
@@ -78,6 +81,7 @@ class DraftRequest(BaseModel):
     use_logo: bool = False
     use_mascot: bool = False
     additional_context: str | None = Field(None, max_length=1000)
+    image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -110,6 +114,7 @@ class DraftContent(BaseModel):
 class DraftResponse(BaseModel):
     draft: DraftContent
     image: ImageResult | None = None
+    draft_path: str | None = None   # /files/drafts/<filename>
     tokens_used: int = 0
     model_used: str = ""
 
@@ -261,13 +266,12 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         image = None
         if request.include_image:
             try:
-                brand_kit = await load_brand_kit(request.user_id)
                 image = await generate_social_image(
-                    request.topic_hint or "content ideas", brand_kit, request.platform,
-                    use_logo=request.use_logo, use_mascot=request.use_mascot,
+                    request.topic_hint or "content ideas", request.platform,
+                    use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
                 )
-            except Exception:
-                pass
+            except Exception as _img_err:
+                logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
         return IdeationResponse(
             ideas=_mock_ideas(request.count, request.topic_hint),
             generated_at=datetime.utcnow().isoformat(),
@@ -298,10 +302,9 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
     image = None
     if request.include_image:
         try:
-            brand_kit = await load_brand_kit(request.user_id)
             image = await generate_social_image(
-                request.topic_hint or ideas[0].title if ideas else "content", brand_kit, request.platform,
-                use_logo=request.use_logo, use_mascot=request.use_mascot,
+                request.topic_hint or ideas[0].title if ideas else "content", request.platform,
+                use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
             )
         except Exception:
             pass
@@ -327,12 +330,17 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         if request.include_image:
             try:
                 image = await generate_social_image(
-                    draft.title, brand_kit, request.platform,
+                    request.topic, request.platform,
+                    aspect_ratio=request.image_aspect_ratio,
                     use_logo=request.use_logo, use_mascot=request.use_mascot,
+                    user_id=request.user_id,
+                    context_hints=request.additional_context or "",
                 )
-            except Exception:
-                pass
-        return DraftResponse(draft=draft, image=image)
+            except Exception as _img_err:
+                logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
+        from core.local_storage import save_draft
+        _, draft_path = save_draft(draft.body, request.user_id, request.platform, request.topic)
+        return DraftResponse(draft=draft, image=image, draft_path=draft_path)
 
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     website_line = f"Include this website link in the CTA: {brand_kit.website_url}" if brand_kit.website_url else ""
@@ -362,12 +370,17 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
     if request.include_image:
         try:
             image = await generate_social_image(
-                draft.title, brand_kit, request.platform,
+                request.topic, request.platform,
+                aspect_ratio=request.image_aspect_ratio,
                 use_logo=request.use_logo, use_mascot=request.use_mascot,
+                user_id=request.user_id,
+                context_hints=request.additional_context or "",
             )
-        except Exception:
-            pass
-    return DraftResponse(draft=draft, image=image, tokens_used=tokens_used, model_used=_agent.default_model)
+        except Exception as _img_err:
+            logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
+    from core.local_storage import save_draft
+    _, draft_path = save_draft(draft.body, request.user_id, request.platform, request.topic)
+    return DraftResponse(draft=draft, image=image, draft_path=draft_path, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/generate-variants", response_model=VariantResponse, summary="Generate platform variants")
@@ -565,8 +578,8 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
 
     if settings.MOCK_MODE:
         image = await generate_social_image(
-            request.prompt, brand_kit, request.platform,
-            use_logo=request.use_logo, use_mascot=request.use_mascot,
+            request.prompt, request.platform,
+            use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
         )
         return ImageRegenResponse(image=image)
 
@@ -575,23 +588,35 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
     if not source_bytes:
         # Fallback: generate fresh without reference
         image = await generate_social_image(
-            request.prompt, brand_kit, request.platform,
-            use_logo=request.use_logo, use_mascot=request.use_mascot,
+            request.prompt, request.platform,
+            use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
         )
         return ImageRegenResponse(image=image)
 
     context = get_image_prompt_context(brand_kit)
-    full_prompt = f"{context}. {request.prompt}. Optimized for {request.platform}."
-
-    source_b64 = base64.b64encode(source_bytes).decode()
-    b64 = await _llm.generate_image_with_reference(full_prompt, source_b64)
+    ref_images = [source_bytes]
+    instructions = ["Reference image 1 is the existing image to regenerate with the new direction."]
 
     if request.use_logo and brand_kit.logo_url:
         logo_bytes = await _fetch_asset(brand_kit.logo_url)
         if logo_bytes:
-            b64 = _overlay_logo(b64, logo_bytes)
+            ref_images.append(logo_bytes)
+            instructions.append(
+                "Reference image 2 is the brand logo. Make it a prominent, clearly visible element — "
+                "large enough to be immediately noticed. Display it on a billboard, large screen, "
+                "product packaging, banner, or merchandise. Sharp, fully legible, true to its original "
+                "colors and proportions. Prominent but naturally blended into the scene."
+            )
 
-    image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
+    full_prompt = (
+        f"{context}. {request.prompt}. Optimized for {request.platform}.\n\n"
+        + "\n".join(instructions)
+    )
+    b64 = await _llm.generate_image_with_image_bytes(full_prompt, ref_images)
+
+    from core.local_storage import save_image
+    _, local_path = save_image(b64, request.user_id, label=request.platform)
+    image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt, local_path=local_path)
     return ImageRegenResponse(image=image, model_used=_agent.default_model)
 
 

@@ -10,7 +10,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed:dashboard": "tsx prisma/seed-dashboard.ts"
+    "seed:dashboard": "tsx prisma/seed-dashboard.ts",
+    "seed:brand-kit": "tsx prisma/seed-brand-kit.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1032.0",
