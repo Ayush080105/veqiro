@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from agents.base import BaseAgent
 from core.llm import LLMClient
 from core.models import ChatRequest, ChatSyncResponse
@@ -39,22 +37,6 @@ class MayaAgent(BaseAgent):
     )
     default_provider = "openai"
     default_model = "gpt-4o-mini"
-
-    def __init__(self, llm_client: LLMClient, rag_service: RAGService):
-        super().__init__(llm_client, rag_service)
-        self._conv_cache: OrderedDict[str, dict] = OrderedDict()
-        self._CONV_CACHE_MAX = 500
-
-    # ── Conversation image cache helpers ────────────────────────────────
-
-    def _cache_set(self, conv_id: str, entry: dict) -> None:
-        self._conv_cache.pop(conv_id, None)
-        self._conv_cache[conv_id] = entry
-        while len(self._conv_cache) > self._CONV_CACHE_MAX:
-            self._conv_cache.popitem(last=False)
-
-    def _cache_get(self, conv_id: str) -> dict | None:
-        return self._conv_cache.get(conv_id)
 
     async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
         from core.brand_kit import load_brand_kit
@@ -175,15 +157,6 @@ class MayaAgent(BaseAgent):
                     user_id=request.user_id, brand_kit=brand_kit,
                 )
 
-                # Cache generation params so modify_image can regenerate with updated flags
-                self._cache_set(request.conversation_id, {
-                    "topic": topic,
-                    "platform": platform,
-                    "use_logo": use_logo,
-                    "use_mascot": use_mascot,
-                    "aspect_ratio": "1:1",
-                })
-
                 response.image = image_result
             except Exception as e:
                 response.metadata["image_error"] = str(e)
@@ -200,22 +173,18 @@ class MayaAgent(BaseAgent):
                 args = modify_call["arguments"]
                 use_logo: bool = bool(args.get("use_logo", False))
                 use_mascot: bool = bool(args.get("use_mascot", False))
+                topic: str = args.get("topic", "content")
+                platform: str = args.get("platform", "linkedin")
+                aspect_ratio: str = args.get("aspect_ratio", "1:1")
 
-                cached = self._cache_get(request.conversation_id)
-                if cached is not None:
-                    brand_kit = await load_brand_kit(request.user_id)
-                    new_image = await generate_social_image(
-                        cached["topic"], cached["platform"],
-                        use_logo=use_logo, use_mascot=use_mascot,
-                        aspect_ratio=cached.get("aspect_ratio", "1:1"),
-                        user_id=request.user_id, brand_kit=brand_kit,
-                    )
-                    self._cache_set(request.conversation_id, {
-                        **cached,
-                        "use_logo": use_logo,
-                        "use_mascot": use_mascot,
-                    })
-                    response.image = new_image
+                brand_kit = await load_brand_kit(request.user_id)
+                new_image = await generate_social_image(
+                    topic, platform,
+                    use_logo=use_logo, use_mascot=use_mascot,
+                    aspect_ratio=aspect_ratio,
+                    user_id=request.user_id, brand_kit=brand_kit,
+                )
+                response.image = new_image
             except Exception:
                 pass  # image modification is best-effort
 
@@ -274,11 +243,14 @@ class MayaAgent(BaseAgent):
             ToolDefinition(
                 name="modify_image",
                 description=(
-                    "Apply or remove logo/mascot on an image already generated in this conversation. "
+                    "Regenerate the image for a post already created in this conversation, with updated logo/mascot flags. "
                     "Use ONLY for follow-up requests like 'add the logo', 'remove the mascot', 'now add our logo to it'. "
                     "Do NOT use this if no image has been generated yet — use draft_content instead."
                 ),
                 parameters=[
+                    ToolParameter(name="topic", type="string", description="Same topic used for the original post in this conversation", required=True),
+                    ToolParameter(name="platform", type="string", description="Same platform used for the original post", required=True),
+                    ToolParameter(name="aspect_ratio", type="string", description="Same aspect ratio used for the original image (e.g. 1:1, 16:9)", required=False, default="1:1"),
                     ToolParameter(name="use_logo", type="boolean", description="Whether the logo should appear on the final image", required=True),
                     ToolParameter(name="use_mascot", type="boolean", description="Whether the mascot should appear in the final image", required=True),
                 ],
@@ -336,17 +308,23 @@ class MayaAgent(BaseAgent):
             website_cta = ""
             if brand_kit.website_url:
                 website_cta = f"\nInclude this link in the CTA where natural: {brand_kit.website_url}"
+            platform_limits = {
+                "linkedin": "Under 150 words. Short paragraphs, no bullet points, no headers.",
+                "twitter": "Under 280 characters total. One punchy sentence or short thread opener.",
+                "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome, hashtags at the end.",
+            }
             prompt = (
-                f"Write a {platform} post about: {topic}\n\n"
+                f"Write a {platform} post about this topic: {topic}\n\n"
                 f"Tone: {tone}\n"
                 f"Max {rules['max_chars']} chars. {rules['hashtag_count']} hashtags at the end.\n"
                 f"{website_cta}\n\n"
-                "Rules:\n"
-                "- NO bullet points. NO bold headers. NO numbered lists. Short paragraphs only.\n"
-                "- Start with the specific fact or number — not 'We are thrilled to announce' or 'Excited to share'.\n"
-                "- Sound like the founder typed it themselves, not a PR team.\n"
-                "- Under 150 words for LinkedIn. Cut anything generic.\n"
-                "- CTA at the end that feels natural.\n\n"
+                "STRICT RULES:\n"
+                f"- {platform_limits.get(platform, 'Keep it concise and platform-native.')}\n"
+                "- Start with a specific fact, number, or bold statement — NOT with 'As a founder' or any generic opener.\n"
+                "- Write about the BUSINESS VALUE and REAL IMPACT of the topic. Never mention mascots, characters, visuals, or image descriptions.\n"
+                "- Sound like the founder typed it themselves — direct, confident, no filler.\n"
+                "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
+                "- CTA at the end: a direct question or action, not a vague 'share your thoughts'.\n\n"
                 "Output ONLY the post. Nothing before it, nothing after it."
             )
             return await self.llm.complete(

@@ -39,21 +39,53 @@ async def _fetch_asset(url: str) -> bytes | None:
 def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "") -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
+    # Colors
     colors = ""
     if brand_kit and brand_kit.brand_colors:
         c = brand_kit.brand_colors
         colors = (
             f"Brand color palette — primary: {c.get('primary', '')}, "
             f"secondary: {c.get('secondary', '')}, accent: {c.get('accent', '')}. "
-            f"These colors must dominate the design. "
+            f"These colors must dominate the entire design. "
         )
 
-    mood = ""
+    # Fonts
+    fonts = ""
+    if brand_kit and brand_kit.brand_fonts:
+        f_ = brand_kit.brand_fonts
+        heading = f_.get("heading") or f_.get("primary") or f_.get("display")
+        body = f_.get("body") or f_.get("secondary")
+        if heading:
+            fonts += f"Heading font: {heading}. "
+        if body:
+            fonts += f"Body font: {body}. "
+        if fonts:
+            fonts = f"Typography: {fonts}Use these fonts for all text in the image. "
+
+    # Brand identity
+    brand = ""
+    if brand_kit:
+        if brand_kit.company_name:
+            brand += f"Brand: {brand_kit.company_name}. "
+        if brand_kit.brand_voice:
+            brand += f"Brand voice/visual tone: {brand_kit.brand_voice}. "
+        if brand_kit.key_differentiators:
+            brand += f"Brand tagline/differentiator (can use as visual sub-copy): \"{brand_kit.key_differentiators}\". "
+
+    # Audience & industry
+    context = ""
     if brand_kit:
         if brand_kit.industry:
-            mood += f"Industry context: {brand_kit.industry}. "
+            context += f"Industry: {brand_kit.industry}. "
         if brand_kit.target_audience:
-            mood += f"Audience: {brand_kit.target_audience}. "
+            context += f"Audience: {brand_kit.target_audience}. "
+
+    # Platform-specific tone from brand kit
+    platform_tone = ""
+    if brand_kit and brand_kit.platform_tones:
+        tone = brand_kit.platform_tones.get(platform.lower())
+        if tone:
+            platform_tone = f"Brand's {platform} tone: {tone}. "
 
     context_section = f"Key messaging to reflect visually: {context_hints}. " if context_hints else ""
 
@@ -61,17 +93,18 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"Design a premium {platform} social media graphic ({aspect_ratio}). "
         f"Main topic: \"{topic}\". "
         f"{context_section}"
+        f"{brand}"
         f"{colors}"
-        f"{mood}"
+        f"{fonts}"
+        f"{context}"
+        f"{platform_tone}"
         f"Visual style: {style}. "
         f"TYPOGRAPHY: Include bold, well-designed text directly in the image. "
-        f"Use the main topic as a headline — short, punchy, large and dominant. "
-        f"Pull 1-2 key stats or power phrases from the context (e.g. '40+ hours saved', '6 AI agents') "
-        f"and display them as supporting text with strong typographic contrast. "
-        f"Text must be clean, modern, and perfectly legible — part of the design, not an afterthought. "
+        f"Derive a SHORT punchy headline (3-6 words max) that captures the essence of the topic — do NOT copy the topic text verbatim. "
+        f"Pull 1-2 key stats or power phrases from the context and display them as supporting text. "
+        f"Text must be clean, modern, perfectly legible, and part of the design — not an afterthought. "
         f"COMPOSITION: Strong visual hierarchy, intentional layout, cohesive color story. "
-        f"Output must look like it was designed by a top-tier social media creative director. "
-        f"No generic stock photo look — custom, bold, and brand-specific."
+        f"Output must look like it was designed by a top-tier social media creative director."
     )
 
 
@@ -84,6 +117,7 @@ async def generate_social_image(
     user_id: str = "",
     brand_kit=None,
     context_hints: str = "",
+    reference_urls: list[str] | None = None,
 ) -> ImageResult:
     """Generate a premium social media image.
 
@@ -92,13 +126,14 @@ async def generate_social_image(
     which asset is the mascot character and which is the logo, and how to
     use each naturally within the scene.
     """
+    if not aspect_ratio:
+        aspect_ratio = _ASPECT_FOR_PLATFORM.get(platform, "1:1")
+
+    # ── Load brand kit (always) ───────────────────────────────────────────
     if brand_kit is None and user_id:
         from core.brand_kit import load_brand_kit
         brand_kit = await load_brand_kit(user_id)
         logger.info("brand_kit auto-loaded | user=%s company=%s", user_id, brand_kit.company_name)
-
-    if not aspect_ratio:
-        aspect_ratio = _ASPECT_FOR_PLATFORM.get(platform, "1:1")
 
     base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints)
 
@@ -114,7 +149,59 @@ async def generate_social_image(
     from core.llm import LLMClient
     llm = LLMClient()
 
-    # Collect reference images and their specific instructions in order
+    # ── Reference-image mode: theme/mood inspiration + brand kit ─────────
+    has_references = bool(reference_urls)
+    if has_references:
+        import asyncio as _asyncio
+        ref_bytes_list = await _asyncio.gather(*[_fetch_asset(url) for url in reference_urls])
+        ref_images_ext = [b for b in ref_bytes_list if b]
+        if not ref_images_ext:
+            logger.warning("all reference fetches failed | user=%s urls=%s — falling through to brand kit mode", user_id, reference_urls)
+        else:
+            all_images: list[bytes] = list(ref_images_ext)
+            extra_instructions: list[str] = []
+
+            if use_mascot and brand_kit and brand_kit.mascot_url:
+                mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
+                if mascot_bytes:
+                    all_images.append(mascot_bytes)
+                    idx = len(all_images)
+                    extra_instructions.append(
+                        f"Reference image {idx} is a mascot character. "
+                        f"Study the character's visual identity — shape, colors, face, style, proportions. "
+                        f"Recreate this character in a COMPLETELY NEW scene. "
+                        f"Place the character naturally in the scene, actively engaged with the topic, in a dynamic pose."
+                    )
+                    logger.info("mascot reference added (ref mode) | user=%s", user_id)
+
+            if use_logo and brand_kit and brand_kit.logo_url:
+                logo_bytes = await _fetch_asset(brand_kit.logo_url)
+                if logo_bytes:
+                    all_images.append(logo_bytes)
+                    idx = len(all_images)
+                    extra_instructions.append(
+                        f"Reference image {idx} is the brand logo. "
+                        f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, colors, proportions. "
+                        f"Place it prominently on a billboard, screen, or signage. Large, sharp, blended into the scene."
+                    )
+                    logger.info("logo reference added (ref mode) | user=%s", user_id)
+
+            theme_instructions = "\n".join(
+                f"Reference image {i+1}: Study its overall theme, mood, and general visual direction. Use as loose inspiration only — do NOT copy layouts, text, or specific elements."
+                for i in range(len(ref_images_ext))
+            )
+            full_prompt = (
+                f"{base_prompt}\n\n"
+                f"THEME INSPIRATION: The reference images are mood/theme guides — extract their general vibe, "
+                f"dominant energy, and overall feel. Create a completely original design that reflects the same "
+                f"mood while applying the brand kit above. Do NOT reproduce any elements from the references.\n\n"
+                f"{theme_instructions}"
+                + ("\n" + "\n".join(extra_instructions) if extra_instructions else "")
+            )
+            b64 = await llm.generate_image_with_image_bytes(full_prompt, all_images, aspect_ratio=aspect_ratio)
+            logger.info("image_gen reference+brand done | user=%s refs=%d logo=%s mascot=%s", user_id, len(ref_images_ext), use_logo, use_mascot)
+            return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
+
     ref_images: list[bytes] = []
     ref_instructions: list[str] = []
 
@@ -156,8 +243,6 @@ async def generate_social_image(
             logger.warning("logo fetch failed | user=%s url=%s", user_id, brand_kit.logo_url)
 
     if ref_images:
-        # When logo is the only reference, images.edit treats it as the base image to
-        # edit instead of creating a new scene. Force scene-creation explicitly.
         logo_only = use_logo and not use_mascot and len(ref_images) == 1
         preamble = (
             "CRITICAL INSTRUCTION: Build a COMPLETELY NEW social media scene from scratch. "
@@ -173,10 +258,5 @@ async def generate_social_image(
         b64 = await llm.generate_image(base_prompt, aspect_ratio=aspect_ratio)
         logger.info("image generated (no references) | user=%s", user_id)
 
-    local_path = None
-    if user_id:
-        from core.local_storage import save_image
-        _, local_path = save_image(b64, user_id, label=platform)
-
-    logger.info("image_gen done | user=%s platform=%s local_path=%s", user_id or "anon", platform, local_path)
-    return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt, local_path=local_path)
+    logger.info("image_gen done | user=%s platform=%s", user_id or "anon", platform)
+    return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)

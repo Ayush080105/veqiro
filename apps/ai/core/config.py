@@ -28,9 +28,6 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     MOCK_MODE: bool = Field(default=True)
 
-    # Image generation model — use "gpt-image-2" once org is verified on platform.openai.com
-    IMAGE_MODEL: str = Field(default="dall-e-3")
-
     # Asset fetching (R2 / CDN)
     R2_FETCH_TIMEOUT: int = Field(default=10)
 

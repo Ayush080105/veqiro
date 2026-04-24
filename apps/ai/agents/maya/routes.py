@@ -82,6 +82,8 @@ class DraftRequest(BaseModel):
     use_mascot: bool = False
     additional_context: str | None = Field(None, max_length=1000)
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
+    use_reference: bool = False
+    reference_images: list[str] = Field(default_factory=list, max_length=5)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -95,6 +97,8 @@ class DraftRequest(BaseModel):
                 "use_logo": True,
                 "use_mascot": False,
                 "additional_context": "Focus on time-saving benefits",
+                "use_reference": False,
+                "reference_images": [],
             }
         }
     )
@@ -114,7 +118,6 @@ class DraftContent(BaseModel):
 class DraftResponse(BaseModel):
     draft: DraftContent
     image: ImageResult | None = None
-    draft_path: str | None = None   # /files/drafts/<filename>
     tokens_used: int = 0
     model_used: str = ""
 
@@ -335,22 +338,33 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                     use_logo=request.use_logo, use_mascot=request.use_mascot,
                     user_id=request.user_id,
                     context_hints=request.additional_context or "",
+                    reference_urls=request.reference_images if request.use_reference else [],
                 )
             except Exception as _img_err:
                 logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
-        from core.local_storage import save_draft
-        _, draft_path = save_draft(draft.body, request.user_id, request.platform, request.topic)
-        return DraftResponse(draft=draft, image=image, draft_path=draft_path)
+        return DraftResponse(draft=draft, image=image)
 
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
-    website_line = f"Include this website link in the CTA: {brand_kit.website_url}" if brand_kit.website_url else ""
+    website_line = f"Include this website link in the CTA where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
+    platform_limits = {
+        "linkedin": "Under 150 words. Short paragraphs only — no bullet points, no bold headers.",
+        "twitter": "Under 280 characters total. One punchy sentence or short thread opener.",
+        "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome. Hashtags at the end.",
+    }
     system = await _agent.build_system_prompt(request.user_id)
     prompt = (
-        f"Write a ready-to-publish {request.platform} post about: {request.topic}\n"
-        f"Tone: {tone}\nTarget word count: ~{request.word_count_target}\n"
-        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n"
+        f"Write a ready-to-publish {request.platform} post about this topic: {request.topic}\n"
+        f"Tone: {tone}\n"
         f"Additional context: {request.additional_context or 'None'}\n"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n"
         f"{website_line}\n\n"
+        "STRICT RULES:\n"
+        f"- {platform_limits.get(request.platform, 'Keep it concise and platform-native.')}\n"
+        "- Start with a specific fact, number, or bold statement. NOT with 'As a founder' or any generic opener.\n"
+        "- Write about the BUSINESS VALUE and REAL IMPACT. Never mention mascots, characters, visuals, or image descriptions.\n"
+        "- Sound like the founder typed it themselves — direct, confident, no filler.\n"
+        "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
+        "- CTA: a direct question or action, not vague 'share your thoughts'.\n\n"
         "Return JSON with: title, body, hashtags (list), cta, meta_description, word_count, platform, tone_used. "
         "Return ONLY the JSON object, no markdown fences."
     )
@@ -375,12 +389,11 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 use_logo=request.use_logo, use_mascot=request.use_mascot,
                 user_id=request.user_id,
                 context_hints=request.additional_context or "",
+                reference_urls=request.reference_images if request.use_reference else [],
             )
         except Exception as _img_err:
             logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
-    from core.local_storage import save_draft
-    _, draft_path = save_draft(draft.body, request.user_id, request.platform, request.topic)
-    return DraftResponse(draft=draft, image=image, draft_path=draft_path, tokens_used=tokens_used, model_used=_agent.default_model)
+    return DraftResponse(draft=draft, image=image, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/generate-variants", response_model=VariantResponse, summary="Generate platform variants")
@@ -516,11 +529,8 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
 
 class ImageRegenRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
-    image_url: HttpUrl = Field(..., description="R2/CDN URL of the existing image to regenerate")
+    image_url: HttpUrl = Field(..., description="URL of the existing image to modify")
     prompt: str = Field(..., min_length=1, max_length=1000)
-    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
-    use_logo: bool = False
-    use_mascot: bool = False
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -528,9 +538,6 @@ class ImageRegenRequest(BaseModel):
                 "user_id": "user_123",
                 "image_url": "https://r2.example.com/images/abc.png",
                 "prompt": "Make the background more vibrant and professional",
-                "platform": "instagram",
-                "use_logo": True,
-                "use_mascot": False,
             }
         }
     )
@@ -570,54 +577,28 @@ class ContentRegenResponse(BaseModel):
 
 @router.post("/regenerate-image", response_model=ImageRegenResponse, summary="Regenerate image")
 async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
-    """Fetch an existing image from R2 URL, regenerate it with a new prompt, return base64."""
-    import base64
-    from core.brand_kit import get_image_prompt_context
-
-    brand_kit = await load_brand_kit(request.user_id)
-
+    """Fetch existing image, modify it with the given prompt, return new base64 image."""
     if settings.MOCK_MODE:
-        image = await generate_social_image(
-            request.prompt, request.platform,
-            use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
-        )
+        from core.llm import LLMClient as _LLM
+        b64 = await _LLM().generate_image(request.prompt)
+        image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=request.prompt)
         return ImageRegenResponse(image=image)
 
-    # Fetch current image from R2
     source_bytes = await _fetch_asset(str(request.image_url))
-    if not source_bytes:
-        # Fallback: generate fresh without reference
-        image = await generate_social_image(
-            request.prompt, request.platform,
-            use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
+    if source_bytes:
+        edit_prompt = (
+            f"You are editing the reference image. Make ONLY this specific change: {request.prompt}\n\n"
+            "CRITICAL: Keep the entire composition, all characters, colors, layout, and visual style "
+            "EXACTLY the same as the reference. Do NOT regenerate or redesign the image. "
+            "Only apply the described change and nothing else. "
+            "If the change involves text, spell every word EXACTLY as specified — no typos, no letter swaps."
         )
-        return ImageRegenResponse(image=image)
+        b64 = await _llm.generate_image_with_image_bytes(edit_prompt, [source_bytes])
+    else:
+        b64 = await _llm.generate_image(request.prompt)
 
-    context = get_image_prompt_context(brand_kit)
-    ref_images = [source_bytes]
-    instructions = ["Reference image 1 is the existing image to regenerate with the new direction."]
-
-    if request.use_logo and brand_kit.logo_url:
-        logo_bytes = await _fetch_asset(brand_kit.logo_url)
-        if logo_bytes:
-            ref_images.append(logo_bytes)
-            instructions.append(
-                "Reference image 2 is the brand logo. Make it a prominent, clearly visible element — "
-                "large enough to be immediately noticed. Display it on a billboard, large screen, "
-                "product packaging, banner, or merchandise. Sharp, fully legible, true to its original "
-                "colors and proportions. Prominent but naturally blended into the scene."
-            )
-
-    full_prompt = (
-        f"{context}. {request.prompt}. Optimized for {request.platform}.\n\n"
-        + "\n".join(instructions)
-    )
-    b64 = await _llm.generate_image_with_image_bytes(full_prompt, ref_images)
-
-    from core.local_storage import save_image
-    _, local_path = save_image(b64, request.user_id, label=request.platform)
-    image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt, local_path=local_path)
-    return ImageRegenResponse(image=image, model_used=_agent.default_model)
+    image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=request.prompt)
+    return ImageRegenResponse(image=image, model_used="gemini-2.5-flash-image")
 
 
 @router.post("/regenerate-content", response_model=ContentRegenResponse, summary="Regenerate content")
