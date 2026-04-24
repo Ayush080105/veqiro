@@ -1,6 +1,5 @@
 import json
 import uuid
-import base64
 from datetime import datetime
 
 from fastapi import APIRouter
@@ -29,7 +28,7 @@ class IngestDocumentRequest(BaseModel):
     user_id: str
     document_name: str
     document_type: str = "nda"
-    pdf_base64: str
+    document_url: str
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -37,7 +36,7 @@ class IngestDocumentRequest(BaseModel):
                 "user_id": "user_123",
                 "document_name": "Acme Corp NDA 2025",
                 "document_type": "nda",
-                "pdf_base64": "JVBERi0xLjQK...",
+                "document_url": "https://pub-xxxx.r2.dev/documents/acme-nda-2025.pdf",
             }
         }
     )
@@ -56,35 +55,101 @@ class IngestDocumentResponse(BaseModel):
 
 class AnalyzeContractRequest(BaseModel):
     user_id: str
-    source_id: str | None = None
-    contract_text: str = ""
-    analysis_focus: list[str] = []
+    source_id: str
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
                 "source_id": "doc_abc123",
-                "contract_text": "This Non-Disclosure Agreement ('Agreement') is entered into as of January 1, 2025...",
-                "analysis_focus": ["risk_assessment", "unusual_clauses"],
             }
         }
     )
 
 
+class ClauseRisk(BaseModel):
+    clause: str
+    risk: str
+    severity: str        # low / medium / high / critical
+    recommendation: str
+
+
+class NegotiationPoint(BaseModel):
+    priority: str        # high / medium / low
+    clause: str
+    issue: str
+    suggested_change: str
+
+
 class ContractAnalysis(BaseModel):
-    summary: str
-    risk_level: str
-    risks: list[dict]
+    # Overview
+    document_type: str
+    parties: list[str]
+    effective_date: str
+    governing_law: str
+    jurisdiction: str
+
+    # Summary
+    executive_summary: str
+    risk_level: str      # low / medium / high / critical
+    risk_score: int      # 1–10
+
+    # Risk breakdown
+    risks: list[ClauseRisk]
     unusual_clauses: list[str]
     missing_protections: list[str]
+
+    # Clause-by-clause
+    clause_breakdown: list[dict]  # {section, title, summary, risk_level, notes}
+
+    # Key terms
     key_terms: dict
+
+    # Obligations per party
+    obligations: dict    # {"Party A name": [...], "Party B name": [...]}
+
+    # Negotiation guidance
+    negotiation_points: list[NegotiationPoint]
+
+    # Verdict
     overall_assessment: str
+    recommended_action: str  # sign / negotiate / reject / legal_review_required
 
 
 class AnalyzeContractResponse(BaseModel):
     analysis: ContractAnalysis
     disclaimer: str
+    tokens_used: int = 0
+    model_used: str = ""
+
+
+class QueryDocumentRequest(BaseModel):
+    user_id: str
+    source_id: str
+    query: str
+    top_k: int = 5
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "source_id": "doc_abc123",
+                "query": "What are the termination conditions and notice periods?",
+                "top_k": 5,
+            }
+        }
+    )
+
+
+class QueryDocumentChunk(BaseModel):
+    content: str
+    score: float
+    metadata: dict = {}
+
+
+class QueryDocumentResponse(BaseModel):
+    answer: str
+    sources: list[QueryDocumentChunk]
     tokens_used: int = 0
     model_used: str = ""
 
@@ -231,98 +296,315 @@ async def ingest_document(request: IngestDocumentRequest) -> IngestDocumentRespo
             document_type_detected="mutual_nda",
         )
 
+    import asyncio
+    import httpx
     try:
-        pdf_bytes = base64.b64decode(request.pdf_base64)
+        async with httpx.AsyncClient(timeout=settings.R2_FETCH_TIMEOUT) as client:
+            resp = await client.get(request.document_url)
+            resp.raise_for_status()
+            pdf_bytes = resp.content
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=f"Failed to fetch document from URL: {e}")
+
+    from core.pdf_reader import extract_text_with_vision, extract_pages
+
+    # Extract text once — reused for both ingestion and metadata
+    try:
+        full_text = await extract_text_with_vision(pdf_bytes, _llm)
     except Exception:
-        pdf_bytes = b""
+        from core.pdf_reader import extract_text
+        full_text = extract_text(pdf_bytes)
 
-    from core.pdf_reader import extract_pages, summarize_pdf
-    pages = extract_pages(pdf_bytes)
-    page_count = len(pages)
-    summary = await summarize_pdf(pdf_bytes, _llm)
-
+    page_count = len(extract_pages(pdf_bytes))
     source_id = f"doc_{str(uuid.uuid4())[:8]}"
-    chunks = await _rag.ingest_pdf(request.user_id, pdf_bytes, source_id, {"document_name": request.document_name, "document_type": request.document_type})
+    meta = {"document_name": request.document_name, "document_type": request.document_type}
+
+    async def _extract_metadata():
+        raw = await _llm.complete(
+            provider=_agent.default_provider,
+            model=_agent.default_model,
+            system="You are a legal document analyst. Be precise and concise.",
+            messages=[{"role": "user", "content": (
+                f"Analyze this legal document and return ONLY a JSON object (no markdown fences) with exactly these keys:\n"
+                f"- summary: 2-3 sentence overview of what the document is, who the parties are, and its main purpose\n"
+                f"- key_topics: list of 4-8 specific legal topic strings (e.g. confidentiality, ip_assignment, termination, governing_law)\n"
+                f"- document_type_detected: one of nda, mou, employment_agreement, service_agreement, partnership_agreement, "
+                f"shareholder_agreement, lease_agreement, loan_agreement, settlement_agreement, other\n\n"
+                f"Document:\n{full_text[:12000]}"
+            )}],
+            max_tokens=512,
+        )
+        return raw
+
+    # Run ingestion and metadata extraction in parallel
+    chunks_count, meta_raw = await asyncio.gather(
+        _rag.ingest(request.user_id, full_text, "pdf", source_id, "lex", meta),
+        _extract_metadata(),
+    )
+
+    tokens_used = _llm.count_tokens(meta_raw)
+    try:
+        meta_data = json.loads(strip_json_fences(meta_raw))
+        summary = meta_data.get("summary", "")
+        key_topics = meta_data.get("key_topics", [])
+        document_type_detected = meta_data.get("document_type_detected", request.document_type)
+    except Exception:
+        summary = meta_raw[:300]
+        key_topics = []
+        document_type_detected = request.document_type
 
     return IngestDocumentResponse(
         source_id=source_id,
-        chunks_created=chunks,
+        chunks_created=chunks_count,
         page_count=page_count,
         summary=summary,
-        key_topics=["legal"],
-        document_type_detected=request.document_type,
+        key_topics=key_topics,
+        document_type_detected=document_type_detected,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
     )
 
 
 @router.post("/analyze-contract", response_model=AnalyzeContractResponse, summary="Analyze contract")
 async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractResponse:
-    """Perform comprehensive risk analysis on a contract or legal document."""
+    """Fetch all chunks for source_id and perform a full structured contract analysis."""
     if settings.MOCK_MODE:
         return AnalyzeContractResponse(
             analysis=ContractAnalysis(
-                summary="This is a Mutual Non-Disclosure Agreement between two technology companies for partnership evaluation purposes. The agreement is broadly written with several one-sided provisions favoring the disclosing party.",
+                document_type="Mutual Non-Disclosure Agreement",
+                parties=["Acme Corp (Disclosing Party)", "Beta Inc (Receiving Party)"],
+                effective_date="January 1, 2025",
+                governing_law="Delaware General Corporation Law",
+                jurisdiction="United States (Delaware)",
+                executive_summary=(
+                    "A mutual NDA between two technology companies for partnership evaluation. "
+                    "The agreement is broadly written with several one-sided provisions favoring the disclosing party, "
+                    "most notably a residuals clause that creates IP leakage risk."
+                ),
                 risk_level="medium",
+                risk_score=6,
                 risks=[
-                    {"clause": "Definition of Confidential Information (Clause 2)", "risk": "Overly broad definition includes all verbal communications – difficult to track and enforce", "severity": "medium"},
-                    {"clause": "Duration (Clause 5)", "risk": "5-year term is 2x the industry standard of 2-3 years for startup-stage NDAs", "severity": "low"},
-                    {"clause": "Residuals Clause (Clause 7)", "risk": "Allows retained information to be used in future products – creates IP leakage risk", "severity": "high"},
-                    {"clause": "Unilateral Termination (Clause 9)", "risk": "Disclosing party can terminate with 30 days notice but residuals survive – your obligations continue", "severity": "medium"},
+                    ClauseRisk(
+                        clause="Definition of Confidential Information (Section 2)",
+                        risk="Overly broad — includes all verbal communications with no follow-up written confirmation requirement, making scope unmanageable.",
+                        severity="medium",
+                        recommendation="Add a requirement that verbal disclosures be confirmed in writing within 10 business days to be considered Confidential Information.",
+                    ),
+                    ClauseRisk(
+                        clause="Residuals Clause (Section 7)",
+                        risk="Allows the receiving party to use residual knowledge retained in unaided memory — creates IP leakage risk for your product roadmap and technical architecture.",
+                        severity="high",
+                        recommendation="Remove entirely or limit to generic industry knowledge, explicitly excluding product roadmap, source code, and customer data.",
+                    ),
+                    ClauseRisk(
+                        clause="Duration (Section 5)",
+                        risk="5-year term is 2× the industry standard of 2–3 years for startup-stage NDAs.",
+                        severity="low",
+                        recommendation="Renegotiate to 2–3 years with a survival clause limited to 1 year post-termination for specific categories.",
+                    ),
+                    ClauseRisk(
+                        clause="Unilateral Termination (Section 9)",
+                        risk="Disclosing party can terminate with 30 days notice, but confidentiality obligations survive indefinitely — your obligations continue even after termination.",
+                        severity="medium",
+                        recommendation="Cap survival of obligations to 2 years post-termination and require mutual consent for early termination.",
+                    ),
                 ],
                 unusual_clauses=[
-                    "Residuals clause (Clause 7) – rare in mutual NDAs, typically only in one-sided agreements",
-                    "No limitation on injunctive relief scope – broader than necessary",
-                    "No carve-out for information independently developed – standard protection missing",
+                    "Residuals clause (Section 7) — rare in mutual NDAs, typically found only in one-sided agreements favoring large enterprises",
+                    "No limitation on injunctive relief scope — allows either party to seek unlimited injunctive relief without bond",
+                    "No carve-out for information independently developed — standard protection is missing",
                 ],
                 missing_protections=[
-                    "Dispute resolution mechanism (arbitration vs. litigation not specified)",
-                    "Data protection / GDPR compliance obligations",
-                    "Limitation on remedies beyond injunctive relief",
-                    "Carve-out for publicly available information developed independently",
+                    "Dispute resolution mechanism — arbitration vs. litigation not specified",
+                    "Data protection / GDPR compliance obligations — no mention despite potential EU data exchange",
+                    "Limitation of liability — no cap on damages beyond injunctive relief",
+                    "Carve-out for information independently developed without reference to confidential information",
+                    "Return or destruction of materials clause upon termination",
+                ],
+                clause_breakdown=[
+                    {"section": "1", "title": "Purpose", "summary": "Defines the scope of the relationship as partnership evaluation.", "risk_level": "low", "notes": "Standard. No issues."},
+                    {"section": "2", "title": "Definition of Confidential Information", "summary": "Broadly defines all information, including verbal disclosures, as confidential.", "risk_level": "medium", "notes": "Verbal inclusion without written confirmation requirement is problematic."},
+                    {"section": "3", "title": "Obligations", "summary": "Standard confidentiality obligations — hold in confidence, restrict access, use only for Purpose.", "risk_level": "low", "notes": "Standard. No issues."},
+                    {"section": "5", "title": "Term", "summary": "5-year confidentiality period from Effective Date.", "risk_level": "low", "notes": "Above industry standard. Negotiate down."},
+                    {"section": "7", "title": "Residuals", "summary": "Permits use of retained knowledge in unaided memory for any purpose.", "risk_level": "high", "notes": "Significant IP risk. Should be removed or heavily restricted."},
+                    {"section": "9", "title": "Termination", "summary": "Either party may terminate with 30 days written notice. Obligations survive.", "risk_level": "medium", "notes": "Indefinite survival of obligations post-termination is unusual."},
                 ],
                 key_terms={
-                    "governing_law": "Delaware, United States",
                     "duration": "5 years",
-                    "scope": "Product roadmap, customer data, financial projections",
-                    "permitted_disclosures": "Legal counsel, advisors under NDA",
+                    "governing_law": "Delaware, United States",
+                    "scope": "Product roadmap, customer data, financial projections, technical architecture",
+                    "permitted_disclosures": "Legal counsel and advisors who are themselves bound by NDA",
                     "dispute_resolution": "Not specified",
+                    "termination_notice": "30 days written notice",
+                    "survival": "Indefinite post-termination",
                 },
-                overall_assessment="Proceed with negotiation. Request removal or modification of the residuals clause (Clause 7) and addition of a carve-out for independently developed information. The 5-year term should be renegotiated to 2-3 years.",
+                obligations={
+                    "Acme Corp": [
+                        "Hold Beta's Confidential Information in strict confidence",
+                        "Limit access to employees with need-to-know",
+                        "Use information solely for the Purpose",
+                        "Notify Beta immediately of any unauthorized disclosure",
+                    ],
+                    "Beta Inc": [
+                        "Hold Acme's Confidential Information in strict confidence",
+                        "Limit access to employees with need-to-know",
+                        "Use information solely for the Purpose",
+                        "Notify Acme immediately of any unauthorized disclosure",
+                    ],
+                },
+                negotiation_points=[
+                    NegotiationPoint(
+                        priority="high",
+                        clause="Residuals Clause (Section 7)",
+                        issue="Permits unrestricted use of retained knowledge — directly undermines the NDA's purpose.",
+                        suggested_change="Delete Section 7 entirely, or restrict to generic industry knowledge explicitly excluding product IP, source code, and customer data.",
+                    ),
+                    NegotiationPoint(
+                        priority="medium",
+                        clause="Definition of Confidential Information (Section 2)",
+                        issue="Verbal communications without written confirmation create enforcement ambiguity.",
+                        suggested_change="Add: 'Verbal disclosures must be confirmed in writing within 10 business days to constitute Confidential Information.'",
+                    ),
+                    NegotiationPoint(
+                        priority="medium",
+                        clause="Termination / Survival (Section 9)",
+                        issue="Indefinite survival of obligations is commercially unusual and burdensome.",
+                        suggested_change="Cap survival at 3 years post-termination for general confidentiality; allow indefinite survival only for trade secrets.",
+                    ),
+                    NegotiationPoint(
+                        priority="low",
+                        clause="Duration (Section 5)",
+                        issue="5-year term exceeds market standard.",
+                        suggested_change="Reduce to 2–3 years.",
+                    ),
+                ],
+                overall_assessment=(
+                    "This NDA is weighted toward the disclosing party and contains one high-risk clause (residuals) "
+                    "that should be a hard blocker. The agreement is otherwise workable with targeted modifications. "
+                    "Do not sign as-is."
+                ),
+                recommended_action="negotiate",
             ),
             disclaimer=LEGAL_DISCLAIMER,
         )
 
-    contract_text = request.contract_text
-    if request.source_id:
-        chunks = await _rag.retrieve(request.user_id, "contract analysis key terms risks", top_k=10, source_agent="lex")
-        if chunks:
-            contract_text = "\n\n".join(c.get("content", "") for c in chunks)
+    chunks = await _rag.retrieve_by_source(request.user_id, request.source_id)
+    if not chunks:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"No document found for source_id '{request.source_id}'")
+
+    full_text = "\n\n".join(c.get("content", "") for c in chunks)
 
     system = await _agent.build_system_prompt(request.user_id)
     raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
+        provider=_agent.default_provider,
+        model=_agent.default_model,
         system=system,
         messages=[{"role": "user", "content": (
-            f"Analyze this contract:\n{contract_text[:4000]}\n\n"
-            f"Focus on: {request.analysis_focus}\n\n"
-            "Return JSON with fields: summary, risk_level, risks (list of objects with clause/risk/severity), "
-            "unusual_clauses, missing_protections, key_terms (dict), overall_assessment"
+            f"Perform a complete, detailed legal analysis of this contract:\n\n{full_text}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with exactly these keys:\n"
+            "document_type (string), "
+            "parties (list of strings — 'Name (Role)'), "
+            "effective_date (string), "
+            "governing_law (string), "
+            "jurisdiction (string), "
+            "executive_summary (string — 2–3 sentences plain English), "
+            "risk_level (low/medium/high/critical), "
+            "risk_score (integer 1–10), "
+            "risks (list of {clause, risk, severity: low/medium/high/critical, recommendation}), "
+            "unusual_clauses (list of strings), "
+            "missing_protections (list of strings), "
+            "clause_breakdown (list of {section, title, summary, risk_level, notes}), "
+            "key_terms (dict of string->string), "
+            "obligations (dict of party_name -> list of obligation strings), "
+            "negotiation_points (list of {priority: high/medium/low, clause, issue, suggested_change}), "
+            "overall_assessment (string), "
+            "recommended_action (sign/negotiate/reject/legal_review_required)"
         )}],
+        max_tokens=4096,
     )
     tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
-        analysis = ContractAnalysis(**data)
+        risks = [ClauseRisk(**r) for r in data.pop("risks", [])]
+        negotiation_points = [NegotiationPoint(**n) for n in data.pop("negotiation_points", [])]
+        analysis = ContractAnalysis(**data, risks=risks, negotiation_points=negotiation_points)
     except Exception:
         analysis = ContractAnalysis(
-            summary=raw[:500],
-            risk_level="unknown",
-            risks=[],
-            unusual_clauses=[],
-            missing_protections=[],
-            key_terms={},
-            overall_assessment="Manual review recommended.",
+            document_type="Unknown",
+            parties=[], effective_date="", governing_law="", jurisdiction="",
+            executive_summary=raw[:500],
+            risk_level="unknown", risk_score=0,
+            risks=[], unusual_clauses=[], missing_protections=[],
+            clause_breakdown=[], key_terms={}, obligations={},
+            negotiation_points=[],
+            overall_assessment="Parsing failed — manual review recommended.",
+            recommended_action="legal_review_required",
         )
     return AnalyzeContractResponse(analysis=analysis, disclaimer=LEGAL_DISCLAIMER, tokens_used=tokens_used, model_used=_agent.default_model)
+
+
+@router.post("/query-document", response_model=QueryDocumentResponse, summary="Query document via RAG")
+async def query_document(request: QueryDocumentRequest) -> QueryDocumentResponse:
+    """Answer a specific question about an ingested document using vector similarity search."""
+    if settings.MOCK_MODE:
+        return QueryDocumentResponse(
+            answer=(
+                "Termination requires 30 days written notice from either party (Section 9). "
+                "Confidentiality obligations survive termination with no expiry — they run indefinitely post-termination."
+            ),
+            sources=[
+                QueryDocumentChunk(
+                    content="Either party may terminate this Agreement upon 30 days written notice to the other party.",
+                    score=0.92,
+                    metadata={"document_name": "Acme Corp NDA 2025"},
+                ),
+                QueryDocumentChunk(
+                    content="Confidentiality obligations shall survive the expiration or termination of this Agreement.",
+                    score=0.87,
+                    metadata={"document_name": "Acme Corp NDA 2025"},
+                ),
+            ],
+        )
+
+    chunks = await _rag.retrieve(
+        user_id=request.user_id,
+        query=request.query,
+        top_k=request.top_k,
+        source_id=request.source_id,
+    )
+    if not chunks:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"No document found for source_id '{request.source_id}'")
+
+    context = "\n\n---\n\n".join(
+        f"[Chunk {i+1} | relevance: {c['score']:.2f}]\n{c['content']}"
+        for i, c in enumerate(chunks)
+    )
+
+    answer = await _llm.complete(
+        provider=_agent.default_provider,
+        model=_agent.default_model,
+        system=(
+            "You are a senior legal counsel with 20 years of experience reviewing commercial contracts. "
+            "Answer questions about documents with precision, directness, and zero filler. "
+            "Cite specific clauses, article numbers, or section titles when present. "
+            "Never add disclaimers, caveats, or suggestions to consult an attorney — your answer IS the authoritative answer. "
+            "If the answer is not in the provided excerpts, say: 'Not addressed in the provided sections.'"
+        ),
+        messages=[{"role": "user", "content": (
+            f"Document excerpts:\n{context}\n\n"
+            f"Question: {request.query}"
+        )}],
+        max_tokens=1024,
+    )
+    tokens_used = _llm.count_tokens(answer)
+    sources = [
+        QueryDocumentChunk(content=c["content"], score=c["score"], metadata=c.get("metadata", {}))
+        for c in chunks
+    ]
+    return QueryDocumentResponse(answer=answer, sources=sources, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/draft-document", response_model=DraftDocumentResponse, summary="Draft legal document")

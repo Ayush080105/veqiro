@@ -11,7 +11,7 @@ from core.tools import (
 )
 
 # Provider + model constants
-GEMINI_FLASH = ("gemini", "gemini-2.0-flash")
+GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
 GPT4O_MINI = ("openai", "gpt-4o-mini")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
@@ -503,6 +503,31 @@ class LLMClient:
                 return base64.b64encode(part.inline_data.data).decode()
         # Fallback: plain Imagen without references
         return await self.generate_image(prompt, aspect_ratio)
+
+    async def complete_with_vision(
+        self,
+        file_bytes: bytes,
+        prompt: str,
+        mime_type: str = "application/pdf",
+    ) -> str:
+        """Send a file (PDF or image) + text prompt to Gemini Flash vision.
+        Handles text, tables (returns markdown), images, and scanned pages."""
+        if settings.MOCK_MODE:
+            return "[Mock vision extraction: all contract text, tables, and clauses extracted successfully]"
+
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        parts = [
+            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+            types.Part.from_text(text=prompt),
+        ]
+        response = await client.aio.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=parts,
+        )
+        return response.text
 
     def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
         """Approximate token count."""

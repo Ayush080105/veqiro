@@ -93,11 +93,9 @@ class LexAgent(BaseAgent):
         return [
             ToolDefinition(
                 name="analyze_contract",
-                description="Perform comprehensive risk analysis on a contract or legal document. Identifies risks, unusual clauses, missing protections, and provides an overall assessment.",
+                description="Perform a full structured analysis of a previously ingested contract. Fetches all document chunks by source_id and returns detailed risk assessment, clause breakdown, obligations, and negotiation guidance.",
                 parameters=[
-                    ToolParameter(name="contract_text", type="string", description="The contract text to analyze", required=True),
-                    ToolParameter(name="analysis_focus", type="array", description="Areas to focus on (e.g., risk_assessment, unusual_clauses, ip_rights, termination)", required=False, items_type="string"),
-                    ToolParameter(name="source_id", type="string", description="ID of a previously ingested document to analyze from RAG", required=False),
+                    ToolParameter(name="source_id", type="string", description="ID returned by ingest-document for the contract to analyze", required=True),
                 ],
             ),
             ToolDefinition(
@@ -144,44 +142,53 @@ class LexAgent(BaseAgent):
         system = await self.build_system_prompt(user_id)
 
         if name == "analyze_contract":
-            contract_text = arguments.get("contract_text", "")
-            focus = arguments.get("analysis_focus", [])
-            source_id = arguments.get("source_id")
+            source_id = arguments.get("source_id", "")
 
-            if source_id:
-                chunks = await self.rag.retrieve(
-                    user_id, "contract analysis key terms risks",
-                    top_k=10, source_agent="lex"
-                )
-                if chunks:
-                    contract_text = "\n\n".join(c.get("content", "") for c in chunks)
+            chunks = await self.rag.retrieve_by_source(user_id, source_id)
+            if not chunks:
+                return json.dumps({"error": f"No document found for source_id '{source_id}'"})
+
+            full_text = "\n\n".join(c.get("content", "") for c in chunks)
 
             prompt = (
-                f"Analyze this contract:\n{contract_text[:4000]}\n\n"
-                f"Focus areas: {', '.join(focus) if focus else 'comprehensive review'}\n\n"
-                "Return ONLY a JSON object (no markdown fences) with these exact keys:\n"
-                "summary (string), risk_level (low/medium/high), "
-                "risks (list of {clause, risk, severity}), "
+                f"Perform a complete, detailed legal analysis of this contract:\n\n{full_text}\n\n"
+                "Return ONLY a JSON object (no markdown fences) with exactly these keys:\n"
+                "document_type (string), "
+                "parties (list of strings — 'Name (Role)'), "
+                "effective_date (string), "
+                "governing_law (string), "
+                "jurisdiction (string), "
+                "executive_summary (string — 2–3 sentences plain English), "
+                "risk_level (low/medium/high/critical), "
+                "risk_score (integer 1–10), "
+                "risks (list of {clause, risk, severity: low/medium/high/critical, recommendation}), "
                 "unusual_clauses (list of strings), "
                 "missing_protections (list of strings), "
+                "clause_breakdown (list of {section, title, summary, risk_level, notes}), "
                 "key_terms (dict of string->string), "
-                "overall_assessment (string)"
+                "obligations (dict of party_name -> list of obligation strings), "
+                "negotiation_points (list of {priority: high/medium/low, clause, issue, suggested_change}), "
+                "overall_assessment (string), "
+                "recommended_action (sign/negotiate/reject/legal_review_required)"
             )
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
+                max_tokens=4096,
             )
             try:
                 data = safe_json_loads(raw)
             except Exception:
                 data = {
-                    "summary": raw[:500],
-                    "risk_level": "unknown",
-                    "risks": [],
-                    "unusual_clauses": [],
-                    "missing_protections": [],
-                    "key_terms": {},
+                    "document_type": "Unknown", "parties": [], "effective_date": "",
+                    "governing_law": "", "jurisdiction": "",
+                    "executive_summary": raw[:500],
+                    "risk_level": "unknown", "risk_score": 0,
+                    "risks": [], "unusual_clauses": [], "missing_protections": [],
+                    "clause_breakdown": [], "key_terms": {}, "obligations": {},
+                    "negotiation_points": [],
                     "overall_assessment": "Manual review recommended.",
+                    "recommended_action": "legal_review_required",
                 }
             data["disclaimer"] = LEGAL_DISCLAIMER
             return json.dumps(data, default=str)
