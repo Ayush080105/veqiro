@@ -61,7 +61,8 @@ export const ModelName = {
   BrandKit: 'BrandKit',
   Message: 'Message',
   SocialAccount: 'SocialAccount',
-  PublishedPost: 'PublishedPost'
+  PublishedPost: 'PublishedPost',
+  Source: 'Source'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -259,6 +260,28 @@ export const PublishedPostScalarFieldEnum = {
 } as const
 
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
+
+
+export const SourceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  agent: 'agent',
+  sourceId: 'sourceId',
+  name: 'name',
+  type: 'type',
+  typeDetected: 'typeDetected',
+  r2Key: 'r2Key',
+  r2Url: 'r2Url',
+  sizeBytes: 'sizeBytes',
+  pageCount: 'pageCount',
+  chunksCreated: 'chunksCreated',
+  summary: 'summary',
+  keyTopics: 'keyTopics',
+  createdAt: 'createdAt'
+} as const
+
+export type SourceScalarFieldEnum = (typeof SourceScalarFieldEnum)[keyof typeof SourceScalarFieldEnum]
 
 
 export const SortOrder = {

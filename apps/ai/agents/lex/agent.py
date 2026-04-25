@@ -97,6 +97,11 @@ class LexAgent(BaseAgent):
     def get_tools(self) -> list[ToolDefinition]:
         return [
             ToolDefinition(
+                name="list_documents",
+                description="List the documents the user has previously uploaded to Lex. Returns each document's source_id, name, type, and upload time. Use this when the user asks 'which documents do I have?' or before calling analyze_contract / query_document if no source_id was given.",
+                parameters=[],
+            ),
+            ToolDefinition(
                 name="analyze_contract",
                 description="Perform a full structured analysis of a previously ingested contract. Fetches all document chunks by source_id and returns detailed risk assessment, clause breakdown, obligations, and negotiation guidance.",
                 parameters=[
@@ -151,6 +156,19 @@ class LexAgent(BaseAgent):
         organization_id: str = "",
     ) -> str:
         system = await self.build_system_prompt(user_id, organization_id)
+
+        if name == "list_documents":
+            sources = await self.rag.list_sources(user_id, source_agent="lex")
+            simplified = [
+                {
+                    "source_id": s["source_id"],
+                    "name": (s.get("metadata") or {}).get("document_name", ""),
+                    "type": (s.get("metadata") or {}).get("document_type", s.get("source_type", "")),
+                    "uploaded_at": s.get("created_at", ""),
+                }
+                for s in sources
+            ]
+            return json.dumps({"documents": simplified, "count": len(simplified)}, default=str)
 
         if name == "analyze_contract":
             source_id = arguments.get("source_id", "")

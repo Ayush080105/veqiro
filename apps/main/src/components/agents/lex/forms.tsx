@@ -1,18 +1,19 @@
 "use client"
 
 import * as React from "react"
-import { Upload } from "lucide-react"
+import { Upload, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
   FormRow,
   CountedTextarea,
   StringListInput,
-  fileToBase64,
 } from "@/components/chat/ActionForm/fields"
+import { useLexSources } from "@/lib/api/lex"
 import type {
-  LexIngestDocumentRequest,
+  LexUploadSourceRequest,
   LexAnalyzeContractRequest,
+  LexQueryDocumentRequest,
   LexDraftDocumentRequest,
   LexExplainRequest,
   LexLegalResearchRequest,
@@ -21,41 +22,22 @@ import type {
 
 const DOC_TYPES = ["contract", "agreement", "policy", "nda", "tos", "other"]
 
-export function LexIngestDocumentForm({
+export function LexUploadSourceForm({
   value,
   onChange,
 }: {
-  value: LexIngestDocumentRequest
-  onChange: (patch: Partial<LexIngestDocumentRequest>) => void
+  value: LexUploadSourceRequest
+  onChange: (patch: Partial<LexUploadSourceRequest>) => void
 }) {
-  const [filename, setFilename] = React.useState<string>("")
-  const [loading, setLoading] = React.useState(false)
-
-  const pick = async (file: File) => {
-    setLoading(true)
-    try {
-      const b64 = await fileToBase64(file)
-      setFilename(file.name)
-      onChange({
-        pdf_base64: b64,
-        document_name: value.document_name || file.name.replace(/\.pdf$/i, ""),
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  const filename = value.file?.name ?? ""
 
   return (
     <>
-      <FormRow label="Document" required hint="PDF only — max ~20 MB.">
+      <FormRow label="Document" required hint="PDF only — max 25 MB.">
         <label className="flex cursor-pointer items-center gap-2 border border-dashed border-border bg-muted/30 p-3 text-xs hover:bg-muted">
           <Upload className="size-3.5 text-muted-foreground" />
           <span className="flex-1 truncate">
-            {loading
-              ? "Reading file…"
-              : filename || value.pdf_base64
-                ? filename || "PDF ready"
-                : "Click to choose a PDF"}
+            {filename || "Click to choose a PDF"}
           </span>
           <input
             type="file"
@@ -63,7 +45,12 @@ export function LexIngestDocumentForm({
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
-              if (f) void pick(f)
+              if (!f) return
+              onChange({
+                file: f,
+                document_name:
+                  value.document_name || f.name.replace(/\.pdf$/i, ""),
+              })
             }}
           />
         </label>
@@ -97,6 +84,60 @@ export function LexIngestDocumentForm({
   )
 }
 
+function SourcePicker({
+  value,
+  onChange,
+  required,
+  hint,
+}: {
+  value: string
+  onChange: (sourceId: string) => void
+  required?: boolean
+  hint?: string
+}) {
+  const { data: sources, isLoading, error } = useLexSources()
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 border border-border bg-muted/20 px-2 py-2 text-[11px] text-muted-foreground">
+        <Loader2 className="size-3 animate-spin" /> Loading documents…
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="border border-destructive/30 bg-destructive/10 px-2 py-2 text-[11px] text-destructive">
+        Failed to load documents.
+      </div>
+    )
+  }
+  if (!sources || sources.length === 0) {
+    return (
+      <div className="border border-border bg-muted/20 px-2 py-2 text-[11px] text-muted-foreground">
+        No documents yet — upload one first.
+      </div>
+    )
+  }
+  return (
+    <>
+      <select
+        required={required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border border-border bg-background px-2 py-1.5 text-xs"
+      >
+        <option value="">Select a document…</option>
+        {sources.map((s) => (
+          <option key={s.id} value={s.sourceId}>
+            {s.name} · {s.pageCount}p
+          </option>
+        ))}
+      </select>
+      {hint && <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p>}
+    </>
+  )
+}
+
 export function LexAnalyzeContractForm({
   value,
   onChange,
@@ -106,14 +147,16 @@ export function LexAnalyzeContractForm({
 }) {
   return (
     <>
-      <FormRow label="Source ID" hint="Optional — from a prior Ingest Document result.">
-        <Input
+      <FormRow label="Document" hint="Pick from your uploaded documents.">
+        <SourcePicker
           value={value.source_id ?? ""}
-          placeholder="e.g. src_abc123"
-          onChange={(e) => onChange({ source_id: e.target.value })}
+          onChange={(sourceId) => onChange({ source_id: sourceId })}
         />
       </FormRow>
-      <FormRow label="Contract text" required>
+      <FormRow
+        label="Or paste contract text"
+        hint="Use this if the contract isn't uploaded yet."
+      >
         <CountedTextarea
           value={value.contract_text}
           rows={8}
@@ -126,6 +169,45 @@ export function LexAnalyzeContractForm({
           value={value.analysis_focus ?? []}
           onChange={(next) => onChange({ analysis_focus: next })}
           placeholder="e.g. liability cap, IP assignment"
+        />
+      </FormRow>
+    </>
+  )
+}
+
+export function LexQueryDocumentForm({
+  value,
+  onChange,
+}: {
+  value: LexQueryDocumentRequest
+  onChange: (patch: Partial<LexQueryDocumentRequest>) => void
+}) {
+  return (
+    <>
+      <FormRow label="Document" required>
+        <SourcePicker
+          required
+          value={value.sourceId}
+          onChange={(sourceId) => onChange({ sourceId })}
+        />
+      </FormRow>
+      <FormRow label="Question" required>
+        <CountedTextarea
+          value={value.query}
+          rows={4}
+          onChange={(v) => onChange({ query: v })}
+          placeholder="e.g. What are the termination conditions and notice periods?"
+        />
+      </FormRow>
+      <FormRow label="Top results" hint="Number of source chunks to retrieve.">
+        <Input
+          type="number"
+          min={1}
+          max={20}
+          value={value.topK ?? 5}
+          onChange={(e) =>
+            onChange({ topK: Math.max(1, Math.min(20, Number(e.target.value) || 5)) })
+          }
         />
       </FormRow>
     </>
@@ -271,3 +353,4 @@ export function LexComplianceCheckForm({
     </>
   )
 }
+

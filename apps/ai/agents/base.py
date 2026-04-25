@@ -5,7 +5,6 @@ from typing import AsyncGenerator
 
 from core.llm import LLMClient
 from core.rag import RAGService
-from core.brand_kit import load_brand_kit
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolCall, ToolResult
 
@@ -59,17 +58,10 @@ class BaseAgent(ABC):
         organization_id: str = "",
         extra_context: str | None = None,
     ) -> str:
-        brand_kit = await load_brand_kit(organization_id)
-        prompt = (
-            f"You are {self.name}, {self.personality}.\n\n"
-            f"Company: {brand_kit.company_name}\n"
-            f"Industry: {brand_kit.industry}\n"
-            f"Target Audience: {brand_kit.target_audience}\n"
-            f"Brand Voice: {brand_kit.brand_voice}\n"
-            f"Key Differentiators: {brand_kit.key_differentiators}\n"
-        )
-        if brand_kit.competitors:
-            prompt += f"Competitors: {', '.join(str(c) for c in brand_kit.competitors)}\n"
+        # Subclasses override this to inject brand_kit context. The base prompt
+        # is intentionally minimal so the registry/cross-agent fallbacks don't
+        # eagerly hit the brand-kit fetch.
+        prompt = f"You are {self.name}, {self.personality}.\n\n"
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
         prompt += (
@@ -89,12 +81,15 @@ class BaseAgent(ABC):
         system_prompt = await self.build_system_prompt(request.user_id, request.organization_id)
 
         # RAG retrieval
-        rag_chunks = await self.rag.retrieve(
-            user_id=request.user_id,
-            query=request.message,
-            top_k=5,
-            source_agent=self.slug,
-        )
+        try:
+            rag_chunks = await self.rag.retrieve(
+                user_id=request.user_id,
+                query=request.message,
+                top_k=5,
+                source_agent=self.slug,
+            )
+        except Exception:
+            rag_chunks = []
         if rag_chunks:
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
@@ -151,12 +146,15 @@ class BaseAgent(ABC):
         # Build system prompt with RAG
         system_prompt = await self.build_system_prompt(request.user_id, request.organization_id)
 
-        rag_chunks = await self.rag.retrieve(
-            user_id=request.user_id,
-            query=request.message,
-            top_k=5,
-            source_agent=self.slug,
-        )
+        try:
+            rag_chunks = await self.rag.retrieve(
+                user_id=request.user_id,
+                query=request.message,
+                top_k=5,
+                source_agent=self.slug,
+            )
+        except Exception:
+            rag_chunks = []
         if rag_chunks:
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"

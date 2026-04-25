@@ -61,3 +61,51 @@ export const findAllLexMessages = (organizationId: string) =>
       customInput: true,
     },
   });
+
+export const createSource = (data: {
+  organizationId: string;
+  userId: string;
+  sourceId: string;
+  name: string;
+  type: string;
+  typeDetected?: string | null;
+  r2Key: string;
+  r2Url: string;
+  sizeBytes: number;
+  pageCount: number;
+  chunksCreated: number;
+  summary: string;
+  keyTopics: string[];
+}) =>
+  prisma.source.create({
+    data: {
+      organizationId: data.organizationId,
+      userId: data.userId,
+      agent: Agent.LEX,
+      sourceId: data.sourceId,
+      name: data.name,
+      type: data.type,
+      typeDetected: data.typeDetected ?? null,
+      r2Key: data.r2Key,
+      r2Url: data.r2Url,
+      sizeBytes: data.sizeBytes,
+      pageCount: data.pageCount,
+      chunksCreated: data.chunksCreated,
+      summary: data.summary,
+      keyTopics: data.keyTopics,
+    },
+  });
+
+export const findSourcesForUser = (userId: string, organizationId: string) =>
+  prisma.source.findMany({
+    where: { userId, organizationId, agent: Agent.LEX },
+    orderBy: { createdAt: "desc" },
+  });
+
+export const findSourceById = (id: string, userId: string, organizationId: string) =>
+  prisma.source.findFirst({
+    where: { id, userId, organizationId, agent: Agent.LEX },
+  });
+
+export const deleteSourceById = (id: string) =>
+  prisma.source.delete({ where: { id } });

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { Info, HelpCircle } from "lucide-react"
+import { Info, HelpCircle, MessageSquare, FolderOpen } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -23,6 +23,8 @@ import { PlusMenu } from "@/components/chat/PlusMenu"
 import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
+import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
+import type { LexSource } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { FONT, Button as VqButton, Sticker } from "@/components/veqiro/shared"
@@ -353,6 +355,8 @@ export default function AssistantChatPage() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
+  const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
+  const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -410,7 +414,8 @@ export default function AssistantChatPage() {
     [queryClient, id, organizationId],
   )
 
-  const openAction = (actionId: AgentActionId) => {
+  const openAction = (actionId: AgentActionId, prefill?: Record<string, unknown>) => {
+    setActivePrefill(prefill)
     setActiveActionId(actionId)
   }
 
@@ -418,6 +423,21 @@ export default function AssistantChatPage() {
     setPlusOpen(false)
     openAction(actionId)
   }
+
+  const openAnalyzeForSource = useCallback((source: LexSource) => {
+    setLexTab("chat")
+    openAction("lex:analyze-contract", { source_id: source.sourceId })
+  }, [])
+
+  const openQueryForSource = useCallback((source: LexSource) => {
+    setLexTab("chat")
+    openAction("lex:query-document", { sourceId: source.sourceId })
+  }, [])
+
+  const openUploadAction = useCallback(() => {
+    setLexTab("chat")
+    openAction("lex:upload-source")
+  }, [])
 
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
 
@@ -445,7 +465,49 @@ export default function AssistantChatPage() {
         onHelpClick={() => setHelpOpen(true)}
       />
 
-      {historyLoaded && !hasMessages ? (
+      {isLex && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderBottom: "2px solid #111",
+            background: "#FFF9ED",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setLexTab("chat")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              lexTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            }`}
+          >
+            <MessageSquare className="size-3" /> Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setLexTab("documents")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              lexTab === "documents"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <FolderOpen className="size-3" /> Documents
+          </button>
+        </div>
+      )}
+
+      {isLex && lexTab === "documents" ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <LexDocumentsTab
+            onUpload={openUploadAction}
+            onAnalyze={openAnalyzeForSource}
+            onQuery={openQueryForSource}
+          />
+        </div>
+      ) : historyLoaded && !hasMessages ? (
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
         <div
@@ -515,16 +577,18 @@ export default function AssistantChatPage() {
           </div>
         )}
 
-        <ChatInput
-          value={content}
-          onChange={setContent}
-          onSend={handleSend}
-          onPlusClick={() => setPlusOpen(true)}
-          onHelpClick={() => setHelpOpen(true)}
-          onAttachClick={isLex ? () => openAction("lex:ingest-document") : undefined}
-          placeholder={`Message ${agent.name.toLowerCase()}…`}
-          disabled={isLoading}
-        />
+        {!(isLex && lexTab === "documents") && (
+          <ChatInput
+            value={content}
+            onChange={setContent}
+            onSend={handleSend}
+            onPlusClick={() => setPlusOpen(true)}
+            onHelpClick={() => setHelpOpen(true)}
+            onAttachClick={isLex ? openUploadAction : undefined}
+            placeholder={`Message ${agent.name.toLowerCase()}…`}
+            disabled={isLoading}
+          />
+        )}
       </div>
 
       <AgentInfoPanel
@@ -544,10 +608,16 @@ export default function AssistantChatPage() {
       <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} agent={agent} />
       <RunActionDialog
         open={!!activeActionId}
-        onOpenChange={(v) => !v && setActiveActionId(null)}
+        onOpenChange={(v) => {
+          if (!v) {
+            setActiveActionId(null)
+            setActivePrefill(undefined)
+          }
+        }}
         actionId={activeActionId}
         organizationId={organizationId}
         conversationId={conversationIdRef.current}
+        prefill={activePrefill}
         onComplete={handleActionComplete}
       />
     </div>

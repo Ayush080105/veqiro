@@ -2,12 +2,13 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import {
   sendMessageSchema,
-  ingestDocumentSchema,
+  uploadSourceFieldsSchema,
   analyzeContractSchema,
   draftDocumentSchema,
   explainSchema,
   legalResearchSchema,
   complianceCheckSchema,
+  queryDocumentSchema,
 } from "./lex.schema.js";
 import * as lexService from "./lex.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -37,10 +38,46 @@ export const getLexMessages = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(messages);
 };
 
-export const ingestDocument = async (req: Request, res: Response) => {
+export const uploadSource = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
-  const input = ingestDocumentSchema.parse(req.body);
-  const result = await lexService.ingestDocument(userId, organizationId, input);
+  if (!req.file) {
+    throw new BadRequestError("PDF file is required");
+  }
+  const fields = uploadSourceFieldsSchema.parse({
+    documentName: req.body.documentName,
+    documentType: req.body.documentType,
+  });
+  const result = await lexService.uploadSource(userId, organizationId, {
+    file: {
+      buffer: req.file.buffer,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+    },
+    documentName: fields.documentName,
+    documentType: fields.documentType,
+  });
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const listSources = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const result = await lexService.listSources(userId, organizationId);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const deleteSource = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const { id } = req.params as { id: string };
+  if (!id) throw new BadRequestError("Source id is required");
+  const result = await lexService.deleteSource(userId, organizationId, id);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const queryDocument = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = queryDocumentSchema.parse(req.body);
+  const result = await lexService.queryDocument(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 
 const accountId = process.env.R2_ACCOUNT_ID;
@@ -84,12 +88,50 @@ export const fetchImageAsBuffer = async (url: string): Promise<Buffer> => {
   return Buffer.from(await res.arrayBuffer());
 };
 
+export interface UploadBufferArgs {
+  organizationId: string;
+  buffer: Buffer;
+  contentType: string;
+  extension: string;
+  prefix?: string;
+}
+
+export const uploadBuffer = async (
+  args: UploadBufferArgs
+): Promise<{ url: string; key: string }> => {
+  const bucket = process.env.R2_BUCKET;
+  const publicUrl = process.env.R2_PUBLIC_URL;
+  if (!bucket || !publicUrl) {
+    throw new Error("R2_BUCKET and R2_PUBLIC_URL must be set to upload files.");
+  }
+
+  const prefix = args.prefix || "uploads";
+  const key = `${args.organizationId}/${prefix}/${randomUUID()}.${args.extension}`;
+
+  await getClient().send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: args.buffer,
+      ContentType: args.contentType,
+    })
+  );
+
+  return {
+    url: `${publicUrl.replace(/\/$/, "")}/${key}`,
+    key,
+  };
+};
+
 export const deleteObject = async (key: string): Promise<void> => {
   const bucket = process.env.R2_BUCKET;
   if (!bucket) {
     throw new Error("R2_BUCKET must be set to delete objects.");
   }
   await getClient().send(
-    new DeleteObjectCommand({ Bucket: bucket, Key: key }),
+    new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    })
   );
 };
