@@ -242,6 +242,22 @@ model CompetitorWatch {
   @@map("competitor_watch")
 }
 
+model SavedKeyword {
+  id                   String   @id @default(uuid())
+  organizationId       String
+  keyword              String
+  searchIntent         String   @default("")
+  estimatedDifficulty  Int      @default(50)
+  relevanceScore       Float    @default(0.5)
+  searchVolumeEstimate String?
+  suggestedContentType String   @default("")
+  createdAt            DateTime @default(now())
+
+  @@unique([organizationId, keyword])
+  @@index([organizationId])
+  @@map("saved_keyword")
+}
+
 model Source {
   id             String   @id @default(uuid())
   organizationId String

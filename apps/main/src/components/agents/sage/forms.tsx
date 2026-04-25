@@ -2,9 +2,12 @@
 
 import * as React from "react"
 import { Controller } from "react-hook-form"
+import { Heart } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -12,11 +15,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { FieldGroup } from "@/components/ui/field"
 import { Label } from "@/components/ui/label"
 import { StringListInput, CountedTextarea } from "@/components/chat/ActionForm/fields"
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
+import { useSavedKeywords } from "@/lib/api/sage"
+import { cn } from "@/lib/utils"
 import {
   sageKeywordResearchSchema,
   type SageKeywordResearchValues,
@@ -123,6 +133,9 @@ export function SageGenerateBlogForm({
     onChange,
   })
 
+  const { data: savedKeywords = [] } = useSavedKeywords()
+  const [kwPickerOpen, setKwPickerOpen] = React.useState(false)
+
   return (
     <FieldGroup>
       <RhfField control={form.control} name="topic" label="Topic" required>
@@ -143,12 +156,63 @@ export function SageGenerateBlogForm({
         required
       >
         {({ field, invalid, id }) => (
-          <Input
-            {...field}
-            id={id}
-            placeholder="e.g. AI stack for startups"
-            aria-invalid={invalid}
-          />
+          <div className="flex gap-1.5">
+            <Input
+              {...field}
+              id={id}
+              placeholder="e.g. AI stack for startups"
+              aria-invalid={invalid}
+              className="flex-1"
+            />
+            {savedKeywords.length > 0 && (
+              <Popover open={kwPickerOpen} onOpenChange={setKwPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    title="Pick from saved keywords"
+                  >
+                    <Heart className="size-3.5 fill-destructive text-destructive" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 p-2">
+                  <p className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Saved keywords
+                  </p>
+                  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                    {savedKeywords.map((kw) => (
+                      <button
+                        key={kw.id}
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left hover:bg-muted",
+                          field.value === kw.keyword && "bg-muted"
+                        )}
+                        onClick={() => {
+                          field.onChange(kw.keyword)
+                          setKwPickerOpen(false)
+                        }}
+                      >
+                        <span className="truncate text-xs">{kw.keyword}</span>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Badge variant="outline" className={cn(
+                            "text-[9px]",
+                            kw.estimatedDifficulty >= 70 ? "border-destructive/50 text-destructive"
+                            : kw.estimatedDifficulty >= 40 ? "border-chart-3/50 text-chart-3"
+                            : "border-chart-2/50 text-chart-2"
+                          )}>
+                            {kw.estimatedDifficulty}
+                          </Badge>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         )}
       </RhfField>
 

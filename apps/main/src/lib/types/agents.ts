@@ -29,11 +29,12 @@ export interface KeywordItem {
   relevance_score: number
   suggested_content_type: string
   related_keywords: string[]
+  search_volume_estimate?: string
 }
 
 export interface KeywordCluster {
   cluster_name: string
-  keywords: KeywordItem[]
+  keywords: string[]
   primary_intent: string
 }
 
@@ -84,6 +85,8 @@ export interface SageContentAnalysisResult {
   improvements: string[]
   missing_keywords: string[]
   readability_grade: string
+  word_count?: number
+  keyword_density?: string
 }
 
 export interface SageContentBriefRequest {
@@ -105,6 +108,8 @@ export interface SageContentBriefResult {
     internal_linking_opportunities: string[]
     cta_recommendation: string
     estimated_traffic_potential: string
+    serp_features: string[]
+    topical_authority_tip: string
   }
 }
 
@@ -627,6 +632,20 @@ export interface VegaComposeEmailResult {
   draft: { to: string; subject: string; body: string; draft_id?: string }
   draft_id?: string
   errors?: string[]
+}
+
+// ─── Sage saved keywords ─────────────────────────────────────────────────────
+
+export interface SageSavedKeyword {
+  id: string
+  organizationId: string
+  keyword: string
+  searchIntent: string
+  estimatedDifficulty: number
+  relevanceScore: number
+  searchVolumeEstimate?: string | null
+  suggestedContentType: string
+  createdAt: string
 }
 
 // ─── Union result type (discriminated by action id) ─────────────────────────

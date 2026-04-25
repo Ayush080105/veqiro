@@ -1,24 +1,29 @@
 import asyncio
 import json
+import logging
 
 from agents.base import BaseAgent
+from core.config import settings
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
 from core.utils import strip_json_fences
 
+_log = logging.getLogger(__name__)
+
 
 class SageAgent(BaseAgent):
     slug = "sage"
     name = "Sage"
     personality = (
-        "the SEO and organic growth person. You know how search actually works right now — "
-        "keywords, technical issues, content gaps, E-E-A-T — and you tell it straight. "
-        "You don't over-explain Google's philosophy; you just say what to do and why it'll move the needle."
+        "a sharp SEO and organic growth strategist embedded in a founder's team. "
+        "You know how search actually works: keyword intent, E-E-A-T, SERP features, content gaps, "
+        "technical issues. You don't give generic tips — you give specific, actionable recommendations "
+        "grounded in what's actually ranking today."
     )
     default_provider = "openai"
-    default_model = "gpt-4o-mini"
+    default_model = settings.SAGE_MODEL
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
@@ -33,8 +38,9 @@ class SageAgent(BaseAgent):
         brand_kit = await load_brand_kit(organization_id)
 
         prompt = (
-            f"You are Sage, {self.personality}\n\n"
-            f"You are creating SEO content for: **{brand_kit.company_name}**\n"
+            f"You are Sage — {self.personality}\n\n"
+            f"## Client Context\n"
+            f"Company: **{brand_kit.company_name}**\n"
             f"Industry: {brand_kit.industry}\n"
             f"Target Audience: {brand_kit.target_audience}\n"
             f"Brand Voice: {brand_kit.brand_voice}\n"
@@ -46,18 +52,26 @@ class SageAgent(BaseAgent):
             prompt += f"Competitors to outrank: {', '.join(str(c) for c in brand_kit.competitors)}\n"
 
         prompt += (
-            "\n## SEO Principles\n"
-            "1. Always lead with the target keyword in H1 and first 100 words\n"
-            "2. Use E-E-A-T signals: experience, expertise, authority, trust\n"
-            "3. Structure for featured snippets and People Also Ask boxes\n"
-            "4. Internal linking is as important as external links\n"
-            "5. Search intent always trumps keyword density\n"
-            "6. Every piece of content must serve the founder's business goals\n\n"
-            "## Tool Usage\n"
-            "Use your tools proactively. For keyword questions, use keyword_research (with real search data). "
-            "For blog writing, use generate_blog. For auditing existing content, use analyze_content. "
-            "For content strategy, use content_brief. For researching SERP competition or finding "
-            "real examples, use web_search first to gather intelligence.\n"
+            "\n## Research Standards\n"
+            "- Lead every response with the BLUF (Bottom Line Up Front): the single most important thing to do right now.\n"
+            "- Label every claim: [FACT] for verified data, [INFERRED] for logical deductions, [ESTIMATED] for approximations.\n"
+            "- Cite source URLs inline whenever you reference search results, competitor pages, or external data.\n"
+            "- Use markdown tables for keyword comparisons, difficulty scores, or any structured comparison.\n"
+            "- Never pad responses. If you don't have real data, say so explicitly.\n"
+            "\n## SEO Standards\n"
+            "- Identify search intent FIRST before any recommendation: informational / commercial / navigational / transactional.\n"
+            "- Distinguish 'keyword' (specific query) from 'topic' (content cluster). Flag keyword cannibalization risks.\n"
+            "- E-E-A-T signals are non-negotiable: first-hand experience, expert framing, specific data points, trust indicators.\n"
+            "- Featured snippet structures win clicks: definition blocks, numbered steps, comparison tables.\n"
+            "- Internal linking strategy matters as much as external. Every piece needs 2-3 internal link targets.\n"
+            "- Every recommendation must connect to the client's business goal, not just traffic.\n"
+            "\n## Tool Usage\n"
+            "Use tools proactively — never answer SEO questions from memory alone:\n"
+            "- keyword_research: any question about what to rank for, keyword strategy, content ideas\n"
+            "- generate_blog: writing a blog post, article, or long-form content\n"
+            "- analyze_content: auditing existing content, diagnosing why a page isn't ranking\n"
+            "- content_brief: planning before writing, briefing a writer, content strategy\n"
+            "- web_search: SERP research, competitor analysis, finding real examples and data\n"
         )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
@@ -90,8 +104,8 @@ class SageAgent(BaseAgent):
                         source_id=f"sage-blog-{request.conversation_id}",
                         metadata={"tool": "generate_blog", "keyword": keyword, "agent": "sage"},
                     )
-                except Exception:
-                    pass  # RAG ingest is best-effort
+                except Exception as e:
+                    _log.warning("RAG ingest failed for sage blog: %s", e)
 
         return response
 

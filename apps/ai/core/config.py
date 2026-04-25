@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # Scout model (set SCOUT_MODEL=gpt-4o in .env for higher quality)
     SCOUT_MODEL: str = Field(default="gpt-4o-mini")
 
+    # Sage model (set SAGE_MODEL=gpt-4o in .env for higher quality)
+    SAGE_MODEL: str = Field(default="gpt-4o-mini")
+
     # Asset fetching (R2 / CDN)
     R2_FETCH_TIMEOUT: int = Field(default=10)
 
