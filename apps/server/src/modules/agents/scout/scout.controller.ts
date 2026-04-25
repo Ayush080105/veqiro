@@ -4,8 +4,9 @@ import {
   sendMessageSchema,
   researchTopicSchema,
   researchCompanySchema,
-  scanCompetitorsSchema,
   trendingTopicsSchema,
+  addCompetitorSchema,
+  discoverCompetitorsSchema,
 } from "./scout.schema.js";
 import * as scoutService from "./scout.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -49,16 +50,39 @@ export const researchCompany = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(result);
 };
 
-export const scanCompetitors = async (req: Request, res: Response) => {
-  const { userId, organizationId } = requireAuthContext(req);
-  const input = scanCompetitorsSchema.parse(req.body);
-  const result = await scoutService.scanCompetitors(userId, organizationId, input);
-  res.status(StatusCodes.OK).json(result);
-};
-
 export const trendingTopics = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = trendingTopicsSchema.parse(req.body);
   const result = await scoutService.trendingTopics(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// ── Competitor Watchlist ──────────────────────────────────────────────────────
+
+export const getCompetitors = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const result = await scoutService.listCompetitors(organizationId);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const addCompetitor = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const input = addCompetitorSchema.parse(req.body);
+  const result = await scoutService.addCompetitor(organizationId, input);
+  res.status(StatusCodes.CREATED).json(result);
+};
+
+export const removeCompetitor = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const { id } = req.params as { id: string };
+  if (!id) throw new BadRequestError("Competitor ID is required");
+  await scoutService.removeCompetitor(id, organizationId);
+  res.status(StatusCodes.NO_CONTENT).send();
+};
+
+export const discoverCompetitors = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = discoverCompetitorsSchema.parse(req.body);
+  const result = await scoutService.discoverCompetitors(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };

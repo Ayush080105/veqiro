@@ -395,6 +395,7 @@ export const ModelName = {
   Message: 'Message',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
+  CompetitorWatch: 'CompetitorWatch',
   Source: 'Source'
 } as const
 
@@ -411,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "source"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "source"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1229,6 +1230,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CompetitorWatch: {
+      payload: Prisma.$CompetitorWatchPayload<ExtArgs>
+      fields: Prisma.CompetitorWatchFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CompetitorWatchFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CompetitorWatchFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        findFirst: {
+          args: Prisma.CompetitorWatchFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CompetitorWatchFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        findMany: {
+          args: Prisma.CompetitorWatchFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+        }
+        create: {
+          args: Prisma.CompetitorWatchCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        createMany: {
+          args: Prisma.CompetitorWatchCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CompetitorWatchCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+        }
+        delete: {
+          args: Prisma.CompetitorWatchDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        update: {
+          args: Prisma.CompetitorWatchUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        deleteMany: {
+          args: Prisma.CompetitorWatchDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CompetitorWatchUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CompetitorWatchUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+        }
+        upsert: {
+          args: Prisma.CompetitorWatchUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        aggregate: {
+          args: Prisma.CompetitorWatchAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCompetitorWatch>
+        }
+        groupBy: {
+          args: Prisma.CompetitorWatchGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CompetitorWatchGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CompetitorWatchCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CompetitorWatchCountAggregateOutputType> | number
+        }
+      }
+    }
     Source: {
       payload: Prisma.$SourcePayload<ExtArgs>
       fields: Prisma.SourceFieldRefs
@@ -1523,6 +1598,19 @@ export const PublishedPostScalarFieldEnum = {
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
+export const CompetitorWatchScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  url: 'url',
+  latestHash: 'latestHash',
+  lastScannedAt: 'lastScannedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CompetitorWatchScalarFieldEnum = (typeof CompetitorWatchScalarFieldEnum)[keyof typeof CompetitorWatchScalarFieldEnum]
+
+
 export const SourceScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1809,6 +1897,7 @@ export type GlobalOmitConfig = {
   message?: Prisma.MessageOmit
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit
+  competitorWatch?: Prisma.CompetitorWatchOmit
   source?: Prisma.SourceOmit
 }
 

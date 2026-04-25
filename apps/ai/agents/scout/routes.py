@@ -1,16 +1,16 @@
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
 from agents.scout.agent import ScoutAgent
-from agents.scout.scraper import scrape_url, hash_content, diff_content, fetch_rss, google_autocomplete
+from agents.scout.scraper import scrape_url, fetch_rss, google_autocomplete
 
 router = APIRouter(prefix="/ai/scout", tags=["Scout"])
 
@@ -43,11 +43,28 @@ class ResearchTopicRequest(BaseModel):
     )
 
 
+class TopicPlayerItem(BaseModel):
+    name: str
+    role: str = ""
+    note: str = ""
+
+class TopicStatItem(BaseModel):
+    label: str
+    value: str
+
 class ResearchTopicResponse(BaseModel):
-    findings: str
-    synthesis: str
-    sources_scraped: list[str]
-    keywords_found: list[str]
+    bottom_line: str = ""
+    market_overview: str = ""
+    key_players: list[TopicPlayerItem] = []
+    opportunities: list[str] = []
+    risks: list[str] = []
+    key_stats: list[TopicStatItem] = []
+    emerging_trends: list[str] = []
+    target_customers: str = ""
+    recommended_actions: list[str] = []
+    # kept for server-layer compatibility
+    sources_scraped: list[str] = []
+    keywords_found: list[str] = []
     tokens_used: int = 0
     model_used: str = ""
 
@@ -90,50 +107,6 @@ class ResearchCompanyResponse(BaseModel):
     model_used: str = ""
 
 
-class CompetitorInput(BaseModel):
-    name: str
-    url: str
-    last_scan_hash: str | None = None
-
-    model_config = ConfigDict(
-        json_schema_extra={"example": {"name": "Notion", "url": "https://notion.so", "last_scan_hash": None}}
-    )
-
-
-class CompetitorScanRequest(BaseModel):
-    user_id: str
-    organization_id: str = ""
-    competitors: list[CompetitorInput]
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "user_id": "user_123",
-                "competitors": [
-                    {"name": "Notion", "url": "https://notion.so", "last_scan_hash": None},
-                    {"name": "ClickUp", "url": "https://clickup.com", "last_scan_hash": None},
-                ],
-            }
-        }
-    )
-
-
-class CompetitorScanResult(BaseModel):
-    competitor_name: str
-    url: str
-    has_changes: bool
-    change_summary: str
-    significance: str  # "low" | "medium" | "high"
-    new_hash: str
-
-
-class CompetitorScanResponse(BaseModel):
-    results: list[CompetitorScanResult]
-    scanned_at: str
-    tokens_used: int = 0
-    model_used: str = ""
-
-
 class TrendingTopicsRequest(BaseModel):
     user_id: str
     organization_id: str = ""
@@ -153,10 +126,25 @@ class TrendingTopicsRequest(BaseModel):
 
 class TrendItem(BaseModel):
     topic: str
-    momentum: str  # "rising" | "stable" | "declining"
-    relevance_score: float
-    content_angle: str
-    search_volume_estimate: str
+    momentum: str = "stable"  # "rising" | "stable" | "declining"
+    relevance_score: float = 0.5
+    search_volume_estimate: str = "N/A"
+    why_trending: str = ""
+    market_size: str = ""
+    target_audience: str = ""
+    key_players: list[str] = []
+    opportunity: str = ""
+    key_challenges: list[str] = []
+    time_horizon: str = ""
+    related_trends: list[str] = []
+    content_angle: str = ""
+    content_hook: str = ""
+    next_steps: list[str] = []
+
+    @field_validator("search_volume_estimate", mode="before")
+    @classmethod
+    def coerce_to_str(cls, v: object) -> str:
+        return str(v) if v is not None else "N/A"
 
 
 class TrendingTopicsResponse(BaseModel):
@@ -213,61 +201,107 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             keywords_found=keywords[:8],
         )
 
+    import logging as _log_rt
+    from core.utils import safe_json_loads
     from agents.scout.scraper import serper_search
-    keywords, search_results = await asyncio.gather(
-        google_autocomplete(request.topic),
-        serper_search(request.topic),
-    )
-    sources = request.sources_hint or []
 
+    today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+    year = datetime.now(timezone.utc).year
+    topic = request.topic
+
+    # 3 parallel searches + optional hint-URL scrapes
+    keywords, results_general, results_news, results_deep = await asyncio.gather(
+        google_autocomplete(topic),
+        serper_search(f"{topic} market size trends {year}"),
+        serper_search(f"{topic} news analysis {year}", search_type="news"),
+        serper_search(f"{topic} opportunities challenges risks players"),
+    )
+
+    sources = request.sources_hint or []
     async def _safe_scrape(url: str) -> str | None:
         try:
             return (await scrape_url(url))[:2000]
         except Exception:
             return None
+    scraped_texts = [t for t in await asyncio.gather(*[_safe_scrape(u) for u in sources[:3]]) if t]
 
-    scrape_outcomes = await asyncio.gather(*[_safe_scrape(u) for u in sources[:3]])
-    scraped_texts = [t for t in scrape_outcomes if t is not None]
+    def _fmt_results(results: list, label: str, limit: int = 6) -> str:
+        if not results:
+            return ""
+        lines = "\n".join(f"  - {r['title']}: {r['snippet']} ({r['link']})" for r in results[:limit])
+        return f"\n\n**{label}:**\n{lines}"
 
-    search_context = ""
-    if search_results:
-        search_context = "\n\nWeb search results:\n" + "\n".join(
-            f"- {r['title']}: {r['snippet']} ({r['link']})" for r in search_results[:8]
-        )
-    scraped_context = ""
-    if scraped_texts:
-        scraped_context = "\n\nScraped sources:\n" + "\n\n---\n\n".join(scraped_texts)
+    search_context = (
+        _fmt_results(results_general, "General search")
+        + _fmt_results(results_news, "Recent news")
+        + _fmt_results(results_deep, "Deep search (opportunities/risks/players)")
+        + ("\n\nScraped sources:\n" + "\n---\n".join(scraped_texts) if scraped_texts else "")
+    )
+    source_urls = [r["link"] for r in (results_general + results_news)[:8] if r.get("link")]
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
-    findings_raw, synthesis_raw = await asyncio.gather(
-        _llm.complete(
+    try:
+        raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
             messages=[{"role": "user", "content": (
-                f"Research and synthesize a comprehensive intelligence report on: {request.topic}\n"
-                f"Related keywords: {keywords[:10]}{search_context}{scraped_context}\n\n"
-                "Cover: market size & trends, key players, opportunities, risks. "
-                "Cite sources where possible."
+                f"Today is {today}. Produce a comprehensive market intelligence brief on: **{topic}**\n"
+                f"Related keywords: {keywords[:10]}"
+                f"{search_context}\n\n"
+                "Return a single JSON object with these fields:\n"
+                "- bottom_line: string — 2-3 sentence BLUF strategic insight for a founder. The single most important takeaway.\n"
+                "- market_overview: string — 3-4 sentences on market size (TAM), growth rate, trajectory, and maturity stage.\n"
+                "- key_players: array of objects {name, role, note} — 4-6 major players. role = market position (e.g. 'market leader', 'challenger'). note = 1-sentence differentiation.\n"
+                "- opportunities: array of 4-6 strings — specific, concrete opportunities a founder could pursue. Each 1-2 sentences.\n"
+                "- risks: array of 4-6 strings — specific risks, barriers, or threats. Each 1-2 sentences.\n"
+                "- key_stats: array of objects {label, value} — 4-8 notable statistics or data points with sources if available.\n"
+                "- emerging_trends: array of 4-6 strings — adjacent trends shaping this market.\n"
+                "- target_customers: string — 2-3 sentences describing the ICP: who buys, what pain they have, what they're willing to pay.\n"
+                "- recommended_actions: array of 4-6 strings — concrete steps a founder should take THIS MONTH. Numbered, specific, actionable.\n"
+                "Label facts [FACT], inferences [INFERRED], estimates [ESTIMATED]. Return ONLY the JSON, no markdown fences."
             )}],
-        ),
-        _llm.complete(
-            provider=_agent.default_provider, model=_agent.default_model,
-            system=system,
-            messages=[{"role": "user", "content": (
-                f"In 2-3 sentences, what is the single most important strategic insight for a founder "
-                f"researching '{request.topic}'? Be specific and actionable."
-            )}],
-        ),
-    )
-    total_tokens = _llm.count_tokens(findings_raw) + _llm.count_tokens(synthesis_raw)
-    return ResearchTopicResponse(
-        findings=findings_raw,
-        synthesis=synthesis_raw,
-        sources_scraped=sources,
-        keywords_found=keywords[:10],
-        tokens_used=total_tokens,
-        model_used=_agent.default_model,
-    )
+        )
+        tokens_used = _llm.count_tokens(raw)
+        parsed = safe_json_loads(raw)
+
+        def _players(items: list) -> list[TopicPlayerItem]:
+            out = []
+            for p in items:
+                try:
+                    out.append(TopicPlayerItem(**p) if isinstance(p, dict) else TopicPlayerItem(name=str(p)))
+                except Exception:
+                    pass
+            return out
+
+        def _stats(items: list) -> list[TopicStatItem]:
+            out = []
+            for s in items:
+                try:
+                    out.append(TopicStatItem(**s) if isinstance(s, dict) else TopicStatItem(label="Stat", value=str(s)))
+                except Exception:
+                    pass
+            return out
+
+        return ResearchTopicResponse(
+            bottom_line=parsed.get("bottom_line", ""),
+            market_overview=parsed.get("market_overview", ""),
+            key_players=_players(parsed.get("key_players", [])),
+            opportunities=parsed.get("opportunities", []),
+            risks=parsed.get("risks", []),
+            key_stats=_stats(parsed.get("key_stats", [])),
+            emerging_trends=parsed.get("emerging_trends", []),
+            target_customers=parsed.get("target_customers", ""),
+            recommended_actions=parsed.get("recommended_actions", []),
+            sources_scraped=source_urls,
+            keywords_found=keywords[:10],
+            tokens_used=tokens_used,
+            model_used=_agent.default_model,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _log_rt.getLogger(__name__).exception("research_topic failed | topic=%r", topic)
+        raise HTTPException(status_code=500, detail=f"Research topic error: {exc}")
 
 
 @router.post("/research-company", response_model=ResearchCompanyResponse, summary="Research a company")
@@ -306,34 +340,72 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
                     "Expanded to EU market (Mar 2025)",
                 ],
             ),
-            scraped_at=datetime.utcnow().isoformat(),
+            scraped_at=datetime.now(timezone.utc).isoformat(),
         )
 
     import json
     from core.utils import safe_json_loads
     from agents.scout.scraper import serper_search
+
+    today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+    year = datetime.now(timezone.utc).year
     url = request.company_url or f"https://{request.company_name.lower().replace(' ', '')}.com"
-    content, search_results = await asyncio.gather(
+    company_name = request.company_name
+
+    (
+        results_features,
+        results_funding,
+        results_reviews,
+        results_news,
+        results_jobs,
+        results_vs,
+        scraped_content,
+    ) = await asyncio.gather(
+        serper_search(f"{company_name} features pricing plans {year}"),
+        serper_search(f"{company_name} funding raised investors {year}"),
+        serper_search(f"{company_name} reviews complaints reddit g2 trustpilot"),
+        serper_search(f"{company_name} news announcement launch {year}", search_type="news"),
+        serper_search(f"{company_name} hiring jobs team size {year}"),
+        serper_search(f"{company_name} vs alternatives competitors"),
         scrape_url(url),
-        serper_search(f"{request.company_name} company features pricing funding 2025"),
     )
-    search_context = ""
-    if search_results:
-        search_context = "\n\nWeb search results:\n" + "\n".join(
-            f"- {r['title']}: {r['snippet']}" for r in search_results[:5]
-        )
+
+    def _fmt(results: list, label: str, limit: int = 5) -> str:
+        if not results:
+            return ""
+        lines = "\n".join(f"  - {r['title']}: {r['snippet']}" for r in results[:limit])
+        return f"\n\n**{label}:**\n{lines}"
+
+    search_context = (
+        _fmt(results_features, "Features & Pricing search")
+        + _fmt(results_funding, "Funding & Investors search")
+        + _fmt(results_reviews, "Reviews & Sentiment search")
+        + _fmt(results_news, "Recent News")
+        + _fmt(results_jobs, "Hiring & Team Size search")
+        + _fmt(results_vs, "Competitors & Alternatives search")
+    )
+
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
         messages=[{"role": "user", "content": (
-            f"Build a structured company intelligence profile for: {request.company_name}\n"
-            f"Website content:\n{content[:2500]}{search_context}\n\n"
-            "Return JSON with exactly these fields: "
-            "name (string), description (string), founded (string), team_size (string), "
-            "funding (string), key_features (list of strings), pricing (dict of tier→price), "
-            "target_market (string), strengths (list of strings), weaknesses (list of strings), "
-            "recent_news (list of strings). "
+            f"Today is {today}. Build a comprehensive, structured company intelligence profile for: **{company_name}**\n\n"
+            f"Homepage content:\n{scraped_content[:2500]}"
+            f"{search_context}\n\n"
+            "Label every fact as [FACT], every inference as [INFERRED], every estimate as [ESTIMATED].\n\n"
+            "Return JSON with exactly these fields:\n"
+            "- name (string)\n"
+            "- description (string — 2-3 sentence overview)\n"
+            "- founded (string)\n"
+            "- team_size (string)\n"
+            "- funding (string — total raised, stage, lead investors if known)\n"
+            "- key_features (list of strings — 5-8 core product capabilities)\n"
+            "- pricing (dict of tier→price, e.g. {\"free\": \"$0\", \"pro\": \"$X/mo\"})\n"
+            "- target_market (string — ICP description)\n"
+            "- strengths (list of strings — 3-5 competitive advantages)\n"
+            "- weaknesses (list of strings — 3-5 gaps or vulnerabilities)\n"
+            "- recent_news (list of strings — 3-5 most recent developments as of today)\n\n"
             "Return ONLY the JSON, no markdown fences."
         )}],
     )
@@ -345,75 +417,8 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
         raise HTTPException(status_code=500, detail=f"Failed to parse company profile — retry. ({exc})")
     return ResearchCompanyResponse(
         company=profile,
-        scraped_at=datetime.utcnow().isoformat(),
+        scraped_at=datetime.now(timezone.utc).isoformat(),
         tokens_used=tokens_used,
-        model_used=_agent.default_model,
-    )
-
-
-@router.post("/scan-competitors", response_model=CompetitorScanResponse, summary="Scan for competitor changes")
-async def scan_competitors(request: CompetitorScanRequest) -> CompetitorScanResponse:
-    """Monitor competitor websites for significant changes."""
-    if settings.MOCK_MODE:
-        results = []
-        for comp in request.competitors:
-            new_hash = hash_content(f"mock_content_{comp.name}_2025")
-            has_changes = comp.last_scan_hash is not None and comp.last_scan_hash != new_hash
-            results.append(CompetitorScanResult(
-                competitor_name=comp.name,
-                url=comp.url,
-                has_changes=has_changes,
-                change_summary=(
-                    "Pricing page updated: Starter plan reduced from $19 to $15/user/month. "
-                    "New 'AI Copilot' feature added to Pro tier. Homepage headline changed to emphasize AI."
-                ) if has_changes else "No significant changes detected since last scan.",
-                significance="high" if has_changes else "low",
-                new_hash=new_hash,
-            ))
-        return CompetitorScanResponse(results=results, scanned_at=datetime.utcnow().isoformat())
-
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
-
-    async def _scan_one(comp: CompetitorInput) -> tuple[CompetitorScanResult, int]:
-        content = await scrape_url(comp.url)
-        new_hash = hash_content(content)
-        has_changes = comp.last_scan_hash is not None and comp.last_scan_hash != new_hash
-
-        if has_changes:
-            diff = diff_content(comp.last_scan_hash or "", content[:3000])
-            summary_raw = await _llm.complete(
-                provider=_agent.default_provider, model=_agent.default_model,
-                system=system,
-                messages=[{"role": "user", "content": (
-                    f"Analyze these changes on {comp.name}'s website ({comp.url}) "
-                    f"and summarize what changed and its strategic significance for a competing founder:\n\n{diff[:2000]}\n\n"
-                    "Return a 2-3 sentence summary and a significance level: low, medium, or high."
-                )}],
-            )
-            _tokens = _llm.count_tokens(summary_raw)
-            change_summary = summary_raw.strip()
-            significance = "high" if any(w in summary_raw.lower() for w in ["pricing", "feature", "launch", "major"]) else "medium"
-        else:
-            change_summary = "No previous scan available." if comp.last_scan_hash is None else "No significant changes detected since last scan."
-            significance = "low"
-            _tokens = 0
-
-        return CompetitorScanResult(
-            competitor_name=comp.name,
-            url=comp.url,
-            has_changes=has_changes,
-            change_summary=change_summary,
-            significance=significance,
-            new_hash=new_hash,
-        ), _tokens
-
-    pairs = await asyncio.gather(*[_scan_one(c) for c in request.competitors])
-    results = [r for r, _ in pairs]
-    total_tokens = sum(t for _, t in pairs)
-    return CompetitorScanResponse(
-        results=list(results),
-        scanned_at=datetime.utcnow().isoformat(),
-        tokens_used=total_tokens,
         model_used=_agent.default_model,
     )
 
@@ -425,53 +430,191 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
         trends = [
             TrendItem(topic="AI agents replacing SaaS point solutions", momentum="rising", relevance_score=0.95,
                      content_angle="Thought leadership: why the future is agentic, not app-based",
-                     search_volume_estimate="28K/month, +210% YoY"),
+                     search_volume_estimate="28K/month, +210% YoY",
+                     source_url="https://techcrunch.com"),
             TrendItem(topic="Founder burnout and productivity systems", momentum="rising", relevance_score=0.91,
                      content_angle="Pain point + solution: personal story about reclaiming time",
-                     search_volume_estimate="15K/month, +85% YoY"),
+                     search_volume_estimate="15K/month, +85% YoY",
+                     source_url="https://www.paulgraham.com/articles.html"),
             TrendItem(topic="AI-generated content detection tools", momentum="rising", relevance_score=0.82,
                      content_angle="Contrarian: why AI content still wins when done right",
-                     search_volume_estimate="42K/month, +320% YoY"),
-            TrendItem(topic="Bootstrapping vs VC in 2025", momentum="stable", relevance_score=0.78,
+                     search_volume_estimate="42K/month, +320% YoY",
+                     source_url=None),
+            TrendItem(topic="Bootstrapping vs VC in 2026", momentum="stable", relevance_score=0.78,
                      content_angle="Data-driven comparison with real founder examples",
-                     search_volume_estimate="8K/month, +12% YoY"),
+                     search_volume_estimate="8K/month, +12% YoY",
+                     source_url=None),
             TrendItem(topic="Product-led growth for B2B SaaS", momentum="stable", relevance_score=0.75,
                      content_angle="How-to guide with specific PLG metrics to track",
-                     search_volume_estimate="22K/month, +35% YoY"),
+                     search_volume_estimate="22K/month, +35% YoY",
+                     source_url=None),
         ]
-        return TrendingTopicsResponse(trends=trends[:request.count], generated_at=datetime.utcnow().isoformat())
+        return TrendingTopicsResponse(trends=trends[:request.count], generated_at=datetime.now(timezone.utc).isoformat())
+
+    import logging as _logging
+    from core.utils import safe_json_loads
+    from agents.scout.scraper import serper_search
+
+    _log = _logging.getLogger(__name__)
+    try:
+        today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+        year = datetime.now(timezone.utc).year
+        keywords, news_results = await asyncio.gather(
+            google_autocomplete(request.industry),
+            serper_search(f"{request.industry} trends news {year}", search_type="news"),
+        )
+        news_context = ""
+        if news_results:
+            news_context = "\n\nRecent news:\n" + "\n".join(f"- {r['title']}: {r['snippet']}" for r in news_results[:6])
+        system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        raw = await _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system,
+            messages=[{"role": "user", "content": (
+                f"Today is {today}. Identify {request.count} trending topics in {request.industry}.\n"
+                f"Related keywords: {keywords[:10]}{news_context}\n\n"
+                "Return a JSON array. Each item is a full trend intelligence brief with these fields:\n"
+                "- topic: string — clear trend name\n"
+                "- momentum: 'rising', 'stable', or 'declining'\n"
+                "- relevance_score: float 0.0–1.0\n"
+                "- search_volume_estimate: string — e.g. '12K/month'\n"
+                "- why_trending: string — 2-3 sentences on the specific trigger (event, regulation, product launch, cultural shift) and why it matters RIGHT NOW\n"
+                "- market_size: string — 2-3 sentences on the size and growth trajectory of this opportunity (include TAM or growth % if known)\n"
+                "- target_audience: string — 2-3 sentences describing exactly who is searching for and caring about this trend (job titles, company stages, pain points)\n"
+                "- key_players: array of 2–4 company or brand names actively riding this trend\n"
+                "- opportunity: string — 2-3 sentences on the concrete gap: who is underserved, what product or service could be built, and what the wedge is\n"
+                "- key_challenges: array of 2–4 strings, each a specific challenge or risk in this space (technical, regulatory, competitive, adoption)\n"
+                "- time_horizon: string — one sentence: is this a 3-6 month tactical window, a 1-2 year strategic bet, or a 5+ year structural shift? Explain why.\n"
+                "- related_trends: array of 2–4 strings naming related trends this connects to\n"
+                "- content_angle: string — 2-3 sentences on a specific content angle: format, audience pain point, unique perspective\n"
+                "- content_hook: string — a punchy, ready-to-post headline or opening line (max 15 words)\n"
+                "- next_steps: array of 3–5 strings, each a concrete actionable step a founder should take THIS WEEK to act on this trend\n"
+                "Return ONLY the JSON array, no markdown fences."
+            )}],
+        )
+        tokens_used = _llm.count_tokens(raw)
+        parsed = safe_json_loads(raw)
+        if isinstance(parsed, dict):
+            parsed = next((v for v in parsed.values() if isinstance(v, list)), [])
+        items: list = parsed if isinstance(parsed, list) else []
+        trends = []
+        for item in items[:request.count]:
+            try:
+                trends.append(TrendItem(**item))
+            except Exception as item_exc:
+                _log.warning("TrendItem parse failed for %r: %s", item, item_exc)
+        if not trends:
+            raise ValueError(f"No valid trend items in LLM output: {raw[:200]!r}")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _log.exception("trending_topics failed | industry=%r", request.industry)
+        raise HTTPException(status_code=500, detail=f"Trending topics error: {exc}")
+    return TrendingTopicsResponse(
+        trends=trends,
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
+
+
+# ── Discover Competitors ──────────────────────────────────────────────────────
+
+class DiscoveredCompetitor(BaseModel):
+    name: str
+    url: str
+    why_competitive: str
+    pricing_model: str
+
+
+class DiscoverCompetitorsRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    description: str
+    industry: str
+    count: int = 8
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_id": "user_123",
+                "description": "AI workspace for startup founders with research and content agents",
+                "industry": "AI productivity SaaS",
+                "count": 8,
+            }
+        }
+    )
+
+
+class DiscoverCompetitorsResponse(BaseModel):
+    competitors: list[DiscoveredCompetitor]
+    generated_at: str
+    tokens_used: int = 0
+    model_used: str = ""
+
+
+@router.post("/discover-competitors", response_model=DiscoverCompetitorsResponse, summary="Discover competitors online")
+async def discover_competitors(request: DiscoverCompetitorsRequest) -> DiscoverCompetitorsResponse:
+    """Find real competitors for a business using live web research."""
+    if settings.MOCK_MODE:
+        mock_competitors = [
+            DiscoveredCompetitor(name="Notion AI", url="https://notion.so", why_competitive="All-in-one workspace with AI writing assistant targeting knowledge workers", pricing_model="Freemium, $10–$18/user/month"),
+            DiscoveredCompetitor(name="ClickUp AI", url="https://clickup.com", why_competitive="Aggressive feature parity across project management, docs, and AI at low price", pricing_model="Freemium, $7–$19/user/month"),
+            DiscoveredCompetitor(name="Monday.com", url="https://monday.com", why_competitive="Strong enterprise workflow automation with growing AI suite", pricing_model="$9–$24/user/month, Enterprise custom"),
+            DiscoveredCompetitor(name="Linear", url="https://linear.app", why_competitive="Design-led developer productivity tool with strong product team following", pricing_model="Free tier, $8–$16/user/month"),
+            DiscoveredCompetitor(name="Taskade", url="https://taskade.com", why_competitive="AI-first workspace specifically targeting startup teams and solo founders", pricing_model="Freemium, $8–$16/user/month"),
+        ]
+        return DiscoverCompetitorsResponse(competitors=mock_competitors[:request.count], generated_at=datetime.now(timezone.utc).isoformat())
 
     import json
     from core.utils import safe_json_loads
     from agents.scout.scraper import serper_search
-    keywords, news_results = await asyncio.gather(
-        google_autocomplete(request.industry),
-        serper_search(f"{request.industry} trends news 2025", search_type="news"),
+
+    today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+    year = datetime.now(timezone.utc).year
+    results_alternatives, results_best = await asyncio.gather(
+        serper_search(f"{request.industry} tools alternatives {year}"),
+        serper_search(f"best {request.industry} software companies {year}"),
     )
-    news_context = ""
-    if news_results:
-        news_context = "\n\nRecent news:\n" + "\n".join(f"- {r['title']}: {r['snippet']}" for r in news_results[:6])
+    all_results = results_alternatives[:6] + results_best[:6]
+    search_context = "\n\nSearch results:\n" + "\n".join(
+        f"- {r['title']}: {r['snippet']} ({r['link']})" for r in all_results
+    ) if all_results else ""
+
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
         messages=[{"role": "user", "content": (
-            f"Identify {request.count} trending topics in {request.industry}.\n"
-            f"Related keywords: {keywords[:10]}{news_context}\n\n"
-            "Return a JSON array. Each item: topic, momentum (rising/stable/declining), "
-            "relevance_score (0.0-1.0), content_angle, search_volume_estimate. "
-            "Return ONLY the JSON array, no markdown fences."
+            f"Today is {today}. Find {request.count} real competitors for a business described as: \"{request.description}\" in the {request.industry} space.\n"
+            f"{search_context}\n\n"
+            f"Return a JSON array of up to {request.count} competitors. Each object must have:\n"
+            "- name: company name (string)\n"
+            "- url: company website URL (string, must be a real, working URL)\n"
+            "- why_competitive: 1 sentence explaining how they compete with the described business (string)\n"
+            "- pricing_model: their pricing approach e.g. 'Freemium, $X/mo', 'Enterprise only', 'Usage-based' (string)\n\n"
+            "Only include real, verifiable companies. Return ONLY the JSON array, no markdown fences."
         )}],
     )
     tokens_used = _llm.count_tokens(raw)
     try:
-        items = safe_json_loads(raw)
-        trends = [TrendItem(**item) for item in items[:request.count]]
+        parsed = safe_json_loads(raw)
+        if isinstance(parsed, dict):
+            parsed = next((v for v in parsed.values() if isinstance(v, list)), [])
+        items: list = parsed if isinstance(parsed, list) else []
+        competitors = []
+        for item in items[:request.count]:
+            try:
+                competitors.append(DiscoveredCompetitor(**item))
+            except Exception:
+                pass
+        if not competitors:
+            raise ValueError("No valid competitors parsed")
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Trending topics returned unparseable data — retry. ({exc})")
-    return TrendingTopicsResponse(
-        trends=trends,
-        generated_at=datetime.utcnow().isoformat(),
+        raise HTTPException(status_code=500, detail=f"Competitor discovery returned unparseable data — retry. ({exc})")
+    return DiscoverCompetitorsResponse(
+        competitors=competitors,
+        generated_at=datetime.now(timezone.utc).isoformat(),
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )

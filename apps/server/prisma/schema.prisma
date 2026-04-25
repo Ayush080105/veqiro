@@ -228,6 +228,20 @@ model PublishedPost {
   @@map("published_post")
 }
 
+model CompetitorWatch {
+  id             String    @id @default(uuid())
+  organizationId String
+  name           String
+  url            String
+  latestHash     String?
+  lastScannedAt  DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@unique([organizationId, url])
+  @@index([organizationId])
+  @@map("competitor_watch")
+}
+
 model Source {
   id             String   @id @default(uuid())
   organizationId String

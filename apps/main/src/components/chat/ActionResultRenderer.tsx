@@ -23,8 +23,8 @@ import {
 import {
   ResearchReportCard,
   CompanyProfileCard,
-  CompetitorScanCard,
   TrendsBoardCard,
+  DiscoverCompetitorsCard,
 } from "@/components/agents/scout/cards"
 // Rex
 import {
@@ -92,10 +92,10 @@ export function ActionResultRenderer({ actionId, result }: ActionResultRendererP
       return <ResearchReportCard result={r} />
     case "scout:research-company":
       return <CompanyProfileCard result={r} />
-    case "scout:scan-competitors":
-      return <CompetitorScanCard result={r} />
     case "scout:trending-topics":
       return <TrendsBoardCard result={r} />
+    case "scout:discover-competitors":
+      return <DiscoverCompetitorsCard result={r} />
 
     case "rex:analyze-metrics":
       return <MetricsAnalysisCard result={r} />

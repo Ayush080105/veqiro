@@ -73,6 +73,11 @@ export type SocialAccount = Prisma.SocialAccountModel
  */
 export type PublishedPost = Prisma.PublishedPostModel
 /**
+ * Model CompetitorWatch
+ * 
+ */
+export type CompetitorWatch = Prisma.CompetitorWatchModel
+/**
  * Model Source
  * 
  */

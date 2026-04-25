@@ -1,16 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { Plus, X } from "lucide-react"
+import { Bookmark, Brain } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { FormRow, StringListInput } from "@/components/chat/ActionForm/fields"
 import { cn } from "@/lib/utils"
+import { useCompetitorWatches } from "@/lib/api/scout"
 import type {
   ScoutResearchTopicRequest,
   ScoutResearchCompanyRequest,
-  ScoutCompetitorScanRequest,
   ScoutTrendingTopicsRequest,
+  ScoutDiscoverCompetitorsRequest,
 } from "@/lib/types/agents"
 
 export function ScoutResearchTopicForm({
@@ -89,66 +89,6 @@ export function ScoutResearchCompanyForm({
   )
 }
 
-export function ScoutCompetitorScanForm({
-  value,
-  onChange,
-}: {
-  value: ScoutCompetitorScanRequest
-  onChange: (patch: Partial<ScoutCompetitorScanRequest>) => void
-}) {
-  const rows = value.competitors ?? []
-  const update = (i: number, patch: Partial<(typeof rows)[number]>) =>
-    onChange({
-      competitors: rows.map((r, j) => (j === i ? { ...r, ...patch } : r)),
-    })
-  const add = () =>
-    onChange({ competitors: [...rows, { name: "", url: "" }] })
-  const remove = (i: number) =>
-    onChange({ competitors: rows.filter((_, j) => j !== i) })
-
-  return (
-    <FormRow label="Competitors to watch" required>
-      <div className="flex flex-col gap-1.5">
-        {rows.map((r, i) => (
-          <div key={i} className="flex gap-1.5">
-            <Input
-              value={r.name}
-              placeholder="Name"
-              onChange={(e) => update(i, { name: e.target.value })}
-              className="flex-1"
-            />
-            <Input
-              type="url"
-              value={r.url}
-              placeholder="https://…"
-              onChange={(e) => update(i, { url: e.target.value })}
-              className="flex-[2]"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => remove(i)}
-              aria-label="Remove"
-            >
-              <X />
-            </Button>
-          </div>
-        ))}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={add}
-          className="self-start"
-        >
-          <Plus data-icon="inline-start" /> Add competitor
-        </Button>
-      </div>
-    </FormRow>
-  )
-}
-
 export function ScoutTrendingTopicsForm({
   value,
   onChange,
@@ -174,6 +114,40 @@ export function ScoutTrendingTopicsForm({
           onChange={(e) => onChange({ count: Number(e.target.value) })}
         />
       </FormRow>
+    </>
+  )
+}
+
+export function ScoutDiscoverCompetitorsForm({
+  value,
+  onChange,
+}: {
+  value: ScoutDiscoverCompetitorsRequest
+  onChange: (patch: Partial<ScoutDiscoverCompetitorsRequest>) => void
+}) {
+  const { data: saved = [] } = useCompetitorWatches()
+
+  return (
+    <>
+      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <Brain className="size-3 shrink-0" />
+        Using your product description and industry from Brain.
+      </p>
+      <FormRow label="How many competitors?">
+        <Input
+          type="number"
+          min={3}
+          max={15}
+          value={value.count ?? 8}
+          onChange={(e) => onChange({ count: Number(e.target.value) })}
+        />
+      </FormRow>
+      {saved.length > 0 && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Bookmark className="size-3" />
+          {saved.length} competitor{saved.length !== 1 ? "s" : ""} already in your watchlist
+        </p>
+      )}
     </>
   )
 }

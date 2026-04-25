@@ -3,15 +3,17 @@ import {
   sendMessageSchema,
   researchTopicSchema,
   researchCompanySchema,
-  scanCompetitorsSchema,
   trendingTopicsSchema,
+  addCompetitorSchema,
+  discoverCompetitorsSchema,
 } from "./scout.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type ResearchTopicInput = z.infer<typeof researchTopicSchema>;
 export type ResearchCompanyInput = z.infer<typeof researchCompanySchema>;
-export type ScanCompetitorsInput = z.infer<typeof scanCompetitorsSchema>;
 export type TrendingTopicsInput = z.infer<typeof trendingTopicsSchema>;
+export type AddCompetitorInput = z.infer<typeof addCompetitorSchema>;
+export type DiscoverCompetitorsInput = z.infer<typeof discoverCompetitorsSchema>;
 
 export interface AssistantMessagePayload {
   response: string;
@@ -47,20 +49,6 @@ export interface ResearchCompanyResponse {
   scraped_at: string;
 }
 
-export interface CompetitorScanResult {
-  competitor_name: string;
-  url: string;
-  has_changes: boolean;
-  change_summary: string;
-  significance: string;
-  new_hash: string;
-}
-
-export interface CompetitorScanResponse {
-  results: CompetitorScanResult[];
-  scanned_at: string;
-}
-
 export interface TrendItem {
   topic: string;
   momentum: string;
@@ -71,5 +59,27 @@ export interface TrendItem {
 
 export interface TrendingTopicsResponse {
   trends: TrendItem[];
+  generated_at: string;
+}
+
+export interface CompetitorWatch {
+  id: string;
+  organizationId: string;
+  name: string;
+  url: string;
+  latestHash: string | null;
+  lastScannedAt: string | null;
+  createdAt: string;
+}
+
+export interface DiscoveredCompetitor {
+  name: string;
+  url: string;
+  why_competitive: string;
+  pricing_model: string;
+}
+
+export interface DiscoverCompetitorsResponse {
+  competitors: DiscoveredCompetitor[];
   generated_at: string;
 }
