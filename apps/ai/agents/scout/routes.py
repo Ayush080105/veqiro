@@ -208,14 +208,33 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
     today = datetime.now(timezone.utc).strftime("%B %d, %Y")
     year = datetime.now(timezone.utc).year
     topic = request.topic
+    depth = request.depth  # "quick" | "standard" | "deep"
 
-    # 3 parallel searches + optional hint-URL scrapes
-    keywords, results_general, results_news, results_deep = await asyncio.gather(
-        google_autocomplete(topic),
-        serper_search(f"{topic} market size trends {year}"),
-        serper_search(f"{topic} news analysis {year}", search_type="news"),
-        serper_search(f"{topic} opportunities challenges risks players"),
-    )
+    # Scale searches and scraping by depth
+    if depth == "quick":
+        search_tasks = [
+            google_autocomplete(topic),
+            serper_search(f"{topic} market overview {year}"),
+        ]
+        keywords, results_general = await asyncio.gather(*search_tasks)
+        results_news, results_deep = [], []
+        scrape_limit, search_snippet_limit = 0, 4
+    elif depth == "deep":
+        keywords, results_general, results_news, results_deep = await asyncio.gather(
+            google_autocomplete(topic),
+            serper_search(f"{topic} market size trends {year}"),
+            serper_search(f"{topic} news analysis {year}", search_type="news"),
+            serper_search(f"{topic} opportunities challenges risks players"),
+        )
+        scrape_limit, search_snippet_limit = 3, 8
+    else:  # standard
+        keywords, results_general, results_news = await asyncio.gather(
+            google_autocomplete(topic),
+            serper_search(f"{topic} market size trends {year}"),
+            serper_search(f"{topic} news analysis {year}", search_type="news"),
+        )
+        results_deep = []
+        scrape_limit, search_snippet_limit = 1, 6
 
     sources = request.sources_hint or []
     async def _safe_scrape(url: str) -> str | None:
@@ -223,7 +242,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             return (await scrape_url(url))[:2000]
         except Exception:
             return None
-    scraped_texts = [t for t in await asyncio.gather(*[_safe_scrape(u) for u in sources[:3]]) if t]
+    scraped_texts = [t for t in await asyncio.gather(*[_safe_scrape(u) for u in sources[:scrape_limit]]) if t]
 
     def _fmt_results(results: list, label: str, limit: int = 6) -> str:
         if not results:
@@ -232,12 +251,53 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
         return f"\n\n**{label}:**\n{lines}"
 
     search_context = (
-        _fmt_results(results_general, "General search")
-        + _fmt_results(results_news, "Recent news")
-        + _fmt_results(results_deep, "Deep search (opportunities/risks/players)")
+        _fmt_results(results_general, "General search", search_snippet_limit)
+        + _fmt_results(results_news, "Recent news", search_snippet_limit)
+        + _fmt_results(results_deep, "Deep search (opportunities/risks/players)", search_snippet_limit)
         + ("\n\nScraped sources:\n" + "\n---\n".join(scraped_texts) if scraped_texts else "")
     )
     source_urls = [r["link"] for r in (results_general + results_news)[:8] if r.get("link")]
+
+    # Scale output volume by depth
+    if depth == "quick":
+        depth_instructions = (
+            "This is a QUICK overview. Be concise:\n"
+            "- bottom_line: 1-2 sentences\n"
+            "- market_overview: 2 sentences\n"
+            "- key_players: 2-3 players\n"
+            "- opportunities: 2-3 items, 1 sentence each\n"
+            "- risks: 2-3 items, 1 sentence each\n"
+            "- key_stats: 2-4 stats\n"
+            "- emerging_trends: 2-3 items\n"
+            "- target_customers: 1-2 sentences\n"
+            "- recommended_actions: 2-3 items\n"
+        )
+    elif depth == "deep":
+        depth_instructions = (
+            "This is a DEEP DIVE. Be thorough and detailed:\n"
+            "- bottom_line: 3-4 sentences with specific evidence\n"
+            "- market_overview: 4-5 sentences with TAM, SAM, growth rate, and key drivers\n"
+            "- key_players: 6-8 players with detailed notes\n"
+            "- opportunities: 6-8 items, 2-3 sentences each\n"
+            "- risks: 6-8 items, 2-3 sentences each\n"
+            "- key_stats: 6-10 stats\n"
+            "- emerging_trends: 6-8 items\n"
+            "- target_customers: 3-4 sentences with segments and willingness to pay\n"
+            "- recommended_actions: 6-8 specific, prioritised steps\n"
+        )
+    else:
+        depth_instructions = (
+            "This is a STANDARD analysis:\n"
+            "- bottom_line: 2-3 sentences\n"
+            "- market_overview: 3-4 sentences\n"
+            "- key_players: 4-5 players\n"
+            "- opportunities: 4-5 items, 1-2 sentences each\n"
+            "- risks: 4-5 items, 1-2 sentences each\n"
+            "- key_stats: 4-6 stats\n"
+            "- emerging_trends: 4-5 items\n"
+            "- target_customers: 2-3 sentences\n"
+            "- recommended_actions: 4-5 items\n"
+        )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     try:
@@ -245,19 +305,16 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
             messages=[{"role": "user", "content": (
-                f"Today is {today}. Produce a comprehensive market intelligence brief on: **{topic}**\n"
+                f"Today is {today}. Produce a market intelligence brief on: **{topic}**\n"
+                f"Depth: {depth.upper()}\n"
                 f"Related keywords: {keywords[:10]}"
                 f"{search_context}\n\n"
-                "Return a single JSON object with these fields:\n"
-                "- bottom_line: string — 2-3 sentence BLUF strategic insight for a founder. The single most important takeaway.\n"
-                "- market_overview: string — 3-4 sentences on market size (TAM), growth rate, trajectory, and maturity stage.\n"
-                "- key_players: array of objects {name, role, note} — 4-6 major players. role = market position (e.g. 'market leader', 'challenger'). note = 1-sentence differentiation.\n"
-                "- opportunities: array of 4-6 strings — specific, concrete opportunities a founder could pursue. Each 1-2 sentences.\n"
-                "- risks: array of 4-6 strings — specific risks, barriers, or threats. Each 1-2 sentences.\n"
-                "- key_stats: array of objects {label, value} — 4-8 notable statistics or data points with sources if available.\n"
-                "- emerging_trends: array of 4-6 strings — adjacent trends shaping this market.\n"
-                "- target_customers: string — 2-3 sentences describing the ICP: who buys, what pain they have, what they're willing to pay.\n"
-                "- recommended_actions: array of 4-6 strings — concrete steps a founder should take THIS MONTH. Numbered, specific, actionable.\n"
+                f"{depth_instructions}\n"
+                "Return a single JSON object with these exact fields: "
+                "bottom_line, market_overview, key_players (array of {name, role, note}), "
+                "opportunities (array of strings), risks (array of strings), "
+                "key_stats (array of {label, value}), emerging_trends (array of strings), "
+                "target_customers, recommended_actions (array of strings).\n"
                 "Label facts [FACT], inferences [INFERRED], estimates [ESTIMATED]. Return ONLY the JSON, no markdown fences."
             )}],
         )
