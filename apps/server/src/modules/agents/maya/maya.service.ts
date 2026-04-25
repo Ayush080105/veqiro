@@ -72,7 +72,8 @@ export const sendMessage = async (
     SAGE_HISTORY_LIMIT
   );
   const { data } = await aiService.post<AssistantMessagePayload>("/ai/maya/chat", {
-    user_id: organizationId,
+    user_id: userId,
+    organization_id: organizationId,
     conversation_id: userMessage.id,
     message: input.content,
     history,
