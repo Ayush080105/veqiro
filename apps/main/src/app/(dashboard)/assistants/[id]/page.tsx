@@ -27,7 +27,9 @@ import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import type { LexSource } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
-import { FONT, Button as VqButton, Sticker } from "@/components/veqiro/shared"
+import { FONT } from "@/components/veqiro/shared"
+import { Button } from "@/components/ui/button"
+import { Sticker } from "@/components/ui/sticker"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 
 import type {
@@ -211,7 +213,7 @@ function EmptyState({
         }}
       >
         <div style={{ position: "absolute", top: -8, left: 20 }}>
-          <Sticker rot={-6} color={agent.color as string}>
+          <Sticker rotate={-6} style={{ background: agent.color as string }}>
             {agent.tag}
           </Sticker>
         </div>
@@ -563,8 +565,9 @@ export default function AssistantChatPage() {
             >
               {"// connect google calendar to let vega schedule on your behalf"}
             </p>
-            <VqButton
-              variant="dark"
+            <Button
+              variant="brand-dark"
+              size="brand-sm"
               onClick={() => {
                 authClient.signIn.social({
                   provider: "google",
@@ -573,7 +576,7 @@ export default function AssistantChatPage() {
               }}
             >
               Connect Google
-            </VqButton>
+            </Button>
           </div>
         )}
 

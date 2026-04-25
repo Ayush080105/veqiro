@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

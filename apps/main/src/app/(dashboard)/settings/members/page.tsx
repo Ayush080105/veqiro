@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Local row types (match Better Auth organization plugin response) ────────
 

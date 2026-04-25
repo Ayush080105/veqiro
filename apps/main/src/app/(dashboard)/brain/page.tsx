@@ -13,7 +13,9 @@ import type { BrandKit } from "@/lib/types"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { BrandKitSection } from "@/components/brain/BrandKitSection"
-import { Button as VqButton, PageHeader, FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/components/veqiro/shared"
+import { Button } from "@/components/ui/button"
+import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Schema ────────────────────────────────────────────────────────────────────
 // Permissive — auto-save shouldn't punish in-progress edits. The strict
@@ -378,9 +380,9 @@ export default function BrainPage() {
             The fastest way to populate this is by running the onboarding flow — it collects everything your crew needs.
           </div>
           <div>
-            <VqButton variant="primary" onClick={() => router.push("/onboarding")}>
+            <Button variant="brand" size="brand" onClick={() => router.push("/onboarding")}>
               Run onboarding
-            </VqButton>
+            </Button>
           </div>
         </div>
       )}
@@ -444,9 +446,9 @@ export default function BrainPage() {
             unsaved changes...
           </span>
         )}
-        <VqButton type="submit" variant="primary" disabled={saving}>
+        <Button type="submit" variant="brand" size="brand" disabled={saving}>
           {saving ? "Saving..." : "Save brain"}
-        </VqButton>
+        </Button>
       </div>
     </form>
   )

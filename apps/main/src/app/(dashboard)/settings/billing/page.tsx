@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SettingsNav } from "@/components/settings/SettingsNav"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 // TODO: GET /api/v1/billing?organizationId=xxx  (Stripe customer data)

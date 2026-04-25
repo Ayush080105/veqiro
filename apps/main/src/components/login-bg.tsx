@@ -1,6 +1,5 @@
-"use client";
-import { FONT, Sticker } from "@/components/veqiro/shared";
-import Logo from "./logo";
+import { Sticker } from "@/components/ui/sticker"
+import Logo from "./logo"
 
 /**
  * Decorative Veqiro panel shown on the right side of auth pages.
@@ -9,13 +8,10 @@ import Logo from "./logo";
  */
 const LoginBg = () => {
   return (
-    <div
-      className="h-full w-full relative overflow-hidden"
-      style={{ background: "#EFE7D6", borderLeft: "3px solid #111" }}
-    >
+    <div className="relative h-full w-full overflow-hidden border-l-[3px] border-foreground bg-background">
       {/* grain overlay */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="pointer-events-none absolute inset-0"
         style={{
           opacity: 0.05,
           backgroundImage:
@@ -26,50 +22,31 @@ const LoginBg = () => {
 
       {/* big rotated logo tile */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative">
-          <Logo className="w-56 h-56" />
-        </div>
+        <Logo className="h-56 w-56" />
       </div>
 
       {/* scattered sticker accents */}
-      <div className="absolute top-12 left-16">
-        <Sticker rot={-8} color="#F06464">
-          six AI employees
-        </Sticker>
+      <div className="absolute left-16 top-12">
+        <Sticker rotate={-8} tone="red">six AI employees</Sticker>
       </div>
-      <div className="absolute top-32 right-10">
-        <Sticker rot={6} color="#F5C518">
-          always on
-        </Sticker>
+      <div className="absolute right-10 top-32">
+        <Sticker rotate={6} tone="yellow">always on</Sticker>
       </div>
       <div className="absolute bottom-36 left-10">
-        <Sticker rot={-4} color="#1DBC87">
-          real jobs
-        </Sticker>
+        <Sticker rotate={-4} tone="green">real jobs</Sticker>
       </div>
       <div className="absolute bottom-16 right-16">
-        <Sticker rot={3} color="#8A8AF0">
-          zero chill
-        </Sticker>
+        <Sticker rotate={3} tone="violet">zero chill</Sticker>
       </div>
 
       {/* tagline */}
-      <div className="absolute bottom-8 left-0 right-0 text-center px-8">
-        <p
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#111",
-            opacity: 0.7,
-          }}
-        >
+      <div className="absolute bottom-8 left-0 right-0 px-8 text-center">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-foreground/70">
           {"// hire the whole crew in 60 seconds"}
         </p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default LoginBg;
+export default LoginBg

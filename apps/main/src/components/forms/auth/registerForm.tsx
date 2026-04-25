@@ -1,24 +1,28 @@
-"use client";
+"use client"
 
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import Link from "next/link";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Loader2 } from "lucide-react";
-import { registerSchema } from "@/models/auth/registerSchema";
-import { authClient } from "@/lib/auth-client";
-import OAuthButtons from "@/components/oauth-buttons";
-import { Button, FieldLabel, FONT, VqInput } from "@/components/veqiro/shared";
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import Link from "next/link"
+import { Controller, useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+
+import { registerSchema } from "@/models/auth/registerSchema"
+import { authClient } from "@/lib/auth-client"
+import OAuthButtons from "@/components/oauth-buttons"
+import { AuthCard } from "@/components/ui/auth-card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Field, FieldDescription, FieldError } from "@/components/ui/field"
+import { SubmitButton } from "@/components/ui/submit-button"
 
 export function RegisterForm() {
-  const router = useRouter();
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
-  });
+  })
 
   const onSubmit = async (data: z.infer<typeof registerSchema>) => {
     const { error } = await authClient.signUp.email({
@@ -26,79 +30,45 @@ export function RegisterForm() {
       password: data.password,
       name: data.name,
       callbackURL: "/onboarding",
-    });
+    })
     if (error) {
-      toast.error(error.message || "Something went wrong");
-      return;
+      toast.error(error.message || "Something went wrong")
+      return
     }
-    toast.success("Account created");
-    form.reset();
-    // New users land on onboarding; existing users skipping signup and
-    // already logged in hit the session-gated onboarding page which
-    // redirects to /dashboard if their brand kit is already populated.
-    router.push("/onboarding");
-  };
+    toast.success("Account created")
+    form.reset()
+    router.push("/onboarding")
+  }
 
-  const isSubmitting = form.formState.isSubmitting;
+  const isSubmitting = form.formState.isSubmitting
 
   return (
-    <div style={{ fontFamily: FONT.body }}>
-      <div style={{ textAlign: "center", marginBottom: 24 }}>
-        <h1
-          style={{
-            fontFamily: FONT.display,
-            fontSize: 40,
-            lineHeight: 1,
-            color: "#111",
-            margin: 0,
-            letterSpacing: -1,
-          }}
-        >
-          join the crew
-        </h1>
-        <p
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#555",
-            marginTop: 8,
-          }}
-        >
-          {"// six AI employees, one login"}
-        </p>
-      </div>
+    <>
+      <AuthCard.Header
+        kicker="six AI employees, one login"
+        title="join the crew"
+      />
 
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <Controller
           name="name"
           control={form.control}
           render={({ field, fieldState }) => (
-            <div>
-              <FieldLabel label="Full name">
-                <VqInput
-                  value={field.value}
-                  onChange={(v) => field.onChange(v)}
-                  placeholder="Jane Doe"
-                  autoComplete="name"
-                  disabled={isSubmitting}
-                />
-              </FieldLabel>
-              {fieldState.error && (
-                <div
-                  style={{
-                    marginTop: -12,
-                    marginBottom: 20,
-                    color: "#7A1717",
-                    fontFamily: FONT.mono,
-                    fontSize: 11,
-                  }}
-                >
-                  {fieldState.error.message}
-                </div>
-              )}
-            </div>
+            <Field>
+              <Label htmlFor="name" variant="brand">Full name</Label>
+              <Input
+                id="name"
+                variant="brand"
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                placeholder="Jane Doe"
+                autoComplete="name"
+                disabled={isSubmitting}
+                aria-invalid={!!fieldState.error}
+              />
+              {fieldState.error && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
         />
 
@@ -106,31 +76,25 @@ export function RegisterForm() {
           name="email"
           control={form.control}
           render={({ field, fieldState }) => (
-            <div>
-              <FieldLabel label="Email" hint="We will send a verification link to your email">
-                <VqInput
-                  type="email"
-                  value={field.value}
-                  onChange={(v) => field.onChange(v)}
-                  placeholder="name@example.com"
-                  autoComplete="email"
-                  disabled={isSubmitting}
-                />
-              </FieldLabel>
-              {fieldState.error && (
-                <div
-                  style={{
-                    marginTop: -12,
-                    marginBottom: 20,
-                    color: "#7A1717",
-                    fontFamily: FONT.mono,
-                    fontSize: 11,
-                  }}
-                >
-                  {fieldState.error.message}
-                </div>
-              )}
-            </div>
+            <Field>
+              <Label htmlFor="email" variant="brand">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                variant="brand"
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                placeholder="name@example.com"
+                autoComplete="email"
+                disabled={isSubmitting}
+                aria-invalid={!!fieldState.error}
+              />
+              <FieldDescription>
+                We will send a verification link to your email.
+              </FieldDescription>
+              {fieldState.error && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
         />
 
@@ -138,31 +102,22 @@ export function RegisterForm() {
           name="password"
           control={form.control}
           render={({ field, fieldState }) => (
-            <div>
-              <FieldLabel label="Password">
-                <VqInput
-                  type="password"
-                  value={field.value}
-                  onChange={(v) => field.onChange(v)}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  disabled={isSubmitting}
-                />
-              </FieldLabel>
-              {fieldState.error && (
-                <div
-                  style={{
-                    marginTop: -12,
-                    marginBottom: 20,
-                    color: "#7A1717",
-                    fontFamily: FONT.mono,
-                    fontSize: 11,
-                  }}
-                >
-                  {fieldState.error.message}
-                </div>
-              )}
-            </div>
+            <Field>
+              <Label htmlFor="password" variant="brand">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                variant="brand"
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                disabled={isSubmitting}
+                aria-invalid={!!fieldState.error}
+              />
+              {fieldState.error && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
         />
 
@@ -170,79 +125,47 @@ export function RegisterForm() {
           name="confirmPassword"
           control={form.control}
           render={({ field, fieldState }) => (
-            <div>
-              <FieldLabel label="Confirm password">
-                <VqInput
-                  type="password"
-                  value={field.value}
-                  onChange={(v) => field.onChange(v)}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  disabled={isSubmitting}
-                />
-              </FieldLabel>
-              {fieldState.error && (
-                <div
-                  style={{
-                    marginTop: -12,
-                    marginBottom: 20,
-                    color: "#7A1717",
-                    fontFamily: FONT.mono,
-                    fontSize: 11,
-                  }}
-                >
-                  {fieldState.error.message}
-                </div>
-              )}
-            </div>
+            <Field>
+              <Label htmlFor="confirmPassword" variant="brand">Confirm password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                variant="brand"
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                disabled={isSubmitting}
+                aria-invalid={!!fieldState.error}
+              />
+              {fieldState.error && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
         />
 
-        <Button type="submit" variant="primary" disabled={isSubmitting} style={{ width: "100%" }}>
-          {isSubmitting ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <Loader2 className="size-4 animate-spin" /> Creating account…
-            </span>
-          ) : (
-            "Create account"
-          )}
-        </Button>
+        <SubmitButton isLoading={isSubmitting} loadingText="Creating account…">
+          Create account
+        </SubmitButton>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            margin: "20px 0 16px",
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#888",
-          }}
-        >
-          <div style={{ flex: 1, height: 0, borderTop: "2px dashed #111", opacity: 0.5 }} />
+        <div className="flex items-center gap-3 py-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          <div className="h-0 flex-1 border-t-2 border-dashed border-foreground/40" />
           <span>or</span>
-          <div style={{ flex: 1, height: 0, borderTop: "2px dashed #111", opacity: 0.5 }} />
+          <div className="h-0 flex-1 border-t-2 border-dashed border-foreground/40" />
         </div>
 
         <OAuthButtons />
-
-        <div
-          style={{
-            marginTop: 20,
-            textAlign: "center",
-            fontFamily: FONT.body,
-            fontSize: 14,
-            color: "#111",
-          }}
-        >
-          Already on the team?{" "}
-          <Link href="/login" style={{ fontFamily: FONT.head, textTransform: "uppercase", letterSpacing: 1, color: "#111", textDecoration: "underline" }}>
-            Login
-          </Link>
-        </div>
       </form>
-    </div>
-  );
+
+      <AuthCard.Footer>
+        Already on the team?{" "}
+        <Link
+          href="/login"
+          className="font-head uppercase tracking-wider underline underline-offset-4"
+        >
+          Login
+        </Link>
+      </AuthCard.Footer>
+    </>
+  )
 }

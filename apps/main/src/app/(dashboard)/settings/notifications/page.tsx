@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { SettingsNav } from "@/components/settings/SettingsNav"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Mock State ───────────────────────────────────────────────────────────────
 // TODO: GET /api/v1/notifications/settings?organizationId=xxx
