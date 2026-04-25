@@ -24,20 +24,26 @@ class BrandKit(BaseModel):
     competitors: list = []
     key_differentiators: str = ""
     website_url: str = ""
+    # True when the kit was loaded from the server (not a fallback default).
+    _loaded: bool = False
 
 
-# ── In-memory cache (user_id → (brand_kit, expires_at)) ─────────────────────
+# ── In-memory cache (organization_id → (brand_kit, expires_at)) ─────────────
 _CACHE_TTL = 60  # seconds
 _cache: dict[str, tuple[BrandKit, float]] = {}
 
 
-async def load_brand_kit(user_id: str) -> BrandKit:
+async def load_brand_kit(organization_id: str) -> BrandKit:
     """
-    Load brand kit for a user.
+    Load brand kit for an organization.
+
+    Keyed by organization_id (the server-side BrandKit table is keyed by
+    Organization.id, not User.id — this is the bug the code used to hit).
+
     - MOCK_MODE: returns hardcoded Veqiro defaults.
-    - Real mode: fetches from Express service at GET /api/brand-kit/{user_id}.
-      Results are cached in-memory for 60 seconds to avoid repeated HTTP calls
-      within a single chat session.
+    - Real mode: fetches from the Express server at
+      GET /api/v1/internal/brand-kit/{organization_id} (with x-internal-key).
+      Results cached in-memory for 60 seconds per organization.
     """
     if settings.MOCK_MODE:
         return BrandKit(
@@ -57,16 +63,21 @@ async def load_brand_kit(user_id: str) -> BrandKit:
             website_url="https://veqiro.com",
         )
 
-    # Check cache
-    cached = _cache.get(user_id)
+    if not organization_id:
+        logger.warning("brand_kit: empty organization_id — returning defaults")
+        return BrandKit()
+
+    # Cache hit
+    cached = _cache.get(organization_id)
     if cached and time.monotonic() < cached[1]:
         return cached[0]
 
-    # Fetch from Express service
+    # Fetch from Express
+    brand_kit = BrandKit()
     try:
         import httpx
-        url = f"{settings.BRAND_KIT_SERVICE_URL}/api/v1/internal/brand-kit/{user_id}"
-        logger.info("brand_kit fetch | user=%s url=%s", user_id, url)
+        url = f"{settings.BRAND_KIT_SERVICE_URL}/api/v1/internal/brand-kit/{organization_id}"
+        logger.info("brand_kit fetch | org=%s url=%s", organization_id, url)
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(url, headers={"x-internal-key": settings.INTERNAL_API_KEY})
         if resp.status_code == 200:
@@ -86,16 +97,36 @@ async def load_brand_kit(user_id: str) -> BrandKit:
                 key_differentiators=data.get("key_differentiators") or "",
                 website_url=data.get("website_url") or "",
             )
-            logger.info("brand_kit loaded | user=%s company=%s logo=%s mascot=%s", user_id, brand_kit.company_name, brand_kit.logo_url, brand_kit.mascot_url)
+            object.__setattr__(brand_kit, "_loaded", True)
+            logger.info(
+                "brand_kit loaded | org=%s company=%s logo=%s mascot=%s",
+                organization_id, brand_kit.company_name,
+                bool(brand_kit.logo_url), bool(brand_kit.mascot_url),
+            )
+        elif resp.status_code == 404:
+            # Expected for fresh orgs that haven't finished onboarding yet.
+            logger.info(
+                "brand_kit not found (404) | org=%s — kit not created yet, using defaults",
+                organization_id,
+            )
+        elif resp.status_code == 401:
+            # Misconfiguration — surfaces in logs as a real error, not a warning.
+            logger.error(
+                "brand_kit auth rejected (401) | org=%s url=%s — INTERNAL_API_KEY mismatch",
+                organization_id, url,
+            )
         else:
-            logger.warning("brand_kit fetch failed | user=%s status=%s url=%s — using defaults", user_id, resp.status_code, url)
-            brand_kit = BrandKit()
+            logger.warning(
+                "brand_kit fetch failed | org=%s status=%s url=%s — using defaults",
+                organization_id, resp.status_code, url,
+            )
     except Exception as e:
-        logger.warning("brand_kit fetch error | user=%s error=%s — using defaults", user_id, e)
-        brand_kit = BrandKit()
+        logger.warning(
+            "brand_kit fetch error | org=%s error=%s — using defaults",
+            organization_id, e,
+        )
 
-    # Store in cache
-    _cache[user_id] = (brand_kit, time.monotonic() + _CACHE_TTL)
+    _cache[organization_id] = (brand_kit, time.monotonic() + _CACHE_TTL)
     return brand_kit
 
 

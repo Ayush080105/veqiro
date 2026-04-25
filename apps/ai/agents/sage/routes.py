@@ -25,6 +25,7 @@ register_agent(_agent)
 
 class KeywordResearchRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     seed_topic: str
     niche: str = ""
     competitor_urls: list[str] = []
@@ -67,6 +68,7 @@ class KeywordResearchResponse(BaseModel):
 
 class GenerateBlogRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     topic: str
     target_keyword: str
     secondary_keywords: list[str] = []
@@ -118,6 +120,7 @@ class GenerateBlogResponse(BaseModel):
 
 class AnalyzeContentRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     content: str
     target_keyword: str
     url: str | None = None
@@ -146,6 +149,7 @@ class ContentAnalysisResponse(BaseModel):
 
 class ContentBriefRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     topic: str
     target_keyword: str
     competitor_urls: list[str] = []
@@ -213,7 +217,7 @@ async def keyword_research(request: KeywordResearchRequest) -> KeywordResearchRe
 
     import json
     from core.utils import safe_json_loads
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -338,7 +342,7 @@ Ready to get started? [Try Veqiro AI free for 14 days →]
         )
 
     import re as _re
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     tone = request.tone_override or "educational, authoritative"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -410,7 +414,7 @@ async def analyze_content(request: AnalyzeContentRequest) -> ContentAnalysisResp
 
     import json
     from core.utils import safe_json_loads
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -486,7 +490,7 @@ async def content_brief(request: ContentBriefRequest) -> ContentBriefResponse:
 
     import json
     from core.utils import safe_json_loads
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,

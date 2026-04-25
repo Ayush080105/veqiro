@@ -77,34 +77,42 @@ export interface PlatformTones {
   instagram: string
 }
 
+// camelCase end-to-end on the client API. The server translates to snake_case
+// for the Postgres table at the storage edge.
 export interface BrandKit {
-  company_name: string
-  company_description: string
+  companyName: string
+  companyDescription: string
   industry: string
-  target_audience: string
-  brand_voice: string
-  logo_url: string | null
-  mascot_url: string | null
-  brand_colors: BrandColors
-  platform_tones: PlatformTones
+  targetAudience: string
+  brandVoice: string
+  logoUrl: string | null
+  logoKey: string | null
+  mascotUrl: string | null
+  mascotKey: string | null
+  brandColors: BrandColors
+  platformTones: PlatformTones
   competitors: string[]
-  key_differentiators: string
-  website_url: string
+  keyDifferentiators: string
+  websiteUrl: string
 }
 
 // ─── Brain Form Types ────────────────────────────────────────────────────────
 
 export interface BrainFormValues {
-  company_name: string
-  company_description: string
-  website_url: string
+  companyName: string
+  companyDescription: string
+  websiteUrl: string
   industry: string
-  target_audience: string
-  brand_voice: string
-  platform_tones: { twitter: string; linkedin: string; instagram: string }
-  brand_colors: { primary: string; secondary: string; accent: string }
+  targetAudience: string
+  brandVoice: string
+  platformTones: { twitter: string; linkedin: string; instagram: string }
+  brandColors: { primary: string; secondary: string; accent: string }
   competitors: Array<{ value: string }>
-  key_differentiators: string
+  keyDifferentiators: string
+  logoUrl: string | null
+  logoKey: string | null
+  mascotUrl: string | null
+  mascotKey: string | null
 }
 
 // ─── Org Types ────────────────────────────────────────────────────────────────

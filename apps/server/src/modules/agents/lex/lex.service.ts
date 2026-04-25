@@ -89,6 +89,7 @@ export const ingestDocument = async (
     "/ai/lex/ingest-document",
     {
       user_id: userId,
+      organization_id: organizationId,
       document_name: input.documentName,
       document_type: input.documentType,
       pdf_base64: input.pdfBase64,
@@ -130,6 +131,7 @@ export const analyzeContract = async (
     "/ai/lex/analyze-contract",
     {
       user_id: userId,
+      organization_id: organizationId,
       source_id: input.sourceId,
       contract_text: input.contractText,
       analysis_focus: input.analysisFocus,
@@ -162,6 +164,7 @@ export const draftDocument = async (
     "/ai/lex/draft-document",
     {
       user_id: userId,
+      organization_id: organizationId,
       document_type: input.documentType,
       requirements: input.requirements,
       jurisdiction: input.jurisdiction,
@@ -193,6 +196,7 @@ export const explainLegalText = async (
 
   const { data } = await aiService.post<ExplainResponse>("/ai/lex/explain", {
     user_id: userId,
+    organization_id: organizationId,
     text: input.text,
     context: input.context,
   });
@@ -223,6 +227,7 @@ export const legalResearch = async (
     "/ai/lex/legal-research",
     {
       user_id: userId,
+      organization_id: organizationId,
       query: input.query,
       jurisdiction: input.jurisdiction,
       legal_areas: input.legalAreas,
@@ -255,6 +260,7 @@ export const complianceCheck = async (
     "/ai/lex/compliance-check",
     {
       user_id: userId,
+      organization_id: organizationId,
       description: input.description,
       frameworks: input.frameworks,
       business_context: input.businessContext,

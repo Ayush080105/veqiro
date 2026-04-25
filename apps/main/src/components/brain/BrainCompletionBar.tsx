@@ -4,58 +4,89 @@ import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
 import { FONT } from "@/components/veqiro/shared"
+import { BRAND_KIT_MINS } from "@/lib/validation/brandKit"
 
 interface BrainCompletionBarProps {
   values: BrainFormValues
 }
 
+// Weights are tuned to match what makes agents actually useful, not just to
+// reach 100%. Depth fields (description / audience / differentiators) carry
+// more than colour pickers because they're what calibrates the LLM.
 function computeScore(values: BrainFormValues) {
   let score = 0
 
-  if (values.company_name.trim()) score += 15
-  if (values.company_description.trim()) score += 10
-  if (values.website_url.trim()) score += 5
+  if (values.companyName.trim()) score += 10
+  if (values.companyDescription.trim().length >= BRAND_KIT_MINS.companyDescription)
+    score += 15
+  else if (values.companyDescription.trim()) score += 5
+
+  if (values.targetAudience.trim().length >= BRAND_KIT_MINS.targetAudience)
+    score += 15
+  else if (values.targetAudience.trim()) score += 5
+
+  if (values.brandVoice && values.brandVoice !== "Professional") score += 10
+  else if (values.brandVoice) score += 5
+
+  if (values.keyDifferentiators.trim().length >= BRAND_KIT_MINS.keyDifferentiators)
+    score += 15
+  else if (values.keyDifferentiators.trim()) score += 5
+
+  if (values.competitors.length >= 1) score += 5
+  if (values.competitors.length >= 3) score += 5
+
   if (values.industry.trim()) score += 5
-  if (values.target_audience.trim()) score += 15
-  if (values.brand_voice !== "Professional") score += 5
-  if (values.platform_tones.twitter.trim()) score += 3
-  if (values.platform_tones.linkedin.trim()) score += 3
-  if (values.platform_tones.instagram.trim()) score += 3
-  if (values.brand_colors.primary !== "#000000") score += 2
-  if (values.brand_colors.secondary !== "#ffffff") score += 2
-  if (values.brand_colors.accent !== "#888888") score += 2
-  if (values.competitors.length >= 1) score += 10
-  if (values.key_differentiators.trim()) score += 10
-  if (values.competitors.length > 3) score += 10
+
+  if (values.websiteUrl.trim()) score += 5
+
+  if (
+    values.platformTones.twitter.trim() ||
+    values.platformTones.linkedin.trim() ||
+    values.platformTones.instagram.trim()
+  )
+    score += 5
+
+  if (
+    values.brandColors.primary &&
+    values.brandColors.primary !== "#000000" &&
+    values.brandColors.secondary &&
+    values.brandColors.accent
+  )
+    score += 5
+
+  if (values.logoUrl) score += 3
+  if (values.mascotUrl) score += 2
 
   return Math.min(100, Math.round(score))
 }
 
 function getNextSuggestion(values: BrainFormValues): string | null {
-  if (!values.company_name.trim())
-    return "Start by adding your company name so agents know who they represent."
-  if (!values.target_audience.trim())
-    return "Add your target audience to help agents personalize content."
-  if (!values.company_description.trim())
-    return "Describe your company so agents can craft accurate messaging."
+  if (!values.companyName.trim())
+    return "Start with the company name so agents know who they represent."
+  if (values.companyDescription.trim().length < BRAND_KIT_MINS.companyDescription)
+    return `Beef up the description (≥${BRAND_KIT_MINS.companyDescription} chars) so agents can ground their messaging.`
+  if (values.targetAudience.trim().length < BRAND_KIT_MINS.targetAudience)
+    return `Add more on the audience (≥${BRAND_KIT_MINS.targetAudience} chars) — job titles, company size, motivations.`
+  if (values.keyDifferentiators.trim().length < BRAND_KIT_MINS.keyDifferentiators)
+    return `Spell out differentiators (≥${BRAND_KIT_MINS.keyDifferentiators} chars). Why you, not them.`
   if (values.competitors.length < 1)
     return "Add at least one competitor to unlock competitive positioning."
-  if (!values.key_differentiators.trim())
-    return "Describe what makes you different from the competition."
   if (!values.industry.trim())
     return "Set your industry to improve market research accuracy."
-  if (values.brand_voice === "Professional")
+  if (!values.brandVoice || values.brandVoice === "Professional")
     return "Customize your brand voice to move beyond the default."
-  if (!values.platform_tones.twitter.trim())
-    return "Define your Twitter/X tone for platform-specific content."
-  if (!values.platform_tones.linkedin.trim())
-    return "Set your LinkedIn tone for professional posts."
-  if (!values.platform_tones.instagram.trim())
-    return "Set your Instagram tone for visual content."
-  if (values.brand_colors.primary === "#000000")
+  if (!values.logoUrl)
+    return "Upload a logo so Maya can use it in generated images."
+  if (
+    !values.platformTones.twitter.trim() &&
+    !values.platformTones.linkedin.trim() &&
+    !values.platformTones.instagram.trim()
+  )
+    return "Define a per-platform tone for sharper social copy."
+  if (!values.brandColors.primary || values.brandColors.primary === "#000000")
     return "Pick your brand's primary color for generated assets."
-  if (values.competitors.length <= 3)
-    return "Add more competitors to unlock the bonus completion points."
+  if (values.competitors.length < 3)
+    return "Add 2 more competitors for sharper Scout outputs."
   return null
 }
 

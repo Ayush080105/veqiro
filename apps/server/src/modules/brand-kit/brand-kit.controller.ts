@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
-import { saveBrandKitSchema } from "./brand-kit.schema.js";
+import {
+  partialBrandKitSchema,
+  finalizeBrandKitSchema,
+  uploadAssetSchema,
+} from "./brand-kit.schema.js";
 import * as brandKitService from "./brand-kit.service.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
 
@@ -27,19 +31,50 @@ export const getBrandKit = async (req: Request, res: Response) => {
 
 export const saveBrandKit = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
-  const input = saveBrandKitSchema.parse(req.body);
+  const input = partialBrandKitSchema.parse(req.body);
   const kit = await brandKitService.saveBrandKit(organizationId, input);
   res.status(StatusCodes.OK).json(kit);
 };
 
-// Internal — called by AI backend with x-internal-key, no session required
-export const getBrandKitInternal = async (req: Request, res: Response) => {
-  const organizationId = req.params.organizationId;
-  if (!organizationId) {
-    res.status(StatusCodes.BAD_REQUEST).json({ message: "organizationId required" });
+export const finalizeBrandKit = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const input = finalizeBrandKitSchema.parse(req.body);
+  const kit = await brandKitService.finalizeBrandKit(organizationId, input);
+  res.status(StatusCodes.OK).json(kit);
+};
+
+export const uploadAsset = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const input = uploadAssetSchema.parse(req.body);
+  const result = await brandKitService.uploadAsset(organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const removeAsset = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const kindRaw = req.params.kind;
+  if (kindRaw !== "logo" && kindRaw !== "mascot") {
+    res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "kind must be 'logo' or 'mascot'" });
     return;
   }
-  const kit = await brandKitService.getBrandKit(organizationId);
+  const kit = await brandKitService.removeAsset(organizationId, kindRaw);
+  res.status(StatusCodes.OK).json(kit);
+};
+
+// Internal — called by apps/ai with x-internal-key. Returns the raw Prisma row
+// (snake_case) to keep the existing Python contract working untouched.
+export const getBrandKitInternal = async (req: Request, res: Response) => {
+  const raw = req.params.organizationId;
+  const organizationId = Array.isArray(raw) ? raw[0] : raw;
+  if (!organizationId) {
+    res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "organizationId required" });
+    return;
+  }
+  const kit = await brandKitService.getBrandKitRaw(organizationId);
   if (!kit) {
     res.status(StatusCodes.NOT_FOUND).json({ message: "Brand kit not found" });
     return;

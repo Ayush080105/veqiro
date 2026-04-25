@@ -49,8 +49,13 @@ class LexAgent(BaseAgent):
 
     # ── System prompt ────────────────────────────────────────────────────
 
-    async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
-        base = await super().build_system_prompt(user_id, extra_context)
+    async def build_system_prompt(
+        self,
+        user_id: str,
+        organization_id: str = "",
+        extra_context: str | None = None,
+    ) -> str:
+        base = await super().build_system_prompt(user_id, organization_id, extra_context)
         lex_specific = (
             "\n\nAs Lex, you specialize in:\n"
             "- Contract review: NDAs, SaaS agreements, employment contracts, vendor agreements\n"
@@ -138,8 +143,14 @@ class LexAgent(BaseAgent):
 
     # ── Tool Execution ────────────────────────────────────────────────────
 
-    async def execute_tool(self, name: str, arguments: dict, user_id: str) -> str:
-        system = await self.build_system_prompt(user_id)
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: dict,
+        user_id: str,
+        organization_id: str = "",
+    ) -> str:
+        system = await self.build_system_prompt(user_id, organization_id)
 
         if name == "analyze_contract":
             source_id = arguments.get("source_id", "")

@@ -8,6 +8,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     user_id: str
+    organization_id: str = ""  # required for brand-kit lookup; "" only for legacy callers
     conversation_id: str
     message: str
     history: list[Message] = []
@@ -17,6 +18,7 @@ class ChatRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "user_id": "user_123",
+                "organization_id": "org_abc",
                 "conversation_id": "conv_456",
                 "message": "Help me create a LinkedIn post about our product launch",
                 "history": [],

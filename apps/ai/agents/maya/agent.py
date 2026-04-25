@@ -38,9 +38,14 @@ class MayaAgent(BaseAgent):
     default_provider = "openai"
     default_model = "gpt-4o-mini"
 
-    async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
+    async def build_system_prompt(
+        self,
+        user_id: str,
+        organization_id: str = "",
+        extra_context: str | None = None,
+    ) -> str:
         from core.brand_kit import load_brand_kit
-        brand_kit = await load_brand_kit(user_id)
+        brand_kit = await load_brand_kit(organization_id)
 
         prompt = (
             f"You are {self.name}, {self.personality}\n\n"
@@ -150,11 +155,13 @@ class MayaAgent(BaseAgent):
                 use_logo: bool = bool(args.get("use_logo", False))
                 use_mascot: bool = bool(args.get("use_mascot", False))
 
-                brand_kit = await load_brand_kit(request.user_id)
+                brand_kit = await load_brand_kit(request.organization_id)
                 image_result = await generate_social_image(
                     topic, platform,
                     use_logo=use_logo, use_mascot=use_mascot,
-                    user_id=request.user_id, brand_kit=brand_kit,
+                    user_id=request.user_id,
+                    organization_id=request.organization_id,
+                    brand_kit=brand_kit,
                 )
 
                 response.image = image_result
@@ -177,12 +184,14 @@ class MayaAgent(BaseAgent):
                 platform: str = args.get("platform", "linkedin")
                 aspect_ratio: str = args.get("aspect_ratio", "1:1")
 
-                brand_kit = await load_brand_kit(request.user_id)
+                brand_kit = await load_brand_kit(request.organization_id)
                 new_image = await generate_social_image(
                     topic, platform,
                     use_logo=use_logo, use_mascot=use_mascot,
                     aspect_ratio=aspect_ratio,
-                    user_id=request.user_id, brand_kit=brand_kit,
+                    user_id=request.user_id,
+                    organization_id=request.organization_id,
+                    brand_kit=brand_kit,
                 )
                 response.image = new_image
             except Exception:
@@ -272,8 +281,14 @@ class MayaAgent(BaseAgent):
 
     # ── Tool Execution ──────────────────────────────────────────────────
 
-    async def execute_tool(self, name: str, arguments: dict, user_id: str) -> str:
-        system = await self.build_system_prompt(user_id)
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: dict,
+        user_id: str,
+        organization_id: str = "",
+    ) -> str:
+        system = await self.build_system_prompt(user_id, organization_id)
 
         if name == "generate_ideas":
             platform = arguments.get("platform", "linkedin")
@@ -302,7 +317,7 @@ class MayaAgent(BaseAgent):
             tone = arguments.get("tone", "")
             word_count = arguments.get("word_count", 200)
             from core.brand_kit import load_brand_kit, get_platform_tone
-            brand_kit = await load_brand_kit(user_id)
+            brand_kit = await load_brand_kit(organization_id)
             tone = tone or get_platform_tone(brand_kit, platform)
             rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
             website_cta = ""
@@ -338,7 +353,7 @@ class MayaAgent(BaseAgent):
             original_platform = arguments.get("original_platform", "linkedin")
             targets = arguments.get("target_platforms", [])
             from core.brand_kit import load_brand_kit
-            brand_kit = await load_brand_kit(user_id)  # load once
+            brand_kit = await load_brand_kit(organization_id)  # load once
             website_cta = f"\nInclude this link where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
 
             async def _adapt(platform: str) -> str:

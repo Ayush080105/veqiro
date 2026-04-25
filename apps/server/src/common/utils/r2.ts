@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 
 const accountId = process.env.R2_ACCOUNT_ID;
@@ -82,4 +82,14 @@ export const fetchImageAsBuffer = async (url: string): Promise<Buffer> => {
     throw new Error(`Failed to fetch image at ${url}: ${res.status}`);
   }
   return Buffer.from(await res.arrayBuffer());
+};
+
+export const deleteObject = async (key: string): Promise<void> => {
+  const bucket = process.env.R2_BUCKET;
+  if (!bucket) {
+    throw new Error("R2_BUCKET must be set to delete objects.");
+  }
+  await getClient().send(
+    new DeleteObjectCommand({ Bucket: bucket, Key: key }),
+  );
 };

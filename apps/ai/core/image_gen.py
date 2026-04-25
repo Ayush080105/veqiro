@@ -115,6 +115,7 @@ async def generate_social_image(
     use_logo: bool = False,
     use_mascot: bool = False,
     user_id: str = "",
+    organization_id: str = "",
     brand_kit=None,
     context_hints: str = "",
     reference_urls: list[str] | None = None,
@@ -130,10 +131,10 @@ async def generate_social_image(
         aspect_ratio = _ASPECT_FOR_PLATFORM.get(platform, "1:1")
 
     # ── Load brand kit (always) ───────────────────────────────────────────
-    if brand_kit is None and user_id:
+    if brand_kit is None and organization_id:
         from core.brand_kit import load_brand_kit
-        brand_kit = await load_brand_kit(user_id)
-        logger.info("brand_kit auto-loaded | user=%s company=%s", user_id, brand_kit.company_name)
+        brand_kit = await load_brand_kit(organization_id)
+        logger.info("brand_kit auto-loaded | org=%s company=%s", organization_id, brand_kit.company_name)
 
     base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints)
 

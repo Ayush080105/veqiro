@@ -11,8 +11,12 @@ function localHasBrandKit(organizationId: string): boolean {
   try {
     const raw = localStorage.getItem(`veqiro.brandKitLocal.${organizationId}`)
     if (!raw) return false
-    const parsed = JSON.parse(raw) as { company_name?: string }
-    return !!parsed?.company_name?.trim()
+    // Support both legacy snake_case and current camelCase drafts.
+    const parsed = JSON.parse(raw) as {
+      companyName?: string
+      company_name?: string
+    }
+    return !!(parsed?.companyName?.trim() ?? parsed?.company_name?.trim())
   } catch {
     return false
   }
@@ -28,7 +32,7 @@ export default function OnboardingGuard({
   const organizationId = activeOrg?.id ?? ""
   const { data: bk, isPending: kitPending, isError } = useBrandKit(organizationId)
 
-  const backendHasKit = !!bk?.company_name?.trim()
+  const backendHasKit = !!bk?.companyName?.trim()
   const hasKit = backendHasKit || (!!organizationId && localHasBrandKit(organizationId))
   const checking = orgPending || (!!organizationId && kitPending && !isError)
   const ok = !!organizationId && !checking && hasKit

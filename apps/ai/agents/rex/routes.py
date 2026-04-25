@@ -29,6 +29,7 @@ register_agent(_agent)
 
 class MetricsAnalysisRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     metrics: dict[str, list[DataPoint]]
     period: str = "monthly"
 
@@ -66,6 +67,7 @@ class MetricsAnalysisResponse(BaseModel):
 
 class ForecastRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     metric_name: str
     historical_data: list[DataPoint]
     horizon_days: int = 30
@@ -97,6 +99,7 @@ class ForecastResponse(BaseModel):
 
 class FinancialAnalysisRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     revenue_data: list[DataPoint]
     expenses_data: list[DataPoint] = []
     subscribers_data: list[DataPoint] = []
@@ -131,6 +134,7 @@ class FinancialAnalysisResponse(BaseModel):
 
 class BriefingRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     date: str = ""
     all_metrics: dict = {}
     agent_summaries: dict = {}
@@ -155,6 +159,7 @@ class BriefingResponse(BaseModel):
 
 class InvestorUpdateRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     period: str
     metrics: dict = {}
     highlights: list[str] = []
@@ -187,6 +192,7 @@ class InvestorUpdateResponse(BaseModel):
 
 class RunwayRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     cash_on_hand: float
     monthly_burn: float
     monthly_revenue: float = 0.0
@@ -223,6 +229,7 @@ class RunwayResponse(BaseModel):
 
 class UnitEconomicsRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     marketing_spend: list[DataPoint]
     new_customers: list[DataPoint]
     avg_monthly_revenue_per_customer: float
@@ -271,6 +278,7 @@ class UnitEconomicsResponse(BaseModel):
 
 class ScenarioRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     base_metrics: dict
     scenarios: list[dict]
     metadata: dict = {}
@@ -300,6 +308,7 @@ class ScenarioResponse(BaseModel):
 
 class WeeklyDigestRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     metrics: dict
     prev_week: dict = {}
     metadata: dict = {}
@@ -395,7 +404,7 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
         "growth_rate": health_inputs.get("growth_rate", 0.0),
     })
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     metrics_summary = json.dumps({k: [{"date": d.date, "value": d.value} for d in v] for k, v in request.metrics.items()})
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -477,7 +486,7 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
 
     derived = compute_derived_metrics(request.revenue_data, request.expenses_data, request.subscribers_data)
     health = compute_health_indicator(derived)
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
 
     prompt = (
         f"Provide financial narrative and recommendations for these metrics:\n{json.dumps(derived, default=str)}\n\n"
@@ -538,7 +547,7 @@ async def compile_briefing(request: BriefingRequest) -> BriefingResponse:
             }
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     context = f"Date: {request.date}\nMetrics: {json.dumps(request.all_metrics)}\nAgent summaries: {json.dumps(request.agent_summaries)}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -601,7 +610,7 @@ async def investor_update(request: InvestorUpdateRequest) -> InvestorUpdateRespo
             ),
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     prompt = (
         f"Write a professional investor update for {request.period}.\n\n"
         f"Metrics: {json.dumps(request.metrics)}\n"
@@ -823,7 +832,7 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
             generated_at=datetime.utcnow().isoformat(),
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     prompt = (
         "You are a CFO generating a Monday morning digest for a startup founder.\n\n"
         f"Current period metrics: {json.dumps(request.metrics, default=str)}\n"

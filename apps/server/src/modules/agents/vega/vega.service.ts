@@ -184,6 +184,7 @@ export const processInbox = async (
     "/ai/vega/process-inbox",
     {
       user_id: userId,
+      organization_id: organizationId,
       max_emails: input.maxEmails,
       auto_label: input.autoLabel,
       draft_replies: input.draftReplies,
@@ -229,6 +230,7 @@ export const draftReply = async (
 
   const { data } = await aiService.post<DraftReplyResponse>("/ai/vega/draft-reply", {
     user_id: userId,
+    organization_id: organizationId,
     email_id: input.emailId,
     reply_instructions: input.replyInstructions,
     tone: input.tone,
@@ -282,6 +284,7 @@ export const calendarSummary = async (
     "/ai/vega/calendar-summary",
     {
       user_id: userId,
+      organization_id: organizationId,
       days_ahead: input.daysAhead,
       metadata: { google_access_token: token },
     }
@@ -312,6 +315,7 @@ export const createEvent = async (
 
   const { data } = await aiService.post<CreateEventResponse>("/ai/vega/create-event", {
     user_id: userId,
+    organization_id: organizationId,
     description: input.description,
     check_conflicts: input.checkConflicts,
     metadata: { google_access_token: token },
@@ -374,6 +378,7 @@ export const executiveBriefing = async (
     "/ai/vega/executive-briefing",
     {
       user_id: userId,
+      organization_id: organizationId,
       include_email: input.includeEmail,
       include_calendar: input.includeCalendar,
       metadata: { google_access_token: token },
@@ -405,6 +410,7 @@ export const composeEmail = async (
 
   const { data } = await aiService.post<ComposeEmailResponse>("/ai/vega/compose-email", {
     user_id: userId,
+    organization_id: organizationId,
     to: input.to,
     subject: input.subject,
     instructions: input.instructions,

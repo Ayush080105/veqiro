@@ -26,6 +26,7 @@ register_agent(_agent)
 
 class ResearchTopicRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     topic: str
     depth: str = "standard"  # "quick" | "standard" | "deep"
     sources_hint: list[str] = []
@@ -53,6 +54,7 @@ class ResearchTopicResponse(BaseModel):
 
 class ResearchCompanyRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     company_name: str
     company_url: str | None = None
 
@@ -100,6 +102,7 @@ class CompetitorInput(BaseModel):
 
 class CompetitorScanRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     competitors: list[CompetitorInput]
 
     model_config = ConfigDict(
@@ -133,6 +136,7 @@ class CompetitorScanResponse(BaseModel):
 
 class TrendingTopicsRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     industry: str
     count: int = 10
 
@@ -234,7 +238,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
     if scraped_texts:
         scraped_context = "\n\nScraped sources:\n" + "\n\n---\n\n".join(scraped_texts)
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     findings_raw, synthesis_raw = await asyncio.gather(
         _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
@@ -318,7 +322,7 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
         search_context = "\n\nWeb search results:\n" + "\n".join(
             f"- {r['title']}: {r['snippet']}" for r in search_results[:5]
         )
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -368,7 +372,7 @@ async def scan_competitors(request: CompetitorScanRequest) -> CompetitorScanResp
             ))
         return CompetitorScanResponse(results=results, scanned_at=datetime.utcnow().isoformat())
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
 
     async def _scan_one(comp: CompetitorInput) -> tuple[CompetitorScanResult, int]:
         content = await scrape_url(comp.url)
@@ -447,7 +451,7 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
     news_context = ""
     if news_results:
         news_context = "\n\nRecent news:\n" + "\n".join(f"- {r['title']}: {r['snippet']}" for r in news_results[:6])
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,

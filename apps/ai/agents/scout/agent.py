@@ -42,9 +42,14 @@ class ScoutAgent(BaseAgent):
             "Call your own research tools FIRST, then delegate content creation."
         )
 
-    async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
+    async def build_system_prompt(
+        self,
+        user_id: str,
+        organization_id: str = "",
+        extra_context: str | None = None,
+    ) -> str:
         from core.brand_kit import load_brand_kit
-        brand_kit = await load_brand_kit(user_id)
+        brand_kit = await load_brand_kit(organization_id)
 
         prompt = (
             f"You are Scout, {self.personality}\n\n"
@@ -184,10 +189,16 @@ class ScoutAgent(BaseAgent):
 
     # ── Tool Execution ──────────────────────────────────────────────────
 
-    async def execute_tool(self, name: str, arguments: dict, user_id: str) -> str:
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: dict,
+        user_id: str,
+        organization_id: str = "",
+    ) -> str:
         from agents.scout.scraper import scrape_url, google_autocomplete, hash_content, serper_search
 
-        system = await self.build_system_prompt(user_id)
+        system = await self.build_system_prompt(user_id, organization_id)
 
         if name == "web_search":
             try:

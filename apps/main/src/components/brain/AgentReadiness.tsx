@@ -11,27 +11,27 @@ interface AgentReadinessProps {
 }
 
 function isAgentReady(agentId: string, values: BrainFormValues): boolean {
-  const voiceSet = values.brand_voice !== "Professional"
+  const voiceSet = !!values.brandVoice && values.brandVoice !== "Professional"
   const hasTone =
-    values.platform_tones.twitter.trim() !== "" ||
-    values.platform_tones.linkedin.trim() !== "" ||
-    values.platform_tones.instagram.trim() !== ""
+    values.platformTones.twitter.trim() !== "" ||
+    values.platformTones.linkedin.trim() !== "" ||
+    values.platformTones.instagram.trim() !== ""
+  const hasLogo = !!values.logoUrl
 
   switch (agentId) {
     case "maya":
-      return voiceSet && hasTone && values.brand_colors.primary !== "#000000"
+      // Maya generates images — needs a logo, voice, and at least one platform tone.
+      return voiceSet && hasTone && hasLogo
     case "rex":
-      return (
-        values.company_name.trim() !== "" && values.industry.trim() !== ""
-      )
+      return values.companyName.trim() !== "" && values.industry.trim() !== ""
     case "scout":
       return values.competitors.length >= 1 && values.industry.trim() !== ""
     case "sage":
-      return values.target_audience.trim() !== "" && voiceSet
+      return values.targetAudience.trim() !== "" && voiceSet
     case "lex":
-      return values.company_name.trim() !== ""
+      return values.companyName.trim() !== ""
     case "vega":
-      return values.company_name.trim() !== ""
+      return values.companyName.trim() !== ""
     default:
       return false
   }

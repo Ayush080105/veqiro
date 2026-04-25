@@ -28,6 +28,7 @@ register_agent(_agent)
 
 class ProcessInboxRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     max_emails: int = 20
     auto_label: bool = True
     draft_replies: bool = True
@@ -78,6 +79,7 @@ class ProcessInboxResponse(BaseModel):
 
 class DraftReplyRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     email_id: str
     reply_instructions: str
     tone: str = "professional"
@@ -108,6 +110,7 @@ class DraftReplyResponse(BaseModel):
 
 class CalendarSummaryRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     days_ahead: int = 7
     metadata: dict = {}
 
@@ -133,6 +136,7 @@ class CalendarSummaryResponse(BaseModel):
 
 class CreateEventRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     description: str
     check_conflicts: bool = True
     metadata: dict = {}
@@ -161,6 +165,7 @@ class CreateEventResponse(BaseModel):
 
 class ExecutiveBriefingRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     include_email: bool = True
     include_calendar: bool = True
     metadata: dict = {}
@@ -185,6 +190,7 @@ class ExecutiveBriefingResponse(BaseModel):
 
 class ComposeEmailRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     to: str
     subject: str
     instructions: str
@@ -276,7 +282,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
         ]
         return ProcessInboxResponse(processed=processed, stats=stats, node_actions=node_actions)
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     processed = []
     stats_counts = {"urgent": 0, "high": 0, "medium": 0, "low": 0}
     label_messages_list = []
@@ -369,7 +375,7 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
         )
 
     email = await get_message(token, request.email_id)
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -482,7 +488,7 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
     now = datetime.now(timezone.utc)
     next_day = (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -578,7 +584,7 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
     if request.include_calendar:
         events = await list_events(token, days_ahead=7)
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     context = f"Unread emails: {json.dumps(emails[:5])}\n\nCalendar events: {json.dumps(events)}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -624,7 +630,7 @@ async def compose_email(request: ComposeEmailRequest) -> ComposeEmailResponse:
             node_actions=[node_action],
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,

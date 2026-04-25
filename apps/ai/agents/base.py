@@ -41,14 +41,25 @@ class BaseAgent(ABC):
         """Return agent-specific tool definitions. Override in subclass."""
         return []
 
-    async def execute_tool(self, name: str, arguments: dict, user_id: str) -> str:
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: dict,
+        user_id: str,
+        organization_id: str = "",
+    ) -> str:
         """Execute a tool by name. Override in subclass. Returns result string."""
         raise NotImplementedError(f"Tool '{name}' not implemented on {self.slug}")
 
     # ── System prompt ───────────────────────────────────────────────────
 
-    async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
-        brand_kit = await load_brand_kit(user_id)
+    async def build_system_prompt(
+        self,
+        user_id: str,
+        organization_id: str = "",
+        extra_context: str | None = None,
+    ) -> str:
+        brand_kit = await load_brand_kit(organization_id)
         prompt = (
             f"You are {self.name}, {self.personality}.\n\n"
             f"Company: {brand_kit.company_name}\n"
@@ -75,7 +86,7 @@ class BaseAgent(ABC):
 
     async def chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
         """Full pipeline: brand_kit -> RAG -> prompt -> stream LLM."""
-        system_prompt = await self.build_system_prompt(request.user_id)
+        system_prompt = await self.build_system_prompt(request.user_id, request.organization_id)
 
         # RAG retrieval
         rag_chunks = await self.rag.retrieve(
@@ -138,7 +149,7 @@ class BaseAgent(ABC):
             return await self._chat_sync_no_tools(request)
 
         # Build system prompt with RAG
-        system_prompt = await self.build_system_prompt(request.user_id)
+        system_prompt = await self.build_system_prompt(request.user_id, request.organization_id)
 
         rag_chunks = await self.rag.retrieve(
             user_id=request.user_id,
@@ -195,9 +206,11 @@ class BaseAgent(ABC):
             async def _run_one(tc) -> str:
                 if tc.name == "ask_agent":
                     return await self._execute_cross_agent_call(
-                        tc.arguments, request.user_id
+                        tc.arguments, request.user_id, request.organization_id
                     )
-                return await self.execute_tool(tc.name, tc.arguments, request.user_id)
+                return await self.execute_tool(
+                    tc.name, tc.arguments, request.user_id, request.organization_id
+                )
 
             # return_exceptions=True: one failing tool returns its exception as a
             # value instead of cancelling sibling tasks. Order matches tool_calls.
@@ -258,7 +271,10 @@ class BaseAgent(ABC):
     # ── Cross-agent execution ───────────────────────────────────────────
 
     async def _execute_cross_agent_call(
-        self, arguments: dict, user_id: str
+        self,
+        arguments: dict,
+        user_id: str,
+        organization_id: str = "",
     ) -> str:
         """Execute a cross-agent call via the agent registry."""
         from agents.registry import get_agent
@@ -276,6 +292,7 @@ class BaseAgent(ABC):
         # Run target agent's full tool loop, but block further delegation via flag
         inner_request = ChatRequest(
             user_id=user_id,
+            organization_id=organization_id,
             conversation_id=f"cross-agent-{self.slug}-to-{target_slug}",
             message=question,
             history=[],

@@ -16,26 +16,32 @@ import { BrandKitSection } from "@/components/brain/BrandKitSection"
 import { Button as VqButton, PageHeader, FONT } from "@/components/veqiro/shared"
 
 // ─── Schema ────────────────────────────────────────────────────────────────────
+// Permissive — auto-save shouldn't punish in-progress edits. The strict
+// minimums live in lib/validation/brandKit.ts and are enforced by /finalize.
 
 const brainSchema = z.object({
-  company_name: z.string().min(1, "Company name is required"),
-  company_description: z.string(),
-  website_url: z.string(),
+  companyName: z.string().min(1, "Company name is required"),
+  companyDescription: z.string(),
+  websiteUrl: z.string(),
   industry: z.string(),
-  target_audience: z.string(),
-  brand_voice: z.string(),
-  platform_tones: z.object({
+  targetAudience: z.string(),
+  brandVoice: z.string(),
+  platformTones: z.object({
     twitter: z.string(),
     linkedin: z.string(),
     instagram: z.string(),
   }),
-  brand_colors: z.object({
+  brandColors: z.object({
     primary: z.string(),
     secondary: z.string(),
     accent: z.string(),
   }),
   competitors: z.array(z.object({ value: z.string() })),
-  key_differentiators: z.string(),
+  keyDifferentiators: z.string(),
+  logoUrl: z.string().nullable(),
+  logoKey: z.string().nullable(),
+  mascotUrl: z.string().nullable(),
+  mascotKey: z.string().nullable(),
 })
 
 type BrainFormValues = z.infer<typeof brainSchema>
@@ -43,36 +49,44 @@ type BrainFormValues = z.infer<typeof brainSchema>
 // ─── Default Values ────────────────────────────────────────────────────────────
 
 const DEFAULT_VALUES: BrainFormValues = {
-  company_name: "",
-  company_description: "",
-  website_url: "",
+  companyName: "",
+  companyDescription: "",
+  websiteUrl: "",
   industry: "",
-  target_audience: "",
-  brand_voice: "Professional",
-  platform_tones: { twitter: "", linkedin: "", instagram: "" },
-  brand_colors: { primary: "#000000", secondary: "#ffffff", accent: "#888888" },
+  targetAudience: "",
+  brandVoice: "Professional",
+  platformTones: { twitter: "", linkedin: "", instagram: "" },
+  brandColors: { primary: "#000000", secondary: "#ffffff", accent: "#888888" },
   competitors: [],
-  key_differentiators: "",
+  keyDifferentiators: "",
+  logoUrl: null,
+  logoKey: null,
+  mascotUrl: null,
+  mascotKey: null,
 }
 
 const LOCAL_KEY = "veqiro.brandKitLocal"
 
 function brandKitToForm(kit: BrandKit): BrainFormValues {
   return {
-    company_name: kit.company_name ?? "",
-    company_description: kit.company_description ?? "",
-    website_url: kit.website_url ?? "",
+    companyName: kit.companyName ?? "",
+    companyDescription: kit.companyDescription ?? "",
+    websiteUrl: kit.websiteUrl ?? "",
     industry: kit.industry ?? "",
-    target_audience: kit.target_audience ?? "",
-    brand_voice: kit.brand_voice ?? "Professional",
-    platform_tones: kit.platform_tones ?? { twitter: "", linkedin: "", instagram: "" },
-    brand_colors: kit.brand_colors ?? {
+    targetAudience: kit.targetAudience ?? "",
+    brandVoice: kit.brandVoice ?? "Professional",
+    platformTones: kit.platformTones ?? { twitter: "", linkedin: "", instagram: "" },
+    brandColors: kit.brandColors ?? {
       primary: "#000000",
       secondary: "#ffffff",
       accent: "#888888",
     },
     competitors: (kit.competitors ?? []).map((c) => ({ value: c })),
-    key_differentiators: kit.key_differentiators ?? "",
+    keyDifferentiators: kit.keyDifferentiators ?? "",
+    logoUrl: kit.logoUrl ?? null,
+    logoKey: kit.logoKey ?? null,
+    mascotUrl: kit.mascotUrl ?? null,
+    mascotKey: kit.mascotKey ?? null,
   }
 }
 
@@ -125,6 +139,8 @@ export default function BrainPage() {
     handleSubmit,
     reset,
     getValues,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<BrainFormValues>({
     resolver: zodResolver(brainSchema),
@@ -139,7 +155,7 @@ export default function BrainPage() {
   useEffect(() => {
     if (!organizationId || kitPending || hydrated) return
 
-    if (kit && kit.company_name?.trim()) {
+    if (kit && kit.companyName?.trim()) {
       reset(brandKitToForm(kit))
       setBackendUnavailable(false)
       setIsEmpty(false)
@@ -149,7 +165,7 @@ export default function BrainPage() {
         const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
         if (local) {
           const parsed = JSON.parse(local) as BrandKit
-          if (parsed.company_name?.trim()) {
+          if (parsed.companyName?.trim()) {
             reset(brandKitToForm(parsed))
             setIsEmpty(false)
           } else {
@@ -205,7 +221,7 @@ export default function BrainPage() {
           setHasPending(false)
           setLastSavedAt(Date.now())
         } else {
-          toast.error("Auto-save failed")
+          toast.error(result.message ?? "Auto-save failed")
         }
       } catch {
         toast.error("Auto-save failed")
@@ -228,7 +244,7 @@ export default function BrainPage() {
         setLastSavedAt(Date.now())
         toast.info("Backend offline — your changes are saved locally")
       } else {
-        toast.error("Failed to save brand kit")
+        toast.error(result.message ?? "Failed to save brand kit")
       }
     } catch {
       toast.error("Failed to save brand kit")
@@ -236,7 +252,7 @@ export default function BrainPage() {
   }
 
   const handleAutoFill = async () => {
-    const url = getValues("website_url")
+    const url = getValues("websiteUrl")
     if (!url) {
       toast.error("Enter a website URL first")
       return
@@ -255,8 +271,8 @@ export default function BrainPage() {
             ([, v]) => v !== undefined && v !== null && v !== ""
           )
         ),
-        brand_colors: scraped.brand_colors ?? current.brand_colors,
-        platform_tones: scraped.platform_tones ?? current.platform_tones,
+        brandColors: scraped.brandColors ?? current.brandColors,
+        platformTones: scraped.platformTones ?? current.platformTones,
         competitors: scraped.competitors
           ? scraped.competitors.map((c) => ({ value: c }))
           : current.competitors,
@@ -313,7 +329,7 @@ export default function BrainPage() {
             color: "#111",
           }}
         >
-          {"// Brand Kit storage isn't connected yet — your changes save locally and will sync when the backend ships."}
+          {"// Brand Kit storage isn't reachable — your changes save locally and will sync when the backend is back."}
         </div>
       )}
 
@@ -377,8 +393,11 @@ export default function BrainPage() {
         removeCompetitor={remove}
         scheduleAutoSave={scheduleAutoSave}
         getValues={getValues}
+        setValue={setValue}
+        watch={watch}
         scraping={scraping}
         onAutoFill={handleAutoFill}
+        organizationId={organizationId}
       />
 
       {/* Sticky Save Bar */}

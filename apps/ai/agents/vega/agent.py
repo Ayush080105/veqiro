@@ -52,8 +52,13 @@ class VegaAgent(BaseAgent):
 
     # ── System prompt ────────────────────────────────────────────────────
 
-    async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
-        base = await super().build_system_prompt(user_id, extra_context)
+    async def build_system_prompt(
+        self,
+        user_id: str,
+        organization_id: str = "",
+        extra_context: str | None = None,
+    ) -> str:
+        base = await super().build_system_prompt(user_id, organization_id, extra_context)
         vega_specific = (
             "\n\nAs Vega, you specialize in:\n"
             "- Email management: triage, prioritization, drafting replies in the founder's voice\n"
@@ -145,12 +150,18 @@ class VegaAgent(BaseAgent):
 
     # ── Tool Execution ────────────────────────────────────────────────────
 
-    async def execute_tool(self, name: str, arguments: dict, user_id: str) -> str:
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: dict,
+        user_id: str,
+        organization_id: str = "",
+    ) -> str:
         # Read-only Gmail/Calendar access for context; all writes become node_actions
         from agents.vega.gmail import list_unread, get_message
         from agents.vega.calendar import list_events, find_free_slots
 
-        system = await self.build_system_prompt(user_id)
+        system = await self.build_system_prompt(user_id, organization_id)
         token = self._google_token or "mock-token"
 
         if name == "process_inbox":

@@ -31,6 +31,7 @@ register_agent(_agent)
 
 class IdeationRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
     platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
     topic_hint: str = Field("", max_length=500)
     count: int = Field(3, ge=1, le=10)
@@ -73,6 +74,7 @@ class IdeationResponse(BaseModel):
 
 class DraftRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
     topic: str = Field(..., min_length=1, max_length=500)
     platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
     tone_override: str | None = Field(None, max_length=100)
@@ -124,6 +126,7 @@ class DraftResponse(BaseModel):
 
 class VariantRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
     original_content: str = Field(..., min_length=1, max_length=5000)
     original_platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
     target_platforms: list[str] = Field(["twitter", "instagram"], min_length=1, max_length=3)
@@ -159,6 +162,7 @@ class VariantResponse(BaseModel):
 
 class ReviseRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
     original_content: str = Field(..., min_length=1, max_length=5000)
     platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
     feedback: str = Field(..., min_length=1, max_length=1000)
@@ -272,7 +276,8 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
             try:
                 image = await generate_social_image(
                     request.topic_hint or "content ideas", request.platform,
-                    use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
+                    use_logo=request.use_logo, use_mascot=request.use_mascot,
+                    user_id=request.user_id, organization_id=request.organization_id,
                 )
             except Exception as _img_err:
                 logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
@@ -282,7 +287,7 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
             image=image,
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     prompt = (
         f"Generate {request.count} high-performing content ideas for {request.platform} about: {request.topic_hint}\n\n"
@@ -308,7 +313,8 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         try:
             image = await generate_social_image(
                 request.topic_hint or ideas[0].title if ideas else "content", request.platform,
-                use_logo=request.use_logo, use_mascot=request.use_mascot, user_id=request.user_id,
+                use_logo=request.use_logo, use_mascot=request.use_mascot,
+                user_id=request.user_id, organization_id=request.organization_id,
             )
         except Exception:
             pass
@@ -325,7 +331,7 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
 @router.post("/draft-content", response_model=DraftResponse, summary="Draft content piece")
 async def draft_content(request: DraftRequest) -> DraftResponse:
     """Draft a full content piece for a given platform and topic."""
-    brand_kit = await load_brand_kit(request.user_id)
+    brand_kit = await load_brand_kit(request.organization_id)
     tone = request.tone_override or get_platform_tone(brand_kit, request.platform)
 
     if settings.MOCK_MODE:
@@ -337,7 +343,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                     request.topic, request.platform,
                     aspect_ratio=request.image_aspect_ratio,
                     use_logo=request.use_logo, use_mascot=request.use_mascot,
-                    user_id=request.user_id,
+                    user_id=request.user_id, organization_id=request.organization_id,
                     context_hints=request.additional_context or "",
                     reference_urls=request.reference_images if request.use_reference else [],
                 )
@@ -352,7 +358,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         "twitter": "Under 280 characters total. One punchy sentence or short thread opener.",
         "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome. Hashtags at the end.",
     }
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     prompt = (
         f"Write a ready-to-publish {request.platform} post about this topic: {request.topic}\n"
         f"Tone: {tone}\n"
@@ -388,7 +394,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 request.topic, request.platform,
                 aspect_ratio=request.image_aspect_ratio,
                 use_logo=request.use_logo, use_mascot=request.use_mascot,
-                user_id=request.user_id,
+                user_id=request.user_id, organization_id=request.organization_id,
                 context_hints=request.additional_context or "",
                 reference_urls=request.reference_images if request.use_reference else [],
             )
@@ -434,8 +440,8 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
         return VariantResponse(variants=variants)
 
     import asyncio
-    brand_kit = await load_brand_kit(request.user_id)
-    system = await _agent.build_system_prompt(request.user_id)
+    brand_kit = await load_brand_kit(request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     website_line = f"Include this link where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
 
     async def _adapt(platform: str) -> tuple[ContentVariant, int]:
@@ -505,7 +511,7 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
         )
 
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     prompt = (
         f"Revise this {request.platform} content based on feedback:\n\nOriginal:\n{request.original_content}\n\n"
         f"Feedback: {request.feedback}\n"
@@ -531,6 +537,7 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
 
 class ImageRegenRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
     image_url: HttpUrl = Field(..., description="URL of the existing image to modify")
     prompt: str = Field(..., min_length=1, max_length=1000)
 
@@ -553,6 +560,7 @@ class ImageRegenResponse(BaseModel):
 
 class ContentRegenRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
     caption: str = Field(..., min_length=1, max_length=5000)
     prompt: str = Field(..., min_length=1, max_length=1000)
     platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
@@ -615,7 +623,7 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
             platform=request.platform,
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     prompt = (
         f"Revise this {request.platform} caption based on the instruction:\n\n"

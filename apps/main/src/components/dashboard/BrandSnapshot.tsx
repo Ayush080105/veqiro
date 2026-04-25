@@ -9,35 +9,35 @@ import { useBrandKit } from "@/lib/api/brain"
 import type { BrandKit } from "@/lib/types"
 
 type FieldKey =
-  | "company_name"
+  | "companyName"
   | "industry"
-  | "brand_voice"
-  | "target_audience"
+  | "brandVoice"
+  | "targetAudience"
   | "competitors"
-  | "key_differentiators"
-  | "website_url"
+  | "keyDifferentiators"
+  | "websiteUrl"
 
 const FIELD_LABELS: Record<FieldKey, string> = {
-  company_name: "name",
+  companyName: "name",
   industry: "industry",
-  brand_voice: "voice",
-  target_audience: "audience",
+  brandVoice: "voice",
+  targetAudience: "audience",
   competitors: "competitors",
-  key_differentiators: "differentiators",
-  website_url: "website",
+  keyDifferentiators: "differentiators",
+  websiteUrl: "website",
 }
 
 function filledFields(kit: BrandKit | null | undefined): FieldKey[] {
   if (!kit) return []
   const out: FieldKey[] = []
-  if (kit.company_name?.trim()) out.push("company_name")
+  if (kit.companyName?.trim()) out.push("companyName")
   if (kit.industry?.trim()) out.push("industry")
-  if (kit.brand_voice?.trim()) out.push("brand_voice")
-  if (kit.target_audience?.trim()) out.push("target_audience")
+  if (kit.brandVoice?.trim()) out.push("brandVoice")
+  if (kit.targetAudience?.trim()) out.push("targetAudience")
   if (Array.isArray(kit.competitors) && kit.competitors.length > 0)
     out.push("competitors")
-  if (kit.key_differentiators?.trim()) out.push("key_differentiators")
-  if (kit.website_url?.trim()) out.push("website_url")
+  if (kit.keyDifferentiators?.trim()) out.push("keyDifferentiators")
+  if (kit.websiteUrl?.trim()) out.push("websiteUrl")
   return out
 }
 
@@ -103,7 +103,7 @@ export function BrandSnapshot() {
     )
   }
 
-  const isEmpty = !kit || !kit.company_name?.trim()
+  const isEmpty = !kit || !kit.companyName?.trim()
 
   if (isEmpty) {
     return (
@@ -159,9 +159,9 @@ export function BrandSnapshot() {
   const pct = Math.round((filled.length / total) * 100)
   const missing = (Object.keys(FIELD_LABELS) as FieldKey[]).filter((k) => !filled.includes(k))
   const palette = [
-    kit!.brand_colors?.primary,
-    kit!.brand_colors?.secondary,
-    kit!.brand_colors?.accent,
+    kit!.brandColors?.primary,
+    kit!.brandColors?.secondary,
+    kit!.brandColors?.accent,
   ].filter(Boolean) as string[]
 
   return (
@@ -182,7 +182,7 @@ export function BrandSnapshot() {
               whiteSpace: "nowrap",
             }}
           >
-            {kit!.company_name}
+            {kit!.companyName}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
             {kit!.industry && (
@@ -202,7 +202,7 @@ export function BrandSnapshot() {
                 {kit!.industry}
               </span>
             )}
-            {kit!.brand_voice && (
+            {kit!.brandVoice && (
               <span
                 style={{
                   fontFamily: FONT.mono,
@@ -216,7 +216,7 @@ export function BrandSnapshot() {
                   color: "#111",
                 }}
               >
-                {kit!.brand_voice}
+                {kit!.brandVoice}
               </span>
             )}
           </div>

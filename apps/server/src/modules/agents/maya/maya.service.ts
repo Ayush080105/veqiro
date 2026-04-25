@@ -128,6 +128,7 @@ export const generateIdeas = async (
 
   const { data } = await aiService.post<IdeationResponse>("/ai/maya/generate-ideas", {
     user_id: userId,
+    organization_id: organizationId,
     platform: input.platform,
     topic_hint: input.topicHint,
     count: input.count,
@@ -164,6 +165,7 @@ export const draftContent = async (
 
   const { data } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
     user_id: userId,
+    organization_id: organizationId,
     topic: input.topic,
     platform: input.platform,
     tone_override: input.toneOverride,
@@ -202,6 +204,7 @@ export const generateVariants = async (
 
   const { data } = await aiService.post<VariantResponse>("/ai/maya/generate-variants", {
     user_id: userId,
+    organization_id: organizationId,
     original_content: input.originalContent,
     original_platform: input.originalPlatform,
     target_platforms: input.targetPlatforms,
@@ -240,6 +243,7 @@ export const revise = async (
 
   const { data } = await aiService.post<ReviseResponse>("/ai/maya/revise", {
     user_id: userId,
+    organization_id: organizationId,
     original_content: input.originalContent,
     platform: input.platform,
     feedback: input.feedback,
@@ -270,6 +274,7 @@ export const regenerateImage = async (
 
   const { data } = await aiService.post<ImageRegenResponse>("/ai/maya/regenerate-image", {
     user_id: userId,
+    organization_id: organizationId,
     image_url: input.imageUrl,
     prompt: input.prompt,
     platform: input.platform,
@@ -307,6 +312,7 @@ export const regenerateContent = async (
     "/ai/maya/regenerate-content",
     {
       user_id: userId,
+      organization_id: organizationId,
       caption: input.caption,
       prompt: input.prompt,
       platform: input.platform,

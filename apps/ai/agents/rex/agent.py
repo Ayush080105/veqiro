@@ -50,8 +50,13 @@ class RexAgent(BaseAgent):
 
     # ── System prompt ────────────────────────────────────────────────────
 
-    async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
-        base = await super().build_system_prompt(user_id, extra_context)
+    async def build_system_prompt(
+        self,
+        user_id: str,
+        organization_id: str = "",
+        extra_context: str | None = None,
+    ) -> str:
+        base = await super().build_system_prompt(user_id, organization_id, extra_context)
         rex_specific = (
             "\n\nAs Rex, you specialize in:\n"
             "- SaaS metrics: MRR, ARR, churn, LTV, CAC, NRR\n"
@@ -180,12 +185,18 @@ class RexAgent(BaseAgent):
 
     # ── Tool Execution ────────────────────────────────────────────────────
 
-    async def execute_tool(self, name: str, arguments: dict, user_id: str) -> str:
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: dict,
+        user_id: str,
+        organization_id: str = "",
+    ) -> str:
         from agents.rex.analytics import compute_anomalies, compute_health_indicator, compute_derived_metrics
         from agents.rex.forecasting import forecast_metric
         from core.models import DataPoint
 
-        system = await self.build_system_prompt(user_id)
+        system = await self.build_system_prompt(user_id, organization_id)
 
         if name == "analyze_metrics":
             try:

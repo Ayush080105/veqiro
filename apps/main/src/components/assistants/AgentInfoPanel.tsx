@@ -8,17 +8,17 @@ import { FONT } from "@/components/veqiro/shared"
 import type { AgentConfig, BrandKit } from "@/lib/types"
 
 function ContextBlock({ kit }: { kit: BrandKit | null }) {
-  if (!kit || !kit.company_name) return null
+  if (!kit || !kit.companyName) return null
   const swatches = [
-    kit.brand_colors?.primary,
-    kit.brand_colors?.secondary,
-    kit.brand_colors?.accent,
+    kit.brandColors?.primary,
+    kit.brandColors?.secondary,
+    kit.brandColors?.accent,
   ].filter(Boolean) as string[]
 
   const bits: { k: string; v: string }[] = []
-  if (kit.company_name) bits.push({ k: "brand", v: kit.company_name })
+  if (kit.companyName) bits.push({ k: "brand", v: kit.companyName })
   if (kit.industry) bits.push({ k: "industry", v: kit.industry })
-  if (kit.brand_voice) bits.push({ k: "voice", v: kit.brand_voice })
+  if (kit.brandVoice) bits.push({ k: "voice", v: kit.brandVoice })
 
   return (
     <div>

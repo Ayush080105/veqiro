@@ -26,6 +26,7 @@ register_agent(_agent)
 
 class IngestDocumentRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     document_name: str
     document_type: str = "nda"
     document_url: str
@@ -55,6 +56,7 @@ class IngestDocumentResponse(BaseModel):
 
 class AnalyzeContractRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     source_id: str
 
     model_config = ConfigDict(
@@ -125,6 +127,7 @@ class AnalyzeContractResponse(BaseModel):
 
 class QueryDocumentRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     source_id: str
     query: str
     top_k: int = 5
@@ -156,6 +159,7 @@ class QueryDocumentResponse(BaseModel):
 
 class DraftDocumentRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     document_type: str
     requirements: str
     jurisdiction: str = "United States (Delaware)"
@@ -184,6 +188,7 @@ class DraftDocumentResponse(BaseModel):
 
 class ExplainRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     text: str
     context: str | None = None
 
@@ -209,6 +214,7 @@ class ExplainResponse(BaseModel):
 
 class LegalResearchRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     query: str
     jurisdiction: str = "United States"
     legal_areas: list[str] = []
@@ -240,6 +246,7 @@ class LegalResearchResponse(BaseModel):
 
 class ComplianceCheckRequest(BaseModel):
     user_id: str
+    organization_id: str = ""
     description: str
     frameworks: list[str]
     business_context: str = ""
@@ -496,7 +503,7 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
 
     full_text = "\n\n".join(c.get("content", "") for c in chunks)
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider,
         model=_agent.default_model,
@@ -664,7 +671,7 @@ Date: ______________________           Date: ______________________
             disclaimer=LEGAL_DISCLAIMER,
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -716,7 +723,7 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
             ],
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -785,7 +792,7 @@ async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse
             disclaimer=LEGAL_DISCLAIMER,
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -866,7 +873,7 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
             disclaimer=LEGAL_DISCLAIMER,
         )
 
-    system = await _agent.build_system_prompt(request.user_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
