@@ -517,7 +517,9 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
         f"Feedback: {request.feedback}\n"
         f"Specific instructions: {request.specific_instructions or 'None'}\n\n"
         f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n\n"
-        "Return JSON with: revised (object with title, body, hashtags, cta), changes_made (list of strings). "
+        "Return JSON with: revised (object with title (string), body (string), "
+        "hashtags (array of strings, e.g. [\"#AI\", \"#Productivity\"]), cta (string)), "
+        "changes_made (array of strings). "
         "Return ONLY the JSON object, no markdown fences."
     )
     raw = await _llm.complete(

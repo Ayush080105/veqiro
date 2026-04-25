@@ -34,7 +34,8 @@
       "mcp__plugin_playwright_playwright__browser_close",
       "Bash(npx next *)",
       "Bash(grep -r \"load_brand_kit\\\\|brand_kit\\\\|BrandKit\" D:/Projects/veqiro/apps/ai/agents/ ! -path \"*/venv/*\" -n)",
-      "Bash(xargs tail *)"
+      "Bash(xargs tail *)",
+      "Bash(grep -v \"^/d/Coding/veqiro/apps$\")"
     ]
   },
   "enabledMcpjsonServers": [

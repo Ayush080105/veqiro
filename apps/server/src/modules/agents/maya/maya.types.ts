@@ -54,6 +54,8 @@ export interface IdeationResponse {
   ideas: ContentIdea[];
   generated_at: string;
   image?: ImageResult | null;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface DraftContent {
@@ -70,6 +72,8 @@ export interface DraftContent {
 export interface DraftResponse {
   draft: DraftContent;
   image?: ImageResult | null;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ContentVariant {
@@ -83,6 +87,8 @@ export interface ContentVariant {
 
 export interface VariantResponse {
   variants: ContentVariant[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface RevisedContent {
@@ -95,16 +101,22 @@ export interface RevisedContent {
 export interface ReviseResponse {
   revised: RevisedContent;
   changes_made: string[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ImageRegenResponse {
   image: ImageResult;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ContentRegenResponse {
   caption: string;
   hashtags: string[];
   cta: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface PublishResponse {

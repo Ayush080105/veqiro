@@ -72,7 +72,8 @@ export const sendMessage = async (
     SAGE_HISTORY_LIMIT
   );
   const { data } = await aiService.post<AssistantMessagePayload>("/ai/maya/chat", {
-    user_id: organizationId,
+    user_id: userId,
+    organization_id: organizationId,
     conversation_id: userMessage.id,
     message: input.content,
     history,
@@ -144,6 +145,8 @@ export const generateIdeas = async (
     userId,
     content: `${data.ideas.length} ideas generated for ${input.platform}`,
     imageUrl: hostedImage?.image_url,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { tool: "generate-ideas", output: result },
   });
 
@@ -183,6 +186,8 @@ export const draftContent = async (
     userId,
     content: `${data.draft.platform} draft (${data.draft.word_count} words): ${data.draft.title}`,
     imageUrl: hostedImage?.image_url,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { tool: "draft-content", output: result },
   });
 
@@ -216,12 +221,18 @@ export const generateVariants = async (
       image: await hostImage(organizationId, v.image),
     }))
   );
-  const result: VariantResponse = { variants: hostedVariants };
+  const result: VariantResponse = {
+    variants: hostedVariants,
+    tokens_used: data.tokens_used,
+    model_used: data.model_used,
+  };
 
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: `${data.variants.length} variants generated`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { tool: "generate-variants", output: result },
   });
 
@@ -253,6 +264,8 @@ export const revise = async (
     organizationId,
     userId,
     content: `Revision complete: ${data.changes_made.length} changes applied`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { tool: "revise", output: data },
   });
 
@@ -282,13 +295,19 @@ export const regenerateImage = async (
   });
 
   const hosted = await hostImage(organizationId, data.image);
-  const result: ImageRegenResponse = { image: hosted ?? data.image };
+  const result: ImageRegenResponse = {
+    image: hosted ?? data.image,
+    tokens_used: data.tokens_used,
+    model_used: data.model_used,
+  };
 
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: "Image regenerated",
     imageUrl: result.image.image_url,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { tool: "regenerate-image", output: result },
   });
 
@@ -322,6 +341,8 @@ export const regenerateContent = async (
     organizationId,
     userId,
     content: "Caption refreshed",
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { tool: "regenerate-content", output: data },
   });
 
