@@ -43,6 +43,7 @@ const hostImage = async (
   try {
     const { url } = await uploadImageBase64({
       organizationId,
+      name: "maya",
       base64: image.image_base64,
       contentType: image.content_type,
     });
@@ -85,6 +86,7 @@ export const sendMessage = async (
     try {
       const upload = await uploadImageBase64({
         organizationId,
+        name: "maya",
         base64: data.image.image_base64,
         contentType: data.image.content_type,
       });
@@ -374,8 +376,8 @@ export const publish = async (
     }
     const uploaded = await uploadImageBase64({
       organizationId,
+      name: "maya-publish",
       base64: input.imageBase64,
-      prefix: "maya/publish",
     });
     imageUrl = uploaded.url;
   }

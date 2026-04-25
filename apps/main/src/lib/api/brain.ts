@@ -65,26 +65,42 @@ export async function saveBrandKit(
 
 // ─── FINALIZE BRAIN (strict — sets onboarded=true) ────────────────────────────
 // POST /api/v1/brand-kit/finalize — strict validation, marks org onboarded.
+// Wrapped with a 30s timeout and one transparent retry on transport failure
+// (timeout, network drop, 5xx). Validation errors (4xx) do NOT retry.
 export type FinalizeResult =
   | { ok: true; kit: BrandKit }
   | { ok: false; fieldErrors?: Record<string, string>; message?: string }
 
-export async function finalizeBrandKit(
-  organizationId: string,
+const FINALIZE_TIMEOUT_MS = 30_000
+
+async function finalizeOnce(
+  _organizationId: string,
   data: Partial<BrandKit>,
-): Promise<FinalizeResult> {
+  signal: AbortSignal,
+): Promise<
+  | { kind: "ok"; kit: BrandKit }
+  | { kind: "validation"; fieldErrors: Record<string, string>; message: string }
+  | { kind: "transport"; status?: number; message: string }
+> {
   try {
+    // Server reads organizationId from the session — do NOT send it in the
+    // body. finalizeBrandKitSchema is .strict() and would reject any extra key.
     const res = await fetch(`${API_URL}/brand-kit/finalize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ ...data, organizationId }),
+      body: JSON.stringify(data),
+      signal,
     })
     if (res.ok) {
       const kit = (await res.json()) as BrandKit
-      return { ok: true, kit }
+      return { kind: "ok", kit }
     }
-    // Try to surface zod field errors so the form can highlight them.
+    if (res.status >= 500) {
+      const message = await res.text().catch(() => `Save failed (${res.status})`)
+      return { kind: "transport", status: res.status, message }
+    }
+    // 4xx — validation. Do NOT retry; surface field errors.
     try {
       const payload = (await res.json()) as {
         message?: string
@@ -96,23 +112,52 @@ export async function finalizeBrandKit(
         if (key && e.message) fieldErrors[key] = e.message
       }
       return {
-        ok: false,
+        kind: "validation",
         fieldErrors,
         message: payload.message ?? "Validation failed",
       }
     } catch {
-      return { ok: false, message: `Save failed (${res.status})` }
+      return { kind: "transport", status: res.status, message: `Save failed (${res.status})` }
     }
   } catch (err) {
+    if ((err as { name?: string })?.name === "AbortError") {
+      return { kind: "transport", message: "Request timed out" }
+    }
     return {
-      ok: false,
+      kind: "transport",
       message: err instanceof Error ? err.message : "Network error",
     }
   }
 }
 
+export async function finalizeBrandKit(
+  organizationId: string,
+  data: Partial<BrandKit>,
+): Promise<FinalizeResult> {
+  // Up to 2 attempts (1 retry) on transport-only failures.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const ac = new AbortController()
+    const timer = setTimeout(() => ac.abort(), FINALIZE_TIMEOUT_MS)
+    const result = await finalizeOnce(organizationId, data, ac.signal)
+    clearTimeout(timer)
+
+    if (result.kind === "ok") return { ok: true, kit: result.kit }
+    if (result.kind === "validation") {
+      return { ok: false, fieldErrors: result.fieldErrors, message: result.message }
+    }
+    // Transport failure — retry once, then give up with the last message.
+    if (attempt === 2) {
+      return { ok: false, message: result.message }
+    }
+  }
+  // Unreachable, satisfies TS.
+  return { ok: false, message: "Network error" }
+}
+
 // ─── ASSET UPLOAD ─────────────────────────────────────────────────────────────
-// POST /api/v1/brand-kit/upload-asset — base64-JSON upload to R2.
+// Direct-to-R2: presign → PUT to R2 → finalize on server.
+import { uploadToR2 } from "@/lib/api/uploads"
+
 export type UploadKind = "logo" | "mascot"
 
 export type UploadAssetResult =
@@ -123,21 +168,28 @@ export async function uploadBrandAsset(
   kind: UploadKind,
   file: File,
 ): Promise<UploadAssetResult> {
+  const uploaded = await uploadToR2(kind, file)
+  if (!uploaded.ok) return { ok: false, message: uploaded.message }
+
   try {
-    const base64 = await fileToBase64(file)
-    const res = await fetch(`${API_URL}/brand-kit/upload-asset`, {
+    const res = await fetch(`${API_URL}/brand-kit/upload-asset/finalize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({
         kind,
-        filename: file.name,
-        contentType: file.type,
-        base64,
+        key: uploaded.key,
+        url: uploaded.publicUrl,
       }),
     })
     if (!res.ok) {
-      const message = await res.text().catch(() => "Upload failed")
+      let message = "Upload failed"
+      try {
+        const j = (await res.json()) as { message?: string }
+        if (j.message) message = j.message
+      } catch {
+        /* ignore */
+      }
       return { ok: false, message }
     }
     const data = (await res.json()) as {
@@ -174,23 +226,6 @@ export async function removeBrandAsset(
       message: err instanceof Error ? err.message : "Network error",
     }
   }
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result
-      if (typeof result === "string") {
-        // Strip the "data:<mime>;base64," prefix.
-        resolve(result.replace(/^data:[^;]+;base64,/, ""))
-      } else {
-        reject(new Error("Unexpected reader result"))
-      }
-    }
-    reader.onerror = () => reject(reader.error ?? new Error("Read failed"))
-    reader.readAsDataURL(file)
-  })
 }
 
 // ─── AUTO-FILL FROM URL ───────────────────────────────────────────────────────

@@ -29,7 +29,7 @@ import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-ta
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"

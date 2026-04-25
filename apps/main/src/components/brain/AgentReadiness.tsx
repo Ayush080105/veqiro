@@ -4,7 +4,7 @@ import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
 import { AGENTS } from "@/lib/config/agents"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 
 interface AgentReadinessProps {
   values: BrainFormValues

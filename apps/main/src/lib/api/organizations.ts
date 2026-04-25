@@ -11,12 +11,18 @@ export type CreateOrganizationResult =
   | { ok: false; code: 'slug_taken' | 'not_allowed' | 'unknown'; message: string };
 
 export function slugify(name: string): string {
-  return name
+  const base = name
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
+    .slice(0, 35);
+
+  const root = base || 'workspace';
+  const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  return `${root}-${suffix}`;
 }
 
 export async function createOrganization(input: CreateOrganizationInput): Promise<CreateOrganizationResult> {

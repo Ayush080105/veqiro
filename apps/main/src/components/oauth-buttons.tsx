@@ -4,7 +4,7 @@ import { signIn } from "@/lib/auth-client";
 import Image from "next/image";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { FONT } from "@/components/veqiro/shared";
+import { FONT } from "@/lib/fonts";
 
 export default function OAuthButtons({
   callbackURL = "/onboarding",

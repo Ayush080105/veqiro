@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   msgLex,
   getLexMessages,
-  uploadSource,
+  finalizeSource,
   listSources,
   deleteSource,
   analyzeContract,
@@ -12,13 +12,15 @@ import {
   complianceCheck,
   queryDocument,
 } from "./lex.controller.js";
-import { uploadPdf } from "../../../middlewares/uploadPdf.middleware.js";
 
 const router = Router();
 
 router.post("/chat", msgLex);
 router.get("/chat", getLexMessages);
-router.post("/sources/upload", uploadPdf.single("file"), uploadSource);
+// Client uploads the PDF directly to R2 via a presigned URL (POST /uploads/presign),
+// then calls this endpoint with { key, url, documentName, documentType } to verify
+// and trigger ingestion.
+router.post("/sources/finalize", finalizeSource);
 router.get("/sources", listSources);
 router.delete("/sources/:id", deleteSource);
 router.post("/analyze-contract", analyzeContract);

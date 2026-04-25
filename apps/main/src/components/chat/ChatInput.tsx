@@ -5,7 +5,7 @@ import { Plus, Send, Paperclip, HelpCircle } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import {
   chatMessageSchema,
   type ChatMessageValues,

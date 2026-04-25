@@ -9,7 +9,7 @@ import { authClient } from "@/lib/auth-client"
 import { AGENTS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import type {
   AgentStatusData,
   AgentConfig,
