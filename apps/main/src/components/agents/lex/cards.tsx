@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import type {
-  LexIngestDocumentResult,
+  LexUploadSourceResult,
   LexAnalyzeContractResult,
+  LexQueryDocumentResult,
   LexDraftDocumentResult,
   LexExplainResult,
   LexLegalResearchResult,
@@ -51,29 +52,40 @@ function sev(level: "low" | "medium" | "high") {
       : "bg-muted text-muted-foreground border-border"
 }
 
-// ─── Ingest card ─────────────────────────────────────────────────────────────
+// ─── Upload-source card ──────────────────────────────────────────────────────
 
-export function DocumentIngestCard({ result }: { result: LexIngestDocumentResult }) {
+export function DocumentIngestCard({ result }: { result: LexUploadSourceResult }) {
   return (
     <Card className="gap-3 p-3">
       <div className="flex items-center gap-2">
         <FileText className="size-3.5 text-muted-foreground" />
-        <p className="text-xs font-medium">Document ingested</p>
+        <p className="text-xs font-medium">Document uploaded</p>
         <Badge variant="secondary" className="ml-auto text-[10px]">
-          {result.page_count} pages · {result.chunks_created} chunks
+          {result.pageCount} pages · {result.chunksCreated} chunks
         </Badge>
       </div>
+      <p className="text-[11px] font-medium">{result.name}</p>
       <div className="flex flex-wrap items-center gap-1.5">
-        <Badge variant="outline" className="text-[10px]">
-          type: {result.document_type_detected}
-        </Badge>
+        {result.typeDetected && (
+          <Badge variant="outline" className="text-[10px]">
+            type: {result.typeDetected}
+          </Badge>
+        )}
         <Badge
           variant="outline"
           className="text-[10px] font-mono cursor-pointer"
-          onClick={() => copy(result.source_id, "Source ID copied")}
+          onClick={() => copy(result.sourceId, "Source ID copied")}
         >
-          {result.source_id}
+          {result.sourceId}
         </Badge>
+        <a
+          href={result.r2Url}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto text-[10px] underline hover:no-underline"
+        >
+          Open PDF
+        </a>
       </div>
       <div>
         <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -81,19 +93,68 @@ export function DocumentIngestCard({ result }: { result: LexIngestDocumentResult
         </p>
         <p className="text-[11px] leading-relaxed">{result.summary}</p>
       </div>
-      {result.key_topics.length > 0 && (
+      {result.keyTopics.length > 0 && (
         <div>
           <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
             Key topics
           </p>
           <div className="flex flex-wrap gap-1">
-            {result.key_topics.map((t) => (
+            {result.keyTopics.map((t) => (
               <Badge key={t} variant="outline" className="text-[10px]">
                 {t}
               </Badge>
             ))}
           </div>
         </div>
+      )}
+    </Card>
+  )
+}
+
+// ─── Query-document card ─────────────────────────────────────────────────────
+
+export function QueryDocumentCard({ result }: { result: LexQueryDocumentResult }) {
+  return (
+    <Card className="gap-3 p-3">
+      <div className="flex items-center gap-2">
+        <FileSearch className="size-3.5 text-muted-foreground" />
+        <p className="text-xs font-medium">Document answer</p>
+        {typeof result.tokens_used === "number" && (
+          <Badge variant="secondary" className="ml-auto text-[10px]">
+            {result.tokens_used} tokens
+          </Badge>
+        )}
+      </div>
+      <p className="whitespace-pre-wrap text-[11px] leading-relaxed">
+        {result.answer}
+      </p>
+      {result.sources.length > 0 && (
+        <Collapsible>
+          <CollapsibleTrigger className="text-[10px] font-medium text-muted-foreground hover:text-foreground">
+            Show {result.sources.length} source chunk
+            {result.sources.length === 1 ? "" : "s"}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-1 flex flex-col gap-1">
+              {result.sources.map((s, i) => (
+                <div
+                  key={i}
+                  className="border border-border bg-muted/20 p-2 text-[11px] leading-relaxed"
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      chunk {i + 1}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      relevance {s.score.toFixed(2)}
+                    </Badge>
+                  </div>
+                  <p className="whitespace-pre-wrap">{s.content}</p>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </Card>
   )
@@ -220,7 +281,7 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "lex-draft.txt"
+    a.download = "lex-draft.md"
     a.click()
     URL.revokeObjectURL(url)
   }

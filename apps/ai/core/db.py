@@ -1,6 +1,18 @@
 from typing import AsyncGenerator
 from core.config import settings
 
+_pool = None
+
+
+async def get_pool():
+    """Return a shared asyncpg connection pool, creating it on first call."""
+    global _pool
+    if _pool is None:
+        import asyncpg
+        dsn = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+        _pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
+    return _pool
+
 
 async def get_db():
     """FastAPI dependency for async DB session.
@@ -23,13 +35,8 @@ async def get_db():
 
 
 async def fetch_one(query: str, *args) -> dict | None:
-    """Run a raw SQL query and return one row as dict, or None.
-    Uses a short-lived asyncpg connection (no ORM overhead)."""
-    import asyncpg
-    dsn = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
-    conn = await asyncpg.connect(dsn)
-    try:
+    """Run a raw SQL query and return one row as dict, or None."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
         row = await conn.fetchrow(query, *args)
         return dict(row) if row else None
-    finally:
-        await conn.close()

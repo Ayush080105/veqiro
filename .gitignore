@@ -33,6 +33,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Worktrees
+.worktrees/
+
 # Misc
 .DS_Store
 *.pem
@@ -45,3 +48,6 @@ __pycache__
 
 #packages
 packages/transactional/.react-email/
+
+# Video assets (large files, added locally before rendering)
+apps/video/public/music.mp3

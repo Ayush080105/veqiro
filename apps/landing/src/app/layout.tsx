@@ -2,14 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Bagel_Fat_One, Archivo_Black, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { SITE_URL, SITE_KEYWORDS } from "@/lib/seo";
+import { JsonLd } from "@/components/veqiro/json-ld";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 
 const bagelFatOne = Bagel_Fat_One({ weight: "400", subsets: ["latin"], variable: "--font-bagel" });
 const archivoBl = Archivo_Black({ weight: "400", subsets: ["latin"], variable: "--font-archivo" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
-
-const SITE_URL =
-  process.env.NEXT_PUBLIC_LANDING_URL || "https://veqiro.com";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -24,15 +24,18 @@ export const metadata: Metadata = {
     template: "%s · Veqiro",
   },
   description:
-    "Veqiro is a crew of AI employees with real jobs, real personalities, and zero chill. They do the work. You take the credit.",
-  keywords: [
-    "AI employees",
-    "AI workforce",
-    "AI agents",
-    "AI for startups",
-    "autonomous agents",
-    "veqiro",
-  ],
+    "Veqiro gives you six AI employees — an exec assistant, SEO, content, research, legal, and finance — for $39/mo. Hire your AI crew today.",
+  keywords: SITE_KEYWORDS,
+  authors: [{ name: "Veqiro" }],
+  creator: "Veqiro",
+  publisher: "Veqiro",
+  category: "Technology",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-32x32.png",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/site.webmanifest",
   openGraph: {
     type: "website",
     url: SITE_URL,
@@ -56,9 +59,6 @@ export const metadata: Metadata = {
       "AI employees with real jobs, real personalities, and zero chill.",
     images: ["/og-image.png"],
   },
-  alternates: {
-    canonical: SITE_URL,
-  },
   robots: {
     index: true,
     follow: true,
@@ -81,7 +81,10 @@ export default function RootLayout({
         spaceGrotesk.variable,
       )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+        {children}
+      </body>
     </html>
   );
 }

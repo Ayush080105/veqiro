@@ -43,23 +43,9 @@ class ScoutAgent(BaseAgent):
         )
 
     async def build_system_prompt(self, user_id: str, extra_context: str | None = None) -> str:
-        from core.brand_kit import load_brand_kit
-        brand_kit = await load_brand_kit(user_id)
-
         prompt = (
             f"You are Scout, {self.personality}\n\n"
-            f"You are researching on behalf of: **{brand_kit.company_name}**\n"
-            f"Industry: {brand_kit.industry}\n"
-            f"Target Audience: {brand_kit.target_audience}\n"
-            f"Key Differentiators: {brand_kit.key_differentiators}\n"
-        )
-        if brand_kit.competitors:
-            prompt += f"Known Competitors: {', '.join(str(c) for c in brand_kit.competitors)}\n"
-        if brand_kit.website_url:
-            prompt += f"Founder's Website: {brand_kit.website_url}\n"
-
-        prompt += (
-            "\n## Research Principles\n"
+            "## Research Principles\n"
             "1. Always separate facts (verified) from inferences (likely) from speculation (possible)\n"
             "2. Rate source reliability and recency\n"
             "3. Identify strategic implications for the founder's specific business, not just raw information\n"

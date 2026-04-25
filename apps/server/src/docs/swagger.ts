@@ -30,12 +30,12 @@ import {
 } from "../modules/agents/maya/maya.schema.js";
 import {
   sendMessageSchema as lexSendMessageSchema,
-  ingestDocumentSchema,
   analyzeContractSchema,
   draftDocumentSchema,
   explainSchema,
   legalResearchSchema,
   complianceCheckSchema,
+  queryDocumentSchema,
 } from "../modules/agents/lex/lex.schema.js";
 import {
   sendMessageSchema as vegaSendMessageSchema,
@@ -1021,13 +1021,32 @@ const integrationsCallbackGet: ZodOpenApiOperationObject = {
 
 // ── Lex response schemas (doc-only) ────────────────────────────────────────
 
-const ingestDocumentResponseSchema = z.object({
-  source_id: z.string(),
-  chunks_created: z.number().int(),
-  page_count: z.number().int(),
+const sourceDtoSchema = z.object({
+  id: z.string(),
+  sourceId: z.string(),
+  name: z.string(),
+  type: z.string(),
+  typeDetected: z.string().nullable(),
+  r2Url: z.string(),
+  sizeBytes: z.number().int(),
+  pageCount: z.number().int(),
+  chunksCreated: z.number().int(),
   summary: z.string(),
-  key_topics: z.array(z.string()),
-  document_type_detected: z.string(),
+  keyTopics: z.array(z.string()),
+  createdAt: z.string(),
+});
+
+const queryDocumentResponseSchema = z.object({
+  answer: z.string(),
+  sources: z.array(
+    z.object({
+      content: z.string(),
+      score: z.number(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
+    })
+  ),
+  tokens_used: z.number().int().optional(),
+  model_used: z.string().optional(),
 });
 
 const contractRiskSchema = z.object({
@@ -1169,30 +1188,90 @@ const lexChatGet: ZodOpenApiOperationObject = {
   },
 };
 
-const lexIngestDocumentPost: ZodOpenApiOperationObject = {
-  operationId: "lexIngestDocument",
-  summary: "Ingest a legal document (PDF)",
+const lexUploadSourcePost: ZodOpenApiOperationObject = {
+  operationId: "lexUploadSource",
+  summary: "Upload a legal document (PDF)",
   description:
-    "Uploads a PDF (base64) to Lex's RAG store. Returns a `source_id` that can be passed to `/analyze-contract` to analyze the full document without re-sending the bytes.",
+    "Uploads a PDF via multipart form data. The server stores the file in R2, calls Lex's RAG ingestion, and persists a Source row. Returns the Source DTO with `sourceId`, `r2Url`, summary, and key topics.",
+  tags: ["Lex"],
+  requestBody: {
+    required: true,
+    content: {
+      "multipart/form-data": {
+        schema: z.object({
+          file: z.string().meta({ format: "binary", description: "PDF file" }),
+          documentName: z.string().min(1).max(200),
+          documentType: z.string().max(100).optional(),
+        }),
+      },
+    },
+  },
+  responses: {
+    "200": {
+      description: "Source DTO",
+      content: { "application/json": { schema: sourceDtoSchema } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexListSourcesGet: ZodOpenApiOperationObject = {
+  operationId: "lexListSources",
+  summary: "List uploaded Lex documents",
+  tags: ["Lex"],
+  responses: {
+    "200": {
+      description: "Array of Source DTOs ordered newest first",
+      content: { "application/json": { schema: z.array(sourceDtoSchema) } },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexDeleteSourceOp: ZodOpenApiOperationObject = {
+  operationId: "lexDeleteSource",
+  summary: "Delete an uploaded Lex document",
+  tags: ["Lex"],
+  requestParams: {
+    path: z.object({
+      id: z.string().meta({ description: "The Source row id (uuid)" }),
+    }),
+  },
+  responses: {
+    "200": {
+      description: "Confirmation of deletion",
+      content: {
+        "application/json": { schema: z.object({ deleted: z.literal(true) }) },
+      },
+    },
+    ...errorResponses,
+  },
+};
+
+const lexQueryDocumentPost: ZodOpenApiOperationObject = {
+  operationId: "lexQueryDocument",
+  summary: "Ask a question about an uploaded document",
+  description:
+    "Vector-similarity-retrieves chunks of an uploaded document filtered by `sourceId`, then asks the LLM to answer the user's question with chunk-level citations.",
   tags: ["Lex"],
   requestBody: {
     required: true,
     content: {
       "application/json": {
-        schema: withInternalIdentity(ingestDocumentSchema),
+        schema: withInternalIdentity(queryDocumentSchema),
         example: {
           ...IDENTITY_EXAMPLE,
-          documentName: "Acme Corp NDA 2025",
-          documentType: "nda",
-          pdfBase64: "JVBERi0xLjQK... (base64 PDF bytes)",
+          sourceId: "doc_abc123",
+          query: "What are the termination conditions?",
+          topK: 5,
         },
       },
     },
   },
   responses: {
     "200": {
-      description: "Ingested document metadata",
-      content: { "application/json": { schema: ingestDocumentResponseSchema } },
+      description: "Answer with cited source chunks",
+      content: { "application/json": { schema: queryDocumentResponseSchema } },
     },
     ...errorResponses,
   },
@@ -1738,8 +1817,11 @@ export const openApiDocument = createDocument({
     "/api/v1/agents/maya/regenerate-content": { post: mayaRegenerateContentPost },
     "/api/v1/agents/maya/publish": { post: mayaPublishPost },
     "/api/v1/agents/lex/chat": lexChatPath,
-    "/api/v1/agents/lex/ingest-document": { post: lexIngestDocumentPost },
+    "/api/v1/agents/lex/sources/upload": { post: lexUploadSourcePost },
+    "/api/v1/agents/lex/sources": { get: lexListSourcesGet },
+    "/api/v1/agents/lex/sources/{id}": { delete: lexDeleteSourceOp },
     "/api/v1/agents/lex/analyze-contract": { post: lexAnalyzeContractPost },
+    "/api/v1/agents/lex/query-document": { post: lexQueryDocumentPost },
     "/api/v1/agents/lex/draft-document": { post: lexDraftDocumentPost },
     "/api/v1/agents/lex/explain": { post: lexExplainPost },
     "/api/v1/agents/lex/legal-research": { post: lexLegalResearchPost },

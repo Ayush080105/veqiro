@@ -7,4 +7,5 @@ export const qk = {
   chat: (agentSlug: string, organizationId: string) =>
     ["chat", agentSlug, organizationId] as const,
   googleConnected: () => ["auth-accounts", "google"] as const,
+  lexSources: () => ["lex", "sources"] as const,
 }

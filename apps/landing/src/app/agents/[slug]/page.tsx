@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { EMPLOYEES } from '@/components/veqiro/data';
 import { AgentPage } from '@/components/veqiro/agent-page';
 import { Footer } from '@/components/veqiro/sections';
+import { buildPageMetadata, AGENT_META } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -15,15 +16,16 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const employee = EMPLOYEES.find(e => e.key === slug);
-  if (!employee) return {};
-  return {
-    title: `${employee.name} — ${employee.role} | Veqiro`,
-    description: employee.description,
-    openGraph: {
-      title: `Meet ${employee.name}, your AI ${employee.role}`,
-      description: employee.description,
-    },
-  };
+  const agentMeta = AGENT_META[slug];
+  if (!employee || !agentMeta) return {};
+  return buildPageMetadata({
+    title: `${employee.name} — ${agentMeta.seoTitleSuffix}`,
+    description: agentMeta.metaDescription,
+    path: `/agents/${slug}`,
+    ogImage: `/og/${slug}.png`,
+    ogImageAlt: `${employee.name}, Veqiro's AI ${employee.role}`,
+    keywords: agentMeta.keywords,
+  });
 }
 
 export default async function AgentSlugPage({ params }: Props) {

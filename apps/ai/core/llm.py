@@ -5,15 +5,42 @@ from typing import AsyncGenerator
 from core.config import settings
 from core.exceptions import LLMError
 from core.tools import (
-    ToolDefinition, ToolCall, ToolResult, LLMToolResponse,
+    ToolDefinition, ToolCall, LLMToolResponse,
     tool_defs_to_openai, tool_defs_to_gemini,
-    format_tool_result_messages,
 )
 
 # Provider + model constants
-GEMINI_FLASH = ("gemini", "gemini-2.0-flash")
+GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
 GPT4O_MINI = ("openai", "gpt-4o-mini")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
+
+def _aspect_ratio_hint(aspect_ratio: str) -> str:
+    return {
+        "1:1":  "square (1:1 aspect ratio)",
+        "16:9": "landscape widescreen (16:9 aspect ratio)",
+        "9:16": "portrait vertical (9:16 aspect ratio)",
+        "4:3":  "landscape standard (4:3 aspect ratio)",
+    }.get(aspect_ratio, "square (1:1 aspect ratio)")
+
+
+
+def _pad_to_square(data: bytes) -> bytes:
+    """Add white padding to make an image square without stretching."""
+    import io
+    from PIL import Image
+    img = Image.open(io.BytesIO(data)).convert("RGBA")
+    w, h = img.size
+    if w == h:
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+    size = max(w, h)
+    canvas = Image.new("RGBA", (size, size), (255, 255, 255, 255))
+    canvas.paste(img, ((size - w) // 2, (size - h) // 2))
+    buf = io.BytesIO()
+    canvas.save(buf, format="PNG")
+    return buf.getvalue()
+
 
 # A minimal 1x1 red PNG in base64
 _RED_PNG_B64 = (
@@ -450,59 +477,91 @@ class LLMClient:
         )
 
     async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
-        """Returns base64-encoded PNG string via Gemini Flash image generation."""
+        """Text-to-image via Gemini. Returns base64 PNG."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return _RED_PNG_B64
+        import base64 as _base64
         from google import genai
         from google.genai import types
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        full_prompt = f"{prompt}\n\nOutput image dimensions: {_aspect_ratio_hint(aspect_ratio)}."
         response = await client.aio.models.generate_content(
             model="gemini-2.5-flash-image",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-            ),
+            contents=full_prompt,
+            config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
         )
         for part in response.candidates[0].content.parts:
-            if part.inline_data and part.inline_data.mime_type.startswith("image"):
-                return base64.b64encode(part.inline_data.data).decode()
-        raise RuntimeError("No image returned by model")
+            if part.inline_data is not None:
+                return _base64.b64encode(part.inline_data.data).decode()
+        raise LLMError("Gemini returned no image data")
 
     async def generate_image_with_reference(
         self, prompt: str, reference_image_b64: str, aspect_ratio: str = "1:1"
     ) -> str:
-        """Gemini image generation with a single reference image."""
-        return await self.generate_image_with_references(prompt, [reference_image_b64], aspect_ratio)
+        """Image generation with a single base64 reference image."""
+        return await self.generate_image_with_image_bytes(
+            prompt, [base64.b64decode(reference_image_b64)], aspect_ratio
+        )
 
     async def generate_image_with_references(
         self, prompt: str, reference_images_b64: list[str], aspect_ratio: str = "1:1"
     ) -> str:
-        """Gemini image generation with reference images (mascot, logo, etc.)."""
+        """Image generation with multiple base64 reference images."""
+        return await self.generate_image_with_image_bytes(
+            prompt, [base64.b64decode(b64) for b64 in reference_images_b64], aspect_ratio
+        )
+
+    async def generate_image_with_image_bytes(
+        self, prompt: str, images: list[bytes], aspect_ratio: str = "1:1"
+    ) -> str:
+        """Image generation with raw reference image bytes via Gemini."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return _RED_PNG_B64
+        import base64 as _base64
         from google import genai
         from google.genai import types
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        parts: list = [types.Part.from_text(text=prompt)]
-        for ref_b64 in reference_images_b64:
-            parts.append(types.Part.from_bytes(
-                data=base64.b64decode(ref_b64),
-                mime_type="image/png",
-            ))
+        full_prompt = f"{prompt}\n\nOutput image dimensions: {_aspect_ratio_hint(aspect_ratio)}."
+        parts = [types.Part.from_text(text=full_prompt)]
+        for img_bytes in images:
+            squared = _pad_to_square(img_bytes)
+            parts.append(types.Part.from_bytes(data=squared, mime_type="image/png"))
         response = await client.aio.models.generate_content(
             model="gemini-2.5-flash-image",
             contents=parts,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-            ),
+            config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
         )
         for part in response.candidates[0].content.parts:
-            if part.inline_data and part.inline_data.mime_type.startswith("image"):
-                return base64.b64encode(part.inline_data.data).decode()
-        # Fallback: plain Imagen without references
-        return await self.generate_image(prompt, aspect_ratio)
+            if part.inline_data is not None:
+                return _base64.b64encode(part.inline_data.data).decode()
+        raise LLMError("Gemini returned no image data")
+
+    async def complete_with_vision(
+        self,
+        file_bytes: bytes,
+        prompt: str,
+        mime_type: str = "application/pdf",
+    ) -> str:
+        """Send a file (PDF or image) + text prompt to Gemini Flash vision.
+        Handles text, tables (returns markdown), images, and scanned pages."""
+        if settings.MOCK_MODE:
+            return "[Mock vision extraction: all contract text, tables, and clauses extracted successfully]"
+
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        parts = [
+            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+            types.Part.from_text(text=prompt),
+        ]
+        response = await client.aio.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=parts,
+        )
+        return response.text
 
     def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
         """Approximate token count."""

@@ -4,10 +4,9 @@ export const sendMessageSchema = z.object({
   content: z.string().min(1).max(5000),
 });
 
-export const ingestDocumentSchema = z.object({
+export const uploadSourceFieldsSchema = z.object({
   documentName: z.string().min(1).max(200),
   documentType: z.string().max(100).optional().default("nda"),
-  pdfBase64: z.string().min(1),
 });
 
 export const analyzeContractSchema = z
@@ -20,6 +19,12 @@ export const analyzeContractSchema = z
     (v) => Boolean(v.sourceId) || (v.contractText && v.contractText.length > 0),
     "Provide either sourceId or contractText"
   );
+
+export const queryDocumentSchema = z.object({
+  sourceId: z.string().min(1),
+  query: z.string().min(1).max(2000),
+  topK: z.number().int().min(1).max(20).optional().default(5),
+});
 
 export const draftDocumentSchema = z.object({
   documentType: z.string().min(1).max(100),

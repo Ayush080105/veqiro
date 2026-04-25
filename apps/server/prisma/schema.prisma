@@ -225,3 +225,27 @@ model PublishedPost {
   @@index([socialAccountId])
   @@map("published_post")
 }
+
+model Source {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  agent          Agent
+  sourceId       String
+  name           String
+  type           String   @default("")
+  typeDetected   String?
+  r2Key          String
+  r2Url          String
+  sizeBytes      Int      @default(0)
+  pageCount      Int      @default(0)
+  chunksCreated  Int      @default(0)
+  summary        String   @default("")
+  keyTopics      String[] @default([])
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, sourceId])
+  @@index([organizationId, agent])
+  @@index([userId, agent])
+  @@map("source")
+}

@@ -1,21 +1,23 @@
 import { z } from "zod";
 import {
   sendMessageSchema,
-  ingestDocumentSchema,
+  uploadSourceFieldsSchema,
   analyzeContractSchema,
   draftDocumentSchema,
   explainSchema,
   legalResearchSchema,
   complianceCheckSchema,
+  queryDocumentSchema,
 } from "./lex.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
-export type IngestDocumentInput = z.infer<typeof ingestDocumentSchema>;
+export type UploadSourceFields = z.infer<typeof uploadSourceFieldsSchema>;
 export type AnalyzeContractInput = z.infer<typeof analyzeContractSchema>;
 export type DraftDocumentInput = z.infer<typeof draftDocumentSchema>;
 export type ExplainInput = z.infer<typeof explainSchema>;
 export type LegalResearchInput = z.infer<typeof legalResearchSchema>;
 export type ComplianceCheckInput = z.infer<typeof complianceCheckSchema>;
+export type QueryDocumentInput = z.infer<typeof queryDocumentSchema>;
 
 export interface AssistantMessagePayload {
   response: string;
@@ -32,6 +34,34 @@ export interface IngestDocumentResponse {
   summary: string;
   key_topics: string[];
   document_type_detected: string;
+}
+
+export interface SourceDTO {
+  id: string;
+  sourceId: string;
+  name: string;
+  type: string;
+  typeDetected: string | null;
+  r2Url: string;
+  sizeBytes: number;
+  pageCount: number;
+  chunksCreated: number;
+  summary: string;
+  keyTopics: string[];
+  createdAt: string;
+}
+
+export interface QueryDocumentChunk {
+  content: string;
+  score: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface QueryDocumentResponse {
+  answer: string;
+  sources: QueryDocumentChunk[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ContractRisk {

@@ -170,11 +170,11 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
   ],
   lex: [
     {
-      id: "lex:ingest-document",
+      id: "lex:upload-source",
       agent: "lex",
-      endpoint: "ingest-document",
+      endpoint: "sources/upload",
       label: "Upload a document",
-      description: "Ingest a PDF for retrieval-powered analysis.",
+      description: "Upload a PDF — stored in R2 and indexed for analysis.",
       icon: "Upload",
     },
     {
@@ -184,6 +184,14 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Analyze a contract",
       description: "Risk analysis, unusual clauses, missing protections.",
       icon: "ShieldAlert",
+    },
+    {
+      id: "lex:query-document",
+      agent: "lex",
+      endpoint: "query-document",
+      label: "Ask a document",
+      description: "Ask a question about an uploaded document.",
+      icon: "MessageCircleQuestion",
     },
     {
       id: "lex:draft-document",

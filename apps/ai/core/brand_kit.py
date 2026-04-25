@@ -1,6 +1,9 @@
+import logging
 import time
 from pydantic import BaseModel
 from core.config import settings
+
+logger = logging.getLogger("brand_kit")
 
 
 class BrandKit(BaseModel):
@@ -62,9 +65,10 @@ async def load_brand_kit(user_id: str) -> BrandKit:
     # Fetch from Express service
     try:
         import httpx
-        url = f"{settings.BRAND_KIT_SERVICE_URL}/api/brand-kit/{user_id}"
+        url = f"{settings.BRAND_KIT_SERVICE_URL}/api/v1/internal/brand-kit/{user_id}"
+        logger.info("brand_kit fetch | user=%s url=%s", user_id, url)
         async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(url)
+            resp = await client.get(url, headers={"x-internal-key": settings.INTERNAL_API_KEY})
         if resp.status_code == 200:
             data = resp.json()
             brand_kit = BrandKit(
@@ -82,9 +86,12 @@ async def load_brand_kit(user_id: str) -> BrandKit:
                 key_differentiators=data.get("key_differentiators") or "",
                 website_url=data.get("website_url") or "",
             )
+            logger.info("brand_kit loaded | user=%s company=%s logo=%s mascot=%s", user_id, brand_kit.company_name, brand_kit.logo_url, brand_kit.mascot_url)
         else:
+            logger.warning("brand_kit fetch failed | user=%s status=%s url=%s — using defaults", user_id, resp.status_code, url)
             brand_kit = BrandKit()
-    except Exception:
+    except Exception as e:
+        logger.warning("brand_kit fetch error | user=%s error=%s — using defaults", user_id, e)
         brand_kit = BrandKit()
 
     # Store in cache

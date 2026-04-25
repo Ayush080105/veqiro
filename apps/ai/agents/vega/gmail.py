@@ -181,15 +181,40 @@ async def create_draft(
     return await asyncio.to_thread(_create)
 
 
+def _extract_body(payload: dict) -> str:
+    """Recursively extract plaintext body from Gmail payload."""
+    import base64
+    mime_type = payload.get("mimeType", "")
+    body = payload.get("body", {})
+    data = body.get("data", "")
+
+    if data and mime_type in ("text/plain", "text/html"):
+        try:
+            return base64.urlsafe_b64decode(data + "==").decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+
+    for part in payload.get("parts", []):
+        text = _extract_body(part)
+        if text:
+            return text
+    return ""
+
+
 def _parse_message(msg_data: dict) -> dict:
     """Parse Gmail API message into simplified dict."""
     headers = {h["name"]: h["value"] for h in msg_data.get("payload", {}).get("headers", [])}
+    body = _extract_body(msg_data.get("payload", {}))
+    from_header = headers.get("From", "")
+    from_name = from_header.split("<")[0].strip().strip('"') if "<" in from_header else from_header
     return {
         "id": msg_data.get("id", ""),
         "thread_id": msg_data.get("threadId", ""),
-        "from": headers.get("From", ""),
+        "from": from_header,
+        "from_name": from_name,
         "to": headers.get("To", ""),
         "subject": headers.get("Subject", ""),
+        "body": body or msg_data.get("snippet", ""),
         "snippet": msg_data.get("snippet", ""),
         "date": headers.get("Date", ""),
         "is_read": "UNREAD" not in msg_data.get("labelIds", []),

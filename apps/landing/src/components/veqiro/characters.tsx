@@ -18,22 +18,22 @@ function CharImg({ src, alt, size = 300 }: { src: string; alt: string; size?: nu
 }
 
 export function Vega({ size = 300 }: AvatarProps) {
-  return <CharImg src="/Vega.jpeg" alt="Vega" size={size} />;
+  return <CharImg src="/Vega.jpeg" alt="Vega, Veqiro's AI Executive Assistant" size={size} />;
 }
 export function Scout({ size = 300 }: AvatarProps) {
-  return <CharImg src="/Scout.jpeg" alt="Scout" size={size} />;
+  return <CharImg src="/Scout.jpeg" alt="Scout, Veqiro's AI Research & Strategist" size={size} />;
 }
 export function Maya({ size = 300 }: AvatarProps) {
-  return <CharImg src="/Maya.jpeg" alt="Maya" size={size} />;
+  return <CharImg src="/Maya.jpeg" alt="Maya, Veqiro's AI Content & Marketing specialist" size={size} />;
 }
 export function Sage({ size = 300 }: AvatarProps) {
-  return <CharImg src="/Sage.jpeg" alt="Sage" size={size} />;
+  return <CharImg src="/Sage.jpeg" alt="Sage, Veqiro's AI SEO Specialist" size={size} />;
 }
 export function Lex({ size = 300 }: AvatarProps) {
-  return <CharImg src="/Lex.jpeg" alt="Lex" size={size} />;
+  return <CharImg src="/Lex.jpeg" alt="Lex, Veqiro's AI Legal Assistant" size={size} />;
 }
 export function Rex({ size = 300 }: AvatarProps) {
-  return <CharImg src="/Rex.jpeg" alt="Rex" size={size} />;
+  return <CharImg src="/Rex.jpeg" alt="Rex, Veqiro's AI Data Analyst & Finance specialist" size={size} />;
 }
 
 export const CHARACTER_COMPONENTS: Record<string, React.ComponentType<AvatarProps>> = {
