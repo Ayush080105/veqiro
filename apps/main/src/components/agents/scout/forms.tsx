@@ -1,15 +1,21 @@
 "use client"
 
 import * as React from "react"
-import { Bookmark, Brain } from "lucide-react"
+import { Bookmark, Brain, Plus, X } from "lucide-react"
 import { useFieldArray } from "react-hook-form"
 
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
-import { StringListInput } from "@/components/chat/ActionForm/fields"
+import { StringListInput, FormRow } from "@/components/chat/ActionForm/fields"
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
 import { cn } from "@/lib/utils"
+import { useCompetitorWatches } from "@/lib/api/scout"
+import type {
+  ScoutTrendingTopicsRequest,
+  ScoutDiscoverCompetitorsRequest,
+} from "@/lib/types/agents"
 import {
   scoutResearchTopicSchema,
   type ScoutResearchTopicValues,
