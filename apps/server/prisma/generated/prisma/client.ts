@@ -96,3 +96,8 @@ export type SocialAccount = Prisma.SocialAccountModel
  * 
  */
 export type PublishedPost = Prisma.PublishedPostModel
+/**
+ * Model Source
+ * 
+ */
+export type Source = Prisma.SourceModel

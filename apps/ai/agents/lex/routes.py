@@ -28,7 +28,8 @@ class IngestDocumentRequest(BaseModel):
     user_id: str
     document_name: str
     document_type: str = "nda"
-    document_url: str
+    document_url: str | None = None
+    pdf_base64: str | None = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -267,6 +268,31 @@ class ComplianceCheckResponse(BaseModel):
     model_used: str = ""
 
 
+class DeleteSourceRequest(BaseModel):
+    user_id: str
+    source_id: str
+
+
+class DeleteSourceResponse(BaseModel):
+    deleted_chunks: int
+
+
+class ListSourcesRequest(BaseModel):
+    user_id: str
+
+
+class SourceSummary(BaseModel):
+    source_id: str
+    source_type: str
+    source_agent: str
+    metadata: dict = {}
+    created_at: str | None = None
+
+
+class ListSourcesResponse(BaseModel):
+    sources: list[SourceSummary]
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Lex chat")
@@ -297,15 +323,25 @@ async def ingest_document(request: IngestDocumentRequest) -> IngestDocumentRespo
         )
 
     import asyncio
-    import httpx
-    try:
-        async with httpx.AsyncClient(timeout=settings.R2_FETCH_TIMEOUT) as client:
-            resp = await client.get(request.document_url)
-            resp.raise_for_status()
-            pdf_bytes = resp.content
-    except Exception as e:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail=f"Failed to fetch document from URL: {e}")
+    import base64 as _base64
+    from fastapi import HTTPException
+
+    if request.pdf_base64:
+        try:
+            pdf_bytes = _base64.b64decode(request.pdf_base64)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid base64 PDF data: {e}")
+    elif request.document_url:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=settings.R2_FETCH_TIMEOUT) as client:
+                resp = await client.get(request.document_url)
+                resp.raise_for_status()
+                pdf_bytes = resp.content
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to fetch document from URL: {e}")
+    else:
+        raise HTTPException(status_code=400, detail="Either pdf_base64 or document_url is required")
 
     from core.pdf_reader import extract_text_with_vision, extract_pages
 
@@ -896,3 +932,19 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
             tokens_used=tokens_used,
             model_used=_agent.default_model,
         )
+
+
+@router.post("/delete-source", response_model=DeleteSourceResponse, summary="Delete an ingested document")
+async def delete_source(request: DeleteSourceRequest) -> DeleteSourceResponse:
+    """Remove all RAG chunks for a (user_id, source_id) pair."""
+    deleted = await _rag.delete_source(request.user_id, request.source_id)
+    return DeleteSourceResponse(deleted_chunks=deleted)
+
+
+@router.post("/sources", response_model=ListSourcesResponse, summary="List ingested documents")
+async def list_sources(request: ListSourcesRequest) -> ListSourcesResponse:
+    """List all ingested documents for a user under the lex agent."""
+    rows = await _rag.list_sources(request.user_id, source_agent="lex")
+    return ListSourcesResponse(
+        sources=[SourceSummary(**r) for r in rows],
+    )

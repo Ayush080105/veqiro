@@ -37,6 +37,7 @@ import {
 import {
   DocumentIngestCard,
   ContractAnalysisCard,
+  QueryDocumentCard,
   DraftDocumentCard,
   ExplainerCard,
   LegalResearchCard,
@@ -105,10 +106,12 @@ export function ActionResultRenderer({ actionId, result }: ActionResultRendererP
     case "rex:compile-briefing":
       return <BriefingCard result={r} />
 
-    case "lex:ingest-document":
+    case "lex:upload-source":
       return <DocumentIngestCard result={r} />
     case "lex:analyze-contract":
       return <ContractAnalysisCard result={r} />
+    case "lex:query-document":
+      return <QueryDocumentCard result={r} />
     case "lex:draft-document":
       return <DraftDocumentCard result={r} />
     case "lex:explain":

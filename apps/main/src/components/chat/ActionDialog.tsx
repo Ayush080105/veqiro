@@ -45,6 +45,8 @@ export interface ActionDialogProps<TInput, TResult> {
   renderForm: (props: ActionFormProps<TInput, TResult>) => React.ReactNode
   /** Called with successful result. Usually pushes a rich message to chat. */
   onComplete: (ctx: ActionResultContext<TInput, TResult>) => void
+  /** Override the default JSON `runAgentAction` submit (e.g. for multipart uploads). */
+  customSubmit?: (value: TInput, organizationId: string) => Promise<TResult>
   submitLabel?: string
 }
 
@@ -60,6 +62,7 @@ export function ActionDialog<TInput, TResult>({
   validate,
   renderForm,
   onComplete,
+  customSubmit,
   submitLabel = "Run",
 }: ActionDialogProps<TInput, TResult>) {
   const [value, setValue] = React.useState<TInput>(defaultValue)
@@ -85,12 +88,14 @@ export function ActionDialog<TInput, TResult>({
     }
     setSubmitting(true)
     try {
-      const result = await runAgentAction<TInput, TResult>(
-        actionId,
-        organizationId,
-        value,
-        conversationId
-      )
+      const result = customSubmit
+        ? await customSubmit(value, organizationId)
+        : await runAgentAction<TInput, TResult>(
+            actionId,
+            organizationId,
+            value,
+            conversationId
+          )
       onComplete({ actionId, input: value, result })
       onOpenChange(false)
       return result
@@ -104,7 +109,7 @@ export function ActionDialog<TInput, TResult>({
     } finally {
       setSubmitting(false)
     }
-  }, [value, actionId, organizationId, conversationId, validate, onComplete, onOpenChange])
+  }, [value, actionId, organizationId, conversationId, validate, onComplete, onOpenChange, customSubmit])
 
   const handleSubmit = () => {
     submit().catch(() => {

@@ -179,8 +179,8 @@ class RAGService:
             for row in rows
         ]
 
-    async def delete_source(self, source_id: str) -> int:
-        """Delete all chunks for a source_id. Returns number of rows deleted."""
+    async def delete_source(self, user_id: str, source_id: str) -> int:
+        """Delete all chunks for a (user_id, source_id). Returns number of rows deleted."""
         if settings.MOCK_MODE:
             return 1
 
@@ -189,11 +189,53 @@ class RAGService:
         pool = await get_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                "DELETE FROM rag_chunks WHERE source_id = $1 RETURNING id",
+                "DELETE FROM rag_chunks WHERE user_id = $1 AND source_id = $2 RETURNING id",
+                user_id,
                 source_id,
             )
 
         return len(rows)
+
+    async def list_sources(
+        self,
+        user_id: str,
+        source_agent: str | None = None,
+    ) -> list[dict]:
+        """List distinct (source_id, source_type, metadata) tuples for a user.
+
+        One row per source_id (the latest metadata wins). Used by agents to
+        introspect which documents the user has ingested.
+        """
+        if settings.MOCK_MODE:
+            return []
+
+        from core.db import get_pool
+
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT DISTINCT ON (source_id)
+                    source_id, source_type, source_agent, metadata, created_at
+                FROM rag_chunks
+                WHERE user_id = $1
+                  AND ($2::text IS NULL OR source_agent = $2)
+                ORDER BY source_id, created_at DESC
+                """,
+                user_id,
+                source_agent,
+            )
+
+        return [
+            {
+                "source_id": row["source_id"],
+                "source_type": row["source_type"],
+                "source_agent": row["source_agent"],
+                "metadata": _row_meta(row["metadata"]),
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            }
+            for row in rows
+        ]
 
 
 def _chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list[str]:

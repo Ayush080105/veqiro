@@ -37,13 +37,15 @@ import {
 } from "@/components/agents/rex/forms"
 // Lex forms
 import {
-  LexIngestDocumentForm,
+  LexUploadSourceForm,
   LexAnalyzeContractForm,
+  LexQueryDocumentForm,
   LexDraftDocumentForm,
   LexExplainForm,
   LexLegalResearchForm,
   LexComplianceCheckForm,
 } from "@/components/agents/lex/forms"
+import { uploadLexDocument } from "@/lib/api/lex"
 // Vega forms
 import {
   VegaProcessInboxForm,
@@ -64,6 +66,8 @@ interface ActionSpec {
   defaultValue: unknown
   Form: FormComponent
   validate?: (v: any) => string | null
+  /** Override the default JSON `runAgentAction` submit, e.g. for file uploads. */
+  customSubmit?: (value: any, organizationId: string) => Promise<unknown>
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -234,21 +238,39 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     validate: (v) => (v.date ? null : "Date is required."),
   },
 
-  "lex:ingest-document": {
-    defaultValue: { document_name: "", document_type: "contract", pdf_base64: "" },
-    Form: LexIngestDocumentForm,
+  "lex:upload-source": {
+    defaultValue: { file: null, document_name: "", document_type: "contract" },
+    Form: LexUploadSourceForm,
     validate: (v) =>
-      !v.document_name?.trim()
-        ? "Document name is required."
-        : !v.pdf_base64
-          ? "Choose a PDF file."
+      !v.file
+        ? "Choose a PDF file."
+        : !v.document_name?.trim()
+          ? "Document name is required."
           : null,
+    customSubmit: async (v) =>
+      uploadLexDocument({
+        file: v.file as File,
+        documentName: v.document_name,
+        documentType: v.document_type ?? "contract",
+      }),
   },
   "lex:analyze-contract": {
-    defaultValue: { contract_text: "", analysis_focus: [] },
+    defaultValue: { source_id: "", contract_text: "", analysis_focus: [] },
     Form: LexAnalyzeContractForm,
     validate: (v) =>
-      v.contract_text?.trim() ? null : "Contract text is required.",
+      v.source_id?.trim() || v.contract_text?.trim()
+        ? null
+        : "Pick a document or paste contract text.",
+  },
+  "lex:query-document": {
+    defaultValue: { sourceId: "", query: "", topK: 5 },
+    Form: LexQueryDocumentForm,
+    validate: (v) =>
+      !v.sourceId?.trim()
+        ? "Pick a document."
+        : !v.query?.trim()
+          ? "Enter a question."
+          : null,
   },
   "lex:draft-document": {
     defaultValue: {
@@ -339,6 +361,8 @@ export interface RunActionDialogProps {
   actionId: AgentActionId | null
   organizationId: string
   conversationId?: string
+  /** Optional partial that's shallow-merged over the spec's defaultValue. */
+  prefill?: Record<string, unknown>
   onComplete: (ctx: ActionResultContext<unknown, unknown>) => void
 }
 
@@ -348,6 +372,7 @@ export function RunActionDialog({
   actionId,
   organizationId,
   conversationId,
+  prefill,
   onComplete,
 }: RunActionDialogProps) {
   if (!actionId) return null
@@ -355,7 +380,10 @@ export function RunActionDialog({
   const spec = SPECS[actionId]
   if (!meta || !spec) return null
 
-  const { Form, defaultValue, validate } = spec
+  const { Form, defaultValue, validate, customSubmit } = spec
+  const merged = prefill
+    ? { ...(defaultValue as object), ...prefill }
+    : defaultValue
 
   return (
     <ActionDialog<unknown, unknown>
@@ -366,8 +394,9 @@ export function RunActionDialog({
       description={meta.description}
       organizationId={organizationId}
       conversationId={conversationId}
-      defaultValue={defaultValue}
+      defaultValue={merged}
       validate={validate}
+      customSubmit={customSubmit}
       renderForm={({ value, onChange }) => (
         <Form value={value} onChange={onChange} />
       )}

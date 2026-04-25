@@ -1,11 +1,12 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
+import { NotFoundError } from "../../../common/errors/notFound.js";
 import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
+import { uploadBuffer, deleteObject, isR2Configured } from "../../../common/utils/r2.js";
 import * as lexRepository from "./lex.repository.js";
 import type {
   SendMessageInput,
   AssistantMessagePayload,
-  IngestDocumentInput,
   IngestDocumentResponse,
   AnalyzeContractInput,
   AnalyzeContractResponse,
@@ -17,6 +18,9 @@ import type {
   LegalResearchResponse,
   ComplianceCheckInput,
   ComplianceCheckResponse,
+  SourceDTO,
+  QueryDocumentInput,
+  QueryDocumentResponse,
 } from "./lex.types.js";
 
 export const sendMessage = async (
@@ -65,22 +69,66 @@ export const sendMessage = async (
 export const listMessages = (organizationId: string) =>
   lexRepository.findAllLexMessages(organizationId);
 
-export const ingestDocument = async (
+const toSourceDTO = (row: {
+  id: string;
+  sourceId: string;
+  name: string;
+  type: string;
+  typeDetected: string | null;
+  r2Url: string;
+  sizeBytes: number;
+  pageCount: number;
+  chunksCreated: number;
+  summary: string;
+  keyTopics: string[];
+  createdAt: Date;
+}): SourceDTO => ({
+  id: row.id,
+  sourceId: row.sourceId,
+  name: row.name,
+  type: row.type,
+  typeDetected: row.typeDetected,
+  r2Url: row.r2Url,
+  sizeBytes: row.sizeBytes,
+  pageCount: row.pageCount,
+  chunksCreated: row.chunksCreated,
+  summary: row.summary,
+  keyTopics: row.keyTopics,
+  createdAt: row.createdAt.toISOString(),
+});
+
+export const uploadSource = async (
   userId: string,
   organizationId: string,
-  input: IngestDocumentInput
-): Promise<IngestDocumentResponse> => {
+  input: {
+    file: { buffer: Buffer; originalname: string; mimetype: string; size: number };
+    documentName: string;
+    documentType: string;
+  }
+): Promise<SourceDTO> => {
+  if (!isR2Configured()) {
+    throw new BadRequestError("R2 storage is not configured on the server.");
+  }
+
+  const { url: r2Url, key: r2Key } = await uploadBuffer({
+    organizationId,
+    buffer: input.file.buffer,
+    contentType: "application/pdf",
+    extension: "pdf",
+    prefix: "lex/documents",
+  });
+
   await lexRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Ingest document: ${input.documentName}`,
+    content: `Upload document: ${input.documentName}`,
     customInput: {
-      tool: "ingest-document",
+      tool: "upload-source",
       input: {
         documentName: input.documentName,
         documentType: input.documentType,
-        // avoid logging the raw base64 payload in custom input
-        pdfBytesApprox: Math.ceil((input.pdfBase64?.length ?? 0) * 0.75),
+        sizeBytes: input.file.size,
+        r2Url,
       },
     },
   });
@@ -91,15 +139,113 @@ export const ingestDocument = async (
       user_id: userId,
       document_name: input.documentName,
       document_type: input.documentType,
-      pdf_base64: input.pdfBase64,
+      document_url: r2Url,
+    }
+  );
+
+  const source = await lexRepository.createSource({
+    organizationId,
+    userId,
+    sourceId: data.source_id,
+    name: input.documentName,
+    type: input.documentType,
+    typeDetected: data.document_type_detected,
+    r2Key,
+    r2Url,
+    sizeBytes: input.file.size,
+    pageCount: data.page_count,
+    chunksCreated: data.chunks_created,
+    summary: data.summary,
+    keyTopics: data.key_topics,
+  });
+
+  await lexRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`,
+    customInput: { tool: "upload-source", output: { ...data, sourceRowId: source.id } },
+  });
+
+  return toSourceDTO(source);
+};
+
+export const listSources = async (
+  userId: string,
+  organizationId: string
+): Promise<SourceDTO[]> => {
+  const rows = await lexRepository.findSourcesForUser(userId, organizationId);
+  return rows.map(toSourceDTO);
+};
+
+export const deleteSource = async (
+  userId: string,
+  organizationId: string,
+  id: string
+): Promise<{ deleted: true }> => {
+  const source = await lexRepository.findSourceById(id, userId, organizationId);
+  if (!source) {
+    throw new NotFoundError("Document not found");
+  }
+
+  try {
+    await aiService.post("/ai/lex/delete-source", {
+      user_id: userId,
+      source_id: source.sourceId,
+    });
+  } catch {
+    // best-effort: even if AI cleanup fails, continue removing R2 + DB rows
+  }
+
+  try {
+    await deleteObject(source.r2Key);
+  } catch {
+    // best-effort: orphaned R2 objects can be reaped offline
+  }
+
+  await lexRepository.deleteSourceById(id);
+  return { deleted: true };
+};
+
+export const queryDocument = async (
+  userId: string,
+  organizationId: string,
+  input: QueryDocumentInput
+): Promise<QueryDocumentResponse> => {
+  const source = await lexRepository.findSourcesForUser(userId, organizationId);
+  const owned = source.find((s) => s.sourceId === input.sourceId);
+  if (!owned) {
+    throw new NotFoundError("Document not found");
+  }
+
+  await lexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Query "${owned.name}": ${input.query.slice(0, 120)}${
+      input.query.length > 120 ? "..." : ""
+    }`,
+    customInput: {
+      tool: "query-document",
+      input: { sourceId: input.sourceId, query: input.query, topK: input.topK },
+    },
+  });
+
+  const { data } = await aiService.post<QueryDocumentResponse>(
+    "/ai/lex/query-document",
+    {
+      user_id: userId,
+      source_id: input.sourceId,
+      query: input.query,
+      top_k: input.topK,
     }
   );
 
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`,
-    customInput: { tool: "ingest-document", output: data },
+    content: data.answer.slice(0, 500),
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { tool: "query-document", output: data },
   });
 
   return data;

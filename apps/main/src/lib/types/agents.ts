@@ -367,25 +367,55 @@ export interface RexBriefingResult {
 
 // ─── Lex ─────────────────────────────────────────────────────────────────────
 
-export interface LexIngestDocumentRequest {
-  document_name: string
-  document_type?: string
-  pdf_base64: string
+/** A Lex Source row as returned by the server (camelCase). */
+export interface LexSource {
+  id: string
+  sourceId: string
+  name: string
+  type: string
+  typeDetected: string | null
+  r2Url: string
+  sizeBytes: number
+  pageCount: number
+  chunksCreated: number
+  summary: string
+  keyTopics: string[]
+  createdAt: string
 }
 
-export interface LexIngestDocumentResult {
-  source_id: string
-  chunks_created: number
-  page_count: number
-  summary: string
-  key_topics: string[]
-  document_type_detected: string
+/** Form value for the upload-source action — `file` is local-only (not serialised to JSON). */
+export interface LexUploadSourceRequest {
+  file: File | null
+  document_name: string
+  document_type?: string
 }
+
+/** Result the upload-source action card renders (the server's Source DTO). */
+export type LexUploadSourceResult = LexSource
 
 export interface LexAnalyzeContractRequest {
   source_id?: string
   contract_text: string
   analysis_focus?: string[]
+}
+
+export interface LexQueryDocumentRequest {
+  sourceId: string
+  query: string
+  topK?: number
+}
+
+export interface LexQueryDocumentChunk {
+  content: string
+  score: number
+  metadata?: Record<string, unknown>
+}
+
+export interface LexQueryDocumentResult {
+  answer: string
+  sources: LexQueryDocumentChunk[]
+  tokens_used?: number
+  model_used?: string
 }
 
 export interface LexAnalyzeContractResult {
@@ -594,8 +624,9 @@ export type AgentActionId =
   | "rex:forecast"
   | "rex:financial-analysis"
   | "rex:compile-briefing"
-  | "lex:ingest-document"
+  | "lex:upload-source"
   | "lex:analyze-contract"
+  | "lex:query-document"
   | "lex:draft-document"
   | "lex:explain"
   | "lex:legal-research"
