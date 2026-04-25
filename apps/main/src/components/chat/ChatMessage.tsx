@@ -4,7 +4,7 @@ import * as React from "react"
 import { ShieldAlert, Download } from "lucide-react"
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import type { Message } from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
 

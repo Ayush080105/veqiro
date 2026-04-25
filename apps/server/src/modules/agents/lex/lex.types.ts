@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   sendMessageSchema,
-  uploadSourceFieldsSchema,
+  finalizeSourceSchema,
   analyzeContractSchema,
   draftDocumentSchema,
   explainSchema,
@@ -11,7 +11,7 @@ import {
 } from "./lex.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
-export type UploadSourceFields = z.infer<typeof uploadSourceFieldsSchema>;
+export type FinalizeSourceInput = z.infer<typeof finalizeSourceSchema>;
 export type AnalyzeContractInput = z.infer<typeof analyzeContractSchema>;
 export type DraftDocumentInput = z.infer<typeof draftDocumentSchema>;
 export type ExplainInput = z.infer<typeof explainSchema>;

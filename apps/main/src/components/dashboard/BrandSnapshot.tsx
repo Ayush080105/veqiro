@@ -3,7 +3,7 @@
 import Link from "next/link"
 
 import { Skeleton } from "@/components/ui/skeleton"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import { authClient } from "@/lib/auth-client"
 import { useBrandKit } from "@/lib/api/brain"
 import type { BrandKit } from "@/lib/types"

@@ -2,7 +2,9 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 
 const accountId = process.env.R2_ACCOUNT_ID;
@@ -134,4 +136,90 @@ export const deleteObject = async (key: string): Promise<void> => {
       Key: key,
     })
   );
+};
+
+// ── Presigned-PUT + HeadObject (direct-to-R2 uploads) ──────────────────────
+// The browser uploads the file directly to R2 with a short-lived presigned
+// PUT URL, then calls back to finalize. Avoids multer + base64 round-trips
+// and keeps the bucket private (no public write).
+
+export interface PresignPutArgs {
+  key: string;
+  contentType: string;
+  contentLength: number;
+  expiresInSeconds?: number;
+}
+
+export interface PresignPutResult {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+  expiresIn: number;
+}
+
+export const buildObjectKey = (
+  organizationId: string,
+  prefix: string,
+  extension: string,
+): string => {
+  const safeExt = extension.replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin";
+  return `${organizationId}/${prefix}/${randomUUID()}.${safeExt}`;
+};
+
+export const getPublicUrl = (key: string): string => {
+  const publicUrl = process.env.R2_PUBLIC_URL;
+  if (!publicUrl) throw new Error("R2_PUBLIC_URL must be set.");
+  const base = publicUrl.replace(/\/$/, "");
+  // Allow R2_PUBLIC_URL to be either a bare host ("blob.veqiro.com") or a
+  // full origin ("https://blob.veqiro.com"). Default to https when absent.
+  return /^https?:\/\//i.test(base) ? `${base}/${key}` : `https://${base}/${key}`;
+};
+
+export const getPresignedPutUrl = async (
+  args: PresignPutArgs,
+): Promise<PresignPutResult> => {
+  const bucket = process.env.R2_BUCKET;
+  if (!bucket) throw new Error("R2_BUCKET must be set to presign uploads.");
+
+  const expiresIn = args.expiresInSeconds ?? 300; // 5 min — enough for a slow client.
+  const cmd = new PutObjectCommand({
+    Bucket: bucket,
+    Key: args.key,
+    ContentType: args.contentType,
+    ContentLength: args.contentLength,
+  });
+
+  const uploadUrl = await getSignedUrl(getClient(), cmd, { expiresIn });
+
+  return {
+    uploadUrl,
+    key: args.key,
+    publicUrl: getPublicUrl(args.key),
+    expiresIn,
+  };
+};
+
+export interface HeadObjectResult {
+  size: number;
+  contentType: string;
+}
+
+// Returns null if the object doesn't exist or HEAD fails for any reason —
+// callers should treat null as "client lied / didn't actually upload".
+export const headObject = async (
+  key: string,
+): Promise<HeadObjectResult | null> => {
+  const bucket = process.env.R2_BUCKET;
+  if (!bucket) throw new Error("R2_BUCKET must be set to head objects.");
+  try {
+    const res = await getClient().send(
+      new HeadObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    return {
+      size: typeof res.ContentLength === "number" ? res.ContentLength : 0,
+      contentType: res.ContentType ?? "",
+    };
+  } catch {
+    return null;
+  }
 };

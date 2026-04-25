@@ -27,7 +27,7 @@ import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import type { LexSource } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"

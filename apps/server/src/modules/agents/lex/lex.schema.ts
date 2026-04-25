@@ -4,7 +4,11 @@ export const sendMessageSchema = z.object({
   content: z.string().min(1).max(5000),
 });
 
-export const uploadSourceFieldsSchema = z.object({
+// Called after the browser PUTs the PDF directly to R2 via a presigned URL.
+// Server verifies (HeadObject) and triggers AI ingestion using the public URL.
+export const finalizeSourceSchema = z.object({
+  key: z.string().min(1).max(500),
+  url: z.string().min(1).max(1000),
   documentName: z.string().min(1).max(200),
   documentType: z.string().max(100).optional().default("nda"),
 });

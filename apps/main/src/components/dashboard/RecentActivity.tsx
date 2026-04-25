@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { MessageSquare, Send } from "lucide-react"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 import type { DashboardSummary } from "@/lib/api/dashboard"

@@ -103,24 +103,15 @@ export const finalizeBrandKitSchema = z
   })
   .strict();
 
-// ── Asset upload schema ───────────────────────────────────────────────────
-const ALLOWED_IMAGE_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/svg+xml",
-] as const;
-
-export const uploadAssetSchema = z.object({
+// ── Asset finalize schema ─────────────────────────────────────────────────
+// Called after the client has PUT the file directly to R2 via a presigned
+// URL. The server only needs the key + URL to verify (HeadObject) and persist.
+export const finalizeAssetSchema = z.object({
   kind: z.enum(["logo", "mascot"]),
-  filename: z.string().min(1).max(255),
-  contentType: z.enum(ALLOWED_IMAGE_TYPES),
-  base64: z
-    .string()
-    .min(1)
-    .max(8_000_000), // ≈ 6MB binary after b64 — server rejects >5MB after decode
+  key: z.string().min(1).max(500),
+  url: z.string().min(1).max(1000),
 });
 
 export type PartialBrandKitInput = z.infer<typeof partialBrandKitSchema>;
 export type FinalizeBrandKitInput = z.infer<typeof finalizeBrandKitSchema>;
-export type UploadAssetInput = z.infer<typeof uploadAssetSchema>;
+export type FinalizeAssetInput = z.infer<typeof finalizeAssetSchema>;

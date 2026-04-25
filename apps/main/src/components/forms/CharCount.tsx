@@ -1,6 +1,6 @@
 "use client"
 
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 
 interface CharCountProps {
   value: string

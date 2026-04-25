@@ -67,10 +67,8 @@ export const finalizeBrainSchema = z.object({
     })
     .partial()
     .optional(),
-  competitors: z
-    .array(z.object({ value: z.string().min(1).max(500) }))
-    .max(50)
-    .optional(),
+  // Wire-format mirror of server schema — server expects flat string[].
+  competitors: z.array(z.string().min(1).max(500)).max(50).optional(),
   keyDifferentiators: z
     .string()
     .min(

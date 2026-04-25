@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
+import { createOrganization, slugify } from "@/lib/api/organizations"
 import {
   Dialog,
   DialogContent,
@@ -54,14 +55,13 @@ export function CreateOrgDialog() {
     try {
       setLoading(true)
 
-      const { data: org, error: orgError } = await authClient.organization.create({
+      const result = await createOrganization({
         name: data.name,
-        slug: data.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-        onboarded: false,
+        slug: slugify(data.name),
       })
 
-      if (orgError || !org) {
-        toast.error(orgError?.message ?? "Failed to create organization")
+      if (!result.ok) {
+        toast.error(result.message)
         return
       }
 
@@ -72,7 +72,7 @@ export function CreateOrgDialog() {
             authClient.organization.inviteMember({
               email: member.email,
               role: member.role,
-              organizationId: org.id,
+              organizationId: result.id,
             })
           )
         )

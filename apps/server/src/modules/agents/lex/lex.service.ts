@@ -2,7 +2,7 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
-import { uploadBuffer, deleteObject, isR2Configured } from "../../../common/utils/r2.js";
+import { deleteObject, headObject, isR2Configured } from "../../../common/utils/r2.js";
 import * as lexRepository from "./lex.repository.js";
 import type {
   SendMessageInput,
@@ -97,11 +97,14 @@ const toSourceDTO = (row: {
   createdAt: row.createdAt.toISOString(),
 });
 
-export const uploadSource = async (
+const MAX_LEX_PDF_BYTES = 25 * 1024 * 1024;
+
+export const finalizeSource = async (
   userId: string,
   organizationId: string,
   input: {
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number };
+    key: string;
+    url: string;
     documentName: string;
     documentType: string;
   }
@@ -110,13 +113,23 @@ export const uploadSource = async (
     throw new BadRequestError("R2 storage is not configured on the server.");
   }
 
-  const { url: r2Url, key: r2Key } = await uploadBuffer({
-    organizationId,
-    buffer: input.file.buffer,
-    contentType: "application/pdf",
-    extension: "pdf",
-    prefix: "lex/documents",
-  });
+  // Defence-in-depth: refuse to "claim" a key that doesn't live under this
+  // org's namespace (presign already enforces this, but a malicious client
+  // might post any key here).
+  if (!input.key.startsWith(`${organizationId}/`)) {
+    throw new BadRequestError("Invalid object key.");
+  }
+
+  const head = await headObject(input.key);
+  if (!head) {
+    throw new BadRequestError("Upload not found in storage. Try again.");
+  }
+  if (head.contentType !== "application/pdf") {
+    throw new BadRequestError("Uploaded file must be a PDF.");
+  }
+  if (head.size > MAX_LEX_PDF_BYTES) {
+    throw new BadRequestError("PDF must be under 25MB.");
+  }
 
   await lexRepository.createUserMessage({
     organizationId,
@@ -127,8 +140,8 @@ export const uploadSource = async (
       input: {
         documentName: input.documentName,
         documentType: input.documentType,
-        sizeBytes: input.file.size,
-        r2Url,
+        sizeBytes: head.size,
+        r2Url: input.url,
       },
     },
   });
@@ -140,7 +153,7 @@ export const uploadSource = async (
       organization_id: organizationId,
       document_name: input.documentName,
       document_type: input.documentType,
-      document_url: r2Url,
+      document_url: input.url,
     }
   );
 
@@ -151,9 +164,9 @@ export const uploadSource = async (
     name: input.documentName,
     type: input.documentType,
     typeDetected: data.document_type_detected,
-    r2Key,
-    r2Url,
-    sizeBytes: input.file.size,
+    r2Key: input.key,
+    r2Url: input.url,
+    sizeBytes: head.size,
     pageCount: data.page_count,
     chunksCreated: data.chunks_created,
     summary: data.summary,

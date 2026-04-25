@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { authClient } from "@/lib/auth-client"
 import { AGENTS } from "@/lib/config/agents"
 import { useAgentStatuses } from "@/lib/api/assistants"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import type { AgentSlug, AgentStatus } from "@/lib/types"
 
 function statusDotColor(status: AgentStatus): string {

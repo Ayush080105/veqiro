@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { User, Users, Plug, Bell, CreditCard } from "lucide-react"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 
 const SETTINGS_NAV = [
   { href: "/settings", label: "Profile", icon: User, color: "var(--vq-red)" },

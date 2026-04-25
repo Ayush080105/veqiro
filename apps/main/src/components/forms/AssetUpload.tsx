@@ -13,7 +13,7 @@ import {
   removeBrandAsset,
   type UploadKind,
 } from "@/lib/api/brain"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 
 interface AssetUploadProps {
   kind: UploadKind

@@ -12,7 +12,7 @@ import type { BrandKit } from "@/lib/types"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { BrandKitSection } from "@/components/brain/BrandKitSection"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/page-header"
 import { brainAutosaveSchema, type BrainAutosaveValues } from "@/lib/schemas/brand-kit"
