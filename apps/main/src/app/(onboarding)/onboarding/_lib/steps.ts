@@ -68,7 +68,7 @@ export const STEPS: StepConfig[] = [
     emoji: "④",
     title: "Visual identity",
     subtitle: "Upload your logo and (optionally) a mascot. Pick a palette.",
-    fields: [], // visuals all optional
+    fields: ["logoUrl"], // logo required; mascot + palette optional
   },
   {
     slug: "step6",

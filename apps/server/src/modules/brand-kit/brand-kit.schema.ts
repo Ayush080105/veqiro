@@ -85,8 +85,9 @@ export const finalizeBrandKitSchema = z
       )
       .max(1000),
     brandVoice: z.string().min(1, "Pick a voice").max(200),
-    logoUrl: z.string().max(1000).nullable().optional(),
-    logoKey: z.string().max(500).nullable().optional(),
+    // Logo is required at finalize. Mascot stays optional.
+    logoUrl: z.string().min(1, "Upload a logo").max(1000),
+    logoKey: z.string().min(1).max(500),
     mascotUrl: z.string().max(1000).nullable().optional(),
     mascotKey: z.string().max(500).nullable().optional(),
     brandColors: brandColorsSchema.optional(),

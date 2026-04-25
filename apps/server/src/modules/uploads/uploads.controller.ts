@@ -57,7 +57,12 @@ export const presignUpload = async (req: Request, res: Response) => {
   const fromType = input.contentType.split("/")[1]?.split(";")[0] ?? "";
   const ext = fromName || fromType || "bin";
 
-  const key = buildObjectKey(organizationId, cfg.prefix, ext);
+  const key = buildObjectKey({
+    category: cfg.category,
+    organizationId,
+    name: cfg.name,
+    extension: ext,
+  });
 
   const result = await getPresignedPutUrl({
     key,

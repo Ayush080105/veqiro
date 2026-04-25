@@ -2,7 +2,12 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
-import { deleteObject, headObject, isR2Configured } from "../../../common/utils/r2.js";
+import {
+  deleteObject,
+  headObject,
+  isR2Configured,
+  keyBelongsToOrg,
+} from "../../../common/utils/r2.js";
 import * as lexRepository from "./lex.repository.js";
 import type {
   SendMessageInput,
@@ -113,10 +118,10 @@ export const finalizeSource = async (
     throw new BadRequestError("R2 storage is not configured on the server.");
   }
 
-  // Defence-in-depth: refuse to "claim" a key that doesn't live under this
-  // org's namespace (presign already enforces this, but a malicious client
-  // might post any key here).
-  if (!input.key.startsWith(`${organizationId}/`)) {
+  // Defence-in-depth: refuse to "claim" a key that doesn't belong to this
+  // org (presign already enforces this, but a malicious client might post
+  // any key here).
+  if (!keyBelongsToOrg(input.key, organizationId)) {
     throw new BadRequestError("Invalid object key.");
   }
 

@@ -15,24 +15,30 @@ const ALLOWED_IMAGE_TYPES = [
 interface KindConfig {
   contentTypes: readonly string[];
   maxBytes: number;
-  prefix: string;
+  /** Top-level R2 folder. Coarse: "images" or "documents". */
+  category: string;
+  /** Kind tag baked into the filename so we can distinguish logo vs mascot vs maya. */
+  name: string;
 }
 
 export const KIND_CONFIG: Record<UploadKind, KindConfig> = {
   logo: {
     contentTypes: ALLOWED_IMAGE_TYPES,
     maxBytes: 5 * 1024 * 1024,
-    prefix: "brand/logo",
+    category: "images",
+    name: "logo",
   },
   mascot: {
     contentTypes: ALLOWED_IMAGE_TYPES,
     maxBytes: 5 * 1024 * 1024,
-    prefix: "brand/mascot",
+    category: "images",
+    name: "mascot",
   },
   "lex-source": {
     contentTypes: ["application/pdf"],
     maxBytes: 25 * 1024 * 1024,
-    prefix: "lex/documents",
+    category: "documents",
+    name: "lex",
   },
 };
 

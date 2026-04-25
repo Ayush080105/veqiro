@@ -120,12 +120,26 @@ export default function OnboardingLayout({
 
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
-    defaultValues: readDraft(),
+    // Always boot with DEFAULT_VALUES so the SSR markup matches the first
+    // client render. localStorage is read AFTER mount in the effect below to
+    // avoid a hydration mismatch.
+    defaultValues: DEFAULT_VALUES,
     mode: "onChange",
   })
   const { control, getValues, reset, trigger, handleSubmit } = form
 
   const [saving, setSaving] = React.useState(false)
+  const [draftLoaded, setDraftLoaded] = React.useState(false)
+
+  // Hydrate from localStorage AFTER mount. Runs once.
+  React.useEffect(() => {
+    const draft = readDraft()
+    // Shallow check to skip the reset when there's no actual saved draft.
+    if (draft !== DEFAULT_VALUES) {
+      reset(draft)
+    }
+    setDraftLoaded(true)
+  }, [reset])
 
   // ── Guards ───────────────────────────────────────────────────────────────
 
@@ -178,12 +192,15 @@ export default function OnboardingLayout({
 
   const watched = useWatch({ control })
   React.useEffect(() => {
+    // Don't persist until after the localStorage→form rehydration has run,
+    // otherwise the initial DEFAULT_VALUES snapshot would clobber a real draft.
+    if (!draftLoaded) return
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(watched))
     } catch {
       /* ignore */
     }
-  }, [watched])
+  }, [watched, draftLoaded])
 
   // ── Step access guard ────────────────────────────────────────────────────
   // If user direct-links to a step they haven't earned access to, bounce them

@@ -40,9 +40,15 @@ export const isR2Configured = (): boolean =>
 
 export interface UploadImageArgs {
   organizationId: string;
+  // Identifies the kind of asset (e.g. "logo", "mascot", "maya"). Goes into
+  // the filename so we can find/clean up by org+kind without per-org folders.
+  name: string;
   base64: string;
   contentType?: string;
-  prefix?: string;
+  // Top-level "folder" in R2. Defaults to "images". Stays coarse on purpose:
+  // R2 has no real folders, just key prefixes — keeping the top-level small
+  // (images/ vs documents/) makes bucket listings sane.
+  category?: string;
 }
 
 export interface UploadImageResult {
@@ -61,8 +67,12 @@ export const uploadImageBase64 = async (
 
   const contentType = args.contentType || "image/png";
   const extension = contentType.split("/")[1]?.split(";")[0] || "png";
-  const prefix = args.prefix || "maya";
-  const key = `${args.organizationId}/${prefix}/${randomUUID()}.${extension}`;
+  const key = buildObjectKey({
+    category: args.category ?? "images",
+    organizationId: args.organizationId,
+    name: args.name,
+    extension,
+  });
 
   const cleanBase64 = args.base64.replace(/^data:[^;]+;base64,/, "");
   const buffer = Buffer.from(cleanBase64, "base64");
@@ -92,10 +102,15 @@ export const fetchImageAsBuffer = async (url: string): Promise<Buffer> => {
 
 export interface UploadBufferArgs {
   organizationId: string;
+  // Identifies the kind of asset (e.g. "lex", "uploads"). Baked into the
+  // filename, see UploadImageArgs.name for rationale.
+  name: string;
   buffer: Buffer;
   contentType: string;
   extension: string;
-  prefix?: string;
+  // Top-level folder. Defaults to "documents" since uploadBuffer is mostly
+  // used for non-image binaries (PDFs etc).
+  category?: string;
 }
 
 export const uploadBuffer = async (
@@ -107,8 +122,12 @@ export const uploadBuffer = async (
     throw new Error("R2_BUCKET and R2_PUBLIC_URL must be set to upload files.");
   }
 
-  const prefix = args.prefix || "uploads";
-  const key = `${args.organizationId}/${prefix}/${randomUUID()}.${args.extension}`;
+  const key = buildObjectKey({
+    category: args.category ?? "documents",
+    organizationId: args.organizationId,
+    name: args.name,
+    extension: args.extension,
+  });
 
   await getClient().send(
     new PutObjectCommand({
@@ -157,13 +176,33 @@ export interface PresignPutResult {
   expiresIn: number;
 }
 
-export const buildObjectKey = (
-  organizationId: string,
-  prefix: string,
-  extension: string,
-): string => {
-  const safeExt = extension.replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin";
-  return `${organizationId}/${prefix}/${randomUUID()}.${safeExt}`;
+export interface BuildObjectKeyArgs {
+  /** Top-level R2 "folder", e.g. "images" or "documents". */
+  category: string;
+  organizationId: string;
+  /** Kind tag baked into the filename, e.g. "logo", "mascot", "lex", "maya". */
+  name: string;
+  extension: string;
+}
+
+// Layout: `<category>/<orgId>-<name>-<uuid>.<ext>`. Flat top-level folders
+// (no per-org folders) so bucket listings group by purpose, with the orgId
+// in the filename so we can still find/clean up by org. orgId comes from
+// Better Auth (alphanumeric, no hyphens) so the prefix `<orgId>-` uniquely
+// identifies the owner even though uuids contain hyphens.
+export const buildObjectKey = (args: BuildObjectKeyArgs): string => {
+  const safeExt =
+    args.extension.replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin";
+  const safeName = args.name.replace(/[^a-z0-9-]/gi, "").toLowerCase() || "asset";
+  return `${args.category}/${args.organizationId}-${safeName}-${randomUUID()}.${safeExt}`;
+};
+
+// Defence-in-depth helper: refuse to "claim" a key whose filename doesn't
+// start with the caller's orgId. Presign-time enforcement already pins this,
+// but finalize endpoints accept a key from the client and need to verify.
+export const keyBelongsToOrg = (key: string, organizationId: string): boolean => {
+  const filename = key.split("/").pop() ?? "";
+  return filename.startsWith(`${organizationId}-`);
 };
 
 export const getPublicUrl = (key: string): string => {

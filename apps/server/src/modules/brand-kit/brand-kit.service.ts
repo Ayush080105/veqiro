@@ -9,6 +9,7 @@ import {
   isR2Configured,
   deleteObject,
   headObject,
+  keyBelongsToOrg,
 } from "../../common/utils/r2.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 
@@ -144,10 +145,10 @@ export const finalizeAssetUpload = async (
     );
   }
 
-  // Defence-in-depth: a key the client posts must live under that org's
-  // namespace. Presign already enforces this, but a malicious client might
-  // try to "claim" another org's key here.
-  if (!input.key.startsWith(`${organizationId}/`)) {
+  // Defence-in-depth: a key the client posts must belong to that org.
+  // Presign already enforces this, but a malicious client might try to
+  // "claim" another org's key here.
+  if (!keyBelongsToOrg(input.key, organizationId)) {
     throw new BadRequestError("Invalid object key.");
   }
 

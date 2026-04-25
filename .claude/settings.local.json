@@ -43,7 +43,9 @@
       "mcp__plugin_playwright_playwright__browser_console_messages",
       "mcp__plugin_playwright_playwright__browser_type",
       "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__query-docs"
+      "mcp__plugin_context7_context7__query-docs",
+      "mcp__shadcn__get_project_registries",
+      "mcp__shadcn__view_items_in_registries"
     ]
   },
   "enabledMcpjsonServers": [

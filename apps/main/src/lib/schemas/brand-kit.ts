@@ -47,8 +47,9 @@ export const finalizeBrainSchema = z.object({
     .max(1000),
   brandVoice: z.string().min(1, "Pick a voice").max(200),
   websiteUrl: optionalUrl.optional().or(z.literal("")),
-  logoUrl: z.string().max(1000).nullable().optional(),
-  logoKey: z.string().max(500).nullable().optional(),
+  // Logo is required for finalize. Mascot stays optional.
+  logoUrl: z.string().min(1, "Upload a logo").max(1000),
+  logoKey: z.string().min(1).max(500),
   mascotUrl: z.string().max(1000).nullable().optional(),
   mascotKey: z.string().max(500).nullable().optional(),
   brandColors: z
@@ -131,7 +132,13 @@ export const onboardingSchema = z.object({
     .string()
     .max(500)
     .refine((v) => v === "" || /^https?:\/\//u.test(v), "Use a valid http(s) URL"),
-  logoUrl: z.string().nullable(),
+  // Logo is required at step 5. Kept nullable so the field's type matches
+  // DEFAULT_VALUES (null on form mount) — the refine flags missing logos
+  // when form.trigger runs at step5→step6.
+  logoUrl: z
+    .string()
+    .nullable()
+    .refine((v) => v != null && v.length > 0, "Upload a logo"),
   logoKey: z.string().nullable(),
   mascotUrl: z.string().nullable(),
   mascotKey: z.string().nullable(),
