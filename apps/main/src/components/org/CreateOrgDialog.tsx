@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { toast } from "sonner"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 
@@ -30,21 +29,9 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
+import { createOrgSchema, type CreateOrgValues } from "@/lib/schemas/org"
 
-const memberSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  role: z.enum(["owner", "admin", "member"]),
-})
-
-const createOrgSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Organization name must be at least 2 characters")
-    .max(100, "Organization name must be under 100 characters"),
-  members: z.array(memberSchema).optional(),
-})
-
-type CreateOrgFormValues = z.infer<typeof createOrgSchema>
+type CreateOrgFormValues = CreateOrgValues
 
 export function CreateOrgDialog() {
   const router = useRouter()

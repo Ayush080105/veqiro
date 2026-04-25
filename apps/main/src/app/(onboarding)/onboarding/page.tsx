@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 
 import { authClient } from '@/lib/auth-client';
 import { getBrandKit, finalizeBrandKit } from '@/lib/api/brain';
@@ -22,7 +21,11 @@ import {
 } from '@/components/veqiro/shared';
 import { CharCount } from '@/components/forms/CharCount';
 import { AssetUpload } from '@/components/forms/AssetUpload';
-import { BRAND_KIT_MINS } from '@/lib/validation/brandKit';
+import {
+  BRAND_KIT_MINS,
+  onboardingSchema,
+  type OnboardingValues,
+} from '@/lib/schemas/brand-kit';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -46,48 +49,9 @@ const PRESET_PALETTES: [string, string, string][] = [
   ['#F5C518', '#F06464', '#111111'],
 ];
 
-// ─── Form schema ─────────────────────────────────────────────────────────────
-// This is the *finalize-time* schema (with mins). We validate per-step using
-// `trigger()` so the user is gated step-by-step, not at the very end.
+// Schema lives in @/lib/schemas/brand-kit (used by both onboarding + finalize).
 
-const onboardingSchema = z.object({
-  companyName: z.string().min(2, 'Company name is required'),
-  companyDescription: z
-    .string()
-    .min(
-      BRAND_KIT_MINS.companyDescription,
-      `Add a bit more — agents need ~1–2 sentences (min ${BRAND_KIT_MINS.companyDescription} chars)`,
-    )
-    .max(2000),
-  industry: z.string().min(1, 'Pick an industry'),
-  targetAudience: z
-    .string()
-    .min(
-      BRAND_KIT_MINS.targetAudience,
-      `Be specific — job titles, motivations (min ${BRAND_KIT_MINS.targetAudience} chars)`,
-    )
-    .max(1000),
-  brandVoice: z.string().min(1, 'Pick a voice'),
-  websiteUrl: z
-    .string()
-    .max(500)
-    .refine((v) => v === '' || /^https?:\/\//u.test(v), 'Use a valid http(s) URL'),
-  logoUrl: z.string().nullable(),
-  logoKey: z.string().nullable(),
-  mascotUrl: z.string().nullable(),
-  mascotKey: z.string().nullable(),
-  brandColors: z.tuple([z.string(), z.string(), z.string()]),
-  competitors: z.string(), // comma-separated, parsed at submit
-  keyDifferentiators: z
-    .string()
-    .min(
-      BRAND_KIT_MINS.keyDifferentiators,
-      `Why you, not them — bullets work (min ${BRAND_KIT_MINS.keyDifferentiators} chars)`,
-    )
-    .max(2000),
-});
-
-type OnboardingFormValues = z.infer<typeof onboardingSchema>;
+type OnboardingFormValues = OnboardingValues;
 
 const DEFAULT_VALUES: OnboardingFormValues = {
   companyName: '',

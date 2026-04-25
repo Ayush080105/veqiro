@@ -3,7 +3,6 @@
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { Save } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
@@ -23,16 +22,9 @@ import {
 } from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { PageHeader } from "@/components/ui/page-header"
+import { profileSchema, type ProfileValues } from "@/lib/schemas/profile"
 
-// ─── Form Schema ──────────────────────────────────────────────────────────────
-
-const profileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email"),
-  timezone: z.string().min(1, "Timezone is required"),
-})
-
-type ProfileForm = z.infer<typeof profileSchema>
+type ProfileForm = ProfileValues
 
 const TIMEZONES = [
   { value: "UTC", label: "UTC" },

@@ -1,40 +1,39 @@
 "use client"
 
 import { useSearchParams, useRouter } from "next/navigation"
-import { useState, Suspense } from "react"
+import { Suspense } from "react"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 import { authClient } from "@/lib/auth-client"
 import Logo from "@/components/logo"
 import { AuthCard } from "@/components/ui/auth-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Field, FieldDescription, FieldError } from "@/components/ui/field"
 import { SubmitButton } from "@/components/ui/submit-button"
 import { Sticker } from "@/components/ui/sticker"
+import { RhfField } from "@/components/forms/RhfField"
+import { resetPasswordSchema, type ResetPasswordValues } from "@/lib/schemas/auth"
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const token = searchParams.get("token")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
 
-  const mismatch = Boolean(confirmPassword && newPassword !== confirmPassword)
+  const form = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { newPassword: "", confirmPassword: "" },
+  })
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = async ({ newPassword }: ResetPasswordValues) => {
     if (!token) {
       toast.error("Invalid reset link")
       return
     }
-    setIsLoading(true)
     const { error } = await authClient.resetPassword({ token, newPassword })
-    setIsLoading(false)
     if (error) {
       toast.error(error.message || "Something went wrong")
     } else {
@@ -82,41 +81,50 @@ function ResetPasswordContent() {
           kicker="pick a fresh one"
           title="reset password"
         />
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <Field>
-            <Label htmlFor="newPassword" variant="brand">New password</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              variant="brand"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              required
-              disabled={isLoading}
-            />
-            <FieldDescription>Must be at least 8 characters long.</FieldDescription>
-          </Field>
-
-          <Field>
-            <Label htmlFor="confirmPassword" variant="brand">Confirm new password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              variant="brand"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              required
-              disabled={isLoading}
-              aria-invalid={mismatch}
-            />
-            {mismatch && (
-              <FieldError>Passwords do not match</FieldError>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-4"
+        >
+          <RhfField
+            control={form.control}
+            name="newPassword"
+            label="New password"
+            description="Must be at least 8 characters long."
+            required
+          >
+            {({ field, invalid, id }) => (
+              <Input
+                {...field}
+                id={id}
+                type="password"
+                variant="brand"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                aria-invalid={invalid}
+                disabled={form.formState.isSubmitting}
+              />
             )}
-          </Field>
+          </RhfField>
+
+          <RhfField
+            control={form.control}
+            name="confirmPassword"
+            label="Confirm new password"
+            required
+          >
+            {({ field, invalid, id }) => (
+              <Input
+                {...field}
+                id={id}
+                type="password"
+                variant="brand"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                aria-invalid={invalid}
+                disabled={form.formState.isSubmitting}
+              />
+            )}
+          </RhfField>
 
           <div className="flex gap-2.5">
             <Button
@@ -129,9 +137,8 @@ function ResetPasswordContent() {
               Back
             </Button>
             <SubmitButton
-              isLoading={isLoading}
+              isLoading={form.formState.isSubmitting}
               loadingText="Resetting…"
-              disabled={mismatch}
               className="flex-[1.3]"
             >
               Reset password

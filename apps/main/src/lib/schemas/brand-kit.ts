@@ -8,6 +8,14 @@ export const BRAND_KIT_MINS = {
   keyDifferentiators: 80,
 } as const
 
+export const ALLOWED_ASSET_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+] as const
+export const MAX_ASSET_BYTES = 5 * 1024 * 1024
+
 const hexColor = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/u, "Use a 6-digit hex like #1A2B3C")
@@ -74,11 +82,70 @@ export const finalizeBrainSchema = z.object({
 
 export type FinalizeBrainValues = z.infer<typeof finalizeBrainSchema>
 
-// Image upload constraints (client-side mirror of server allowlist).
-export const ALLOWED_ASSET_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/svg+xml",
-] as const
-export const MAX_ASSET_BYTES = 5 * 1024 * 1024
+// ── Brain page (auto-save) — permissive per-field, mirrors finalize shape ──
+export const brainAutosaveSchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  companyDescription: z.string(),
+  websiteUrl: z.string(),
+  industry: z.string(),
+  targetAudience: z.string(),
+  brandVoice: z.string(),
+  platformTones: z.object({
+    twitter: z.string(),
+    linkedin: z.string(),
+    instagram: z.string(),
+  }),
+  brandColors: z.object({
+    primary: z.string(),
+    secondary: z.string(),
+    accent: z.string(),
+  }),
+  competitors: z.array(z.object({ value: z.string() })),
+  keyDifferentiators: z.string(),
+  logoUrl: z.string().nullable(),
+  logoKey: z.string().nullable(),
+  mascotUrl: z.string().nullable(),
+  mascotKey: z.string().nullable(),
+})
+
+export type BrainAutosaveValues = z.infer<typeof brainAutosaveSchema>
+
+// ── Onboarding flow — strict mins gated step-by-step via form.trigger ──
+export const onboardingSchema = z.object({
+  companyName: z.string().min(2, "Company name is required"),
+  companyDescription: z
+    .string()
+    .min(
+      BRAND_KIT_MINS.companyDescription,
+      `Add a bit more — agents need ~1–2 sentences (min ${BRAND_KIT_MINS.companyDescription} chars)`,
+    )
+    .max(2000),
+  industry: z.string().min(1, "Pick an industry"),
+  targetAudience: z
+    .string()
+    .min(
+      BRAND_KIT_MINS.targetAudience,
+      `Be specific — job titles, motivations (min ${BRAND_KIT_MINS.targetAudience} chars)`,
+    )
+    .max(1000),
+  brandVoice: z.string().min(1, "Pick a voice"),
+  websiteUrl: z
+    .string()
+    .max(500)
+    .refine((v) => v === "" || /^https?:\/\//u.test(v), "Use a valid http(s) URL"),
+  logoUrl: z.string().nullable(),
+  logoKey: z.string().nullable(),
+  mascotUrl: z.string().nullable(),
+  mascotKey: z.string().nullable(),
+  brandColors: z.tuple([z.string(), z.string(), z.string()]),
+  competitors: z.string(), // comma-separated, parsed at submit
+  keyDifferentiators: z
+    .string()
+    .min(
+      BRAND_KIT_MINS.keyDifferentiators,
+      `Why you, not them — bullets work (min ${BRAND_KIT_MINS.keyDifferentiators} chars)`,
+    )
+    .max(2000),
+})
+
+export type OnboardingValues = z.infer<typeof onboardingSchema>

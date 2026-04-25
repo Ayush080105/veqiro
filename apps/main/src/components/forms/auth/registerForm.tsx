@@ -5,9 +5,8 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 
-import { registerSchema } from "@/models/auth/registerSchema"
+import { registerSchema, type RegisterValues } from "@/lib/schemas/auth"
 import { authClient } from "@/lib/auth-client"
 import OAuthButtons from "@/components/oauth-buttons"
 import { AuthCard } from "@/components/ui/auth-card"
@@ -19,12 +18,12 @@ import { SubmitButton } from "@/components/ui/submit-button"
 export function RegisterForm() {
   const router = useRouter()
 
-  const form = useForm<z.infer<typeof registerSchema>>({
+  const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   })
 
-  const onSubmit = async (data: z.infer<typeof registerSchema>) => {
+  const onSubmit = async (data: RegisterValues) => {
     const { error } = await authClient.signUp.email({
       email: data.email,
       password: data.password,

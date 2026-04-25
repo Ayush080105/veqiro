@@ -11,13 +11,18 @@ import {
   Sparkles,
 } from "lucide-react"
 
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldDescription, FieldError } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { RhfField } from "@/components/forms/RhfField"
 
 // ── Composed ─────────────────────────────────────────────────────────────────
 import { ActionRow } from "@/components/ui/action-row"
@@ -315,6 +320,9 @@ export default function ComponentsShowcase() {
           </div>
         </Demo>
       </Section>
+
+      {/* ── RhfField (RHF + zod + Field composition) ─────────────────────── */}
+      <RhfFieldDemoSection />
 
       {/* ── Card ─────────────────────────────────────────────────────────── */}
       <Section
@@ -706,5 +714,135 @@ export default function ComponentsShowcase() {
         </Demo>
       </Section>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RhfField demo (RHF + zod + shadcn Field composition)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const demoSchema = z
+  .object({
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "At least 8 characters"),
+    confirm: z.string().min(8, "Confirm your password"),
+    bio: z
+      .string()
+      .min(10, "At least 10 characters")
+      .max(80, "Keep it under 80 characters"),
+  })
+  .refine((d) => d.password === d.confirm, {
+    message: "Passwords don't match",
+    path: ["confirm"],
+  })
+
+type DemoValues = z.infer<typeof demoSchema>
+
+function RhfFieldDemoSection() {
+  const form = useForm<DemoValues>({
+    resolver: zodResolver(demoSchema),
+    defaultValues: { email: "", password: "", confirm: "", bio: "" },
+    mode: "onBlur",
+  })
+
+  const onSubmit = (data: DemoValues) => {
+    console.log("Demo submit:", data)
+  }
+
+  return (
+    <Section
+      id="rhf-field"
+      kicker="composed"
+      title="RhfField"
+      description="Single Controller wrapper for the RHF + zod + shadcn-Field pattern. Renders Field > Label (brand) > children > description | error."
+    >
+      <Demo label="Live form (try invalid input + tab away)">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex w-full max-w-md flex-col gap-4"
+        >
+          <FieldGroup>
+            <RhfField
+              control={form.control}
+              name="email"
+              label="Email"
+              required
+            >
+              {({ field, invalid, id }) => (
+                <Input
+                  {...field}
+                  id={id}
+                  type="email"
+                  variant="brand"
+                  placeholder="you@example.com"
+                  aria-invalid={invalid}
+                />
+              )}
+            </RhfField>
+
+            <RhfField
+              control={form.control}
+              name="password"
+              label="Password"
+              description="Must be at least 8 characters."
+              required
+            >
+              {({ field, invalid, id }) => (
+                <Input
+                  {...field}
+                  id={id}
+                  type="password"
+                  variant="brand"
+                  aria-invalid={invalid}
+                />
+              )}
+            </RhfField>
+
+            <RhfField
+              control={form.control}
+              name="confirm"
+              label="Confirm password"
+              required
+            >
+              {({ field, invalid, id }) => (
+                <Input
+                  {...field}
+                  id={id}
+                  type="password"
+                  variant="brand"
+                  aria-invalid={invalid}
+                />
+              )}
+            </RhfField>
+
+            <RhfField
+              control={form.control}
+              name="bio"
+              label="One-line bio"
+              description="10-80 characters."
+            >
+              {({ field, invalid, id }) => (
+                <Textarea
+                  {...field}
+                  id={id}
+                  variant="brand"
+                  rows={2}
+                  aria-invalid={invalid}
+                />
+              )}
+            </RhfField>
+
+            <Button
+              type="submit"
+              variant="brand"
+              size="brand"
+              disabled={form.formState.isSubmitting}
+            >
+              Submit
+            </Button>
+          </FieldGroup>
+        </form>
+      </Demo>
+    </Section>
   )
 }
