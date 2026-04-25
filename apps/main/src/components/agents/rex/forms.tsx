@@ -2,21 +2,27 @@
 
 import * as React from "react"
 import { Plus, X } from "lucide-react"
+import { Controller } from "react-hook-form"
+
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import {
-  FormRow,
-  DataPointTable,
-  CountedTextarea,
-} from "@/components/chat/ActionForm/fields"
+import { FieldGroup } from "@/components/ui/field"
+import { DataPointTable, CountedTextarea } from "@/components/chat/ActionForm/fields"
+import { RhfField } from "@/components/forms/RhfField"
+import { useAgentForm } from "@/components/forms/useAgentForm"
 import { cn } from "@/lib/utils"
-import type {
-  RexAnalyzeMetricsRequest,
-  RexForecastRequest,
-  RexFinancialAnalysisRequest,
-  RexBriefingRequest,
-  DataPoint,
-} from "@/lib/types/agents"
+import {
+  rexAnalyzeMetricsSchema,
+  type RexAnalyzeMetricsValues,
+  rexForecastSchema,
+  type RexForecastValues,
+  rexFinancialAnalysisSchema,
+  type RexFinancialAnalysisValues,
+  rexBriefingSchema,
+  type RexBriefingValues,
+  REX_PERIODS,
+} from "@/lib/schemas/agents/rex"
+import type { DataPoint } from "@/lib/types/agents"
 
 type MetricEntry = { name: string; data: DataPoint[] }
 
@@ -34,254 +40,335 @@ function entriesToMetricsMap(
   )
 }
 
+// ─── Analyze metrics ────────────────────────────────────────────────────────
+
 export function RexAnalyzeMetricsForm({
   value,
   onChange,
 }: {
-  value: RexAnalyzeMetricsRequest
-  onChange: (patch: Partial<RexAnalyzeMetricsRequest>) => void
+  value: RexAnalyzeMetricsValues
+  onChange: (patch: Partial<RexAnalyzeMetricsValues>) => void
 }) {
-  const entries = React.useMemo(
-    () => metricsMapToEntries(value.metrics ?? {}),
-    [value.metrics]
-  )
-  const commit = (next: MetricEntry[]) =>
-    onChange({ metrics: entriesToMetricsMap(next) })
-
-  const periods: Array<"daily" | "weekly" | "monthly" | "quarterly"> = [
-    "daily",
-    "weekly",
-    "monthly",
-    "quarterly",
-  ]
+  const form = useAgentForm({
+    schema: rexAnalyzeMetricsSchema,
+    defaultValue: value,
+    onChange,
+  })
 
   return (
-    <>
-      <FormRow label="Metrics" required hint="Add one row per metric you track.">
-        <div className="flex flex-col gap-2">
-          {entries.map((entry, i) => (
-            <div
-              key={i}
-              className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
-            >
-              <div className="flex gap-1.5">
-                <Input
-                  value={entry.name}
-                  placeholder="e.g. mrr, signups, dau"
-                  onChange={(e) =>
-                    commit(
-                      entries.map((x, j) =>
-                        j === i ? { ...x, name: e.target.value } : x
-                      )
-                    )
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Remove metric"
-                  onClick={() =>
-                    commit(entries.filter((_, j) => j !== i))
-                  }
+    <FieldGroup>
+      <RhfField
+        control={form.control}
+        name="metrics"
+        label="Metrics"
+        required
+        description="Add one row per metric you track."
+      >
+        {({ field }) => {
+          const entries = metricsMapToEntries(field.value ?? {})
+          const commit = (next: MetricEntry[]) =>
+            field.onChange(entriesToMetricsMap(next))
+          return (
+            <div className="flex flex-col gap-2">
+              {entries.map((entry, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
                 >
-                  <X />
-                </Button>
-              </div>
-              <DataPointTable
-                value={entry.data}
-                onChange={(data) =>
-                  commit(entries.map((x, j) => (j === i ? { ...x, data } : x)))
-                }
-              />
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={entry.name}
+                      placeholder="e.g. mrr, signups, dau"
+                      onChange={(e) =>
+                        commit(
+                          entries.map((x, j) =>
+                            j === i ? { ...x, name: e.target.value } : x
+                          )
+                        )
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remove metric"
+                      onClick={() => commit(entries.filter((_, j) => j !== i))}
+                    >
+                      <X />
+                    </Button>
+                  </div>
+                  <DataPointTable
+                    value={entry.data}
+                    onChange={(data) =>
+                      commit(
+                        entries.map((x, j) => (j === i ? { ...x, data } : x))
+                      )
+                    }
+                  />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => commit([...entries, { name: "", data: [] }])}
+                className="self-start"
+              >
+                <Plus data-icon="inline-start" /> Add metric
+              </Button>
             </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => commit([...entries, { name: "", data: [] }])}
-            className="self-start"
-          >
-            <Plus data-icon="inline-start" /> Add metric
-          </Button>
-        </div>
-      </FormRow>
-      <FormRow label="Period">
-        <div className="flex gap-1.5">
-          {periods.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => onChange({ period: p })}
-              className={cn(
-                "flex-1 border border-border px-2 py-1.5 text-xs capitalize",
-                (value.period ?? "monthly") === p
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "hover:bg-muted"
-              )}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </FormRow>
-    </>
+          )
+        }}
+      </RhfField>
+
+      <RhfField control={form.control} name="period" label="Period">
+        {({ field }) => (
+          <div className="flex gap-1.5">
+            {REX_PERIODS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => field.onChange(p)}
+                className={cn(
+                  "flex-1 border border-border px-2 py-1.5 text-xs capitalize",
+                  (field.value ?? "monthly") === p
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "hover:bg-muted"
+                )}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
+      </RhfField>
+    </FieldGroup>
   )
 }
+
+// ─── Forecast ───────────────────────────────────────────────────────────────
 
 export function RexForecastForm({
   value,
   onChange,
 }: {
-  value: RexForecastRequest
-  onChange: (patch: Partial<RexForecastRequest>) => void
+  value: RexForecastValues
+  onChange: (patch: Partial<RexForecastValues>) => void
 }) {
+  const form = useAgentForm({
+    schema: rexForecastSchema,
+    defaultValue: value,
+    onChange,
+  })
+
   return (
-    <>
-      <FormRow label="Metric name" required>
-        <Input
-          value={value.metric_name}
-          placeholder="e.g. mrr"
-          onChange={(e) => onChange({ metric_name: e.target.value })}
-        />
-      </FormRow>
-      <FormRow
+    <FieldGroup>
+      <RhfField
+        control={form.control}
+        name="metric_name"
+        label="Metric name"
+        required
+      >
+        {({ field, invalid, id }) => (
+          <Input
+            {...field}
+            id={id}
+            placeholder="e.g. mrr"
+            aria-invalid={invalid}
+          />
+        )}
+      </RhfField>
+
+      <RhfField
+        control={form.control}
+        name="historical_data"
         label="Historical data"
         required
-        hint="At least 6 data points recommended for a meaningful forecast."
+        description="At least 6 data points recommended for a meaningful forecast."
       >
-        <DataPointTable
-          value={value.historical_data ?? []}
-          onChange={(next) => onChange({ historical_data: next })}
-        />
-      </FormRow>
-      <FormRow label="Horizon (days)">
-        <Input
-          type="number"
-          min={7}
-          max={365}
-          value={value.horizon_days ?? 90}
-          onChange={(e) =>
-            onChange({ horizon_days: Number(e.target.value) })
-          }
-        />
-      </FormRow>
-    </>
+        {({ field }) => (
+          <DataPointTable
+            value={field.value ?? []}
+            onChange={field.onChange}
+          />
+        )}
+      </RhfField>
+
+      <RhfField
+        control={form.control}
+        name="horizon_days"
+        label="Horizon (days)"
+      >
+        {({ field, invalid, id }) => (
+          <Input
+            id={id}
+            type="number"
+            min={7}
+            max={365}
+            value={field.value ?? 90}
+            onChange={(e) => field.onChange(Number(e.target.value))}
+            onBlur={field.onBlur}
+            aria-invalid={invalid}
+          />
+        )}
+      </RhfField>
+    </FieldGroup>
   )
 }
+
+// ─── Financial analysis ─────────────────────────────────────────────────────
 
 export function RexFinancialAnalysisForm({
   value,
   onChange,
 }: {
-  value: RexFinancialAnalysisRequest
-  onChange: (patch: Partial<RexFinancialAnalysisRequest>) => void
+  value: RexFinancialAnalysisValues
+  onChange: (patch: Partial<RexFinancialAnalysisValues>) => void
 }) {
+  const form = useAgentForm({
+    schema: rexFinancialAnalysisSchema,
+    defaultValue: value,
+    onChange,
+  })
+
   return (
-    <>
-      <FormRow label="Revenue" required>
-        <DataPointTable
-          value={value.revenue_data ?? []}
-          onChange={(next) => onChange({ revenue_data: next })}
-        />
-      </FormRow>
-      <FormRow label="Expenses">
-        <DataPointTable
-          value={value.expenses_data ?? []}
-          onChange={(next) => onChange({ expenses_data: next })}
-        />
-      </FormRow>
-      <FormRow label="Subscribers">
-        <DataPointTable
-          value={value.subscribers_data ?? []}
-          onChange={(next) => onChange({ subscribers_data: next })}
-        />
-      </FormRow>
-    </>
+    <FieldGroup>
+      <RhfField
+        control={form.control}
+        name="revenue_data"
+        label="Revenue"
+        required
+      >
+        {({ field }) => (
+          <DataPointTable
+            value={field.value ?? []}
+            onChange={field.onChange}
+          />
+        )}
+      </RhfField>
+
+      <RhfField control={form.control} name="expenses_data" label="Expenses">
+        {({ field }) => (
+          <DataPointTable
+            value={field.value ?? []}
+            onChange={field.onChange}
+          />
+        )}
+      </RhfField>
+
+      <RhfField
+        control={form.control}
+        name="subscribers_data"
+        label="Subscribers"
+      >
+        {({ field }) => (
+          <DataPointTable
+            value={field.value ?? []}
+            onChange={field.onChange}
+          />
+        )}
+      </RhfField>
+    </FieldGroup>
   )
 }
+
+// ─── Briefing ───────────────────────────────────────────────────────────────
 
 export function RexBriefingForm({
   value,
   onChange,
 }: {
-  value: RexBriefingRequest
-  onChange: (patch: Partial<RexBriefingRequest>) => void
+  value: RexBriefingValues
+  onChange: (patch: Partial<RexBriefingValues>) => void
 }) {
-  const agentEntries = React.useMemo(
-    () => Object.entries(value.agent_summaries ?? {}),
-    [value.agent_summaries]
-  )
-  const commitAgents = (entries: [string, string][]) =>
-    onChange({
-      agent_summaries: Object.fromEntries(
-        entries.filter(([k]) => k.trim())
-      ),
-    })
+  const form = useAgentForm({
+    schema: rexBriefingSchema,
+    defaultValue: value,
+    onChange,
+  })
 
   return (
-    <>
-      <FormRow label="Date" required>
-        <Input
-          type="date"
-          value={value.date}
-          onChange={(e) => onChange({ date: e.target.value })}
-        />
-      </FormRow>
-      <FormRow label="Agent summaries" hint="Paste each agent's status note.">
-        <div className="flex flex-col gap-2">
-          {agentEntries.map(([name, summary], i) => (
-            <div
-              key={i}
-              className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
-            >
-              <div className="flex gap-1.5">
-                <Input
-                  value={name}
-                  placeholder="Agent (sage, maya, scout…)"
-                  onChange={(e) =>
-                    commitAgents(
-                      agentEntries.map((x, j) =>
-                        j === i ? [e.target.value, x[1]] : x
-                      )
-                    )
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Remove"
-                  onClick={() =>
-                    commitAgents(agentEntries.filter((_, j) => j !== i))
-                  }
-                >
-                  <X />
-                </Button>
+    <FieldGroup>
+      <RhfField control={form.control} name="date" label="Date" required>
+        {({ field, invalid, id }) => (
+          <Input {...field} id={id} type="date" aria-invalid={invalid} />
+        )}
+      </RhfField>
+
+      <Controller
+        control={form.control}
+        name="agent_summaries"
+        render={({ field }) => {
+          const agentEntries = Object.entries(field.value ?? {})
+          const commitAgents = (entries: [string, string][]) =>
+            field.onChange(
+              Object.fromEntries(entries.filter(([k]) => k.trim()))
+            )
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
+                <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+                  Agent summaries
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Paste each agent&apos;s status note.
+                </span>
               </div>
-              <CountedTextarea
-                value={summary}
-                rows={2}
-                onChange={(v) =>
-                  commitAgents(
-                    agentEntries.map((x, j) => (j === i ? [x[0], v] : x))
-                  )
-                }
-              />
+              {agentEntries.map(([name, summary], i) => (
+                <div
+                  key={i}
+                  className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
+                >
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={name}
+                      placeholder="Agent (sage, maya, scout…)"
+                      onChange={(e) =>
+                        commitAgents(
+                          agentEntries.map((x, j) =>
+                            j === i ? [e.target.value, x[1]] : x
+                          )
+                        )
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remove"
+                      onClick={() =>
+                        commitAgents(agentEntries.filter((_, j) => j !== i))
+                      }
+                    >
+                      <X />
+                    </Button>
+                  </div>
+                  <CountedTextarea
+                    value={summary}
+                    rows={2}
+                    onChange={(v) =>
+                      commitAgents(
+                        agentEntries.map((x, j) =>
+                          j === i ? [x[0], v] : x
+                        )
+                      )
+                    }
+                  />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => commitAgents([...agentEntries, ["", ""]])}
+                className="self-start"
+              >
+                <Plus data-icon="inline-start" /> Add agent summary
+              </Button>
             </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => commitAgents([...agentEntries, ["", ""]])}
-            className="self-start"
-          >
-            <Plus data-icon="inline-start" /> Add agent summary
-          </Button>
-        </div>
-      </FormRow>
-    </>
+          )
+        }}
+      />
+    </FieldGroup>
   )
 }

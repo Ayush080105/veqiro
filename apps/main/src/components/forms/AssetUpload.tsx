@@ -7,7 +7,7 @@ import { Loader2, Upload, X } from "lucide-react"
 import {
   ALLOWED_ASSET_TYPES,
   MAX_ASSET_BYTES,
-} from "@/lib/validation/brandKit"
+} from "@/lib/schemas/brand-kit"
 import {
   uploadBrandAsset,
   removeBrandAsset,

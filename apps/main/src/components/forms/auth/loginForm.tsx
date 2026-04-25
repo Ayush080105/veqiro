@@ -4,32 +4,29 @@ import { useState } from "react"
 import Link from "next/link"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { EyeIcon, EyeOffIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
-import { loginSchema } from "@/models/auth/loginSchema"
+import { loginSchema, type LoginValues } from "@/lib/schemas/auth"
 import OAuthButtons from "@/components/oauth-buttons"
 import { AuthCard } from "@/components/ui/auth-card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Field, FieldError } from "@/components/ui/field"
 import { SubmitButton } from "@/components/ui/submit-button"
-import { Kicker } from "@/components/ui/kicker"
 
 export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  const form = useForm<z.infer<typeof loginSchema>>({
+  const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", remember: false },
   })
 
-  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+  const onSubmit = async (data: LoginValues) => {
     try {
       setError(null)
       setLoading(true)

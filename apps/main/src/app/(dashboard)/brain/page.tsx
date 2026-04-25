@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -16,37 +15,11 @@ import { BrandKitSection } from "@/components/brain/BrandKitSection"
 import { FONT } from "@/components/veqiro/shared"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/page-header"
+import { brainAutosaveSchema, type BrainAutosaveValues } from "@/lib/schemas/brand-kit"
 
-// ─── Schema ────────────────────────────────────────────────────────────────────
-// Permissive — auto-save shouldn't punish in-progress edits. The strict
-// minimums live in lib/validation/brandKit.ts and are enforced by /finalize.
-
-const brainSchema = z.object({
-  companyName: z.string().min(1, "Company name is required"),
-  companyDescription: z.string(),
-  websiteUrl: z.string(),
-  industry: z.string(),
-  targetAudience: z.string(),
-  brandVoice: z.string(),
-  platformTones: z.object({
-    twitter: z.string(),
-    linkedin: z.string(),
-    instagram: z.string(),
-  }),
-  brandColors: z.object({
-    primary: z.string(),
-    secondary: z.string(),
-    accent: z.string(),
-  }),
-  competitors: z.array(z.object({ value: z.string() })),
-  keyDifferentiators: z.string(),
-  logoUrl: z.string().nullable(),
-  logoKey: z.string().nullable(),
-  mascotUrl: z.string().nullable(),
-  mascotKey: z.string().nullable(),
-})
-
-type BrainFormValues = z.infer<typeof brainSchema>
+// Permissive auto-save schema — strict minimums live in finalizeBrainSchema and
+// are enforced by /finalize.
+type BrainFormValues = BrainAutosaveValues
 
 // ─── Default Values ────────────────────────────────────────────────────────────
 
@@ -145,7 +118,7 @@ export default function BrainPage() {
     watch,
     formState: { errors },
   } = useForm<BrainFormValues>({
-    resolver: zodResolver(brainSchema),
+    resolver: zodResolver(brainAutosaveSchema),
     defaultValues: DEFAULT_VALUES,
   })
 

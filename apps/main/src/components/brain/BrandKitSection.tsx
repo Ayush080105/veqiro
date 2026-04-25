@@ -43,7 +43,7 @@ import { AgentReadiness } from "@/components/brain/AgentReadiness"
 import { FONT, VqCard } from "@/components/veqiro/shared"
 import { CharCount } from "@/components/forms/CharCount"
 import { AssetUpload } from "@/components/forms/AssetUpload"
-import { BRAND_KIT_MINS } from "@/lib/validation/brandKit"
+import { BRAND_KIT_MINS } from "@/lib/schemas/brand-kit"
 
 // ─── Veqiro-themed Card + Label primitives ────────────────────────────────────
 

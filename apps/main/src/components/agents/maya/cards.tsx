@@ -270,7 +270,7 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
         {result.changes_made.length > 0 && (
           <div>
             <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              // changes
+              {"// changes"}
             </p>
             <ul className="list-disc pl-4 text-[11px] leading-relaxed">
               {result.changes_made.map((c, i) => (

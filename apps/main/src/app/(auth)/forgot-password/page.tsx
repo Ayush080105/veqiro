@@ -5,26 +5,29 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
 import { CheckCircle2 } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 import { authClient } from "@/lib/auth-client"
 import Logo from "@/components/logo"
 import { AuthCard } from "@/components/ui/auth-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Field } from "@/components/ui/field"
 import { SubmitButton } from "@/components/ui/submit-button"
 import { Sticker } from "@/components/ui/sticker"
+import { RhfField } from "@/components/forms/RhfField"
+import { forgotPasswordSchema, type ForgotPasswordValues } from "@/lib/schemas/auth"
 
 export default function ForgotPassword() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [sentEmail, setSentEmail] = useState<string | null>(null)
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  })
+
+  const onSubmit = async ({ email }: ForgotPasswordValues) => {
     try {
       const origin =
         typeof window !== "undefined" ? window.location.origin : ""
@@ -36,12 +39,10 @@ export default function ForgotPassword() {
         toast.error(res.error.message || "Failed to send reset email")
         return
       }
-      setSent(true)
+      setSentEmail(email)
       toast.success("Reset link sent. Check your email.")
     } catch {
       toast.error("An error occurred. Please try again.")
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -55,7 +56,7 @@ export default function ForgotPassword() {
       </Link>
 
       <AuthCard sticker={<Sticker rotate={-8} tone="yellow">forgot it</Sticker>}>
-        {sent ? (
+        {sentEmail ? (
           <div className="flex flex-col items-center gap-4 text-center">
             <span
               className="grid size-16 place-items-center rounded-2xl border-[3px] border-foreground bg-[color:var(--vq-green)] shadow-[4px_4px_0_var(--foreground)]"
@@ -67,7 +68,7 @@ export default function ForgotPassword() {
               check your email
             </h1>
             <p className="m-0 font-body text-sm leading-relaxed text-foreground/80">
-              We sent a reset link to <strong>{email}</strong>. Click the link to
+              We sent a reset link to <strong>{sentEmail}</strong>. Click the link to
               choose a new password.
             </p>
             <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -87,21 +88,29 @@ export default function ForgotPassword() {
               kicker="we'll mail you a fresh link"
               title="reset password"
             />
-            <form onSubmit={submit} className="flex flex-col gap-4">
-              <Field>
-                <Label htmlFor="email" variant="brand">Email address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  variant="brand"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  required
-                  disabled={isLoading}
-                />
-              </Field>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex flex-col gap-4"
+            >
+              <RhfField
+                control={form.control}
+                name="email"
+                label="Email address"
+                required
+              >
+                {({ field, invalid, id }) => (
+                  <Input
+                    {...field}
+                    id={id}
+                    type="email"
+                    variant="brand"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    aria-invalid={invalid}
+                    disabled={form.formState.isSubmitting}
+                  />
+                )}
+              </RhfField>
               <div className="flex gap-2.5">
                 <Button
                   type="button"
@@ -113,7 +122,7 @@ export default function ForgotPassword() {
                   Back
                 </Button>
                 <SubmitButton
-                  isLoading={isLoading}
+                  isLoading={form.formState.isSubmitting}
                   loadingText="Sending…"
                   className="flex-[1.3]"
                 >
