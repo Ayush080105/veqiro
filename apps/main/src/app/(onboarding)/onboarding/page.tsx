@@ -18,11 +18,22 @@ import { STEPS } from "./_lib/steps"
  */
 export default function OnboardingIndex() {
   const router = useRouter()
+  const { data: session, isPending: sessionLoading } = authClient.useSession()
   const { data: activeOrg, isPending: orgLoading } = authClient.useActiveOrganization()
   const { trigger } = useOnboardingForm()
 
+  // Same dual-signal as the layout — useActiveOrganization caches and doesn't
+  // pick up an `onboarded` flip on the same org, so also read from the session.
+  const sessionActiveOrgOnboarded = (
+    session as { activeOrganization?: { onboarded?: boolean } } | null | undefined
+  )?.activeOrganization?.onboarded
+  const isOnboarded = activeOrg?.onboarded === true || sessionActiveOrgOnboarded === true
+
   useEffect(() => {
-    if (orgLoading) return
+    if (orgLoading || sessionLoading) return
+    // Already onboarded — let the layout redirect to /dashboard. Skip the
+    // step-walk so we don't race-condition replace ourselves into a step.
+    if (isOnboarded) return
     let cancelled = false
     void (async () => {
       if (!activeOrg?.id) {
@@ -43,7 +54,7 @@ export default function OnboardingIndex() {
     return () => {
       cancelled = true
     }
-  }, [activeOrg?.id, orgLoading, router, trigger])
+  }, [activeOrg?.id, orgLoading, sessionLoading, isOnboarded, router, trigger])
 
   return (
     <div className="flex min-h-[40vh] items-center justify-center">

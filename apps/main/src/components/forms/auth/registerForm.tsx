@@ -24,7 +24,7 @@ export function RegisterForm() {
   })
 
   const onSubmit = async (data: RegisterValues) => {
-    const { error } = await authClient.signUp.email({
+    const { data: result, error } = await authClient.signUp.email({
       email: data.email,
       password: data.password,
       name: data.name,
@@ -34,9 +34,19 @@ export function RegisterForm() {
       toast.error(error.message || "Something went wrong")
       return
     }
-    toast.success("Account created")
     form.reset()
-    router.push("/onboarding")
+    // Better Auth deliberately returns a phantom-success for already-registered
+    // emails (anti-enumeration) AND when email verification is required no
+    // session is created on signup. In both cases `result.token` is null/absent.
+    // Don't push to /onboarding — the user has no session and would just bounce
+    // to /login. Send them to /login with a "check your inbox" message instead.
+    if (result?.token) {
+      toast.success("Account created")
+      router.push("/onboarding")
+    } else {
+      toast.success("Check your email to verify your account, then sign in.")
+      router.push("/login")
+    }
   }
 
   const isSubmitting = form.formState.isSubmitting

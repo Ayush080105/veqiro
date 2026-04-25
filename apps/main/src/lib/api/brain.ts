@@ -74,7 +74,7 @@ export type FinalizeResult =
 const FINALIZE_TIMEOUT_MS = 30_000
 
 async function finalizeOnce(
-  organizationId: string,
+  _organizationId: string,
   data: Partial<BrandKit>,
   signal: AbortSignal,
 ): Promise<
@@ -83,11 +83,13 @@ async function finalizeOnce(
   | { kind: "transport"; status?: number; message: string }
 > {
   try {
+    // Server reads organizationId from the session — do NOT send it in the
+    // body. finalizeBrandKitSchema is .strict() and would reject any extra key.
     const res = await fetch(`${API_URL}/brand-kit/finalize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ ...data, organizationId }),
+      body: JSON.stringify(data),
       signal,
     })
     if (res.ok) {

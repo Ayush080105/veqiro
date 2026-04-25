@@ -104,6 +104,16 @@ export default function OnboardingLayout({
   const { data: activeOrg, isPending: orgLoading } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
+  // Belt-and-suspenders: useActiveOrganization caches and only re-fetches when
+  // the active-org slot CHANGES, not when the same org's onboarded flag flips
+  // server-side after finalize. The session response (via customSession on the
+  // server) always includes a fresh `activeOrganization.onboarded`, so read it
+  // from there too. Whichever signal is true wins.
+  const sessionActiveOrgOnboarded = (
+    session as { activeOrganization?: { onboarded?: boolean } } | null | undefined
+  )?.activeOrganization?.onboarded
+  const isOnboarded = activeOrg?.onboarded === true || sessionActiveOrgOnboarded === true
+
   const slug = getCurrentSlug(pathname)
   const currentStep = slug ? findStepBySlug(slug) : null
   const stepIndex = currentStep?.index ?? 1
@@ -121,11 +131,11 @@ export default function OnboardingLayout({
 
   // Bounce already-onboarded users to the dashboard.
   React.useEffect(() => {
-    if (orgLoading) return
-    if (activeOrg?.onboarded) {
+    if (orgLoading || sessionLoading) return
+    if (isOnboarded) {
       router.replace("/dashboard")
     }
-  }, [activeOrg?.onboarded, orgLoading, router])
+  }, [isOnboarded, orgLoading, sessionLoading, router])
 
   // Session gate.
   React.useEffect(() => {
@@ -138,7 +148,7 @@ export default function OnboardingLayout({
   const [hydrated, setHydrated] = React.useState(false)
   React.useEffect(() => {
     if (!organizationId || hydrated) return
-    if (activeOrg?.onboarded) return
+    if (isOnboarded) return
     let cancelled = false
     getBrandKit(organizationId).then((bk) => {
       if (cancelled || !bk) {
@@ -162,7 +172,7 @@ export default function OnboardingLayout({
     return () => {
       cancelled = true
     }
-  }, [organizationId, activeOrg?.onboarded, reset, getValues, hydrated])
+  }, [organizationId, isOnboarded, reset, getValues, hydrated])
 
   // ── Draft persistence ────────────────────────────────────────────────────
 
@@ -180,7 +190,10 @@ export default function OnboardingLayout({
   // to the first incomplete step. We trust the form values + active org to
   // decide.
   React.useEffect(() => {
-    if (orgLoading || !slug) return
+    if (orgLoading || sessionLoading || !slug) return
+    // Already onboarded — let the onboarded effect above redirect to /dashboard.
+    // Otherwise this guard would race it and replace into a step instead.
+    if (isOnboarded) return
     const step = findStepBySlug(slug)
     if (!step) return
 
@@ -203,7 +216,7 @@ export default function OnboardingLayout({
         }
       }
     })()
-  }, [slug, organizationId, orgLoading, router, trigger])
+  }, [slug, organizationId, orgLoading, sessionLoading, isOnboarded, router, trigger])
 
   // ── Continue / Finalize ──────────────────────────────────────────────────
 
