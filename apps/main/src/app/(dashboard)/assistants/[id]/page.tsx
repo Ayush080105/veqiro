@@ -24,6 +24,7 @@ import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
+import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import type { LexSource } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
@@ -359,6 +360,7 @@ export default function AssistantChatPage() {
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
   const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
+  const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -421,9 +423,20 @@ export default function AssistantChatPage() {
     setActiveActionId(actionId)
   }
 
+  const discoverCompetitorsPrefill = useMemo(() =>
+    brandKit
+      ? { description: brandKit.companyDescription || "", industry: brandKit.industry || "" }
+      : undefined,
+    [brandKit]
+  )
+
   const handlePlusPick = (actionId: AgentActionId) => {
     setPlusOpen(false)
-    openAction(actionId)
+    if (actionId === "scout:discover-competitors") {
+      openAction(actionId, discoverCompetitorsPrefill)
+    } else {
+      openAction(actionId)
+    }
   }
 
   const openAnalyzeForSource = useCallback((source: LexSource) => {
@@ -446,6 +459,7 @@ export default function AssistantChatPage() {
   if (!agent) return null
 
   const isLex = agent.id === "lex"
+  const isScout = agent.id === "scout"
   const isVega = agent.id === "vega"
   const hasMessages = messages.length > 0
   const agentSlug = agent.id as AgentSlug
@@ -501,12 +515,59 @@ export default function AssistantChatPage() {
         </div>
       )}
 
+      {isScout && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderBottom: "2px solid #111",
+            background: "#FFF9ED",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setScoutTab("chat")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              scoutTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            }`}
+          >
+            <MessageSquare className="size-3" /> Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setScoutTab("watchlist")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              scoutTab === "watchlist"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <FolderOpen className="size-3" /> Watchlist
+          </button>
+        </div>
+      )}
+
       {isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
           <LexDocumentsTab
             onUpload={openUploadAction}
             onAnalyze={openAnalyzeForSource}
             onQuery={openQueryForSource}
+          />
+        </div>
+      ) : isScout && scoutTab === "watchlist" ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <ScoutWatchlistTab
+            onDiscover={() => {
+              setScoutTab("chat")
+              openAction("scout:discover-competitors", discoverCompetitorsPrefill)
+            }}
+            onResearch={(name, url) => {
+              setScoutTab("chat")
+              openAction("scout:research-company", { company_name: name, company_url: url })
+            }}
           />
         </div>
       ) : historyLoaded && !hasMessages ? (
@@ -580,7 +641,7 @@ export default function AssistantChatPage() {
           </div>
         )}
 
-        {!(isLex && lexTab === "documents") && (
+        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && (
           <ChatInput
             value={content}
             onChange={setContent}

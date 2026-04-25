@@ -120,6 +120,7 @@ function SectionCard({
   const agent = getAgent(section.agent)
 
   return (
+    <Collapsible open={open} onOpenChange={setOpen}>
     <Card id={`section-${index}`}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
@@ -137,7 +138,6 @@ function SectionCard({
             </div>
           </div>
           <CollapsibleTrigger
-            onClick={() => setOpen((v) => !v)}
             className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             {open ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
@@ -145,7 +145,6 @@ function SectionCard({
         </div>
       </CardHeader>
 
-      <Collapsible open={open}>
         <CollapsibleContent>
           <CardContent className="flex flex-col gap-4">
             <p className="text-xs/relaxed text-foreground leading-relaxed">{section.content}</p>
@@ -171,8 +170,8 @@ function SectionCard({
             </div>
           </CardContent>
         </CollapsibleContent>
-      </Collapsible>
     </Card>
+    </Collapsible>
   )
 }
 

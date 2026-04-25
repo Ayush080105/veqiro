@@ -1,16 +1,21 @@
 "use client"
 
 import * as React from "react"
-import { Plus, X } from "lucide-react"
+import { Bookmark, Brain, Plus, X } from "lucide-react"
 import { useFieldArray } from "react-hook-form"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
-import { StringListInput } from "@/components/chat/ActionForm/fields"
+import { StringListInput, FormRow } from "@/components/chat/ActionForm/fields"
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
 import { cn } from "@/lib/utils"
+import { useCompetitorWatches } from "@/lib/api/scout"
+import type {
+  ScoutTrendingTopicsRequest,
+  ScoutDiscoverCompetitorsRequest,
+} from "@/lib/types/agents"
 import {
   scoutResearchTopicSchema,
   type ScoutResearchTopicValues,
@@ -221,8 +226,8 @@ export function ScoutTrendingTopicsForm({
   value,
   onChange,
 }: {
-  value: ScoutTrendingTopicsValues
-  onChange: (patch: Partial<ScoutTrendingTopicsValues>) => void
+  value: ScoutTrendingTopicsRequest
+  onChange: (patch: Partial<ScoutTrendingTopicsRequest>) => void
 }) {
   const form = useAgentForm({
     schema: scoutTrendingTopicsSchema,
@@ -231,37 +236,57 @@ export function ScoutTrendingTopicsForm({
   })
 
   return (
-    <FieldGroup>
-      <RhfField
-        control={form.control}
-        name="industry"
-        label="Industry"
-        required
-      >
-        {({ field, invalid, id }) => (
-          <Input
-            {...field}
-            id={id}
-            placeholder="e.g. developer tools"
-            aria-invalid={invalid}
-          />
-        )}
-      </RhfField>
+    <>
+      <FormRow label="Industry" required>
+        <Input
+          value={value.industry}
+          onChange={(e) => onChange({ industry: e.target.value })}
+          placeholder="e.g. developer tools"
+        />
+      </FormRow>
+      <FormRow label="How many?">
+        <Input
+          type="number"
+          min={3}
+          max={25}
+          value={value.count ?? 10}
+          onChange={(e) => onChange({ count: Number(e.target.value) })}
+        />
+      </FormRow>
+    </>
+  )
+}
 
-      <RhfField control={form.control} name="count" label="How many?">
-        {({ field, invalid, id }) => (
-          <Input
-            id={id}
-            type="number"
-            min={3}
-            max={25}
-            value={field.value ?? 10}
-            onChange={(e) => field.onChange(Number(e.target.value))}
-            onBlur={field.onBlur}
-            aria-invalid={invalid}
-          />
-        )}
-      </RhfField>
-    </FieldGroup>
+export function ScoutDiscoverCompetitorsForm({
+  value,
+  onChange,
+}: {
+  value: ScoutDiscoverCompetitorsRequest
+  onChange: (patch: Partial<ScoutDiscoverCompetitorsRequest>) => void
+}) {
+  const { data: saved = [] } = useCompetitorWatches()
+
+  return (
+    <>
+      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <Brain className="size-3 shrink-0" />
+        Using your product description and industry from Brain.
+      </p>
+      <FormRow label="How many competitors?">
+        <Input
+          type="number"
+          min={3}
+          max={15}
+          value={value.count ?? 8}
+          onChange={(e) => onChange({ count: Number(e.target.value) })}
+        />
+      </FormRow>
+      {saved.length > 0 && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Bookmark className="size-3" />
+          {saved.length} competitor{saved.length !== 1 ? "s" : ""} already in your watchlist
+        </p>
+      )}
+    </>
   )
 }

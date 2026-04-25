@@ -1,6 +1,7 @@
 "use client"
 
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface MarkdownMessageProps {
   content: string
@@ -9,6 +10,7 @@ interface MarkdownMessageProps {
 export function MarkdownMessage({ content }: MarkdownMessageProps) {
   return (
     <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
           <h1 className="mb-2 text-sm font-bold">{children}</h1>

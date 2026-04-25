@@ -25,8 +25,8 @@ import {
 import {
   ScoutResearchTopicForm,
   ScoutResearchCompanyForm,
-  ScoutCompetitorScanForm,
   ScoutTrendingTopicsForm,
+  ScoutDiscoverCompetitorsForm,
 } from "@/components/agents/scout/forms"
 // Rex forms
 import {
@@ -194,18 +194,18 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     Form: ScoutResearchCompanyForm,
     validate: (v) => (v.company_name?.trim() ? null : "Company name is required."),
   },
-  "scout:scan-competitors": {
-    defaultValue: { competitors: [{ name: "", url: "" }] },
-    Form: ScoutCompetitorScanForm,
-    validate: (v) =>
-      v.competitors?.some((c: { name: string; url: string }) => c.name && c.url)
-        ? null
-        : "Add at least one competitor with a name and URL.",
-  },
   "scout:trending-topics": {
     defaultValue: { industry: "", count: 10 },
     Form: ScoutTrendingTopicsForm,
     validate: (v) => (v.industry?.trim() ? null : "Industry is required."),
+  },
+  "scout:discover-competitors": {
+    defaultValue: { description: "", industry: "", count: 8 },
+    Form: ScoutDiscoverCompetitorsForm,
+    validate: (v) =>
+      !v.description?.trim()
+        ? "Product description is missing — fill in your Brain first."
+        : null,
   },
 
   "rex:analyze-metrics": {
