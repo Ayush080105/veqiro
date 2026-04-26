@@ -13,6 +13,8 @@ import type {
   ContentAnalysisResponse,
   ContentBriefInput,
   ContentBriefResponse,
+  GenerateBlogIdeasInput,
+  GenerateBlogIdeasResponse,
   SavedKeyword,
 } from "./sage.types.js";
 
@@ -194,6 +196,37 @@ export const contentBrief = async (
     userId,
     content: `Brief generated for "${input.targetKeyword}"`,
     customInput: { actionId: "sage:content-brief", input, result: data },
+  });
+
+  return data;
+};
+
+export const generateBlogIdeas = async (
+  userId: string,
+  organizationId: string,
+  input: GenerateBlogIdeasInput
+) => {
+  await sageRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Blog ideas: ${input.count} ideas`,
+    customInput: { actionId: "sage:generate-blog-ideas", input },
+  });
+
+  const { data } = await aiService.post<GenerateBlogIdeasResponse>(
+    "/ai/sage/generate-blog-ideas",
+    {
+      user_id: userId,
+      organization_id: organizationId,
+      count: input.count,
+    }
+  );
+
+  await sageRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Generated ${data.ideas.length} blog ideas`,
+    customInput: { actionId: "sage:generate-blog-ideas", input, result: data },
   });
 
   return data;

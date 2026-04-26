@@ -36,6 +36,10 @@ export const contentBriefSchema = z.object({
   competitorUrls: z.array(z.string().url()).max(20).optional().default([]),
 });
 
+export const generateBlogIdeasSchema = z.object({
+  count: z.number().int().min(1).max(20).optional().default(5),
+});
+
 export const saveKeywordSchema = z.object({
   keyword: z.string().min(1).max(200),
   searchIntent: z.string().max(100).default(""),

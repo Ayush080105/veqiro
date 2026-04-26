@@ -36,6 +36,8 @@ import {
   type SageAnalyzeContentValues,
   sageContentBriefSchema,
   type SageContentBriefValues,
+  sageGenerateBlogIdeasSchema,
+  type SageGenerateBlogIdeasValues,
 } from "@/lib/schemas/agents/sage"
 
 // ─── Keyword research ───────────────────────────────────────────────────────
@@ -166,17 +168,19 @@ export function SageGenerateBlogForm({
             />
             {savedKeywords.length > 0 && (
               <Popover open={kwPickerOpen} onOpenChange={setKwPickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0"
-                    title="Pick from saved keywords"
-                  >
-                    <Heart className="size-3.5 fill-destructive text-destructive" />
-                  </Button>
-                </PopoverTrigger>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      title="Pick from saved keywords"
+                    >
+                      <Heart className="size-3.5 fill-destructive text-destructive" />
+                    </Button>
+                  }
+                />
                 <PopoverContent align="end" className="w-72 p-2">
                   <p className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
                     Saved keywords
@@ -359,6 +363,46 @@ export function SageAnalyzeContentForm({
             type="url"
             value={field.value ?? ""}
             placeholder="https://yoursite.com/post"
+            aria-invalid={invalid}
+          />
+        )}
+      </RhfField>
+    </FieldGroup>
+  )
+}
+
+// ─── Generate blog ideas ────────────────────────────────────────────────────
+
+export function SageGenerateBlogIdeasForm({
+  value,
+  onChange,
+}: {
+  value: SageGenerateBlogIdeasValues
+  onChange: (patch: Partial<SageGenerateBlogIdeasValues>) => void
+}) {
+  const form = useAgentForm({
+    schema: sageGenerateBlogIdeasSchema,
+    defaultValue: value,
+    onChange,
+  })
+
+  return (
+    <FieldGroup>
+      <RhfField
+        control={form.control}
+        name="count"
+        label="Number of ideas"
+        description="Sage reads your brandkit and generates trending blog topics tailored to your company."
+      >
+        {({ field, invalid, id }) => (
+          <Input
+            id={id}
+            type="number"
+            min={1}
+            max={20}
+            value={field.value ?? 5}
+            onChange={(e) => field.onChange(Number(e.target.value))}
+            onBlur={field.onBlur}
             aria-invalid={invalid}
           />
         )}

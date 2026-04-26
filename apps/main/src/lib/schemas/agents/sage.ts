@@ -40,3 +40,8 @@ export const sageContentBriefSchema = z.object({
   competitor_urls: z.array(z.string().url("Use a valid URL")).optional(),
 })
 export type SageContentBriefValues = z.infer<typeof sageContentBriefSchema>
+
+export const sageGenerateBlogIdeasSchema = z.object({
+  count: z.number().int().min(1).max(20).optional(),
+})
+export type SageGenerateBlogIdeasValues = z.infer<typeof sageGenerateBlogIdeasSchema>

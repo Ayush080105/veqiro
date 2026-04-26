@@ -5,6 +5,7 @@ import {
   generateBlogSchema,
   analyzeContentSchema,
   contentBriefSchema,
+  generateBlogIdeasSchema,
 } from "./sage.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
@@ -12,6 +13,7 @@ export type KeywordResearchInput = z.infer<typeof keywordResearchSchema>;
 export type GenerateBlogInput = z.infer<typeof generateBlogSchema>;
 export type AnalyzeContentInput = z.infer<typeof analyzeContentSchema>;
 export type ContentBriefInput = z.infer<typeof contentBriefSchema>;
+export type GenerateBlogIdeasInput = z.infer<typeof generateBlogIdeasSchema>;
 
 export interface AssistantMessagePayload {
   response: string;
@@ -91,6 +93,21 @@ export interface ContentBriefData {
 
 export interface ContentBriefResponse {
   brief: ContentBriefData;
+}
+
+export interface BlogIdeaItem {
+  title: string;
+  topic: string;
+  target_keyword: string;
+  secondary_keywords: string[];
+  rationale: string;
+  content_angle: string;
+  estimated_difficulty: number;
+}
+
+export interface GenerateBlogIdeasResponse {
+  ideas: BlogIdeaItem[];
+  generated_at: string;
 }
 
 export interface SavedKeyword {

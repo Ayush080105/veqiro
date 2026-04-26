@@ -9,6 +9,7 @@ import {
   BlogPreviewCard,
   ContentAuditCard,
   ContentBriefCard,
+  BlogIdeasCard,
 } from "@/components/agents/sage/cards"
 // Maya
 import {
@@ -75,6 +76,8 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction }: Act
       return <ContentAuditCard result={r} />
     case "sage:content-brief":
       return <ContentBriefCard result={r} />
+    case "sage:generate-blog-ideas":
+      return <BlogIdeasCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "maya:generate-ideas":
       return <IdeasGridCard result={r} />

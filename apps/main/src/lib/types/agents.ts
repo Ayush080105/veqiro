@@ -661,6 +661,21 @@ export interface VegaComposeEmailResult {
   errors?: string[]
 }
 
+export interface SageBlogIdeaItem {
+  title: string
+  topic: string
+  target_keyword: string
+  secondary_keywords: string[]
+  rationale: string
+  content_angle: string
+  estimated_difficulty: number
+}
+
+export interface SageGenerateBlogIdeasResult {
+  ideas: SageBlogIdeaItem[]
+  generated_at: string
+}
+
 // ─── Sage saved keywords ─────────────────────────────────────────────────────
 
 export interface SageSavedKeyword {
@@ -682,6 +697,7 @@ export type AgentActionId =
   | "sage:generate-blog"
   | "sage:analyze-content"
   | "sage:content-brief"
+  | "sage:generate-blog-ideas"
   | "maya:generate-ideas"
   | "maya:draft-content"
   | "maya:generate-variants"
