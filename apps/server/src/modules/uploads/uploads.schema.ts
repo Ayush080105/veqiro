@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Asset kinds the frontend is allowed to ask for. Each maps to a content-type
 // allow-list, a max byte size, and the R2 prefix below the org's namespace.
-export const UPLOAD_KINDS = ["logo", "mascot", "lex-source"] as const;
+export const UPLOAD_KINDS = ["logo", "mascot", "lex-source", "inspiration"] as const;
 export type UploadKind = (typeof UPLOAD_KINDS)[number];
 
 const ALLOWED_IMAGE_TYPES = [
@@ -39,6 +39,12 @@ export const KIND_CONFIG: Record<UploadKind, KindConfig> = {
     maxBytes: 25 * 1024 * 1024,
     category: "documents",
     name: "lex",
+  },
+  inspiration: {
+    contentTypes: ALLOWED_IMAGE_TYPES,
+    maxBytes: 10 * 1024 * 1024,
+    category: "images",
+    name: "inspiration",
   },
 };
 

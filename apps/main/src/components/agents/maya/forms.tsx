@@ -28,6 +28,7 @@ import {
   type MayaContentRegenValues,
 } from "@/lib/schemas/agents/maya"
 import type { ContentPlatform } from "@/lib/types/agents"
+import { uploadToR2 } from "@/lib/api/uploads"
 
 const limitHint: Record<ContentPlatform, string> = {
   linkedin: "Max 3000 chars, 3-5 hashtags.",
@@ -133,6 +134,41 @@ export function MayaDraftForm({
   })
 
   const platform = form.watch("platform")
+  const includeImage = form.watch("include_image") ?? true
+
+  const [uploading, setUploading] = React.useState(false)
+  const [uploadError, setUploadError] = React.useState<string | null>(null)
+  const inspirationImages = form.watch("inspiration_images") ?? []
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setUploading(true)
+    setUploadError(null)
+    const urls: string[] = []
+    for (const file of files) {
+      const result = await uploadToR2("inspiration", file)
+      if (result.ok) {
+        urls.push(result.publicUrl)
+      } else {
+        setUploadError(result.message)
+        break
+      }
+    }
+    if (urls.length) {
+      form.setValue("inspiration_images", [...inspirationImages, ...urls])
+    }
+    setUploading(false)
+    e.target.value = ""
+  }
+
+  function removeInspiration(url: string) {
+    form.setValue(
+      "inspiration_images",
+      inspirationImages.filter((u) => u !== url),
+    )
+  }
 
   return (
     <FieldGroup>
@@ -246,11 +282,69 @@ export function MayaDraftForm({
           )}
         />
       </div>
+
+      {includeImage && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              Inspiration images
+              <span className="ml-1 opacity-60">(optional, max 5)</span>
+            </span>
+            <button
+              type="button"
+              disabled={uploading || inspirationImages.length >= 5}
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs text-primary underline-offset-2 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {uploading ? "Uploading…" : "Add images"}
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            className="hidden"
+            onChange={handleFiles}
+          />
+          {uploadError && (
+            <p className="text-xs text-destructive">{uploadError}</p>
+          )}
+          {inspirationImages.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {inspirationImages.map((url) => (
+                <div key={url} className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt=""
+                    className="h-14 w-14 rounded object-cover border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeInspiration(url)}
+                    className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-none"
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </FieldGroup>
   )
 }
 
 // ─── Variants ───────────────────────────────────────────────────────────────
+
+const PLATFORM_LABEL: Record<string, string> = {
+  linkedin: "LinkedIn",
+  twitter: "Twitter / X",
+  instagram: "Instagram",
+}
 
 export function MayaVariantsForm({
   value,
@@ -264,6 +358,19 @@ export function MayaVariantsForm({
     defaultValue: value,
     onChange,
   })
+
+  // Read original platform from prop — not from form.watch (avoids undefined race)
+  const originalPlatform = value.original_platform
+
+  // Auto-remove the original platform from target_platforms on open / change.
+  React.useEffect(() => {
+    const current = form.getValues("target_platforms")
+    const filtered = current.filter((p) => p !== originalPlatform)
+    if (filtered.length !== current.length) {
+      form.setValue("target_platforms", filtered, { shouldDirty: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [originalPlatform])
 
   return (
     <FieldGroup>
@@ -284,25 +391,16 @@ export function MayaVariantsForm({
 
       <RhfField
         control={form.control}
-        name="original_platform"
-        label="Original platform"
-        required
-      >
-        {({ field }) => (
-          <PlatformPicker value={field.value} onChange={field.onChange} />
-        )}
-      </RhfField>
-
-      <RhfField
-        control={form.control}
         name="target_platforms"
-        label="Target platforms"
+        label="Adapt to"
         required
+        description={`Adapting from ${PLATFORM_LABEL[originalPlatform] ?? originalPlatform}`}
       >
         {({ field }) => (
           <PlatformMultiPicker
             value={field.value}
             onChange={field.onChange}
+            exclude={[originalPlatform]}
           />
         )}
       </RhfField>
@@ -420,39 +518,18 @@ export function MayaImageRegenForm({
     <FieldGroup>
       <RhfField
         control={form.control}
-        name="image_url"
-        label="Existing image URL"
-        required
-      >
-        {({ field, invalid, id }) => (
-          <Input {...field} id={id} type="url" aria-invalid={invalid} />
-        )}
-      </RhfField>
-
-      <RhfField
-        control={form.control}
         name="prompt"
         label="New prompt"
         required
+        description="Describe the image you want generated."
       >
         {({ field }) => (
           <CountedTextarea
-            value={field.value}
+            value={field.value ?? ""}
             rows={3}
             onChange={field.onChange}
-            placeholder="Describe the image you want."
+            placeholder="e.g. Bold product shot with dark background and brand colours."
           />
-        )}
-      </RhfField>
-
-      <RhfField
-        control={form.control}
-        name="platform"
-        label="Platform"
-        required
-      >
-        {({ field }) => (
-          <PlatformPicker value={field.value} onChange={field.onChange} />
         )}
       </RhfField>
 

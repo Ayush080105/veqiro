@@ -25,11 +25,12 @@ export const draftContentSchema = z.object({
   useLogo: z.boolean().optional().default(false),
   useMascot: z.boolean().optional().default(false),
   additionalContext: z.string().max(1000).nullable().optional(),
+  inspirationImages: z.array(z.string().url()).max(5).optional().default([]),
 });
 
 export const generateVariantsSchema = z.object({
   originalContent: z.string().min(1).max(5000),
-  originalPlatform: platformEnum.default("linkedin"),
+  originalPlatform: platformEnum.catch("linkedin"),
   targetPlatforms: z.array(platformEnum).min(1).max(3),
   includeImages: z.boolean().optional().default(false),
 });

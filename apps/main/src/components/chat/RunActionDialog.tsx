@@ -169,14 +169,9 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
           : null,
   },
   "maya:regenerate-image": {
-    defaultValue: { image_url: "", prompt: "", platform: "instagram" },
+    defaultValue: { image_url: "", prompt: "", platform: "instagram", use_logo: false, use_mascot: false },
     Form: MayaImageRegenForm,
-    validate: (v) =>
-      !v.image_url?.trim()
-        ? "Image URL is required."
-        : !v.prompt?.trim()
-          ? "Prompt is required."
-          : null,
+    validate: (v) => (!v.prompt?.trim() ? "Prompt is required." : null),
   },
   "maya:regenerate-content": {
     defaultValue: { caption: "", prompt: "", platform: "instagram" },

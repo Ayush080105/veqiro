@@ -10,7 +10,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-export type UploadKind = "logo" | "mascot" | "lex-source"
+export type UploadKind = "logo" | "mascot" | "lex-source" | "inspiration"
 
 export interface PresignedUpload {
   uploadUrl: string

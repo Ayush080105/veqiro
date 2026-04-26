@@ -44,7 +44,11 @@ export function useAgentForm<TValues extends Record<string, unknown>>({
 
   React.useEffect(() => {
     const sub = form.watch((v) => {
-      onChangeRef.current(v as Partial<TValues>)
+      // Strip undefined so unregistered fields don't overwrite valid parent state
+      const patch = Object.fromEntries(
+        Object.entries(v as Record<string, unknown>).filter(([, val]) => val !== undefined)
+      ) as Partial<TValues>
+      onChangeRef.current(patch)
     })
     return () => sub.unsubscribe()
   }, [form])

@@ -179,6 +179,8 @@ export const draftContent = async (
     use_logo: input.useLogo,
     use_mascot: input.useMascot,
     additional_context: input.additionalContext,
+    use_reference: (input.inspirationImages?.length ?? 0) > 0,
+    reference_images: input.inspirationImages ?? [],
   });
 
   const hostedImage = await hostImage(organizationId, data.image);

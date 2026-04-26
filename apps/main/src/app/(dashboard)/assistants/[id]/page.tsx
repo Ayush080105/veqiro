@@ -39,7 +39,7 @@ import type {
   AgentConfig,
   AgentSlug,
 } from "@/lib/types"
-import type { AgentActionId, MayaDraftResult, MayaImageRegenResult } from "@/lib/types/agents"
+import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, ImageResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 
 function ChatHeader({
@@ -421,6 +421,30 @@ export default function AssistantChatPage() {
           return msgs
         })
         toast.success("Image regenerated.")
+        return
+      }
+
+      if (ctx.actionId === "maya:generate-variants") {
+        const serverResult = ctx.result as MayaVariantResult
+        let originalImage: ImageResult | null = null
+        const msgs = queryClient.getQueryData<Message[]>(qk.chat(id, organizationId)) ?? []
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          if (msgs[i].customInput?.actionId === "maya:draft-content") {
+            originalImage = (msgs[i].customInput!.result as MayaDraftResult)?.image ?? null
+            break
+          }
+        }
+        const enrichedResult: MayaVariantResult = { ...serverResult, _originalImage: originalImage }
+        const meta = findAction(ctx.actionId)
+        const msg: Message = {
+          role: "assistant",
+          content: meta ? `${meta.label} — done.` : "Action complete.",
+          imageUrl: null,
+          createdAt: new Date().toISOString(),
+          customInput: { actionId: ctx.actionId, input: ctx.input, result: enrichedResult },
+        }
+        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [...(prev ?? []), msg])
+        toast.success(meta ? `${meta.label} complete.` : "Action complete.")
         return
       }
 
