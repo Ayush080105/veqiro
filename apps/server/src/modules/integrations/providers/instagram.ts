@@ -65,10 +65,20 @@ const waitForContainerReady = async (
   );
 };
 
-// Re-uploads the source image to catbox.moe (free, anonymous, accepts
-// multipart uploads) and returns the new URL. Used to bypass Meta's
-// undocumented host blocklist for IG content publishing — the same JPEG
-// bytes are accepted from `files.catbox.moe` even when rejected from R2.
+// Re-uploads the source image to a Meta-trusted host and returns the new
+// URL. Bypasses Meta's undocumented host blocklist for IG content publishing
+// — the same JPEG bytes are accepted from catbox.moe / litter.catbox.moe
+// even when rejected from R2. We try catbox (permanent) first, fall back to
+// litterbox (72h ephemeral, same operator, separate anti-bot config) when
+// catbox 412s our IP. Both go through the same CDN, so Meta's allow-list
+// entry for one tends to cover the other.
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+  Accept: "*/*",
+  "Accept-Language": "en-US,en;q=0.9",
+};
+
 const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   const res = await fetch(sourceUrl);
   if (!res.ok) {
@@ -78,36 +88,64 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   }
   const buffer = Buffer.from(await res.arrayBuffer());
   const contentType = res.headers.get("content-type") ?? "image/jpeg";
-  // Pull a sensible filename from the source path; catbox preserves it.
   const path = new URL(sourceUrl).pathname;
   const filename = path.split("/").pop() || "image.jpg";
 
-  const form = new FormData();
-  form.append("reqtype", "fileupload");
-  form.append(
-    "fileToUpload",
-    new Blob([new Uint8Array(buffer)], { type: contentType }),
-    filename,
-  );
+  const buildForm = (extraField?: { key: string; value: string }) => {
+    const form = new FormData();
+    form.append("reqtype", "fileupload");
+    if (extraField) form.append(extraField.key, extraField.value);
+    form.append(
+      "fileToUpload",
+      new Blob([new Uint8Array(buffer)], { type: contentType }),
+      filename,
+    );
+    return form;
+  };
 
-  const upload = await fetch("https://catbox.moe/user/api.php", {
+  // 1. Catbox — permanent URLs, but their 412 "Invalid uploader" filter is
+  //    aggressive against datacenter / repeat IPs. Try it first; if it
+  //    rejects us, fall through to litterbox rather than failing the publish.
+  const catboxRes = await fetch("https://catbox.moe/user/api.php", {
     method: "POST",
-    body: form,
-    // Catbox returns 412 "Invalid uploader" to UAs they consider botlike
-    // (Node's default `node` UA is one of them). A browser-style UA passes.
+    body: buildForm(),
     headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+      ...BROWSER_HEADERS,
+      Origin: "https://catbox.moe",
+      Referer: "https://catbox.moe/",
     },
   });
-  if (!upload.ok) {
+  if (catboxRes.ok) {
+    const url = (await catboxRes.text()).trim();
+    if (url.startsWith("https://files.catbox.moe/")) return url;
+  }
+
+  // 2. Litterbox — same operator (catbox.moe), ephemeral hosting (max 72h),
+  //    served from `litter.catbox.moe`. `time` is required: 1h | 12h | 24h | 72h.
+  const litterRes = await fetch(
+    "https://litterbox.catbox.moe/resources/internals/api.php",
+    {
+      method: "POST",
+      body: buildForm({ key: "time", value: "72h" }),
+      headers: {
+        ...BROWSER_HEADERS,
+        Origin: "https://litterbox.catbox.moe",
+        Referer: "https://litterbox.catbox.moe/",
+      },
+    },
+  );
+  if (!litterRes.ok) {
+    const err = await litterRes.text();
     throw new Error(
-      `catbox.moe upload failed (${upload.status}): ${await upload.text()}`,
+      `Image staging failed — catbox ${catboxRes.status}, litterbox ${litterRes.status}: ${err}`,
     );
   }
-  const url = (await upload.text()).trim();
-  if (!url.startsWith("https://files.catbox.moe/")) {
-    throw new Error(`catbox.moe returned unexpected response: ${url}`);
+  const url = (await litterRes.text()).trim();
+  if (
+    !url.startsWith("https://litter.catbox.moe/") &&
+    !url.startsWith("https://files.catbox.moe/")
+  ) {
+    throw new Error(`Image staging returned unexpected response: ${url}`);
   }
   return url;
 };
