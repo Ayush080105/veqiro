@@ -29,6 +29,7 @@ import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-ta
 import { RexDataTab } from "@/components/agents/rex/data-tab"
 import { KpiStrip } from "@/components/agents/rex/KpiStrip"
 import { TodayPanel } from "@/components/agents/rex/today-panel"
+import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
@@ -42,7 +43,7 @@ import type {
   AgentConfig,
   AgentSlug,
 } from "@/lib/types"
-import type { AgentActionId, MayaDraftResult, MayaImageRegenResult } from "@/lib/types/agents"
+import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, ImageResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 
 function ChatHeader({
@@ -367,6 +368,7 @@ export default function AssistantChatPage() {
   const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
+  const [mayaTab, setMayaTab] = useState<"chat" | "published">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -425,6 +427,30 @@ export default function AssistantChatPage() {
           return msgs
         })
         toast.success("Image regenerated.")
+        return
+      }
+
+      if (ctx.actionId === "maya:generate-variants") {
+        const serverResult = ctx.result as MayaVariantResult
+        let originalImage: ImageResult | null = null
+        const msgs = queryClient.getQueryData<Message[]>(qk.chat(id, organizationId)) ?? []
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          if (msgs[i].customInput?.actionId === "maya:draft-content") {
+            originalImage = (msgs[i].customInput!.result as MayaDraftResult)?.image ?? null
+            break
+          }
+        }
+        const enrichedResult: MayaVariantResult = { ...serverResult, _originalImage: originalImage }
+        const meta = findAction(ctx.actionId)
+        const msg: Message = {
+          role: "assistant",
+          content: meta ? `${meta.label} — done.` : "Action complete.",
+          imageUrl: null,
+          createdAt: new Date().toISOString(),
+          customInput: { actionId: ctx.actionId, input: ctx.input, result: enrichedResult },
+        }
+        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [...(prev ?? []), msg])
+        toast.success(meta ? `${meta.label} complete.` : "Action complete.")
         return
       }
 
@@ -514,6 +540,7 @@ export default function AssistantChatPage() {
   const isScout = agent.id === "scout"
   const isSage = agent.id === "sage"
   const isRex = agent.id === "rex"
+  const isMaya = agent.id === "maya"
   const isVega = agent.id === "vega"
   const hasMessages = messages.length > 0
   const agentSlug = agent.id as AgentSlug
@@ -673,7 +700,45 @@ export default function AssistantChatPage() {
         </>
       )}
 
-      {isLex && lexTab === "documents" ? (
+      {isMaya && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderBottom: "2px solid #111",
+            background: "#FFF9ED",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setMayaTab("chat")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              mayaTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            }`}
+          >
+            <MessageSquare className="size-3" /> Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setMayaTab("published")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              mayaTab === "published"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <FolderOpen className="size-3" /> Published Posts
+          </button>
+        </div>
+      )}
+
+      {isMaya && mayaTab === "published" ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <MayaPublishedPostsTab />
+        </div>
+      ) : isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
           <LexDocumentsTab
             onUpload={openUploadAction}
@@ -786,7 +851,7 @@ export default function AssistantChatPage() {
           </div>
         )}
 
-        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && !(isRex && rexTab === "data") && (
+        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && !(isRex && rexTab === "data") && !(isMaya && mayaTab === "published") && (
           <ChatInput
             value={content}
             onChange={setContent}

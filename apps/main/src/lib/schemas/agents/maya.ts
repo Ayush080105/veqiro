@@ -20,6 +20,7 @@ export const mayaDraftSchema = z.object({
   use_logo: z.boolean().optional(),
   use_mascot: z.boolean().optional(),
   additional_context: z.string().optional(),
+  inspiration_images: z.array(z.string().url()).max(5).optional(),
 })
 export type MayaDraftValues = z.infer<typeof mayaDraftSchema>
 

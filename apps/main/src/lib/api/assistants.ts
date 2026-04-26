@@ -238,6 +238,39 @@ export function usePublishPost(organizationId: string) {
     mutationFn: (input: PublishPostInput) => publishPost(organizationId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.integrations() })
+      queryClient.invalidateQueries({ queryKey: qk.mayaPublishedPosts(organizationId) })
     },
+  })
+}
+
+export interface PublishedPost {
+  id: string
+  platform: "LINKEDIN" | "TWITTER" | "INSTAGRAM"
+  caption: string
+  hashtags: string[]
+  imageUrl: string | null
+  status: string
+  publishedAt: string | null
+  createdAt: string
+  platformPostId: string | null
+}
+
+export async function getPublishedPosts(organizationId: string): Promise<PublishedPost[]> {
+  try {
+    return await apiFetch<PublishedPost[]>(
+      `/agents/maya/published-posts?organizationId=${encodeURIComponent(organizationId)}`,
+      { agentSlugForNotFound: "maya" }
+    )
+  } catch (err) {
+    if (err instanceof AgentNotAvailableError) return []
+    throw err
+  }
+}
+
+export function usePublishedPosts(organizationId: string) {
+  return useQuery({
+    queryKey: qk.mayaPublishedPosts(organizationId),
+    queryFn: () => getPublishedPosts(organizationId),
+    enabled: !!organizationId,
   })
 }

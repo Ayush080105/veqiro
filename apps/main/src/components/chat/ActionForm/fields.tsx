@@ -138,11 +138,14 @@ export function PlatformPicker({
 export function PlatformMultiPicker({
   value,
   onChange,
+  exclude = [],
 }: {
   value: ContentPlatform[]
   onChange: (next: ContentPlatform[]) => void
+  exclude?: ContentPlatform[]
 }) {
   const toggle = (p: ContentPlatform) => {
+    if (exclude.includes(p)) return
     onChange(value.includes(p) ? value.filter((x) => x !== p) : [...value, p])
   }
   return (
@@ -152,11 +155,14 @@ export function PlatformMultiPicker({
           key={p.id}
           type="button"
           onClick={() => toggle(p.id)}
+          disabled={exclude.includes(p.id)}
           className={cn(
             "flex-1 border border-border px-2 py-1.5 text-xs transition-colors",
-            value.includes(p.id)
-              ? "bg-primary text-primary-foreground border-primary"
-              : "hover:bg-muted"
+            exclude.includes(p.id)
+              ? "opacity-25 cursor-not-allowed"
+              : value.includes(p.id)
+                ? "bg-primary text-primary-foreground border-primary"
+                : "hover:bg-muted"
           )}
         >
           {p.label}
