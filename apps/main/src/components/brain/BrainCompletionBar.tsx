@@ -21,6 +21,10 @@ function computeScore(values: BrainFormValues) {
     score += 15
   else if (values.companyDescription.trim()) score += 5
 
+  if (values.valueProposition.trim().length >= BRAND_KIT_MINS.valueProposition)
+    score += 10
+  else if (values.valueProposition.trim()) score += 4
+
   if (values.targetAudience.trim().length >= BRAND_KIT_MINS.targetAudience)
     score += 15
   else if (values.targetAudience.trim()) score += 5
@@ -65,6 +69,8 @@ function getNextSuggestion(values: BrainFormValues): string | null {
     return "Start with the company name so agents know who they represent."
   if (values.companyDescription.trim().length < BRAND_KIT_MINS.companyDescription)
     return `Beef up the description (≥${BRAND_KIT_MINS.companyDescription} chars) so agents can ground their messaging.`
+  if (values.valueProposition.trim().length < BRAND_KIT_MINS.valueProposition)
+    return `Add a value proposition (≥${BRAND_KIT_MINS.valueProposition} chars) — what problem you solve and what the customer gets.`
   if (values.targetAudience.trim().length < BRAND_KIT_MINS.targetAudience)
     return `Add more on the audience (≥${BRAND_KIT_MINS.targetAudience} chars) — job titles, company size, motivations.`
   if (values.keyDifferentiators.trim().length < BRAND_KIT_MINS.keyDifferentiators)

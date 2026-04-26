@@ -7,7 +7,10 @@ import { Loader2 } from "lucide-react";
 import { FONT } from "@/lib/fonts";
 
 export default function OAuthButtons({
-  callbackURL = "/onboarding",
+  // "/" lets proxy.ts route to /dashboard or /onboarding based on the
+  // (possibly fresh) session — onboarded users never get sent back to
+  // onboarding. Override per-call if a flow needs a specific destination.
+  callbackURL = "/",
 }: {
   callbackURL?: string;
 } = {}) {

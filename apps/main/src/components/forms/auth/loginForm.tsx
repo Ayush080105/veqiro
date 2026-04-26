@@ -34,7 +34,11 @@ export function LoginForm() {
         email: data.email,
         password: data.password,
         rememberMe: data.remember,
-        callbackURL: "/onboarding",
+        // "/" lets proxy.ts decide where to send them — onboarded users go
+        // to /dashboard, everyone else to /onboarding. Hardcoding /onboarding
+        // here used to bounce already-onboarded users to the onboarding page
+        // for a confusing flash before the layout guard caught up.
+        callbackURL: "/",
       })
       if (authErr) {
         toast.error(authErr.message || "Something went wrong")

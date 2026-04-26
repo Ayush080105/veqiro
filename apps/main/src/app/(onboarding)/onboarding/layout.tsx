@@ -143,18 +143,28 @@ export default function OnboardingLayout({
 
   // ── Guards ───────────────────────────────────────────────────────────────
 
-  // Bounce already-onboarded users to the dashboard.
+  // Bounce already-onboarded users to the dashboard. One-shot ref guards
+  // against repeated firings during the navigation transition — proxy.ts is
+  // the authoritative gate, this client effect just shortens the round-trip.
+  const bouncedToDashboardRef = React.useRef(false)
   React.useEffect(() => {
     if (orgLoading || sessionLoading) return
-    if (isOnboarded) {
+    if (isOnboarded && !bouncedToDashboardRef.current) {
+      bouncedToDashboardRef.current = true
       router.replace("/dashboard")
     }
   }, [isOnboarded, orgLoading, sessionLoading, router])
 
-  // Session gate.
+  // Session gate. The server-side proxy already redirects unauthenticated
+  // users to /login, so this is a belt-and-suspenders client check for
+  // mid-session expiry. One-shot to avoid racing with the proxy.
+  const bouncedToLoginRef = React.useRef(false)
   React.useEffect(() => {
     if (sessionLoading) return
-    if (!session?.user) router.replace("/login")
+    if (!session?.user && !bouncedToLoginRef.current) {
+      bouncedToLoginRef.current = true
+      router.replace("/login")
+    }
   }, [session, sessionLoading, router])
 
   // ── Hydrate from backend ─────────────────────────────────────────────────
@@ -297,6 +307,20 @@ export default function OnboardingLayout({
         localStorage.removeItem(DRAFT_KEY)
       } catch {
         /* ignore */
+      }
+      // Force-refresh the session BEFORE navigating. customSession returns a
+      // fresh `activeOrganization.onboarded`, but useActiveOrganization()
+      // caches the org's old onboarded=false until we explicitly invalidate.
+      // Without this refresh, OnboardingGuard sees stale data and bounces back
+      // here — the redirect loop the user reported. The flag we want to flip
+      // server-side is already true at this point (finalize set it in the
+      // same transaction).
+      try {
+        await authClient.getSession({
+          query: { disableCookieCache: true },
+        })
+      } catch {
+        /* even if refetch fails, proxy.ts will gate the next page anyway */
       }
       toast.success("Brand kit saved. Meet the crew.")
       router.push("/dashboard")

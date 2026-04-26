@@ -93,7 +93,10 @@ function VerifyContent() {
         setState("success")
         toast.success("Email verified")
         setTimeout(() => {
-          if (!cancelled) router.replace("/onboarding")
+          // proxy.ts decides /onboarding vs /dashboard from the (now-fresh)
+          // session. Going through "/" avoids the bounce that would happen if
+          // a re-verified, already-onboarded user landed on /onboarding.
+          if (!cancelled) router.replace("/")
         }, 900)
       } catch (err) {
         if (cancelled) return

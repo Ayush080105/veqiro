@@ -34,13 +34,17 @@ class SageAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
     ) -> str:
-        from core.brand_kit import load_brand_kit
+        from core.brand_kit import load_brand_kit, get_site_context_block
         brand_kit = await load_brand_kit(organization_id)
 
         prompt = (
             f"You are Sage — {self.personality}\n\n"
             f"## Client Context\n"
             f"Company: **{brand_kit.company_name}**\n"
+        )
+        if brand_kit.value_proposition:
+            prompt += f"Value Proposition: {brand_kit.value_proposition}\n"
+        prompt += (
             f"Industry: {brand_kit.industry}\n"
             f"Target Audience: {brand_kit.target_audience}\n"
             f"Brand Voice: {brand_kit.brand_voice}\n"
@@ -50,6 +54,12 @@ class SageAgent(BaseAgent):
             prompt += f"Website: {brand_kit.website_url}\n"
         if brand_kit.competitors:
             prompt += f"Competitors to outrank: {', '.join(str(c) for c in brand_kit.competitors)}\n"
+
+        # Crawled site context — Sage uses this to write blog intros that
+        # actually sound like the client and reference their real positioning.
+        site_block = get_site_context_block(brand_kit)
+        if site_block:
+            prompt += "\n" + site_block + "\n"
 
         prompt += (
             "\n## Research Standards\n"

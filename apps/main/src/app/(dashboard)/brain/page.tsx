@@ -26,6 +26,7 @@ type BrainFormValues = BrainAutosaveValues
 const DEFAULT_VALUES: BrainFormValues = {
   companyName: "",
   companyDescription: "",
+  valueProposition: "",
   websiteUrl: "",
   industry: "",
   targetAudience: "",
@@ -38,6 +39,8 @@ const DEFAULT_VALUES: BrainFormValues = {
   logoKey: null,
   mascotUrl: null,
   mascotKey: null,
+  crawledContent: null,
+  crawledSummary: null,
 }
 
 const LOCAL_KEY = "veqiro.brandKitLocal"
@@ -46,6 +49,7 @@ function brandKitToForm(kit: BrandKit): BrainFormValues {
   return {
     companyName: kit.companyName ?? "",
     companyDescription: kit.companyDescription ?? "",
+    valueProposition: kit.valueProposition ?? "",
     websiteUrl: kit.websiteUrl ?? "",
     industry: kit.industry ?? "",
     targetAudience: kit.targetAudience ?? "",
@@ -62,6 +66,8 @@ function brandKitToForm(kit: BrandKit): BrainFormValues {
     logoKey: kit.logoKey ?? null,
     mascotUrl: kit.mascotUrl ?? null,
     mascotKey: kit.mascotKey ?? null,
+    crawledContent: kit.crawledContent ?? null,
+    crawledSummary: kit.crawledSummary ?? null,
   }
 }
 
@@ -228,34 +234,33 @@ export default function BrainPage() {
 
   const handleAutoFill = async () => {
     const url = getValues("websiteUrl")
-    if (!url) {
-      toast.error("Enter a website URL first")
+    if (!url || !/^https?:\/\//u.test(url)) {
+      toast.error("Enter a valid http(s) URL first")
       return
     }
     try {
+      // Server crawls + persists in one round-trip and returns the result.
+      // useScrapeBrandKit invalidates the brand-kit query on success so the
+      // hydrated form state will pick up crawledSummary / crawledContent on
+      // the next render. Mirror it locally now for instant feedback.
       const scraped = await scrapeMutation.mutateAsync(url)
-      if (!scraped || Object.keys(scraped).length === 0) {
-        toast.info("Auto-fill isn't connected yet — fill fields manually for now.")
-        return
-      }
-      const current = getValues()
-      reset({
-        ...current,
-        ...Object.fromEntries(
-          Object.entries(scraped).filter(
-            ([, v]) => v !== undefined && v !== null && v !== ""
-          )
-        ),
-        brandColors: scraped.brandColors ?? current.brandColors,
-        platformTones: scraped.platformTones ?? current.platformTones,
-        competitors: scraped.competitors
-          ? scraped.competitors.map((c) => ({ value: c }))
-          : current.competitors,
-      } as BrainFormValues)
-      toast.success("Auto-filled from URL")
-      scheduleAutoSave()
-    } catch {
-      toast.error("Could not reach that URL")
+      setValue("crawledSummary", scraped.summary, {
+        shouldDirty: true,
+        shouldTouch: true,
+      })
+      setValue("crawledContent", scraped.content, {
+        shouldDirty: true,
+        shouldTouch: true,
+      })
+      toast.success(
+        scraped.source === "jina"
+          ? "Pulled fresh context from your site."
+          : "Pulled what we could from your site (basic mode).",
+      )
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not reach that URL",
+      )
     }
   }
 

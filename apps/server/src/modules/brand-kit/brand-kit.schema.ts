@@ -5,7 +5,9 @@ import { z } from "zod";
 // company description gives Maya nothing to work with — ~120 chars forces 1–2
 // substantive sentences.
 export const BRAND_KIT_MINS = {
+  companyName: 3,
   companyDescription: 120,
+  valueProposition: 60,
   targetAudience: 100,
   keyDifferentiators: 80,
 } as const;
@@ -47,6 +49,7 @@ export const partialBrandKitSchema = z
     organizationId: z.string().optional(), // ignored — session is source of truth
     companyName: z.string().max(200).optional(),
     companyDescription: z.string().max(2000).optional(),
+    valueProposition: z.string().max(500).optional(),
     industry: z.string().max(200).optional(),
     targetAudience: z.string().max(1000).optional(),
     brandVoice: z.string().max(200).optional(),
@@ -59,6 +62,9 @@ export const partialBrandKitSchema = z
     competitors: z.array(z.string().min(1).max(500)).max(50).optional(),
     keyDifferentiators: z.string().max(2000).optional(),
     websiteUrl: optionalUrl,
+    crawledContent: z.string().max(20000).nullable().optional(),
+    crawledSummary: z.string().max(4000).nullable().optional(),
+    crawlSource: z.string().max(50).nullable().optional(),
   })
   .strict();
 
@@ -68,7 +74,13 @@ export const partialBrandKitSchema = z
 // but the conceptual depth fields must be filled.
 export const finalizeBrandKitSchema = z
   .object({
-    companyName: z.string().min(2, "Company name is required").max(200),
+    companyName: z
+      .string()
+      .min(
+        BRAND_KIT_MINS.companyName,
+        `Company name needs at least ${BRAND_KIT_MINS.companyName} characters — agents struggle with anything shorter`,
+      )
+      .max(200),
     companyDescription: z
       .string()
       .min(
@@ -76,6 +88,13 @@ export const finalizeBrandKitSchema = z
         `Add a bit more — agents need ~1–2 sentences (min ${BRAND_KIT_MINS.companyDescription} chars)`,
       )
       .max(2000),
+    valueProposition: z
+      .string()
+      .min(
+        BRAND_KIT_MINS.valueProposition,
+        `One sentence: what problem you solve and what the customer gets (min ${BRAND_KIT_MINS.valueProposition} chars)`,
+      )
+      .max(500),
     industry: z.string().min(2, "Pick an industry").max(200),
     targetAudience: z
       .string()
@@ -101,6 +120,12 @@ export const finalizeBrandKitSchema = z
       )
       .max(2000),
     websiteUrl: optionalUrl,
+    // crawledContent / crawledSummary may be carried through finalize when the
+    // user clicked Auto-fill in onboarding — both optional, both validated by
+    // the partial schema's bounds (kept here loose since user can edit/clear).
+    crawledContent: z.string().max(20000).nullable().optional(),
+    crawledSummary: z.string().max(4000).nullable().optional(),
+    crawlSource: z.string().max(50).nullable().optional(),
   })
   .strict();
 

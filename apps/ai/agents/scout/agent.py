@@ -54,7 +54,7 @@ class ScoutAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
     ) -> str:
-        from core.brand_kit import load_brand_kit
+        from core.brand_kit import load_brand_kit, get_site_context_block
         brand_kit = await load_brand_kit(organization_id)
 
         today = datetime.now(timezone.utc).strftime("%B %d, %Y")
@@ -67,12 +67,20 @@ class ScoutAgent(BaseAgent):
             f"**You are researching on behalf of: {brand_kit.company_name}**\n"
             f"Industry: {brand_kit.industry}\n"
             f"Target Audience: {brand_kit.target_audience}\n"
-            f"Key Differentiators: {brand_kit.key_differentiators}\n"
         )
+        if brand_kit.value_proposition:
+            prompt += f"Value Proposition: {brand_kit.value_proposition}\n"
+        prompt += f"Key Differentiators: {brand_kit.key_differentiators}\n"
         if brand_kit.competitors:
             prompt += f"Known Competitors: {', '.join(str(c) for c in brand_kit.competitors)}\n"
         if brand_kit.website_url:
             prompt += f"Founder's Website: {brand_kit.website_url}\n"
+
+        # Crawled site context — gives Scout the real positioning language to
+        # measure against competitors. Empty string if no crawl yet.
+        site_block = get_site_context_block(brand_kit)
+        if site_block:
+            prompt += "\n" + site_block + "\n"
 
         prompt += (
             "\n## Research Standards\n"

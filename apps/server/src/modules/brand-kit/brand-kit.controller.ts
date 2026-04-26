@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
+import { z } from "zod";
 import {
   partialBrandKitSchema,
   finalizeBrandKitSchema,
@@ -7,6 +8,18 @@ import {
 } from "./brand-kit.schema.js";
 import * as brandKitService from "./brand-kit.service.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
+
+const scrapeRequestSchema = z.object({
+  url: z
+    .string()
+    .min(1, "URL is required")
+    .max(1000)
+    .refine((v) => /^https?:\/\//u.test(v), "Must be a valid http(s) URL"),
+  // organizationId in the body is advisory only — the session is authoritative
+  // and is what we persist against. Accept it so legacy clients don't 400.
+  organizationId: z.string().optional(),
+  persist: z.boolean().optional(),
+});
 
 const requireAuthContext = (
   req: Request,
@@ -61,6 +74,33 @@ export const removeAsset = async (req: Request, res: Response) => {
   }
   const kit = await brandKitService.removeAsset(organizationId, kindRaw);
   res.status(StatusCodes.OK).json(kit);
+};
+
+// POST /scrape — crawls a URL via Jina Reader (with fetch fallback) and
+// returns { content, summary, source }. If `persist=true`, also writes the
+// result to the BrandKit row for the active org so the brain page picks it up.
+export const scrapeBrandKit = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const parsed = scrapeRequestSchema.parse(req.body);
+  try {
+    const result = await brandKitService.scrapeWebsite(
+      parsed.url,
+      organizationId,
+      { persist: parsed.persist ?? true },
+    );
+    res.status(StatusCodes.OK).json({
+      content: result.content,
+      summary: result.summary,
+      source: result.source,
+    });
+  } catch (err) {
+    res.status(StatusCodes.BAD_GATEWAY).json({
+      message:
+        err instanceof Error
+          ? err.message
+          : "Could not reach that URL. Try again or fill the field manually.",
+    });
+  }
 };
 
 // Internal — called by apps/ai with x-internal-key. Returns the raw Prisma row

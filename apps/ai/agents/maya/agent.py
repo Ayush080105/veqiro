@@ -44,13 +44,17 @@ class MayaAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
     ) -> str:
-        from core.brand_kit import load_brand_kit
+        from core.brand_kit import load_brand_kit, get_site_context_block
         brand_kit = await load_brand_kit(organization_id)
 
         prompt = (
             f"You are {self.name}, {self.personality}\n\n"
             f"Company: {brand_kit.company_name}\n"
             f"Description: {brand_kit.company_description}\n"
+        )
+        if brand_kit.value_proposition:
+            prompt += f"Value Proposition: {brand_kit.value_proposition}\n"
+        prompt += (
             f"Industry: {brand_kit.industry}\n"
             f"Target Audience: {brand_kit.target_audience}\n"
             f"Brand Voice: {brand_kit.brand_voice}\n"
@@ -63,6 +67,13 @@ class MayaAgent(BaseAgent):
         if brand_kit.brand_colors:
             colors = ", ".join(f"{k}: {v}" for k, v in brand_kit.brand_colors.items())
             prompt += f"Brand Colors: {colors}\n"
+
+        # Crawled site context (Jina Reader). Strong grounding signal — gives
+        # Maya the actual marketing language to mirror. Empty string if the
+        # org has no website or the crawl hasn't run yet.
+        site_block = get_site_context_block(brand_kit)
+        if site_block:
+            prompt += "\n" + site_block + "\n"
 
         prompt += (
             "\n## Platform Rules\n"

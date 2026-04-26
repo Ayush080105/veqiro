@@ -28,7 +28,10 @@ export function RegisterForm() {
       email: data.email,
       password: data.password,
       name: data.name,
-      callbackURL: "/onboarding",
+      // "/" lets proxy.ts decide. New users land on /onboarding (no org yet);
+      // returning users on a re-registration flow with the same address skip
+      // straight to /dashboard.
+      callbackURL: "/",
     })
     if (error) {
       toast.error(error.message || "Something went wrong")
@@ -42,7 +45,8 @@ export function RegisterForm() {
     // to /login. Send them to /login with a "check your inbox" message instead.
     if (result?.token) {
       toast.success("Account created")
-      router.push("/onboarding")
+      // proxy.ts will redirect "/" to /onboarding for fresh accounts.
+      router.push("/")
     } else {
       toast.success("Check your email to verify your account, then sign in.")
       router.push("/login")

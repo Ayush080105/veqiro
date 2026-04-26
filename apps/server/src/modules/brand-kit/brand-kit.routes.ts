@@ -6,6 +6,7 @@ import {
   finalizeBrandKit,
   finalizeAssetUpload,
   removeAsset,
+  scrapeBrandKit,
 } from "./brand-kit.controller.js";
 
 const router = Router();
@@ -19,6 +20,17 @@ const finalizeAssetLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => req.organizationId ?? ipKeyGenerator(req.ip ?? "unknown"),
   message: "Too many uploads — please wait a minute and try again.",
+});
+
+// Crawls hit Jina Reader (or the fetch fallback) — they're heavier than a
+// PATCH and we don't want a single org hammering the upstream. Cap at 5/min.
+const scrapeLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.organizationId ?? ipKeyGenerator(req.ip ?? "unknown"),
+  message: "Too many crawl requests — please wait a minute and try again.",
 });
 
 // The :organizationId URL param is advisory; the session's activeOrganizationId
@@ -36,5 +48,9 @@ router.post("/finalize", finalizeBrandKit);
 // this to verify (HeadObject) and persist the URL/key.
 router.post("/upload-asset/finalize", finalizeAssetLimiter, finalizeAssetUpload);
 router.delete("/asset/:kind", removeAsset);
+
+// Crawl a URL and return {content, summary, source}. Persists by default so
+// the brain page reflects it without an extra round-trip.
+router.post("/scrape", scrapeLimiter, scrapeBrandKit);
 
 export default router;

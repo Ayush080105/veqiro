@@ -229,19 +229,41 @@ export async function removeBrandAsset(
 }
 
 // ─── AUTO-FILL FROM URL ───────────────────────────────────────────────────────
-// POST /api/v1/brand-kit/scrape (optional, may not be implemented server-side yet)
+// POST /api/v1/brand-kit/scrape — Jina Reader on the server. Returns the
+// crawled markdown summary that the client can write into the form. By
+// default the server also persists it on the BrandKit row for the active org.
+export interface ScrapeResult {
+  content: string
+  summary: string
+  source: "jina" | "fetch_fallback"
+}
+
 export async function scrapeBrandKit(
   url: string,
   organizationId: string,
-): Promise<Partial<BrandKit>> {
+  options: { persist?: boolean } = {},
+): Promise<ScrapeResult> {
   const res = await fetch(`${API_URL}/brand-kit/scrape`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ url, organizationId }),
+    body: JSON.stringify({
+      url,
+      organizationId,
+      persist: options.persist ?? true,
+    }),
   })
-  if (!res.ok) throw new Error("Failed to scrape URL")
-  return res.json()
+  if (!res.ok) {
+    let message = "Could not reach that URL. Try again or fill manually."
+    try {
+      const j = (await res.json()) as { message?: string }
+      if (j.message) message = j.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+  return (await res.json()) as ScrapeResult
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -267,7 +289,13 @@ export function useSaveBrandKit(organizationId: string) {
 }
 
 export function useScrapeBrandKit(organizationId: string) {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (url: string) => scrapeBrandKit(url, organizationId),
+    onSuccess: () => {
+      // Server persists the crawl on the brand kit by default — invalidate so
+      // the brain page sees the new crawledSummary / crawledContent.
+      queryClient.invalidateQueries({ queryKey: qk.brandKit(organizationId) })
+    },
   })
 }

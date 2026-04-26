@@ -21,6 +21,7 @@ import {
   Globe,
   PlusIcon,
   XIcon,
+  Sparkles,
 } from "lucide-react"
 
 import type { BrainFormValues } from "@/lib/types"
@@ -204,6 +205,10 @@ export function BrandKitSection({
             <Trophy className="size-3.5" />
             Competitive
           </TabsTrigger>
+          <TabsTrigger value="site-context">
+            <Sparkles className="size-3.5" />
+            Site Context
+          </TabsTrigger>
         </TabsList>
 
         {/* Identity */}
@@ -260,6 +265,33 @@ export function BrandKitSection({
                         min={BRAND_KIT_MINS.companyDescription}
                         max={2000}
                         hint="Agents need this much to ground"
+                      />
+                    </>
+                  )}
+                />
+              </Field>
+
+              <Field>
+                <VqFieldLabel>Value Proposition</VqFieldLabel>
+                <Controller
+                  name="valueProposition"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <Textarea
+                        {...field}
+                        onBlur={() => {
+                          field.onBlur()
+                          scheduleAutoSave()
+                        }}
+                        placeholder="What problem you solve and what the customer gets."
+                        className="min-h-20"
+                      />
+                      <CharCount
+                        value={field.value}
+                        min={BRAND_KIT_MINS.valueProposition}
+                        max={500}
+                        hint="One focused sentence beats three vague ones"
                       />
                     </>
                   )}
@@ -653,6 +685,71 @@ export function BrandKitSection({
                 />
               </Field>
             </FieldGroup>
+          </VqSectionCard>
+        </TabsContent>
+
+        {/* Site Context — output of the Jina-Reader crawl. Feeds straight into
+            agent system prompts as "Site Context" so they ground in the
+            user's actual website language. Editable; user can rewrite or
+            re-crawl on demand. */}
+        <TabsContent value="site-context">
+          <VqSectionCard
+            title="Site Context"
+            description="What we pulled from your site. Agents read this to sound like you."
+            shadow="var(--vq-cream,#FFF9ED)"
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Crawled summary (used in prompts)
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onAutoFill}
+                disabled={scraping}
+              >
+                {scraping ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Globe className="size-3.5" />
+                )}
+                {scraping ? "Crawling…" : "Re-crawl now"}
+              </Button>
+            </div>
+            <Field>
+              <Controller
+                name="crawledSummary"
+                control={control}
+                render={({ field }) => (
+                  <Textarea
+                    {...field}
+                    value={field.value ?? ""}
+                    onBlur={() => {
+                      field.onBlur()
+                      scheduleAutoSave()
+                    }}
+                    placeholder="Click Re-crawl to pull a fresh summary from your site, or paste one here."
+                    className="min-h-32"
+                  />
+                )}
+              />
+            </Field>
+
+            <details className="mt-4 rounded-md border-[2.5px] border-foreground bg-background/60 p-3">
+              <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
+                Raw crawled content (read-only)
+              </summary>
+              <Controller
+                name="crawledContent"
+                control={control}
+                render={({ field }) => (
+                  <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-muted-foreground">
+                    {field.value || "No content crawled yet."}
+                  </pre>
+                )}
+              />
+            </details>
           </VqSectionCard>
         </TabsContent>
       </Tabs>

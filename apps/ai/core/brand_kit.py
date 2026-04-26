@@ -9,6 +9,7 @@ logger = logging.getLogger("brand_kit")
 class BrandKit(BaseModel):
     company_name: str = "My Company"
     company_description: str = ""
+    value_proposition: str = ""
     industry: str = ""
     target_audience: str = ""
     brand_voice: str = "Professional and friendly"
@@ -24,6 +25,11 @@ class BrandKit(BaseModel):
     competitors: list = []
     key_differentiators: str = ""
     website_url: str = ""
+    # Cleaned markdown summary from the Jina Reader crawl on the user's
+    # website. Editable by the user. Injected verbatim into agent prompts.
+    crawled_summary: str = ""
+    # Raw cleaned markdown — bigger payload, used as fallback only.
+    crawled_content: str = ""
     # True when the kit was loaded from the server (not a fallback default).
     _loaded: bool = False
 
@@ -49,6 +55,7 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
         return BrandKit(
             company_name="Veqiro AI",
             company_description="AI-powered workspace for founders and small teams",
+            value_proposition="Founders run growth, content, and ops with a six-agent crew instead of a five-person team.",
             industry="SaaS / AI Productivity",
             target_audience="Founders, solopreneurs, and early-stage startup teams",
             brand_voice="Smart, confident, and founder-friendly",
@@ -61,6 +68,7 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
             key_differentiators="Purpose-built AI agents for founders – not generic chatbots",
             competitors=["Notion AI", "Monday.com AI", "ClickUp AI"],
             website_url="https://veqiro.com",
+            crawled_summary="Veqiro is six AI employees in one workspace. Maya writes, Sage strategizes, Scout researches, Lex handles compliance, Rex makes video, Vega coordinates.",
         )
 
     if not organization_id:
@@ -85,6 +93,7 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
             brand_kit = BrandKit(
                 company_name=data.get("company_name") or "My Company",
                 company_description=data.get("company_description") or "",
+                value_proposition=data.get("value_proposition") or "",
                 industry=data.get("industry") or "",
                 target_audience=data.get("target_audience") or "",
                 brand_voice=data.get("brand_voice") or "Professional and friendly",
@@ -96,6 +105,8 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
                 competitors=data.get("competitors") or [],
                 key_differentiators=data.get("key_differentiators") or "",
                 website_url=data.get("website_url") or "",
+                crawled_summary=data.get("crawled_summary") or "",
+                crawled_content=data.get("crawled_content") or "",
             )
             object.__setattr__(brand_kit, "_loaded", True)
             logger.info(
@@ -136,6 +147,33 @@ def get_platform_tone(brand_kit: BrandKit, platform: str) -> str:
     return brand_kit.platform_tones.get(platform_key, brand_kit.brand_voice)
 
 
+# Defensive cap so a long crawl doesn't blow out the prompt budget. ~1200
+# chars is enough for most agents to ground in real site language without
+# eating the context window.
+_CRAWL_CAP = 1200
+
+
+def get_site_context_block(brand_kit: BrandKit) -> str:
+    """
+    Build the "Real Site Context" block that agents append to system prompts.
+    Returns "" when nothing was crawled — callers should `.strip()`-test before
+    appending so prompts don't get a stray header with no body.
+    """
+    summary = (brand_kit.crawled_summary or "").strip()
+    if not summary:
+        # Fall back to a slice of crawled_content if available — better than
+        # nothing for orgs whose crawl predates the summary distillation step.
+        summary = (brand_kit.crawled_content or "").strip()
+    if not summary:
+        return ""
+    if len(summary) > _CRAWL_CAP:
+        summary = summary[:_CRAWL_CAP].rstrip() + "…"
+    return (
+        "Real Site Context (verbatim from the brand's website — use this to "
+        "ground tone and facts, don't quote it directly):\n" + summary
+    )
+
+
 def get_image_prompt_context(brand_kit: BrandKit) -> str:
     """Build an image generation context string from brand kit."""
     parts = []
@@ -151,6 +189,8 @@ def get_image_prompt_context(brand_kit: BrandKit) -> str:
         parts.append(f"Visual style: {brand_kit.brand_voice}")
     if brand_kit.target_audience:
         parts.append(f"Audience: {brand_kit.target_audience}")
+    if brand_kit.value_proposition:
+        parts.append(f"Value: {brand_kit.value_proposition}")
     if brand_kit.website_url:
         parts.append(f"Website: {brand_kit.website_url}")
     return ". ".join(parts)

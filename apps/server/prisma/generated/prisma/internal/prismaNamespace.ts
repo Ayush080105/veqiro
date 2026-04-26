@@ -1599,6 +1599,7 @@ export const BrandKitScalarFieldEnum = {
   organizationId: 'organizationId',
   company_name: 'company_name',
   company_description: 'company_description',
+  value_proposition: 'value_proposition',
   industry: 'industry',
   target_audience: 'target_audience',
   brand_voice: 'brand_voice',
@@ -1611,6 +1612,10 @@ export const BrandKitScalarFieldEnum = {
   competitors: 'competitors',
   key_differentiators: 'key_differentiators',
   website_url: 'website_url',
+  crawled_content: 'crawled_content',
+  crawled_summary: 'crawled_summary',
+  crawled_at: 'crawled_at',
+  crawl_source: 'crawl_source',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
