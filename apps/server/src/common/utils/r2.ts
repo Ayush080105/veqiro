@@ -60,9 +60,8 @@ export const uploadImageBase64 = async (
   args: UploadImageArgs
 ): Promise<UploadImageResult> => {
   const bucket = process.env.R2_BUCKET;
-  const publicUrl = process.env.R2_PUBLIC_URL;
-  if (!bucket || !publicUrl) {
-    throw new Error("R2_BUCKET and R2_PUBLIC_URL must be set to upload images.");
+  if (!bucket) {
+    throw new Error("R2_BUCKET must be set to upload images.");
   }
 
   const contentType = args.contentType || "image/png";
@@ -86,10 +85,7 @@ export const uploadImageBase64 = async (
     })
   );
 
-  return {
-    url: `${publicUrl.replace(/\/$/, "")}/${key}`,
-    key,
-  };
+  return { url: getPublicUrl(key), key };
 };
 
 export const fetchImageAsBuffer = async (url: string): Promise<Buffer> => {
@@ -117,9 +113,8 @@ export const uploadBuffer = async (
   args: UploadBufferArgs
 ): Promise<{ url: string; key: string }> => {
   const bucket = process.env.R2_BUCKET;
-  const publicUrl = process.env.R2_PUBLIC_URL;
-  if (!bucket || !publicUrl) {
-    throw new Error("R2_BUCKET and R2_PUBLIC_URL must be set to upload files.");
+  if (!bucket) {
+    throw new Error("R2_BUCKET must be set to upload files.");
   }
 
   const key = buildObjectKey({
@@ -138,10 +133,7 @@ export const uploadBuffer = async (
     })
   );
 
-  return {
-    url: `${publicUrl.replace(/\/$/, "")}/${key}`,
-    key,
-  };
+  return { url: getPublicUrl(key), key };
 };
 
 export const deleteObject = async (key: string): Promise<void> => {

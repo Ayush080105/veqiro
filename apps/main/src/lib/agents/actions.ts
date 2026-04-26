@@ -12,6 +12,8 @@ export interface AgentActionMeta {
   icon: string
   /** Shown as an example prompt / hint */
   example?: string
+  /** Hide from the global Plus menu — surfaced contextually from result cards instead. */
+  hideFromMenu?: boolean
 }
 
 export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
@@ -74,6 +76,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Adapt to other platforms",
       description: "Rewrite a post for different platforms while preserving voice.",
       icon: "Shuffle",
+      hideFromMenu: true,
     },
     {
       id: "maya:revise",
@@ -82,6 +85,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Revise a post",
       description: "Refine an existing post based on feedback.",
       icon: "Wand2",
+      hideFromMenu: true,
     },
     {
       id: "maya:regenerate-image",
@@ -90,6 +94,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Regenerate image",
       description: "Redraw an existing post image with a new prompt.",
       icon: "Image",
+      hideFromMenu: true,
     },
     {
       id: "maya:regenerate-content",
@@ -98,6 +103,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Rewrite caption",
       description: "Rework caption copy with a new prompt.",
       icon: "RefreshCw",
+      hideFromMenu: true,
     },
   ],
   scout: [

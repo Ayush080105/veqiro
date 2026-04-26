@@ -71,7 +71,7 @@ export const researchTopic = async (
     organizationId,
     userId,
     content: `Research topic: ${input.topic}`,
-    customInput: { tool: "research-topic", input },
+    customInput: { actionId: "scout:research-topic", input },
   });
 
   const { data } = await aiService.post<ResearchTopicResponse>(
@@ -89,7 +89,7 @@ export const researchTopic = async (
     organizationId,
     userId,
     content: `Research complete: ${input.topic} (${data.sources_scraped?.length ?? 0} sources)`,
-    customInput: { tool: "research-topic", output: data },
+    customInput: { actionId: "scout:research-topic", input, result: data },
   });
 
   return data;
@@ -104,7 +104,7 @@ export const researchCompany = async (
     organizationId,
     userId,
     content: `Research company: ${input.companyName}`,
-    customInput: { tool: "research-company", input },
+    customInput: { actionId: "scout:research-company", input },
   });
 
   const { data } = await aiService.post<ResearchCompanyResponse>(
@@ -121,7 +121,7 @@ export const researchCompany = async (
     organizationId,
     userId,
     content: `Company profile: ${input.companyName}`,
-    customInput: { tool: "research-company", output: data },
+    customInput: { actionId: "scout:research-company", input, result: data },
   });
 
   return data;
@@ -136,7 +136,7 @@ export const trendingTopics = async (
     organizationId,
     userId,
     content: `Trends in ${input.industry}`,
-    customInput: { tool: "trending-topics", input },
+    customInput: { actionId: "scout:trending-topics", input },
   });
 
   const { data } = await aiService.post<TrendingTopicsResponse>(
@@ -153,7 +153,7 @@ export const trendingTopics = async (
     organizationId,
     userId,
     content: `${data.trends.length} trends identified`,
-    customInput: { tool: "trending-topics", output: data },
+    customInput: { actionId: "scout:trending-topics", input, result: data },
   });
 
   return data;
@@ -189,7 +189,7 @@ export const discoverCompetitors = async (
     organizationId,
     userId,
     content: `Discover competitors: ${input.industry}`,
-    customInput: { tool: "discover-competitors", input },
+    customInput: { actionId: "scout:discover-competitors", input },
   });
 
   const { data } = await aiService.post<DiscoverCompetitorsResponse>(
@@ -207,7 +207,7 @@ export const discoverCompetitors = async (
     organizationId,
     userId,
     content: `Found ${data.competitors.length} competitor${data.competitors.length !== 1 ? "s" : ""} in ${input.industry}`,
-    customInput: { tool: "discover-competitors", output: data },
+    customInput: { actionId: "scout:discover-competitors", input, result: data },
   });
 
   return data;

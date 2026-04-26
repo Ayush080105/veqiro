@@ -98,6 +98,9 @@ export interface ChatMessageProps {
   agentInitials: string
   agentColor: string
   isLex: boolean
+  /** Optional callback wired by the chat page so result cards can launch
+   * follow-up actions (e.g. revise/adapt/regen) with prefill from the result. */
+  onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 }
 
 export function ChatMessage({
@@ -106,6 +109,7 @@ export function ChatMessage({
   agentInitials,
   agentColor,
   isLex,
+  onFollowUpAction,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const time = formatMessageTime(message.createdAt)
@@ -175,6 +179,7 @@ export function ChatMessage({
           <ActionResultRenderer
             actionId={actionId}
             result={message.customInput.result}
+            onFollowUpAction={onFollowUpAction}
           />
         ) : (
           <div

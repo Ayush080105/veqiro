@@ -125,7 +125,7 @@ export const generateIdeas = async (
     organizationId,
     userId,
     content: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
-    customInput: { tool: "generate-ideas", input },
+    customInput: { actionId: "maya:generate-ideas", input },
   });
 
   const { data } = await aiService.post<IdeationResponse>("/ai/maya/generate-ideas", {
@@ -149,7 +149,7 @@ export const generateIdeas = async (
     imageUrl: hostedImage?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "generate-ideas", output: result },
+    customInput: { actionId: "maya:generate-ideas", input, result },
   });
 
   return result;
@@ -164,7 +164,7 @@ export const draftContent = async (
     organizationId,
     userId,
     content: `Draft ${input.platform} post: ${input.topic}`,
-    customInput: { tool: "draft-content", input },
+    customInput: { actionId: "maya:draft-content", input },
   });
 
   const { data } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
@@ -190,7 +190,7 @@ export const draftContent = async (
     imageUrl: hostedImage?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "draft-content", output: result },
+    customInput: { actionId: "maya:draft-content", input, result },
   });
 
   return result;
@@ -205,7 +205,7 @@ export const generateVariants = async (
     organizationId,
     userId,
     content: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
-    customInput: { tool: "generate-variants", input },
+    customInput: { actionId: "maya:generate-variants", input },
   });
 
   const { data } = await aiService.post<VariantResponse>("/ai/maya/generate-variants", {
@@ -235,7 +235,7 @@ export const generateVariants = async (
     content: `${data.variants.length} variants generated`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "generate-variants", output: result },
+    customInput: { actionId: "maya:generate-variants", input, result },
   });
 
   return result;
@@ -250,7 +250,7 @@ export const revise = async (
     organizationId,
     userId,
     content: `Revise ${input.platform} post`,
-    customInput: { tool: "revise", input },
+    customInput: { actionId: "maya:revise", input },
   });
 
   const { data } = await aiService.post<ReviseResponse>("/ai/maya/revise", {
@@ -268,7 +268,7 @@ export const revise = async (
     content: `Revision complete: ${data.changes_made.length} changes applied`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "revise", output: data },
+    customInput: { actionId: "maya:revise", input, result: data },
   });
 
   return data;
@@ -283,7 +283,7 @@ export const regenerateImage = async (
     organizationId,
     userId,
     content: `Regenerate image: ${input.prompt}`,
-    customInput: { tool: "regenerate-image", input },
+    customInput: { actionId: "maya:regenerate-image", input },
   });
 
   const { data } = await aiService.post<ImageRegenResponse>("/ai/maya/regenerate-image", {
@@ -310,7 +310,7 @@ export const regenerateImage = async (
     imageUrl: result.image.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "regenerate-image", output: result },
+    customInput: { actionId: "maya:regenerate-image", input, result },
   });
 
   return result;
@@ -325,7 +325,7 @@ export const regenerateContent = async (
     organizationId,
     userId,
     content: `Refresh caption: ${input.prompt}`,
-    customInput: { tool: "regenerate-content", input },
+    customInput: { actionId: "maya:regenerate-content", input },
   });
 
   const { data } = await aiService.post<ContentRegenResponse>(
@@ -345,7 +345,7 @@ export const regenerateContent = async (
     content: "Caption refreshed",
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "regenerate-content", output: data },
+    customInput: { actionId: "maya:regenerate-content", input, result: data },
   });
 
   return data;
@@ -449,8 +449,9 @@ export const publish = async (
       content: `Published to ${platform}${url ? `: ${url}` : ""}`,
       imageUrl,
       customInput: {
-        tool: "publish",
-        output: { platform, platformPostId, url },
+        actionId: "maya:publish",
+        input,
+        result: { platform, platformPostId, url },
       },
     });
 

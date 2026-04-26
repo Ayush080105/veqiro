@@ -182,7 +182,7 @@ export const finalizeSource = async (
     organizationId,
     userId,
     content: `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`,
-    customInput: { tool: "upload-source", output: { ...data, sourceRowId: source.id } },
+    customInput: { actionId: "lex:upload-source", result: { ...data, sourceRowId: source.id } },
   });
 
   return toSourceDTO(source);
@@ -243,7 +243,7 @@ export const queryDocument = async (
       input.query.length > 120 ? "..." : ""
     }`,
     customInput: {
-      tool: "query-document",
+      actionId: "lex:query-document",
       input: { sourceId: input.sourceId, query: input.query, topK: input.topK },
     },
   });
@@ -264,7 +264,11 @@ export const queryDocument = async (
     content: data.answer.slice(0, 500),
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "query-document", output: data },
+    customInput: {
+      actionId: "lex:query-document",
+      input: { sourceId: input.sourceId, query: input.query, topK: input.topK },
+      result: data,
+    },
   });
 
   return data;
@@ -282,7 +286,7 @@ export const analyzeContract = async (
       ? `Analyze ingested contract ${input.sourceId}`
       : "Analyze contract text",
     customInput: {
-      tool: "analyze-contract",
+      actionId: "lex:analyze-contract",
       input: {
         sourceId: input.sourceId,
         analysisFocus: input.analysisFocus,
@@ -306,7 +310,15 @@ export const analyzeContract = async (
     organizationId,
     userId,
     content: `Risk level: ${data.analysis.risk_level} — ${data.analysis.risks.length} risks identified`,
-    customInput: { tool: "analyze-contract", output: data },
+    customInput: {
+      actionId: "lex:analyze-contract",
+      input: {
+        sourceId: input.sourceId,
+        analysisFocus: input.analysisFocus,
+        contractChars: input.contractText?.length ?? 0,
+      },
+      result: data,
+    },
   });
 
   return data;
@@ -321,7 +333,7 @@ export const draftDocument = async (
     organizationId,
     userId,
     content: `Draft ${input.documentType}`,
-    customInput: { tool: "draft-document", input },
+    customInput: { actionId: "lex:draft-document", input },
   });
 
   const { data } = await aiService.post<DraftDocumentResponse>(
@@ -340,7 +352,7 @@ export const draftDocument = async (
     organizationId,
     userId,
     content: `Drafted ${input.documentType} (${data.document.length} chars)`,
-    customInput: { tool: "draft-document", output: data },
+    customInput: { actionId: "lex:draft-document", input, result: data },
   });
 
   return data;
@@ -355,7 +367,7 @@ export const explainLegalText = async (
     organizationId,
     userId,
     content: `Explain: ${input.text.slice(0, 120)}${input.text.length > 120 ? "..." : ""}`,
-    customInput: { tool: "explain", input },
+    customInput: { actionId: "lex:explain", input },
   });
 
   const { data } = await aiService.post<ExplainResponse>("/ai/lex/explain", {
@@ -369,7 +381,7 @@ export const explainLegalText = async (
     organizationId,
     userId,
     content: `Explanation ready (${data.practical_implications.length} implications, ${data.related_concepts.length} related concepts)`,
-    customInput: { tool: "explain", output: data },
+    customInput: { actionId: "lex:explain", input, result: data },
   });
 
   return data;
@@ -384,7 +396,7 @@ export const legalResearch = async (
     organizationId,
     userId,
     content: `Legal research: ${input.query}`,
-    customInput: { tool: "legal-research", input },
+    customInput: { actionId: "lex:legal-research", input },
   });
 
   const { data } = await aiService.post<LegalResearchResponse>(
@@ -402,7 +414,7 @@ export const legalResearch = async (
     organizationId,
     userId,
     content: `${data.applicable_laws.length} laws, ${data.relevant_cases.length} cases found (${data.confidence_level})`,
-    customInput: { tool: "legal-research", output: data },
+    customInput: { actionId: "lex:legal-research", input, result: data },
   });
 
   return data;
@@ -417,7 +429,7 @@ export const complianceCheck = async (
     organizationId,
     userId,
     content: `Compliance check: ${input.frameworks.join(", ")}`,
-    customInput: { tool: "compliance-check", input },
+    customInput: { actionId: "lex:compliance-check", input },
   });
 
   const { data } = await aiService.post<ComplianceCheckResponse>(
@@ -435,7 +447,7 @@ export const complianceCheck = async (
     organizationId,
     userId,
     content: `Status: ${data.overall_status} — ${data.critical_gaps.length} critical gaps, ${data.remediation_steps.length} remediation steps`,
-    customInput: { tool: "compliance-check", output: data },
+    customInput: { actionId: "lex:compliance-check", input, result: data },
   });
 
   return data;

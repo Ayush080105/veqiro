@@ -6,14 +6,21 @@ import {
   Shuffle,
   Wand2,
   Image as ImageIcon,
+  RefreshCw,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { AgentCard } from "@/components/ui/agent-card"
 import { ActionRow } from "@/components/ui/action-row"
 import { CopyButton } from "@/components/ui/copy-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { PublishDialog } from "./publish-dialog"
+import type { AgentActionId } from "@/lib/types/agents"
 import type {
   MayaIdeationResult,
   MayaDraftResult,
@@ -24,6 +31,11 @@ import type {
   ContentPlatform,
   ImageResult,
 } from "@/lib/types/agents"
+
+export type FollowUpHandler = (
+  actionId: AgentActionId,
+  prefill?: Record<string, unknown>
+) => void
 
 function imageSrc(img?: ImageResult | null): string | undefined {
   if (!img) return undefined
@@ -43,6 +55,32 @@ const PLATFORM_LABEL: Record<ContentPlatform, string> = {
   linkedin: "LinkedIn",
   twitter: "Twitter / X",
   instagram: "Instagram",
+}
+
+// ─── Image overlay action button ─────────────────────────────────────────────
+
+function ImageOverlayButton({
+  title,
+  onClick,
+  children,
+}: {
+  title: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        type="button"
+        aria-label={title}
+        onClick={onClick}
+        className="flex size-7 cursor-pointer items-center justify-center border border-foreground bg-background/90 text-foreground shadow-[2px_2px_0_var(--foreground)] backdrop-blur-sm transition-transform hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_var(--foreground)] active:translate-x-0 active:translate-y-0 active:shadow-[1px_1px_0_var(--foreground)]"
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{title}</TooltipContent>
+    </Tooltip>
+  )
 }
 
 // ─── Ideas grid ──────────────────────────────────────────────────────────────
@@ -100,6 +138,7 @@ export function DraftPreview({
   cta,
   title,
   image,
+  onFollowUpAction,
 }: {
   platform: ContentPlatform
   body: string
@@ -107,6 +146,7 @@ export function DraftPreview({
   cta?: string
   title?: string
   image?: ImageResult | null
+  onFollowUpAction?: FollowUpHandler
 }) {
   const src = imageSrc(image)
   const limit = PLATFORM_LIMITS[platform]
@@ -115,6 +155,7 @@ export function DraftPreview({
       ? `\n\n${hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`
       : ""
   }`
+  const captionWithCta = `${body}${cta ? `\n\n${cta}` : ""}`
   const len = fullText.length
   return (
     <div className="flex flex-col gap-2 border border-border bg-background p-2.5">
@@ -132,14 +173,65 @@ export function DraftPreview({
         </span>
       </div>
       {src && (
-        <img
-          src={src}
-          alt="generated"
-          className="max-h-72 w-full rounded-none object-cover"
-          onError={(e) => {
-            ;(e.target as HTMLImageElement).style.display = "none"
-          }}
-        />
+        <div className="relative">
+          <img
+            src={src}
+            alt="generated"
+            className="max-h-72 w-full rounded-none object-cover"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).style.display = "none"
+            }}
+          />
+          {onFollowUpAction && (
+            <div className="absolute right-1.5 top-1.5 flex gap-1">
+              <ImageOverlayButton
+                title="Adapt to other platforms"
+                onClick={() =>
+                  onFollowUpAction("maya:generate-variants", {
+                    original_content: fullText,
+                    original_platform: platform,
+                  })
+                }
+              >
+                <Shuffle className="size-3.5" />
+              </ImageOverlayButton>
+              <ImageOverlayButton
+                title="Revise a post"
+                onClick={() =>
+                  onFollowUpAction("maya:revise", {
+                    original_content: fullText,
+                    platform,
+                  })
+                }
+              >
+                <Wand2 className="size-3.5" />
+              </ImageOverlayButton>
+              <ImageOverlayButton
+                title="Regenerate image"
+                onClick={() =>
+                  onFollowUpAction("maya:regenerate-image", {
+                    image_url: src,
+                    prompt: image?.prompt_used ?? "",
+                    platform,
+                  })
+                }
+              >
+                <ImageIcon className="size-3.5" />
+              </ImageOverlayButton>
+              <ImageOverlayButton
+                title="Rewrite caption"
+                onClick={() =>
+                  onFollowUpAction("maya:regenerate-content", {
+                    caption: captionWithCta,
+                    platform,
+                  })
+                }
+              >
+                <RefreshCw className="size-3.5" />
+              </ImageOverlayButton>
+            </div>
+          )}
+        </div>
       )}
       {title && <p className="text-xs font-medium">{title}</p>}
       <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body}</p>
@@ -174,7 +266,13 @@ export function DraftPreview({
 
 // ─── Draft card ──────────────────────────────────────────────────────────────
 
-export function DraftCard({ result }: { result: MayaDraftResult }) {
+export function DraftCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: MayaDraftResult
+  onFollowUpAction?: FollowUpHandler
+}) {
   const d = result.draft
   return (
     <AgentCard size="sm">
@@ -197,6 +295,7 @@ export function DraftCard({ result }: { result: MayaDraftResult }) {
           cta={d.cta}
           title={d.title}
           image={result.image}
+          onFollowUpAction={onFollowUpAction}
         />
       </AgentCard.Body>
     </AgentCard>
@@ -205,7 +304,13 @@ export function DraftCard({ result }: { result: MayaDraftResult }) {
 
 // ─── Variants tabs card ──────────────────────────────────────────────────────
 
-export function VariantsTabsCard({ result }: { result: MayaVariantResult }) {
+export function VariantsTabsCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: MayaVariantResult
+  onFollowUpAction?: FollowUpHandler
+}) {
   const first = result.variants[0]?.platform ?? "linkedin"
   return (
     <AgentCard size="sm">
@@ -230,6 +335,7 @@ export function VariantsTabsCard({ result }: { result: MayaVariantResult }) {
                 hashtags={v.hashtags}
                 title={v.title}
                 image={v.image}
+                onFollowUpAction={onFollowUpAction}
               />
             </TabsContent>
           ))}

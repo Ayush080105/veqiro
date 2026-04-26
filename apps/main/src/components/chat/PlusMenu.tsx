@@ -31,7 +31,7 @@ export function PlusMenu({
   agentName: string
   onPick: (action: AgentActionMeta) => void
 }) {
-  const actions = AGENT_ACTIONS[agentSlug] ?? []
+  const actions = (AGENT_ACTIONS[agentSlug] ?? []).filter((a) => !a.hideFromMenu)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

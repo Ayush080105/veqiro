@@ -590,6 +590,7 @@ export default function AssistantChatPage() {
               agentInitials={agent.initials}
               agentColor={agentColor}
               isLex={isLex}
+              onFollowUpAction={openAction}
             />
           ))}
           {isLoading && (
