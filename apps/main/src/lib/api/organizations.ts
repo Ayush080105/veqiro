@@ -1,6 +1,7 @@
 import { authClient } from '@/lib/auth-client';
-import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { toast } from 'sonner';
+
+type Router = { push: (href: string) => void; replace: (href: string) => void };
 
 export type CreateOrganizationInput = {
   name: string;
@@ -95,7 +96,7 @@ export async function clearActiveOrganization(): Promise<{ ok: boolean; message?
  */
 export async function switchToOrganization(
   organizationId: string,
-  router: AppRouterInstance,
+  router: Router,
 ): Promise<void> {
   const result = await setActiveOrganization(organizationId);
   if (!result.ok) {
@@ -115,7 +116,7 @@ export async function switchToOrganization(
  * to /onboarding/step1 so the user can create a new workspace. Step1
  * sees no active org and renders its create form.
  */
-export async function clearActiveAndStartNew(router: AppRouterInstance): Promise<void> {
+export async function clearActiveAndStartNew(router: Router): Promise<void> {
   const result = await clearActiveOrganization();
   if (!result.ok) {
     toast.error(result.message ?? 'Could not start new workspace.');
