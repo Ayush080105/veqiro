@@ -1,4 +1,7 @@
 import { authClient } from '@/lib/auth-client';
+import { toast } from 'sonner';
+
+type Router = { push: (href: string) => void; replace: (href: string) => void };
 
 export type CreateOrganizationInput = {
   name: string;
@@ -65,4 +68,64 @@ export async function setActiveOrganization(organizationId: string): Promise<{ o
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'Could not set active workspace.' };
   }
+}
+
+/**
+ * Clears the session's active organization. After this, useSession()
+ * and the proxy middleware see no active org until the user picks one.
+ *
+ * Better-auth 1.5.6 supports null via setActive's body schema (see
+ * node_modules/better-auth/dist/plugins/organization/routes/crud-org.mjs:340-373).
+ */
+export async function clearActiveOrganization(): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const res = await authClient.organization.setActive({ organizationId: null });
+    const err = (res as { error?: { message?: string } | null }).error;
+    if (err) return { ok: false, message: err.message ?? 'Could not clear active workspace.' };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : 'Could not clear active workspace.' };
+  }
+}
+
+/**
+ * Sets `organizationId` as the active org, refreshes the session
+ * cache so useActiveOrganization() picks up the change, and
+ * navigates to /dashboard. The proxy decides the final destination
+ * based on the new org's onboarded flag.
+ */
+export async function switchToOrganization(
+  organizationId: string,
+  router: Router,
+): Promise<void> {
+  const result = await setActiveOrganization(organizationId);
+  if (!result.ok) {
+    toast.error(result.message ?? 'Could not switch workspace.');
+    return;
+  }
+  try {
+    await authClient.getSession({ query: { disableCookieCache: true } });
+  } catch {
+    // Proxy will gate the next page anyway.
+  }
+  router.replace('/dashboard');
+}
+
+/**
+ * Clears the active org, refreshes the session cache, and navigates
+ * to /onboarding/step1 so the user can create a new workspace. Step1
+ * sees no active org and renders its create form.
+ */
+export async function clearActiveAndStartNew(router: Router): Promise<void> {
+  const result = await clearActiveOrganization();
+  if (!result.ok) {
+    toast.error(result.message ?? 'Could not start new workspace.');
+    return;
+  }
+  try {
+    await authClient.getSession({ query: { disableCookieCache: true } });
+  } catch {
+    // Proxy will gate the next page anyway.
+  }
+  router.push('/onboarding/step1');
 }
