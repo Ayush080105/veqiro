@@ -285,29 +285,6 @@ export function LexQueryDocumentForm({
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="topK"
-        label="Top results"
-        description="Number of source chunks to retrieve."
-      >
-        {({ field, invalid, id }) => (
-          <Input
-            id={id}
-            type="number"
-            min={1}
-            max={20}
-            value={field.value ?? 5}
-            onChange={(e) =>
-              field.onChange(
-                Math.max(1, Math.min(20, Number(e.target.value) || 5))
-              )
-            }
-            onBlur={field.onBlur}
-            aria-invalid={invalid}
-          />
-        )}
-      </RhfField>
     </FieldGroup>
   )
 }

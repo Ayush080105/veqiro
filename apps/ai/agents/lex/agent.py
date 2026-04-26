@@ -8,20 +8,13 @@ from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
 from core.utils import strip_json_fences, safe_json_loads
 
-LEGAL_DISCLAIMER = (
-    "This is AI-generated information for educational purposes only. "
-    "Consult a qualified attorney for specific legal advice."
-)
-
-
 class LexAgent(BaseAgent):
     slug = "lex"
     name = "Lex"
     personality = (
-        "the legal person founders actually want — someone who says what a clause really means "
-        "and whether it's actually a problem, not just quotes law at you. "
-        "You flag what matters, skip what doesn't, and speak plainly. "
-        "You note when something needs a real attorney, but you don't use that as an excuse to be unhelpful."
+        "a senior legal counsel who gives founders the direct, unhedged analysis a paid attorney would give in a private meeting. "
+        "You say exactly what a clause means, whether it's a problem, and what to do about it. "
+        "You speak plainly, flag what matters, and skip what doesn't."
     )
     default_provider = "openai"
     default_model = "gpt-4o-mini"
@@ -41,7 +34,7 @@ class LexAgent(BaseAgent):
             "- Any compliance question (GDPR, CCPA, SOC2, HIPAA, PCI-DSS, etc.) → call `compliance_check`\n"
             "- Any request to draft a legal document → call `draft_document`\n"
             "- Any request to explain legal text → call `explain_legal`\n"
-            "After using tools, synthesize results and ALWAYS include the legal disclaimer in your response.\n\n"
+            "After using tools, synthesize results into a direct, concrete response.\n\n"
             "## When to use ask_agent\n"
             "- User wants background research on a company as part of due diligence → call `ask_agent` with scout.\n"
             "- User wants financial metrics analyzed alongside a legal document → call `ask_agent` with rex."
@@ -63,15 +56,14 @@ class LexAgent(BaseAgent):
             "- Compliance: GDPR, CCPA, SOC 2, terms of service, privacy policies\n"
             "- Document drafting: letters, agreements, policies (non-binding templates)\n\n"
             "Legal principles:\n"
-            "1. ALWAYS include the disclaimer: '" + LEGAL_DISCLAIMER + "'\n"
-            "2. Identify and explain ALL risks, not just obvious ones\n"
-            "3. Explain legal jargon in plain English\n"
-            "4. Suggest specific clauses or modifications when appropriate\n"
-            "5. Never provide jurisdiction-specific advice without noting applicable law\n"
+            "1. Identify and explain ALL risks, not just obvious ones\n"
+            "2. Explain legal jargon in plain English\n"
+            "3. Suggest specific clauses or modifications when appropriate\n"
+            "4. Always note the applicable governing law when relevant\n"
         )
         return base + lex_specific
 
-    # ── Chat override: RAG ingest + disclaimer metadata ──────────────────
+    # ── Chat override: RAG ingest ────────────────────────────────────────
 
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
         response = await super().chat_sync(request)
@@ -89,7 +81,6 @@ class LexAgent(BaseAgent):
                 except Exception:
                     pass  # best-effort
 
-        response.metadata["disclaimer"] = LEGAL_DISCLAIMER
         return response
 
     # ── Tool Definitions ─────────────────────────────────────────────────
@@ -110,7 +101,7 @@ class LexAgent(BaseAgent):
             ),
             ToolDefinition(
                 name="draft_document",
-                description="Draft a legal document template based on requirements. Always includes review notes and disclaimer.",
+                description="Draft a legal document template based on requirements. Always includes review notes.",
                 parameters=[
                     ToolParameter(name="document_type", type="string", description="Type of document (e.g., mutual_nda, employment_agreement, terms_of_service, privacy_policy, saas_agreement)", required=True),
                     ToolParameter(name="requirements", type="string", description="Specific requirements and context for the document", required=True),
@@ -219,7 +210,6 @@ class LexAgent(BaseAgent):
                     "overall_assessment": "Manual review recommended.",
                     "recommended_action": "legal_review_required",
                 }
-            data["disclaimer"] = LEGAL_DISCLAIMER
             return json.dumps(data, default=str)
 
         elif name == "draft_document":
@@ -245,9 +235,7 @@ class LexAgent(BaseAgent):
                 "jurisdiction": jurisdiction,
                 "review_notes": [
                     "TEMPLATE ONLY — requires customization before use",
-                    "Have reviewed by a qualified attorney before signing",
                 ],
-                "disclaimer": LEGAL_DISCLAIMER,
             }
             return json.dumps(result, default=str)
 
@@ -275,7 +263,6 @@ class LexAgent(BaseAgent):
                     "related_concepts": [],
                     "practical_implications": [],
                 }
-            data["disclaimer"] = LEGAL_DISCLAIMER
             return json.dumps(data, default=str)
 
         elif name == "legal_research":
@@ -307,9 +294,8 @@ class LexAgent(BaseAgent):
                     "relevant_cases": [],
                     "practical_guidance": [],
                     "jurisdiction_notes": jurisdiction,
-                    "confidence_level": "medium — LLM synthesis, consult an attorney for verified research",
+                    "confidence_level": "medium",
                 }
-            data["disclaimer"] = LEGAL_DISCLAIMER
             return json.dumps(data, default=str)
 
         elif name == "compliance_check":
@@ -342,7 +328,6 @@ class LexAgent(BaseAgent):
                     "remediation_steps": [],
                     "estimated_effort": "Manual review required",
                 }
-            data["disclaimer"] = LEGAL_DISCLAIMER
             return json.dumps(data, default=str)
 
         raise ValueError(f"Unknown tool: {name}")

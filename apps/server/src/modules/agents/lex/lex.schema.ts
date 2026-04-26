@@ -27,7 +27,6 @@ export const analyzeContractSchema = z
 export const queryDocumentSchema = z.object({
   sourceId: z.string().min(1),
   query: z.string().min(1).max(2000),
-  topK: z.number().int().min(1).max(20).optional().default(5),
 });
 
 export const draftDocumentSchema = z.object({
