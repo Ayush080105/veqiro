@@ -67,6 +67,31 @@ const options = {
       },
     }),
   ],
+  // On every fresh session (login, sign-up, OAuth callback) default the
+  // session's active organization to the user's first membership. Without
+  // this, the session row is created with activeOrganizationId=null and the
+  // onboarded check on the dashboard always fails — even for users whose
+  // org has onboarded=true — so they get bounced back to /onboarding.
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const membership = await prisma.member.findFirst({
+            where: { userId: session.userId },
+            orderBy: { createdAt: "asc" },
+            select: { organizationId: true },
+          });
+          return {
+            data: {
+              ...session,
+              activeOrganizationId:
+                session.activeOrganizationId ?? membership?.organizationId ?? null,
+            },
+          };
+        },
+      },
+    },
+  },
 } satisfies BetterAuthOptions;
 
 export const auth = betterAuth({

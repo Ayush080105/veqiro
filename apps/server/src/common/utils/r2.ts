@@ -6,6 +6,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 
 const accountId = process.env.R2_ACCOUNT_ID;
 const accessKeyId = process.env.R2_ACCESS_KEY_ID;
@@ -64,24 +65,43 @@ export const uploadImageBase64 = async (
     throw new Error("R2_BUCKET must be set to upload images.");
   }
 
-  const contentType = args.contentType || "image/png";
-  const extension = contentType.split("/")[1]?.split(";")[0] || "png";
+  const cleanBase64 = args.base64.replace(/^data:[^;]+;base64,/, "");
+  const inputBuffer = Buffer.from(cleanBase64, "base64");
+  const inputType = (args.contentType || "image/png").toLowerCase();
+
+  // Instagram's content-publishing API rejects PNG (only JPEG accepted) and
+  // LinkedIn handles JPEG fine, so normalise every uploaded image to JPEG.
+  // sharp handles PNG/WebP/HEIC/GIF inputs and converts to JPEG. Skip
+  // re-encoding if the input is already JPEG to avoid quality loss.
+  const isAlreadyJpeg =
+    inputType.includes("jpeg") || inputType.includes("jpg");
+  const buffer = isAlreadyJpeg
+    ? inputBuffer
+    : await sharp(inputBuffer)
+        // Composite onto white in case the source has transparency (PNG α)
+        // — JPEG doesn't support an alpha channel, and IG rejects images
+        // that lose data on conversion.
+        .flatten({ background: "#ffffff" })
+        // Baseline JPEG only. Instagram's content-publishing API rejects
+        // progressive JPEGs with a generic "Media URI does not meet our
+        // requirements" error. We avoid mozjpeg here because it forces
+        // progressive on regardless of `progressive: false`.
+        .jpeg({ quality: 90, progressive: false, chromaSubsampling: "4:2:0" })
+        .toBuffer();
+
   const key = buildObjectKey({
     category: args.category ?? "images",
     organizationId: args.organizationId,
     name: args.name,
-    extension,
+    extension: "jpg",
   });
-
-  const cleanBase64 = args.base64.replace(/^data:[^;]+;base64,/, "");
-  const buffer = Buffer.from(cleanBase64, "base64");
 
   await getClient().send(
     new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       Body: buffer,
-      ContentType: contentType,
+      ContentType: "image/jpeg",
     })
   );
 

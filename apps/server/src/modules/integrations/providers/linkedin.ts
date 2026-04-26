@@ -16,7 +16,11 @@ const USERINFO_URL = "https://api.linkedin.com/v2/userinfo";
 const POSTS_URL = "https://api.linkedin.com/rest/posts";
 const IMAGES_INIT_URL = "https://api.linkedin.com/rest/images?action=initializeUpload";
 
-const API_VERSION = "202405";
+// LinkedIn supports each `LinkedIn-Version` for ~12 months on a rolling window.
+// Override via env (LINKEDIN_API_VERSION=YYYYMM) when bumping; default tracks
+// a recent stable release. Older values produce 426 NONEXISTENT_VERSION.
+// https://learn.microsoft.com/en-us/linkedin/marketing/versioning
+const API_VERSION = process.env.LINKEDIN_API_VERSION ?? "202602";
 
 interface LinkedInMetadata {
   authorUrn?: string;

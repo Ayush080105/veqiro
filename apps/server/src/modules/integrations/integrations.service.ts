@@ -9,7 +9,7 @@ import type { PlatformSlug, StatePayload } from "./integrations.types.js";
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 min
 
 const getStateSecret = (): string => {
-  const secret = process.env.INTEGRATIONS_STATE_SECRET ?? process.env.BETTER_AUTH_SECRET;
+  const secret = process.env.INTEGRATIONS_STATE_SECRET || process.env.BETTER_AUTH_SECRET;
   if (!secret) {
     throw new Error("INTEGRATIONS_STATE_SECRET (or BETTER_AUTH_SECRET) must be set");
   }

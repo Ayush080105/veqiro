@@ -32,11 +32,7 @@ export const platformEnumToSlug: Record<SocialPlatformEnum, SocialPlatformSlug> 
 }
 
 export async function listIntegrations(): Promise<SocialAccount[]> {
-  try {
-    return await apiFetch<SocialAccount[]>("/integrations")
-  } catch {
-    return []
-  }
+  return apiFetch<SocialAccount[]>("/integrations")
 }
 
 export async function disconnectIntegration(id: string): Promise<void> {

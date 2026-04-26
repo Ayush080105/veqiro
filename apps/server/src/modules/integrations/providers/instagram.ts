@@ -9,27 +9,120 @@ import type {
   SocialProvider,
 } from "../integrations.types.js";
 
-const GRAPH_VERSION = "v21.0";
-const AUTHORIZE_URL = `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`;
-const TOKEN_URL = `https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token`;
+// "Instagram API with Instagram Login" — direct IG OAuth, no Facebook Page
+// required. Token returned IS the IG User access token; user_id IS the
+// IG-Scoped User ID we publish under. See:
+// https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
+const GRAPH_VERSION = "v23.0";
+const AUTHORIZE_URL = "https://www.instagram.com/oauth/authorize";
+const SHORT_TOKEN_URL = "https://api.instagram.com/oauth/access_token";
+const LONG_TOKEN_URL = "https://graph.instagram.com/access_token";
+const REFRESH_TOKEN_URL = "https://graph.instagram.com/refresh_access_token";
+const ME_URL = `https://graph.instagram.com/${GRAPH_VERSION}/me`;
+const MEDIA_URL = (igUserId: string) =>
+  `https://graph.instagram.com/${GRAPH_VERSION}/${igUserId}/media`;
+const PUBLISH_URL = (igUserId: string) =>
+  `https://graph.instagram.com/${GRAPH_VERSION}/${igUserId}/media_publish`;
 
 interface InstagramMetadata {
   igUserId?: string;
-  pageId?: string;
-  pageName?: string;
+  /** The IG-Scoped User ID returned by OAuth — kept for reference only;
+   * publishing uses the IG User ID resolved from /me. */
+  scopedUserId?: string;
   username?: string;
 }
+
+// Polls the container's status_code until IG has finished ingesting the
+// staged media. Returns once status is FINISHED; throws on EXPIRED/ERROR
+// or after the timeout. Image containers usually settle in <5s; we cap at
+// 60s to stay well under Meta's 24h container TTL while not hanging on
+// hot-loop failures.
+const waitForContainerReady = async (
+  containerId: string,
+  accessToken: string,
+): Promise<void> => {
+  const start = Date.now();
+  const timeoutMs = 60_000;
+  const intervalMs = 1500;
+  while (Date.now() - start < timeoutMs) {
+    const res = await fetch(
+      `https://graph.instagram.com/${GRAPH_VERSION}/${containerId}?fields=status_code&access_token=${accessToken}`,
+    );
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Instagram status_code lookup failed (${res.status}): ${err}`);
+    }
+    const { status_code } = (await res.json()) as { status_code?: string };
+    if (status_code === "FINISHED") return;
+    if (status_code === "ERROR" || status_code === "EXPIRED") {
+      throw new Error(`Instagram container ${containerId} ${status_code}`);
+    }
+    // IN_PROGRESS or unknown — keep polling
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error(
+    `Instagram container ${containerId} did not become ready within ${timeoutMs / 1000}s`,
+  );
+};
+
+// Re-uploads the source image to catbox.moe (free, anonymous, accepts
+// multipart uploads) and returns the new URL. Used to bypass Meta's
+// undocumented host blocklist for IG content publishing — the same JPEG
+// bytes are accepted from `files.catbox.moe` even when rejected from R2.
+const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
+  const res = await fetch(sourceUrl);
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch image for IG staging: ${res.status} ${sourceUrl}`,
+    );
+  }
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const contentType = res.headers.get("content-type") ?? "image/jpeg";
+  // Pull a sensible filename from the source path; catbox preserves it.
+  const path = new URL(sourceUrl).pathname;
+  const filename = path.split("/").pop() || "image.jpg";
+
+  const form = new FormData();
+  form.append("reqtype", "fileupload");
+  form.append(
+    "fileToUpload",
+    new Blob([new Uint8Array(buffer)], { type: contentType }),
+    filename,
+  );
+
+  const upload = await fetch("https://catbox.moe/user/api.php", {
+    method: "POST",
+    body: form,
+    // Catbox returns 412 "Invalid uploader" to UAs they consider botlike
+    // (Node's default `node` UA is one of them). A browser-style UA passes.
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    },
+  });
+  if (!upload.ok) {
+    throw new Error(
+      `catbox.moe upload failed (${upload.status}): ${await upload.text()}`,
+    );
+  }
+  const url = (await upload.text()).trim();
+  if (!url.startsWith("https://files.catbox.moe/")) {
+    throw new Error(`catbox.moe returned unexpected response: ${url}`);
+  }
+  return url;
+};
 
 export const instagram: SocialProvider = {
   platform: SocialPlatform.INSTAGRAM,
   slug: "instagram",
-  scopes:
-    "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management",
+  // The minimum needed to publish a feed image. Add `_manage_messages` /
+  // `_manage_comments` later if we surface those features.
+  scopes: "instagram_business_basic,instagram_business_content_publish",
   usesPkce: false,
 
   buildAuthorizeUrl({ state, redirectUri }: AuthorizeContext) {
-    const appId = process.env.META_APP_ID;
-    if (!appId) throw new Error("META_APP_ID not configured");
+    const appId = process.env.INSTAGRAM_APP_ID;
+    if (!appId) throw new Error("INSTAGRAM_APP_ID not configured");
     const params = new URLSearchParams({
       response_type: "code",
       client_id: appId,
@@ -41,112 +134,102 @@ export const instagram: SocialProvider = {
   },
 
   async exchangeCode({ code, redirectUri }: ExchangeContext): Promise<ExchangeResult> {
-    const appId = process.env.META_APP_ID;
-    const appSecret = process.env.META_APP_SECRET;
+    const appId = process.env.INSTAGRAM_APP_ID;
+    const appSecret = process.env.INSTAGRAM_APP_SECRET;
     if (!appId || !appSecret) {
-      throw new Error("META_APP_ID / META_APP_SECRET not configured");
+      throw new Error("INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET not configured");
     }
 
-    // 1. short-lived token
-    const shortParams = new URLSearchParams({
+    // 1. Short-lived token (~1 hour) — POST form-data, NOT query string
+    const shortBody = new URLSearchParams({
       client_id: appId,
       client_secret: appSecret,
+      grant_type: "authorization_code",
       redirect_uri: redirectUri,
       code,
     });
-    const shortRes = await fetch(`${TOKEN_URL}?${shortParams.toString()}`);
+    const shortRes = await fetch(SHORT_TOKEN_URL, {
+      method: "POST",
+      body: shortBody,
+    });
     if (!shortRes.ok) {
       const err = await shortRes.text();
-      throw new Error(`Meta short-token exchange failed (${shortRes.status}): ${err}`);
+      throw new Error(`Instagram short-token exchange failed (${shortRes.status}): ${err}`);
     }
     const shortTok = (await shortRes.json()) as {
       access_token: string;
-      expires_in?: number;
+      user_id: number | string;
+      // Newer IG Login returns this as an array; older docs show a CSV
+      // string. Normalise to a single CSV string for the DB column.
+      permissions?: string | string[];
     };
+    const igUserId = String(shortTok.user_id);
+    const grantedScopes = Array.isArray(shortTok.permissions)
+      ? shortTok.permissions.join(",")
+      : shortTok.permissions;
 
-    // 2. long-lived user token (~60 days)
+    // 2. Long-lived token (~60 days)
     const longParams = new URLSearchParams({
-      grant_type: "fb_exchange_token",
-      client_id: appId,
+      grant_type: "ig_exchange_token",
       client_secret: appSecret,
-      fb_exchange_token: shortTok.access_token,
+      access_token: shortTok.access_token,
     });
-    const longRes = await fetch(`${TOKEN_URL}?${longParams.toString()}`);
+    const longRes = await fetch(`${LONG_TOKEN_URL}?${longParams.toString()}`);
     if (!longRes.ok) {
       const err = await longRes.text();
-      throw new Error(`Meta long-token exchange failed (${longRes.status}): ${err}`);
+      throw new Error(`Instagram long-token exchange failed (${longRes.status}): ${err}`);
     }
     const longTok = (await longRes.json()) as {
       access_token: string;
+      token_type?: string;
       expires_in?: number;
     };
 
-    // 3. find FB pages with IG business account linked
-    const pagesRes = await fetch(
-      `https://graph.facebook.com/${GRAPH_VERSION}/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${longTok.access_token}`
-    );
-    if (!pagesRes.ok) throw new Error(`Meta /me/accounts failed: ${pagesRes.status}`);
-    const pagesJson = (await pagesRes.json()) as {
-      data: Array<{
-        id: string;
-        name: string;
-        access_token: string;
-        instagram_business_account?: { id: string };
-      }>;
-    };
-
-    const page = pagesJson.data.find((p) => p.instagram_business_account?.id);
-    if (!page?.instagram_business_account) {
-      throw new Error(
-        "No Instagram Business account linked to any of your Facebook Pages. " +
-          "Convert your IG account to Business/Creator and link it to a Page in the Meta Business Suite."
-      );
-    }
-
-    const igUserId = page.instagram_business_account.id;
-
-    // 4. fetch IG username for display
+    // 3. Resolve the actual IG User ID via /me. The user_id returned by the
+    // OAuth flow is an "Instagram-Scoped User ID" — different from the
+    // "Instagram User ID" the Graph API needs for /media + /media_publish.
+    // /me?fields=user_id,username returns the publishing ID. Endpoint shape:
+    // { data: [{ user_id, username }] } on newer versions, or { user_id, username }
+    // on older ones — handle both.
+    let publishUserId = igUserId;
     let username: string | undefined;
-    try {
-      const igRes = await fetch(
-        `https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}?fields=username&access_token=${page.access_token}`
-      );
-      if (igRes.ok) {
-        username = ((await igRes.json()) as { username?: string }).username;
-      }
-    } catch {
-      /* ignore */
+    const meRes = await fetch(
+      `${ME_URL}?fields=user_id,username&access_token=${longTok.access_token}`
+    );
+    if (!meRes.ok) {
+      const err = await meRes.text();
+      throw new Error(`Instagram /me lookup failed (${meRes.status}): ${err}`);
     }
+    const meJson = (await meRes.json()) as
+      | { user_id?: string; username?: string }
+      | { data?: Array<{ user_id?: string; username?: string }> };
+    const meRow =
+      "data" in meJson && Array.isArray(meJson.data)
+        ? meJson.data[0]
+        : (meJson as { user_id?: string; username?: string });
+    if (meRow?.user_id) publishUserId = String(meRow.user_id);
+    username = meRow?.username;
 
     return {
-      accessToken: page.access_token,
+      accessToken: longTok.access_token,
       expiresAt: longTok.expires_in
         ? new Date(Date.now() + longTok.expires_in * 1000)
         : undefined,
-      providerAccountId: igUserId,
-      accountName: username ? `@${username}` : page.name,
-      metadata: {
-        igUserId,
-        pageId: page.id,
-        pageName: page.name,
-        username,
-      },
+      providerAccountId: publishUserId,
+      accountName: username ? `@${username}` : `Instagram (${publishUserId})`,
+      scope: grantedScopes ?? instagram.scopes,
+      metadata: { igUserId: publishUserId, scopedUserId: igUserId, username },
     };
   },
 
   async refresh(currentToken: string): Promise<RefreshResult> {
-    const appId = process.env.META_APP_ID;
-    const appSecret = process.env.META_APP_SECRET;
-    if (!appId || !appSecret) {
-      throw new Error("META_APP_ID / META_APP_SECRET not configured");
-    }
+    // ig_refresh_token only works on a long-lived token that is at least 24h
+    // old. The 60-day window resets each refresh.
     const params = new URLSearchParams({
-      grant_type: "fb_exchange_token",
-      client_id: appId,
-      client_secret: appSecret,
-      fb_exchange_token: currentToken,
+      grant_type: "ig_refresh_token",
+      access_token: currentToken,
     });
-    const res = await fetch(`${TOKEN_URL}?${params.toString()}`);
+    const res = await fetch(`${REFRESH_TOKEN_URL}?${params.toString()}`);
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Instagram token refresh failed (${res.status}): ${err}`);
@@ -171,31 +254,49 @@ export const instagram: SocialProvider = {
     const meta = (account.metadata ?? {}) as InstagramMetadata;
     const igUserId = meta.igUserId ?? account.providerAccountId;
 
+    // Meta's IG content-publishing API maintains a host allow-list at the
+    // network level. Tested combinations that fail with a generic
+    // "Only photo or video can be accepted" error even though the bytes are
+    // a perfectly valid JPEG: blob.veqiro.com, cdn.veqiro.com, pub-...r2.dev,
+    // *.ngrok-free.app, *.trycloudflare.com. Combinations that succeed:
+    // images.unsplash.com, cdnjs.cloudflare.com, files.catbox.moe.
+    //
+    // Workaround: stage the image to a Meta-trusted host (catbox.moe is free,
+    // anonymous, and accepts the bytes our R2 hosts) right before publish.
+    // Catbox auto-cleans unused uploads, so no GC needed on our side.
+    const stagedUrl = await stageImageForMeta(imageUrl);
+
     // 1. Create media container
-    const createParams = new URLSearchParams({
-      image_url: imageUrl,
+    const createBody = new URLSearchParams({
+      image_url: stagedUrl,
       caption,
       access_token: account.accessToken,
     });
-    const createRes = await fetch(
-      `https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}/media`,
-      { method: "POST", body: createParams }
-    );
+    const createRes = await fetch(MEDIA_URL(igUserId), {
+      method: "POST",
+      body: createBody,
+    });
     if (!createRes.ok) {
       const err = await createRes.text();
       throw new Error(`Instagram media create failed (${createRes.status}): ${err}`);
     }
     const { id: creationId } = (await createRes.json()) as { id: string };
 
-    // 2. Publish
-    const publishParams = new URLSearchParams({
+    // 2. Wait for IG to finish ingesting the staged image. Calling
+    //    /media_publish too soon returns code 9007 / subcode 2207027
+    //    "Media ID is not available". Per Meta docs, poll
+    //    /<container-id>?fields=status_code until FINISHED.
+    await waitForContainerReady(creationId, account.accessToken);
+
+    // 3. Publish container
+    const publishBody = new URLSearchParams({
       creation_id: creationId,
       access_token: account.accessToken,
     });
-    const pubRes = await fetch(
-      `https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}/media_publish`,
-      { method: "POST", body: publishParams }
-    );
+    const pubRes = await fetch(PUBLISH_URL(igUserId), {
+      method: "POST",
+      body: publishBody,
+    });
     if (!pubRes.ok) {
       const err = await pubRes.text();
       throw new Error(`Instagram media_publish failed (${pubRes.status}): ${err}`);
