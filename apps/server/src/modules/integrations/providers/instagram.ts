@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
 import type {
   AuthorizeContext,
@@ -65,89 +66,82 @@ const waitForContainerReady = async (
   );
 };
 
-// Re-uploads the source image to a Meta-trusted host and returns the new
-// URL. Bypasses Meta's undocumented host blocklist for IG content publishing
-// — the same JPEG bytes are accepted from catbox.moe / litter.catbox.moe
-// even when rejected from R2. We try catbox (permanent) first, fall back to
-// litterbox (72h ephemeral, same operator, separate anti-bot config) when
-// catbox 412s our IP. Both go through the same CDN, so Meta's allow-list
-// entry for one tends to cover the other.
-const BROWSER_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-  Accept: "*/*",
-  "Accept-Language": "en-US,en;q=0.9",
+// Re-uploads the source image to Cloudinary and returns the resulting
+// `res.cloudinary.com` URL. Meta's IG content-publishing API enforces an
+// undocumented host allow-list that rejects our R2/CDN domains
+// (blob.veqiro.com, cdn.veqiro.com, pub-...r2.dev, *.ngrok-free.app,
+// *.trycloudflare.com) but accepts cloudinary.com — so we restage at
+// publish time. Earlier we used catbox/litterbox; their anti-bot filter
+// kept locking out our IP. Cloudinary is purpose-built for this.
+//
+// Uses Cloudinary's signed-upload REST endpoint directly so we don't pull
+// in the cloudinary npm SDK. Signature spec:
+// https://cloudinary.com/documentation/signatures
+const CLOUDINARY_UPLOAD_FOLDER = "instagram-staging";
+
+const signCloudinaryParams = (
+  params: Record<string, string>,
+  apiSecret: string,
+): string => {
+  // SHA1 of `key1=value1&key2=value2...&<api_secret>` with keys sorted
+  // alphabetically. `file`, `cloud_name`, `resource_type`, `api_key`,
+  // and `signature` itself are excluded from the signed string.
+  const sorted = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("&");
+  return createHash("sha1").update(sorted + apiSecret).digest("hex");
 };
 
 const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
-  const res = await fetch(sourceUrl);
-  if (!res.ok) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloudName || !apiKey || !apiSecret) {
     throw new Error(
-      `Failed to fetch image for IG staging: ${res.status} ${sourceUrl}`,
+      "Cloudinary not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET — required for IG publishing.",
     );
   }
-  const buffer = Buffer.from(await res.arrayBuffer());
-  const contentType = res.headers.get("content-type") ?? "image/jpeg";
-  const path = new URL(sourceUrl).pathname;
-  const filename = path.split("/").pop() || "image.jpg";
 
-  const buildForm = (extraField?: { key: string; value: string }) => {
-    const form = new FormData();
-    form.append("reqtype", "fileupload");
-    if (extraField) form.append(extraField.key, extraField.value);
-    form.append(
-      "fileToUpload",
-      new Blob([new Uint8Array(buffer)], { type: contentType }),
-      filename,
+  const sourceRes = await fetch(sourceUrl);
+  if (!sourceRes.ok) {
+    throw new Error(
+      `Failed to fetch image for IG staging: ${sourceRes.status} ${sourceUrl}`,
     );
-    return form;
+  }
+  const buffer = Buffer.from(await sourceRes.arrayBuffer());
+  const contentType = sourceRes.headers.get("content-type") ?? "image/jpeg";
+  const filename = new URL(sourceUrl).pathname.split("/").pop() || "image.jpg";
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const signedParams: Record<string, string> = {
+    folder: CLOUDINARY_UPLOAD_FOLDER,
+    timestamp,
   };
+  const signature = signCloudinaryParams(signedParams, apiSecret);
 
-  // 1. Catbox — permanent URLs, but their 412 "Invalid uploader" filter is
-  //    aggressive against datacenter / repeat IPs. Try it first; if it
-  //    rejects us, fall through to litterbox rather than failing the publish.
-  const catboxRes = await fetch("https://catbox.moe/user/api.php", {
-    method: "POST",
-    body: buildForm(),
-    headers: {
-      ...BROWSER_HEADERS,
-      Origin: "https://catbox.moe",
-      Referer: "https://catbox.moe/",
-    },
-  });
-  if (catboxRes.ok) {
-    const url = (await catboxRes.text()).trim();
-    if (url.startsWith("https://files.catbox.moe/")) return url;
-  }
-
-  // 2. Litterbox — same operator (catbox.moe), ephemeral hosting (max 72h),
-  //    served from `litter.catbox.moe`. `time` is required: 1h | 12h | 24h | 72h.
-  const litterRes = await fetch(
-    "https://litterbox.catbox.moe/resources/internals/api.php",
-    {
-      method: "POST",
-      body: buildForm({ key: "time", value: "72h" }),
-      headers: {
-        ...BROWSER_HEADERS,
-        Origin: "https://litterbox.catbox.moe",
-        Referer: "https://litterbox.catbox.moe/",
-      },
-    },
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new Uint8Array(buffer)], { type: contentType }),
+    filename,
   );
-  if (!litterRes.ok) {
-    const err = await litterRes.text();
+  form.append("api_key", apiKey);
+  form.append("timestamp", timestamp);
+  form.append("folder", CLOUDINARY_UPLOAD_FOLDER);
+  form.append("signature", signature);
+
+  const uploadRes = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    { method: "POST", body: form },
+  );
+  if (!uploadRes.ok) {
     throw new Error(
-      `Image staging failed — catbox ${catboxRes.status}, litterbox ${litterRes.status}: ${err}`,
+      `Cloudinary upload failed (${uploadRes.status}): ${await uploadRes.text()}`,
     );
   }
-  const url = (await litterRes.text()).trim();
-  if (
-    !url.startsWith("https://litter.catbox.moe/") &&
-    !url.startsWith("https://files.catbox.moe/")
-  ) {
-    throw new Error(`Image staging returned unexpected response: ${url}`);
+  const json = (await uploadRes.json()) as { secure_url?: string };
+  if (!json.secure_url) {
+    throw new Error("Cloudinary upload returned no secure_url");
   }
-  return url;
+  return json.secure_url;
 };
 
 export const instagram: SocialProvider = {

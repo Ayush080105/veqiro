@@ -4,24 +4,14 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
-import { useBrandKit } from "@/lib/api/brain"
 
-function localHasBrandKit(organizationId: string): boolean {
-  if (typeof window === "undefined") return false
-  try {
-    const raw = localStorage.getItem(`veqiro.brandKitLocal.${organizationId}`)
-    if (!raw) return false
-    // Support both legacy snake_case and current camelCase drafts.
-    const parsed = JSON.parse(raw) as {
-      companyName?: string
-      company_name?: string
-    }
-    return !!(parsed?.companyName?.trim() ?? parsed?.company_name?.trim())
-  } catch {
-    return false
-  }
-}
-
+// Single source of truth for "past onboarding" is `activeOrg.onboarded`.
+// Earlier this guard also required a non-empty brand_kit.companyName, which
+// produced an infinite redirect loop with the /onboarding layout when the
+// org had onboarded=true but the brand kit was missing/empty: dashboard sent
+// the user back to /onboarding, which immediately bounced them back here.
+// The brain page renders fine with empty kit values, so trusting the flag
+// is both safer and matches the server-side proxy at apps/main/src/proxy.ts.
 export default function OnboardingGuard({
   children,
 }: {
@@ -30,22 +20,13 @@ export default function OnboardingGuard({
   const router = useRouter()
   const { data: activeOrg, isPending: orgPending } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
-  const { data: bk, isPending: kitPending, isError } = useBrandKit(organizationId)
-
-  const backendHasKit = !!bk?.companyName?.trim()
-  const hasKit = backendHasKit || (!!organizationId && localHasBrandKit(organizationId))
-  const checking = orgPending || (!!organizationId && kitPending && !isError)
-  const ok = !!organizationId && !checking && hasKit
+  const isOnboarded = activeOrg?.onboarded === true
+  const ok = !!organizationId && isOnboarded
 
   useEffect(() => {
     if (orgPending) return
-    if (!organizationId) {
-      router.replace("/onboarding")
-      return
-    }
-    if (kitPending && !isError) return
-    if (!hasKit) router.replace("/onboarding")
-  }, [orgPending, kitPending, isError, organizationId, hasKit, router])
+    if (!organizationId || !isOnboarded) router.replace("/onboarding")
+  }, [orgPending, organizationId, isOnboarded, router])
 
   if (!ok) {
     return (
