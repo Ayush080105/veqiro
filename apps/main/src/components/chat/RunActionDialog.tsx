@@ -11,6 +11,7 @@ import {
   SageGenerateBlogForm,
   SageAnalyzeContentForm,
   SageContentBriefForm,
+  SageGenerateBlogIdeasForm,
 } from "@/components/agents/sage/forms"
 // Maya forms
 import {
@@ -116,6 +117,10 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
         : !v.target_keyword?.trim()
           ? "Target keyword is required."
           : null,
+  },
+  "sage:generate-blog-ideas": {
+    defaultValue: { count: 5 },
+    Form: SageGenerateBlogIdeasForm,
   },
 
   "maya:generate-ideas": {

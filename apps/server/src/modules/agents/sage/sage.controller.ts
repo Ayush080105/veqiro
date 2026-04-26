@@ -6,6 +6,7 @@ import {
   generateBlogSchema,
   analyzeContentSchema,
   contentBriefSchema,
+  generateBlogIdeasSchema,
   saveKeywordSchema,
 } from "./sage.schema.js";
 import * as sageService from "./sage.service.js";
@@ -61,6 +62,13 @@ export const contentBrief = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = contentBriefSchema.parse(req.body);
   const result = await sageService.contentBrief(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const generateBlogIdeas = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = generateBlogIdeasSchema.parse(req.body);
+  const result = await sageService.generateBlogIdeas(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

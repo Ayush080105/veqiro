@@ -17,6 +17,8 @@ import {
   XCircle,
   Lightbulb,
   TrendingUp,
+  Sparkles,
+  PenLine,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -41,7 +43,10 @@ import type {
   SageGenerateBlogResult,
   SageContentAnalysisResult,
   SageContentBriefResult,
+  SageGenerateBlogIdeasResult,
+  SageBlogIdeaItem,
 } from "@/lib/types/agents"
+import type { AgentActionId } from "@/lib/types/agents"
 
 function ScoreGauge({ score, label }: { score: number; label: string }) {
   const color =
@@ -470,7 +475,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                       <div className="flex items-start gap-2">
                         <span className="w-28 shrink-0 text-muted-foreground">Meta title</span>
                         <span className="flex-1 font-medium">{blog.meta_title}</span>
-                        <Button variant="ghost" size="icon" className="size-5 shrink-0" onClick={() => copyText(blog.meta_title, "Meta title copied")}>
+                        <Button variant="ghost" size="icon" className="size-5 shrink-0" onClick={() => copyText(blog.meta_title ?? "", "Meta title copied")}>
                           <Copy className="size-3" />
                         </Button>
                       </div>
@@ -479,7 +484,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                       <div className="flex items-start gap-2">
                         <span className="w-28 shrink-0 text-muted-foreground">Meta description</span>
                         <span className="flex-1">{blog.meta_description}</span>
-                        <Button variant="ghost" size="icon" className="size-5 shrink-0" onClick={() => copyText(blog.meta_description, "Meta description copied")}>
+                        <Button variant="ghost" size="icon" className="size-5 shrink-0" onClick={() => copyText(blog.meta_description ?? "", "Meta description copied")}>
                           <Copy className="size-3" />
                         </Button>
                       </div>
@@ -736,6 +741,116 @@ export function ContentBriefCard({ result }: { result: SageContentBriefResult })
             <em>{b.topical_authority_tip}</em>
           </p>
         )}
+      </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── Blog ideas card ─────────────────────────────────────────────────────────
+
+function difficultyColor(d: number) {
+  if (d >= 70) return "border-destructive/50 text-destructive"
+  if (d >= 40) return "border-chart-3/50 text-chart-3"
+  return "border-chart-2/50 text-chart-2"
+}
+
+function IdeaCard({
+  idea,
+  onFollowUpAction,
+}: {
+  idea: SageBlogIdeaItem
+  onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+}) {
+  return (
+    <div className="flex flex-col gap-2 border border-border bg-background p-3">
+      {/* Title */}
+      <p className="text-xs font-semibold leading-snug">{idea.title}</p>
+
+      {/* Tags row */}
+      <div className="flex flex-wrap items-center gap-1">
+        <Badge variant="outline" className="text-[10px]">
+          {idea.target_keyword}
+        </Badge>
+        {idea.secondary_keywords.slice(0, 3).map((kw) => (
+          <Badge key={kw} variant="secondary" className="text-[10px]">
+            {kw}
+          </Badge>
+        ))}
+        <Badge
+          variant="outline"
+          className={cn("text-[10px]", difficultyColor(idea.estimated_difficulty))}
+        >
+          diff {idea.estimated_difficulty}
+        </Badge>
+      </div>
+
+      {/* Content angle */}
+      {idea.content_angle && (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          {idea.content_angle}
+        </p>
+      )}
+
+      {/* Rationale */}
+      {idea.rationale && (
+        <p className="flex items-start gap-1.5 text-[10px] text-muted-foreground/80">
+          <Lightbulb className="mt-0.5 size-3 shrink-0 text-chart-2" />
+          {idea.rationale}
+        </p>
+      )}
+
+      {/* Create Blog button */}
+      {onFollowUpAction && (
+        <div className="pt-0.5">
+          <Button
+            size="xs"
+            variant="outline"
+            className="w-full gap-1"
+            onClick={() =>
+              onFollowUpAction("sage:generate-blog", {
+                topic: idea.title,
+                target_keyword: idea.target_keyword,
+                secondary_keywords: idea.secondary_keywords,
+              })
+            }
+          >
+            <PenLine className="size-3" />
+            Create blog post
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function BlogIdeasCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: SageGenerateBlogIdeasResult
+  onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+}) {
+  const ideas = result.ideas ?? []
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header
+        icon={<Sparkles />}
+        title="Blog ideas"
+        badge={
+          <Badge variant="secondary" className="text-[10px]">
+            {ideas.length} ideas
+          </Badge>
+        }
+      />
+      <AgentCard.Body>
+        <div className="flex flex-col gap-2">
+          {ideas.map((idea, i) => (
+            <IdeaCard key={i} idea={idea} onFollowUpAction={onFollowUpAction} />
+          ))}
+          {ideas.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">No ideas generated.</p>
+          )}
+        </div>
       </AgentCard.Body>
     </AgentCard>
   )
