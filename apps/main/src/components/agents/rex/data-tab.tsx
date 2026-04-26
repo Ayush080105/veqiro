@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Upload, Trash2, BarChart2, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { Upload, Trash2, BarChart2, CheckCircle, AlertCircle, Loader2, TrendingUp, LineChart, DollarSign, Sparkles } from "lucide-react"
 import { apiFetch } from "@/lib/api/client"
 import { uploadToR2 } from "@/lib/api/uploads"
 import { Button } from "@/components/ui/button"
@@ -64,7 +64,13 @@ const REX_DATASETS_KEY = (orgId: string) => ["rex", "datasets", orgId]
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function RexDataTab({ organizationId }: { organizationId: string }) {
+export function RexDataTab({
+  organizationId,
+  onOpenAction,
+}: {
+  organizationId: string
+  onOpenAction?: (actionId: string, prefill?: Record<string, unknown>) => void
+}) {
   const qc = useQueryClient()
   const [dragOver, setDragOver] = React.useState(false)
   const [uploading, setUploading] = React.useState(false)
@@ -74,6 +80,7 @@ export function RexDataTab({ organizationId }: { organizationId: string }) {
     metricKey: string; name: string; period: string; points: DataPoint[]
   }>>([])
   const [saving, setSaving] = React.useState(false)
+  const [lastSaved, setLastSaved] = React.useState<Array<{ metricKey: string; name: string; points: DataPoint[] }> | null>(null)
 
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: REX_DATASETS_KEY(organizationId),
@@ -121,6 +128,7 @@ export function RexDataTab({ organizationId }: { organizationId: string }) {
     setSaving(true)
     try {
       await saveDatasets(editableDatasets)
+      setLastSaved(editableDatasets)
       setParseResult(null)
       setEditableDatasets([])
       void qc.invalidateQueries({ queryKey: REX_DATASETS_KEY(organizationId) })
@@ -177,6 +185,74 @@ export function RexDataTab({ organizationId }: { organizationId: string }) {
         <div className="flex items-center gap-2 border border-destructive/30 bg-destructive/5 p-3 text-[11px] text-destructive">
           <AlertCircle className="size-3.5 shrink-0" />
           {uploadError}
+        </div>
+      )}
+
+      {/* Post-save quick actions */}
+      {lastSaved && lastSaved.length > 0 && !parseResult && onOpenAction && (
+        <div
+          className="flex flex-col gap-3 border-2 p-4"
+          style={{ borderColor: "#1DBC87", background: "#f0fdf4" }}
+        >
+          <div className="flex items-start gap-2">
+            <CheckCircle className="mt-0.5 size-4 shrink-0" style={{ color: "#1DBC87" }} />
+            <div>
+              <p className="text-[13px] font-semibold text-foreground">
+                Saved {lastSaved.length} dataset{lastSaved.length > 1 ? "s" : ""}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {lastSaved.map((d) => d.name).join(", ")} — ready to use
+              </p>
+            </div>
+          </div>
+          <p className="text-[11px] font-medium text-foreground">What would you like Rex to do with this data?</p>
+          <div className="flex flex-wrap gap-2">
+            {lastSaved.some((d) => ["mrr", "revenue", "arr"].includes(d.metricKey)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const ds = lastSaved.find((d) => ["mrr", "revenue", "arr"].includes(d.metricKey))
+                  onOpenAction("rex:forecast", ds ? { metric_name: ds.metricKey, historical_data: ds.points, horizon_days: 90 } : undefined)
+                  setLastSaved(null)
+                }}
+                className="flex items-center gap-1.5 border-2 border-[#111] bg-white px-3 py-1.5 text-[11px] font-medium hover:bg-[#FFF9ED]"
+                style={{ boxShadow: "2px 2px 0 #111" }}
+              >
+                <TrendingUp className="size-3" /> Forecast 90 days
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                onOpenAction("rex:analyze-metrics")
+                setLastSaved(null)
+              }}
+              className="flex items-center gap-1.5 border-2 border-[#111] bg-white px-3 py-1.5 text-[11px] font-medium hover:bg-[#FFF9ED]"
+              style={{ boxShadow: "2px 2px 0 #111" }}
+            >
+              <LineChart className="size-3" /> Analyze metrics
+            </button>
+            {lastSaved.some((d) => ["mrr", "revenue"].includes(d.metricKey)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenAction("rex:financial-analysis")
+                  setLastSaved(null)
+                }}
+                className="flex items-center gap-1.5 border-2 border-[#111] bg-white px-3 py-1.5 text-[11px] font-medium hover:bg-[#FFF9ED]"
+                style={{ boxShadow: "2px 2px 0 #111" }}
+              >
+                <DollarSign className="size-3" /> Financial analysis
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setLastSaved(null)}
+              className="text-[11px] text-muted-foreground underline hover:text-foreground"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 

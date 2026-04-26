@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Database, ChevronDown } from "lucide-react"
 import { Controller } from "react-hook-form"
+import { useQuery } from "@tanstack/react-query"
 
+import { listDatasets } from "@/lib/api/rex"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
@@ -11,6 +13,7 @@ import { DataPointTable, CountedTextarea } from "@/components/chat/ActionForm/fi
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
 import { cn } from "@/lib/utils"
+import type { DataPoint, RexDatasetRecord } from "@/lib/types/agents"
 import {
   rexAnalyzeMetricsSchema,
   type RexAnalyzeMetricsValues,
@@ -32,7 +35,62 @@ import {
   type RexInvestorUpdateValues,
   REX_PERIODS,
 } from "@/lib/schemas/agents/rex"
-import type { DataPoint } from "@/lib/types/agents"
+// ─── Dataset picker ──────────────────────────────────────────────────────────
+
+const REX_DATASETS_QK = ["rex", "datasets", "picker"]
+
+function DatasetPicker({
+  metricHints = [],
+  onSelect,
+  label = "Load from dataset",
+}: {
+  metricHints?: string[]
+  onSelect: (points: DataPoint[]) => void
+  label?: string
+}) {
+  const { data: datasets = [] } = useQuery<RexDatasetRecord[]>({
+    queryKey: REX_DATASETS_QK,
+    queryFn: listDatasets,
+    staleTime: 30_000,
+  })
+
+  const filtered =
+    metricHints.length > 0
+      ? datasets.filter((d) => metricHints.includes(d.metricKey))
+      : datasets
+
+  if (filtered.length === 0) return null
+
+  return (
+    <div className="flex items-center gap-2">
+      <Database className="size-3 shrink-0 text-muted-foreground" />
+      <div className="relative flex-1">
+        <select
+          defaultValue=""
+          onChange={(e) => {
+            const ds = filtered.find((d) => d.id === e.target.value)
+            if (ds) onSelect(ds.points as DataPoint[])
+            e.target.value = ""
+          }}
+          className={cn(
+            "w-full appearance-none border border-dashed border-border bg-muted/20 px-2 py-1 pr-6",
+            "text-[10px] font-mono text-muted-foreground hover:bg-muted cursor-pointer",
+          )}
+        >
+          <option value="" disabled>{label} →</option>
+          {filtered.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name} ({d.points.length} pts · {d.period})
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+      </div>
+    </div>
+  )
+}
+
+// ─── Metrics ─────────────────────────────────────────────────────────────────
 
 type MetricEntry = { name: string; data: DataPoint[] }
 
@@ -197,10 +255,16 @@ export function RexForecastForm({
         description="At least 6 data points recommended for a meaningful forecast."
       >
         {({ field }) => (
-          <DataPointTable
-            value={field.value ?? []}
-            onChange={field.onChange}
-          />
+          <div className="flex flex-col gap-1.5">
+            <DatasetPicker
+              metricHints={["mrr", "revenue", "arr", "subscribers", "new_customers"]}
+              onSelect={field.onChange}
+            />
+            <DataPointTable
+              value={field.value ?? []}
+              onChange={field.onChange}
+            />
+          </div>
         )}
       </RhfField>
 
@@ -250,19 +314,33 @@ export function RexFinancialAnalysisForm({
         required
       >
         {({ field }) => (
-          <DataPointTable
-            value={field.value ?? []}
-            onChange={field.onChange}
-          />
+          <div className="flex flex-col gap-1.5">
+            <DatasetPicker
+              metricHints={["mrr", "revenue", "arr"]}
+              onSelect={field.onChange}
+              label="Load revenue dataset"
+            />
+            <DataPointTable
+              value={field.value ?? []}
+              onChange={field.onChange}
+            />
+          </div>
         )}
       </RhfField>
 
       <RhfField control={form.control} name="expenses_data" label="Expenses">
         {({ field }) => (
-          <DataPointTable
-            value={field.value ?? []}
-            onChange={field.onChange}
-          />
+          <div className="flex flex-col gap-1.5">
+            <DatasetPicker
+              metricHints={["expenses", "burn", "marketing_spend"]}
+              onSelect={field.onChange}
+              label="Load expenses dataset"
+            />
+            <DataPointTable
+              value={field.value ?? []}
+              onChange={field.onChange}
+            />
+          </div>
         )}
       </RhfField>
 
@@ -272,10 +350,17 @@ export function RexFinancialAnalysisForm({
         label="Subscribers"
       >
         {({ field }) => (
-          <DataPointTable
-            value={field.value ?? []}
-            onChange={field.onChange}
-          />
+          <div className="flex flex-col gap-1.5">
+            <DatasetPicker
+              metricHints={["subscribers", "new_customers"]}
+              onSelect={field.onChange}
+              label="Load subscribers dataset"
+            />
+            <DataPointTable
+              value={field.value ?? []}
+              onChange={field.onChange}
+            />
+          </div>
         )}
       </RhfField>
     </FieldGroup>
@@ -376,7 +461,14 @@ export function RexUnitEconomicsForm({
         description="Monthly marketing/acquisition spend."
       >
         {({ field }) => (
-          <DataPointTable value={field.value ?? []} onChange={field.onChange} />
+          <div className="flex flex-col gap-1.5">
+            <DatasetPicker
+              metricHints={["marketing_spend", "expenses", "burn"]}
+              onSelect={field.onChange}
+              label="Load spend dataset"
+            />
+            <DataPointTable value={field.value ?? []} onChange={field.onChange} />
+          </div>
         )}
       </RhfField>
       <RhfField
@@ -387,7 +479,14 @@ export function RexUnitEconomicsForm({
         description="Monthly new customer count."
       >
         {({ field }) => (
-          <DataPointTable value={field.value ?? []} onChange={field.onChange} />
+          <div className="flex flex-col gap-1.5">
+            <DatasetPicker
+              metricHints={["new_customers", "subscribers"]}
+              onSelect={field.onChange}
+              label="Load customers dataset"
+            />
+            <DataPointTable value={field.value ?? []} onChange={field.onChange} />
+          </div>
         )}
       </RhfField>
       <RhfField

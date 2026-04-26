@@ -337,15 +337,39 @@ export interface RexAnalyzeMetricsRequest {
   period?: "daily" | "weekly" | "monthly" | "quarterly"
 }
 
+export interface RexAnomalyItem {
+  date: string
+  value: number
+  z_score: number
+  direction: "spike" | "dip"
+  severity: "high" | "medium"
+  correlated_with?: string[]
+  root_cause_hypothesis?: string
+}
+
 export interface RexAnalyzeMetricsResult {
   analysis: {
     summary: string
     trend: "up" | "down" | "flat"
-    anomalies: string[]
+    anomalies: RexAnomalyItem[]
     insights: string[]
     health_indicator: "red" | "amber" | "green"
   }
   charts_data: Record<string, DataPoint[]>
+  data_points_analyzed?: number
+  confidence_level?: "high" | "medium" | "low"
+}
+
+export interface RexDatasetRecord {
+  id: string
+  organizationId: string
+  name: string
+  metricKey: string
+  unit: string | null
+  period: string
+  points: DataPoint[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface RexForecastRequest {
@@ -380,6 +404,8 @@ export interface RexFinancialAnalysisResult {
     runway_months?: number
     is_profitable?: boolean
   }
+  data_points_analyzed?: number
+  confidence_level?: "high" | "medium" | "low"
   health_indicator: "red" | "amber" | "green"
   narrative: string
   recommendations: string[]
@@ -522,6 +548,8 @@ export interface RexWeeklyDigestResult {
   green_flags: RexGreenFlag[]
   focus_this_week: string[]
   generated_at: string
+  confidence_level?: "high" | "medium" | "low"
+  metrics_count?: number
 }
 
 export interface RexInvestorUpdateRequest {

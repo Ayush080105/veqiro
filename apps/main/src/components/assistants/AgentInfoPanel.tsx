@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { X } from "lucide-react"
 
+import { getSettings, patchSettings } from "@/lib/api/rex"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 import { FONT } from "@/lib/fonts"
 import type { AgentConfig, BrandKit } from "@/lib/types"
@@ -85,16 +87,161 @@ function ContextBlock({ kit }: { kit: BrandKit | null }) {
   )
 }
 
+const TZ_OPTIONS = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Paris",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+]
+
+function RexSettingsBlock({ organizationId }: { organizationId: string }) {
+  const qc = useQueryClient()
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["rex", "settings", organizationId],
+    queryFn: getSettings,
+    enabled: !!organizationId,
+    staleTime: 60_000,
+  })
+  const mut = useMutation({
+    mutationFn: (patch: Parameters<typeof patchSettings>[0]) => patchSettings(patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["rex", "settings", organizationId] }),
+  })
+
+  const enabled = settings?.weeklyDigestEnabled ?? true
+  const tz = settings?.weeklyDigestTimezone ?? "UTC"
+
+  if (isLoading) return null
+
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "#555",
+          marginBottom: 8,
+        }}
+      >
+        rex settings
+      </div>
+      <div
+        style={{
+          background: "#fff",
+          border: "2px solid #111",
+          borderRadius: 10,
+          padding: "10px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {/* Weekly digest toggle */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: FONT.body, fontSize: 12, fontWeight: 600, color: "#111" }}>
+              Monday digest
+            </div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 10, color: "#777", marginTop: 2 }}>
+              Weekly CFO email at 9am
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => mut.mutate({ weeklyDigestEnabled: !enabled })}
+            disabled={mut.isPending}
+            aria-label={enabled ? "Disable weekly digest" : "Enable weekly digest"}
+            style={{
+              flexShrink: 0,
+              width: 44,
+              height: 24,
+              borderRadius: 999,
+              border: "2px solid #111",
+              background: enabled ? "#1DBC87" : "#e0e0e0",
+              cursor: "pointer",
+              position: "relative",
+              transition: "background 180ms",
+              boxShadow: "2px 2px 0 #111",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: 2,
+                left: enabled ? 20 : 2,
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                background: "#fff",
+                border: "1.5px solid #111",
+                transition: "left 180ms",
+              }}
+            />
+          </button>
+        </div>
+
+        {/* Timezone selector */}
+        <div>
+          <div
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 10,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              color: "#555",
+              marginBottom: 4,
+            }}
+          >
+            timezone
+          </div>
+          <select
+            value={tz}
+            onChange={(e) => mut.mutate({ weeklyDigestTimezone: e.target.value })}
+            disabled={mut.isPending || !enabled}
+            style={{
+              width: "100%",
+              fontFamily: FONT.mono,
+              fontSize: 11,
+              padding: "5px 8px",
+              border: "2px solid #111",
+              borderRadius: 6,
+              background: enabled ? "#FFF9ED" : "#f5f5f5",
+              color: "#111",
+              cursor: enabled ? "pointer" : "not-allowed",
+              opacity: enabled ? 1 : 0.5,
+            }}
+          >
+            {TZ_OPTIONS.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AgentInfoPanel({
   agent,
   kit,
   open,
   onClose,
+  organizationId = "",
 }: {
   agent: AgentConfig
   kit: BrandKit | null
   open: boolean
   onClose: () => void
+  organizationId?: string
 }) {
   useEffect(() => {
     if (!open) return
@@ -296,6 +443,10 @@ export default function AgentInfoPanel({
         </div>
 
         <ContextBlock kit={kit} />
+
+        {agent.id === "rex" && organizationId && (
+          <RexSettingsBlock organizationId={organizationId} />
+        )}
       </aside>
     </>
   )

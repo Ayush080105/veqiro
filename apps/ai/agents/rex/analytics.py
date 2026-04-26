@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 from core.models import DataPoint
 
@@ -46,6 +47,64 @@ def compute_anomalies(data_points: list[DataPoint]) -> list[dict]:
                     "severity": "high" if abs(z) > 3 else "medium",
                 })
         return anomalies
+
+
+def correlate_anomalies(metrics_anomalies: dict[str, list[dict]]) -> list[dict]:
+    """Cross-correlate anomalies across metrics. Returns enriched anomalies with root cause hints.
+
+    metrics_anomalies: {metric_name: [anomaly_dict, ...]}
+    Returns flat list of all anomalies, each enriched with correlated_with and root_cause_hypothesis.
+    """
+    # Bucket anomalies by month (YYYY-MM) so we can find same-period co-occurrences
+    by_month: dict[str, list[tuple[str, dict]]] = defaultdict(list)
+    for metric_name, anomalies in metrics_anomalies.items():
+        for a in anomalies:
+            month = a["date"][:7]  # YYYY-MM
+            by_month[month].append((metric_name, a))
+
+    # Build lookup: for each metric+date, which other metrics also had anomalies?
+    enriched: list[dict] = []
+    for metric_name, anomalies in metrics_anomalies.items():
+        for a in anomalies:
+            month = a["date"][:7]
+            co_occurring = [
+                other_metric
+                for other_metric, _ in by_month[month]
+                if other_metric != metric_name
+            ]
+            enriched_a = dict(a)
+            if co_occurring:
+                enriched_a["correlated_with"] = co_occurring
+                # Generate a hypothesis based on known causal relationships
+                hypothesis = _build_hypothesis(metric_name, a["direction"], co_occurring)
+                if hypothesis:
+                    enriched_a["root_cause_hypothesis"] = hypothesis
+            enriched.append(enriched_a)
+
+    return enriched
+
+
+_CAUSE_EFFECT = [
+    # (cause_metric, cause_direction, effect_metric, hypothesis)
+    ("churn_rate", "spike", "mrr", "Churn spike likely caused MRR drop — investigate why customers left"),
+    ("churn_rate", "spike", "revenue", "Churn spike likely drove revenue decline — run churn retrospective"),
+    ("marketing_spend", "spike", "new_customers", "Marketing surge drove customer acquisition spike"),
+    ("marketing_spend", "dip", "new_customers", "Marketing cut likely reduced new customer acquisition"),
+    ("expenses", "spike", "burn", "Expense increase drove burn spike — review largest expense line"),
+    ("burn", "spike", "cash", "Burn spike reduced cash position — audit largest expense"),
+    ("mrr", "spike", "revenue", "MRR expansion drove revenue increase"),
+    ("mrr", "dip", "revenue", "MRR contraction is driving revenue decline"),
+    ("new_customers", "dip", "mrr", "Fewer new customers may be slowing MRR growth"),
+]
+
+
+def _build_hypothesis(metric: str, direction: str, co_occurring: list[str]) -> str | None:
+    for cause_m, cause_dir, effect_m, hypothesis in _CAUSE_EFFECT:
+        if metric == cause_m and direction == cause_dir and effect_m in co_occurring:
+            return hypothesis
+        if metric == effect_m and cause_m in co_occurring:
+            return hypothesis
+    return None
 
 
 def compute_health_indicator(metrics: dict) -> str:

@@ -44,6 +44,35 @@ import type {
   DataPoint,
 } from "@/lib/types/agents"
 
+// ─── Confidence footer ───────────────────────────────────────────────────────
+
+function ConfidenceFooter({
+  level,
+  dataPoints,
+  note,
+}: {
+  level?: "high" | "medium" | "low"
+  dataPoints?: number
+  note?: string
+}) {
+  if (!level && !dataPoints && !note) return null
+  const dot = level === "high" ? "#1DBC87" : level === "medium" ? "#f59e0b" : level === "low" ? "#ef4444" : "#888"
+  const label = level ? `${level} confidence` : null
+  return (
+    <div className="flex items-center gap-1.5 border-t border-border pt-2 mt-1">
+      {level && (
+        <span
+          className="inline-block size-1.5 rounded-full shrink-0"
+          style={{ background: dot }}
+        />
+      )}
+      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        {[label, dataPoints ? `${dataPoints} data pts` : null, note].filter(Boolean).join(" · ")}
+      </span>
+    </div>
+  )
+}
+
 // ─── Pin button ──────────────────────────────────────────────────────────────
 
 function PinButton({ kind, payload }: { kind: string; payload: unknown }) {
@@ -190,8 +219,15 @@ export function MetricsAnalysisCard({ result }: { result: RexAnalyzeMetricsResul
           <InfoSection label="insights" bullets={analysis.insights} />
         )}
         {analysis.anomalies.length > 0 && (
-          <InfoSection label="anomalies" bullets={analysis.anomalies} tone="danger" />
+          <InfoSection label="anomalies" bullets={analysis.anomalies.map((a) =>
+            typeof a === "string" ? a : `${a.date}: ${a.direction} (${a.severity})${a.root_cause_hypothesis ? ` — ${a.root_cause_hypothesis}` : ""}`
+          )} tone="danger" />
         )}
+        <ConfidenceFooter
+          level={result.confidence_level}
+          dataPoints={result.data_points_analyzed}
+          note="REX analysis"
+        />
       </AgentCard.Body>
     </AgentCard>
   )
@@ -225,9 +261,10 @@ export function ForecastCard({ result }: { result: RexForecastResult }) {
           <Sparkline data={points} band={band} height={80} />
         </div>
         <p className="text-[11px] leading-relaxed">{result.summary}</p>
-        <p className="text-[10px] italic text-muted-foreground">
-          Method: {result.methodology}
-        </p>
+        <ConfidenceFooter
+          level={result.confidence >= 0.75 ? "high" : result.confidence >= 0.6 ? "medium" : "low"}
+          note={`${result.methodology} · ${Math.round(result.confidence * 100)}% confidence`}
+        />
       </AgentCard.Body>
     </AgentCard>
   )
@@ -276,6 +313,11 @@ export function FinancialHealthCard({ result }: { result: RexFinancialAnalysisRe
         {result.recommendations.length > 0 && (
           <InfoSection label="recommendations" bullets={result.recommendations} />
         )}
+        <ConfidenceFooter
+          level={result.confidence_level}
+          dataPoints={result.data_points_analyzed}
+          note="REX financial analysis"
+        />
       </AgentCard.Body>
     </AgentCard>
   )
@@ -524,6 +566,11 @@ export function WeeklyDigestCard({ result }: { result: RexWeeklyDigestResult }) 
         {result.focus_this_week?.length > 0 && (
           <InfoSection label="Focus this week" bullets={result.focus_this_week} />
         )}
+        <ConfidenceFooter
+          level={result.confidence_level}
+          dataPoints={result.metrics_count}
+          note={result.generated_at ? `generated ${new Date(result.generated_at).toLocaleDateString()}` : "REX digest"}
+        />
       </AgentCard.Body>
     </AgentCard>
   )

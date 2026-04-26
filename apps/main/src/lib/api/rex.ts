@@ -21,6 +21,7 @@ import type {
   RexSnapshot,
   RexPinnedCard,
   RexSettingsData,
+  RexDatasetRecord,
 } from "@/lib/types/agents"
 
 export const analyzeMetrics = (body: RexAnalyzeMetricsRequest) =>
@@ -96,3 +97,6 @@ export const getSettings = () =>
 
 export const patchSettings = (body: { weeklyDigestEnabled?: boolean; weeklyDigestTimezone?: string }) =>
   apiFetch<RexSettingsData>("/agents/rex/settings", { method: "PATCH", body })
+
+export const listDatasets = () =>
+  apiFetch<RexDatasetRecord[]>("/agents/rex/datasets")

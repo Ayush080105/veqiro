@@ -12,7 +12,7 @@ from core.models import ChatRequest, ChatSyncResponse, DataPoint
 from core.config import settings
 from core.utils import strip_json_fences, safe_json_loads
 from agents.rex.agent import RexAgent
-from agents.rex.analytics import compute_anomalies, compute_health_indicator, compute_derived_metrics, compute_runway_scenarios, compute_unit_economics
+from agents.rex.analytics import compute_anomalies, compute_health_indicator, compute_derived_metrics, compute_runway_scenarios, compute_unit_economics, correlate_anomalies
 from agents.rex.forecasting import forecast_metric
 
 router = APIRouter(prefix="/ai/rex", tags=["Rex"])
@@ -63,6 +63,8 @@ class MetricsAnalysisResponse(BaseModel):
     charts_data: dict
     tokens_used: int = 0
     model_used: str = ""
+    data_points_analyzed: int = 0
+    confidence_level: str = "medium"
 
 
 class ForecastRequest(BaseModel):
@@ -130,6 +132,8 @@ class FinancialAnalysisResponse(BaseModel):
     recommendations: list[str]
     tokens_used: int = 0
     model_used: str = ""
+    data_points_analyzed: int = 0
+    confidence_level: str = "medium"
 
 
 class BriefingRequest(BaseModel):
@@ -343,6 +347,8 @@ class WeeklyDigestResponse(BaseModel):
     generated_at: str
     tokens_used: int = 0
     model_used: str = ""
+    confidence_level: str = "medium"
+    metrics_count: int = 0
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -379,13 +385,13 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
             },
         )
 
-    all_anomalies = []
+    per_metric_anomalies: dict[str, list[dict]] = {}
     charts = {}
     health_inputs: dict = {}
 
     for metric_name, data_points in request.metrics.items():
         anomalies = compute_anomalies(data_points)
-        all_anomalies.extend(anomalies)
+        per_metric_anomalies[metric_name] = anomalies
         charts[metric_name] = [{"date": dp.date, "value": dp.value} for dp in data_points]
 
         if len(data_points) >= 2:
@@ -399,30 +405,66 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
             elif metric_name in ("subscribers", "users") and prev_val > 0:
                 health_inputs["churn_rate"] = max(0.0, (prev_val - curr_val) / prev_val)
 
+    # Cross-correlate anomalies to find root-cause hints
+    all_anomalies = correlate_anomalies(per_metric_anomalies)
+
     health = compute_health_indicator({
         "churn_rate": health_inputs.get("churn_rate", 0.0),
         "growth_rate": health_inputs.get("growth_rate", 0.0),
     })
 
+    total_points = sum(len(v) for v in request.metrics.values())
+    confidence_level = "high" if total_points >= 12 else "medium" if total_points >= 6 else "low"
+
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     metrics_summary = json.dumps({k: [{"date": d.date, "value": d.value} for d in v] for k, v in request.metrics.items()})
+    prompt = (
+        f"You are Rex, a CFO analyst. Analyze these {request.period} business metrics for a SaaS startup:\n"
+        f"{metrics_summary}\n\n"
+        "SaaS benchmarks:\n"
+        "- MRR growth >10%/mo = excellent, 5-10% = good, <5% = watch, negative = critical\n"
+        "- Monthly churn <2% = green, 2-4% = amber, >4% = red\n"
+        "- Net burn negative (profitable) = green; runway <6mo = red\n"
+        "- LTV:CAC >3x = green, 2-3x = amber, <2x = red\n\n"
+        "Return a JSON object with:\n"
+        "summary (2-3 sentences, lead with the single most important headline metric and its trend), "
+        "trend ('up'|'down'|'flat'), "
+        "insights (list of 3-5 specific observations with exact numbers and benchmark comparisons), "
+        "health_indicator ('green'|'amber'|'red' — based on the benchmarks above)"
+    )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Analyze these metrics:\n{metrics_summary}"}],
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        response_format={"type": "json_object"},
     )
     tokens_used = _llm.count_tokens(raw)
+    try:
+        parsed = json.loads(strip_json_fences(raw))
+        summary = parsed.get("summary", "Analysis complete.")
+        trend = parsed.get("trend", "up")
+        insights = parsed.get("insights", [])
+        llm_health = parsed.get("health_indicator", health)
+    except Exception:
+        summary = raw[:400]
+        trend = "up"
+        insights = [raw[:200]]
+        llm_health = health
+
     return MetricsAnalysisResponse(
         analysis=AnalysisSummary(
-            summary=raw[:500],
-            trend="up",
+            summary=summary,
+            trend=trend,
             anomalies=all_anomalies,
-            insights=[raw],
-            health_indicator=health,
+            insights=insights,
+            health_indicator=llm_health,
         ),
         charts_data=charts,
         tokens_used=tokens_used,
         model_used=_agent.default_model,
+        data_points_analyzed=total_points,
+        confidence_level=confidence_level,
     )
 
 
@@ -486,17 +528,28 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
 
     derived = compute_derived_metrics(request.revenue_data, request.expenses_data, request.subscribers_data)
     health = compute_health_indicator(derived)
+    total_points = len(request.revenue_data) + len(request.expenses_data) + len(request.subscribers_data)
+    confidence_level = "high" if total_points >= 12 else "medium" if total_points >= 4 else "low"
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
 
     prompt = (
-        f"Provide financial narrative and recommendations for these metrics:\n{json.dumps(derived, default=str)}\n\n"
-        "Return ONLY a JSON object (no markdown fences) with keys: "
-        "narrative (string, 2-4 sentences), recommendations (list of 3-5 specific actionable strings)"
+        "You are Rex, a startup CFO. Provide a financial narrative and specific action items based on these computed metrics:\n"
+        f"{json.dumps(derived, default=str)}\n\n"
+        "Context:\n"
+        f"- Health status: {health} (green=profitable/growing, amber=watch, red=critical)\n"
+        "- SaaS benchmarks: MRR growth >10%/mo excellent; churn <2%/mo green; LTV:CAC >3x green\n\n"
+        "Return a JSON object with:\n"
+        "narrative (string, 2-4 sentences — lead with the single most impactful number, "
+        "e.g. 'MRR of $58K grew 19.7% MoM...'; be direct, no consultant padding), "
+        "recommendations (list of 3-5 specific actionable strings — each must reference a number from the metrics, "
+        "e.g. 'With 2.1% churn, investigate why customers are leaving in months 4-6 before scaling past 300 customers')"
     )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
         messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+        response_format={"type": "json_object"},
     )
     tokens_used = _llm.count_tokens(raw)
     try:
@@ -514,6 +567,8 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
         recommendations=recommendations,
         tokens_used=tokens_used,
         model_used=_agent.default_model,
+        data_points_analyzed=total_points,
+        confidence_level=confidence_level,
     )
 
 
@@ -548,15 +603,33 @@ async def compile_briefing(request: BriefingRequest) -> BriefingResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
-    context = f"Date: {request.date}\nMetrics: {json.dumps(request.all_metrics)}\nAgent summaries: {json.dumps(request.agent_summaries)}"
+    context = f"Date: {request.date or datetime.utcnow().strftime('%Y-%m-%d')}\nMetrics: {json.dumps(request.all_metrics)}\nAgent summaries: {json.dumps(request.agent_summaries)}"
+    prompt = (
+        "Compile a concise executive briefing for a startup founder. Structure it clearly:\n"
+        "1. HEADLINE: One sentence — the single most important thing this week\n"
+        "2. FINANCIAL: MRR, runway, burn — what's the status? (green/amber/red)\n"
+        "3. MARKETING: What content or campaigns are working?\n"
+        "4. INTELLIGENCE: Any competitor or market moves to know?\n"
+        "5. ACTIONS: 3 specific things the founder must do today\n\n"
+        f"Context:\n{context}\n\n"
+        "Return a JSON object with keys: date, headline, sections (dict with keys: financial, marketing, intelligence — "
+        "each an object with status ('green'|'amber'|'red'), summary (string), key_actions (list of strings)), "
+        "generated_at (ISO datetime)"
+    )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Compile an executive briefing:\n{context}"}],
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.5,
+        response_format={"type": "json_object"},
     )
     tokens_used = _llm.count_tokens(raw)
+    try:
+        briefing_data = json.loads(strip_json_fences(raw))
+    except Exception:
+        briefing_data = {"narrative": raw, "generated_at": datetime.utcnow().isoformat()}
     return BriefingResponse(
-        briefing={"narrative": raw, "generated_at": datetime.utcnow().isoformat()},
+        briefing=briefing_data,
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )
@@ -612,17 +685,26 @@ async def investor_update(request: InvestorUpdateRequest) -> InvestorUpdateRespo
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     prompt = (
-        f"Write a professional investor update for {request.period}.\n\n"
+        f"Write a professional, direct investor update for {request.period}.\n\n"
         f"Metrics: {json.dumps(request.metrics)}\n"
         f"Highlights: {json.dumps(request.highlights)}\n"
         f"Asks: {json.dumps(request.asks)}\n\n"
-        "Return ONLY a JSON object (no markdown fences) with keys: subject_line, executive_summary, "
-        "metrics_section (dict), highlights_section (list), challenges_section (list), "
-        "asks_section (list), full_email_body (string)"
+        "Tone: confident, data-driven, concise (no fluffy language like 'excited to share'). "
+        "Lead every section with numbers. Challenges should be honest — investors respect founders who know their risks.\n\n"
+        "Return a JSON object with keys:\n"
+        "subject_line (string — include the top metric, e.g. '$62K MRR — April 2026 Update'), "
+        "executive_summary (string, 2-3 sentences — top metric + key win + one risk), "
+        "metrics_section (dict with formatted strings, e.g. {'MRR': '$62,000 (+6.7% MoM)'}), "
+        "highlights_section (list of strings), "
+        "challenges_section (list of strings — be honest, 2-3 items), "
+        "asks_section (list of strings), "
+        "full_email_body (string — ready to send, proper email format with Subject, Hi [Name], body, Best/Founder)"
     )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system, messages=[{"role": "user", "content": prompt}],
+        temperature=0.5,
+        response_format={"type": "json_object"},
     )
     tokens_used = _llm.count_tokens(raw)
     try:
@@ -832,28 +914,44 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
             generated_at=datetime.utcnow().isoformat(),
         )
 
+    metrics_count = len(request.metrics)
+    has_prev = bool(request.prev_week)
+    confidence_level = "high" if metrics_count >= 6 and has_prev else "medium" if metrics_count >= 3 else "low"
+
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    period_str = datetime.utcnow().strftime("Week of %b %d %Y")
     prompt = (
-        "You are a CFO generating a Monday morning digest for a startup founder.\n\n"
-        f"Current period metrics: {json.dumps(request.metrics, default=str)}\n"
-        f"Previous period metrics: {json.dumps(request.prev_week, default=str)}\n\n"
-        "Return ONLY a JSON object (no markdown fences) with exactly these keys:\n"
-        "period (string), headline (string — single most important number/trend), "
+        f"You are Rex, the CFO analyst. Generate a Monday morning digest for a startup founder.\n\n"
+        f"Current metrics: {json.dumps(request.metrics, default=str)}\n"
+        f"Previous period: {json.dumps(request.prev_week, default=str)}\n\n"
+        "Rules:\n"
+        "- Headline: single sentence with the #1 metric change this week (must include a number)\n"
+        "- WoW changes: calculate change_pct as ((current-previous)/previous)*100; direction 'up'/'down'/'flat'\n"
+        "- Alerts: severity 'high'/'medium'/'low'; flag if churn >3%, runway <6mo, cash dropped >15%, burn spike\n"
+        "- Green flags: celebrate wins (MRR growth, churn drop, CAC improvement)\n"
+        "- Focus: exactly 3 specific action items for this week — each must be concrete, with a verb and a number\n\n"
+        "Return a JSON object with:\n"
+        f"period (string, use '{period_str}'), "
+        "headline (string), "
         "wow_changes (array of {metric, current, previous, change_pct, direction}), "
-        "alerts (array of {severity, message}), green_flags (array of {message}), "
-        "focus_this_week (array of exactly 3 action item strings), generated_at (ISO datetime string)"
+        "alerts (array of {severity, message}), "
+        "green_flags (array of {message}), "
+        "focus_this_week (array of exactly 3 action strings), "
+        f"generated_at (string, use '{datetime.utcnow().isoformat()}')"
     )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
         messages=[{"role": "user", "content": prompt}],
+        temperature=0.5,
+        response_format={"type": "json_object"},
     )
     tokens_used = _llm.count_tokens(raw)
     try:
         data = safe_json_loads(raw)
     except Exception:
         data = {
-            "period": "This week",
+            "period": period_str,
             "headline": raw[:200],
             "wow_changes": [],
             "alerts": [],
@@ -868,4 +966,10 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
         source_id=f"rex-weekly-digest-{request.user_id}",
         metadata={"tool": "weekly_digest", "agent": "rex", "priority": "high"},
     ))
-    return WeeklyDigestResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
+    return WeeklyDigestResponse(
+        **data,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+        confidence_level=confidence_level,
+        metrics_count=metrics_count,
+    )

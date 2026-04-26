@@ -705,7 +705,13 @@ export default function AssistantChatPage() {
         </div>
       ) : isRex && rexTab === "data" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <RexDataTab organizationId={organizationId} />
+          <RexDataTab
+            organizationId={organizationId}
+            onOpenAction={(actionId, prefill) => {
+              setRexTab("chat")
+              openAction(actionId as AgentActionId, prefill)
+            }}
+          />
         </div>
       ) : historyLoaded && !hasMessages ? (
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
@@ -780,7 +786,7 @@ export default function AssistantChatPage() {
           </div>
         )}
 
-        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && (
+        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && !(isRex && rexTab === "data") && (
           <ChatInput
             value={content}
             onChange={setContent}
@@ -799,6 +805,7 @@ export default function AssistantChatPage() {
         kit={brandKit}
         open={infoOpen}
         onClose={() => setInfoOpen(false)}
+        organizationId={organizationId}
       />
 
       <PlusMenu

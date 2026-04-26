@@ -1,6 +1,5 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { getPublicUrl } from "../../../common/utils/r2.js";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
 interface DataRow {
