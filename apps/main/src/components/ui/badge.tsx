@@ -19,6 +19,15 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // ── Veqiro brand: sticker-style chunky pill ──────────────────────────
+        brand:
+          "h-7 rounded-full border-2 border-foreground bg-accent px-3 font-head text-[10px] uppercase tracking-wider text-foreground shadow-[3px_3px_0_var(--foreground)]",
+        "brand-red":
+          "h-7 rounded-full border-2 border-foreground bg-destructive px-3 font-head text-[10px] uppercase tracking-wider text-foreground shadow-[3px_3px_0_var(--foreground)]",
+        "brand-dark":
+          "h-7 rounded-full border-2 border-foreground bg-primary px-3 font-head text-[10px] uppercase tracking-wider text-primary-foreground shadow-[3px_3px_0_var(--accent)]",
+        "brand-mono":
+          "h-6 rounded-none border border-foreground/20 bg-transparent px-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground",
       },
     },
     defaultVariants: {

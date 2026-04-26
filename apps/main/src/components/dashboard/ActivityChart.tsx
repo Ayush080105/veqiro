@@ -11,7 +11,7 @@ import {
 } from "recharts"
 import type { DashboardSummary } from "@/lib/api/dashboard"
 import { AGENTS } from "@/lib/config/agents"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import type { AgentSlug } from "@/lib/types"
 
 const SLUGS: AgentSlug[] = ["vega", "lex", "sage", "scout", "rex", "maya"]

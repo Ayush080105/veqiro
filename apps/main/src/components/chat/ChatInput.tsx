@@ -2,7 +2,15 @@
 
 import * as React from "react"
 import { Plus, Send, Paperclip, HelpCircle } from "lucide-react"
-import { FONT } from "@/components/veqiro/shared"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+
+import { FONT } from "@/lib/fonts"
+import {
+  chatMessageSchema,
+  type ChatMessageValues,
+  CHAT_MESSAGE_MAX,
+} from "@/lib/schemas/chat"
 
 export interface ChatInputProps {
   value: string
@@ -75,10 +83,36 @@ export function ChatInput({
   onAttachClick,
   placeholder = "Message the agent…",
   disabled = false,
-  max = 1000,
+  max = CHAT_MESSAGE_MAX,
 }: ChatInputProps) {
-  const charCount = value.length
-  const canSend = charCount > 0 && charCount <= max && !disabled
+  const form = useForm<ChatMessageValues>({
+    resolver: zodResolver(chatMessageSchema),
+    defaultValues: { message: value },
+    mode: "onChange",
+  })
+
+  // Parent → form sync (e.g. parent clears `content` after send, or seeds via
+  // EmptyState prompt). Equality-gated to avoid feedback loops.
+  React.useEffect(() => {
+    if (form.getValues("message") !== value) {
+      form.setValue("message", value, { shouldValidate: true })
+    }
+  }, [value, form])
+
+  // Form → parent sync. One-way: when the user types, push the message up.
+  React.useEffect(() => {
+    const sub = form.watch((v, { name }) => {
+      if (name === "message" && typeof v.message === "string" && v.message !== value) {
+        onChange(v.message)
+      }
+    })
+    return () => sub.unsubscribe()
+  }, [form, onChange, value])
+
+  const message = form.watch("message")
+  const charCount = message.length
+  const isValid = form.formState.isValid
+  const canSend = isValid && !disabled
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -92,7 +126,11 @@ export function ChatInput({
   }
 
   return (
-    <div
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (canSend) onSend()
+      }}
       style={{
         background: "#EFE7D6",
         borderTop: "3px solid #111",
@@ -120,8 +158,7 @@ export function ChatInput({
 
         <div style={{ flex: 1, position: "relative" }}>
           <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
+            {...form.register("message")}
             onKeyDown={handleKey}
             placeholder={placeholder}
             disabled={disabled}
@@ -154,8 +191,7 @@ export function ChatInput({
         </IconButton>
 
         <button
-          type="button"
-          onClick={onSend}
+          type="submit"
           disabled={!canSend}
           aria-label="Send"
           style={{
@@ -211,6 +247,6 @@ export function ChatInput({
           {charCount}/{max}
         </span>
       </div>
-    </div>
+    </form>
   )
 }

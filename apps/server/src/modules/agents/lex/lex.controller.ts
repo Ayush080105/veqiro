@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import {
   sendMessageSchema,
-  uploadSourceFieldsSchema,
+  finalizeSourceSchema,
   analyzeContractSchema,
   draftDocumentSchema,
   explainSchema,
@@ -38,25 +38,10 @@ export const getLexMessages = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(messages);
 };
 
-export const uploadSource = async (req: Request, res: Response) => {
+export const finalizeSource = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
-  if (!req.file) {
-    throw new BadRequestError("PDF file is required");
-  }
-  const fields = uploadSourceFieldsSchema.parse({
-    documentName: req.body.documentName,
-    documentType: req.body.documentType,
-  });
-  const result = await lexService.uploadSource(userId, organizationId, {
-    file: {
-      buffer: req.file.buffer,
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-    },
-    documentName: fields.documentName,
-    documentType: fields.documentType,
-  });
+  const input = finalizeSourceSchema.parse(req.body);
+  const result = await lexService.finalizeSource(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

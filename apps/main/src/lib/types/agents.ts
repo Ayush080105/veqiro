@@ -29,11 +29,12 @@ export interface KeywordItem {
   relevance_score: number
   suggested_content_type: string
   related_keywords: string[]
+  search_volume_estimate?: string
 }
 
 export interface KeywordCluster {
   cluster_name: string
-  keywords: KeywordItem[]
+  keywords: string[]
   primary_intent: string
 }
 
@@ -84,6 +85,8 @@ export interface SageContentAnalysisResult {
   improvements: string[]
   missing_keywords: string[]
   readability_grade: string
+  word_count?: number
+  keyword_density?: string
 }
 
 export interface SageContentBriefRequest {
@@ -105,6 +108,8 @@ export interface SageContentBriefResult {
     internal_linking_opportunities: string[]
     cta_recommendation: string
     estimated_traffic_potential: string
+    serp_features: string[]
+    topical_authority_tip: string
   }
 }
 
@@ -226,6 +231,15 @@ export interface MayaContentRegenResult {
 
 // ─── Scout ───────────────────────────────────────────────────────────────────
 
+export interface ScoutCompetitorWatch {
+  id: string
+  name: string
+  url: string
+  latestHash: string | null
+  lastScannedAt: string | null
+  createdAt: string
+}
+
 export interface ScoutResearchTopicRequest {
   topic: string
   depth?: "quick" | "standard" | "deep"
@@ -233,8 +247,15 @@ export interface ScoutResearchTopicRequest {
 }
 
 export interface ScoutResearchTopicResult {
-  findings: string
-  synthesis: string
+  bottom_line: string
+  market_overview: string
+  key_players: Array<{ name: string; role?: string; note?: string }>
+  opportunities: string[]
+  risks: string[]
+  key_stats: Array<{ label: string; value: string }>
+  emerging_trends: string[]
+  target_customers: string
+  recommended_actions: string[]
   sources_scraped: string[]
   keywords_found: string[]
 }
@@ -263,22 +284,6 @@ export interface ScoutResearchCompanyResult {
   scraped_at: string
 }
 
-export interface ScoutCompetitorScanRequest {
-  competitors: Array<{ name: string; url: string; last_scan_hash?: string }>
-}
-
-export interface ScoutCompetitorScanResult {
-  results: Array<{
-    competitor_name: string
-    url: string
-    has_changes: boolean
-    change_summary: string
-    significance: "low" | "medium" | "high"
-    new_hash: string
-  }>
-  scanned_at: string
-}
-
 export interface ScoutTrendingTopicsRequest {
   industry: string
   count?: number
@@ -289,8 +294,34 @@ export interface ScoutTrendingTopicsResult {
     topic: string
     momentum: "rising" | "stable" | "declining"
     relevance_score: number
-    content_angle: string
     search_volume_estimate: string
+    why_trending?: string
+    market_size?: string
+    target_audience?: string
+    key_players?: string[]
+    opportunity?: string
+    key_challenges?: string[]
+    time_horizon?: string
+    related_trends?: string[]
+    content_angle?: string
+    content_hook?: string
+    next_steps?: string[]
+  }>
+  generated_at: string
+}
+
+export interface ScoutDiscoverCompetitorsRequest {
+  description: string
+  industry: string
+  count?: number
+}
+
+export interface ScoutDiscoverCompetitorsResult {
+  competitors: Array<{
+    name: string
+    url: string
+    why_competitive: string
+    pricing_model: string
   }>
   generated_at: string
 }
@@ -603,6 +634,20 @@ export interface VegaComposeEmailResult {
   errors?: string[]
 }
 
+// ─── Sage saved keywords ─────────────────────────────────────────────────────
+
+export interface SageSavedKeyword {
+  id: string
+  organizationId: string
+  keyword: string
+  searchIntent: string
+  estimatedDifficulty: number
+  relevanceScore: number
+  searchVolumeEstimate?: string | null
+  suggestedContentType: string
+  createdAt: string
+}
+
 // ─── Union result type (discriminated by action id) ─────────────────────────
 
 export type AgentActionId =
@@ -618,8 +663,8 @@ export type AgentActionId =
   | "maya:regenerate-content"
   | "scout:research-topic"
   | "scout:research-company"
-  | "scout:scan-competitors"
   | "scout:trending-topics"
+  | "scout:discover-competitors"
   | "rex:analyze-metrics"
   | "rex:forecast"
   | "rex:financial-analysis"

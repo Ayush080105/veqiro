@@ -395,6 +395,8 @@ export const ModelName = {
   Message: 'Message',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
+  CompetitorWatch: 'CompetitorWatch',
+  SavedKeyword: 'SavedKeyword',
   Source: 'Source'
 } as const
 
@@ -411,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "source"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1229,6 +1231,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CompetitorWatch: {
+      payload: Prisma.$CompetitorWatchPayload<ExtArgs>
+      fields: Prisma.CompetitorWatchFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CompetitorWatchFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CompetitorWatchFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        findFirst: {
+          args: Prisma.CompetitorWatchFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CompetitorWatchFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        findMany: {
+          args: Prisma.CompetitorWatchFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+        }
+        create: {
+          args: Prisma.CompetitorWatchCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        createMany: {
+          args: Prisma.CompetitorWatchCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CompetitorWatchCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+        }
+        delete: {
+          args: Prisma.CompetitorWatchDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        update: {
+          args: Prisma.CompetitorWatchUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        deleteMany: {
+          args: Prisma.CompetitorWatchDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CompetitorWatchUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CompetitorWatchUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+        }
+        upsert: {
+          args: Prisma.CompetitorWatchUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+        }
+        aggregate: {
+          args: Prisma.CompetitorWatchAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCompetitorWatch>
+        }
+        groupBy: {
+          args: Prisma.CompetitorWatchGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CompetitorWatchGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CompetitorWatchCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CompetitorWatchCountAggregateOutputType> | number
+        }
+      }
+    }
+    SavedKeyword: {
+      payload: Prisma.$SavedKeywordPayload<ExtArgs>
+      fields: Prisma.SavedKeywordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SavedKeywordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SavedKeywordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        findFirst: {
+          args: Prisma.SavedKeywordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SavedKeywordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        findMany: {
+          args: Prisma.SavedKeywordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+        }
+        create: {
+          args: Prisma.SavedKeywordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        createMany: {
+          args: Prisma.SavedKeywordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SavedKeywordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+        }
+        delete: {
+          args: Prisma.SavedKeywordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        update: {
+          args: Prisma.SavedKeywordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        deleteMany: {
+          args: Prisma.SavedKeywordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SavedKeywordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SavedKeywordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+        }
+        upsert: {
+          args: Prisma.SavedKeywordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        aggregate: {
+          args: Prisma.SavedKeywordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSavedKeyword>
+        }
+        groupBy: {
+          args: Prisma.SavedKeywordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SavedKeywordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SavedKeywordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SavedKeywordCountAggregateOutputType> | number
+        }
+      }
+    }
     Source: {
       payload: Prisma.$SourcePayload<ExtArgs>
       fields: Prisma.SourceFieldRefs
@@ -1523,6 +1673,34 @@ export const PublishedPostScalarFieldEnum = {
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
+export const CompetitorWatchScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  url: 'url',
+  latestHash: 'latestHash',
+  lastScannedAt: 'lastScannedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CompetitorWatchScalarFieldEnum = (typeof CompetitorWatchScalarFieldEnum)[keyof typeof CompetitorWatchScalarFieldEnum]
+
+
+export const SavedKeywordScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  keyword: 'keyword',
+  searchIntent: 'searchIntent',
+  estimatedDifficulty: 'estimatedDifficulty',
+  relevanceScore: 'relevanceScore',
+  searchVolumeEstimate: 'searchVolumeEstimate',
+  suggestedContentType: 'suggestedContentType',
+  createdAt: 'createdAt'
+} as const
+
+export type SavedKeywordScalarFieldEnum = (typeof SavedKeywordScalarFieldEnum)[keyof typeof SavedKeywordScalarFieldEnum]
+
+
 export const SourceScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1809,6 +1987,8 @@ export type GlobalOmitConfig = {
   message?: Prisma.MessageOmit
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit
+  competitorWatch?: Prisma.CompetitorWatchOmit
+  savedKeyword?: Prisma.SavedKeywordOmit
   source?: Prisma.SourceOmit
 }
 

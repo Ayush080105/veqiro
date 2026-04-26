@@ -23,8 +23,8 @@ import {
 import {
   ResearchReportCard,
   CompanyProfileCard,
-  CompetitorScanCard,
   TrendsBoardCard,
+  DiscoverCompetitorsCard,
 } from "@/components/agents/scout/cards"
 // Rex
 import {
@@ -56,12 +56,13 @@ import {
 export interface ActionResultRendererProps {
   actionId: AgentActionId
   result: unknown
+  onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 }
 
 /** Dispatches an action result to its matching card. Results are untyped at
  * the boundary (they come back from JSON); each card validates shape at runtime
  * by reading the fields it expects. */
-export function ActionResultRenderer({ actionId, result }: ActionResultRendererProps) {
+export function ActionResultRenderer({ actionId, result, onFollowUpAction }: ActionResultRendererProps) {
   // Use any-cast into typed cards - each card declares the precise type.
   const r = result as never
 
@@ -78,9 +79,9 @@ export function ActionResultRenderer({ actionId, result }: ActionResultRendererP
     case "maya:generate-ideas":
       return <IdeasGridCard result={r} />
     case "maya:draft-content":
-      return <DraftCard result={r} />
+      return <DraftCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:generate-variants":
-      return <VariantsTabsCard result={r} />
+      return <VariantsTabsCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:revise":
       return <RevisionDiffCard result={r} />
     case "maya:regenerate-image":
@@ -92,10 +93,10 @@ export function ActionResultRenderer({ actionId, result }: ActionResultRendererP
       return <ResearchReportCard result={r} />
     case "scout:research-company":
       return <CompanyProfileCard result={r} />
-    case "scout:scan-competitors":
-      return <CompetitorScanCard result={r} />
     case "scout:trending-topics":
       return <TrendsBoardCard result={r} />
+    case "scout:discover-competitors":
+      return <DiscoverCompetitorsCard result={r} />
 
     case "rex:analyze-metrics":
       return <MetricsAnalysisCard result={r} />

@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import type { DashboardSummary } from "@/lib/api/dashboard"
 
 const PLATFORM_COLORS: Record<"twitter" | "linkedin" | "instagram", string> = {

@@ -2,18 +2,18 @@
 
 import { useRef, useState } from "react"
 import Image from "next/image"
-import { Loader2, Upload, X } from "lucide-react"
+import { ExternalLink, Loader2, Upload, X } from "lucide-react"
 
 import {
   ALLOWED_ASSET_TYPES,
   MAX_ASSET_BYTES,
-} from "@/lib/validation/brandKit"
+} from "@/lib/schemas/brand-kit"
 import {
   uploadBrandAsset,
   removeBrandAsset,
   type UploadKind,
 } from "@/lib/api/brain"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 
 interface AssetUploadProps {
   kind: UploadKind
@@ -129,72 +129,139 @@ export function AssetUpload({
         }}
       >
         {value ? (
-          <>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              width: "100%",
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
-                width: 84,
-                height: 84,
-                background: "#fff",
-                border: "2px solid #111",
-                borderRadius: 10,
-                position: "relative",
-                overflow: "hidden",
-                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                minWidth: 0,
               }}
             >
-              <Image
-                src={value}
-                alt={`${kind} preview`}
-                fill
-                sizes="84px"
-                style={{ objectFit: "contain" }}
-                unoptimized
-              />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
               <div
                 style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  letterSpacing: 1,
-                  color: "#111",
-                  wordBreak: "break-all",
+                  width: 92,
+                  height: 92,
+                  background: "#fff",
+                  border: "2px solid #111",
+                  borderRadius: 10,
+                  position: "relative",
+                  overflow: "hidden",
+                  flexShrink: 0,
                 }}
               >
-                {value}
+                <Image
+                  src={value}
+                  alt={`${kind} preview`}
+                  fill
+                  sizes="92px"
+                  style={{ objectFit: "contain" }}
+                  unoptimized
+                />
+                <a
+                  href={value ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Open ${kind} in new tab`}
+                  title="Open in new tab"
+                  style={{
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    width: 24,
+                    height: 24,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(255,255,255,0.95)",
+                    border: "1.5px solid #111",
+                    borderRadius: 6,
+                    color: "#111",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <ExternalLink className="size-3.5" />
+                </a>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  disabled={busy || disabled}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    pick()
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 3,
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: FONT.head,
+                    fontSize: 13,
+                    color: "#111",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
-                  style={btnStyle("#fff")}
                 >
-                  {busy ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Upload className="size-3.5" />
-                  )}
-                  Replace
-                </button>
-                <button
-                  type="button"
-                  disabled={busy || disabled}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    void handleRemove()
+                  <span aria-hidden>✓</span>
+                  <span>Uploaded</span>
+                </div>
+                <div
+                  style={{
+                    fontFamily: FONT.mono,
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                    color: "#666",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
-                  style={btnStyle("#FFE4E4")}
+                  title={value ?? undefined}
                 >
-                  <X className="size-3.5" />
-                  Remove
-                </button>
+                  {filenameFromUrl(value)}
+                </div>
               </div>
             </div>
-          </>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                disabled={busy || disabled}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  pick()
+                }}
+                style={btnStyle("#fff", { flex: 1, justifyContent: "center" })}
+              >
+                {busy ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Upload className="size-3.5" />
+                )}
+                Replace
+              </button>
+              <button
+                type="button"
+                disabled={busy || disabled}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void handleRemove()
+                }}
+                style={btnStyle("#FFE4E4", { flex: 1, justifyContent: "center" })}
+              >
+                <X className="size-3.5" />
+                Remove
+              </button>
+            </div>
+          </div>
         ) : (
           <div
             style={{
@@ -266,7 +333,27 @@ export function AssetUpload({
   )
 }
 
-function btnStyle(bg: string): React.CSSProperties {
+// Pull a short, human-readable label out of an R2 URL. Keys look like
+// `images/<orgId>-<kind>-<uuid>.png` — we just want the last path segment,
+// truncated so it doesn't wrap or break the layout.
+function filenameFromUrl(url: string | null | undefined): string {
+  if (!url) return ""
+  try {
+    const path = new URL(url).pathname
+    const last = path.split("/").pop() ?? ""
+    if (last.length <= 32) return last
+    const dot = last.lastIndexOf(".")
+    const ext = dot > 0 ? last.slice(dot) : ""
+    return `${last.slice(0, 28 - ext.length)}…${ext}`
+  } catch {
+    return url.length > 32 ? `${url.slice(0, 29)}…` : url
+  }
+}
+
+function btnStyle(
+  bg: string,
+  overrides?: React.CSSProperties,
+): React.CSSProperties {
   return {
     fontFamily: FONT.mono,
     fontSize: 11,
@@ -281,5 +368,6 @@ function btnStyle(bg: string): React.CSSProperties {
     alignItems: "center",
     gap: 6,
     color: "#111",
+    ...overrides,
   }
 }

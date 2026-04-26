@@ -1,197 +1,138 @@
-"use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { toast } from "sonner";
-import { CheckCircle2, Loader2 } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
-import Logo from "@/components/logo";
-import { Button, FieldLabel, FONT, Sticker, VqInput } from "@/components/veqiro/shared";
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { toast } from "sonner"
+import { CheckCircle2 } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+
+import { authClient } from "@/lib/auth-client"
+import Logo from "@/components/logo"
+import { AuthCard } from "@/components/ui/auth-card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { SubmitButton } from "@/components/ui/submit-button"
+import { Sticker } from "@/components/ui/sticker"
+import { RhfField } from "@/components/forms/RhfField"
+import { forgotPasswordSchema, type ForgotPasswordValues } from "@/lib/schemas/auth"
 
 export default function ForgotPassword() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter()
+  const [sentEmail, setSentEmail] = useState<string | null>(null)
 
-  const [sent, setSent] = useState(false);
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  })
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const onSubmit = async ({ email }: ForgotPasswordValues) => {
     try {
       const origin =
-        typeof window !== "undefined" ? window.location.origin : "";
+        typeof window !== "undefined" ? window.location.origin : ""
       const res = await authClient.requestPasswordReset({
         email,
         redirectTo: `${origin}/reset-password`,
-      });
+      })
       if (res.error) {
-        toast.error(res.error.message || "Failed to send reset email");
-        return;
+        toast.error(res.error.message || "Failed to send reset email")
+        return
       }
-      setSent(true);
-      toast.success("Reset link sent. Check your email.");
+      setSentEmail(email)
+      toast.success("Reset link sent. Check your email.")
     } catch {
-      toast.error("An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
+      toast.error("An error occurred. Please try again.")
     }
-  };
+  }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
-      style={{ background: "#EFE7D6", fontFamily: FONT.body }}
-    >
-      <Link href="/" className="flex items-center gap-3 mb-8">
-        <Logo className="w-12 h-12" />
-        <span style={{ fontFamily: FONT.head, fontSize: 20, letterSpacing: -0.5, color: "#111" }}>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
+      <Link href="/" className="mb-8 flex items-center gap-3">
+        <Logo className="h-12 w-12" />
+        <span className="font-head text-xl tracking-tight text-foreground">
           veqiro
         </span>
       </Link>
 
-      <div
-        className="w-full max-w-md relative"
-        style={{
-          background: "#FFF9ED",
-          border: "3px solid #111",
-          borderRadius: 18,
-          boxShadow: "6px 6px 0 #111",
-          padding: "32px 28px",
-        }}
-      >
-        <div style={{ position: "absolute", top: -20, right: 20 }}>
-          <Sticker rot={-8} color="#F5C518">
-            forgot it
-          </Sticker>
-        </div>
-
-        {sent ? (
-          <div style={{ textAlign: "center" }}>
-            <div
-              className="mx-auto"
-              style={{
-                width: 64,
-                height: 64,
-                background: "#1DBC87",
-                border: "3px solid #111",
-                borderRadius: 16,
-                display: "grid",
-                placeItems: "center",
-                transform: "rotate(-4deg)",
-                boxShadow: "4px 4px 0 #111",
-                marginBottom: 18,
-              }}
+      <AuthCard sticker={<Sticker rotate={-8} tone="yellow">forgot it</Sticker>}>
+        {sentEmail ? (
+          <div className="flex flex-col items-center gap-4 text-center">
+            <span
+              className="grid size-16 place-items-center rounded-2xl border-[3px] border-foreground bg-[color:var(--vq-green)] shadow-[4px_4px_0_var(--foreground)]"
+              style={{ transform: "rotate(-4deg)" }}
             >
-              <CheckCircle2 className="h-8 w-8" style={{ color: "#111" }} />
-            </div>
-            <h1
-              style={{
-                fontFamily: FONT.display,
-                fontSize: 32,
-                lineHeight: 1,
-                color: "#111",
-                margin: 0,
-                letterSpacing: -1,
-              }}
-            >
+              <CheckCircle2 className="size-8 text-foreground" />
+            </span>
+            <h1 className="m-0 font-display text-3xl leading-none tracking-tight text-foreground">
               check your email
             </h1>
-            <p
-              style={{
-                fontFamily: FONT.body,
-                fontSize: 14,
-                color: "#333",
-                marginTop: 10,
-                marginBottom: 18,
-                lineHeight: 1.5,
-              }}
-            >
-              We sent a reset link to <strong>{email}</strong>. Click the link
-              to choose a new password.
+            <p className="m-0 font-body text-sm leading-relaxed text-foreground/80">
+              We sent a reset link to <strong>{sentEmail}</strong>. Click the link to
+              choose a new password.
             </p>
-            <p
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 11,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                color: "#888",
-                marginBottom: 20,
-              }}
-            >
+            <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
               {"// check spam if nothing shows"}
             </p>
-            <Button variant="dark" onClick={() => router.replace("/login")}>
+            <Button
+              variant="brand-dark"
+              size="brand"
+              onClick={() => router.replace("/login")}
+            >
               Back to login
             </Button>
           </div>
         ) : (
           <>
-            <h1
-              style={{
-                fontFamily: FONT.display,
-                fontSize: 36,
-                lineHeight: 1,
-                color: "#111",
-                margin: 0,
-                letterSpacing: -1,
-                textAlign: "center",
-              }}
+            <AuthCard.Header
+              kicker="we'll mail you a fresh link"
+              title="reset password"
+            />
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex flex-col gap-4"
             >
-              reset password
-            </h1>
-            <p
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 11,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                color: "#555",
-                marginTop: 8,
-                marginBottom: 24,
-                textAlign: "center",
-              }}
-            >
-              {"// we'll mail you a fresh link"}
-            </p>
-
-            <form onSubmit={submit}>
-              <FieldLabel label="Email address">
-                <VqInput
-                  type="email"
-                  value={email}
-                  onChange={setEmail}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  required
-                  disabled={isLoading}
-                />
-              </FieldLabel>
-
-              <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <RhfField
+                control={form.control}
+                name="email"
+                label="Email address"
+                required
+              >
+                {({ field, invalid, id }) => (
+                  <Input
+                    {...field}
+                    id={id}
+                    type="email"
+                    variant="brand"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    aria-invalid={invalid}
+                    disabled={form.formState.isSubmitting}
+                  />
+                )}
+              </RhfField>
+              <div className="flex gap-2.5">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="brand-ghost"
+                  size="brand"
                   onClick={() => router.replace("/login")}
-                  style={{ flex: 1 }}
+                  className="flex-1"
                 >
                   Back
                 </Button>
-                <Button type="submit" variant="primary" disabled={isLoading} style={{ flex: 1.3 }}>
-                  {isLoading ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                      <Loader2 className="size-4 animate-spin" /> Sending…
-                    </span>
-                  ) : (
-                    "Send link"
-                  )}
-                </Button>
+                <SubmitButton
+                  isLoading={form.formState.isSubmitting}
+                  loadingText="Sending…"
+                  className="flex-[1.3]"
+                >
+                  Send link
+                </SubmitButton>
               </div>
             </form>
           </>
         )}
-      </div>
+      </AuthCard>
     </div>
-  );
+  )
 }

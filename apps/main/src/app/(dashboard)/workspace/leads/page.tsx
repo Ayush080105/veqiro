@@ -8,16 +8,18 @@ import {
   ExternalLink,
   TrendingUp,
   Mail,
-  AlertCircle,
+  Trash2,
+  Crosshair,
 } from "lucide-react"
 
-import { type Lead, type LeadStatus, type Competitor } from "@/lib/types"
+import { type Lead, type LeadStatus } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
+import { useCompetitorWatches, useRemoveCompetitorWatch } from "@/lib/api/scout"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 // TODO: Connect to GET /api/v1/leads?organizationId=xxx (via Scout)
@@ -75,31 +77,6 @@ const MOCK_LEADS: Lead[] = [
   },
 ]
 
-const MOCK_COMPETITORS: Competitor[] = [
-  {
-    id: "1",
-    name: "Marblism",
-    website: "marblism.com",
-    lastUpdated: "2026-04-01T08:00:00Z",
-    summary:
-      "Launched new Brain v2 with improved context retention. Added Stripe integration. Pricing unchanged.",
-  },
-  {
-    id: "2",
-    name: "Relevance AI",
-    website: "relevanceai.com",
-    lastUpdated: "2026-03-31T12:00:00Z",
-    summary:
-      "New team builder feature announced. Blog post on autonomous agents trending. Community growing fast.",
-  },
-  {
-    id: "3",
-    name: "AgentOps",
-    website: "agentops.ai",
-    lastUpdated: "2026-03-29T10:00:00Z",
-    summary: "No major changes detected. Homepage copy updated to emphasize enterprise tier.",
-  },
-]
 
 const MOCK_TRENDS = [
   {
@@ -231,46 +208,82 @@ function PipelineTab() {
 // ─── Competitors Tab ──────────────────────────────────────────────────────────
 
 function CompetitorsTab() {
-  return (
-    <div className="flex flex-col gap-4">
-      <Card className="border-amber-500/20 bg-amber-500/5">
-        <CardContent className="flex items-center gap-2 py-3">
-          <AlertCircle className="size-3.5 shrink-0 text-amber-500" />
-          <p className="text-xs text-muted-foreground">
-            Scout monitors your competitors automatically. Add competitors in the{" "}
-            <a href="/brain" className="text-foreground underline underline-offset-2">
-              Brain page
-            </a>{" "}
-            to track them here.
+  const { data: competitors = [], isLoading } = useCompetitorWatches()
+  const remove = useRemoveCompetitorWatch()
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-2">
+              <div className="h-4 w-32 rounded bg-muted" />
+              <div className="h-3 w-24 rounded bg-muted" />
+            </CardHeader>
+            <CardContent>
+              <div className="h-3 w-full rounded bg-muted" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  if (competitors.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-12">
+          <Crosshair className="size-8 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">No competitors saved yet</p>
+          <p className="text-xs text-muted-foreground text-center max-w-sm">
+            Ask Scout to discover competitors in your market, then save them to your watchlist.
           </p>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/assistants/scout">Discover competitors with Scout</Link>
+          </Button>
         </CardContent>
       </Card>
+    )
+  }
 
+  return (
+    <div className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {MOCK_COMPETITORS.map((competitor) => (
-          <Card key={competitor.id}>
+        {competitors.map((c) => (
+          <Card key={c.id}>
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-sm font-semibold">{competitor.name}</CardTitle>
-                <a
-                  href={`https://${competitor.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  title={competitor.website}
-                >
-                  <ExternalLink className="size-3.5" />
-                </a>
+                <CardTitle className="text-sm font-semibold">{c.name}</CardTitle>
+                <div className="flex items-center gap-1">
+                  <a
+                    href={c.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title={c.url}
+                  >
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    title="Remove from watchlist"
+                    disabled={remove.isPending}
+                    onClick={() => remove.mutate(c.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
               </div>
-              <CardDescription className="flex items-center gap-1">
-                <Globe className="size-3" />
-                {competitor.website}
+              <CardDescription className="flex items-center gap-1 truncate">
+                <Globe className="size-3 shrink-0" />
+                <span className="truncate">{c.url.replace(/^https?:\/\//, "")}</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-xs/relaxed text-muted-foreground">{competitor.summary}</p>
+            <CardContent>
               <p className="text-[10px] text-muted-foreground">
-                Last scan: {formatDate(competitor.lastUpdated)}
+                Added {formatDate(c.createdAt)}
               </p>
             </CardContent>
           </Card>

@@ -35,3 +35,12 @@ export const contentBriefSchema = z.object({
   targetKeyword: z.string().min(1).max(120),
   competitorUrls: z.array(z.string().url()).max(20).optional().default([]),
 });
+
+export const saveKeywordSchema = z.object({
+  keyword: z.string().min(1).max(200),
+  searchIntent: z.string().max(100).default(""),
+  estimatedDifficulty: z.number().int().min(0).max(100).default(50),
+  relevanceScore: z.number().min(0).max(1).default(0.5),
+  searchVolumeEstimate: z.string().max(50).nullable().optional(),
+  suggestedContentType: z.string().max(100).default(""),
+});

@@ -24,10 +24,14 @@ import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
-import type { LexSource } from "@/lib/types/agents"
+import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
+import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
+import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
-import { FONT, Button as VqButton, Sticker } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
+import { Button } from "@/components/ui/button"
+import { Sticker } from "@/components/ui/sticker"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 
 import type {
@@ -211,7 +215,7 @@ function EmptyState({
         }}
       >
         <div style={{ position: "absolute", top: -8, left: 20 }}>
-          <Sticker rot={-6} color={agent.color as string}>
+          <Sticker rotate={-6} style={{ background: agent.color as string }}>
             {agent.tag}
           </Sticker>
         </div>
@@ -357,6 +361,8 @@ export default function AssistantChatPage() {
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
   const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
+  const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
+  const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -419,9 +425,20 @@ export default function AssistantChatPage() {
     setActiveActionId(actionId)
   }
 
+  const discoverCompetitorsPrefill = useMemo(() =>
+    brandKit
+      ? { description: brandKit.companyDescription || "", industry: brandKit.industry || "" }
+      : undefined,
+    [brandKit]
+  )
+
   const handlePlusPick = (actionId: AgentActionId) => {
     setPlusOpen(false)
-    openAction(actionId)
+    if (actionId === "scout:discover-competitors") {
+      openAction(actionId, discoverCompetitorsPrefill)
+    } else {
+      openAction(actionId)
+    }
   }
 
   const openAnalyzeForSource = useCallback((source: LexSource) => {
@@ -444,6 +461,8 @@ export default function AssistantChatPage() {
   if (!agent) return null
 
   const isLex = agent.id === "lex"
+  const isScout = agent.id === "scout"
+  const isSage = agent.id === "sage"
   const isVega = agent.id === "vega"
   const hasMessages = messages.length > 0
   const agentSlug = agent.id as AgentSlug
@@ -499,12 +518,102 @@ export default function AssistantChatPage() {
         </div>
       )}
 
+      {isScout && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderBottom: "2px solid #111",
+            background: "#FFF9ED",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setScoutTab("chat")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              scoutTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            }`}
+          >
+            <MessageSquare className="size-3" /> Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setScoutTab("watchlist")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              scoutTab === "watchlist"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <FolderOpen className="size-3" /> Watchlist
+          </button>
+        </div>
+      )}
+
+      {isSage && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderBottom: "2px solid #111",
+            background: "#FFF9ED",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setSageTab("chat")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              sageTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            }`}
+          >
+            <MessageSquare className="size-3" /> Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setSageTab("favourites")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              sageTab === "favourites"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <FolderOpen className="size-3" /> Favourites
+          </button>
+        </div>
+      )}
+
       {isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
           <LexDocumentsTab
             onUpload={openUploadAction}
             onAnalyze={openAnalyzeForSource}
             onQuery={openQueryForSource}
+          />
+        </div>
+      ) : isScout && scoutTab === "watchlist" ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <ScoutWatchlistTab
+            onDiscover={() => {
+              setScoutTab("chat")
+              openAction("scout:discover-competitors", discoverCompetitorsPrefill)
+            }}
+            onResearch={(name, url) => {
+              setScoutTab("chat")
+              openAction("scout:research-company", { company_name: name, company_url: url })
+            }}
+          />
+        </div>
+      ) : isSage && sageTab === "favourites" ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <SageSavedKeywordsTab
+            onGenerateBlog={(kw: SageSavedKeyword) => {
+              setSageTab("chat")
+              openAction("sage:generate-blog", { target_keyword: kw.keyword })
+            }}
           />
         </div>
       ) : historyLoaded && !hasMessages ? (
@@ -527,6 +636,7 @@ export default function AssistantChatPage() {
               agentInitials={agent.initials}
               agentColor={agentColor}
               isLex={isLex}
+              onFollowUpAction={openAction}
             />
           ))}
           {isLoading && (
@@ -563,8 +673,9 @@ export default function AssistantChatPage() {
             >
               {"// connect google calendar to let vega schedule on your behalf"}
             </p>
-            <VqButton
-              variant="dark"
+            <Button
+              variant="brand-dark"
+              size="brand-sm"
               onClick={() => {
                 authClient.signIn.social({
                   provider: "google",
@@ -573,11 +684,11 @@ export default function AssistantChatPage() {
               }}
             >
               Connect Google
-            </VqButton>
+            </Button>
           </div>
         )}
 
-        {!(isLex && lexTab === "documents") && (
+        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && (
           <ChatInput
             value={content}
             onChange={setContent}

@@ -18,7 +18,6 @@ const authMiddleware = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
-    console.log(authHeader);
 
     // Internal API key path — userId & organizationId must be supplied explicitly
     if (authHeader) {

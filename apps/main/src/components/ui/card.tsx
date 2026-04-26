@@ -1,20 +1,38 @@
 import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
-function Card({
-  className,
-  size = "default",
-  ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+const cardVariants = cva(
+  "group/card flex flex-col overflow-hidden text-xs/relaxed text-card-foreground has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 *:[img:first-child]:rounded-none *:[img:last-child]:rounded-none",
+  {
+    variants: {
+      variant: {
+        default:
+          "gap-4 rounded-none bg-card py-4 ring-1 ring-foreground/10 data-[size=sm]:gap-2 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0",
+        // ── Veqiro brand variant ─────────────────────────────────────────────
+        // Cream card with chunky 3px ink border + 5px hard offset shadow.
+        brand:
+          "relative gap-5 rounded-lg border-[3px] border-foreground bg-card py-5 shadow-[5px_5px_0_var(--foreground)] data-[size=sm]:gap-3 data-[size=sm]:py-4 data-[size=sm]:shadow-[4px_4px_0_var(--foreground)]",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+type CardProps = React.ComponentProps<"div"> &
+  VariantProps<typeof cardVariants> & {
+    size?: "default" | "sm"
+  }
+
+function Card({ className, size = "default", variant, ...props }: CardProps) {
   return (
     <div
       data-slot="card"
       data-size={size}
-      className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-none bg-card py-4 text-xs/relaxed text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-2 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-none *:[img:last-child]:rounded-none",
-        className
-      )}
+      className={cn(cardVariants({ variant }), className)}
       {...props}
     />
   )
@@ -100,4 +118,5 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  cardVariants,
 }

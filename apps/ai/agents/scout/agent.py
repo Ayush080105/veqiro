@@ -1,11 +1,16 @@
 import asyncio
 import json
+import logging
+from datetime import datetime, timezone
 
 from agents.base import BaseAgent
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
+from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ScoutAgent(BaseAgent):
@@ -18,7 +23,7 @@ class ScoutAgent(BaseAgent):
         "Think sharp analyst, not consultant deck."
     )
     default_provider = "openai"
-    default_model = "gpt-4o-mini"
+    default_model = settings.SCOUT_MODEL
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
@@ -28,18 +33,19 @@ class ScoutAgent(BaseAgent):
             "\n\n## MANDATORY Tool Usage Rules\n"
             "You MUST use tools for any competitive, market, or company research question — "
             "even follow-up questions that build on conversation history. "
-            "NEVER answer competitive intelligence questions from memory alone.\n"
+            "NEVER answer competitive intelligence questions from memory alone.\n\n"
+            "**Tool selection guide:**\n"
             "- Any question about a specific company → call `research_company` for that company\n"
-            "- Any comparative question (e.g. 'which has the weakest X?') → call `research_company` "
-            "for EACH company being compared, then synthesize\n"
-            "- Any question about trends, market data, or recent events → call `web_search` or `research_topic`\n"
-            "After gathering real data with tools, synthesize it into a clear, founder-focused analysis.\n\n"
+            "- Comparative question ('which has better X?') → call `research_company` for EACH company, then synthesize in a table\n"
+            "- Trends, market data, recent events → call `web_search` (quick lookup) or `research_topic` (full report)\n"
+            "- 'Who are my competitors?' or 'find competitors for X' → call `discover_competitors`\n"
+            "- Industry trends and content angles → call `trending_topics`\n\n"
+            "After gathering real data with tools, synthesize it using the output format below.\n\n"
             "## When to use ask_agent\n"
-            "- Research is done and user wants a social post or caption written from your findings → call `ask_agent` with maya "
-            "(include the research findings in the question so Maya has full context).\n"
-            "- User wants an SEO blog article written from the research → call `ask_agent` with sage.\n"
-            "- User asks about legal compliance of a company or contract you researched → call `ask_agent` with lex.\n"
-            "Call your own research tools FIRST, then delegate content creation."
+            "- Research done, user wants a social post → call `ask_agent` with maya (pass full research context).\n"
+            "- User wants an SEO blog from the research → call `ask_agent` with sage.\n"
+            "- Legal compliance question → call `ask_agent` with lex.\n"
+            "Call research tools FIRST, then delegate content creation."
         )
 
     async def build_system_prompt(
@@ -51,9 +57,14 @@ class ScoutAgent(BaseAgent):
         from core.brand_kit import load_brand_kit
         brand_kit = await load_brand_kit(organization_id)
 
+        today = datetime.now(timezone.utc).strftime("%B %d, %Y")
         prompt = (
-            f"You are Scout, {self.personality}\n\n"
-            f"You are researching on behalf of: **{brand_kit.company_name}**\n"
+            "You are Scout — a sharp market intelligence analyst embedded in a founder's team. "
+            "You deliver the actual competitive picture: specific, sourced, and strategically actionable. "
+            "No consultant fluff, no sanitised summaries. "
+            "Think ex-strategy analyst who has seen the real numbers — not a search engine regurgitating headlines.\n\n"
+            f"**Today's date: {today}**\n"
+            f"**You are researching on behalf of: {brand_kit.company_name}**\n"
             f"Industry: {brand_kit.industry}\n"
             f"Target Audience: {brand_kit.target_audience}\n"
             f"Key Differentiators: {brand_kit.key_differentiators}\n"
@@ -64,20 +75,37 @@ class ScoutAgent(BaseAgent):
             prompt += f"Founder's Website: {brand_kit.website_url}\n"
 
         prompt += (
-            "\n## Research Principles\n"
-            "1. Always separate facts (verified) from inferences (likely) from speculation (possible)\n"
-            "2. Rate source reliability and recency\n"
-            "3. Identify strategic implications for the founder's specific business, not just raw information\n"
-            "4. Highlight competitor weaknesses as opportunities\n"
-            "5. Be concise but thorough — give the founder what they need to make decisions\n"
-            "6. When you have real web data, cite it; when synthesizing, say so\n\n"
+            "\n## Research Standards\n"
+            "1. **BLUF first** — open every response with a 1-2 sentence bottom line. Evidence follows.\n"
+            "2. **Label every claim**: [FACT] for verified data, [INFERRED] for logical conclusions, [ESTIMATED] for approximations.\n"
+            "3. **Cite inline** — link source URLs directly after any claim that came from the web.\n"
+            "4. **Use tables** for any comparison of 2+ companies or data points.\n"
+            "5. **Strategic implications** — end every competitive analysis with a 'So what for {company_name}?' block.\n"
+            "6. **Highlight gaps** — competitor weaknesses are the founder's opportunities; call them out explicitly.\n"
+            f"7. **Recency matters** — today is {today}. Flag data older than 6 months. Always prefer the most recent sources.\n\n"
+            "## Output Format\n"
+            "For competitive analyses:\n"
+            "  - Bottom line (1-2 sentences)\n"
+            "  - Comparison table (if multiple companies)\n"
+            "  - Key findings with [FACT/INFERRED/ESTIMATED] labels and source links\n"
+            "  - Strategic implications for {company_name}\n\n"
+            "For market research:\n"
+            "  - Bottom line\n"
+            "  - Market size & trajectory (with source)\n"
+            "  - Key players & positioning\n"
+            "  - Opportunities and threats\n"
+            "  - Recommended actions\n\n"
+            "For trend reports:\n"
+            "  - Bottom line\n"
+            "  - Ranked trends with momentum signal\n"
+            "  - Content/product angle for each\n\n"
             "## Tool Usage\n"
-            "Use your tools proactively. Don't just answer from memory — search for fresh data. "
-            "For competitor questions, use research_company. For general topics, use research_topic. "
-            "For live news/prices/recent events, use web_search. "
-            "For market trends, use trending_topics. "
-            "For monitoring known competitors, use scan_competitors.\n"
-        )
+            "Always use tools — never answer from memory alone. "
+            "Use research_company for companies, research_topic for markets, "
+            "web_search for live data, discover_competitors to find who's competing, "
+            "trending_topics for market signals.\n"
+        ).format(company_name=brand_kit.company_name)
+
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
         return prompt
@@ -101,8 +129,8 @@ class ScoutAgent(BaseAgent):
                         source_id=f"scout-{tc['name']}-{request.conversation_id}",
                         metadata={"tool": tc["name"], "topic": topic, "agent": "scout"},
                     )
-                except Exception:
-                    pass  # RAG ingest is best-effort
+                except Exception as rag_err:
+                    logger.warning("RAG ingest failed for %s (conv %s): %s", tc["name"], request.conversation_id, rag_err)
 
         return response
 
@@ -153,25 +181,6 @@ class ScoutAgent(BaseAgent):
                 ],
             ),
             ToolDefinition(
-                name="scan_competitors",
-                description=(
-                    "Scan competitor websites to detect recent changes — pricing updates, new features, "
-                    "messaging shifts, new pages. Uses content hashing to identify what changed.\n"
-                    "Use when: the user wants to monitor competitors for changes, check if a competitor "
-                    "has updated anything recently, or wants a competitive pulse check. "
-                    "Returns: change detected (yes/no), summary of what changed, significance level."
-                ),
-                parameters=[
-                    ToolParameter(
-                        name="competitors",
-                        type="array",
-                        description="List of competitor names or website URLs to scan (e.g. ['Notion', 'https://clickup.com'])",
-                        required=True,
-                        items_type="string",
-                    ),
-                ],
-            ),
-            ToolDefinition(
                 name="trending_topics",
                 description=(
                     "Discover what's trending in a given industry — rising topics, content opportunities, "
@@ -185,6 +194,21 @@ class ScoutAgent(BaseAgent):
                     ToolParameter(name="count", type="integer", description="Number of trending topics to return (default 5)", required=False, default=5),
                 ],
             ),
+            ToolDefinition(
+                name="discover_competitors",
+                description=(
+                    "Find competitors for a business using live web research. Returns a structured list of "
+                    "competitor companies with URLs, why they compete, and their pricing model.\n"
+                    "Use when: the user asks 'who are my competitors?', 'find alternatives to X', "
+                    "'what tools compete with my product?', or wants to build a competitor watchlist. "
+                    "Returns: list of competitors with name, URL, why_competitive, pricing_model."
+                ),
+                parameters=[
+                    ToolParameter(name="description", type="string", description="Brief description of the product/business to find competitors for", required=True),
+                    ToolParameter(name="industry", type="string", description="Industry or category (e.g. 'AI productivity SaaS', 'fintech', 'developer tools')", required=True),
+                    ToolParameter(name="count", type="integer", description="Number of competitors to return (default 8)", required=False, default=8),
+                ],
+            ),
         ]
 
     # ── Tool Execution ──────────────────────────────────────────────────
@@ -196,8 +220,10 @@ class ScoutAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
     ) -> str:
-        from agents.scout.scraper import scrape_url, google_autocomplete, hash_content, serper_search
+        from agents.scout.scraper import scrape_url, google_autocomplete, serper_search
 
+        today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+        year = datetime.now(timezone.utc).year
         system = await self.build_system_prompt(user_id, organization_id)
 
         if name == "web_search":
@@ -216,9 +242,10 @@ class ScoutAgent(BaseAgent):
                 topic = arguments.get("topic", "")
                 sources = arguments.get("sources_hint", []) or []
 
-                keywords, search_results = await asyncio.gather(
+                keywords, search_results, news_results = await asyncio.gather(
                     google_autocomplete(topic),
-                    serper_search(topic),
+                    serper_search(f"{topic} {year}"),
+                    serper_search(f"{topic} news {year}", search_type="news"),
                 )
 
                 async def _safe_scrape(url: str) -> str | None:
@@ -227,18 +254,17 @@ class ScoutAgent(BaseAgent):
                     except Exception:
                         return None
 
-                scrape_outcomes = await asyncio.gather(
-                    *[_safe_scrape(u) for u in sources[:3]],
-                )
-                scraped_texts = [t for t in scrape_outcomes if t is not None]
+                scraped_texts = [t for t in await asyncio.gather(*[_safe_scrape(u) for u in sources[:3]]) if t]
 
-                context = f"Topic: {topic}\nRelated keywords: {keywords[:10]}"
+                context = f"Topic: {topic}\nToday: {today}\nRelated keywords: {keywords[:10]}"
                 if search_results:
-                    search_summary = "\n".join(
-                        f"- {r['title']}: {r['snippet']} ({r['link']})"
-                        for r in search_results[:8]
+                    context += "\n\nWeb search results:\n" + "\n".join(
+                        f"- {r['title']}: {r['snippet']} ({r['link']})" for r in search_results[:8]
                     )
-                    context += f"\n\nWeb search results:\n{search_summary}"
+                if news_results:
+                    context += "\n\nRecent news:\n" + "\n".join(
+                        f"- {r['title']}: {r['snippet']} ({r['link']})" for r in news_results[:6]
+                    )
                 if scraped_texts:
                     context += "\n\nScraped sources:\n" + "\n\n---\n\n".join(scraped_texts)
 
@@ -246,10 +272,9 @@ class ScoutAgent(BaseAgent):
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
-                        f"Research and synthesize a comprehensive intelligence report on:\n{context}\n\n"
-                        "Structure your response with: Key Findings, Market Size & Trends, "
-                        "Key Players, Strategic Opportunities, and Risks. "
-                        "Identify specific implications for the founder."
+                        f"Today is {today}. Research and synthesize a comprehensive intelligence report on:\n{context}\n\n"
+                        "Structure: Key Findings, Market Size & Trends, Key Players, Strategic Opportunities, Risks. "
+                        "Identify specific implications for the founder. Use [FACT/INFERRED/ESTIMATED] labels."
                     )}],
                 )
                 return json.dumps({
@@ -266,84 +291,62 @@ class ScoutAgent(BaseAgent):
                 company_name = arguments.get("company_name", "")
                 url = arguments.get("company_url") or f"https://{company_name.lower().replace(' ', '')}.com"
 
-                search_results, scraped_content = await asyncio.gather(
-                    serper_search(f"{company_name} company overview features pricing 2025"),
+                # 6 parallel searches + homepage scrape
+                (
+                    results_features,
+                    results_funding,
+                    results_reviews,
+                    results_news,
+                    results_jobs,
+                    results_vs,
+                    scraped_content,
+                ) = await asyncio.gather(
+                    serper_search(f"{company_name} features pricing plans {year}"),
+                    serper_search(f"{company_name} funding raised investors {year}"),
+                    serper_search(f"{company_name} reviews complaints reddit g2 trustpilot"),
+                    serper_search(f"{company_name} news announcement launch {year}", search_type="news"),
+                    serper_search(f"{company_name} hiring jobs team size {year}"),
+                    serper_search(f"{company_name} vs alternatives competitors"),
                     scrape_url(url),
                 )
 
-                search_context = ""
-                if search_results:
-                    search_context = "\n\nWeb search results:\n" + "\n".join(
-                        f"- {r['title']}: {r['snippet']}" for r in search_results[:6]
-                    )
+                def _fmt(results: list, label: str, n: int = 5) -> str:
+                    if not results:
+                        return ""
+                    lines = "\n".join(f"- {r['title']}: {r['snippet']} ({r['link']})" for r in results[:n])
+                    return f"\n\n### {label}\n{lines}"
 
                 raw = await self.llm.complete(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
-                        f"Build a comprehensive competitive intelligence profile for: {company_name}\n"
-                        f"Website content:\n{scraped_content[:2500]}"
-                        f"{search_context}\n\n"
-                        "Return a structured profile covering: description, founding/team size, funding, "
-                        "key features, pricing tiers, target market, strengths, weaknesses, "
-                        "recent news/moves, and strategic implications for a competing founder."
+                        f"Today is {today}. Build the most comprehensive competitive intelligence profile possible for: **{company_name}**\n\n"
+                        f"Homepage content:\n{scraped_content[:3000]}"
+                        f"{_fmt(results_features, 'Features & Pricing')}"
+                        f"{_fmt(results_funding, 'Funding & Investors')}"
+                        f"{_fmt(results_news, 'Latest News & Announcements')}"
+                        f"{_fmt(results_reviews, 'Customer Reviews & Sentiment')}"
+                        f"{_fmt(results_jobs, 'Hiring & Team Growth Signals')}"
+                        f"{_fmt(results_vs, 'Competitor Positioning')}\n\n"
+                        "Produce a structured profile with these sections:\n"
+                        "1. **Overview** — what they do, founding year, HQ, team size [FACT/ESTIMATED]\n"
+                        "2. **Product & Features** — key capabilities, recent launches, roadmap signals\n"
+                        "3. **Pricing** — tiers, price points, free tier details [FACT/INFERRED]\n"
+                        "4. **Business Metrics** — ARR/MRR estimates, funding total, latest round, investors [FACT/ESTIMATED]\n"
+                        "5. **Target Market** — ICP, use cases, segments they own vs. ignore\n"
+                        "6. **Strengths** — what they do well [FACT/INFERRED]\n"
+                        "7. **Weaknesses & Gaps** — where they fall short, customer complaints [FACT/INFERRED]\n"
+                        "8. **Recent Moves** — last 90 days: product launches, hires, partnerships, PR\n"
+                        "9. **Customer Sentiment** — what users love, what frustrates them, notable reviews\n"
+                        "10. **So what?** — strategic implications for a competing founder: where to attack, what to avoid, how to position against them\n\n"
+                        "Label every claim [FACT], [INFERRED], or [ESTIMATED]. Cite source URLs inline."
                     )}],
                 )
+                all_sources = [url] + [r["link"] for r in (results_features + results_funding + results_news)[:6]]
                 return json.dumps({
                     "company": company_name,
                     "profile": raw,
-                    "sources": [url] + [r["link"] for r in search_results[:3]],
-                }, default=str)
-            except Exception as e:
-                return json.dumps({"error": str(e), "tool": name})
-
-        elif name == "scan_competitors":
-            try:
-                competitors_raw = arguments.get("competitors", [])
-
-                async def _scan_one(item: str) -> dict:
-                    if item.startswith("http"):
-                        comp_url = item
-                        comp_name = item.split("//")[-1].split("/")[0].replace("www.", "")
-                    else:
-                        comp_name = item
-                        comp_url = f"https://{item.lower().replace(' ', '')}.com"
-
-                    try:
-                        content = await scrape_url(comp_url)
-                        new_hash = hash_content(content)
-                        snippet = content[:500] if content else ""
-                        return {
-                            "competitor": comp_name,
-                            "url": comp_url,
-                            "current_hash": new_hash,
-                            "content_preview": snippet,
-                            "status": "scanned",
-                        }
-                    except Exception as scrape_err:
-                        return {
-                            "competitor": comp_name,
-                            "url": comp_url,
-                            "status": "error",
-                            "error": str(scrape_err),
-                        }
-
-                scan_results = await asyncio.gather(*[_scan_one(c) for c in competitors_raw[:5]])
-
-                # Ask LLM to summarize changes/signals
-                summary_prompt = (
-                    f"Analyze these competitor scan results and provide a brief intelligence summary "
-                    f"for each competitor. Identify any notable content, messaging shifts, or signals:\n\n"
-                    f"{json.dumps(list(scan_results), default=str)}"
-                )
-                summary = await self.llm.complete(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system,
-                    messages=[{"role": "user", "content": summary_prompt}],
-                )
-                return json.dumps({
-                    "scan_results": list(scan_results),
-                    "intelligence_summary": summary,
+                    "sources": list(dict.fromkeys(all_sources)),
                 }, default=str)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
@@ -355,7 +358,7 @@ class ScoutAgent(BaseAgent):
 
                 keywords, news_results = await asyncio.gather(
                     google_autocomplete(industry),
-                    serper_search(f"{industry} trends news 2025", search_type="news"),
+                    serper_search(f"{industry} trends {year}", search_type="news"),
                 )
 
                 news_context = ""
@@ -368,15 +371,46 @@ class ScoutAgent(BaseAgent):
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
-                        f"Identify {count} trending topics in {industry} based on real signals.\n"
+                        f"Today is {today}. Identify {count} trending topics in {industry} based on real signals.\n"
                         f"Related keywords: {keywords[:10]}"
                         f"{news_context}\n\n"
-                        f"For each topic provide: topic name, momentum (rising/stable/declining), "
-                        f"relevance_score (0.0-1.0), content_angle (how a founder could use this), "
-                        f"and estimated search volume. Focus on opportunities for the founder."
+                        "For each topic: topic name, momentum (rising/stable/declining), "
+                        "relevance_score (0.0-1.0), content_angle, estimated search volume. "
+                        "Focus on what a founder can act on now."
                     )}],
                 )
                 return raw
+            except Exception as e:
+                return json.dumps({"error": str(e), "tool": name})
+
+        elif name == "discover_competitors":
+            try:
+                description = arguments.get("description", "")
+                industry = arguments.get("industry", "")
+                count = arguments.get("count", 8)
+
+                results_alternatives, results_best = await asyncio.gather(
+                    serper_search(f"{industry} tools alternatives {year}"),
+                    serper_search(f"best {industry} software {year}"),
+                )
+
+                all_results = results_alternatives[:6] + results_best[:6]
+                search_context = "\n\nSearch results:\n" + "\n".join(
+                    f"- {r['title']}: {r['snippet']} ({r['link']})" for r in all_results
+                ) if all_results else ""
+
+                raw = await self.llm.complete(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system,
+                    messages=[{"role": "user", "content": (
+                        f"Today is {today}. Find {count} real competitors for: \"{description}\" in the {industry} space.\n"
+                        f"{search_context}\n\n"
+                        f"Return a JSON array of {count} competitors. Each object: "
+                        "name (string), url (real URL), why_competitive (1 sentence), pricing_model (string). "
+                        "Only real, verifiable companies. Return ONLY the JSON array."
+                    )}],
+                )
+                return json.dumps({"competitors": raw, "industry": industry}, default=str)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 

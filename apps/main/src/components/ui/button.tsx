@@ -21,6 +21,17 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        // ── Veqiro brand variants ────────────────────────────────────────────
+        // Chunky brutalist CTAs: 3px ink border, hard offset shadow, brand head font.
+        // Press effect: translates 2px down/right + shadow shrinks 5→3 to feel pressed.
+        brand:
+          "rounded-md border-[3px] border-foreground bg-destructive text-foreground font-head uppercase tracking-wider shadow-[5px_5px_0_var(--foreground)] hover:bg-destructive/90 active:not-aria-[haspopup]:translate-x-0.5 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--foreground)] disabled:opacity-45",
+        "brand-dark":
+          "rounded-md border-[3px] border-foreground bg-primary text-primary-foreground font-head uppercase tracking-wider shadow-[5px_5px_0_var(--accent)] hover:bg-primary/90 active:not-aria-[haspopup]:translate-x-0.5 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--accent)] disabled:opacity-45",
+        "brand-yellow":
+          "rounded-md border-[3px] border-foreground bg-accent text-foreground font-head uppercase tracking-wider shadow-[5px_5px_0_var(--foreground)] hover:bg-accent/90 active:not-aria-[haspopup]:translate-x-0.5 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--foreground)] disabled:opacity-45",
+        "brand-ghost":
+          "rounded-md border-[3px] border-foreground bg-transparent text-foreground font-head uppercase tracking-wider hover:bg-foreground/5 active:not-aria-[haspopup]:translate-y-0.5 disabled:opacity-45",
       },
       size: {
         default:
@@ -32,6 +43,10 @@ const buttonVariants = cva(
         "icon-xs": "size-6 rounded-none [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-7 rounded-none",
         "icon-lg": "size-9",
+        // ── Brand sizes ──────────────────────────────────────────────────────
+        brand: "h-12 gap-2 px-6 text-sm",
+        "brand-sm": "h-10 gap-1.5 px-4 text-xs",
+        "brand-lg": "h-14 gap-2 px-8 text-base",
       },
     },
     defaultVariants: {

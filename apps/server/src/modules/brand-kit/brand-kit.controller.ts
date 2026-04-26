@@ -3,7 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import {
   partialBrandKitSchema,
   finalizeBrandKitSchema,
-  uploadAssetSchema,
+  finalizeAssetSchema,
 } from "./brand-kit.schema.js";
 import * as brandKitService from "./brand-kit.service.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
@@ -43,10 +43,10 @@ export const finalizeBrandKit = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(kit);
 };
 
-export const uploadAsset = async (req: Request, res: Response) => {
+export const finalizeAssetUpload = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
-  const input = uploadAssetSchema.parse(req.body);
-  const result = await brandKitService.uploadAsset(organizationId, input);
+  const input = finalizeAssetSchema.parse(req.body);
+  const result = await brandKitService.finalizeAssetUpload(organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

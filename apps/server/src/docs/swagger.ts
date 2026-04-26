@@ -15,7 +15,6 @@ import {
   sendMessageSchema as scoutSendMessageSchema,
   researchTopicSchema,
   researchCompanySchema,
-  scanCompetitorsSchema,
   trendingTopicsSchema,
 } from "../modules/agents/scout/scout.schema.js";
 import {
@@ -160,20 +159,6 @@ const companyProfileSchema = z.object({
 const researchCompanyResponseSchema = z.object({
   company: companyProfileSchema,
   scraped_at: z.string(),
-});
-
-const competitorScanResultSchema = z.object({
-  competitor_name: z.string(),
-  url: z.string(),
-  has_changes: z.boolean(),
-  change_summary: z.string(),
-  significance: z.string(),
-  new_hash: z.string(),
-});
-
-const competitorScanResponseSchema = z.object({
-  results: z.array(competitorScanResultSchema),
-  scanned_at: z.string(),
 });
 
 const trendItemSchema = z.object({
@@ -517,38 +502,6 @@ const scoutResearchCompanyPost: ZodOpenApiOperationObject = {
       description: "Company profile",
       content: {
         "application/json": { schema: researchCompanyResponseSchema },
-      },
-    },
-    ...errorResponses,
-  },
-};
-
-const scoutScanCompetitorsPost: ZodOpenApiOperationObject = {
-  operationId: "scoutScanCompetitors",
-  summary: "Scan competitors for changes",
-  description:
-    "Monitor competitor websites. Pass `lastScanHash` from a prior scan's result to detect diffs; omit for a first scan.",
-  tags: ["Scout"],
-  requestBody: {
-    required: true,
-    content: {
-      "application/json": {
-        schema: withInternalIdentity(scanCompetitorsSchema),
-        example: {
-          ...IDENTITY_EXAMPLE,
-          competitors: [
-            { name: "Notion", url: "https://notion.so", lastScanHash: null },
-            { name: "ClickUp", url: "https://clickup.com", lastScanHash: null },
-          ],
-        },
-      },
-    },
-  },
-  responses: {
-    "200": {
-      description: "Scan results per competitor",
-      content: {
-        "application/json": { schema: competitorScanResponseSchema },
       },
     },
     ...errorResponses,
@@ -1806,7 +1759,6 @@ export const openApiDocument = createDocument({
     "/api/v1/agents/scout/chat": scoutChatPath,
     "/api/v1/agents/scout/research-topic": { post: scoutResearchTopicPost },
     "/api/v1/agents/scout/research-company": { post: scoutResearchCompanyPost },
-    "/api/v1/agents/scout/scan-competitors": { post: scoutScanCompetitorsPost },
     "/api/v1/agents/scout/trending-topics": { post: scoutTrendingTopicsPost },
     "/api/v1/agents/maya/chat": mayaChatPath,
     "/api/v1/agents/maya/generate-ideas": { post: mayaGenerateIdeasPost },

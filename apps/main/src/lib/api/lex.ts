@@ -5,24 +5,32 @@ import {
 } from "@tanstack/react-query"
 import { apiFetch, ApiError, AgentNotAvailableError } from "@/lib/api/client"
 import { qk } from "@/lib/query-keys"
+import { uploadToR2 } from "@/lib/api/uploads"
 import type { LexSource } from "@/lib/types/agents"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
+// Direct-to-R2: presign → PUT the PDF straight to R2 → finalize on server.
 export async function uploadLexDocument(input: {
   file: File
   documentName: string
   documentType: string
 }): Promise<LexSource> {
-  const fd = new FormData()
-  fd.append("file", input.file)
-  fd.append("documentName", input.documentName)
-  fd.append("documentType", input.documentType)
+  const uploaded = await uploadToR2("lex-source", input.file)
+  if (!uploaded.ok) {
+    throw new ApiError(0, uploaded.message)
+  }
 
-  const res = await fetch(`${API_URL}/agents/lex/sources/upload`, {
+  const res = await fetch(`${API_URL}/agents/lex/sources/finalize`, {
     method: "POST",
     credentials: "include",
-    body: fd,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      key: uploaded.key,
+      url: uploaded.publicUrl,
+      documentName: input.documentName,
+      documentType: input.documentType,
+    }),
   })
   if (res.status === 404) throw new AgentNotAvailableError("lex")
   if (!res.ok) {

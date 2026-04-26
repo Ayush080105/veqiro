@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import { useIntegrations } from "@/lib/api/integrations"
 import { useGoogleConnected } from "@/lib/api/auth-accounts"
 import type { SocialAccount } from "@/lib/api/integrations"

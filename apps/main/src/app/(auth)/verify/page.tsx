@@ -1,288 +1,209 @@
-"use client";
+"use client"
 
-import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Loader2, Mail, XCircle } from "lucide-react";
-import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
-import Logo from "@/components/logo";
-import { Button, FONT, Sticker } from "@/components/veqiro/shared";
+import { Suspense, useEffect, useState } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { CheckCircle2, Loader2, Mail, XCircle } from "lucide-react"
+import { toast } from "sonner"
 
-type VerifyState = "check-inbox" | "verifying" | "success" | "error";
+import { authClient } from "@/lib/auth-client"
+import Logo from "@/components/logo"
+import { AuthCard } from "@/components/ui/auth-card"
+import { Button } from "@/components/ui/button"
+import { Sticker } from "@/components/ui/sticker"
+import { cn } from "@/lib/utils"
 
-function Shell({ children }: { children: React.ReactNode }) {
+type VerifyState = "check-inbox" | "verifying" | "success" | "error"
+
+interface IconTileProps {
+  tone: "yellow" | "red" | "green" | "blue"
+  rotate?: number
+  children: React.ReactNode
+}
+
+const TONE_BG = {
+  yellow: "bg-accent",
+  red: "bg-destructive",
+  green: "bg-[color:var(--vq-green)]",
+  blue: "bg-[color:var(--vq-blue)]",
+} as const
+
+function IconTile({ tone, rotate = -4, children }: IconTileProps) {
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
-      style={{ background: "#EFE7D6", fontFamily: FONT.body }}
+    <span
+      className={cn(
+        "grid size-[72px] place-items-center rounded-2xl border-[3px] border-foreground shadow-[4px_4px_0_var(--foreground)] [&_svg]:size-9 [&_svg]:text-foreground",
+        TONE_BG[tone]
+      )}
+      style={{ transform: `rotate(${rotate}deg)` }}
     >
-      <Link href="/" className="flex items-center gap-3 mb-8">
-        <Logo className="w-12 h-12" />
-        <span style={{ fontFamily: FONT.head, fontSize: 20, letterSpacing: -0.5, color: "#111" }}>
+      {children}
+    </span>
+  )
+}
+
+function Shell({
+  sticker,
+  children,
+}: {
+  sticker?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
+      <Link href="/" className="mb-8 flex items-center gap-3">
+        <Logo className="h-12 w-12" />
+        <span className="font-head text-xl tracking-tight text-foreground">
           veqiro
         </span>
       </Link>
-      <div
-        className="w-full max-w-md relative text-center"
-        style={{
-          background: "#FFF9ED",
-          border: "3px solid #111",
-          borderRadius: 18,
-          boxShadow: "6px 6px 0 #111",
-          padding: "36px 28px",
-        }}
-      >
+      <AuthCard sticker={sticker} className="text-center">
         {children}
-      </div>
+      </AuthCard>
     </div>
-  );
+  )
 }
 
 function VerifyContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const token = searchParams.get("token");
-  const errorParam = searchParams.get("error");
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const token = searchParams.get("token")
+  const errorParam = searchParams.get("error")
 
   const [state, setState] = useState<VerifyState>(() =>
     token ? "verifying" : errorParam ? "error" : "check-inbox"
-  );
+  )
   const [errorMessage, setErrorMessage] = useState<string>(
     errorParam ? decodeURIComponent(errorParam.replace(/_/g, " ")) : ""
-  );
+  )
 
   useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
+    if (!token) return
+    let cancelled = false
 
-    (async () => {
+    ;(async () => {
       try {
-        const res = await authClient.verifyEmail({
-          query: { token },
-        });
-        if (cancelled) return;
+        const res = await authClient.verifyEmail({ query: { token } })
+        if (cancelled) return
         if (res.error) {
-          setErrorMessage(res.error.message || "Verification failed");
-          setState("error");
-          return;
+          setErrorMessage(res.error.message || "Verification failed")
+          setState("error")
+          return
         }
-        setState("success");
-        toast.success("Email verified");
-        // Backend has autoSignInAfterVerification: true — user should be signed in.
+        setState("success")
+        toast.success("Email verified")
         setTimeout(() => {
-          if (!cancelled) router.replace("/onboarding");
-        }, 900);
+          if (!cancelled) router.replace("/onboarding")
+        }, 900)
       } catch (err) {
-        if (cancelled) return;
-        setErrorMessage(err instanceof Error ? err.message : "Verification failed");
-        setState("error");
+        if (cancelled) return
+        setErrorMessage(
+          err instanceof Error ? err.message : "Verification failed"
+        )
+        setState("error")
       }
-    })();
+    })()
 
     return () => {
-      cancelled = true;
-    };
-  }, [token, router]);
+      cancelled = true
+    }
+  }, [token, router])
 
   if (state === "verifying") {
     return (
       <Shell>
-        <div
-          className="mx-auto"
-          style={{
-            width: 72,
-            height: 72,
-            background: "#6FCDE8",
-            border: "3px solid #111",
-            borderRadius: 18,
-            display: "grid",
-            placeItems: "center",
-            transform: "rotate(-4deg)",
-            boxShadow: "4px 4px 0 #111",
-          }}
-        >
-          <Loader2 className="h-9 w-9 animate-spin" style={{ color: "#111" }} />
+        <div className="flex flex-col items-center gap-5">
+          <IconTile tone="blue">
+            <Loader2 className="animate-spin" />
+          </IconTile>
+          <h1 className="m-0 font-display text-4xl leading-none tracking-tight text-foreground">
+            verifying…
+          </h1>
+          <p className="m-0 font-body text-base text-foreground/80">
+            Hang tight — we&apos;re confirming your email.
+          </p>
         </div>
-        <h1 style={{ fontFamily: FONT.display, fontSize: 36, color: "#111", margin: "24px 0 6px", letterSpacing: -1 }}>
-          verifying…
-        </h1>
-        <p style={{ fontFamily: FONT.body, fontSize: 15, color: "#333", margin: 0 }}>
-          Hang tight — we&apos;re confirming your email.
-        </p>
       </Shell>
-    );
+    )
   }
 
   if (state === "success") {
     return (
-      <Shell>
-        <div style={{ position: "absolute", top: -20, right: 20 }}>
-          <Sticker rot={6} color="#1DBC87">
-            verified
-          </Sticker>
+      <Shell sticker={<Sticker rotate={6} tone="green">verified</Sticker>}>
+        <div className="flex flex-col items-center gap-5">
+          <IconTile tone="green">
+            <CheckCircle2 />
+          </IconTile>
+          <h1 className="m-0 font-display text-4xl leading-none tracking-tight text-foreground">
+            you&apos;re in
+          </h1>
+          <p className="m-0 font-body text-base text-foreground/80">
+            Redirecting you to onboarding…
+          </p>
         </div>
-        <div
-          className="mx-auto"
-          style={{
-            width: 72,
-            height: 72,
-            background: "#1DBC87",
-            border: "3px solid #111",
-            borderRadius: 18,
-            display: "grid",
-            placeItems: "center",
-            transform: "rotate(-4deg)",
-            boxShadow: "4px 4px 0 #111",
-          }}
-        >
-          <CheckCircle2 className="h-9 w-9" style={{ color: "#111" }} />
-        </div>
-        <h1 style={{ fontFamily: FONT.display, fontSize: 36, color: "#111", margin: "24px 0 6px", letterSpacing: -1 }}>
-          you&apos;re in
-        </h1>
-        <p style={{ fontFamily: FONT.body, fontSize: 15, color: "#333", margin: 0 }}>
-          Redirecting you to onboarding…
-        </p>
       </Shell>
-    );
+    )
   }
 
   if (state === "error") {
     return (
-      <Shell>
-        <div style={{ position: "absolute", top: -20, right: 20 }}>
-          <Sticker rot={-6} color="#F06464">
-            try again
-          </Sticker>
-        </div>
-        <div
-          className="mx-auto"
-          style={{
-            width: 72,
-            height: 72,
-            background: "#F06464",
-            border: "3px solid #111",
-            borderRadius: 18,
-            display: "grid",
-            placeItems: "center",
-            transform: "rotate(-4deg)",
-            boxShadow: "4px 4px 0 #111",
-          }}
-        >
-          <XCircle className="h-9 w-9" style={{ color: "#111" }} />
-        </div>
-        <h1 style={{ fontFamily: FONT.display, fontSize: 36, color: "#111", margin: "24px 0 6px", letterSpacing: -1 }}>
-          verification failed
-        </h1>
-        <p style={{ fontFamily: FONT.body, fontSize: 15, color: "#333", margin: "0 0 4px", lineHeight: 1.5 }}>
-          {errorMessage || "This link may have expired or already been used."}
-        </p>
-        <p
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#888",
-            marginTop: 10,
-          }}
-        >
-          {"// request a new link from login"}
-        </p>
-        <div style={{ marginTop: 22, display: "flex", gap: 10, justifyContent: "center" }}>
-          <Button href="/login" variant="dark">
-            Back to login
+      <Shell sticker={<Sticker rotate={-6} tone="red">try again</Sticker>}>
+        <div className="flex flex-col items-center gap-4">
+          <IconTile tone="red">
+            <XCircle />
+          </IconTile>
+          <h1 className="m-0 font-display text-4xl leading-none tracking-tight text-foreground">
+            verification failed
+          </h1>
+          <p className="m-0 font-body text-sm leading-relaxed text-foreground/80">
+            {errorMessage || "This link may have expired or already been used."}
+          </p>
+          <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            {"// request a new link from login"}
+          </p>
+          <Button asChild variant="brand-dark" size="brand">
+            <Link href="/login">Back to login</Link>
           </Button>
         </div>
       </Shell>
-    );
+    )
   }
 
-  // Default: "check inbox" for users right after signup (no token present)
+  // Default: "check inbox" right after signup (no token).
   return (
-    <Shell>
-      <div style={{ position: "absolute", top: -20, left: 20 }}>
-        <Sticker rot={-6} color="#F5C518">
-          check inbox
-        </Sticker>
-      </div>
-
-      <div
-        className="mx-auto"
-        style={{
-          width: 72,
-          height: 72,
-          background: "#F5C518",
-          border: "3px solid #111",
-          borderRadius: 18,
-          display: "grid",
-          placeItems: "center",
-          transform: "rotate(-4deg)",
-          boxShadow: "4px 4px 0 #111",
-        }}
-      >
-        <Mail className="h-9 w-9" style={{ color: "#111" }} />
-      </div>
-
-      <h1
-        style={{
-          fontFamily: FONT.display,
-          fontSize: 36,
-          color: "#111",
-          margin: "24px 0 6px",
-          letterSpacing: -1,
-        }}
-      >
-        check your email
-      </h1>
-      <p
-        style={{
-          fontFamily: FONT.body,
-          fontSize: 15,
-          color: "#333",
-          lineHeight: 1.5,
-          margin: 0,
-        }}
-      >
-        We&apos;ve sent a verification link to your email. Click the link to
-        activate your account.
-      </p>
-      <p
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#888",
-          marginTop: 10,
-        }}
-      >
-        {"// check spam if nothing shows"}
-      </p>
-
-      <div style={{ marginTop: 22 }}>
-        <Button href="/login" variant="dark">
-          Back to login
+    <Shell sticker={<Sticker rotate={-6} tone="yellow">check inbox</Sticker>}>
+      <div className="flex flex-col items-center gap-4">
+        <IconTile tone="yellow">
+          <Mail />
+        </IconTile>
+        <h1 className="m-0 font-display text-4xl leading-none tracking-tight text-foreground">
+          check your email
+        </h1>
+        <p className="m-0 font-body text-base leading-relaxed text-foreground/80">
+          We&apos;ve sent a verification link to your email. Click the link to
+          activate your account.
+        </p>
+        <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          {"// check spam if nothing shows"}
+        </p>
+        <Button asChild variant="brand-dark" size="brand">
+          <Link href="/login">Back to login</Link>
         </Button>
       </div>
     </Shell>
-  );
+  )
 }
 
 export default function VerifyAccount() {
   return (
     <Suspense
       fallback={
-        <div
-          className="min-h-screen flex items-center justify-center"
-          style={{ background: "#EFE7D6" }}
-        >
-          <Loader2 className="h-10 w-10 animate-spin" style={{ color: "#111" }} />
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="size-10 animate-spin text-foreground" />
         </div>
       }
     >
       <VerifyContent />
     </Suspense>
-  );
+  )
 }

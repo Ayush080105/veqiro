@@ -1,16 +1,26 @@
 import type {
   PartialBrandKitInput,
   FinalizeBrandKitInput,
-  UploadAssetInput,
+  FinalizeAssetInput,
 } from "./brand-kit.schema.js";
 import * as repo from "./brand-kit.repository.js";
 import { Prisma } from "../../../prisma/generated/prisma/client.js";
 import {
   isR2Configured,
-  uploadImageBase64,
   deleteObject,
+  headObject,
+  keyBelongsToOrg,
 } from "../../common/utils/r2.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
+
+const ALLOWED_ASSET_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+]);
+
+const MAX_ASSET_BYTES = 5 * 1024 * 1024;
 
 // ── Wire ⇄ DB translation ────────────────────────────────────────────────
 // HTTP/JSON uses camelCase (matches the Express camelize middleware + the
@@ -121,10 +131,13 @@ export const finalizeBrandKit = async (
   return serializeBrandKit(row);
 };
 
-// POST /upload-asset — uploads logo/mascot to R2, replaces any existing one.
-export const uploadAsset = async (
+// POST /upload-asset/finalize — called after the browser has PUT the file
+// directly to R2 via a presigned URL. We HeadObject to verify the upload
+// actually happened (and matches the expected size/content-type) before
+// persisting the URL/key.
+export const finalizeAssetUpload = async (
   organizationId: string,
-  input: UploadAssetInput,
+  input: FinalizeAssetInput,
 ): Promise<{ url: string; key: string; kind: "logo" | "mascot" }> => {
   if (!isR2Configured()) {
     throw new BadRequestError(
@@ -132,21 +145,23 @@ export const uploadAsset = async (
     );
   }
 
-  // Reject after-decode > 5 MB (zod cap above is on the b64 string length).
-  const cleanB64 = input.base64.replace(/^data:[^;]+;base64,/u, "");
-  const decodedBytes = Math.floor((cleanB64.length * 3) / 4);
-  if (decodedBytes > 5 * 1024 * 1024) {
-    throw new BadRequestError("Image must be under 5MB.");
+  // Defence-in-depth: a key the client posts must belong to that org.
+  // Presign already enforces this, but a malicious client might try to
+  // "claim" another org's key here.
+  if (!keyBelongsToOrg(input.key, organizationId)) {
+    throw new BadRequestError("Invalid object key.");
   }
 
-  const prefix = input.kind === "logo" ? "brand/logo" : "brand/mascot";
-
-  const { url, key } = await uploadImageBase64({
-    organizationId,
-    base64: cleanB64,
-    contentType: input.contentType,
-    prefix,
-  });
+  const head = await headObject(input.key);
+  if (!head) {
+    throw new BadRequestError("Upload not found in storage. Try again.");
+  }
+  if (!ALLOWED_ASSET_TYPES.has(head.contentType)) {
+    throw new BadRequestError("Uploaded file is not an allowed image type.");
+  }
+  if (head.size > MAX_ASSET_BYTES) {
+    throw new BadRequestError("Image must be under 5MB.");
+  }
 
   // If there was an old object, drop it from R2 (best-effort — failure
   // shouldn't block the upload, the new URL is what matters).
@@ -154,9 +169,9 @@ export const uploadAsset = async (
   const oldKey =
     input.kind === "logo" ? existing?.logo_key : existing?.mascot_key;
 
-  await repo.setBrandAsset(organizationId, input.kind, url, key);
+  await repo.setBrandAsset(organizationId, input.kind, input.url, input.key);
 
-  if (oldKey && oldKey !== key) {
+  if (oldKey && oldKey !== input.key) {
     try {
       await deleteObject(oldKey);
     } catch (err) {
@@ -167,7 +182,7 @@ export const uploadAsset = async (
     }
   }
 
-  return { url, key, kind: input.kind };
+  return { url: input.url, key: input.key, kind: input.kind };
 };
 
 // DELETE-style helper (called from PATCH with logoUrl=null) — clean up R2 too.

@@ -177,7 +177,7 @@ export const processInbox = async (
     organizationId,
     userId,
     content: `Process inbox (max ${input.maxEmails} emails)`,
-    customInput: { tool: "process-inbox", input },
+    customInput: { actionId: "vega:process-inbox", input },
   });
 
   const { data } = await aiService.post<ProcessInboxResponse>(
@@ -201,18 +201,16 @@ export const processInbox = async (
     labels_applied: exec.executed > 0 ? data.stats.labels_applied : 0,
   };
 
+  const result = { ...data, stats, executed: exec.executed, errors: exec.errors };
+
   await vegaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: `Processed ${data.stats.total_processed} emails — ${data.stats.urgent} urgent, ${data.stats.high} high (${exec.executed} node actions executed)`,
-    customInput: {
-      tool: "process-inbox",
-      output: data,
-      exec: { executed: exec.executed, errors: exec.errors },
-    },
+    customInput: { actionId: "vega:process-inbox", input, result },
   });
 
-  return { ...data, stats, executed: exec.executed, errors: exec.errors };
+  return result;
 };
 
 export const draftReply = async (
@@ -225,7 +223,7 @@ export const draftReply = async (
     organizationId,
     userId,
     content: `Draft reply to ${input.emailId}`,
-    customInput: { tool: "draft-reply", input },
+    customInput: { actionId: "vega:draft-reply", input },
   });
 
   const { data } = await aiService.post<DraftReplyResponse>("/ai/vega/draft-reply", {
@@ -246,25 +244,23 @@ export const draftReply = async (
     errors = exec.errors;
   }
 
+  const result = {
+    ...data,
+    draft: { ...data.draft, draft_id: draftId, saved: Boolean(draftId) },
+    draft_id: draftId,
+    errors,
+  };
+
   await vegaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: draftId
       ? `Gmail draft created (id: ${draftId})`
       : `Reply drafted (not saved)`,
-    customInput: {
-      tool: "draft-reply",
-      output: { ...data, draft_id: draftId },
-      errors,
-    },
+    customInput: { actionId: "vega:draft-reply", input, result },
   });
 
-  return {
-    ...data,
-    draft: { ...data.draft, draft_id: draftId, saved: Boolean(draftId) },
-    draft_id: draftId,
-    errors,
-  };
+  return result;
 };
 
 export const calendarSummary = async (
@@ -277,7 +273,7 @@ export const calendarSummary = async (
     organizationId,
     userId,
     content: `Calendar summary (${input.daysAhead} days ahead)`,
-    customInput: { tool: "calendar-summary", input },
+    customInput: { actionId: "vega:calendar-summary", input },
   });
 
   const { data } = await aiService.post<CalendarSummaryResponse>(
@@ -294,7 +290,7 @@ export const calendarSummary = async (
     organizationId,
     userId,
     content: `${data.events.length} events, ${data.conflicts.length} conflicts, ${data.free_slots.length} free slots`,
-    customInput: { tool: "calendar-summary", output: data },
+    customInput: { actionId: "vega:calendar-summary", input, result: data },
   });
 
   return data;
@@ -310,7 +306,7 @@ export const createEvent = async (
     organizationId,
     userId,
     content: `Create event: ${input.description.slice(0, 120)}`,
-    customInput: { tool: "create-event", input },
+    customInput: { actionId: "vega:create-event", input },
   });
 
   const { data } = await aiService.post<CreateEventResponse>("/ai/vega/create-event", {
@@ -334,21 +330,7 @@ export const createEvent = async (
     errors = exec.errors;
   }
 
-  await vegaRepository.createAssistantMessage({
-    organizationId,
-    userId,
-    content: googleEventId
-      ? `Event created (${googleEventId})${meetLink ? ` — ${meetLink}` : ""}`
-      : `Event parsed (not created)`,
-    customInput: {
-      tool: "create-event",
-      output: data,
-      artifacts: { googleEventId, meetLink, htmlLink },
-      errors,
-    },
-  });
-
-  return {
+  const result = {
     ...data,
     google_event_id: googleEventId ?? data.google_event_id,
     event: {
@@ -359,6 +341,17 @@ export const createEvent = async (
     },
     errors,
   };
+
+  await vegaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: googleEventId
+      ? `Event created (${googleEventId})${meetLink ? ` — ${meetLink}` : ""}`
+      : `Event parsed (not created)`,
+    customInput: { actionId: "vega:create-event", input, result },
+  });
+
+  return result;
 };
 
 export const executiveBriefing = async (
@@ -371,7 +364,7 @@ export const executiveBriefing = async (
     organizationId,
     userId,
     content: "Executive briefing",
-    customInput: { tool: "executive-briefing", input },
+    customInput: { actionId: "vega:executive-briefing", input },
   });
 
   const { data } = await aiService.post<ExecutiveBriefingResponse>(
@@ -389,7 +382,7 @@ export const executiveBriefing = async (
     organizationId,
     userId,
     content: "Briefing generated",
-    customInput: { tool: "executive-briefing", output: data },
+    customInput: { actionId: "vega:executive-briefing", input, result: data },
   });
 
   return data;
@@ -405,7 +398,7 @@ export const composeEmail = async (
     organizationId,
     userId,
     content: `Compose email to ${input.to}: ${input.subject}`,
-    customInput: { tool: "compose-email", input },
+    customInput: { actionId: "vega:compose-email", input },
   });
 
   const { data } = await aiService.post<ComposeEmailResponse>("/ai/vega/compose-email", {
@@ -427,19 +420,21 @@ export const composeEmail = async (
     errors = exec.errors;
   }
 
+  const result = {
+    ...data,
+    draft: { ...data.draft, draft_id: draftId },
+    draft_id: draftId,
+    errors,
+  };
+
   await vegaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: draftId
       ? `Gmail draft created (id: ${draftId})`
       : `Email drafted (not saved)`,
-    customInput: { tool: "compose-email", output: { ...data, draft_id: draftId }, errors },
+    customInput: { actionId: "vega:compose-email", input, result },
   });
 
-  return {
-    ...data,
-    draft: { ...data.draft, draft_id: draftId },
-    draft_id: draftId,
-    errors,
-  };
+  return result;
 };

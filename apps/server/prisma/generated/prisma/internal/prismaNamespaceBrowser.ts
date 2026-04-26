@@ -62,6 +62,8 @@ export const ModelName = {
   Message: 'Message',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
+  CompetitorWatch: 'CompetitorWatch',
+  SavedKeyword: 'SavedKeyword',
   Source: 'Source'
 } as const
 
@@ -260,6 +262,34 @@ export const PublishedPostScalarFieldEnum = {
 } as const
 
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
+
+
+export const CompetitorWatchScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  url: 'url',
+  latestHash: 'latestHash',
+  lastScannedAt: 'lastScannedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CompetitorWatchScalarFieldEnum = (typeof CompetitorWatchScalarFieldEnum)[keyof typeof CompetitorWatchScalarFieldEnum]
+
+
+export const SavedKeywordScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  keyword: 'keyword',
+  searchIntent: 'searchIntent',
+  estimatedDifficulty: 'estimatedDifficulty',
+  relevanceScore: 'relevanceScore',
+  searchVolumeEstimate: 'searchVolumeEstimate',
+  suggestedContentType: 'suggestedContentType',
+  createdAt: 'createdAt'
+} as const
+
+export type SavedKeywordScalarFieldEnum = (typeof SavedKeywordScalarFieldEnum)[keyof typeof SavedKeywordScalarFieldEnum]
 
 
 export const SourceScalarFieldEnum = {

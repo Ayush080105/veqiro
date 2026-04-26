@@ -40,17 +40,17 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 import { BrainCompletionBar } from "@/components/brain/BrainCompletionBar"
 import { AgentReadiness } from "@/components/brain/AgentReadiness"
-import { FONT, VqCard } from "@/components/veqiro/shared"
+import { Card } from "@/components/ui/card"
 import { CharCount } from "@/components/forms/CharCount"
 import { AssetUpload } from "@/components/forms/AssetUpload"
-import { BRAND_KIT_MINS } from "@/lib/validation/brandKit"
+import { BRAND_KIT_MINS } from "@/lib/schemas/brand-kit"
 
-// ─── Veqiro-themed Card + Label primitives ────────────────────────────────────
+// ─── Section Card + Label primitives ──────────────────────────────────────────
 
 function VqSectionCard({
   title,
   description,
-  shadow = "#111",
+  shadow,
   children,
 }: {
   title: string
@@ -59,47 +59,31 @@ function VqSectionCard({
   children: React.ReactNode
 }) {
   return (
-    <VqCard shadow={shadow} padding={20} style={{ marginTop: 16 }}>
+    <Card
+      variant="brand"
+      className="mt-4 px-5"
+      style={shadow ? { boxShadow: `5px 5px 0 ${shadow}` } : undefined}
+    >
       <div
-        style={{
-          fontFamily: FONT.head,
-          fontSize: 18,
-          letterSpacing: -0.3,
-          color: "#111",
-          marginBottom: description ? 4 : 16,
-        }}
+        className={`font-head text-lg tracking-tight text-foreground ${
+          description ? "mb-1" : "mb-4"
+        }`}
       >
         {title}
       </div>
       {description && (
-        <p
-          style={{
-            fontFamily: FONT.body,
-            fontSize: 13,
-            color: "#555",
-            margin: "0 0 16px",
-          }}
-        >
+        <p className="mb-4 mt-0 font-body text-[13px] text-muted-foreground">
           {description}
         </p>
       )}
       {children}
-    </VqCard>
+    </Card>
   )
 }
 
 function VqFieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        fontFamily: FONT.mono,
-        fontSize: 11,
-        letterSpacing: 2,
-        textTransform: "uppercase",
-        color: "#555",
-        marginBottom: 6,
-      }}
-    >
+    <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
       {children}
     </div>
   )

@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { X } from "lucide-react"
 
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import type { AgentConfig, BrandKit } from "@/lib/types"
 
 function ContextBlock({ kit }: { kit: BrandKit | null }) {

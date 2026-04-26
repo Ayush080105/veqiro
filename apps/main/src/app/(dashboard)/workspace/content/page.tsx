@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 

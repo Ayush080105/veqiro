@@ -20,7 +20,7 @@ import {
   type SocialPlatformSlug,
 } from "@/lib/api/integrations"
 import { qk } from "@/lib/query-keys"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Integration Config ───────────────────────────────────────────────────────
 

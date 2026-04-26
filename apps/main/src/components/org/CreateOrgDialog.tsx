@@ -4,11 +4,11 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { toast } from "sonner"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
+import { createOrganization, slugify } from "@/lib/api/organizations"
 import {
   Dialog,
   DialogContent,
@@ -30,21 +30,9 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
+import { createOrgSchema, type CreateOrgValues } from "@/lib/schemas/org"
 
-const memberSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  role: z.enum(["owner", "admin", "member"]),
-})
-
-const createOrgSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Organization name must be at least 2 characters")
-    .max(100, "Organization name must be under 100 characters"),
-  members: z.array(memberSchema).optional(),
-})
-
-type CreateOrgFormValues = z.infer<typeof createOrgSchema>
+type CreateOrgFormValues = CreateOrgValues
 
 export function CreateOrgDialog() {
   const router = useRouter()
@@ -67,14 +55,13 @@ export function CreateOrgDialog() {
     try {
       setLoading(true)
 
-      const { data: org, error: orgError } = await authClient.organization.create({
+      const result = await createOrganization({
         name: data.name,
-        slug: data.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-        onboarded: false,
+        slug: slugify(data.name),
       })
 
-      if (orgError || !org) {
-        toast.error(orgError?.message ?? "Failed to create organization")
+      if (!result.ok) {
+        toast.error(result.message)
         return
       }
 
@@ -85,7 +72,7 @@ export function CreateOrgDialog() {
             authClient.organization.inviteMember({
               email: member.email,
               role: member.role,
-              organizationId: org.id,
+              organizationId: result.id,
             })
           )
         )

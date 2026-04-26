@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { UserPlus, Trash2, Crown, Shield, User, Mail, X } from "lucide-react"
 import { toast } from "sonner"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 import { type OrgRole } from "@/lib/types"
 import { authClient } from "@/lib/auth-client"
@@ -11,7 +13,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Dialog,
@@ -39,7 +40,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
-import { PageHeader } from "@/components/veqiro/shared"
+import { PageHeader } from "@/components/ui/page-header"
+import { RhfField } from "@/components/forms/RhfField"
+import {
+  inviteMemberSchema,
+  type InviteMemberValues,
+} from "@/lib/schemas/members"
 
 // ─── Local row types (match Better Auth organization plugin response) ────────
 
@@ -102,23 +108,17 @@ function InviteDialog({
   onInvited: () => void
 }) {
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const [email, setEmail] = useState("")
-  const [role, setRole] = useState<OrgRole>("member")
-  const [loading, setLoading] = useState(false)
-  const [emailError, setEmailError] = useState("")
 
-  async function handleInvite() {
-    setEmailError("")
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError("Valid email is required")
-      return
-    }
+  const form = useForm<InviteMemberValues>({
+    resolver: zodResolver(inviteMemberSchema),
+    defaultValues: { email: "", role: "member" },
+  })
+
+  const onSubmit = async ({ email, role }: InviteMemberValues) => {
     if (!activeOrg?.id) {
       toast.error("No active organization")
       return
     }
-
-    setLoading(true)
     try {
       const { error } = await authClient.organization.inviteMember({
         email,
@@ -130,14 +130,11 @@ function InviteDialog({
         return
       }
       toast.success(`Invitation sent to ${email}`)
-      setEmail("")
-      setRole("member")
+      form.reset()
       onInvited()
       onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send invitation")
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -151,44 +148,58 @@ function InviteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 py-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="invite-email" className="text-xs font-medium">
-              Email address
-            </Label>
-            <Input
-              id="invite-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="colleague@example.com"
-            />
-            {emailError && <p className="text-xs text-destructive">{emailError}</p>}
-          </div>
+        <form
+          id="invite-member-form"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-4 py-2"
+        >
+          <RhfField
+            control={form.control}
+            name="email"
+            label="Email address"
+            required
+          >
+            {({ field, invalid, id }) => (
+              <Input
+                {...field}
+                id={id}
+                type="email"
+                placeholder="colleague@example.com"
+                aria-invalid={invalid}
+              />
+            )}
+          </RhfField>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="invite-role" className="text-xs font-medium">
-              Role
-            </Label>
-            <Select value={role} onValueChange={(v) => setRole(v as OrgRole)}>
-              <SelectTrigger id="invite-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin — full access, no billing</SelectItem>
-                <SelectItem value="member">Member — view and chat only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          <RhfField control={form.control} name="role" label="Role" required>
+            {({ field, id }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger id={id}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin — full access, no billing</SelectItem>
+                  <SelectItem value="member">Member — view and chat only</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </RhfField>
+        </form>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={form.formState.isSubmitting}
+          >
             Cancel
           </Button>
-          <Button onClick={handleInvite} disabled={loading}>
+          <Button
+            form="invite-member-form"
+            type="submit"
+            disabled={form.formState.isSubmitting}
+          >
             <UserPlus className="size-3.5" />
-            {loading ? "Sending…" : "Send invitation"}
+            {form.formState.isSubmitting ? "Sending…" : "Send invitation"}
           </Button>
         </DialogFooter>
       </DialogContent>

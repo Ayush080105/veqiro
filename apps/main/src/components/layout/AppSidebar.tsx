@@ -34,7 +34,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import Logo from "@/components/logo"
-import { FONT } from "@/components/veqiro/shared"
+import { FONT } from "@/lib/fonts"
 import { authClient } from "@/lib/auth-client"
 
 const workspaceItems = [

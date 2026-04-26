@@ -61,3 +61,35 @@ export const findAllSageMessages = (organizationId: string) =>
       customInput: true,
     },
   });
+
+// ── Saved Keywords ─────────────────────────────────────────────────────────────
+
+export const findSavedKeywords = (organizationId: string) =>
+  prisma.savedKeyword.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: "desc" },
+  });
+
+export const upsertSavedKeyword = (data: {
+  organizationId: string;
+  keyword: string;
+  searchIntent: string;
+  estimatedDifficulty: number;
+  relevanceScore: number;
+  searchVolumeEstimate?: string | null;
+  suggestedContentType: string;
+}) =>
+  prisma.savedKeyword.upsert({
+    where: { organizationId_keyword: { organizationId: data.organizationId, keyword: data.keyword } },
+    create: data,
+    update: {
+      searchIntent: data.searchIntent,
+      estimatedDifficulty: data.estimatedDifficulty,
+      relevanceScore: data.relevanceScore,
+      searchVolumeEstimate: data.searchVolumeEstimate,
+      suggestedContentType: data.suggestedContentType,
+    },
+  });
+
+export const deleteSavedKeyword = (id: string, organizationId: string) =>
+  prisma.savedKeyword.deleteMany({ where: { id, organizationId } });

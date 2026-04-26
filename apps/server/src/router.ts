@@ -13,6 +13,7 @@ import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
 import { getBrandKitInternal } from "./modules/brand-kit/brand-kit.controller.js";
 import messagesRouter from "./modules/messages/messages.routes.js";
 import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
+import uploadsRouter from "./modules/uploads/uploads.routes.js";
 
 const router = Router();
 
@@ -26,6 +27,8 @@ router.use("/dashboard", authMiddleware, dashboardRouter);
 
 router.use("/brand-kit", authMiddleware, brandKitRouter);
 router.get("/internal/brand-kit/:organizationId", internalKeyMiddleware, getBrandKitInternal);
+
+router.use("/uploads", authMiddleware, uploadsRouter);
 
 // Public OAuth callbacks (state-verified) mounted BEFORE the protected router
 router.use("/integrations", integrationsPublicRouter);

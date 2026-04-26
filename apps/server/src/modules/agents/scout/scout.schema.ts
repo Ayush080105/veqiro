@@ -17,17 +17,18 @@ export const researchCompanySchema = z.object({
   companyUrl: z.string().url().nullable().optional().default(null),
 });
 
-const competitorInputSchema = z.object({
-  name: z.string().min(1).max(120),
-  url: z.string().url(),
-  lastScanHash: z.string().nullable().optional().default(null),
-});
-
-export const scanCompetitorsSchema = z.object({
-  competitors: z.array(competitorInputSchema).min(1).max(20),
-});
-
 export const trendingTopicsSchema = z.object({
   industry: z.string().min(1).max(120),
   count: z.number().int().min(1).max(50).optional().default(10),
+});
+
+export const addCompetitorSchema = z.object({
+  name: z.string().min(1).max(120),
+  url: z.string().url(),
+});
+
+export const discoverCompetitorsSchema = z.object({
+  description: z.string().min(1).max(300),
+  industry: z.string().min(1).max(120),
+  count: z.number().int().min(1).max(20).optional().default(8),
 });

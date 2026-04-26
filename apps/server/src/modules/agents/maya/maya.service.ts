@@ -43,6 +43,7 @@ const hostImage = async (
   try {
     const { url } = await uploadImageBase64({
       organizationId,
+      name: "maya",
       base64: image.image_base64,
       contentType: image.content_type,
     });
@@ -85,6 +86,7 @@ export const sendMessage = async (
     try {
       const upload = await uploadImageBase64({
         organizationId,
+        name: "maya",
         base64: data.image.image_base64,
         contentType: data.image.content_type,
       });
@@ -123,7 +125,7 @@ export const generateIdeas = async (
     organizationId,
     userId,
     content: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
-    customInput: { tool: "generate-ideas", input },
+    customInput: { actionId: "maya:generate-ideas", input },
   });
 
   const { data } = await aiService.post<IdeationResponse>("/ai/maya/generate-ideas", {
@@ -145,7 +147,9 @@ export const generateIdeas = async (
     userId,
     content: `${data.ideas.length} ideas generated for ${input.platform}`,
     imageUrl: hostedImage?.image_url,
-    customInput: { tool: "generate-ideas", output: result },
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:generate-ideas", input, result },
   });
 
   return result;
@@ -160,7 +164,7 @@ export const draftContent = async (
     organizationId,
     userId,
     content: `Draft ${input.platform} post: ${input.topic}`,
-    customInput: { tool: "draft-content", input },
+    customInput: { actionId: "maya:draft-content", input },
   });
 
   const { data } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
@@ -184,7 +188,9 @@ export const draftContent = async (
     userId,
     content: `${data.draft.platform} draft (${data.draft.word_count} words): ${data.draft.title}`,
     imageUrl: hostedImage?.image_url,
-    customInput: { tool: "draft-content", output: result },
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:draft-content", input, result },
   });
 
   return result;
@@ -199,7 +205,7 @@ export const generateVariants = async (
     organizationId,
     userId,
     content: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
-    customInput: { tool: "generate-variants", input },
+    customInput: { actionId: "maya:generate-variants", input },
   });
 
   const { data } = await aiService.post<VariantResponse>("/ai/maya/generate-variants", {
@@ -217,13 +223,19 @@ export const generateVariants = async (
       image: await hostImage(organizationId, v.image),
     }))
   );
-  const result: VariantResponse = { variants: hostedVariants };
+  const result: VariantResponse = {
+    variants: hostedVariants,
+    tokens_used: data.tokens_used,
+    model_used: data.model_used,
+  };
 
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: `${data.variants.length} variants generated`,
-    customInput: { tool: "generate-variants", output: result },
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:generate-variants", input, result },
   });
 
   return result;
@@ -238,7 +250,7 @@ export const revise = async (
     organizationId,
     userId,
     content: `Revise ${input.platform} post`,
-    customInput: { tool: "revise", input },
+    customInput: { actionId: "maya:revise", input },
   });
 
   const { data } = await aiService.post<ReviseResponse>("/ai/maya/revise", {
@@ -254,7 +266,9 @@ export const revise = async (
     organizationId,
     userId,
     content: `Revision complete: ${data.changes_made.length} changes applied`,
-    customInput: { tool: "revise", output: data },
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:revise", input, result: data },
   });
 
   return data;
@@ -269,7 +283,7 @@ export const regenerateImage = async (
     organizationId,
     userId,
     content: `Regenerate image: ${input.prompt}`,
-    customInput: { tool: "regenerate-image", input },
+    customInput: { actionId: "maya:regenerate-image", input },
   });
 
   const { data } = await aiService.post<ImageRegenResponse>("/ai/maya/regenerate-image", {
@@ -283,14 +297,20 @@ export const regenerateImage = async (
   });
 
   const hosted = await hostImage(organizationId, data.image);
-  const result: ImageRegenResponse = { image: hosted ?? data.image };
+  const result: ImageRegenResponse = {
+    image: hosted ?? data.image,
+    tokens_used: data.tokens_used,
+    model_used: data.model_used,
+  };
 
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: "Image regenerated",
     imageUrl: result.image.image_url,
-    customInput: { tool: "regenerate-image", output: result },
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:regenerate-image", input, result },
   });
 
   return result;
@@ -305,7 +325,7 @@ export const regenerateContent = async (
     organizationId,
     userId,
     content: `Refresh caption: ${input.prompt}`,
-    customInput: { tool: "regenerate-content", input },
+    customInput: { actionId: "maya:regenerate-content", input },
   });
 
   const { data } = await aiService.post<ContentRegenResponse>(
@@ -323,7 +343,9 @@ export const regenerateContent = async (
     organizationId,
     userId,
     content: "Caption refreshed",
-    customInput: { tool: "regenerate-content", output: data },
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:regenerate-content", input, result: data },
   });
 
   return data;
@@ -354,8 +376,8 @@ export const publish = async (
     }
     const uploaded = await uploadImageBase64({
       organizationId,
+      name: "maya-publish",
       base64: input.imageBase64,
-      prefix: "maya/publish",
     });
     imageUrl = uploaded.url;
   }
@@ -427,8 +449,9 @@ export const publish = async (
       content: `Published to ${platform}${url ? `: ${url}` : ""}`,
       imageUrl,
       customInput: {
-        tool: "publish",
-        output: { platform, platformPostId, url },
+        actionId: "maya:publish",
+        input,
+        result: { platform, platformPostId, url },
       },
     });
 

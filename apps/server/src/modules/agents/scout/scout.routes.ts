@@ -4,8 +4,11 @@ import {
   getScoutMessages,
   researchTopic,
   researchCompany,
-  scanCompetitors,
   trendingTopics,
+  getCompetitors,
+  addCompetitor,
+  removeCompetitor,
+  discoverCompetitors,
 } from "./scout.controller.js";
 
 const router = Router();
@@ -14,7 +17,10 @@ router.post("/chat", msgScout);
 router.get("/chat", getScoutMessages);
 router.post("/research-topic", researchTopic);
 router.post("/research-company", researchCompany);
-router.post("/scan-competitors", scanCompetitors);
 router.post("/trending-topics", trendingTopics);
+router.get("/competitors", getCompetitors);
+router.post("/competitors", addCompetitor);
+router.delete("/competitors/:id", removeCompetitor);
+router.post("/discover-competitors", discoverCompetitors);
 
 export default router;

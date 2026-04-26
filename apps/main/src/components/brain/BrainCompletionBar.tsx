@@ -3,8 +3,8 @@
 import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
-import { FONT } from "@/components/veqiro/shared"
-import { BRAND_KIT_MINS } from "@/lib/validation/brandKit"
+import { FONT } from "@/lib/fonts"
+import { BRAND_KIT_MINS } from "@/lib/schemas/brand-kit"
 
 interface BrainCompletionBarProps {
   values: BrainFormValues

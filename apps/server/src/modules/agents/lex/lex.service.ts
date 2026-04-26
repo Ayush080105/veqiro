@@ -2,7 +2,12 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
-import { uploadBuffer, deleteObject, isR2Configured } from "../../../common/utils/r2.js";
+import {
+  deleteObject,
+  headObject,
+  isR2Configured,
+  keyBelongsToOrg,
+} from "../../../common/utils/r2.js";
 import * as lexRepository from "./lex.repository.js";
 import type {
   SendMessageInput,
@@ -97,11 +102,14 @@ const toSourceDTO = (row: {
   createdAt: row.createdAt.toISOString(),
 });
 
-export const uploadSource = async (
+const MAX_LEX_PDF_BYTES = 25 * 1024 * 1024;
+
+export const finalizeSource = async (
   userId: string,
   organizationId: string,
   input: {
-    file: { buffer: Buffer; originalname: string; mimetype: string; size: number };
+    key: string;
+    url: string;
     documentName: string;
     documentType: string;
   }
@@ -110,13 +118,23 @@ export const uploadSource = async (
     throw new BadRequestError("R2 storage is not configured on the server.");
   }
 
-  const { url: r2Url, key: r2Key } = await uploadBuffer({
-    organizationId,
-    buffer: input.file.buffer,
-    contentType: "application/pdf",
-    extension: "pdf",
-    prefix: "lex/documents",
-  });
+  // Defence-in-depth: refuse to "claim" a key that doesn't belong to this
+  // org (presign already enforces this, but a malicious client might post
+  // any key here).
+  if (!keyBelongsToOrg(input.key, organizationId)) {
+    throw new BadRequestError("Invalid object key.");
+  }
+
+  const head = await headObject(input.key);
+  if (!head) {
+    throw new BadRequestError("Upload not found in storage. Try again.");
+  }
+  if (head.contentType !== "application/pdf") {
+    throw new BadRequestError("Uploaded file must be a PDF.");
+  }
+  if (head.size > MAX_LEX_PDF_BYTES) {
+    throw new BadRequestError("PDF must be under 25MB.");
+  }
 
   await lexRepository.createUserMessage({
     organizationId,
@@ -127,8 +145,8 @@ export const uploadSource = async (
       input: {
         documentName: input.documentName,
         documentType: input.documentType,
-        sizeBytes: input.file.size,
-        r2Url,
+        sizeBytes: head.size,
+        r2Url: input.url,
       },
     },
   });
@@ -140,7 +158,7 @@ export const uploadSource = async (
       organization_id: organizationId,
       document_name: input.documentName,
       document_type: input.documentType,
-      document_url: r2Url,
+      document_url: input.url,
     }
   );
 
@@ -151,9 +169,9 @@ export const uploadSource = async (
     name: input.documentName,
     type: input.documentType,
     typeDetected: data.document_type_detected,
-    r2Key,
-    r2Url,
-    sizeBytes: input.file.size,
+    r2Key: input.key,
+    r2Url: input.url,
+    sizeBytes: head.size,
     pageCount: data.page_count,
     chunksCreated: data.chunks_created,
     summary: data.summary,
@@ -164,7 +182,7 @@ export const uploadSource = async (
     organizationId,
     userId,
     content: `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`,
-    customInput: { tool: "upload-source", output: { ...data, sourceRowId: source.id } },
+    customInput: { actionId: "lex:upload-source", result: { ...data, sourceRowId: source.id } },
   });
 
   return toSourceDTO(source);
@@ -225,7 +243,7 @@ export const queryDocument = async (
       input.query.length > 120 ? "..." : ""
     }`,
     customInput: {
-      tool: "query-document",
+      actionId: "lex:query-document",
       input: { sourceId: input.sourceId, query: input.query, topK: input.topK },
     },
   });
@@ -246,7 +264,11 @@ export const queryDocument = async (
     content: data.answer.slice(0, 500),
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { tool: "query-document", output: data },
+    customInput: {
+      actionId: "lex:query-document",
+      input: { sourceId: input.sourceId, query: input.query, topK: input.topK },
+      result: data,
+    },
   });
 
   return data;
@@ -264,7 +286,7 @@ export const analyzeContract = async (
       ? `Analyze ingested contract ${input.sourceId}`
       : "Analyze contract text",
     customInput: {
-      tool: "analyze-contract",
+      actionId: "lex:analyze-contract",
       input: {
         sourceId: input.sourceId,
         analysisFocus: input.analysisFocus,
@@ -288,7 +310,15 @@ export const analyzeContract = async (
     organizationId,
     userId,
     content: `Risk level: ${data.analysis.risk_level} — ${data.analysis.risks.length} risks identified`,
-    customInput: { tool: "analyze-contract", output: data },
+    customInput: {
+      actionId: "lex:analyze-contract",
+      input: {
+        sourceId: input.sourceId,
+        analysisFocus: input.analysisFocus,
+        contractChars: input.contractText?.length ?? 0,
+      },
+      result: data,
+    },
   });
 
   return data;
@@ -303,7 +333,7 @@ export const draftDocument = async (
     organizationId,
     userId,
     content: `Draft ${input.documentType}`,
-    customInput: { tool: "draft-document", input },
+    customInput: { actionId: "lex:draft-document", input },
   });
 
   const { data } = await aiService.post<DraftDocumentResponse>(
@@ -322,7 +352,7 @@ export const draftDocument = async (
     organizationId,
     userId,
     content: `Drafted ${input.documentType} (${data.document.length} chars)`,
-    customInput: { tool: "draft-document", output: data },
+    customInput: { actionId: "lex:draft-document", input, result: data },
   });
 
   return data;
@@ -337,7 +367,7 @@ export const explainLegalText = async (
     organizationId,
     userId,
     content: `Explain: ${input.text.slice(0, 120)}${input.text.length > 120 ? "..." : ""}`,
-    customInput: { tool: "explain", input },
+    customInput: { actionId: "lex:explain", input },
   });
 
   const { data } = await aiService.post<ExplainResponse>("/ai/lex/explain", {
@@ -351,7 +381,7 @@ export const explainLegalText = async (
     organizationId,
     userId,
     content: `Explanation ready (${data.practical_implications.length} implications, ${data.related_concepts.length} related concepts)`,
-    customInput: { tool: "explain", output: data },
+    customInput: { actionId: "lex:explain", input, result: data },
   });
 
   return data;
@@ -366,7 +396,7 @@ export const legalResearch = async (
     organizationId,
     userId,
     content: `Legal research: ${input.query}`,
-    customInput: { tool: "legal-research", input },
+    customInput: { actionId: "lex:legal-research", input },
   });
 
   const { data } = await aiService.post<LegalResearchResponse>(
@@ -384,7 +414,7 @@ export const legalResearch = async (
     organizationId,
     userId,
     content: `${data.applicable_laws.length} laws, ${data.relevant_cases.length} cases found (${data.confidence_level})`,
-    customInput: { tool: "legal-research", output: data },
+    customInput: { actionId: "lex:legal-research", input, result: data },
   });
 
   return data;
@@ -399,7 +429,7 @@ export const complianceCheck = async (
     organizationId,
     userId,
     content: `Compliance check: ${input.frameworks.join(", ")}`,
-    customInput: { tool: "compliance-check", input },
+    customInput: { actionId: "lex:compliance-check", input },
   });
 
   const { data } = await aiService.post<ComplianceCheckResponse>(
@@ -417,7 +447,7 @@ export const complianceCheck = async (
     organizationId,
     userId,
     content: `Status: ${data.overall_status} — ${data.critical_gaps.length} critical gaps, ${data.remediation_steps.length} remediation steps`,
-    customInput: { tool: "compliance-check", output: data },
+    customInput: { actionId: "lex:compliance-check", input, result: data },
   });
 
   return data;

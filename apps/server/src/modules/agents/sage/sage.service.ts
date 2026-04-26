@@ -13,6 +13,7 @@ import type {
   ContentAnalysisResponse,
   ContentBriefInput,
   ContentBriefResponse,
+  SavedKeyword,
 } from "./sage.types.js";
 
 export const sendMessage = async (
@@ -69,7 +70,7 @@ export const keywordResearch = async (
     organizationId,
     userId,
     content: `Keyword research: ${input.seedTopic}`,
-    customInput: { tool: "keyword-research", input },
+    customInput: { actionId: "sage:keyword-research", input },
   });
 
   const { data } = await aiService.post<KeywordResearchResponse>(
@@ -88,7 +89,7 @@ export const keywordResearch = async (
     organizationId,
     userId,
     content: `${data.keywords.length} keywords in ${data.clusters.length} clusters`,
-    customInput: { tool: "keyword-research", output: data },
+    customInput: { actionId: "sage:keyword-research", input, result: data },
   });
 
   return data;
@@ -103,7 +104,7 @@ export const generateBlog = async (
     organizationId,
     userId,
     content: `Blog: ${input.topic}`,
-    customInput: { tool: "generate-blog", input },
+    customInput: { actionId: "sage:generate-blog", input },
   });
 
   const { data } = await aiService.post<GenerateBlogResponse>(
@@ -126,7 +127,7 @@ export const generateBlog = async (
     organizationId,
     userId,
     content: `Generated ${data.blog.word_count}-word post (SEO score ${data.seo_score})`,
-    customInput: { tool: "generate-blog", output: data },
+    customInput: { actionId: "sage:generate-blog", input, result: data },
   });
 
   return data;
@@ -141,7 +142,7 @@ export const analyzeContent = async (
     organizationId,
     userId,
     content: `Content analysis: ${input.targetKeyword}`,
-    customInput: { tool: "analyze-content", input },
+    customInput: { actionId: "sage:analyze-content", input },
   });
 
   const { data } = await aiService.post<ContentAnalysisResponse>(
@@ -159,7 +160,7 @@ export const analyzeContent = async (
     organizationId,
     userId,
     content: `SEO score ${data.score}`,
-    customInput: { tool: "analyze-content", output: data },
+    customInput: { actionId: "sage:analyze-content", input, result: data },
   });
 
   return data;
@@ -174,7 +175,7 @@ export const contentBrief = async (
     organizationId,
     userId,
     content: `Content brief: ${input.topic}`,
-    customInput: { tool: "content-brief", input },
+    customInput: { actionId: "sage:content-brief", input },
   });
 
   const { data } = await aiService.post<ContentBriefResponse>(
@@ -192,8 +193,22 @@ export const contentBrief = async (
     organizationId,
     userId,
     content: `Brief generated for "${input.targetKeyword}"`,
-    customInput: { tool: "content-brief", output: data },
+    customInput: { actionId: "sage:content-brief", input, result: data },
   });
 
   return data;
 };
+
+// ── Saved Keywords ──────────────────────────────────────────────────────────
+
+export const listSavedKeywords = (organizationId: string): Promise<SavedKeyword[]> =>
+  sageRepository.findSavedKeywords(organizationId) as Promise<SavedKeyword[]>;
+
+export const saveKeyword = (
+  organizationId: string,
+  keyword: Omit<SavedKeyword, "id" | "createdAt" | "organizationId">
+): Promise<SavedKeyword> =>
+  sageRepository.upsertSavedKeyword({ organizationId, ...keyword }) as Promise<SavedKeyword>;
+
+export const unsaveKeyword = (id: string, organizationId: string) =>
+  sageRepository.deleteSavedKeyword(id, organizationId);
