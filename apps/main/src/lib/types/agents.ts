@@ -119,6 +119,7 @@ export interface MayaIdeationRequest {
   platform: ContentPlatform
   topic_hint?: string
   count?: number
+  use_brandkit?: boolean
 }
 
 export interface ContentIdea {
@@ -129,6 +130,7 @@ export interface ContentIdea {
   predicted_engagement: string
   reasoning: string
   suggested_hashtags: string[]
+  visual_description?: string
 }
 
 export interface MayaIdeationResult {
@@ -166,6 +168,7 @@ export interface MayaDraftResult {
     tone_used?: string
   }
   image?: ImageResult | null
+  _previousImage?: ImageResult | null
 }
 
 export interface MayaVariantRequest {
@@ -184,6 +187,7 @@ export interface MayaVariantResult {
     char_count: number
     image?: ImageResult | null
   }>
+  _originalImage?: ImageResult | null
 }
 
 export interface MayaReviseRequest {
@@ -207,7 +211,7 @@ export interface MayaReviseResult {
 export interface MayaImageRegenRequest {
   image_url: string
   prompt: string
-  platform: ContentPlatform
+  platform?: ContentPlatform
   use_logo?: boolean
   use_mascot?: boolean
 }
@@ -834,6 +838,21 @@ export interface VegaComposeEmailResult {
   errors?: string[]
 }
 
+export interface SageBlogIdeaItem {
+  title: string
+  topic: string
+  target_keyword: string
+  secondary_keywords: string[]
+  rationale: string
+  content_angle: string
+  estimated_difficulty: number
+}
+
+export interface SageGenerateBlogIdeasResult {
+  ideas: SageBlogIdeaItem[]
+  generated_at: string
+}
+
 // ─── Sage saved keywords ─────────────────────────────────────────────────────
 
 export interface SageSavedKeyword {
@@ -855,6 +874,7 @@ export type AgentActionId =
   | "sage:generate-blog"
   | "sage:analyze-content"
   | "sage:content-brief"
+  | "sage:generate-blog-ideas"
   | "maya:generate-ideas"
   | "maya:draft-content"
   | "maya:generate-variants"

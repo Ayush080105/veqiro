@@ -1,6 +1,6 @@
 -- AlterTable
-ALTER TABLE "brand_kit" ADD COLUMN IF NOT EXISTS "value_proposition" TEXT NOT NULL DEFAULT '';
-ALTER TABLE "brand_kit" ADD COLUMN IF NOT EXISTS "crawl_source" TEXT;
-ALTER TABLE "brand_kit" ADD COLUMN IF NOT EXISTS "crawled_at" TIMESTAMPTZ;
-ALTER TABLE "brand_kit" ADD COLUMN IF NOT EXISTS "crawled_content" TEXT;
-ALTER TABLE "brand_kit" ADD COLUMN IF NOT EXISTS "crawled_summary" TEXT;
+ALTER TABLE "brand_kit" ADD COLUMN "value_proposition" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "brand_kit" ADD COLUMN "crawled_content" TEXT;
+ALTER TABLE "brand_kit" ADD COLUMN "crawled_summary" TEXT;
+ALTER TABLE "brand_kit" ADD COLUMN "crawled_at" TIMESTAMP(3);
+ALTER TABLE "brand_kit" ADD COLUMN "crawl_source" TEXT;

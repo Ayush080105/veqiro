@@ -43,7 +43,12 @@ export const STEPS: StepConfig[] = [
     emoji: "①",
     title: "Who's hiring us?",
     subtitle: "The basics. So your crew knows which company's voice to speak in.",
-    fields: ["companyName", "companyDescription", "websiteUrl"],
+    fields: [
+      "companyName",
+      "companyDescription",
+      "valueProposition",
+      "websiteUrl",
+    ],
   },
   {
     slug: "step3",

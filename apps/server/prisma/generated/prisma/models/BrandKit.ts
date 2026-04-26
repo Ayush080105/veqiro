@@ -29,6 +29,7 @@ export type BrandKitMinAggregateOutputType = {
   organizationId: string | null
   company_name: string | null
   company_description: string | null
+  value_proposition: string | null
   industry: string | null
   target_audience: string | null
   brand_voice: string | null
@@ -38,6 +39,10 @@ export type BrandKitMinAggregateOutputType = {
   mascot_key: string | null
   key_differentiators: string | null
   website_url: string | null
+  crawled_content: string | null
+  crawled_summary: string | null
+  crawled_at: Date | null
+  crawl_source: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -47,6 +52,7 @@ export type BrandKitMaxAggregateOutputType = {
   organizationId: string | null
   company_name: string | null
   company_description: string | null
+  value_proposition: string | null
   industry: string | null
   target_audience: string | null
   brand_voice: string | null
@@ -56,6 +62,10 @@ export type BrandKitMaxAggregateOutputType = {
   mascot_key: string | null
   key_differentiators: string | null
   website_url: string | null
+  crawled_content: string | null
+  crawled_summary: string | null
+  crawled_at: Date | null
+  crawl_source: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -65,6 +75,7 @@ export type BrandKitCountAggregateOutputType = {
   organizationId: number
   company_name: number
   company_description: number
+  value_proposition: number
   industry: number
   target_audience: number
   brand_voice: number
@@ -77,6 +88,10 @@ export type BrandKitCountAggregateOutputType = {
   competitors: number
   key_differentiators: number
   website_url: number
+  crawled_content: number
+  crawled_summary: number
+  crawled_at: number
+  crawl_source: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -88,6 +103,7 @@ export type BrandKitMinAggregateInputType = {
   organizationId?: true
   company_name?: true
   company_description?: true
+  value_proposition?: true
   industry?: true
   target_audience?: true
   brand_voice?: true
@@ -97,6 +113,10 @@ export type BrandKitMinAggregateInputType = {
   mascot_key?: true
   key_differentiators?: true
   website_url?: true
+  crawled_content?: true
+  crawled_summary?: true
+  crawled_at?: true
+  crawl_source?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -106,6 +126,7 @@ export type BrandKitMaxAggregateInputType = {
   organizationId?: true
   company_name?: true
   company_description?: true
+  value_proposition?: true
   industry?: true
   target_audience?: true
   brand_voice?: true
@@ -115,6 +136,10 @@ export type BrandKitMaxAggregateInputType = {
   mascot_key?: true
   key_differentiators?: true
   website_url?: true
+  crawled_content?: true
+  crawled_summary?: true
+  crawled_at?: true
+  crawl_source?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -124,6 +149,7 @@ export type BrandKitCountAggregateInputType = {
   organizationId?: true
   company_name?: true
   company_description?: true
+  value_proposition?: true
   industry?: true
   target_audience?: true
   brand_voice?: true
@@ -136,6 +162,10 @@ export type BrandKitCountAggregateInputType = {
   competitors?: true
   key_differentiators?: true
   website_url?: true
+  crawled_content?: true
+  crawled_summary?: true
+  crawled_at?: true
+  crawl_source?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -218,6 +248,7 @@ export type BrandKitGroupByOutputType = {
   organizationId: string
   company_name: string
   company_description: string
+  value_proposition: string
   industry: string
   target_audience: string
   brand_voice: string
@@ -230,6 +261,10 @@ export type BrandKitGroupByOutputType = {
   competitors: runtime.JsonValue
   key_differentiators: string
   website_url: string
+  crawled_content: string | null
+  crawled_summary: string | null
+  crawled_at: Date | null
+  crawl_source: string | null
   createdAt: Date
   updatedAt: Date
   _count: BrandKitCountAggregateOutputType | null
@@ -260,6 +295,7 @@ export type BrandKitWhereInput = {
   organizationId?: Prisma.StringFilter<"BrandKit"> | string
   company_name?: Prisma.StringFilter<"BrandKit"> | string
   company_description?: Prisma.StringFilter<"BrandKit"> | string
+  value_proposition?: Prisma.StringFilter<"BrandKit"> | string
   industry?: Prisma.StringFilter<"BrandKit"> | string
   target_audience?: Prisma.StringFilter<"BrandKit"> | string
   brand_voice?: Prisma.StringFilter<"BrandKit"> | string
@@ -272,6 +308,10 @@ export type BrandKitWhereInput = {
   competitors?: Prisma.JsonFilter<"BrandKit">
   key_differentiators?: Prisma.StringFilter<"BrandKit"> | string
   website_url?: Prisma.StringFilter<"BrandKit"> | string
+  crawled_content?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  crawled_summary?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  crawled_at?: Prisma.DateTimeNullableFilter<"BrandKit"> | Date | string | null
+  crawl_source?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   createdAt?: Prisma.DateTimeFilter<"BrandKit"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BrandKit"> | Date | string
 }
@@ -281,6 +321,7 @@ export type BrandKitOrderByWithRelationInput = {
   organizationId?: Prisma.SortOrder
   company_name?: Prisma.SortOrder
   company_description?: Prisma.SortOrder
+  value_proposition?: Prisma.SortOrder
   industry?: Prisma.SortOrder
   target_audience?: Prisma.SortOrder
   brand_voice?: Prisma.SortOrder
@@ -293,6 +334,10 @@ export type BrandKitOrderByWithRelationInput = {
   competitors?: Prisma.SortOrder
   key_differentiators?: Prisma.SortOrder
   website_url?: Prisma.SortOrder
+  crawled_content?: Prisma.SortOrderInput | Prisma.SortOrder
+  crawled_summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  crawled_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  crawl_source?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -305,6 +350,7 @@ export type BrandKitWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.BrandKitWhereInput | Prisma.BrandKitWhereInput[]
   company_name?: Prisma.StringFilter<"BrandKit"> | string
   company_description?: Prisma.StringFilter<"BrandKit"> | string
+  value_proposition?: Prisma.StringFilter<"BrandKit"> | string
   industry?: Prisma.StringFilter<"BrandKit"> | string
   target_audience?: Prisma.StringFilter<"BrandKit"> | string
   brand_voice?: Prisma.StringFilter<"BrandKit"> | string
@@ -317,6 +363,10 @@ export type BrandKitWhereUniqueInput = Prisma.AtLeast<{
   competitors?: Prisma.JsonFilter<"BrandKit">
   key_differentiators?: Prisma.StringFilter<"BrandKit"> | string
   website_url?: Prisma.StringFilter<"BrandKit"> | string
+  crawled_content?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  crawled_summary?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  crawled_at?: Prisma.DateTimeNullableFilter<"BrandKit"> | Date | string | null
+  crawl_source?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   createdAt?: Prisma.DateTimeFilter<"BrandKit"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BrandKit"> | Date | string
 }, "id" | "organizationId">
@@ -326,6 +376,7 @@ export type BrandKitOrderByWithAggregationInput = {
   organizationId?: Prisma.SortOrder
   company_name?: Prisma.SortOrder
   company_description?: Prisma.SortOrder
+  value_proposition?: Prisma.SortOrder
   industry?: Prisma.SortOrder
   target_audience?: Prisma.SortOrder
   brand_voice?: Prisma.SortOrder
@@ -338,6 +389,10 @@ export type BrandKitOrderByWithAggregationInput = {
   competitors?: Prisma.SortOrder
   key_differentiators?: Prisma.SortOrder
   website_url?: Prisma.SortOrder
+  crawled_content?: Prisma.SortOrderInput | Prisma.SortOrder
+  crawled_summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  crawled_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  crawl_source?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.BrandKitCountOrderByAggregateInput
@@ -353,6 +408,7 @@ export type BrandKitScalarWhereWithAggregatesInput = {
   organizationId?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
   company_name?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
   company_description?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
+  value_proposition?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
   industry?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
   target_audience?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
   brand_voice?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
@@ -365,6 +421,10 @@ export type BrandKitScalarWhereWithAggregatesInput = {
   competitors?: Prisma.JsonWithAggregatesFilter<"BrandKit">
   key_differentiators?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
   website_url?: Prisma.StringWithAggregatesFilter<"BrandKit"> | string
+  crawled_content?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
+  crawled_summary?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
+  crawled_at?: Prisma.DateTimeNullableWithAggregatesFilter<"BrandKit"> | Date | string | null
+  crawl_source?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BrandKit"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"BrandKit"> | Date | string
 }
@@ -374,6 +434,7 @@ export type BrandKitCreateInput = {
   organizationId: string
   company_name?: string
   company_description?: string
+  value_proposition?: string
   industry?: string
   target_audience?: string
   brand_voice?: string
@@ -386,6 +447,10 @@ export type BrandKitCreateInput = {
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   key_differentiators?: string
   website_url?: string
+  crawled_content?: string | null
+  crawled_summary?: string | null
+  crawled_at?: Date | string | null
+  crawl_source?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -395,6 +460,7 @@ export type BrandKitUncheckedCreateInput = {
   organizationId: string
   company_name?: string
   company_description?: string
+  value_proposition?: string
   industry?: string
   target_audience?: string
   brand_voice?: string
@@ -407,6 +473,10 @@ export type BrandKitUncheckedCreateInput = {
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   key_differentiators?: string
   website_url?: string
+  crawled_content?: string | null
+  crawled_summary?: string | null
+  crawled_at?: Date | string | null
+  crawl_source?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -416,6 +486,7 @@ export type BrandKitUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   company_name?: Prisma.StringFieldUpdateOperationsInput | string
   company_description?: Prisma.StringFieldUpdateOperationsInput | string
+  value_proposition?: Prisma.StringFieldUpdateOperationsInput | string
   industry?: Prisma.StringFieldUpdateOperationsInput | string
   target_audience?: Prisma.StringFieldUpdateOperationsInput | string
   brand_voice?: Prisma.StringFieldUpdateOperationsInput | string
@@ -428,6 +499,10 @@ export type BrandKitUpdateInput = {
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   key_differentiators?: Prisma.StringFieldUpdateOperationsInput | string
   website_url?: Prisma.StringFieldUpdateOperationsInput | string
+  crawled_content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  crawl_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -437,6 +512,7 @@ export type BrandKitUncheckedUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   company_name?: Prisma.StringFieldUpdateOperationsInput | string
   company_description?: Prisma.StringFieldUpdateOperationsInput | string
+  value_proposition?: Prisma.StringFieldUpdateOperationsInput | string
   industry?: Prisma.StringFieldUpdateOperationsInput | string
   target_audience?: Prisma.StringFieldUpdateOperationsInput | string
   brand_voice?: Prisma.StringFieldUpdateOperationsInput | string
@@ -449,6 +525,10 @@ export type BrandKitUncheckedUpdateInput = {
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   key_differentiators?: Prisma.StringFieldUpdateOperationsInput | string
   website_url?: Prisma.StringFieldUpdateOperationsInput | string
+  crawled_content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  crawl_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -458,6 +538,7 @@ export type BrandKitCreateManyInput = {
   organizationId: string
   company_name?: string
   company_description?: string
+  value_proposition?: string
   industry?: string
   target_audience?: string
   brand_voice?: string
@@ -470,6 +551,10 @@ export type BrandKitCreateManyInput = {
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   key_differentiators?: string
   website_url?: string
+  crawled_content?: string | null
+  crawled_summary?: string | null
+  crawled_at?: Date | string | null
+  crawl_source?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -479,6 +564,7 @@ export type BrandKitUpdateManyMutationInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   company_name?: Prisma.StringFieldUpdateOperationsInput | string
   company_description?: Prisma.StringFieldUpdateOperationsInput | string
+  value_proposition?: Prisma.StringFieldUpdateOperationsInput | string
   industry?: Prisma.StringFieldUpdateOperationsInput | string
   target_audience?: Prisma.StringFieldUpdateOperationsInput | string
   brand_voice?: Prisma.StringFieldUpdateOperationsInput | string
@@ -491,6 +577,10 @@ export type BrandKitUpdateManyMutationInput = {
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   key_differentiators?: Prisma.StringFieldUpdateOperationsInput | string
   website_url?: Prisma.StringFieldUpdateOperationsInput | string
+  crawled_content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  crawl_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -500,6 +590,7 @@ export type BrandKitUncheckedUpdateManyInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   company_name?: Prisma.StringFieldUpdateOperationsInput | string
   company_description?: Prisma.StringFieldUpdateOperationsInput | string
+  value_proposition?: Prisma.StringFieldUpdateOperationsInput | string
   industry?: Prisma.StringFieldUpdateOperationsInput | string
   target_audience?: Prisma.StringFieldUpdateOperationsInput | string
   brand_voice?: Prisma.StringFieldUpdateOperationsInput | string
@@ -512,6 +603,10 @@ export type BrandKitUncheckedUpdateManyInput = {
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   key_differentiators?: Prisma.StringFieldUpdateOperationsInput | string
   website_url?: Prisma.StringFieldUpdateOperationsInput | string
+  crawled_content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  crawled_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  crawl_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -521,6 +616,7 @@ export type BrandKitCountOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   company_name?: Prisma.SortOrder
   company_description?: Prisma.SortOrder
+  value_proposition?: Prisma.SortOrder
   industry?: Prisma.SortOrder
   target_audience?: Prisma.SortOrder
   brand_voice?: Prisma.SortOrder
@@ -533,6 +629,10 @@ export type BrandKitCountOrderByAggregateInput = {
   competitors?: Prisma.SortOrder
   key_differentiators?: Prisma.SortOrder
   website_url?: Prisma.SortOrder
+  crawled_content?: Prisma.SortOrder
+  crawled_summary?: Prisma.SortOrder
+  crawled_at?: Prisma.SortOrder
+  crawl_source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -542,6 +642,7 @@ export type BrandKitMaxOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   company_name?: Prisma.SortOrder
   company_description?: Prisma.SortOrder
+  value_proposition?: Prisma.SortOrder
   industry?: Prisma.SortOrder
   target_audience?: Prisma.SortOrder
   brand_voice?: Prisma.SortOrder
@@ -551,6 +652,10 @@ export type BrandKitMaxOrderByAggregateInput = {
   mascot_key?: Prisma.SortOrder
   key_differentiators?: Prisma.SortOrder
   website_url?: Prisma.SortOrder
+  crawled_content?: Prisma.SortOrder
+  crawled_summary?: Prisma.SortOrder
+  crawled_at?: Prisma.SortOrder
+  crawl_source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -560,6 +665,7 @@ export type BrandKitMinOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   company_name?: Prisma.SortOrder
   company_description?: Prisma.SortOrder
+  value_proposition?: Prisma.SortOrder
   industry?: Prisma.SortOrder
   target_audience?: Prisma.SortOrder
   brand_voice?: Prisma.SortOrder
@@ -569,6 +675,10 @@ export type BrandKitMinOrderByAggregateInput = {
   mascot_key?: Prisma.SortOrder
   key_differentiators?: Prisma.SortOrder
   website_url?: Prisma.SortOrder
+  crawled_content?: Prisma.SortOrder
+  crawled_summary?: Prisma.SortOrder
+  crawled_at?: Prisma.SortOrder
+  crawl_source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -580,6 +690,7 @@ export type BrandKitSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   organizationId?: boolean
   company_name?: boolean
   company_description?: boolean
+  value_proposition?: boolean
   industry?: boolean
   target_audience?: boolean
   brand_voice?: boolean
@@ -592,6 +703,10 @@ export type BrandKitSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   competitors?: boolean
   key_differentiators?: boolean
   website_url?: boolean
+  crawled_content?: boolean
+  crawled_summary?: boolean
+  crawled_at?: boolean
+  crawl_source?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["brandKit"]>
@@ -601,6 +716,7 @@ export type BrandKitSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   organizationId?: boolean
   company_name?: boolean
   company_description?: boolean
+  value_proposition?: boolean
   industry?: boolean
   target_audience?: boolean
   brand_voice?: boolean
@@ -613,6 +729,10 @@ export type BrandKitSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   competitors?: boolean
   key_differentiators?: boolean
   website_url?: boolean
+  crawled_content?: boolean
+  crawled_summary?: boolean
+  crawled_at?: boolean
+  crawl_source?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["brandKit"]>
@@ -622,6 +742,7 @@ export type BrandKitSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   organizationId?: boolean
   company_name?: boolean
   company_description?: boolean
+  value_proposition?: boolean
   industry?: boolean
   target_audience?: boolean
   brand_voice?: boolean
@@ -634,6 +755,10 @@ export type BrandKitSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   competitors?: boolean
   key_differentiators?: boolean
   website_url?: boolean
+  crawled_content?: boolean
+  crawled_summary?: boolean
+  crawled_at?: boolean
+  crawl_source?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["brandKit"]>
@@ -643,6 +768,7 @@ export type BrandKitSelectScalar = {
   organizationId?: boolean
   company_name?: boolean
   company_description?: boolean
+  value_proposition?: boolean
   industry?: boolean
   target_audience?: boolean
   brand_voice?: boolean
@@ -655,11 +781,15 @@ export type BrandKitSelectScalar = {
   competitors?: boolean
   key_differentiators?: boolean
   website_url?: boolean
+  crawled_content?: boolean
+  crawled_summary?: boolean
+  crawled_at?: boolean
+  crawl_source?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BrandKitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "company_name" | "company_description" | "industry" | "target_audience" | "brand_voice" | "logo_url" | "logo_key" | "mascot_url" | "mascot_key" | "brand_colors" | "platform_tones" | "competitors" | "key_differentiators" | "website_url" | "createdAt" | "updatedAt", ExtArgs["result"]["brandKit"]>
+export type BrandKitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "company_name" | "company_description" | "value_proposition" | "industry" | "target_audience" | "brand_voice" | "logo_url" | "logo_key" | "mascot_url" | "mascot_key" | "brand_colors" | "platform_tones" | "competitors" | "key_differentiators" | "website_url" | "crawled_content" | "crawled_summary" | "crawled_at" | "crawl_source" | "createdAt" | "updatedAt", ExtArgs["result"]["brandKit"]>
 
 export type $BrandKitPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BrandKit"
@@ -669,6 +799,7 @@ export type $BrandKitPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     organizationId: string
     company_name: string
     company_description: string
+    value_proposition: string
     industry: string
     target_audience: string
     brand_voice: string
@@ -681,6 +812,10 @@ export type $BrandKitPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     competitors: runtime.JsonValue
     key_differentiators: string
     website_url: string
+    crawled_content: string | null
+    crawled_summary: string | null
+    crawled_at: Date | null
+    crawl_source: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["brandKit"]>
@@ -1110,6 +1245,7 @@ export interface BrandKitFieldRefs {
   readonly organizationId: Prisma.FieldRef<"BrandKit", 'String'>
   readonly company_name: Prisma.FieldRef<"BrandKit", 'String'>
   readonly company_description: Prisma.FieldRef<"BrandKit", 'String'>
+  readonly value_proposition: Prisma.FieldRef<"BrandKit", 'String'>
   readonly industry: Prisma.FieldRef<"BrandKit", 'String'>
   readonly target_audience: Prisma.FieldRef<"BrandKit", 'String'>
   readonly brand_voice: Prisma.FieldRef<"BrandKit", 'String'>
@@ -1122,6 +1258,10 @@ export interface BrandKitFieldRefs {
   readonly competitors: Prisma.FieldRef<"BrandKit", 'Json'>
   readonly key_differentiators: Prisma.FieldRef<"BrandKit", 'String'>
   readonly website_url: Prisma.FieldRef<"BrandKit", 'String'>
+  readonly crawled_content: Prisma.FieldRef<"BrandKit", 'String'>
+  readonly crawled_summary: Prisma.FieldRef<"BrandKit", 'String'>
+  readonly crawled_at: Prisma.FieldRef<"BrandKit", 'DateTime'>
+  readonly crawl_source: Prisma.FieldRef<"BrandKit", 'String'>
   readonly createdAt: Prisma.FieldRef<"BrandKit", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"BrandKit", 'DateTime'>
 }

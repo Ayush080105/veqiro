@@ -82,6 +82,7 @@ export interface PlatformTones {
 export interface BrandKit {
   companyName: string
   companyDescription: string
+  valueProposition: string
   industry: string
   targetAudience: string
   brandVoice: string
@@ -94,6 +95,10 @@ export interface BrandKit {
   competitors: string[]
   keyDifferentiators: string
   websiteUrl: string
+  crawledContent: string | null
+  crawledSummary: string | null
+  crawledAt: string | null
+  crawlSource: string | null
 }
 
 // ─── Brain Form Types ────────────────────────────────────────────────────────
@@ -101,6 +106,7 @@ export interface BrandKit {
 export interface BrainFormValues {
   companyName: string
   companyDescription: string
+  valueProposition: string
   websiteUrl: string
   industry: string
   targetAudience: string
@@ -113,6 +119,8 @@ export interface BrainFormValues {
   logoKey: string | null
   mascotUrl: string | null
   mascotKey: string | null
+  crawledContent: string | null
+  crawledSummary: string | null
 }
 
 // ─── Org Types ────────────────────────────────────────────────────────────────

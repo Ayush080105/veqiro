@@ -101,6 +101,7 @@ export interface ChatMessageProps {
   /** Optional callback wired by the chat page so result cards can launch
    * follow-up actions (e.g. revise/adapt/regen) with prefill from the result. */
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+  onRevertImage?: () => void
 }
 
 export function ChatMessage({
@@ -110,6 +111,7 @@ export function ChatMessage({
   agentColor,
   isLex,
   onFollowUpAction,
+  onRevertImage,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const time = formatMessageTime(message.createdAt)
@@ -180,6 +182,7 @@ export function ChatMessage({
             actionId={actionId}
             result={message.customInput.result}
             onFollowUpAction={onFollowUpAction}
+            onRevertImage={onRevertImage}
           />
         ) : (
           <div

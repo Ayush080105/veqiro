@@ -42,7 +42,7 @@ import type {
   AgentConfig,
   AgentSlug,
 } from "@/lib/types"
-import type { AgentActionId } from "@/lib/types/agents"
+import type { AgentActionId, MayaDraftResult, MayaImageRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 
 function ChatHeader({
@@ -403,6 +403,31 @@ export default function AssistantChatPage() {
 
   const handleActionComplete = useCallback(
     (ctx: ActionResultContext<unknown, unknown>) => {
+      if (ctx.actionId === "maya:regenerate-image") {
+        const regenResult = ctx.result as MayaImageRegenResult
+        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
+          if (!prev) return prev
+          const msgs = [...prev]
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const m = msgs[i]
+            if (m.customInput?.actionId === "maya:draft-content") {
+              const r = m.customInput.result as MayaDraftResult
+              msgs[i] = {
+                ...m,
+                customInput: {
+                  ...m.customInput,
+                  result: { ...r, _previousImage: r.image ?? null, image: regenResult.image },
+                },
+              }
+              break
+            }
+          }
+          return msgs
+        })
+        toast.success("Image regenerated.")
+        return
+      }
+
       const meta = findAction(ctx.actionId)
       const msg: Message = {
         role: "assistant",
@@ -420,6 +445,27 @@ export default function AssistantChatPage() {
         (prev) => [...(prev ?? []), msg],
       )
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
+    },
+    [queryClient, id, organizationId],
+  )
+
+  const handleRevertImage = useCallback(
+    (msgIndex: number) => {
+      queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
+        if (!prev || msgIndex >= prev.length) return prev
+        const msgs = [...prev]
+        const m = msgs[msgIndex]
+        const r = m.customInput?.result as MayaDraftResult | undefined
+        if (!r?._previousImage) return prev
+        msgs[msgIndex] = {
+          ...m,
+          customInput: {
+            ...m.customInput!,
+            result: { ...r, image: r._previousImage, _previousImage: null },
+          },
+        }
+        return msgs
+      })
     },
     [queryClient, id, organizationId],
   )
@@ -682,6 +728,7 @@ export default function AssistantChatPage() {
               agentColor={agentColor}
               isLex={isLex}
               onFollowUpAction={openAction}
+              onRevertImage={() => handleRevertImage(i)}
             />
           ))}
           {isLoading && (

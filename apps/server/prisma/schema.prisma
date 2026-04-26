@@ -145,24 +145,29 @@ model Invitation {
 }
 
 model BrandKit {
-  id                  String   @id @default(uuid())
-  organizationId      String   @unique
-  company_name        String   @default("")
-  company_description String   @default("")
-  industry            String   @default("")
-  target_audience     String   @default("")
-  brand_voice         String   @default("")
+  id                  String    @id @default(uuid())
+  organizationId      String    @unique
+  company_name        String    @default("")
+  company_description String    @default("")
+  value_proposition   String    @default("")
+  industry            String    @default("")
+  target_audience     String    @default("")
+  brand_voice         String    @default("")
   logo_url            String?
   logo_key            String?
   mascot_url          String?
   mascot_key          String?
-  brand_colors        Json     @default("{}")
-  platform_tones      Json     @default("{}")
-  competitors         Json     @default("[]")
-  key_differentiators String   @default("")
-  website_url         String   @default("")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  brand_colors        Json      @default("{}")
+  platform_tones      Json      @default("{}")
+  competitors         Json      @default("[]")
+  key_differentiators String    @default("")
+  website_url         String    @default("")
+  crawled_content     String?
+  crawled_summary     String?
+  crawled_at          DateTime?
+  crawl_source        String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@index([organizationId])
   @@map("brand_kit")

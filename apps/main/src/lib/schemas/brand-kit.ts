@@ -3,7 +3,9 @@ import { z } from "zod"
 // Single source of truth — must mirror apps/server/src/modules/brand-kit/brand-kit.schema.ts.
 // If you change a minimum here, change it server-side too. Server is authoritative.
 export const BRAND_KIT_MINS = {
+  companyName: 3,
   companyDescription: 120,
+  valueProposition: 60,
   targetAudience: 100,
   keyDifferentiators: 80,
 } as const
@@ -29,7 +31,13 @@ const optionalUrl = z
 // Used in the onboarding flow's final submit. Auto-save flows use a permissive
 // per-field check (just the typing of the field, no required minimums).
 export const finalizeBrainSchema = z.object({
-  companyName: z.string().min(2, "Company name is required").max(200),
+  companyName: z
+    .string()
+    .min(
+      BRAND_KIT_MINS.companyName,
+      `Company name needs at least ${BRAND_KIT_MINS.companyName} characters`,
+    )
+    .max(200),
   companyDescription: z
     .string()
     .min(
@@ -37,6 +45,13 @@ export const finalizeBrainSchema = z.object({
       `Add a bit more — agents need ~1–2 sentences (min ${BRAND_KIT_MINS.companyDescription} chars)`,
     )
     .max(2000),
+  valueProposition: z
+    .string()
+    .min(
+      BRAND_KIT_MINS.valueProposition,
+      `One sentence: what problem you solve and what the customer gets (min ${BRAND_KIT_MINS.valueProposition} chars)`,
+    )
+    .max(500),
   industry: z.string().min(2, "Pick an industry").max(200),
   targetAudience: z
     .string()
@@ -77,6 +92,9 @@ export const finalizeBrainSchema = z.object({
       `Why you, not them — bullets work (min ${BRAND_KIT_MINS.keyDifferentiators} chars)`,
     )
     .max(2000),
+  crawledContent: z.string().max(20000).nullable().optional(),
+  crawledSummary: z.string().max(4000).nullable().optional(),
+  crawlSource: z.string().max(50).nullable().optional(),
 })
 
 export type FinalizeBrainValues = z.infer<typeof finalizeBrainSchema>
@@ -85,6 +103,7 @@ export type FinalizeBrainValues = z.infer<typeof finalizeBrainSchema>
 export const brainAutosaveSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
   companyDescription: z.string(),
+  valueProposition: z.string(),
   websiteUrl: z.string(),
   industry: z.string(),
   targetAudience: z.string(),
@@ -105,13 +124,20 @@ export const brainAutosaveSchema = z.object({
   logoKey: z.string().nullable(),
   mascotUrl: z.string().nullable(),
   mascotKey: z.string().nullable(),
+  crawledContent: z.string().nullable(),
+  crawledSummary: z.string().nullable(),
 })
 
 export type BrainAutosaveValues = z.infer<typeof brainAutosaveSchema>
 
 // ── Onboarding flow — strict mins gated step-by-step via form.trigger ──
 export const onboardingSchema = z.object({
-  companyName: z.string().min(2, "Company name is required"),
+  companyName: z
+    .string()
+    .min(
+      BRAND_KIT_MINS.companyName,
+      `Company name needs at least ${BRAND_KIT_MINS.companyName} characters`,
+    ),
   companyDescription: z
     .string()
     .min(
@@ -119,6 +145,13 @@ export const onboardingSchema = z.object({
       `Add a bit more — agents need ~1–2 sentences (min ${BRAND_KIT_MINS.companyDescription} chars)`,
     )
     .max(2000),
+  valueProposition: z
+    .string()
+    .min(
+      BRAND_KIT_MINS.valueProposition,
+      `One sentence: what problem you solve and what the customer gets (min ${BRAND_KIT_MINS.valueProposition} chars)`,
+    )
+    .max(500),
   industry: z.string().min(1, "Pick an industry"),
   targetAudience: z
     .string()
@@ -151,6 +184,10 @@ export const onboardingSchema = z.object({
       `Why you, not them — bullets work (min ${BRAND_KIT_MINS.keyDifferentiators} chars)`,
     )
     .max(2000),
+  // Filled by the Auto-fill button or by the background crawl on finalize.
+  // User can edit before finalizing.
+  crawledSummary: z.string().max(4000).nullable().optional(),
+  crawledContent: z.string().max(20000).nullable().optional(),
 })
 
 export type OnboardingValues = z.infer<typeof onboardingSchema>

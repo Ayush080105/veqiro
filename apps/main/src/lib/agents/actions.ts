@@ -51,6 +51,14 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       description: "Produce a strategic content brief with competitor gap analysis.",
       icon: "ClipboardList",
     },
+    {
+      id: "sage:generate-blog-ideas",
+      agent: "sage",
+      endpoint: "generate-blog-ideas",
+      label: "Blog post ideas",
+      description: "Generate trending blog topics tailored to your company from the brandkit.",
+      icon: "Sparkles",
+    },
   ],
   maya: [
     {

@@ -302,6 +302,37 @@ class ContentBriefResponse(BaseModel):
     model_used: str = ""
 
 
+class BlogIdeaItem(BaseModel):
+    title: str
+    topic: str
+    target_keyword: str
+    secondary_keywords: list[str] = []
+    rationale: str = ""
+    content_angle: str = ""
+    estimated_difficulty: int = 50
+
+    @field_validator("estimated_difficulty", mode="before")
+    @classmethod
+    def coerce_difficulty(cls, v: object) -> int:
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return 50
+
+
+class GenerateBlogIdeasRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    count: int = 5
+
+
+class GenerateBlogIdeasResponse(BaseModel):
+    ideas: list[BlogIdeaItem]
+    generated_at: str = ""
+    tokens_used: int = 0
+    model_used: str = ""
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Sage chat")
@@ -954,4 +985,151 @@ async def content_brief(request: ContentBriefRequest) -> ContentBriefResponse:
         )
     except Exception:
         _log.exception("sage/content-brief failed")
+        raise
+
+
+@router.post("/generate-blog-ideas", response_model=GenerateBlogIdeasResponse, summary="Generate blog post ideas")
+async def generate_blog_ideas(request: GenerateBlogIdeasRequest) -> GenerateBlogIdeasResponse:
+    """Generate trending blog post ideas tailored to the company's brandkit."""
+    try:
+        from core.brand_kit import load_brand_kit
+
+        brand_kit = await load_brand_kit(request.organization_id)
+        generated_at = datetime.now(timezone.utc).isoformat()
+
+        if settings.MOCK_MODE:
+            ideas = [
+                BlogIdeaItem(
+                    title=f"How {brand_kit.company_name or 'AI Tools'} Is Changing the Way Founders Build in 2025",
+                    topic="AI-powered founder productivity and business operations",
+                    target_keyword="AI tools for founders 2025",
+                    secondary_keywords=["founder productivity", "startup AI stack", "AI automation"],
+                    rationale="Founders are actively searching for ways to reduce operational overhead; this positions your product at the intersection of a high-intent commercial query.",
+                    content_angle="Walk through a day-in-the-life of a founder who delegates repetitive work to AI — show the before/after time savings with real numbers.",
+                    estimated_difficulty=38,
+                ),
+                BlogIdeaItem(
+                    title=f"The {brand_kit.industry or 'SaaS'} Founder's Guide to Scaling Without Hiring",
+                    topic="Lean scaling strategies using AI and automation for early-stage startups",
+                    target_keyword=f"scaling {brand_kit.industry or 'startup'} without hiring",
+                    secondary_keywords=["lean startup operations", "AI agents for business", "no-hire scale"],
+                    rationale="Budget-constrained founders are searching for alternatives to headcount growth; combines high SEO opportunity with strong brand alignment.",
+                    content_angle="Contrast the traditional hire-to-scale model with an AI-first operations stack, and show exactly which roles can be augmented first.",
+                    estimated_difficulty=31,
+                ),
+                BlogIdeaItem(
+                    title=f"10 Ways {brand_kit.target_audience or 'Startup Founders'} Are Using AI to Outpace Competitors in 2025",
+                    topic="Practical AI use cases for competitive advantage in startup contexts",
+                    target_keyword="AI competitive advantage startups",
+                    secondary_keywords=["startup AI use cases", "AI business strategy", "competitive intelligence AI"],
+                    rationale="Listicle format captures featured snippet opportunities; high share potential on LinkedIn among your target audience.",
+                    content_angle="Interview-style listicle — frame each use case as something a real founder discovered, making the content feel earned and credible.",
+                    estimated_difficulty=45,
+                ),
+                BlogIdeaItem(
+                    title="The Real Cost of Not Using AI in Your Business (2025 Data)",
+                    topic="Quantifying the opportunity cost of manual processes vs AI-augmented workflows",
+                    target_keyword="cost of not using AI business",
+                    secondary_keywords=["AI ROI for startups", "AI time savings", "manual vs automated workflow"],
+                    rationale="Loss-aversion framing consistently outperforms benefit-led headlines; taps into a growing search trend as AI adoption becomes mainstream.",
+                    content_angle="Lead with a provocative cost calculation (hours × hourly rate × manual tasks), then reveal how AI addresses each line item.",
+                    estimated_difficulty=28,
+                ),
+                BlogIdeaItem(
+                    title=f"What the Best {brand_kit.industry or 'Tech'} Founders Do in the First 90 Days",
+                    topic="High-leverage early-stage founder habits and tooling decisions",
+                    target_keyword=f"first 90 days {brand_kit.industry or 'startup'} founder",
+                    secondary_keywords=["early stage startup checklist", "founder habits", "startup operations 90 days"],
+                    rationale="High-intent audience researching what 'good' looks like; strong internal linking opportunity to product-specific content.",
+                    content_angle="Structure as a day-by-day playbook with explicit tool and AI recommendations woven in naturally at each stage.",
+                    estimated_difficulty=33,
+                ),
+            ]
+            return GenerateBlogIdeasResponse(ideas=ideas[:request.count], generated_at=generated_at)
+
+        from agents.scout.scraper import serper_search, google_autocomplete
+
+        # Build company context for the prompt
+        company_ctx_parts = []
+        if brand_kit.company_name:
+            company_ctx_parts.append(f"Company: {brand_kit.company_name}")
+        if brand_kit.company_description:
+            company_ctx_parts.append(f"Description: {brand_kit.company_description}")
+        if brand_kit.industry:
+            company_ctx_parts.append(f"Industry: {brand_kit.industry}")
+        if brand_kit.target_audience:
+            company_ctx_parts.append(f"Target audience: {brand_kit.target_audience}")
+        if brand_kit.key_differentiators:
+            company_ctx_parts.append(f"Key differentiators: {', '.join(brand_kit.key_differentiators[:5])}")
+        company_ctx = "\n".join(company_ctx_parts) if company_ctx_parts else "Early-stage SaaS startup"
+
+        # Research trending topics in the company's space
+        year = datetime.now(timezone.utc).year
+        industry = brand_kit.industry or "startup"
+        audience = brand_kit.target_audience or "founders"
+
+        trending_results, autocomplete_terms = await asyncio.gather(
+            serper_search(f"trending {industry} blog topics {year} {audience}"),
+            google_autocomplete(f"best blog topics for {industry} {year}"),
+        )
+
+        trending_snippets = "\n".join(
+            f"- {r['title']}: {r.get('snippet', '')}"
+            for r in trending_results[:8] if r.get("title")
+        )
+        autocomplete_str = ", ".join(autocomplete_terms[:12]) if autocomplete_terms else ""
+
+        serp_context = ""
+        if trending_snippets:
+            serp_context += f"\n\nCurrently trending content in '{industry}':\n{trending_snippets}"
+        if autocomplete_str:
+            serp_context += f"\n\nWhat people are searching for: {autocomplete_str}"
+
+        system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        prompt = (
+            f"Generate {request.count} high-quality, trendy blog post IDEAS for this company.\n\n"
+            f"Company context:\n{company_ctx}\n"
+            f"{serp_context}\n\n"
+            "Requirements:\n"
+            "- Each idea must be genuinely relevant to the company's industry and target audience\n"
+            "- Titles must be specific, compelling, and optimised for SEO — not generic\n"
+            "- Target keywords must be realistic search queries people actually use\n"
+            "- Rationale must explain WHY this topic is trending/high-value for this company specifically\n"
+            "- Content angle must describe a distinctive hook that makes this post stand out vs competitors\n\n"
+            "Return JSON with a key 'ideas' containing an array of objects. Each object must have:\n"
+            "- title: compelling, SEO-optimised blog post title\n"
+            "- topic: one-sentence description of the content theme\n"
+            "- target_keyword: the primary search keyword to rank for\n"
+            "- secondary_keywords: array of 3-5 related keywords\n"
+            "- rationale: 1-2 sentences on WHY this is valuable for this company right now\n"
+            "- content_angle: 1-2 sentences describing the distinctive hook/perspective\n"
+            "- estimated_difficulty: integer 1-100 (SEO difficulty)\n\n"
+            "Return ONLY JSON, no markdown fences."
+        )
+
+        raw = await _llm.complete(
+            provider=_agent.default_provider,
+            model=_agent.default_model,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=4000,
+        )
+        tokens_used = _llm.count_tokens(raw)
+
+        data = safe_json_loads(raw)
+        ideas: list[BlogIdeaItem] = []
+        for item in data.get("ideas", [])[:request.count]:
+            try:
+                ideas.append(BlogIdeaItem(**item))
+            except Exception as e:
+                _log.warning("Skipping invalid blog idea %s: %s", item, e)
+
+        return GenerateBlogIdeasResponse(
+            ideas=ideas,
+            generated_at=generated_at,
+            tokens_used=tokens_used,
+            model_used=_agent.default_model,
+        )
+    except Exception:
+        _log.exception("sage/generate-blog-ideas failed")
         raise

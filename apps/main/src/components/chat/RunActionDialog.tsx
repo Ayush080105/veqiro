@@ -11,6 +11,7 @@ import {
   SageGenerateBlogForm,
   SageAnalyzeContentForm,
   SageContentBriefForm,
+  SageGenerateBlogIdeasForm,
 } from "@/components/agents/sage/forms"
 // Maya forms
 import {
@@ -122,9 +123,13 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
           ? "Target keyword is required."
           : null,
   },
+  "sage:generate-blog-ideas": {
+    defaultValue: { count: 5 },
+    Form: SageGenerateBlogIdeasForm,
+  },
 
   "maya:generate-ideas": {
-    defaultValue: { platform: "linkedin", count: 5, topic_hint: "" },
+    defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },
     Form: MayaIdeationForm,
   },
   "maya:draft-content": {

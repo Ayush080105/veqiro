@@ -12,6 +12,7 @@ import {
   keyBelongsToOrg,
 } from "../../common/utils/r2.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
+import { crawlWebsite, type CrawlResult } from "./crawler.js";
 
 const ALLOWED_ASSET_TYPES = new Set([
   "image/png",
@@ -35,6 +36,7 @@ export interface BrandKitDto {
   organizationId: string;
   companyName: string;
   companyDescription: string;
+  valueProposition: string;
   industry: string;
   targetAudience: string;
   brandVoice: string;
@@ -47,6 +49,10 @@ export interface BrandKitDto {
   competitors: string[];
   keyDifferentiators: string;
   websiteUrl: string;
+  crawledContent: string | null;
+  crawledSummary: string | null;
+  crawledAt: Date | null;
+  crawlSource: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +62,7 @@ export const serializeBrandKit = (row: BrandKitRow): BrandKitDto => ({
   organizationId: row.organizationId,
   companyName: row.company_name,
   companyDescription: row.company_description,
+  valueProposition: row.value_proposition,
   industry: row.industry,
   targetAudience: row.target_audience,
   brandVoice: row.brand_voice,
@@ -68,6 +75,10 @@ export const serializeBrandKit = (row: BrandKitRow): BrandKitDto => ({
   competitors: (row.competitors as string[]) ?? [],
   keyDifferentiators: row.key_differentiators,
   websiteUrl: row.website_url,
+  crawledContent: row.crawled_content,
+  crawledSummary: row.crawled_summary,
+  crawledAt: row.crawled_at,
+  crawlSource: row.crawl_source,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });
@@ -79,6 +90,8 @@ const toPrismaInput = (
   if (input.companyName !== undefined) data.company_name = input.companyName;
   if (input.companyDescription !== undefined)
     data.company_description = input.companyDescription;
+  if (input.valueProposition !== undefined)
+    data.value_proposition = input.valueProposition;
   if (input.industry !== undefined) data.industry = input.industry;
   if (input.targetAudience !== undefined)
     data.target_audience = input.targetAudience;
@@ -96,6 +109,12 @@ const toPrismaInput = (
   if (input.keyDifferentiators !== undefined)
     data.key_differentiators = input.keyDifferentiators;
   if (input.websiteUrl !== undefined) data.website_url = input.websiteUrl;
+  if (input.crawledContent !== undefined)
+    data.crawled_content = input.crawledContent;
+  if (input.crawledSummary !== undefined)
+    data.crawled_summary = input.crawledSummary;
+  if (input.crawlSource !== undefined) data.crawl_source = input.crawlSource;
+  // crawled_at is set whenever a new crawl is persisted (see persistCrawl).
   return data;
 };
 
@@ -128,7 +147,64 @@ export const finalizeBrandKit = async (
 ) => {
   const data = toPrismaInput(input);
   const row = await repo.upsertBrandKitAndMarkOnboarded(organizationId, data);
+
+  // Best-effort background crawl: if a website was provided and we don't yet
+  // have crawled context for this org, fire-and-forget Jina Reader so brain
+  // and agents have richer grounding next time they load. Failures only log.
+  const shouldBackgroundCrawl =
+    !!input.websiteUrl &&
+    /^https?:\/\//u.test(input.websiteUrl) &&
+    !row.crawled_content;
+  if (shouldBackgroundCrawl) {
+    setImmediate(() => {
+      void crawlAndPersist(organizationId, input.websiteUrl as string).catch(
+        (err) => {
+          console.warn(
+            `[brand-kit] background crawl failed for org ${organizationId}:`,
+            err,
+          );
+        },
+      );
+    });
+  }
+
   return serializeBrandKit(row);
+};
+
+// Used by both POST /scrape (when client wants to persist immediately) and the
+// background crawl on finalize. Sets the four crawl_* columns atomically.
+export const persistCrawl = async (
+  organizationId: string,
+  result: CrawlResult,
+) => {
+  const data: Prisma.BrandKitUncheckedUpdateInput = {
+    crawled_content: result.content,
+    crawled_summary: result.summary,
+    crawled_at: new Date(),
+    crawl_source: result.source,
+  };
+  const row = await repo.upsertBrandKit(organizationId, data);
+  return serializeBrandKit(row);
+};
+
+const crawlAndPersist = async (organizationId: string, url: string) => {
+  const result = await crawlWebsite(url);
+  await persistCrawl(organizationId, result);
+};
+
+// POST /scrape — runs the crawler and returns the result (does NOT persist
+// unless the caller asks via persist=true). Persisting separately lets the
+// onboarding flow show the user what was found before committing.
+export const scrapeWebsite = async (
+  url: string,
+  organizationId: string | undefined,
+  options: { persist?: boolean } = {},
+): Promise<CrawlResult> => {
+  const result = await crawlWebsite(url);
+  if (options.persist && organizationId) {
+    await persistCrawl(organizationId, result);
+  }
+  return result;
 };
 
 // POST /upload-asset/finalize — called after the browser has PUT the file

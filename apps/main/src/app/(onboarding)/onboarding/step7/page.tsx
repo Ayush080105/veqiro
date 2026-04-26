@@ -25,9 +25,23 @@ export default function Step7Review() {
 
   const rows: ReviewRow[] = [
     { label: "Company", value: v.companyName || "—", jumpTo: "step2" },
+    {
+      label: "Value prop",
+      value: v.valueProposition
+        ? v.valueProposition.length > 80
+          ? v.valueProposition.slice(0, 80) + "…"
+          : v.valueProposition
+        : "—",
+      jumpTo: "step2",
+    },
     { label: "Industry", value: v.industry || "—", jumpTo: "step3" },
     { label: "Voice", value: v.brandVoice || "—", jumpTo: "step4" },
     { label: "Website", value: v.websiteUrl || "—", jumpTo: "step2" },
+    {
+      label: "Site context",
+      value: v.crawledSummary ? "captured ✓" : "—",
+      jumpTo: "step2",
+    },
     { label: "Logo", value: v.logoUrl ? "uploaded ✓" : "none", jumpTo: "step5" },
     { label: "Mascot", value: v.mascotUrl ? "uploaded ✓" : "none", jumpTo: "step5" },
   ]

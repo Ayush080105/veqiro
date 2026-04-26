@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { CheckCircle2, XCircle, ExternalLink } from "lucide-react"
@@ -104,12 +104,17 @@ const INTEGRATIONS: IntegrationDef[] = [
 function IntegrationCard({
   integration,
   account,
+  connectedOverride,
 }: {
   integration: IntegrationDef
   account?: SocialAccount
+  /** For useBetterAuth integrations (Google), connection state lives in
+   * Better Auth's `account` table, not the `social_account` table that
+   * `account` here points at. The parent computes that and passes it in. */
+  connectedOverride?: boolean
 }) {
   const disconnect = useDisconnectIntegration()
-  const connected = Boolean(account)
+  const connected = connectedOverride ?? Boolean(account)
   const isWired = Boolean(integration.platformSlug) || Boolean(integration.useBetterAuth)
   const loading = disconnect.isPending
 
@@ -120,9 +125,13 @@ function IntegrationCard({
     }
     try {
       if (integration.useBetterAuth) {
+        // Use an absolute URL so Better Auth doesn't resolve this against its
+        // own baseURL (the server origin) and bounce the user to port 5000.
+        // window.location.origin is the dashboard's own origin since this
+        // click can only happen here.
         await authClient.signIn.social({
           provider: "google",
-          callbackURL: "/settings/integrations?connected=google",
+          callbackURL: `${window.location.origin}/settings/integrations?connected=google`,
         })
         return
       }
@@ -193,6 +202,33 @@ export default function IntegrationsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { data: accounts = [] } = useIntegrations()
+  const [linkedProviders, setLinkedProviders] = useState<Set<string>>(new Set())
+
+  // Better Auth's listAccounts returns the user's linked OAuth providers
+  // (e.g. "google"). Polled on mount and after every connect/disconnect
+  // round-trip so the UI stays in sync without a hard refresh.
+  const refetchTrigger = searchParams.get("connected")
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const result = await authClient.listAccounts()
+        const list = (result?.data ?? []) as Array<{
+          providerId?: string
+          provider?: string
+        }>
+        const ids = new Set(
+          list.map((a) => a.providerId ?? a.provider ?? "").filter(Boolean)
+        )
+        if (!cancelled) setLinkedProviders(ids)
+      } catch {
+        // Treat as not-linked; user can still click Connect.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [refetchTrigger])
 
   useEffect(() => {
     const connected = searchParams.get("connected")
@@ -247,11 +283,18 @@ export default function IntegrationsPage() {
           const account = integration.platformSlug
             ? accountByPlatform.get(platformSlugToEnum[integration.platformSlug])
             : undefined
+          // Map our `id` to the Better Auth provider id. Today only Google
+          // uses this path, but we route through `id` so adding GitHub /
+          // Microsoft etc. later is a one-line change.
+          const connectedOverride = integration.useBetterAuth
+            ? linkedProviders.has(integration.id)
+            : undefined
           return (
             <IntegrationCard
               key={integration.id}
               integration={integration}
               account={account}
+              connectedOverride={connectedOverride}
             />
           )
         })}

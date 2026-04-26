@@ -9,6 +9,7 @@ import {
   BlogPreviewCard,
   ContentAuditCard,
   ContentBriefCard,
+  BlogIdeasCard,
 } from "@/components/agents/sage/cards"
 // Maya
 import {
@@ -62,12 +63,13 @@ export interface ActionResultRendererProps {
   actionId: AgentActionId
   result: unknown
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+  onRevertImage?: () => void
 }
 
 /** Dispatches an action result to its matching card. Results are untyped at
  * the boundary (they come back from JSON); each card validates shape at runtime
  * by reading the fields it expects. */
-export function ActionResultRenderer({ actionId, result, onFollowUpAction }: ActionResultRendererProps) {
+export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRevertImage }: ActionResultRendererProps) {
   // Use any-cast into typed cards - each card declares the precise type.
   const r = result as never
 
@@ -80,11 +82,13 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction }: Act
       return <ContentAuditCard result={r} />
     case "sage:content-brief":
       return <ContentBriefCard result={r} />
+    case "sage:generate-blog-ideas":
+      return <BlogIdeasCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "maya:generate-ideas":
-      return <IdeasGridCard result={r} />
+      return <IdeasGridCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:draft-content":
-      return <DraftCard result={r} onFollowUpAction={onFollowUpAction} />
+      return <DraftCard result={r} onFollowUpAction={onFollowUpAction} onRevertImage={onRevertImage} />
     case "maya:generate-variants":
       return <VariantsTabsCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:revise":

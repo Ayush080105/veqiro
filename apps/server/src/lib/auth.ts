@@ -105,7 +105,26 @@ export const auth = betterAuth({
             select: { id: true, name: true, slug: true, onboarded: true },
           })
         : null;
-      return { user, session, activeOrganization };
+
+      const memberRows = await prisma.member.findMany({
+        where: { userId: session.userId },
+        orderBy: { createdAt: "asc" },
+        include: {
+          organization: {
+            select: { id: true, name: true, slug: true, onboarded: true },
+          },
+        },
+      });
+
+      const memberships = memberRows.map((m) => ({
+        id: m.organization.id,
+        name: m.organization.name,
+        slug: m.organization.slug,
+        onboarded: m.organization.onboarded,
+        role: m.role,
+      }));
+
+      return { user, session, activeOrganization, memberships };
     }, options),
   ],
 });

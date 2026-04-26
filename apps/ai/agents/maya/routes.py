@@ -38,6 +38,7 @@ class IdeationRequest(BaseModel):
     include_image: bool = False
     use_logo: bool = False
     use_mascot: bool = False
+    use_brandkit: bool = False
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -62,6 +63,7 @@ class ContentIdea(BaseModel):
     predicted_engagement: str
     reasoning: str
     suggested_hashtags: list[str]
+    visual_description: str = ""
 
 
 class IdeationResponse(BaseModel):
@@ -202,31 +204,85 @@ def _mock_ideas(count: int, topic_hint: str) -> list[ContentIdea]:
     topic = topic_hint or "AI productivity for founders"
     return [
         ContentIdea(
-            title=f"How We Used AI to Save 10 Hours/Week Running Our Startup",
+            title="How We Used AI to Save 10 Hours/Week Running Our Startup",
             content_type="linkedin_post",
             platform="linkedin",
             hook="10 hours. Every week. Back in our founders' calendars.",
             predicted_engagement="High – personal story + specific number",
-            reasoning="Founder pain point + concrete benefit + first-person narrative drives high LinkedIn engagement",
+            reasoning="Founder pain point + concrete benefit drives high LinkedIn engagement",
             suggested_hashtags=["#Founders", "#AIProductivity", "#StartupLife", "#TimeManagement"],
+            visual_description=(
+                "Split-panel graphic: left side shows a cluttered, stressed workspace (dark tones); "
+                "right side shows the same desk clean and calm with a glowing laptop screen. "
+                "Bold text overlay: '10 Hours Saved Every Week'. "
+                "Use brand primary color for the dividing line. Professional, aspirational mood. "
+                "No people's faces — focus on the workspace transformation."
+            ),
         ),
         ContentIdea(
-            title=f"Thread: 7 AI Workflows That Replaced Our Entire Marketing Intern",
-            content_type="twitter_thread",
-            platform="twitter",
-            hook="We replaced a $3,000/month marketing hire with 7 AI workflows. Here's exactly what we built 🧵",
-            predicted_engagement="Very High – controversial + practical + thread format",
-            reasoning="Twitter threads with numbered lists and controversial angles drive massive retweets",
-            suggested_hashtags=["#AITools", "#MarketingAutomation", "#IndieHackers"],
+            title="5 Signs Your Startup Is Ready to Go Full AI-First",
+            content_type="instagram_post",
+            platform="instagram",
+            hook="Most founders wait too long. Here are the 5 green lights.",
+            predicted_engagement="Very High – checklist format drives saves",
+            reasoning="Checklist posts on Instagram get saved 3x more than text posts — high share potential",
+            suggested_hashtags=["#StartupLife", "#AIFirst", "#FounderTips", "#ProductivityHacks", "#TechStartup"],
+            visual_description=(
+                "Clean numbered checklist layout on a dark background with brand accent colors. "
+                "5 short bold statements, each with a checkmark icon. "
+                "Brand logo small in the bottom corner. "
+                "Modern sans-serif typography, high contrast. "
+                "Minimalist design — no clutter, just the list items on a gradient background."
+            ),
         ),
         ContentIdea(
-            title=f"The Founder's Secret Weapon: AI That Actually Understands Your Brand",
-            content_type="blog_post",
-            platform="blog",
-            hook="Most AI tools give you generic output. Here's what happens when it actually knows your brand.",
-            predicted_engagement="Medium – educational + SEO potential",
-            reasoning="Long-form content on 'brand-aware AI' is underserved – strong SEO + thought leadership potential",
-            suggested_hashtags=["#ContentMarketing", "#AIWriting", "#FounderTools"],
+            title="The Hidden Cost of Not Using AI as a Founder",
+            content_type="linkedin_post",
+            platform="linkedin",
+            hook="Every week you delay costs you roughly 12 hours of compounded work.",
+            predicted_engagement="High – loss aversion framing performs strongly",
+            reasoning="Loss aversion messaging consistently outperforms gain framing by 2x on LinkedIn",
+            suggested_hashtags=["#FounderMindset", "#AITools", "#Productivity", "#StartupGrowth"],
+            visual_description=(
+                "Dramatic comparison graphic: two timelines side by side. "
+                "Left: 'Without AI' — red downward arrow with mounting task icons. "
+                "Right: 'With AI' — green upward arrow with clean workflow icons. "
+                "Dark professional background. Title text bold and centered at top. "
+                "Brand colors used for the arrows. No stock photos — pure graphic design."
+            ),
+        ),
+        ContentIdea(
+            title="One Tool That Changed How We Write Content Forever",
+            content_type="instagram_post",
+            platform="instagram",
+            hook="We used to spend 3 hours on one post. Now it's 20 minutes.",
+            predicted_engagement="Medium-High – relatable founder journey",
+            reasoning="Before/after transformations with time savings resonate strongly with creator and founder audiences",
+            suggested_hashtags=["#ContentCreation", "#AIWriting", "#FounderLife", "#SmallBusiness", "#WorkSmarter"],
+            visual_description=(
+                "Before/after phone mockup: left phone shows a blank document with a blinking cursor (stressed emoji overlay); "
+                "right phone shows a finished polished post with engagement metrics. "
+                "Bright, energetic color scheme matching brand palette. "
+                "Text overlay: 'From 3 hours → 20 minutes'. "
+                "Clean product-screenshot style with subtle drop shadows."
+            ),
+        ),
+        ContentIdea(
+            title="Why Every Founder Needs a Weekly AI Review Session",
+            content_type="linkedin_post",
+            platform="linkedin",
+            hook="30 minutes every Friday. The best calendar block you're not using.",
+            predicted_engagement="Medium – actionable routine advice performs consistently",
+            reasoning="Actionable habit-based content gets bookmarked and shared by productivity-focused founders",
+            suggested_hashtags=["#WeeklyReview", "#FounderHabits", "#AIWorkflow", "#TimeManagement"],
+            visual_description=(
+                "Calendar/planner visual with one Friday slot highlighted in brand primary color, "
+                "labeled 'AI Review — 30 min'. "
+                "Surrounding slots show typical busy calendar items in muted grey. "
+                "Clean flat design style. "
+                "Subtext: 'The meeting that pays for itself 10x'. "
+                "Minimal, professional feel — no illustrations, just clean layout."
+            ),
         ),
     ][:count]
 
@@ -270,6 +326,8 @@ async def maya_chat(request: ChatRequest) -> ChatSyncResponse:
 @router.post("/generate-ideas", response_model=IdeationResponse, summary="Generate content ideas")
 async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
     """Generate content ideas for a given topic and content type."""
+    brand_kit = await load_brand_kit(request.organization_id) if request.use_brandkit else None
+
     if settings.MOCK_MODE:
         image = None
         if request.include_image:
@@ -281,19 +339,43 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
                 )
             except Exception as _img_err:
                 logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
+        topic = (brand_kit.company_name if brand_kit else None) or request.topic_hint
         return IdeationResponse(
-            ideas=_mock_ideas(request.count, request.topic_hint),
+            ideas=_mock_ideas(request.count, topic),
             generated_at=datetime.utcnow().isoformat(),
             image=image,
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
+
+    if brand_kit:
+        context = (
+            f"Company: {brand_kit.company_name}\n"
+            f"Description: {brand_kit.company_description}\n"
+            f"Industry: {brand_kit.industry}\n"
+            f"Target audience: {brand_kit.target_audience or 'startup founders'}\n"
+        )
+        topic_line = f"Generate {request.count} high-performing {request.platform} content ideas tailored to this company:\n{context}"
+    else:
+        topic_line = f"Generate {request.count} high-performing content ideas for {request.platform} about: {request.topic_hint}"
+
     prompt = (
-        f"Generate {request.count} high-performing content ideas for {request.platform} about: {request.topic_hint}\n\n"
+        f"{topic_line}\n\n"
         f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n\n"
-        "Return a JSON array. Each idea must have: title, platform, hook, predicted_engagement, "
-        "suggested_hashtags (array), content_type, reasoning. "
+        "IMPORTANT: Only generate ideas for static image posts (linkedin_post, instagram_post, tweet). "
+        "Do NOT suggest videos, reels, infographics, carousels, threads, or blog posts.\n\n"
+        "Return a JSON array. Each idea must have:\n"
+        "- title: post headline\n"
+        "- platform: target platform\n"
+        "- content_type: one of linkedin_post, instagram_post, tweet\n"
+        "- hook: opening line\n"
+        "- predicted_engagement: short engagement prediction\n"
+        "- reasoning: why this idea works\n"
+        "- suggested_hashtags: array of hashtag strings\n"
+        "- visual_description: a detailed image generation prompt describing exactly what the "
+        "post image should look like — layout, colors, text overlays, mood, style, what elements "
+        "to include. This will be fed directly to an image generator, so be specific and vivid.\n\n"
         "Return ONLY the JSON array, no markdown fences."
     )
     raw = await _llm.complete(

@@ -6,6 +6,7 @@ import {
   generateBlog,
   analyzeContent,
   contentBrief,
+  generateBlogIdeas,
   getSavedKeywords,
   addSavedKeyword,
   removeSavedKeyword,
@@ -19,6 +20,7 @@ router.post("/keyword-research", keywordResearch);
 router.post("/generate-blog", generateBlog);
 router.post("/analyze-content", analyzeContent);
 router.post("/content-brief", contentBrief);
+router.post("/generate-blog-ideas", generateBlogIdeas);
 router.get("/keywords/saved", getSavedKeywords);
 router.post("/keywords/saved", addSavedKeyword);
 router.delete("/keywords/saved/:id", removeSavedKeyword);

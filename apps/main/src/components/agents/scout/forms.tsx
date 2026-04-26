@@ -13,7 +13,6 @@ import { useAgentForm } from "@/components/forms/useAgentForm"
 import { cn } from "@/lib/utils"
 import { useCompetitorWatches } from "@/lib/api/scout"
 import type {
-  ScoutTrendingTopicsRequest,
   ScoutDiscoverCompetitorsRequest,
 } from "@/lib/types/agents"
 import {
@@ -226,8 +225,8 @@ export function ScoutTrendingTopicsForm({
   value,
   onChange,
 }: {
-  value: ScoutTrendingTopicsRequest
-  onChange: (patch: Partial<ScoutTrendingTopicsRequest>) => void
+  value: ScoutTrendingTopicsValues
+  onChange: (patch: Partial<ScoutTrendingTopicsValues>) => void
 }) {
   const form = useAgentForm({
     schema: scoutTrendingTopicsSchema,
