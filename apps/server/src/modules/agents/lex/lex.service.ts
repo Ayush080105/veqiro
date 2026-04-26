@@ -66,7 +66,6 @@ export const sendMessage = async (
     role: "assistant" as const,
     content: data.response,
     imageUrl: data.image?.url,
-    disclaimer: (data.metadata as { disclaimer?: string } | undefined)?.disclaimer,
     createdAt: userMessage.createdAt,
   };
 };
@@ -244,7 +243,7 @@ export const queryDocument = async (
     }`,
     customInput: {
       actionId: "lex:query-document",
-      input: { sourceId: input.sourceId, query: input.query, topK: input.topK },
+      input: { sourceId: input.sourceId, query: input.query },
     },
   });
 
@@ -254,7 +253,7 @@ export const queryDocument = async (
       user_id: userId,
       source_id: input.sourceId,
       query: input.query,
-      top_k: input.topK,
+      top_k: 5,
     }
   );
 
@@ -266,7 +265,7 @@ export const queryDocument = async (
     model: data.model_used,
     customInput: {
       actionId: "lex:query-document",
-      input: { sourceId: input.sourceId, query: input.query, topK: input.topK },
+      input: { sourceId: input.sourceId, query: input.query },
       result: data,
     },
   });

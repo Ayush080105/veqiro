@@ -10,7 +10,7 @@ from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
 from core.utils import strip_json_fences, safe_json_loads
-from agents.lex.agent import LexAgent, LEGAL_DISCLAIMER
+from agents.lex.agent import LexAgent
 
 router = APIRouter(prefix="/ai/lex", tags=["Lex"])
 
@@ -121,7 +121,6 @@ class ContractAnalysis(BaseModel):
 
 class AnalyzeContractResponse(BaseModel):
     analysis: ContractAnalysis
-    disclaimer: str
     tokens_used: int = 0
     model_used: str = ""
 
@@ -182,7 +181,6 @@ class DraftDocumentRequest(BaseModel):
 class DraftDocumentResponse(BaseModel):
     document: str
     review_notes: list[str]
-    disclaimer: str
     tokens_used: int = 0
     model_used: str = ""
 
@@ -240,7 +238,6 @@ class LegalResearchResponse(BaseModel):
     practical_guidance: list[str]
     jurisdiction_notes: str
     confidence_level: str
-    disclaimer: str
     tokens_used: int = 0
     model_used: str = ""
 
@@ -270,7 +267,6 @@ class ComplianceCheckResponse(BaseModel):
     critical_gaps: list[str]
     remediation_steps: list[dict]
     estimated_effort: str
-    disclaimer: str
     tokens_used: int = 0
     model_used: str = ""
 
@@ -304,11 +300,8 @@ class ListSourcesResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Lex chat")
 async def lex_chat(request: ChatRequest) -> ChatSyncResponse:
-    """Get Lex's legal response. Always includes disclaimer in metadata."""
-    result = await _agent.chat_sync(request)
-    # chat_sync override already injects disclaimer, but ensure it's present
-    result.metadata["disclaimer"] = LEGAL_DISCLAIMER
-    return result
+    """Get Lex's legal response."""
+    return await _agent.chat_sync(request)
 
 
 @router.post("/ingest-document", response_model=IngestDocumentResponse, summary="Ingest legal document")
@@ -529,7 +522,6 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
                 ),
                 recommended_action="negotiate",
             ),
-            disclaimer=LEGAL_DISCLAIMER,
         )
 
     chunks = await _rag.retrieve_by_source(request.user_id, request.source_id)
@@ -545,27 +537,48 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
         model=_agent.default_model,
         system=system,
         messages=[{"role": "user", "content": (
-            f"Perform a complete, detailed legal analysis of this contract:\n\n{full_text}\n\n"
-            "Return ONLY a JSON object (no markdown fences) with exactly these keys:\n"
-            "document_type (string), "
-            "parties (list of strings — 'Name (Role)'), "
-            "effective_date (string), "
-            "governing_law (string), "
-            "jurisdiction (string), "
-            "executive_summary (string — 2–3 sentences plain English), "
+            f"Perform a thorough, senior-attorney-level legal analysis of this contract. "
+            f"Be specific — quote exact clause language when relevant, name exact section numbers, "
+            f"and explain practical real-world impact, not just legal theory.\n\n"
+            f"CONTRACT:\n{full_text}\n\n"
+            "Return ONLY a valid JSON object (no markdown fences, no commentary) with EXACTLY these keys:\n\n"
+            "document_type (string — precise document type, e.g. 'Mutual Non-Disclosure Agreement'),\n"
+            "parties (list of strings — each entry: 'Full Legal Name (Role)', e.g. 'Acme Corp (Disclosing Party)'),\n"
+            "effective_date (string — exact date or 'Not specified'),\n"
+            "governing_law (string — state/country law that governs),\n"
+            "jurisdiction (string — courts where disputes must be filed),\n"
+            "executive_summary (string — 4–6 sentences: what the document is, who the parties are, "
+            "its main commercial purpose, overall balance/fairness, and your plain-English verdict on "
+            "whether it is founder-friendly or lopsided),\n"
+            "risk_level (string — one of: low/medium/high/critical),\n"
+            "risk_score (integer 1–10 where 1=essentially no risk, 10=do not sign),\n"
+            "risks (list of objects — identify ALL material risks, minimum 3, with fields: "
+            "clause (exact section name/number), "
+            "risk (specific problem and its practical business impact — at least 2 sentences), "
+            "severity (low/medium/high/critical), "
+            "recommendation (specific actionable fix — proposed language change or deletion)),\n"
+            "unusual_clauses (list of strings — clauses that deviate from market standard; for each, "
+            "name the section and explain what is unusual and why it matters),\n"
+            "missing_protections (list of strings — standard protections absent from this agreement; "
+            "for each, name what is missing and the risk that creates),\n"
+            "clause_breakdown (list of objects — analyze EVERY numbered section/article; fields: "
+            "section (number/letter), title (clause title), "
+            "summary (2–3 sentences on what it does and its effect), "
             "risk_level (low/medium/high/critical), "
-            "risk_score (integer 1–10), "
-            "risks (list of {clause, risk, severity: low/medium/high/critical, recommendation}), "
-            "unusual_clauses (list of strings), "
-            "missing_protections (list of strings), "
-            "clause_breakdown (list of {section, title, summary, risk_level, notes}), "
-            "key_terms (dict of string->string), "
-            "obligations (dict of party_name -> list of obligation strings), "
-            "negotiation_points (list of {priority: high/medium/low, clause, issue, suggested_change}), "
-            "overall_assessment (string), "
-            "recommended_action (sign/negotiate/reject/legal_review_required)"
+            "notes (specific issues, unusual language, or 'Standard — no issues')),\n"
+            "key_terms (dict string->string — important defined terms and their practical meaning, "
+            "minimum 5 entries),\n"
+            "obligations (dict — party_name -> list of specific obligation strings; be exhaustive, "
+            "list every obligation each party takes on),\n"
+            "negotiation_points (list of objects — prioritized redline targets, minimum 3, fields: "
+            "priority (high/medium/low), clause (section name/number), "
+            "issue (what is wrong and why it must change), "
+            "suggested_change (exact proposed language or specific deletion instruction)),\n"
+            "overall_assessment (string — 3–4 sentences: concrete verdict on who this agreement "
+            "favors, what would change your recommendation, and whether to sign as-is),\n"
+            "recommended_action (string — one of: sign/negotiate/reject/legal_review_required)"
         )}],
-        max_tokens=4096,
+        max_tokens=8000,
     )
     tokens_used = _llm.count_tokens(raw)
     try:
@@ -585,7 +598,7 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             overall_assessment="Parsing failed — manual review recommended.",
             recommended_action="legal_review_required",
         )
-    return AnalyzeContractResponse(analysis=analysis, disclaimer=LEGAL_DISCLAIMER, tokens_used=tokens_used, model_used=_agent.default_model)
+    return AnalyzeContractResponse(analysis=analysis, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/query-document", response_model=QueryDocumentResponse, summary="Query document via RAG")
@@ -702,9 +715,7 @@ Date: ______________________           Date: ______________________
                 "Add specific description of the business purpose in Section 1",
                 "Adjust the definition scope in Section 2 based on your actual sharing needs",
                 "Consider adding a data protection clause if sharing personal data (GDPR/CCPA implications)",
-                "Have this reviewed by a qualified attorney in your jurisdiction before signing",
             ],
-            disclaimer=LEGAL_DISCLAIMER,
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
@@ -717,8 +728,7 @@ Date: ______________________           Date: ______________________
     tokens_used = _llm.count_tokens(raw)
     return DraftDocumentResponse(
         document=raw,
-        review_notes=["DRAFT ONLY – not legal advice", "Have reviewed by a qualified attorney"],
-        disclaimer=LEGAL_DISCLAIMER,
+        review_notes=["TEMPLATE ONLY — requires customization before use"],
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )
@@ -825,7 +835,6 @@ async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse
             ],
             jurisdiction_notes="EU-wide requirement under GDPR. Individual member states may impose stricter requirements (e.g., Germany's TTDSG for cookies, France's CNIL guidelines).",
             confidence_level="high — based on GDPR text, CJEU case law, and supervisory authority guidance",
-            disclaimer=LEGAL_DISCLAIMER,
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
@@ -844,14 +853,13 @@ async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse
     tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
-        return LegalResearchResponse(**data, disclaimer=LEGAL_DISCLAIMER, tokens_used=tokens_used, model_used=_agent.default_model)
+        return LegalResearchResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception:
         return LegalResearchResponse(
             summary=raw[:500],
             applicable_laws=[], key_requirements=[], relevant_cases=[],
             practical_guidance=[], jurisdiction_notes=request.jurisdiction,
-            confidence_level="medium — consult an attorney for verified research",
-            disclaimer=LEGAL_DISCLAIMER,
+            confidence_level="medium",
             tokens_used=tokens_used,
             model_used=_agent.default_model,
         )
@@ -906,7 +914,6 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
                 {"priority": "medium", "action": "Document and justify the 90-day retention period or reduce it to minimum necessary"},
             ],
             estimated_effort="2-4 weeks for critical compliance items, 2-3 months for full implementation and documentation",
-            disclaimer=LEGAL_DISCLAIMER,
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
@@ -928,14 +935,13 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
     tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
-        return ComplianceCheckResponse(**data, disclaimer=LEGAL_DISCLAIMER, tokens_used=tokens_used, model_used=_agent.default_model)
+        return ComplianceCheckResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception:
         return ComplianceCheckResponse(
             overall_status="unknown",
             framework_results=[], critical_gaps=[],
             remediation_steps=[],
             estimated_effort="Manual review required",
-            disclaimer=LEGAL_DISCLAIMER,
             tokens_used=tokens_used,
             model_used=_agent.default_model,
         )

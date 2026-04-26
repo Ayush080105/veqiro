@@ -41,16 +41,19 @@ function copyText(text: string, label = "Copied") {
   navigator.clipboard.writeText(text).then(() => toast.success(label))
 }
 
-function Disclaimer({ text }: { text: string }) {
-  return (
-    <p className="rounded border border-chart-3/30 bg-chart-3/10 p-2 text-[10px] italic text-chart-3">
-      {text}
-    </p>
-  )
+function sevLevel(level: "low" | "medium" | "high" | "critical") {
+  return level === "critical" || level === "high" ? "danger" : level === "medium" ? "warn" : "info"
 }
 
-function sevLevel(level: "low" | "medium" | "high") {
-  return level === "high" ? "danger" : level === "medium" ? "warn" : "info"
+function actionLevel(action: string): React.ComponentProps<typeof StatusPill>["level"] {
+  if (action === "sign") return "ok"
+  if (action === "negotiate") return "warn"
+  if (action === "reject") return "danger"
+  return "info"
+}
+
+function actionLabel(action: string) {
+  return action.replace(/_/g, " ")
 }
 
 // ─── Upload-source card ──────────────────────────────────────────────────────
@@ -130,34 +133,6 @@ export function QueryDocumentCard({ result }: { result: LexQueryDocumentResult }
       />
       <AgentCard.Body className="flex flex-col gap-3">
         <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{result.answer}</p>
-        {result.sources.length > 0 && (
-          <Collapsible>
-            <CollapsibleTrigger className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
-              Show {result.sources.length} source chunk
-              {result.sources.length === 1 ? "" : "s"}
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="mt-1 flex flex-col gap-1">
-                {result.sources.map((s, i) => (
-                  <div
-                    key={i}
-                    className="border border-border bg-muted/20 p-2 text-[11px] leading-relaxed"
-                  >
-                    <div className="mb-1 flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        chunk {i + 1}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px]">
-                        relevance {s.score.toFixed(2)}
-                      </Badge>
-                    </div>
-                    <p className="whitespace-pre-wrap">{s.content}</p>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
       </AgentCard.Body>
     </AgentCard>
   )
@@ -167,61 +142,175 @@ export function QueryDocumentCard({ result }: { result: LexQueryDocumentResult }
 
 export function ContractAnalysisCard({ result }: { result: LexAnalyzeContractResult }) {
   const a = result.analysis
-  const riskLevel =
-    a.risk_level === "high" ? "danger" : a.risk_level === "medium" ? "warn" : "ok"
+  const riskLevel = sevLevel(a.risk_level as "low" | "medium" | "high" | "critical")
 
   return (
     <AgentCard size="sm">
-      <AgentCard.Header icon={<FileSearch />} title="Contract analysis" />
+      <AgentCard.Header
+        icon={<FileSearch />}
+        title="Contract analysis"
+        badge={
+          a.recommended_action ? (
+            <StatusPill level={actionLevel(a.recommended_action)} className="capitalize">
+              {actionLabel(a.recommended_action)}
+            </StatusPill>
+          ) : undefined
+        }
+      />
       <AgentCard.Body className="flex flex-col gap-3">
+
+        {/* Document metadata */}
+        {(a.document_type || a.parties?.length > 0) && (
+          <div className="flex flex-col gap-1.5 rounded border border-border bg-muted/20 p-2">
+            {a.document_type && (
+              <p className="text-[11px] font-semibold">{a.document_type}</p>
+            )}
+            {a.parties?.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {a.parties.map((p) => (
+                  <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] text-muted-foreground">
+              {a.effective_date && <span>Effective: {a.effective_date}</span>}
+              {a.governing_law && <span>Law: {a.governing_law}</span>}
+              {a.jurisdiction && <span>Jurisdiction: {a.jurisdiction}</span>}
+            </div>
+          </div>
+        )}
+
+        {/* Risk overview */}
         <div className="flex items-center justify-between gap-2 rounded border border-border bg-muted/20 p-2">
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-0.5">
             <Kicker prefix="//">risk level</Kicker>
             <p className="text-xs font-semibold capitalize">{a.risk_level}</p>
           </div>
-          <StatusPill level={riskLevel}>{a.risk_level}</StatusPill>
+          <div className="flex items-center gap-2">
+            {typeof a.risk_score === "number" && (
+              <Badge variant="outline" className="text-[10px]">
+                score {a.risk_score}/10
+              </Badge>
+            )}
+            <StatusPill level={riskLevel}>{a.risk_level}</StatusPill>
+          </div>
         </div>
-        <p className="text-[11px] leading-relaxed">{a.summary}</p>
 
-        {a.risks.length > 0 && (
+        {/* Executive summary */}
+        {a.executive_summary && (
+          <p className="text-[11px] leading-relaxed">{a.executive_summary}</p>
+        )}
+
+        {/* Risks */}
+        {a.risks?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Kicker prefix="//">risks</Kicker>
-            <div className="flex flex-col gap-1">
+            <Kicker prefix="//">risks ({a.risks.length})</Kicker>
+            <div className="flex flex-col gap-1.5">
               {a.risks.map((r, i) => (
                 <div
                   key={i}
-                  className="flex flex-col gap-1 border border-border bg-muted/20 p-2"
+                  className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="flex-1 text-[11px] font-medium">{r.clause}</p>
+                    <p className="flex-1 text-[11px] font-semibold">{r.clause}</p>
                     <StatusPill level={sevLevel(r.severity)}>{r.severity}</StatusPill>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    {r.risk}
-                  </p>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">{r.risk}</p>
+                  {r.recommendation && (
+                    <p className="border-t border-border pt-1.5 text-[11px] leading-relaxed">
+                      <span className="font-medium">Fix: </span>
+                      {r.recommendation}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* Negotiation points */}
+        {a.negotiation_points?.length > 0 && (
+          <CollapsibleSection
+            title={`negotiation points (${a.negotiation_points.length})`}
+            defaultOpen
+          >
+            <div className="flex flex-col gap-1.5">
+              {a.negotiation_points.map((n, i) => (
+                <div key={i} className="flex flex-col gap-1 border border-border bg-muted/20 p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="flex-1 text-[11px] font-semibold">{n.clause}</p>
+                    <StatusPill level={sevLevel(n.priority as "low" | "medium" | "high")}>{n.priority}</StatusPill>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">{n.issue}</p>
+                  {n.suggested_change && (
+                    <p className="border-t border-border pt-1.5 font-mono text-[10px] leading-relaxed text-foreground">
+                      {n.suggested_change}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* Unusual clauses + missing protections */}
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {a.unusual_clauses.length > 0 && (
+          {a.unusual_clauses?.length > 0 && (
             <InfoSection label="unusual clauses" bullets={a.unusual_clauses} />
           )}
-          {a.missing_protections.length > 0 && (
-            <InfoSection
-              label="missing protections"
-              bullets={a.missing_protections}
-              tone="danger"
-            />
+          {a.missing_protections?.length > 0 && (
+            <InfoSection label="missing protections" bullets={a.missing_protections} tone="danger" />
           )}
         </div>
 
-        {Object.keys(a.key_terms).length > 0 && (
+        {/* Clause breakdown */}
+        {a.clause_breakdown?.length > 0 && (
+          <CollapsibleSection title={`clause breakdown (${a.clause_breakdown.length} sections)`}>
+            <div className="flex flex-col gap-1">
+              {a.clause_breakdown.map((c, i) => (
+                <div key={i} className="border border-border bg-muted/20 p-2">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold">
+                      {c.section && <span className="mr-1 text-muted-foreground">§{c.section}</span>}
+                      {c.title}
+                    </p>
+                    <StatusPill level={sevLevel(c.risk_level as "low" | "medium" | "high" | "critical")}>
+                      {c.risk_level}
+                    </StatusPill>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">{c.summary}</p>
+                  {c.notes && c.notes !== "Standard — no issues" && (
+                    <p className="mt-1 border-t border-border pt-1 text-[11px] leading-relaxed">
+                      {c.notes}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* Obligations */}
+        {a.obligations && Object.keys(a.obligations).length > 0 && (
+          <CollapsibleSection title="obligations by party">
+            <div className="flex flex-col gap-2">
+              {Object.entries(a.obligations).map(([party, items]) => (
+                <div key={party} className="flex flex-col gap-1">
+                  <Kicker prefix="//">{party}</Kicker>
+                  <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+                    {items.map((item, i) => <li key={i}>{item}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* Key terms */}
+        {Object.keys(a.key_terms ?? {}).length > 0 && (
           <Collapsible>
             <CollapsibleTrigger className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
-              Show key terms
+              Show key terms ({Object.keys(a.key_terms).length})
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-1 border border-border">
@@ -239,10 +328,13 @@ export function ContractAnalysisCard({ result }: { result: LexAnalyzeContractRes
           </Collapsible>
         )}
 
-        <p className="text-[11px] leading-relaxed">
-          <strong>Overall:</strong> {a.overall_assessment}
-        </p>
-        <Disclaimer text={result.disclaimer} />
+        {/* Overall assessment */}
+        {a.overall_assessment && (
+          <p className="text-[11px] leading-relaxed">
+            <strong>Overall:</strong> {a.overall_assessment}
+          </p>
+        )}
+
       </AgentCard.Body>
     </AgentCard>
   )
@@ -270,7 +362,6 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
         {result.review_notes.length > 0 && (
           <InfoSection label="review notes" bullets={result.review_notes} />
         )}
-        <Disclaimer text={result.disclaimer} />
       </AgentCard.Body>
       <AgentCard.Footer>
         <CopyButton text={result.document} />
@@ -375,7 +466,6 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
             Jurisdiction: {result.jurisdiction_notes}
           </p>
         )}
-        <Disclaimer text={result.disclaimer} />
       </AgentCard.Body>
     </AgentCard>
   )
@@ -465,7 +555,6 @@ export function ComplianceCheckCard({ result }: { result: LexComplianceCheckResu
           </div>
         )}
 
-        <Disclaimer text={result.disclaimer} />
       </AgentCard.Body>
     </AgentCard>
   )

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ShieldAlert, Download } from "lucide-react"
+import { Download } from "lucide-react"
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
 import { FONT } from "@/lib/fonts"
@@ -239,37 +239,6 @@ export function ChatMessage({
                 >
                   <Download className="size-3" /> Download
                 </a>
-              </div>
-            )}
-            {isLex && (
-              <div
-                style={{
-                  marginTop: 10,
-                  background: "#FFF9ED",
-                  border: "2px solid #111",
-                  borderRadius: 8,
-                  padding: "8px 10px",
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "flex-start",
-                }}
-              >
-                <ShieldAlert
-                  className="mt-0.5 size-3 shrink-0"
-                  style={{ color: "#7A1717" }}
-                />
-                <p
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 10,
-                    letterSpacing: 0.5,
-                    lineHeight: 1.5,
-                    color: "#7A1717",
-                    margin: 0,
-                  }}
-                >
-                  Not legal advice. Consult a qualified attorney for legal matters.
-                </p>
               </div>
             )}
           </div>

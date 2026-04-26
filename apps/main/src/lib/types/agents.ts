@@ -433,7 +433,6 @@ export interface LexAnalyzeContractRequest {
 export interface LexQueryDocumentRequest {
   sourceId: string
   query: string
-  topK?: number
 }
 
 export interface LexQueryDocumentChunk {
@@ -449,17 +448,48 @@ export interface LexQueryDocumentResult {
   model_used?: string
 }
 
+export interface LexContractRisk {
+  clause: string
+  risk: string
+  severity: "low" | "medium" | "high" | "critical"
+  recommendation: string
+}
+
+export interface LexClauseBreakdown {
+  section: string
+  title: string
+  summary: string
+  risk_level: string
+  notes: string
+}
+
+export interface LexNegotiationPoint {
+  priority: "high" | "medium" | "low"
+  clause: string
+  issue: string
+  suggested_change: string
+}
+
 export interface LexAnalyzeContractResult {
   analysis: {
-    summary: string
-    risk_level: "low" | "medium" | "high"
-    risks: Array<{ clause: string; risk: string; severity: "low" | "medium" | "high" }>
+    document_type: string
+    parties: string[]
+    effective_date: string
+    governing_law: string
+    jurisdiction: string
+    executive_summary: string
+    risk_level: "low" | "medium" | "high" | "critical"
+    risk_score: number
+    risks: LexContractRisk[]
     unusual_clauses: string[]
     missing_protections: string[]
+    clause_breakdown: LexClauseBreakdown[]
     key_terms: Record<string, string>
+    obligations: Record<string, string[]>
+    negotiation_points: LexNegotiationPoint[]
     overall_assessment: string
+    recommended_action: string
   }
-  disclaimer: string
 }
 
 export interface LexDraftDocumentRequest {
@@ -472,7 +502,6 @@ export interface LexDraftDocumentRequest {
 export interface LexDraftDocumentResult {
   document: string
   review_notes: string[]
-  disclaimer: string
 }
 
 export interface LexExplainRequest {
@@ -501,7 +530,6 @@ export interface LexLegalResearchResult {
   practical_guidance: string[]
   jurisdiction_notes: string
   confidence_level: string
-  disclaimer: string
 }
 
 export interface LexComplianceCheckRequest {
@@ -521,7 +549,6 @@ export interface LexComplianceCheckResult {
   critical_gaps: string[]
   remediation_steps: Array<{ priority: "low" | "medium" | "high"; action: string }>
   estimated_effort: string
-  disclaimer: string
 }
 
 // ─── Vega ────────────────────────────────────────────────────────────────────
