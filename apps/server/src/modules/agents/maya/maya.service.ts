@@ -137,6 +137,7 @@ export const generateIdeas = async (
     include_image: input.includeImage,
     use_logo: input.useLogo,
     use_mascot: input.useMascot,
+    use_brandkit: input.useBrandkit,
   });
 
   const hostedImage = await hostImage(organizationId, data.image);

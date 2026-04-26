@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import {
@@ -6,9 +6,12 @@ import {
   Shuffle,
   Wand2,
   Image as ImageIcon,
-  RefreshCw,
+  PenLine,
+  Lightbulb,
+  Undo2,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { AgentCard } from "@/components/ui/agent-card"
 import { ActionRow } from "@/components/ui/action-row"
 import { CopyButton } from "@/components/ui/copy-button"
@@ -28,6 +31,7 @@ import type {
   MayaReviseResult,
   MayaImageRegenResult,
   MayaContentRegenResult,
+  ContentIdea,
   ContentPlatform,
   ImageResult,
 } from "@/lib/types/agents"
@@ -85,7 +89,84 @@ function ImageOverlayButton({
 
 // ─── Ideas grid ──────────────────────────────────────────────────────────────
 
-export function IdeasGridCard({ result }: { result: MayaIdeationResult }) {
+function ContentIdeaCard({
+  idea,
+  onFollowUpAction,
+}: {
+  idea: ContentIdea
+  onFollowUpAction?: FollowUpHandler
+}) {
+  return (
+    <div className="flex flex-col gap-2 border border-border bg-background p-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="flex-1 text-xs font-semibold leading-snug">{idea.title}</p>
+        <Badge variant="outline" className="shrink-0 text-[10px]">
+          {idea.content_type.replace(/_/g, " ")}
+        </Badge>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1">
+        <Badge variant="secondary" className="text-[10px]">
+          {idea.platform}
+        </Badge>
+        <Badge variant="outline" className="text-[10px]">
+          {idea.predicted_engagement}
+        </Badge>
+      </div>
+
+      {idea.hook && (
+        <p className="text-[11px] italic text-muted-foreground">&ldquo;{idea.hook}&rdquo;</p>
+      )}
+
+      {idea.reasoning && (
+        <p className="flex items-start gap-1.5 text-[10px] text-muted-foreground/80">
+          <Lightbulb className="mt-0.5 size-3 shrink-0 text-chart-2" />
+          {idea.reasoning}
+        </p>
+      )}
+
+      {idea.suggested_hashtags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {[...new Set(idea.suggested_hashtags)].map((h) => (
+            <Badge key={h} variant="outline" className="text-[10px]">
+              {h.startsWith("#") ? h : `#${h}`}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {onFollowUpAction && (
+        <div className="pt-0.5">
+          <Button
+            size="xs"
+            variant="outline"
+            className="w-full gap-1"
+            onClick={() =>
+              onFollowUpAction("maya:draft-content", {
+                topic: idea.title,
+                platform: idea.platform,
+                include_image: true,
+                additional_context: idea.visual_description ?? "",
+              })
+            }
+          >
+            <PenLine className="size-3" />
+            Generate post
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function IdeasGridCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: MayaIdeationResult
+  onFollowUpAction?: FollowUpHandler
+}) {
+  const ideas = result.ideas ?? []
   return (
     <AgentCard size="sm">
       <AgentCard.Header
@@ -93,36 +174,18 @@ export function IdeasGridCard({ result }: { result: MayaIdeationResult }) {
         title="Content ideas"
         badge={
           <Badge variant="secondary" className="text-[10px]">
-            {result.ideas.length} ideas
+            {ideas.length} ideas
           </Badge>
         }
       />
       <AgentCard.Body>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {result.ideas.map((idea, i) => (
-            <div
-              key={i}
-              className="flex flex-col gap-1.5 border border-border bg-muted/30 p-2"
-            >
-              <div className="flex items-start gap-1.5">
-                <p className="flex-1 text-xs font-medium">{idea.title}</p>
-                <Badge variant="outline" className="text-[10px] shrink-0">
-                  {idea.predicted_engagement}
-                </Badge>
-              </div>
-              <p className="text-[11px] italic text-muted-foreground">“{idea.hook}”</p>
-              <p className="text-[10px] leading-relaxed text-muted-foreground">
-                {idea.reasoning}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {idea.suggested_hashtags.map((h) => (
-                  <Badge key={h} variant="outline" className="text-[10px]">
-                    {h}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+        <div className="flex flex-col gap-2">
+          {ideas.map((idea, i) => (
+            <ContentIdeaCard key={i} idea={idea} onFollowUpAction={onFollowUpAction} />
           ))}
+          {ideas.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">No ideas generated.</p>
+          )}
         </div>
       </AgentCard.Body>
     </AgentCard>
@@ -138,7 +201,9 @@ export function DraftPreview({
   cta,
   title,
   image,
+  previousImage,
   onFollowUpAction,
+  onRevertImage,
 }: {
   platform: ContentPlatform
   body: string
@@ -146,10 +211,13 @@ export function DraftPreview({
   cta?: string
   title?: string
   image?: ImageResult | null
+  previousImage?: ImageResult | null
   onFollowUpAction?: FollowUpHandler
+  onRevertImage?: () => void
 }) {
   const src = imageSrc(image)
   const limit = PLATFORM_LIMITS[platform]
+  const headerBtnCls = "flex size-6 cursor-pointer items-center justify-center border border-foreground bg-background text-foreground shadow-[1px_1px_0_var(--foreground)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_var(--foreground)] active:translate-x-0 active:translate-y-0 active:shadow-none"
   const fullText = `${body}${cta ? `\n\n${cta}` : ""}${
     hashtags.length
       ? `\n\n${hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`
@@ -158,108 +226,138 @@ export function DraftPreview({
   const captionWithCta = `${body}${cta ? `\n\n${cta}` : ""}`
   const len = fullText.length
   return (
-    <div className="flex flex-col gap-2 border border-border bg-background p-2.5">
-      <div className="flex items-center justify-between gap-1.5">
-        <Badge variant="outline" className="text-[10px]">
+    <div className="mx-auto flex w-full max-w-[320px] flex-col border border-border bg-background">
+      {/* post header */}
+      <div className="flex items-center justify-between px-2.5 py-1.5">
+        <Badge variant="outline" className="text-[9px]">
           {PLATFORM_LABEL[platform]}
         </Badge>
-        <span
-          className={cn(
-            "text-[10px]",
-            len > limit ? "text-destructive" : "text-muted-foreground"
+        <div className="flex items-center gap-1">
+          {previousImage && onRevertImage && (
+            <Tooltip>
+              <TooltipTrigger
+                type="button"
+                aria-label="Revert to original image"
+                onClick={onRevertImage}
+                className={headerBtnCls}
+              >
+                <Undo2 className="size-3" />
+              </TooltipTrigger>
+              <TooltipContent>Revert to original image</TooltipContent>
+            </Tooltip>
           )}
-        >
-          {len}/{limit}
-        </span>
+          {onFollowUpAction && (
+            <>
+              <Tooltip>
+                <TooltipTrigger
+                  type="button"
+                  aria-label="Adapt to other platforms"
+                  onClick={() =>
+                    onFollowUpAction("maya:generate-variants", {
+                      original_content: fullText,
+                      original_platform: platform,
+                    })
+                  }
+                  className={headerBtnCls}
+                >
+                  <Shuffle className="size-3" />
+                </TooltipTrigger>
+                <TooltipContent>Adapt to other platforms</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  type="button"
+                  aria-label="Revise a post"
+                  onClick={() =>
+                    onFollowUpAction("maya:revise", {
+                      original_content: fullText,
+                      platform,
+                    })
+                  }
+                  className={headerBtnCls}
+                >
+                  <Wand2 className="size-3" />
+                </TooltipTrigger>
+                <TooltipContent>Revise a post</TooltipContent>
+              </Tooltip>
+              {src && (
+                <Tooltip>
+                  <TooltipTrigger
+                    type="button"
+                    aria-label="Regenerate image"
+                    onClick={() =>
+                      onFollowUpAction("maya:regenerate-image", {
+                        image_url: src,
+                        prompt: image?.prompt_used ?? "",
+                        platform,
+                      })
+                    }
+                    className={headerBtnCls}
+                  >
+                    <ImageIcon className="size-3" />
+                  </TooltipTrigger>
+                  <TooltipContent>Regenerate image</TooltipContent>
+                </Tooltip>
+              )}
+            </>
+          )}
+          <span
+            className={cn(
+              "ml-1 text-[9px]",
+              len > limit ? "text-destructive" : "text-muted-foreground"
+            )}
+          >
+            {len}/{limit}
+          </span>
+        </div>
       </div>
+
+      {/* image */}
       {src && (
-        <div className="relative">
+        <div className="w-full">
           <img
             src={src}
             alt="generated"
-            className="max-h-72 w-full rounded-none object-cover"
+            className="w-full object-contain"
             onError={(e) => {
               ;(e.target as HTMLImageElement).style.display = "none"
             }}
           />
-          {onFollowUpAction && (
-            <div className="absolute right-1.5 top-1.5 flex gap-1">
-              <ImageOverlayButton
-                title="Adapt to other platforms"
-                onClick={() =>
-                  onFollowUpAction("maya:generate-variants", {
-                    original_content: fullText,
-                    original_platform: platform,
-                  })
-                }
-              >
-                <Shuffle className="size-3.5" />
-              </ImageOverlayButton>
-              <ImageOverlayButton
-                title="Revise a post"
-                onClick={() =>
-                  onFollowUpAction("maya:revise", {
-                    original_content: fullText,
-                    platform,
-                  })
-                }
-              >
-                <Wand2 className="size-3.5" />
-              </ImageOverlayButton>
-              <ImageOverlayButton
-                title="Regenerate image"
-                onClick={() =>
-                  onFollowUpAction("maya:regenerate-image", {
-                    image_url: src,
-                    prompt: image?.prompt_used ?? "",
-                    platform,
-                  })
-                }
-              >
-                <ImageIcon className="size-3.5" />
-              </ImageOverlayButton>
-              <ImageOverlayButton
-                title="Rewrite caption"
-                onClick={() =>
-                  onFollowUpAction("maya:regenerate-content", {
-                    caption: captionWithCta,
-                    platform,
-                  })
-                }
-              >
-                <RefreshCw className="size-3.5" />
-              </ImageOverlayButton>
-            </div>
-          )}
         </div>
       )}
-      {title && <p className="text-xs font-medium">{title}</p>}
-      <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body}</p>
-      {cta && (
-        <p className="rounded border border-border bg-muted/30 px-2 py-1 text-[11px] italic">
-          {cta}
-        </p>
-      )}
-      {hashtags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {hashtags.map((h) => (
-            <Badge key={h} variant="outline" className="text-[10px]">
-              {h.startsWith("#") ? h : `#${h}`}
-            </Badge>
-          ))}
-        </div>
-      )}
-      <ActionRow
-        copy={{ text: fullText, label: "Copy post" }}
-        download={src ? { href: src, name: `maya-${platform}.png`, label: "Image" } : undefined}
-      >
-        <PublishDialog
-          platform={platform}
-          caption={`${body}${cta ? `\n\n${cta}` : ""}`}
-          hashtags={hashtags}
-          image={image}
-        />
-      </ActionRow>
+
+      {/* caption */}
+      <div className="flex flex-col gap-1 px-2.5 py-2">
+        {title && (
+          <p className="text-[11px] font-semibold leading-tight">{title}</p>
+        )}
+        <p className="whitespace-pre-wrap text-[11px] leading-snug">{body}</p>
+        {cta && (
+          <p className="text-[10px] italic text-muted-foreground">{cta}</p>
+        )}
+        {hashtags.length > 0 && (
+          <p className="text-[10px] leading-relaxed text-primary/70">
+            {[...new Set(hashtags)]
+              .map((h) => (h.startsWith("#") ? h : `#${h}`))
+              .join(" ")}
+          </p>
+        )}
+      </div>
+
+      {/* actions */}
+      <div className="border-t border-border px-2.5 py-1.5">
+        <ActionRow
+          copy={{ text: fullText, label: "Copy post" }}
+          download={src ? { href: src, name: `maya-${platform}.png`, label: "Image" } : undefined}
+        >
+          <PublishDialog
+            platform={platform}
+            caption={`${body}${cta ? `\n\n${cta}` : ""}`}
+            hashtags={hashtags}
+            image={image}
+          />
+        </ActionRow>
+      </div>
     </div>
   )
 }
@@ -269,9 +367,11 @@ export function DraftPreview({
 export function DraftCard({
   result,
   onFollowUpAction,
+  onRevertImage,
 }: {
   result: MayaDraftResult
   onFollowUpAction?: FollowUpHandler
+  onRevertImage?: () => void
 }) {
   const d = result.draft
   return (
@@ -295,7 +395,9 @@ export function DraftCard({
           cta={d.cta}
           title={d.title}
           image={result.image}
+          previousImage={result._previousImage}
           onFollowUpAction={onFollowUpAction}
+          onRevertImage={onRevertImage}
         />
       </AgentCard.Body>
     </AgentCard>
@@ -361,7 +463,7 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
         </p>
         {result.revised.hashtags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {result.revised.hashtags.map((h) => (
+            {[...new Set(result.revised.hashtags)].map((h) => (
               <Badge key={h} variant="outline" className="text-[10px]">
                 {h.startsWith("#") ? h : `#${h}`}
               </Badge>
@@ -450,7 +552,7 @@ export function ContentRegenCard({ result }: { result: MayaContentRegenResult })
         )}
         {result.hashtags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {result.hashtags.map((h) => (
+            {[...new Set(result.hashtags)].map((h) => (
               <Badge key={h} variant="outline" className="text-[10px]">
                 {h.startsWith("#") ? h : `#${h}`}
               </Badge>

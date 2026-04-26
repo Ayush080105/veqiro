@@ -124,7 +124,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   },
 
   "maya:generate-ideas": {
-    defaultValue: { platform: "linkedin", count: 5, topic_hint: "" },
+    defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },
     Form: MayaIdeationForm,
   },
   "maya:draft-content": {

@@ -48,6 +48,7 @@ export interface ContentIdea {
   predicted_engagement: string;
   reasoning: string;
   suggested_hashtags: string[];
+  visual_description?: string;
 }
 
 export interface IdeationResponse {
