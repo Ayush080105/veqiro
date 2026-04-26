@@ -86,3 +86,10 @@ export const publish = async (req: Request, res: Response) => {
   const result = await mayaService.publish(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
+
+export const getPublishedPosts = async (req: Request, res: Response) => {
+  const organizationId = (req.query.organizationId as string) ?? req.organizationId;
+  if (!organizationId) throw new BadRequestError("Organization ID is required");
+  const posts = await mayaService.listPublishedPosts(organizationId);
+  res.status(StatusCodes.OK).json(posts);
+};

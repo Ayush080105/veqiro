@@ -481,3 +481,7 @@ export const publish = async (
     throw new BadRequestError(`Publish failed: ${message}`);
   }
 };
+
+export const listPublishedPosts = async (organizationId: string) => {
+  return mayaRepository.findPublishedPosts(organizationId);
+};

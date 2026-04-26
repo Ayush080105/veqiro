@@ -61,3 +61,20 @@ export const findAllMayaMessages = (organizationId: string) =>
       customInput: true,
     },
   });
+
+export const findPublishedPosts = (organizationId: string) =>
+  prisma.publishedPost.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      platform: true,
+      caption: true,
+      hashtags: true,
+      imageUrl: true,
+      status: true,
+      publishedAt: true,
+      createdAt: true,
+      platformPostId: true,
+    },
+  });

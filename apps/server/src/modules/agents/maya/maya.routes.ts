@@ -9,6 +9,7 @@ import {
   regenerateImage,
   regenerateContent,
   publish,
+  getPublishedPosts,
 } from "./maya.controller.js";
 
 const router = Router();
@@ -22,5 +23,6 @@ router.post("/revise", revise);
 router.post("/regenerate-image", regenerateImage);
 router.post("/regenerate-content", regenerateContent);
 router.post("/publish", publish);
+router.get("/published-posts", getPublishedPosts);
 
 export default router;

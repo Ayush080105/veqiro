@@ -26,6 +26,7 @@ import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
+import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
@@ -363,6 +364,7 @@ export default function AssistantChatPage() {
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
   const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
+  const [mayaTab, setMayaTab] = useState<"chat" | "published">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -533,6 +535,7 @@ export default function AssistantChatPage() {
   const isLex = agent.id === "lex"
   const isScout = agent.id === "scout"
   const isSage = agent.id === "sage"
+  const isMaya = agent.id === "maya"
   const isVega = agent.id === "vega"
   const hasMessages = messages.length > 0
   const agentSlug = agent.id as AgentSlug
@@ -656,7 +659,45 @@ export default function AssistantChatPage() {
         </div>
       )}
 
-      {isLex && lexTab === "documents" ? (
+      {isMaya && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderBottom: "2px solid #111",
+            background: "#FFF9ED",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setMayaTab("chat")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              mayaTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            }`}
+          >
+            <MessageSquare className="size-3" /> Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setMayaTab("published")}
+            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+              mayaTab === "published"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <FolderOpen className="size-3" /> Published Posts
+          </button>
+        </div>
+      )}
+
+      {isMaya && mayaTab === "published" ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <MayaPublishedPostsTab />
+        </div>
+      ) : isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
           <LexDocumentsTab
             onUpload={openUploadAction}
@@ -759,7 +800,7 @@ export default function AssistantChatPage() {
           </div>
         )}
 
-        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && (
+        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && !(isMaya && mayaTab === "published") && (
           <ChatInput
             value={content}
             onChange={setContent}
