@@ -50,6 +50,8 @@ export function MayaIdeationForm({
     onChange,
   })
 
+  const useBrandkit = form.watch("use_brandkit") ?? false
+
   return (
     <FieldGroup>
       <RhfField control={form.control} name="platform" label="Platform" required>
@@ -61,14 +63,33 @@ export function MayaIdeationForm({
         )}
       </RhfField>
 
+      <Controller
+        control={form.control}
+        name="use_brandkit"
+        render={({ field }) => (
+          <label className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              Use brandkit
+              <span className="ml-1 text-[10px] opacity-60">Maya reads your company profile</span>
+            </span>
+            <Switch
+              checked={field.value ?? false}
+              onCheckedChange={field.onChange}
+            />
+          </label>
+        )}
+      />
+
       <RhfField control={form.control} name="topic_hint" label="Topic hint">
         {({ field, invalid, id }) => (
           <Input
             {...field}
             id={id}
             value={field.value ?? ""}
-            placeholder="Leave blank for general brand ideas"
+            placeholder={useBrandkit ? "Locked — using brandkit" : "Leave blank for general brand ideas"}
             aria-invalid={invalid}
+            disabled={useBrandkit}
+            className={useBrandkit ? "opacity-50 cursor-not-allowed" : ""}
           />
         )}
       </RhfField>

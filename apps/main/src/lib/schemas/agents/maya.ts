@@ -7,6 +7,7 @@ export const mayaIdeationSchema = z.object({
   platform: platformSchema,
   topic_hint: z.string().optional(),
   count: z.number().int().min(1).max(10).optional(),
+  use_brandkit: z.boolean().optional(),
 })
 export type MayaIdeationValues = z.infer<typeof mayaIdeationSchema>
 
@@ -41,9 +42,9 @@ export const mayaReviseSchema = z.object({
 export type MayaReviseValues = z.infer<typeof mayaReviseSchema>
 
 export const mayaImageRegenSchema = z.object({
-  image_url: z.string().url("Use a valid image URL"),
+  image_url: z.string().optional(),
   prompt: z.string().min(3, "Describe the image"),
-  platform: platformSchema,
+  platform: platformSchema.optional(),
   use_logo: z.boolean().optional(),
   use_mascot: z.boolean().optional(),
 })

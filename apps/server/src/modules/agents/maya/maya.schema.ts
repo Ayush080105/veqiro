@@ -13,6 +13,7 @@ export const generateIdeasSchema = z.object({
   includeImage: z.boolean().optional().default(false),
   useLogo: z.boolean().optional().default(false),
   useMascot: z.boolean().optional().default(false),
+  useBrandkit: z.boolean().optional().default(false),
 });
 
 export const draftContentSchema = z.object({
