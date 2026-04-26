@@ -396,6 +396,179 @@ export interface RexBriefingResult {
   }
 }
 
+export interface RexRunwayRequest {
+  cash_on_hand: number
+  monthly_burn: number
+  monthly_revenue?: number
+  growth_rate_pct?: number
+}
+
+export interface RexRunwayScenario {
+  name: string
+  months: number | null
+  date_of_zero: string
+  assumption: string
+}
+
+export interface RexRunwayResult {
+  months_remaining: number | null
+  date_of_zero: string
+  cash_on_hand: number
+  monthly_burn: number
+  monthly_revenue: number
+  net_burn: number
+  scenarios: RexRunwayScenario[]
+  verdict: "red" | "amber" | "green"
+  recommendation: string
+}
+
+export interface RexUnitEconomicsRequest {
+  marketing_spend: DataPoint[]
+  new_customers: DataPoint[]
+  avg_monthly_revenue_per_customer: number
+  avg_customer_lifetime_months?: number
+}
+
+export interface RexUnitEconomicsResult {
+  cac: number
+  ltv: number
+  ltv_cac_ratio: number
+  payback_months: number
+  total_spend_analyzed: number
+  total_new_customers_analyzed: number
+  arpu: number
+  lifetime_months: number
+  ltv_cac_health: "red" | "amber" | "green"
+  payback_health: "red" | "amber" | "green"
+  health: "red" | "amber" | "green"
+  benchmark_context: string
+  recommendations: string[]
+}
+
+export interface RexScenarioChange {
+  burn_delta?: number
+  mrr_delta?: number
+  growth_rate_override?: number
+}
+
+export interface RexScenarioItem {
+  name: string
+  changes: RexScenarioChange
+}
+
+export interface RexScenarioRequest {
+  base_metrics: {
+    mrr: number
+    burn: number
+    cash: number
+    growth_rate: number
+  }
+  scenarios: RexScenarioItem[]
+}
+
+export interface RexScenarioResultItem {
+  name: string
+  runway_months: number | null
+  date_of_zero: string
+  arr_12mo: number
+  breakeven_month: number | null
+  verdict: "red" | "amber" | "green"
+  vs_base: { runway_delta: number | null; arr_delta: number }
+}
+
+export interface RexScenarioResult {
+  base_case: {
+    runway_months: number | null
+    date_of_zero: string
+    arr_12mo: number
+    breakeven_month: number | null
+    verdict: "red" | "amber" | "green"
+  }
+  scenarios: RexScenarioResultItem[]
+  recommendation: string
+}
+
+export interface RexWeeklyDigestRequest {
+  metrics: Record<string, number>
+  prev_week?: Record<string, number>
+}
+
+export interface RexWoWChange {
+  metric: string
+  current: number
+  previous: number
+  change_pct: number
+  direction: "up" | "down"
+}
+
+export interface RexAlert {
+  severity: "low" | "medium" | "high"
+  message: string
+}
+
+export interface RexGreenFlag {
+  message: string
+}
+
+export interface RexWeeklyDigestResult {
+  period: string
+  headline: string
+  wow_changes: RexWoWChange[]
+  alerts: RexAlert[]
+  green_flags: RexGreenFlag[]
+  focus_this_week: string[]
+  generated_at: string
+}
+
+export interface RexInvestorUpdateRequest {
+  period: string
+  metrics?: Record<string, unknown>
+  highlights?: string[]
+  asks?: string[]
+}
+
+export interface RexInvestorUpdateResult {
+  subject_line: string
+  executive_summary: string
+  metrics_section: Record<string, unknown>
+  highlights_section: string[]
+  challenges_section: string[]
+  asks_section: string[]
+  full_email_body: string
+}
+
+// Phase 3 types
+
+export interface RexSnapshot {
+  ready: boolean
+  source?: "digest" | "datasets"
+  data?: {
+    mrr?: number | null
+    burn?: number | null
+    cash?: number | null
+    runway_months?: number | null
+    headline?: string
+    wow_changes?: RexWoWChange[]
+  }
+}
+
+export interface RexPinnedCard {
+  id: string
+  organizationId: string
+  userId: string
+  kind: string
+  payload: unknown
+  position: number
+  createdAt: string
+}
+
+export interface RexSettingsData {
+  organizationId: string
+  weeklyDigestEnabled: boolean
+  weeklyDigestTimezone: string
+  weeklyDigestRecipients: string[]
+}
+
 // ─── Lex ─────────────────────────────────────────────────────────────────────
 
 /** A Lex Source row as returned by the server (camelCase). */
@@ -696,6 +869,11 @@ export type AgentActionId =
   | "rex:forecast"
   | "rex:financial-analysis"
   | "rex:compile-briefing"
+  | "rex:runway"
+  | "rex:unit-economics"
+  | "rex:scenario"
+  | "rex:weekly-digest"
+  | "rex:investor-update"
   | "lex:upload-source"
   | "lex:analyze-contract"
   | "lex:query-document"

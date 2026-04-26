@@ -64,7 +64,10 @@ export const ModelName = {
   PublishedPost: 'PublishedPost',
   CompetitorWatch: 'CompetitorWatch',
   SavedKeyword: 'SavedKeyword',
-  Source: 'Source'
+  Source: 'Source',
+  RexDataset: 'RexDataset',
+  RexPinnedCard: 'RexPinnedCard',
+  RexSettings: 'RexSettings'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -312,6 +315,48 @@ export const SourceScalarFieldEnum = {
 } as const
 
 export type SourceScalarFieldEnum = (typeof SourceScalarFieldEnum)[keyof typeof SourceScalarFieldEnum]
+
+
+export const RexDatasetScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  sourceId: 'sourceId',
+  name: 'name',
+  metricKey: 'metricKey',
+  unit: 'unit',
+  period: 'period',
+  points: 'points',
+  meta: 'meta',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDatasetScalarFieldEnum = (typeof RexDatasetScalarFieldEnum)[keyof typeof RexDatasetScalarFieldEnum]
+
+
+export const RexPinnedCardScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  kind: 'kind',
+  payload: 'payload',
+  position: 'position',
+  createdAt: 'createdAt'
+} as const
+
+export type RexPinnedCardScalarFieldEnum = (typeof RexPinnedCardScalarFieldEnum)[keyof typeof RexPinnedCardScalarFieldEnum]
+
+
+export const RexSettingsScalarFieldEnum = {
+  organizationId: 'organizationId',
+  weeklyDigestEnabled: 'weeklyDigestEnabled',
+  weeklyDigestTimezone: 'weeklyDigestTimezone',
+  weeklyDigestRecipients: 'weeklyDigestRecipients',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexSettingsScalarFieldEnum = (typeof RexSettingsScalarFieldEnum)[keyof typeof RexSettingsScalarFieldEnum]
 
 
 export const SortOrder = {

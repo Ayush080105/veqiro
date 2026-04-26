@@ -111,3 +111,18 @@ export type SavedKeyword = Prisma.SavedKeywordModel
  * 
  */
 export type Source = Prisma.SourceModel
+/**
+ * Model RexDataset
+ * 
+ */
+export type RexDataset = Prisma.RexDatasetModel
+/**
+ * Model RexPinnedCard
+ * 
+ */
+export type RexPinnedCard = Prisma.RexPinnedCardModel
+/**
+ * Model RexSettings
+ * 
+ */
+export type RexSettings = Prisma.RexSettingsModel

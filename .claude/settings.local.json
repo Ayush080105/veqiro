@@ -47,7 +47,16 @@
       "mcp__shadcn__get_project_registries",
       "mcp__shadcn__view_items_in_registries",
       "mcp__plugin_playwright_playwright__browser_press_key",
-      "mcp__plugin_playwright_playwright__browser_run_code"
+      "mcp__plugin_playwright_playwright__browser_run_code",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && head -30 {}')",
+      "Bash(pnpm --filter server tsc --noEmit)",
+      "Bash(pnpm prisma *)",
+      "Bash(node -e ' *)",
+      "Bash(git -C D:/Projects/veqiro diff --name-only HEAD)",
+      "Bash(git -C D:/Projects/veqiro diff HEAD -- apps/server/prisma/schema.prisma)",
+      "Bash(git -C D:/Projects/veqiro log --oneline -5)",
+      "Bash(git -C D:/Projects/veqiro status --short apps/server/prisma/migrations/)",
+      "Bash(pnpm add *)"
     ]
   },
   "enabledMcpjsonServers": [

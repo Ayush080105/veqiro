@@ -32,6 +32,11 @@ import {
   ForecastCard,
   FinancialHealthCard,
   BriefingCard,
+  RunwayCard,
+  UnitEconomicsCard,
+  ScenarioCard,
+  WeeklyDigestCard,
+  InvestorUpdateCard,
 } from "@/components/agents/rex/cards"
 // Lex
 import {
@@ -106,6 +111,16 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction }: Act
       return <FinancialHealthCard result={r} />
     case "rex:compile-briefing":
       return <BriefingCard result={r} />
+    case "rex:runway":
+      return <RunwayCard result={r} />
+    case "rex:unit-economics":
+      return <UnitEconomicsCard result={r} />
+    case "rex:scenario":
+      return <ScenarioCard result={r} />
+    case "rex:weekly-digest":
+      return <WeeklyDigestCard result={r} />
+    case "rex:investor-update":
+      return <InvestorUpdateCard result={r} />
 
     case "lex:upload-source":
       return <DocumentIngestCard result={r} />

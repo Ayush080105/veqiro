@@ -34,6 +34,11 @@ import {
   RexForecastForm,
   RexFinancialAnalysisForm,
   RexBriefingForm,
+  RexRunwayForm,
+  RexUnitEconomicsForm,
+  RexScenarioForm,
+  RexWeeklyDigestForm,
+  RexInvestorUpdateForm,
 } from "@/components/agents/rex/forms"
 // Lex forms
 import {
@@ -236,6 +241,57 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     defaultValue: { date: today(), all_metrics: {}, agent_summaries: {} },
     Form: RexBriefingForm,
     validate: (v) => (v.date ? null : "Date is required."),
+  },
+  "rex:runway": {
+    defaultValue: { cash_on_hand: 0, monthly_burn: 0, monthly_revenue: 0, growth_rate_pct: 0 },
+    Form: RexRunwayForm,
+    validate: (v) =>
+      !v.cash_on_hand || v.cash_on_hand <= 0
+        ? "Cash on hand must be a positive number."
+        : !v.monthly_burn || v.monthly_burn <= 0
+          ? "Monthly burn must be a positive number."
+          : null,
+  },
+  "rex:unit-economics": {
+    defaultValue: {
+      marketing_spend: [],
+      new_customers: [],
+      avg_monthly_revenue_per_customer: 0,
+      avg_customer_lifetime_months: 24,
+    },
+    Form: RexUnitEconomicsForm,
+    validate: (v) =>
+      !v.marketing_spend?.length
+        ? "Add at least one marketing spend data point."
+        : !v.new_customers?.length
+          ? "Add at least one new customers data point."
+          : !v.avg_monthly_revenue_per_customer || v.avg_monthly_revenue_per_customer <= 0
+            ? "Avg monthly revenue per customer is required."
+            : null,
+  },
+  "rex:scenario": {
+    defaultValue: {
+      base_metrics: { mrr: 0, burn: 0, cash: 0, growth_rate: 0 },
+      scenarios: [{ name: "", changes: {} }],
+    },
+    Form: RexScenarioForm,
+    validate: (v) =>
+      !v.scenarios?.length
+        ? "Add at least one scenario."
+        : v.scenarios.some((s: { name: string }) => !s.name?.trim())
+          ? "All scenarios need a name."
+          : null,
+  },
+  "rex:weekly-digest": {
+    defaultValue: { metrics: {}, prev_week: {} },
+    Form: RexWeeklyDigestForm,
+    validate: (v) =>
+      !Object.keys(v.metrics ?? {}).length ? "Add at least one metric." : null,
+  },
+  "rex:investor-update": {
+    defaultValue: { period: "", metrics: {}, highlights: [], asks: [] },
+    Form: RexInvestorUpdateForm,
+    validate: (v) => (v.period?.trim() ? null : "Period is required."),
   },
 
   "lex:upload-source": {

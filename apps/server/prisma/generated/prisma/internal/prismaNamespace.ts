@@ -397,7 +397,10 @@ export const ModelName = {
   PublishedPost: 'PublishedPost',
   CompetitorWatch: 'CompetitorWatch',
   SavedKeyword: 'SavedKeyword',
-  Source: 'Source'
+  Source: 'Source',
+  RexDataset: 'RexDataset',
+  RexPinnedCard: 'RexPinnedCard',
+  RexSettings: 'RexSettings'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -413,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1453,6 +1456,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RexDataset: {
+      payload: Prisma.$RexDatasetPayload<ExtArgs>
+      fields: Prisma.RexDatasetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RexDatasetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RexDatasetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>
+        }
+        findFirst: {
+          args: Prisma.RexDatasetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RexDatasetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>
+        }
+        findMany: {
+          args: Prisma.RexDatasetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>[]
+        }
+        create: {
+          args: Prisma.RexDatasetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>
+        }
+        createMany: {
+          args: Prisma.RexDatasetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RexDatasetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>[]
+        }
+        delete: {
+          args: Prisma.RexDatasetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>
+        }
+        update: {
+          args: Prisma.RexDatasetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>
+        }
+        deleteMany: {
+          args: Prisma.RexDatasetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RexDatasetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RexDatasetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>[]
+        }
+        upsert: {
+          args: Prisma.RexDatasetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDatasetPayload>
+        }
+        aggregate: {
+          args: Prisma.RexDatasetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRexDataset>
+        }
+        groupBy: {
+          args: Prisma.RexDatasetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDatasetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RexDatasetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDatasetCountAggregateOutputType> | number
+        }
+      }
+    }
+    RexPinnedCard: {
+      payload: Prisma.$RexPinnedCardPayload<ExtArgs>
+      fields: Prisma.RexPinnedCardFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RexPinnedCardFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RexPinnedCardFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>
+        }
+        findFirst: {
+          args: Prisma.RexPinnedCardFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RexPinnedCardFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>
+        }
+        findMany: {
+          args: Prisma.RexPinnedCardFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>[]
+        }
+        create: {
+          args: Prisma.RexPinnedCardCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>
+        }
+        createMany: {
+          args: Prisma.RexPinnedCardCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RexPinnedCardCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>[]
+        }
+        delete: {
+          args: Prisma.RexPinnedCardDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>
+        }
+        update: {
+          args: Prisma.RexPinnedCardUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>
+        }
+        deleteMany: {
+          args: Prisma.RexPinnedCardDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RexPinnedCardUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RexPinnedCardUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>[]
+        }
+        upsert: {
+          args: Prisma.RexPinnedCardUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexPinnedCardPayload>
+        }
+        aggregate: {
+          args: Prisma.RexPinnedCardAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRexPinnedCard>
+        }
+        groupBy: {
+          args: Prisma.RexPinnedCardGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexPinnedCardGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RexPinnedCardCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexPinnedCardCountAggregateOutputType> | number
+        }
+      }
+    }
+    RexSettings: {
+      payload: Prisma.$RexSettingsPayload<ExtArgs>
+      fields: Prisma.RexSettingsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RexSettingsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RexSettingsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>
+        }
+        findFirst: {
+          args: Prisma.RexSettingsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RexSettingsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>
+        }
+        findMany: {
+          args: Prisma.RexSettingsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>[]
+        }
+        create: {
+          args: Prisma.RexSettingsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>
+        }
+        createMany: {
+          args: Prisma.RexSettingsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RexSettingsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>[]
+        }
+        delete: {
+          args: Prisma.RexSettingsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>
+        }
+        update: {
+          args: Prisma.RexSettingsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>
+        }
+        deleteMany: {
+          args: Prisma.RexSettingsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RexSettingsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RexSettingsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>[]
+        }
+        upsert: {
+          args: Prisma.RexSettingsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexSettingsPayload>
+        }
+        aggregate: {
+          args: Prisma.RexSettingsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRexSettings>
+        }
+        groupBy: {
+          args: Prisma.RexSettingsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexSettingsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RexSettingsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexSettingsCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1723,6 +1948,48 @@ export const SourceScalarFieldEnum = {
 export type SourceScalarFieldEnum = (typeof SourceScalarFieldEnum)[keyof typeof SourceScalarFieldEnum]
 
 
+export const RexDatasetScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  sourceId: 'sourceId',
+  name: 'name',
+  metricKey: 'metricKey',
+  unit: 'unit',
+  period: 'period',
+  points: 'points',
+  meta: 'meta',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDatasetScalarFieldEnum = (typeof RexDatasetScalarFieldEnum)[keyof typeof RexDatasetScalarFieldEnum]
+
+
+export const RexPinnedCardScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  kind: 'kind',
+  payload: 'payload',
+  position: 'position',
+  createdAt: 'createdAt'
+} as const
+
+export type RexPinnedCardScalarFieldEnum = (typeof RexPinnedCardScalarFieldEnum)[keyof typeof RexPinnedCardScalarFieldEnum]
+
+
+export const RexSettingsScalarFieldEnum = {
+  organizationId: 'organizationId',
+  weeklyDigestEnabled: 'weeklyDigestEnabled',
+  weeklyDigestTimezone: 'weeklyDigestTimezone',
+  weeklyDigestRecipients: 'weeklyDigestRecipients',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexSettingsScalarFieldEnum = (typeof RexSettingsScalarFieldEnum)[keyof typeof RexSettingsScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1990,6 +2257,9 @@ export type GlobalOmitConfig = {
   competitorWatch?: Prisma.CompetitorWatchOmit
   savedKeyword?: Prisma.SavedKeywordOmit
   source?: Prisma.SourceOmit
+  rexDataset?: Prisma.RexDatasetOmit
+  rexPinnedCard?: Prisma.RexPinnedCardOmit
+  rexSettings?: Prisma.RexSettingsOmit
 }
 
 /* Types for Logging */

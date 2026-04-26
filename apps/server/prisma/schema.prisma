@@ -281,3 +281,44 @@ model Source {
   @@index([userId, agent])
   @@map("source")
 }
+
+model RexDataset {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  sourceId       String?
+  name           String
+  metricKey      String
+  unit           String?
+  period         String
+  points         Json
+  meta           Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, metricKey])
+  @@map("rex_dataset")
+}
+
+model RexPinnedCard {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  kind           String
+  payload        Json
+  position       Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, position])
+  @@map("rex_pinned_card")
+}
+
+model RexSettings {
+  organizationId          String   @id
+  weeklyDigestEnabled     Boolean  @default(true)
+  weeklyDigestTimezone    String   @default("UTC")
+  weeklyDigestRecipients  String[]
+  updatedAt               DateTime @updatedAt
+
+  @@map("rex_settings")
+}
