@@ -407,10 +407,18 @@ export const publish = async (
     }
   }
 
-  const caption =
-    input.hashtags && input.hashtags.length > 0
-      ? `${input.caption}\n\n${input.hashtags.join(" ")}`
-      : input.caption;
+  // Hashtags can arrive from the LLM with or without a leading `#`, with stray
+  // whitespace, or as empty strings. IG/LinkedIn only render `#token` (no
+  // spaces) as a tappable tag, so normalise here rather than at every call
+  // site or trust the model.
+  const normalizedHashtags = (input.hashtags ?? [])
+    .map((raw) => raw.trim().replace(/^#+/, "").replace(/\s+/g, ""))
+    .filter((tag) => tag.length > 0)
+    .map((tag) => `#${tag}`);
+
+  const caption = normalizedHashtags.length
+    ? `${input.caption}\n\n${normalizedHashtags.join(" ")}`
+    : input.caption;
 
   const pending = await prisma.publishedPost.create({
     data: {
