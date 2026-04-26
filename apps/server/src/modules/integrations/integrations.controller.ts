@@ -14,6 +14,10 @@ const requireAuth = (req: Request): { userId: string; organizationId: string } =
 export const listIntegrations = async (req: Request, res: Response) => {
   const { organizationId } = requireAuth(req);
   const accounts = await integrationsService.list(organizationId);
+  // Auth-scoped data + a tiny payload — skip the ETag/304 dance. Without
+  // this, CORS + credentials caching can deliver 304s with empty bodies to
+  // the browser fetch, which the client treats as "no accounts connected".
+  res.set("Cache-Control", "no-store");
   res.status(StatusCodes.OK).json(accounts);
 };
 

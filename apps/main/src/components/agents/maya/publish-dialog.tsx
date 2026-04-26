@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Send, ExternalLink } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
@@ -13,12 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  listIntegrations,
-  platformSlugToEnum,
-  type SocialAccount,
-  type SocialPlatformSlug,
-} from "@/lib/api/integrations"
+import { useIntegrations } from "@/lib/api/integrations"
 import { publishPost } from "@/lib/api/assistants"
 import type { ContentPlatform, ImageResult } from "@/lib/types/agents"
 
@@ -34,26 +29,27 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
   const organizationId = activeOrg?.id ?? ""
 
   const [open, setOpen] = useState(false)
-  const [accounts, setAccounts] = useState<SocialAccount[]>([])
-  const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
 
-  const slug = platform as SocialPlatformSlug
-  const platformEnum = platformSlugToEnum[slug]
+  // useIntegrations auto-fetches on mount and revalidates on focus, so a
+  // freshly-connected account appears next time the dialog opens without
+  // any manual cache-busting.
+  const { data: accounts = [], isLoading: loading, isError, error } = useIntegrations()
 
-  useEffect(() => {
-    if (!open) return
-    setLoading(true)
-    listIntegrations()
-      .then((list) => setAccounts(list))
-      .catch(() => setAccounts([]))
-      .finally(() => setLoading(false))
-  }, [open])
-
+  // Case-insensitive match — defends against any backend casing drift
+  // (Prisma serialises enums as upper-case strings; ContentPlatform is lower-case).
+  const target = platform.toUpperCase()
   const eligible = useMemo(
-    () => accounts.filter((a) => a.platform === platformEnum),
-    [accounts, platformEnum]
+    () => accounts.filter((a) => a.platform.toUpperCase() === target),
+    [accounts, target]
   )
+
+  if (open && accounts.length > 0 && eligible.length === 0) {
+    console.warn("PublishDialog: no eligible accounts for platform", {
+      platform,
+      platforms: accounts.map((a) => a.platform),
+    })
+  }
 
   const handlePublish = async (accountId: string) => {
     if (!organizationId) {
@@ -102,6 +98,10 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
 
         {loading ? (
           <p className="text-xs text-muted-foreground">Loading accounts…</p>
+        ) : isError ? (
+          <p className="text-xs text-destructive">
+            Couldn&apos;t load accounts: {error instanceof Error ? error.message : "Unknown error"}
+          </p>
         ) : eligible.length === 0 ? (
           <div className="flex flex-col gap-2 text-xs">
             <p className="text-muted-foreground">

@@ -106,7 +106,7 @@ export const AGENTS: AgentConfig[] = [
     llm: "Gemini 2.0-Flash",
     personality: "Precise, cautious, formal but friendly",
     description:
-      "Lex reviews contracts, drafts documents, and explains legal concepts in plain English — always with proper disclaimers.",
+      "Lex reviews contracts, drafts documents, and explains legal concepts in plain English with direct, unhedged analysis.",
     specialties: ["Contract Review", "Document Drafting", "Legal Explanations", "Compliance"],
     color: "var(--vq-violet)",
     ink: "#2A2A7A",

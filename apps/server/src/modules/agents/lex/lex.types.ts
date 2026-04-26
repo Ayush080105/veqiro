@@ -67,28 +67,54 @@ export interface QueryDocumentResponse {
 export interface ContractRisk {
   clause: string;
   risk: string;
-  severity: "low" | "medium" | "high";
+  severity: "low" | "medium" | "high" | "critical";
+  recommendation: string;
+}
+
+export interface ClauseBreakdown {
+  section: string;
+  title: string;
+  summary: string;
+  risk_level: string;
+  notes: string;
+}
+
+export interface NegotiationPoint {
+  priority: "high" | "medium" | "low";
+  clause: string;
+  issue: string;
+  suggested_change: string;
 }
 
 export interface ContractAnalysis {
-  summary: string;
+  document_type: string;
+  parties: string[];
+  effective_date: string;
+  governing_law: string;
+  jurisdiction: string;
+  executive_summary: string;
   risk_level: string;
+  risk_score: number;
   risks: ContractRisk[];
   unusual_clauses: string[];
   missing_protections: string[];
+  clause_breakdown: ClauseBreakdown[];
   key_terms: Record<string, string>;
+  obligations: Record<string, string[]>;
+  negotiation_points: NegotiationPoint[];
   overall_assessment: string;
+  recommended_action: string;
 }
 
 export interface AnalyzeContractResponse {
   analysis: ContractAnalysis;
-  disclaimer: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface DraftDocumentResponse {
   document: string;
   review_notes: string[];
-  disclaimer: string;
 }
 
 export interface ExplainResponse {
@@ -106,7 +132,6 @@ export interface LegalResearchResponse {
   practical_guidance: string[];
   jurisdiction_notes: string;
   confidence_level: string;
-  disclaimer: string;
 }
 
 export interface FrameworkResult {
@@ -127,5 +152,4 @@ export interface ComplianceCheckResponse {
   critical_gaps: string[];
   remediation_steps: RemediationStep[];
   estimated_effort: string;
-  disclaimer: string;
 }

@@ -125,9 +125,6 @@ _MOCK_LEGAL_RESPONSE = """\
 - No limitation on remedies beyond injunctive relief
 
 **Recommendation:** Request modifications to Clauses 2, 5, and add a reciprocal indemnification clause before signing.
-
----
-*DISCLAIMER: This is AI-generated information for educational purposes only. Consult a qualified attorney for specific legal advice.*
 """
 
 _MOCK_EMAIL_RESPONSE = """\

@@ -32,7 +32,6 @@ export type LexAnalyzeContractValues = z.infer<typeof lexAnalyzeContractSchema>
 export const lexQueryDocumentSchema = z.object({
   sourceId: z.string().min(1, "Pick a source"),
   query: z.string().min(2, "Query is required"),
-  topK: z.number().int().min(1).max(50).optional(),
 })
 export type LexQueryDocumentValues = z.infer<typeof lexQueryDocumentSchema>
 
