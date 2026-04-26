@@ -396,6 +396,7 @@ export const ModelName = {
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
   CompetitorWatch: 'CompetitorWatch',
+  SavedKeyword: 'SavedKeyword',
   Source: 'Source'
 } as const
 
@@ -412,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "source"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1304,6 +1305,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SavedKeyword: {
+      payload: Prisma.$SavedKeywordPayload<ExtArgs>
+      fields: Prisma.SavedKeywordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SavedKeywordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SavedKeywordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        findFirst: {
+          args: Prisma.SavedKeywordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SavedKeywordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        findMany: {
+          args: Prisma.SavedKeywordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+        }
+        create: {
+          args: Prisma.SavedKeywordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        createMany: {
+          args: Prisma.SavedKeywordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SavedKeywordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+        }
+        delete: {
+          args: Prisma.SavedKeywordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        update: {
+          args: Prisma.SavedKeywordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        deleteMany: {
+          args: Prisma.SavedKeywordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SavedKeywordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SavedKeywordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+        }
+        upsert: {
+          args: Prisma.SavedKeywordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+        }
+        aggregate: {
+          args: Prisma.SavedKeywordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSavedKeyword>
+        }
+        groupBy: {
+          args: Prisma.SavedKeywordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SavedKeywordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SavedKeywordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SavedKeywordCountAggregateOutputType> | number
+        }
+      }
+    }
     Source: {
       payload: Prisma.$SourcePayload<ExtArgs>
       fields: Prisma.SourceFieldRefs
@@ -1611,6 +1686,21 @@ export const CompetitorWatchScalarFieldEnum = {
 export type CompetitorWatchScalarFieldEnum = (typeof CompetitorWatchScalarFieldEnum)[keyof typeof CompetitorWatchScalarFieldEnum]
 
 
+export const SavedKeywordScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  keyword: 'keyword',
+  searchIntent: 'searchIntent',
+  estimatedDifficulty: 'estimatedDifficulty',
+  relevanceScore: 'relevanceScore',
+  searchVolumeEstimate: 'searchVolumeEstimate',
+  suggestedContentType: 'suggestedContentType',
+  createdAt: 'createdAt'
+} as const
+
+export type SavedKeywordScalarFieldEnum = (typeof SavedKeywordScalarFieldEnum)[keyof typeof SavedKeywordScalarFieldEnum]
+
+
 export const SourceScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1898,6 +1988,7 @@ export type GlobalOmitConfig = {
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit
   competitorWatch?: Prisma.CompetitorWatchOmit
+  savedKeyword?: Prisma.SavedKeywordOmit
   source?: Prisma.SourceOmit
 }
 

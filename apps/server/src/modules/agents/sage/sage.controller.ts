@@ -6,6 +6,7 @@ import {
   generateBlogSchema,
   analyzeContentSchema,
   contentBriefSchema,
+  saveKeywordSchema,
 } from "./sage.schema.js";
 import * as sageService from "./sage.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -61,4 +62,27 @@ export const contentBrief = async (req: Request, res: Response) => {
   const input = contentBriefSchema.parse(req.body);
   const result = await sageService.contentBrief(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
+};
+
+// ── Saved Keywords ────────────────────────────────────────────────────────────
+
+export const getSavedKeywords = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const result = await sageService.listSavedKeywords(organizationId);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const addSavedKeyword = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const input = saveKeywordSchema.parse(req.body);
+  const result = await sageService.saveKeyword(organizationId, input);
+  res.status(StatusCodes.CREATED).json(result);
+};
+
+export const removeSavedKeyword = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const { id } = req.params;
+  if (!id) throw new BadRequestError("Keyword id is required");
+  await sageService.unsaveKeyword(id, organizationId);
+  res.status(StatusCodes.NO_CONTENT).send();
 };

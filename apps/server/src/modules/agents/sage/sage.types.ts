@@ -28,6 +28,7 @@ export interface KeywordItem {
   relevance_score: number;
   suggested_content_type: string;
   related_keywords: string[];
+  search_volume_estimate?: string;
 }
 
 export interface KeywordCluster {
@@ -68,8 +69,38 @@ export interface ContentAnalysisResponse {
   improvements: string[];
   missing_keywords: string[];
   readability_grade: string;
+  word_count?: number;
+  keyword_density?: string;
+}
+
+export interface ContentBriefData {
+  search_intent: string;
+  recommended_word_count: number;
+  content_type: string;
+  title_options: string[];
+  h2_structure: string[];
+  must_include_topics: string[];
+  must_answer_questions: string[];
+  competitor_gaps: string[];
+  internal_linking_opportunities: string[];
+  cta_recommendation: string;
+  estimated_traffic_potential: string;
+  serp_features: string[];
+  topical_authority_tip: string;
 }
 
 export interface ContentBriefResponse {
-  brief: Record<string, unknown>;
+  brief: ContentBriefData;
+}
+
+export interface SavedKeyword {
+  id: string;
+  organizationId: string;
+  keyword: string;
+  searchIntent: string;
+  estimatedDifficulty: number;
+  relevanceScore: number;
+  searchVolumeEstimate?: string | null;
+  suggestedContentType: string;
+  createdAt: Date;
 }

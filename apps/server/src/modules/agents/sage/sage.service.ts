@@ -13,6 +13,7 @@ import type {
   ContentAnalysisResponse,
   ContentBriefInput,
   ContentBriefResponse,
+  SavedKeyword,
 } from "./sage.types.js";
 
 export const sendMessage = async (
@@ -197,3 +198,17 @@ export const contentBrief = async (
 
   return data;
 };
+
+// ── Saved Keywords ──────────────────────────────────────────────────────────
+
+export const listSavedKeywords = (organizationId: string): Promise<SavedKeyword[]> =>
+  sageRepository.findSavedKeywords(organizationId) as Promise<SavedKeyword[]>;
+
+export const saveKeyword = (
+  organizationId: string,
+  keyword: Omit<SavedKeyword, "id" | "createdAt" | "organizationId">
+): Promise<SavedKeyword> =>
+  sageRepository.upsertSavedKeyword({ organizationId, ...keyword }) as Promise<SavedKeyword>;
+
+export const unsaveKeyword = (id: string, organizationId: string) =>
+  sageRepository.deleteSavedKeyword(id, organizationId);

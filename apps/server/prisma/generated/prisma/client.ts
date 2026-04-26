@@ -102,6 +102,11 @@ export type PublishedPost = Prisma.PublishedPostModel
  */
 export type CompetitorWatch = Prisma.CompetitorWatchModel
 /**
+ * Model SavedKeyword
+ * 
+ */
+export type SavedKeyword = Prisma.SavedKeywordModel
+/**
  * Model Source
  * 
  */
