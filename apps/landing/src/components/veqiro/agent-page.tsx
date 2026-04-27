@@ -233,6 +233,58 @@ export function AgentPage({ employee }: Props) {
         </div>
       </section>
 
+      {/* ── ACTIONS ── */}
+      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{ marginBottom: 'clamp(28px, 4vw, 40px)' }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase' as const, color: '#555', marginBottom: 14,
+            }}>
+              [ THINGS TO ASK {employee.name.toUpperCase()} ]
+            </div>
+            <h2 style={{
+              fontFamily: FONT.display, fontSize: 'clamp(32px, 4.5vw, 60px)',
+              margin: 0, lineHeight: 0.95, color: '#EFE7D6',
+            }}>
+              try saying this.
+            </h2>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 12,
+          }}>
+            {employee.actions.map((action, i) => (
+              <div key={i} style={{
+                border: `2px solid ${employee.color}33`,
+                borderLeft: `4px solid ${employee.color}`,
+                borderRadius: 10,
+                padding: '14px 18px',
+                background: '#1A1A1A',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+              }}>
+                <span style={{
+                  fontFamily: FONT.mono, fontSize: 11, color: employee.color,
+                  letterSpacing: 1, flexShrink: 0, marginTop: 2,
+                }}>
+                  &gt;_
+                </span>
+                <span style={{
+                  fontFamily: FONT.mono, fontSize: 13, color: '#CCC',
+                  lineHeight: 1.55,
+                }}>
+                  {action}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── SKILLS TICKER ── */}
       <div style={{
         background: '#111', color: '#EFE7D6', padding: '16px 0',
