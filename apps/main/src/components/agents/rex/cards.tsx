@@ -21,6 +21,8 @@ import {
   ArrowUp,
   ArrowDown,
   Pin,
+  ArrowRight,
+  Send,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { AgentCard } from "@/components/ui/agent-card"
@@ -42,7 +44,10 @@ import type {
   RexWeeklyDigestResult,
   RexInvestorUpdateResult,
   DataPoint,
+  AgentActionId,
 } from "@/lib/types/agents"
+
+type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 
 // ─── Confidence footer ───────────────────────────────────────────────────────
 
@@ -96,6 +101,29 @@ function PinButton({ kind, payload }: { kind: string; payload: unknown }) {
     >
       <Pin className="size-2.5" />
       {pinned ? "Pinned" : "Pin"}
+    </button>
+  )
+}
+
+// ─── Follow-up action button ─────────────────────────────────────────────────
+
+function FollowUpBtn({
+  label,
+  icon: Icon = ArrowRight,
+  onClick,
+}: {
+  label: string
+  icon?: React.ElementType
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted"
+    >
+      <Icon className="size-2.5" />
+      {label}
     </button>
   )
 }
@@ -171,8 +199,16 @@ function fmtCurrency(n?: number) {
 
 // ─── Metrics analysis card ───────────────────────────────────────────────────
 
-export function MetricsAnalysisCard({ result }: { result: RexAnalyzeMetricsResult }) {
+export function MetricsAnalysisCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexAnalyzeMetricsResult
+  onFollowUpAction?: FollowUp
+}) {
   const { analysis, charts_data } = result
+  const firstMetricKey = Object.keys(charts_data)[0]
+  const firstMetricData = firstMetricKey ? charts_data[firstMetricKey] : []
   const TrendIcon =
     analysis.trend === "up"
       ? TrendingUp
@@ -223,6 +259,28 @@ export function MetricsAnalysisCard({ result }: { result: RexAnalyzeMetricsResul
             typeof a === "string" ? a : `${a.date}: ${a.direction} (${a.severity})${a.root_cause_hypothesis ? ` — ${a.root_cause_hypothesis}` : ""}`
           )} tone="danger" />
         )}
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {firstMetricKey && (
+              <FollowUpBtn
+                label="Forecast this metric"
+                onClick={() => onFollowUpAction("rex:forecast", {
+                  metric_name: firstMetricKey,
+                  historical_json: JSON.stringify(firstMetricData),
+                })}
+              />
+            )}
+            <FollowUpBtn
+              label="Financial analysis"
+              icon={Wallet}
+              onClick={() => onFollowUpAction("rex:financial-analysis", {
+                revenue_json: JSON.stringify(
+                  charts_data.revenue ?? charts_data.mrr ?? firstMetricData
+                ),
+              })}
+            />
+          </div>
+        )}
         <ConfidenceFooter
           level={result.confidence_level}
           dataPoints={result.data_points_analyzed}
@@ -235,7 +293,13 @@ export function MetricsAnalysisCard({ result }: { result: RexAnalyzeMetricsResul
 
 // ─── Forecast card ───────────────────────────────────────────────────────────
 
-export function ForecastCard({ result }: { result: RexForecastResult }) {
+export function ForecastCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexForecastResult
+  onFollowUpAction?: FollowUp
+}) {
   const points: DataPoint[] = result.forecast.map((f) => ({
     date: f.date,
     value: f.value,
@@ -261,6 +325,15 @@ export function ForecastCard({ result }: { result: RexForecastResult }) {
           <Sparkline data={points} band={band} height={80} />
         </div>
         <p className="text-[11px] leading-relaxed">{result.summary}</p>
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Model a scenario"
+              icon={GitBranch}
+              onClick={() => onFollowUpAction("rex:scenario", {})}
+            />
+          </div>
+        )}
         <ConfidenceFooter
           level={result.confidence >= 0.75 ? "high" : result.confidence >= 0.6 ? "medium" : "low"}
           note={`${result.methodology} · ${Math.round(result.confidence * 100)}% confidence`}
@@ -272,7 +345,13 @@ export function ForecastCard({ result }: { result: RexForecastResult }) {
 
 // ─── Financial health card ───────────────────────────────────────────────────
 
-export function FinancialHealthCard({ result }: { result: RexFinancialAnalysisResult }) {
+export function FinancialHealthCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexFinancialAnalysisResult
+  onFollowUpAction?: FollowUp
+}) {
   const m = result.metrics
   return (
     <AgentCard size="sm">
@@ -313,6 +392,31 @@ export function FinancialHealthCard({ result }: { result: RexFinancialAnalysisRe
         {result.recommendations.length > 0 && (
           <InfoSection label="recommendations" bullets={result.recommendations} />
         )}
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Generate investor update"
+              icon={Mail}
+              onClick={() => onFollowUpAction("rex:investor-update", {
+                metrics_json: JSON.stringify({
+                  mrr: m.mrr,
+                  arr: m.arr,
+                  growth_rate: m.growth_rate_pct,
+                  churn_rate: m.churn_rate_pct,
+                  burn: m.net_burn ?? m.burn_rate,
+                }),
+              })}
+            />
+            <FollowUpBtn
+              label="Calculate runway"
+              icon={Hourglass}
+              onClick={() => onFollowUpAction("rex:runway", {
+                monthly_burn: m.net_burn ?? m.burn_rate,
+                monthly_revenue: m.mrr,
+              })}
+            />
+          </div>
+        )}
         <ConfidenceFooter
           level={result.confidence_level}
           dataPoints={result.data_points_analyzed}
@@ -325,7 +429,13 @@ export function FinancialHealthCard({ result }: { result: RexFinancialAnalysisRe
 
 // ─── Briefing card ───────────────────────────────────────────────────────────
 
-export function BriefingCard({ result }: { result: RexBriefingResult }) {
+export function BriefingCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexBriefingResult
+  onFollowUpAction?: FollowUp
+}) {
   const b = result.briefing
   return (
     <AgentCard size="sm">
@@ -337,6 +447,7 @@ export function BriefingCard({ result }: { result: RexBriefingResult }) {
             {b.date}
           </Badge>
         }
+        right={<PinButton kind="briefing" payload={result} />}
       />
       <AgentCard.Body className="flex flex-col gap-3">
         <p className="text-xs font-medium">{b.headline}</p>
@@ -350,6 +461,15 @@ export function BriefingCard({ result }: { result: RexBriefingResult }) {
             </div>
           ))}
         </div>
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Generate investor update"
+              icon={Mail}
+              onClick={() => onFollowUpAction("rex:investor-update", {})}
+            />
+          </div>
+        )}
       </AgentCard.Body>
     </AgentCard>
   )
@@ -357,7 +477,13 @@ export function BriefingCard({ result }: { result: RexBriefingResult }) {
 
 // ─── Runway card ─────────────────────────────────────────────────────────────
 
-export function RunwayCard({ result }: { result: RexRunwayResult }) {
+export function RunwayCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexRunwayResult
+  onFollowUpAction?: FollowUp
+}) {
   const verdictLevel = result.verdict === "green" ? "ok" : result.verdict === "amber" ? "warn" : "danger"
   const runwayLabel =
     result.months_remaining != null
@@ -413,6 +539,22 @@ export function RunwayCard({ result }: { result: RexRunwayResult }) {
           </div>
         )}
         <p className="text-[11px] leading-relaxed">{result.recommendation}</p>
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Model a scenario"
+              icon={GitBranch}
+              onClick={() => onFollowUpAction("rex:scenario", {
+                base_metrics_json: JSON.stringify({
+                  mrr: result.monthly_revenue,
+                  burn: result.monthly_burn,
+                  cash: result.cash_on_hand,
+                  growth_rate: 0.05,
+                }),
+              })}
+            />
+          </div>
+        )}
       </AgentCard.Body>
     </AgentCard>
   )
@@ -471,9 +613,11 @@ export function UnitEconomicsCard({ result }: { result: RexUnitEconomicsResult }
 export function ScenarioCard({
   result,
   baseMetrics,
+  onFollowUpAction,
 }: {
   result: RexScenarioResult
   baseMetrics?: { mrr: number; burn: number; cash: number; growth_rate: number }
+  onFollowUpAction?: FollowUp
 }) {
   const derivedBase = baseMetrics ?? {
     mrr: (result.base_case?.arr_12mo as number | undefined ?? 0) / 12,
@@ -484,9 +628,21 @@ export function ScenarioCard({
 
   return (
     <AgentCard size="sm">
-      <AgentCard.Header icon={<GitBranch />} title="What-if scenarios" />
+      <AgentCard.Header
+        icon={<GitBranch />}
+        title="What-if scenarios"
+        right={<PinButton kind="scenario" payload={result} />}
+      />
       <AgentCard.Body className="flex flex-col gap-3">
         <ScenarioSliders initialResult={result} baseMetrics={derivedBase} />
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Model another scenario"
+              onClick={() => onFollowUpAction("rex:scenario", {})}
+            />
+          </div>
+        )}
       </AgentCard.Body>
     </AgentCard>
   )
@@ -494,7 +650,13 @@ export function ScenarioCard({
 
 // ─── Weekly digest card ───────────────────────────────────────────────────────
 
-export function WeeklyDigestCard({ result }: { result: RexWeeklyDigestResult }) {
+export function WeeklyDigestCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexWeeklyDigestResult
+  onFollowUpAction?: FollowUp
+}) {
   const severityColor = (s: string) =>
     s === "high" ? "text-destructive" : s === "medium" ? "text-amber-500" : "text-muted-foreground"
 
@@ -566,6 +728,23 @@ export function WeeklyDigestCard({ result }: { result: RexWeeklyDigestResult }) 
         {result.focus_this_week?.length > 0 && (
           <InfoSection label="Focus this week" bullets={result.focus_this_week} />
         )}
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Generate investor update"
+              icon={Mail}
+              onClick={() => {
+                const metricsFromWow = result.wow_changes?.reduce<Record<string, number>>((acc, c) => {
+                  if (c.metric && c.current != null) acc[c.metric] = c.current
+                  return acc
+                }, {}) ?? {}
+                onFollowUpAction("rex:investor-update", {
+                  metrics_json: JSON.stringify(metricsFromWow),
+                })
+              }}
+            />
+          </div>
+        )}
         <ConfidenceFooter
           level={result.confidence_level}
           dataPoints={result.metrics_count}
@@ -578,7 +757,13 @@ export function WeeklyDigestCard({ result }: { result: RexWeeklyDigestResult }) 
 
 // ─── Investor update card ────────────────────────────────────────────────────
 
-export function InvestorUpdateCard({ result }: { result: RexInvestorUpdateResult }) {
+export function InvestorUpdateCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexInvestorUpdateResult
+  onFollowUpAction?: FollowUp
+}) {
   const [copied, setCopied] = React.useState(false)
 
   const copy = () => {
@@ -593,14 +778,17 @@ export function InvestorUpdateCard({ result }: { result: RexInvestorUpdateResult
         icon={<Mail />}
         title="Investor update"
         right={
-          <button
-            type="button"
-            onClick={copy}
-            className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
-          >
-            <Copy className="size-3" />
-            {copied ? "Copied!" : "Copy email"}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={copy}
+              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
+            >
+              <Copy className="size-3" />
+              {copied ? "Copied!" : "Copy email"}
+            </button>
+            <PinButton kind="investor-update" payload={result} />
+          </div>
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
@@ -627,6 +815,18 @@ export function InvestorUpdateCard({ result }: { result: RexInvestorUpdateResult
             {result.full_email_body}
           </pre>
         </details>
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Send via Vega"
+              icon={Send}
+              onClick={() => onFollowUpAction("vega:compose-email" as AgentActionId, {
+                subject: result.subject_line,
+                instructions: `Send this investor update as-is:\n\n${result.full_email_body}`,
+              })}
+            />
+          </div>
+        )}
       </AgentCard.Body>
     </AgentCard>
   )

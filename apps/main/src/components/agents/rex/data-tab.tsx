@@ -60,7 +60,7 @@ const saveDatasets = (datasets: Array<{
 const deleteDataset = (id: string) =>
   apiFetch<void>(`/agents/rex/datasets/${id}`, { method: "DELETE" })
 
-const REX_DATASETS_KEY = (orgId: string) => ["rex", "datasets", orgId]
+export const REX_DATASETS_KEY = (orgId: string) => ["rex", "datasets", orgId]
 
 // ── Main component ────────────────────────────────────────────────────────────
 

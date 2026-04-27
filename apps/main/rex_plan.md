@@ -293,6 +293,147 @@
  Difficulty: Medium | Third-party: No
 
  ---
+ Part E — Frontend Card UX & Quick Actions (High-Impact Polish)
+
+ These close the gap between REX and Maya/Scout/Sage on result card interactivity.
+ Every other agent has follow-up action buttons on their output cards — REX has none.
+ This part brings REX cards to parity and adds the cross-agent shortcut founders will
+ actually use.
+
+ ---
+ E1. Follow-Up Action Buttons on REX Result Cards
+
+ File to edit:
+ - apps/main/src/components/agents/rex/cards.tsx
+
+ Pattern to follow:
+ - Maya's DraftCard has "Regenerate image", "Create variants", "Revise" buttons — each
+   calls onFollowUpAction(actionId, prefillData) passed in as a prop.
+ - Sage's BlogIdeasCard has "Write this" on each idea chip.
+ - Scout's DiscoverCompetitorsCard has "Research this" on each company row.
+ - REX cards currently receive NO onFollowUpAction prop and show NO follow-up buttons.
+
+ How to wire it:
+ - Add onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+   prop to each card component that needs it (same signature as ChatMessage already uses).
+ - ActionResultRenderer already receives onFollowUpAction from ChatMessage — pass it
+   through to each REX card in the switch statement in ActionResultRenderer.tsx.
+ - Each button calls onFollowUpAction(targetActionId, prefillData) where prefillData
+   is built from the current card's result so the next form auto-fills.
+
+ Button to add per card:
+
+ MetricsAnalysisCard:
+   - "Run financial analysis" → onFollowUpAction("rex:financial-analysis", {
+       revenue_json: JSON.stringify(charts_data.revenue ?? charts_data.mrr ?? [])
+     })
+   - "Forecast this metric" → onFollowUpAction("rex:forecast", {
+       metric_name: first metric key from charts_data,
+       historical_json: JSON.stringify(first metric data array)
+     })
+   Both buttons render in AgentCard.Header right area, next to the PinButton.
+
+ ForecastCard:
+   - "Model a scenario" → onFollowUpAction("rex:scenario", {})
+   Button renders in AgentCard.Header right area.
+
+ FinancialHealthCard:
+   - "Generate investor update" → onFollowUpAction("rex:investor-update", {
+       metrics_json: JSON.stringify({ mrr: m.mrr, arr: m.arr, growth_rate: m.growth_rate_pct,
+         churn_rate: m.churn_rate_pct, burn: m.net_burn })
+     })
+   - "Calculate runway" → onFollowUpAction("rex:runway", {
+       monthly_burn: m.net_burn, monthly_revenue: m.mrr
+     })
+   Both in AgentCard.Header right area.
+
+ RunwayCard:
+   - "Model a scenario" → onFollowUpAction("rex:scenario", {
+       base_metrics_json: JSON.stringify({
+         mrr: result.monthly_revenue, burn: result.monthly_burn,
+         cash: result.cash_on_hand, growth_rate: 0.05
+       })
+     })
+   Renders in AgentCard.Header right area.
+
+ WeeklyDigestCard:
+   - "Generate investor update" → onFollowUpAction("rex:investor-update", {
+       metrics_json: JSON.stringify extracted from result.wow_changes into a flat dict
+     })
+   Renders in AgentCard.Header right area.
+
+ InvestorUpdateCard:
+   - "Send via Vega" → onFollowUpAction("vega:compose-email", {
+       subject: result.subject_line,
+       instructions: "Send this investor update as-is:\n\n" + result.full_email_body
+     })
+   Renders next to the existing "Copy email" button.
+
+ ScenarioCard:
+   - "Model another scenario" → onFollowUpAction("rex:scenario", {})
+   Renders in AgentCard.Header right area.
+
+ BriefingCard:
+   - "Generate investor update" → onFollowUpAction("rex:investor-update", {})
+   Renders in AgentCard.Header right area.
+
+ Button style:
+   Use the same small borderless button pattern as PinButton — border border-border
+   px-1.5 py-0.5 text-[10px] hover:bg-muted flex items-center gap-1.
+   Use a relevant lucide icon (ArrowRight, TrendingUp, etc.).
+
+ Difficulty: Easy | Third-party: No
+
+ ---
+ E2. Pin Button on Four Missing Cards
+
+ File to edit:
+ - apps/main/src/components/agents/rex/cards.tsx
+
+ Current state — 5 cards have PinButton, 4 do not:
+   HAS Pin: MetricsAnalysisCard, ForecastCard, FinancialHealthCard, RunwayCard, WeeklyDigestCard
+   MISSING Pin: BriefingCard, UnitEconomicsCard, ScenarioCard, InvestorUpdateCard
+
+ What to add:
+ - Import PinButton (already defined in the same file).
+ - Add <PinButton kind="briefing" payload={result} /> to BriefingCard header right area.
+ - Add <PinButton kind="unit-economics" payload={result} /> to UnitEconomicsCard header right area.
+ - Add <PinButton kind="scenario" payload={result} /> to ScenarioCard header right area.
+ - Add <PinButton kind="investor-update" payload={result} /> to InvestorUpdateCard header
+   right area alongside the existing "Copy email" button.
+
+ Why it matters: Founders should be able to pin any card to TodayPanel. The 4 missing
+ cards are all high-value outputs (briefings, unit econ, scenarios, investor updates)
+ that founders would want on their dashboard.
+
+ Difficulty: Easy | Third-party: No
+
+ ---
+ E3. Data Tab Badge on Rex Tab Button
+
+ File to edit:
+ - apps/main/src/app/(dashboard)/assistants/[id]/page.tsx
+
+ Current state:
+ - The REX tab bar shows "Chat" and "Data" as plain buttons with no contextual info.
+ - User has no way to know if there's data uploaded without clicking the Data tab.
+
+ What to add:
+ - Import useRexDatasets (or useQuery for GET /agents/rex/datasets) at the page level
+   when isRex is true (already have organizationId available).
+ - Show a count badge on the "Data" tab button: the number of uploaded datasets.
+   e.g. "Data  3" — rendered as a small rounded pill next to the label using the
+   existing REX brand color (the agent color variable).
+ - If 0 datasets: no badge shown (avoid showing "0").
+ - If datasets exist: show count in a small badge, matching the style used in other
+   parts of the app (font-mono text-[9px] uppercase).
+
+ Why it matters: Passive signal to the founder that data is loaded and REX is ready
+ to analyze — without requiring them to click the tab to check.
+
+ Difficulty: Easy | Third-party: No
+
+ ---
  Part D — Third-Party Integrations (Phase 2+)
 
  D1. Stripe API Sync (Real-Time MRR)
@@ -357,23 +498,29 @@
 
  Phase 1 — High ROI, no integrations — 1-2 weeks
 
- ┌─────┬───────────────────────────────────┬────────────┬───────────┐
- │  #  │              Feature              │ Difficulty │ 3rd Party │
- ├─────┼───────────────────────────────────┼────────────┼───────────┤
- │ B1  │ Temperature tuning by endpoint    │ Easy       │ No        │
- ├─────┼───────────────────────────────────┼────────────┼───────────┤
- │ B4  │ Improved LLM prompts + benchmarks │ Medium     │ No        │
- ├─────┼───────────────────────────────────┼────────────┼───────────┤
- │ C1  │ Magic Numbers summary card        │ Easy       │ No        │
- ├─────┼───────────────────────────────────┼────────────┼───────────┤
- │ C4  │ Scenario builder templates        │ Easy       │ No        │
- ├─────┼───────────────────────────────────┼────────────┼───────────┤
- │ C6  │ Multi-sheet Excel support         │ Easy       │ No        │
- ├─────┼───────────────────────────────────┼────────────┼───────────┤
- │ C7  │ Column mapping memory             │ Easy       │ No        │
- ├─────┼───────────────────────────────────┼────────────┼───────────┤
- │ C8  │ REX → Vega cross-agent digest     │ Easy       │ No        │
- └─────┴───────────────────────────────────┴────────────┴───────────┘
+ ┌─────┬───────────────────────────────────────────┬────────────┬───────────┐
+ │  #  │                  Feature                  │ Difficulty │ 3rd Party │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ E1  │ Follow-up action buttons on result cards  │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ E2  │ Pin button on 4 missing cards             │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ E3  │ Data tab dataset count badge              │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ B1  │ Temperature tuning by endpoint            │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ B4  │ Improved LLM prompts + benchmarks         │ Medium     │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ C1  │ Magic Numbers summary card                │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ C4  │ Scenario builder templates                │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ C6  │ Multi-sheet Excel support                 │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ C7  │ Column mapping memory                     │ Easy       │ No        │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
+ │ C8  │ REX → Vega cross-agent digest             │ Easy       │ No        │
+ └─────┴───────────────────────────────────────────┴────────────┴───────────┘
 
  Phase 1 (continued) — Engagement hooks — 2-3 weeks
 
@@ -450,6 +597,8 @@
  │ apps/main/src/components/agents/rex/KpiStrip.tsx       │ Live KPI strip                                            │
  ├────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
  │ apps/main/src/components/assistants/AgentInfoPanel.tsx │ Where digest toggle goes                                  │
+ ├────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+ │ apps/main/src/components/chat/ActionResultRenderer.tsx │ Dispatches action results to cards — pass onFollowUpAction│
  └────────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────┘
 
  ---

@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Info, HelpCircle, MessageSquare, FolderOpen } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
+import { apiFetch } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
 import {
   useMessages,
@@ -26,7 +27,7 @@ import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
-import { RexDataTab } from "@/components/agents/rex/data-tab"
+import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 import { KpiStrip } from "@/components/agents/rex/KpiStrip"
 import { TodayPanel } from "@/components/agents/rex/today-panel"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
@@ -357,6 +358,12 @@ export default function AssistantChatPage() {
   )
   const { data: brandKit = null } = useBrandKit(organizationId)
   const { data: googleLinked } = useGoogleConnected(agent?.id === "vega")
+  const { data: rexDatasetCount = 0 } = useQuery({
+    queryKey: REX_DATASETS_KEY(organizationId),
+    queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets").then((d) => d.length),
+    enabled: id === "rex" && !!organizationId,
+    staleTime: 30_000,
+  })
 
   const [content, setContent] = useState("")
   const [plusOpen, setPlusOpen] = useState(false)
@@ -693,6 +700,17 @@ export default function AssistantChatPage() {
               }`}
             >
               <FolderOpen className="size-3" /> Data
+              {rexDatasetCount > 0 && (
+                <span
+                  className="ml-0.5 rounded-full px-1.5 py-0.5 font-mono text-[9px] leading-none"
+                  style={{
+                    background: rexTab === "data" ? "#EFE7D6" : agent.color as string,
+                    color: "#111",
+                  }}
+                >
+                  {rexDatasetCount}
+                </span>
+              )}
             </button>
           </div>
           <KpiStrip onOpenDataTab={() => setRexTab("data")} />

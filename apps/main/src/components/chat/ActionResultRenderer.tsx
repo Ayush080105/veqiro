@@ -108,23 +108,23 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
       return <DiscoverCompetitorsCard result={r} />
 
     case "rex:analyze-metrics":
-      return <MetricsAnalysisCard result={r} />
+      return <MetricsAnalysisCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:forecast":
-      return <ForecastCard result={r} />
+      return <ForecastCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:financial-analysis":
-      return <FinancialHealthCard result={r} />
+      return <FinancialHealthCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:compile-briefing":
-      return <BriefingCard result={r} />
+      return <BriefingCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:runway":
-      return <RunwayCard result={r} />
+      return <RunwayCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:unit-economics":
       return <UnitEconomicsCard result={r} />
     case "rex:scenario":
-      return <ScenarioCard result={r} />
+      return <ScenarioCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:weekly-digest":
-      return <WeeklyDigestCard result={r} />
+      return <WeeklyDigestCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:investor-update":
-      return <InvestorUpdateCard result={r} />
+      return <InvestorUpdateCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "lex:upload-source":
       return <DocumentIngestCard result={r} />
