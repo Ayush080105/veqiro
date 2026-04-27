@@ -147,13 +147,34 @@ export async function parseUploaded(r2Key: string): Promise<ParseResult> {
     return parseRows(result.data);
   }
 
-  // xlsx / xls — read first sheet only (v1)
+  // xlsx / xls — parse every sheet and merge all datasets
   const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
-    defval: "",
-    raw: false,
-  });
-  return parseRows(rows);
+  const allDatasets: ParseResult["datasets"] = [];
+  let firstResult: ParseResult | null = null;
+
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
+      defval: "",
+      raw: false,
+    });
+    if (rows.length === 0) continue;
+    const result = parseRows(rows);
+    if (!firstResult) firstResult = result;
+    // Prefix metric keys with sheet name when merging to avoid collisions
+    const prefix = workbook.SheetNames.length > 1
+      ? `${sheetName.toLowerCase().replace(/\s+/g, "_")}_`
+      : "";
+    for (const ds of result.datasets) {
+      const key = prefix ? `${prefix}${ds.metricKey}` : ds.metricKey;
+      if (!allDatasets.find((d) => d.metricKey === key)) {
+        allDatasets.push({ metricKey: key, points: ds.points });
+      }
+    }
+  }
+
+  if (!firstResult) {
+    return { candidate_mapping: { dateColumn: "", valueColumns: [] }, sample_rows: [], headers: [], datasets: [] };
+  }
+  return { ...firstResult, datasets: allDatasets };
 }

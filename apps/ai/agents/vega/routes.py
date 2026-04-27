@@ -571,6 +571,7 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
                     {"day": "Thursday Apr 3", "event": "Investor Call – Accel Partners", "prep": "Send metrics deck by Wednesday EOD"},
                 ],
                 "email_summary": {"total_unread": 3, "urgent": 1, "high": 1, "low": 1},
+                "financial_status": "MRR at $58K (+8% MoM), runway 14 months. No critical alerts.",
                 "free_time_today": "10am-5pm EST (7.5 hours)",
                 "focus_recommendation": "Block 10am-12pm for deep work. Do investor reply before standup.",
                 "generated_at": datetime.utcnow().isoformat(),
@@ -584,8 +585,30 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
     if request.include_calendar:
         events = await list_events(token, days_ahead=7)
 
+    # Best-effort Rex financial snapshot — included when available, silent on failure
+    financial_snapshot = ""
+    try:
+        from agents.registry import get_agent
+        from core.models import ChatRequest as _ChatRequest
+        rex = get_agent("rex")
+        if rex:
+            snap = await rex.chat_sync(_ChatRequest(
+                user_id=request.user_id,
+                organization_id=request.organization_id,
+                conversation_id="vega-briefing-rex-snapshot",
+                message="Give me today's financial snapshot in 2 sentences: headline metric, runway status, and one alert if any. Be brief.",
+                history=[],
+                metadata={"_cross_agent_call": True},
+            ))
+            if snap.response:
+                financial_snapshot = snap.response
+    except Exception:
+        pass
+
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     context = f"Unread emails: {json.dumps(emails[:5])}\n\nCalendar events: {json.dumps(events)}"
+    if financial_snapshot:
+        context += f"\n\nFinancial status (from Rex): {financial_snapshot}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -595,6 +618,7 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
             "date, urgent_actions (list of {action, deadline, context, email_id?}), "
             "today_schedule (list of {time, event, location?, prep_needed}), "
             "email_summary ({total_unread, urgent, high, medium, low}), "
+            "financial_status (string — the Rex snapshot, empty string if not available), "
             "focus_recommendation (string)"
         )}],
     )
@@ -604,6 +628,8 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
     except Exception:
         data = {"briefing_text": raw}
     data["generated_at"] = datetime.utcnow().isoformat()
+    if financial_snapshot and "financial_status" not in data:
+        data["financial_status"] = financial_snapshot
     return ExecutiveBriefingResponse(briefing=data, tokens_used=tokens_used, model_used=_agent.default_model)
 
 

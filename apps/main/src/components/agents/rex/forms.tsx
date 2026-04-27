@@ -587,12 +587,34 @@ export function RexScenarioForm({
         render={({ field }) => {
           const entries: ScenarioEntry[] = field.value ?? []
           const commit = (next: ScenarioEntry[]) => field.onChange(next)
+          const addTemplate = (name: string, changes: ScenarioEntry["changes"]) =>
+            commit([...entries, { name, changes }])
+
+          const TEMPLATES: Array<{ label: string; changes: ScenarioEntry["changes"] }> = [
+            { label: "Hire 2 engineers", changes: { burn_delta: 25000 } },
+            { label: "Double marketing", changes: { burn_delta: 10000, mrr_delta: 5000 } },
+            { label: "Price increase 20%", changes: { mrr_delta: 5000 } },
+            { label: "Cut $10K burn", changes: { burn_delta: -10000 } },
+          ]
+
           return (
             <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-1.5">
                 <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
                   Scenarios
                 </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {TEMPLATES.map((t) => (
+                    <button
+                      key={t.label}
+                      type="button"
+                      onClick={() => addTemplate(t.label, t.changes)}
+                      className="border border-dashed border-border bg-muted/20 px-2 py-0.5 font-mono text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      + {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               {entries.map((entry, i) => (
                 <div key={i} className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2">

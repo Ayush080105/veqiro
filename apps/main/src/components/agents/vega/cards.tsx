@@ -339,6 +339,14 @@ export function ExecutiveBriefingCard({
             <strong>Email:</strong> {b.email_summary}
           </p>
         )}
+        {typeof (b as Record<string, unknown>).financial_status === "string" && (
+          <p className="rounded border border-border bg-muted/20 px-2 py-1.5 text-[11px] leading-relaxed">
+            <span className="mr-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+              Rex ·
+            </span>
+            {(b as unknown as Record<string, string>).financial_status}
+          </p>
+        )}
         {b.focus_recommendation && (
           <p className="rounded border border-border bg-muted/30 px-2 py-1 text-[11px] italic">
             Focus: {b.focus_recommendation}

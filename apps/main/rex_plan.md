@@ -11,11 +11,11 @@
   completion of v1 AND a prioritised roadmap of everything that would push REX from "useful" to "indispensable."
 
  ---
- Part A — Remaining Original Plan Items (v1 Completion)
+ Part A — Remaining Original Plan Items (v1 Completion) [ALL DONE]
 
  These must ship before calling REX "done" per the original spec.
 
- A1. AgentInfoPanel — Weekly Digest Settings Toggle
+ A1. AgentInfoPanel — Weekly Digest Settings Toggle [DONE]
 
  Files to edit:
  - apps/main/src/components/assistants/AgentInfoPanel.tsx
@@ -29,7 +29,7 @@
  - Difficulty: Easy | Third-party: No
 
  ---
- A2. KPI Drill-Down Chart Modal
+ A2. KPI Drill-Down Chart Modal [DONE]
 
  Files to edit:
  - apps/main/src/components/agents/rex/KpiStrip.tsx
@@ -42,7 +42,7 @@
  - Difficulty: Easy | Third-party: No
 
  ---
- A3. "Use Saved Dataset" Picker in Forms
+ A3. "Use Saved Dataset" Picker in Forms [DONE]
 
  Files to edit:
  - apps/main/src/components/agents/rex/forms.tsx (4 forms: analyze-metrics, forecast, financial-analysis, unit-economics)
@@ -56,7 +56,7 @@
  - Difficulty: Easy | Third-party: No
 
  ---
- A4. Quick-Action Buttons After Dataset Save
+ A4. Quick-Action Buttons After Dataset Save [DONE]
 
  Files to edit:
  - apps/main/src/components/agents/rex/data-tab.tsx
@@ -71,11 +71,11 @@
  - Difficulty: Easy | Third-party: No
 
  ---
- Part B — AI Quality & Trust Improvements (High-Impact, No Third Party)
+ Part B — AI Quality & Trust Improvements (High-Impact, No Third Party) [ALL DONE]
 
  These make REX's output trustworthy enough for a real startup board meeting.
 
- B1. Temperature Tuning by Endpoint
+ B1. Temperature Tuning by Endpoint [DONE]
 
  File: apps/ai/agents/rex/routes.py
 
@@ -92,7 +92,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- B2. Structured Output via OpenAI response_format (JSON Schema)
+ B2. Structured Output via OpenAI response_format (JSON Schema) [DONE]
 
  File: apps/ai/core/llm.py, apps/ai/agents/rex/routes.py
 
@@ -104,7 +104,7 @@
  Difficulty: Medium | Third-party: No
 
  ---
- B3. Confidence Scores + Data Source Labels on Every Insight
+ B3. Confidence Scores + Data Source Labels on Every Insight [DONE]
 
  Files: apps/ai/agents/rex/routes.py, apps/server/src/modules/agents/rex/rex.types.ts, apps/main/src/components/agents/rex/cards.tsx
 
@@ -123,7 +123,7 @@
  Difficulty: Medium | Third-party: No
 
  ---
- B4. Improved LLM Prompts with Benchmark Context
+ B4. Improved LLM Prompts with Benchmark Context [DONE]
 
  File: apps/ai/agents/rex/routes.py
 
@@ -136,7 +136,7 @@
  Difficulty: Medium | Third-party: No
 
  ---
- B5. Anomaly Root-Cause Correlation
+ B5. Anomaly Root-Cause Correlation [DONE]
 
  File: apps/ai/agents/rex/analytics.py, apps/ai/agents/rex/routes.py
 
@@ -210,7 +210,7 @@
  Difficulty: Medium | Third-party: No
 
  ---
- C4. Scenario Builder Templates
+ C4. Scenario Builder Templates [DONE]
 
  Files: apps/main/src/components/agents/rex/forms.tsx (RexScenarioForm), apps/main/src/lib/schemas/agents/rex.ts
 
@@ -239,7 +239,7 @@
  Difficulty: Medium | Third-party: No
 
  ---
- C6. Multi-Sheet Excel Support
+ C6. Multi-Sheet Excel Support [DONE]
 
  File: apps/server/src/modules/agents/rex/rex.csv.ts
 
@@ -259,7 +259,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- C8. REX → Vega Cross-Agent Digest Integration
+ C8. REX → Vega Cross-Agent Digest Integration [DONE]
 
  Files: apps/ai/agents/vega/routes.py (executive-briefing endpoint), apps/ai/agents/rex/agent.py
 
@@ -301,7 +301,7 @@
  actually use.
 
  ---
- E1. Follow-Up Action Buttons on REX Result Cards
+ E1. Follow-Up Action Buttons on REX Result Cards [DONE]
 
  File to edit:
  - apps/main/src/components/agents/rex/cards.tsx
@@ -385,7 +385,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- E2. Pin Button on Four Missing Cards
+ E2. Pin Button on Four Missing Cards [DONE]
 
  File to edit:
  - apps/main/src/components/agents/rex/cards.tsx
@@ -409,7 +409,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- E3. Data Tab Badge on Rex Tab Button
+ E3. Data Tab Badge on Rex Tab Button [DONE]
 
  File to edit:
  - apps/main/src/app/(dashboard)/assistants/[id]/page.tsx
@@ -482,91 +482,91 @@
  ---
  Prioritised Implementation Order
 
- Immediate (v1 completion) — 1-3 days
+ Immediate (v1 completion) — 1-3 days [ALL DONE]
 
- ┌─────┬────────────────────────────────┬────────────┬───────────┐
- │  #  │            Feature             │ Difficulty │ 3rd Party │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ A1  │ AgentInfoPanel digest toggle   │ Easy       │ No        │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ A2  │ KPI drill-down chart modal     │ Easy       │ No        │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ A3  │ Saved dataset picker in forms  │ Easy       │ No        │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ A4  │ Quick-action buttons post-save │ Easy       │ No        │
- └─────┴────────────────────────────────┴────────────┴───────────┘
+ ┌─────┬────────────────────────────────┬────────────┬───────────┬────────┐
+ │  #  │            Feature             │ Difficulty │ 3rd Party │ Status │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ A1  │ AgentInfoPanel digest toggle   │ Easy       │ No        │ DONE   │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ A2  │ KPI drill-down chart modal     │ Easy       │ No        │ DONE   │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ A3  │ Saved dataset picker in forms  │ Easy       │ No        │ DONE   │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ A4  │ Quick-action buttons post-save │ Easy       │ No        │ DONE   │
+ └─────┴────────────────────────────────┴────────────┴───────────┴────────┘
 
  Phase 1 — High ROI, no integrations — 1-2 weeks
 
- ┌─────┬───────────────────────────────────────────┬────────────┬───────────┐
- │  #  │                  Feature                  │ Difficulty │ 3rd Party │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ E1  │ Follow-up action buttons on result cards  │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ E2  │ Pin button on 4 missing cards             │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ E3  │ Data tab dataset count badge              │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ B1  │ Temperature tuning by endpoint            │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ B4  │ Improved LLM prompts + benchmarks         │ Medium     │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ C1  │ Magic Numbers summary card                │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ C4  │ Scenario builder templates                │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ C6  │ Multi-sheet Excel support                 │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ C7  │ Column mapping memory                     │ Easy       │ No        │
- ├─────┼───────────────────────────────────────────┼────────────┼───────────┤
- │ C8  │ REX → Vega cross-agent digest             │ Easy       │ No        │
- └─────┴───────────────────────────────────────────┴────────────┴───────────┘
+ ┌─────┬───────────────────────────────────────────┬────────────┬───────────┬────────┐
+ │  #  │                  Feature                  │ Difficulty │ 3rd Party │ Status │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ E1  │ Follow-up action buttons on result cards  │ Easy       │ No        │ DONE   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ E2  │ Pin button on 4 missing cards             │ Easy       │ No        │ DONE   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ E3  │ Data tab dataset count badge              │ Easy       │ No        │ DONE   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ B1  │ Temperature tuning by endpoint            │ Easy       │ No        │ DONE   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ B4  │ Improved LLM prompts + benchmarks         │ Medium     │ No        │ DONE   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C1  │ Magic Numbers summary card                │ Easy       │ No        │ TODO   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C4  │ Scenario builder templates                │ Easy       │ No        │ DONE   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C6  │ Multi-sheet Excel support                 │ Easy       │ No        │ DONE   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C7  │ Column mapping memory                     │ Easy       │ No        │ TODO   │
+ ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C8  │ REX → Vega cross-agent digest             │ Easy       │ No        │ DONE   │
+ └─────┴───────────────────────────────────────────┴────────────┴───────────┴────────┘
 
  Phase 1 (continued) — Engagement hooks — 2-3 weeks
 
- ┌─────┬─────────────────────────────────┬────────────┬───────────┐
- │  #  │             Feature             │ Difficulty │ 3rd Party │
- ├─────┼─────────────────────────────────┼────────────┼───────────┤
- │ B2  │ Structured output (JSON schema) │ Medium     │ No        │
- ├─────┼─────────────────────────────────┼────────────┼───────────┤
- │ B3  │ Confidence scores + data source │ Medium     │ No        │
- ├─────┼─────────────────────────────────┼────────────┼───────────┤
- │ C2  │ Threshold-based email alerts    │ Medium     │ No        │
- ├─────┼─────────────────────────────────┼────────────┼───────────┤
- │ C3  │ Webhook ingest endpoint         │ Medium     │ No        │
- ├─────┼─────────────────────────────────┼────────────┼───────────┤
- │ C5  │ Board deck auto-generation      │ Medium     │ No        │
- ├─────┼─────────────────────────────────┼────────────┼───────────┤
- │ C9  │ Variance analysis               │ Medium     │ No        │
- ├─────┼─────────────────────────────────┼────────────┼───────────┤
- │ C10 │ Shareable pinned cards          │ Medium     │ No        │
- └─────┴─────────────────────────────────┴────────────┴───────────┘
+ ┌─────┬─────────────────────────────────┬────────────┬───────────┬────────┐
+ │  #  │             Feature             │ Difficulty │ 3rd Party │ Status │
+ ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
+ │ B2  │ Structured output (JSON schema) │ Medium     │ No        │ DONE   │
+ ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
+ │ B3  │ Confidence scores + data source │ Medium     │ No        │ DONE   │
+ ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C2  │ Threshold-based email alerts    │ Medium     │ No        │ TODO   │
+ ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C3  │ Webhook ingest endpoint         │ Medium     │ No        │ TODO   │
+ ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C5  │ Board deck auto-generation      │ Medium     │ No        │ TODO   │
+ ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C9  │ Variance analysis               │ Medium     │ No        │ TODO   │
+ ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
+ │ C10 │ Shareable pinned cards          │ Medium     │ No        │ TODO   │
+ └─────┴─────────────────────────────────┴────────────┴───────────┴────────┘
 
  Phase 2 — Deep product moat — 4-6 weeks
 
- ┌─────┬────────────────────────────────┬────────────┬───────────┐
- │  #  │            Feature             │ Difficulty │ 3rd Party │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ B5  │ Anomaly root-cause correlation │ Hard       │ No        │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ D3  │ Slack alerts                   │ Medium     │ Yes       │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ D1  │ Stripe API sync                │ Hard       │ Yes       │
- ├─────┼────────────────────────────────┼────────────┼───────────┤
- │ D5  │ Zapier connector               │ Medium     │ Yes       │
- └─────┴────────────────────────────────┴────────────┴───────────┘
+ ┌─────┬────────────────────────────────┬────────────┬───────────┬────────┐
+ │  #  │            Feature             │ Difficulty │ 3rd Party │ Status │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ B5  │ Anomaly root-cause correlation │ Hard       │ No        │ DONE   │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ D3  │ Slack alerts                   │ Medium     │ Yes       │ TODO   │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ D1  │ Stripe API sync                │ Hard       │ Yes       │ TODO   │
+ ├─────┼────────────────────────────────┼────────────┼───────────┼────────┤
+ │ D5  │ Zapier connector               │ Medium     │ Yes       │ TODO   │
+ └─────┴────────────────────────────────┴────────────┴───────────┴────────┘
 
  Phase 3 — Enterprise & ecosystem — 2-3 months
 
- ┌─────┬─────────────────────────────┬────────────┬───────────┐
- │  #  │           Feature           │ Difficulty │ 3rd Party │
- ├─────┼─────────────────────────────┼────────────┼───────────┤
- │ D2  │ Plaid bank integration      │ Hard       │ Yes       │
- ├─────┼─────────────────────────────┼────────────┼───────────┤
- │ D4  │ ChartMogul/Baremetrics sync │ Hard       │ Yes       │
- ├─────┼─────────────────────────────┼────────────┼───────────┤
- │ D6  │ Industry benchmarking       │ Hard       │ Yes       │
- └─────┴─────────────────────────────┴────────────┴───────────┘
+ ┌─────┬─────────────────────────────┬────────────┬───────────┬────────┐
+ │  #  │           Feature           │ Difficulty │ 3rd Party │ Status │
+ ├─────┼─────────────────────────────┼────────────┼───────────┼────────┤
+ │ D2  │ Plaid bank integration      │ Hard       │ Yes       │ TODO   │
+ ├─────┼─────────────────────────────┼────────────┼───────────┼────────┤
+ │ D4  │ ChartMogul/Baremetrics sync │ Hard       │ Yes       │ TODO   │
+ ├─────┼─────────────────────────────┼────────────┼───────────┼────────┤
+ │ D6  │ Industry benchmarking       │ Hard       │ Yes       │ TODO   │
+ └─────┴─────────────────────────────┴────────────┴───────────┴────────┘
 
  ---
  Critical Files Reference
