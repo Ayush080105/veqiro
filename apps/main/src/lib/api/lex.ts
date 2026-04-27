@@ -69,6 +69,7 @@ export function useLexSources() {
     queryKey: qk.lexSources(),
     queryFn: () => listLexSources(),
     staleTime: 30_000,
+    placeholderData: (prev) => prev,
   })
 }
 

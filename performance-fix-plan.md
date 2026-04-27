@@ -226,7 +226,7 @@ No performance optimizations configured:
 
 ## 3. Fix Plan — Prioritized
 
-### 🔴 Fix #1: Remove Blocking Guards — Use Server-Side Auth (CRITICAL)
+### 🔴 Fix #1: Remove Blocking Guards — Use Server-Side Auth (CRITICAL) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 **Estimated Impact**: **50-70% improvement in perceived load time**
 
@@ -309,7 +309,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 ---
 
-### 🔴 Fix #2: Add `loading.tsx` Files for Instant Feedback (CRITICAL)
+### 🔴 Fix #2: Add `loading.tsx` Files for Instant Feedback (CRITICAL) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 **Estimated Impact**: **Instant route transitions instead of blank screens**
 
@@ -392,7 +392,7 @@ const AgentInfoPanel = dynamic(() =>
 
 ---
 
-### 🟡 Fix #4: Optimize `next.config.ts` (HIGH)
+### 🟡 Fix #4: Optimize `next.config.ts` (HIGH) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 ```tsx
 import type { NextConfig } from "next";
@@ -424,7 +424,7 @@ export default nextConfig;
 
 ---
 
-### 🟡 Fix #5: Remove Unused Fonts (HIGH)
+### 🟡 Fix #5: Remove Unused Fonts (HIGH) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 In `layout.tsx`, remove fonts that aren't used via `FONT.*`:
 
@@ -474,7 +474,7 @@ function AgentRow({ agent, active, status, last, organizationId }) {
 
 ---
 
-### 🟡 Fix #7: Optimize the Middleware (MEDIUM)
+### 🟡 Fix #7: Optimize the Middleware (MEDIUM) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 The proxy middleware currently fetches the session on every navigation. Optimize it:
 
@@ -498,7 +498,7 @@ export async function proxy(request: NextRequest) {
 
 ---
 
-### 🟡 Fix #8: Dynamically Import Recharts on Dashboard (MEDIUM)
+### 🟡 Fix #8: Dynamically Import Recharts on Dashboard (MEDIUM) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 Recharts is ~100KB. Only load it when the dashboard actually has data:
 
@@ -514,7 +514,7 @@ const ActivityChart = dynamic(
 
 ---
 
-### 🟢 Fix #9: Use `placeholderData` Everywhere (LOW)
+### 🟢 Fix #9: Use `placeholderData` Everywhere (LOW) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 Several queries don't use `placeholderData`, causing flashes of empty state. The dashboard query already does this well — replicate it:
 
@@ -532,7 +532,7 @@ export function useMessages(agentSlug: string, organizationId: string) {
 
 ---
 
-### 🟢 Fix #10: Add `staleTime` to Auth Queries (LOW)
+### 🟢 Fix #10: Add `staleTime` to Auth Queries (LOW) — <span style="color:#1DBC87">**✅ DONE**</span>
 
 The `better-auth` React hooks make fresh network requests on every component mount by default. Configure them to cache:
 

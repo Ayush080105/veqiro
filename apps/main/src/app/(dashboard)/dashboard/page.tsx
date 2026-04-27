@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { Bot, AlertTriangle } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 import { useDashboardSummary, ALL_SLUGS, type Range } from "@/lib/api/dashboard"
-import { ActivityChart } from "@/components/dashboard/ActivityChart"
 import { CrewLeaderboard } from "@/components/dashboard/CrewLeaderboard"
 import { ContentPipeline } from "@/components/dashboard/ContentPipeline"
 import { IntegrationHealth } from "@/components/dashboard/IntegrationHealth"
@@ -17,6 +17,17 @@ import { MetricCardSkeleton } from "@/components/dashboard/MetricCardSkeleton"
 import { ActivityChartSkeleton } from "@/components/dashboard/ActivityChartSkeleton"
 import { CrewLeaderboardSkeleton } from "@/components/dashboard/CrewLeaderboardSkeleton"
 import { ContentPipelineSkeleton } from "@/components/dashboard/ContentPipelineSkeleton"
+
+// Recharts is ~100KB. Defer it until the dashboard actually renders so it
+// doesn't block initial bundle parse — the skeleton fills the same spot in
+// the meantime so layout doesn't shift.
+const ActivityChart = dynamic(
+  () =>
+    import("@/components/dashboard/ActivityChart").then((m) => ({
+      default: m.ActivityChart,
+    })),
+  { loading: () => <ActivityChartSkeleton />, ssr: false },
+)
 import { Button } from "@/components/ui/button"
 import { KpiTile } from "@/components/ui/kpi-tile"
 import { PageHeader } from "@/components/ui/page-header"

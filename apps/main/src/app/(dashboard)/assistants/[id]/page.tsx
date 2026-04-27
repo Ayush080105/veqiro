@@ -363,6 +363,7 @@ export default function AssistantChatPage() {
     queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets").then((d) => d.length),
     enabled: id === "rex" && !!organizationId,
     staleTime: 30_000,
+    placeholderData: (prev) => prev,
   })
 
   const [content, setContent] = useState("")

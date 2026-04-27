@@ -273,6 +273,7 @@ export function useBrandKit(organizationId: string) {
     queryKey: qk.brandKit(organizationId),
     queryFn: () => getBrandKit(organizationId),
     enabled: !!organizationId,
+    placeholderData: (prev) => prev,
   })
 }
 

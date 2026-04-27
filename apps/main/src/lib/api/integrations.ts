@@ -50,6 +50,7 @@ export function useIntegrations() {
   return useQuery({
     queryKey: qk.integrations(),
     queryFn: () => listIntegrations(),
+    placeholderData: (prev) => prev,
   })
 }
 

@@ -5,9 +5,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-mono);
-  --font-heading: var(--font-heading);
   --font-display: var(--font-bagel);
   --font-head: var(--font-archivo);
   --font-body: var(--font-space);

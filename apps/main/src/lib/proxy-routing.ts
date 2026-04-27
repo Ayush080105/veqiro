@@ -23,12 +23,19 @@ export function routeForUser(
   const isOnLogin = pathname === "/login";
   const isOnRoot = pathname === "/";
   const isOnOnboarding = pathname.startsWith("/onboarding");
-  const isOnDashboard = pathname.startsWith("/dashboard");
+  // Every page inside the (dashboard) route group is protected, not just
+  // /dashboard itself. Keep this list in sync with the proxy matcher.
+  const isOnProtected =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/assistants") ||
+    pathname.startsWith("/brain") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/workspace");
 
   // Unauthenticated branch
   if (!payload?.user) {
     if (isOnLogin) return null;
-    if (isOnOnboarding || isOnDashboard || isOnRoot) return "/login";
+    if (isOnOnboarding || isOnProtected || isOnRoot) return "/login";
     return null;
   }
 
@@ -42,7 +49,7 @@ export function routeForUser(
     return "/dashboard";
   }
 
-  if (!onboarded && isOnDashboard) {
+  if (!onboarded && isOnProtected) {
     return "/onboarding";
   }
 

@@ -39,5 +39,6 @@ export function useGoogleConnected(enabled = true) {
     queryKey: qk.googleConnected(),
     queryFn: () => hasGoogleConnected(),
     enabled,
+    placeholderData: (prev) => prev,
   })
 }

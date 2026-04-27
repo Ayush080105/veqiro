@@ -109,6 +109,7 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
     queryFn: getSettings,
     enabled: !!organizationId,
     staleTime: 60_000,
+    placeholderData: (prev) => prev,
   })
   const mut = useMutation({
     mutationFn: (patch: Parameters<typeof patchSettings>[0]) => patchSettings(patch),

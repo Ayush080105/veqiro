@@ -86,6 +86,7 @@ export function RexDataTab({
     queryKey: REX_DATASETS_KEY(organizationId),
     queryFn: fetchDatasets,
     enabled: !!organizationId,
+    placeholderData: (prev) => prev,
   })
 
   const deleteMut = useMutation({

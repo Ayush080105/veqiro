@@ -129,6 +129,7 @@ export function useAgentStatuses(organizationId: string) {
     queryKey: qk.assistantStatuses(organizationId),
     queryFn: () => getAssistantStatuses(organizationId),
     enabled: !!organizationId,
+    placeholderData: (prev) => prev,
   })
 }
 
@@ -136,6 +137,7 @@ export function useLastMessages() {
   return useQuery({
     queryKey: qk.lastMessages(),
     queryFn: () => getLastMessages(),
+    placeholderData: (prev) => prev,
   })
 }
 
@@ -144,6 +146,7 @@ export function useMessages(agentSlug: string, organizationId: string) {
     queryKey: qk.chat(agentSlug, organizationId),
     queryFn: () => getMessages(agentSlug, organizationId),
     enabled: !!agentSlug && !!organizationId,
+    placeholderData: (prev) => prev,
   })
 }
 
@@ -272,5 +275,6 @@ export function usePublishedPosts(organizationId: string) {
     queryKey: qk.mayaPublishedPosts(organizationId),
     queryFn: () => getPublishedPosts(organizationId),
     enabled: !!organizationId,
+    placeholderData: (prev) => prev,
   })
 }
