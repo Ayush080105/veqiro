@@ -122,6 +122,11 @@ export type RexDataset = Prisma.RexDatasetModel
  */
 export type RexPinnedCard = Prisma.RexPinnedCardModel
 /**
+ * Model Subscription
+ * 
+ */
+export type Subscription = Prisma.SubscriptionModel
+/**
  * Model RexSettings
  * 
  */

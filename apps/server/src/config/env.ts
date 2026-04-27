@@ -11,4 +11,7 @@ export const env = {
   EMAIL_USER: process.env.EMAIL_USER,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  DODO_PAYMENTS_API_KEY: process.env.DODO_PAYMENTS_API_KEY,
+  DODO_WEBHOOK_SECRET: process.env.DODO_WEBHOOK_SECRET,
+  DODO_PRODUCT_ID: process.env.DODO_PRODUCT_ID,
 } as const;

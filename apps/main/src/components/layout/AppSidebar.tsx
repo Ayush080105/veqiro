@@ -36,6 +36,8 @@ import {
 import Logo from "@/components/logo"
 import { FONT } from "@/lib/fonts"
 import { authClient } from "@/lib/auth-client"
+import { useQuery } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api/client"
 
 const workspaceItems = [
   { href: "/workspace/briefing", label: "Briefing", icon: Newspaper },
@@ -68,6 +70,12 @@ export function AppSidebar() {
   const pathname = usePathname()
   const { data: session } = authClient.useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: sub } = useQuery<{ status: string }>({
+    queryKey: ["subscription"],
+    queryFn: () => apiFetch("/payments/subscription"),
+    staleTime: 5 * 60 * 1000,
+  })
+  const isPro = sub?.status === "ACTIVE"
 
   const isWorkspaceActive = pathname.startsWith("/workspace")
 
@@ -134,11 +142,11 @@ export function AppSidebar() {
                 padding: "2px 6px",
                 border: "1.5px solid #111",
                 borderRadius: 999,
-                background: "#F5C518",
-                color: "#111",
+                background: isPro ? "#111" : "#F5C518",
+                color: isPro ? "#F5C518" : "#111",
               }}
             >
-              Free
+              {isPro ? "Pro" : "Free"}
             </span>
           </div>
         )}

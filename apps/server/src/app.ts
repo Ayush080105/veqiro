@@ -48,6 +48,10 @@ app.use(morgan("dev"));
 // Better Auth must be mounted BEFORE express.json() so it can stream request bodies
 app.use(`/api/${env.API_VERSION}/auth`, toNodeHandler(auth));
 
+// Preserve raw body for Dodo webhook signature verification — must be before express.json()
+// Use type: () => true to bypass Content-Type check entirely (Dodo may omit the header)
+app.use(`/api/${env.API_VERSION}/payments/webhook`, express.raw({ type: () => true }));
+
 app.use(express.json());
 app.use(camelizeBody);
 app.use(`/api/${env.API_VERSION}`, router);

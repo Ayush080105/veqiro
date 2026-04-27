@@ -67,6 +67,7 @@ export const ModelName = {
   Source: 'Source',
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
+  Subscription: 'Subscription',
   RexSettings: 'RexSettings'
 } as const
 
@@ -351,6 +352,22 @@ export const RexPinnedCardScalarFieldEnum = {
 } as const
 
 export type RexPinnedCardScalarFieldEnum = (typeof RexPinnedCardScalarFieldEnum)[keyof typeof RexPinnedCardScalarFieldEnum]
+
+
+export const SubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  status: 'status',
+  subscriptionId: 'subscriptionId',
+  productId: 'productId',
+  nextBillingDate: 'nextBillingDate',
+  previousBillingDate: 'previousBillingDate',
+  canceledAt: 'canceledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
 
 
 export const RexSettingsScalarFieldEnum = {
