@@ -364,3 +364,58 @@ model Subscription {
 
   @@map("subscription")
 }
+
+enum FollowUpStatus {
+  PENDING
+  SENT
+  CANCELLED
+  OVERDUE
+}
+
+enum BriefingType {
+  MORNING
+  EVENING
+  WEEKLY
+}
+
+model VegaFollowUp {
+  id             String         @id @default(cuid())
+  emailId        String
+  emailSubject   String
+  senderEmail    String
+  dueAt          DateTime
+  draftText      String         @db.Text
+  status         FollowUpStatus @default(PENDING)
+  organizationId String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([organizationId, status])
+  @@index([dueAt])
+  @@map("vega_follow_up")
+}
+
+model VIPContact {
+  id             String   @id @default(cuid())
+  email          String
+  name           String?
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  @@unique([email, organizationId])
+  @@index([organizationId])
+  @@map("vip_contact")
+}
+
+model VegaBriefingCache {
+  id             String       @id @default(cuid())
+  date           String
+  type           BriefingType
+  content        Json
+  organizationId String
+  generatedAt    DateTime     @default(now())
+
+  @@unique([date, type, organizationId])
+  @@index([organizationId, date])
+  @@map("vega_briefing_cache")
+}
