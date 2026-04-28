@@ -15,66 +15,85 @@ export interface Briefing {
   generatedAt?: string;
 }
 
+type RawBriefingCache = {
+  id: string;
+  date: string;
+  type: string;
+  content: Record<string, unknown>;
+  generatedAt: string;
+};
+
+function mapContentToBriefing(cache: RawBriefingCache): Briefing {
+  const c = cache.content;
+
+  // Build overview from the real AI keys returned by the executive-briefing endpoint
+  const overviewParts: string[] = [];
+  if (c.good_morning) overviewParts.push(c.good_morning as string);
+  if (c.priority_score) overviewParts.push(`Priority: ${c.priority_score as string}`);
+  if (c.financial_status) overviewParts.push(c.financial_status as string);
+  if (c.free_time_today) overviewParts.push(`Free time: ${c.free_time_today as string}`);
+  if (c.focus_recommendation) overviewParts.push(c.focus_recommendation as string);
+  const overview =
+    overviewParts.length > 0 ? overviewParts.join(" — ") : "No overview available.";
+
+  // Convert each real AI key into a BriefingSection
+  const sectionKeys = [
+    "urgent_actions",
+    "today_schedule",
+    "upcoming_this_week",
+    "email_summary",
+  ] as const;
+
+  const timestamp = (c.generated_at as string | undefined) ?? new Date().toISOString();
+
+  const sections: BriefingSection[] = sectionKeys
+    .filter((key) => c[key] !== undefined)
+    .map((key) => ({
+      agent: "vega",
+      title: key
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (l) => l.toUpperCase()),
+      content:
+        typeof c[key] === "string"
+          ? (c[key] as string)
+          : JSON.stringify(c[key], null, 2),
+      timestamp,
+    }));
+
+  return {
+    id: cache.id,
+    date: cache.date,
+    overview,
+    sections,
+    generatedAt: cache.generatedAt,
+  };
+}
+
 export async function getBriefing(_organizationId: string): Promise<Briefing> {
   // Try to get cached morning briefing
-  const cache = await apiFetch<{
-    id: string;
-    date: string;
-    type: string;
-    content: Record<string, unknown>;
-    generatedAt: string;
-  } | null>("/agents/vega/briefing?type=MORNING").catch(() => null);
+  const cache = await apiFetch<RawBriefingCache | null>(
+    "/agents/vega/briefing?type=MORNING"
+  ).catch(() => null);
 
   if (cache?.content) {
-    const c = cache.content;
-    return {
-      id: cache.id,
-      date: cache.date,
-      overview: (c.overview as string) ?? "No overview available.",
-      sections: (c.sections as BriefingSection[]) ?? [],
-      generatedAt: cache.generatedAt,
-    };
+    return mapContentToBriefing(cache);
   }
 
   // No cache — generate fresh
-  const fresh = await apiFetch<{
-    id: string;
-    date: string;
-    type: string;
-    content: Record<string, unknown>;
-    generatedAt: string;
-  }>("/agents/vega/briefing/generate", {
+  const fresh = await apiFetch<RawBriefingCache>("/agents/vega/briefing/generate", {
     method: "POST",
     body: { includeEmail: true, includeCalendar: true, type: "MORNING" },
   });
 
-  const c = fresh.content;
-  return {
-    id: fresh.id,
-    date: fresh.date,
-    overview: (c.overview as string) ?? "Briefing generated.",
-    sections: (c.sections as BriefingSection[]) ?? [],
-    generatedAt: fresh.generatedAt,
-  };
+  return mapContentToBriefing(fresh);
 }
 
-export async function generateBriefing(type: "MORNING" | "EVENING" | "WEEKLY" = "MORNING"): Promise<Briefing> {
-  const fresh = await apiFetch<{
-    id: string;
-    date: string;
-    type: string;
-    content: Record<string, unknown>;
-    generatedAt: string;
-  }>("/agents/vega/briefing/generate", {
+export async function generateBriefing(
+  type: "MORNING" | "EVENING" | "WEEKLY" = "MORNING"
+): Promise<Briefing> {
+  const fresh = await apiFetch<RawBriefingCache>("/agents/vega/briefing/generate", {
     method: "POST",
     body: { includeEmail: true, includeCalendar: true, type },
   });
-  const c = fresh.content;
-  return {
-    id: fresh.id,
-    date: fresh.date,
-    overview: (c.overview as string) ?? "",
-    sections: (c.sections as BriefingSection[]) ?? [],
-    generatedAt: fresh.generatedAt,
-  };
+  return mapContentToBriefing(fresh);
 }

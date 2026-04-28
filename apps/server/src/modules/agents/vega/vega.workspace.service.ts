@@ -80,17 +80,15 @@ export const getInbox = async (
     emailId: e.email_id,
     subject: e.subject,
     fromName: e.from_name,
-    fromEmail: (e as unknown as { from_email?: string }).from_email ?? "",
+    fromEmail: e.from_email ?? "",
     priority: e.priority,
     uiCategory: mapPriorityToCategory(e.priority, e.suggested_action),
     summary: e.summary,
     suggestedAction: e.suggested_action,
-    hiddenTasks: (e as unknown as { hidden_tasks?: string[] }).hidden_tasks ?? [],
-    suggestedReply: (e as unknown as { suggested_reply?: string | null }).suggested_reply ?? null,
-    meetingRequest: (e as unknown as { meeting_request?: Record<string, string> | null }).meeting_request ?? null,
-    isVIP: vipEmails.has(
-      ((e as unknown as { from_email?: string }).from_email ?? "").toLowerCase()
-    ),
+    hiddenTasks: e.hidden_tasks ?? [],
+    suggestedReply: e.suggested_reply ?? null,
+    meetingRequest: e.meeting_request ?? null,
+    isVIP: vipEmails.has((e.from_email ?? "").toLowerCase()),
     receivedAt: null,
     threadId: null,
   }));

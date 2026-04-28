@@ -52,12 +52,16 @@ export interface ProcessedEmail {
   email_id: string;
   subject: string;
   from_name: string;
+  from_email?: string;
   priority: string;
   summary: string;
   suggested_action: string;
   label_applied?: string | null;
   draft_created?: boolean;
   draft_id?: string | null;
+  hidden_tasks?: string[];
+  suggested_reply?: string | null;
+  meeting_request?: Record<string, string> | null;
 }
 
 export interface InboxStats {

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
+import { z } from "zod";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { UnauthenticatedError } from "../../../common/errors/unauthenticated.js";
 import {
@@ -82,7 +83,7 @@ export const removeVIPContact = async (req: Request, res: Response) => {
 // Briefing
 export const getBriefing = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
-  const type = (req.query.type as "MORNING" | "EVENING" | "WEEKLY") ?? "MORNING";
+  const type = z.enum(["MORNING", "EVENING", "WEEKLY"]).default("MORNING").parse(req.query.type ?? "MORNING");
   const result = await ws.getBriefingCache(organizationId, type);
   if (!result) {
     res.status(StatusCodes.NOT_FOUND).json({ message: "No briefing cached for today" });

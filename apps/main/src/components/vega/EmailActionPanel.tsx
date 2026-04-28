@@ -46,14 +46,18 @@ export function EmailActionPanel({
   const [schedulingFollowUp, setSchedulingFollowUp] = useState(false)
 
   const handleSendReply = async (body: string) => {
-    await sendReply(email.emailId, {
-      to: email.fromEmail,
-      subject: email.subject,
-      body,
-      threadId: email.threadId,
-    })
-    toast.success("Reply sent")
-    onReplySent()
+    try {
+      await sendReply(email.emailId, {
+        to: email.fromEmail,
+        subject: email.subject,
+        body,
+        threadId: email.threadId,
+      })
+      toast.success("Reply sent")
+      onReplySent()
+    } catch {
+      toast.error("Failed to send reply")
+    }
   }
 
   const handleScheduleFollowUp = async () => {
