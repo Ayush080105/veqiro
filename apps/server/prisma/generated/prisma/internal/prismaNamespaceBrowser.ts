@@ -68,7 +68,10 @@ export const ModelName = {
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
-  Subscription: 'Subscription'
+  Subscription: 'Subscription',
+  VegaFollowUp: 'VegaFollowUp',
+  VIPContact: 'VIPContact',
+  VegaBriefingCache: 'VegaBriefingCache'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -382,6 +385,45 @@ export const SubscriptionScalarFieldEnum = {
 } as const
 
 export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const VegaFollowUpScalarFieldEnum = {
+  id: 'id',
+  emailId: 'emailId',
+  emailSubject: 'emailSubject',
+  senderEmail: 'senderEmail',
+  dueAt: 'dueAt',
+  draftText: 'draftText',
+  status: 'status',
+  organizationId: 'organizationId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type VegaFollowUpScalarFieldEnum = (typeof VegaFollowUpScalarFieldEnum)[keyof typeof VegaFollowUpScalarFieldEnum]
+
+
+export const VIPContactScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  name: 'name',
+  organizationId: 'organizationId',
+  createdAt: 'createdAt'
+} as const
+
+export type VIPContactScalarFieldEnum = (typeof VIPContactScalarFieldEnum)[keyof typeof VIPContactScalarFieldEnum]
+
+
+export const VegaBriefingCacheScalarFieldEnum = {
+  id: 'id',
+  date: 'date',
+  type: 'type',
+  content: 'content',
+  organizationId: 'organizationId',
+  generatedAt: 'generatedAt'
+} as const
+
+export type VegaBriefingCacheScalarFieldEnum = (typeof VegaBriefingCacheScalarFieldEnum)[keyof typeof VegaBriefingCacheScalarFieldEnum]
 
 
 export const SortOrder = {

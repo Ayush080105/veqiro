@@ -401,7 +401,10 @@ export const ModelName = {
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
-  Subscription: 'Subscription'
+  Subscription: 'Subscription',
+  VegaFollowUp: 'VegaFollowUp',
+  VIPContact: 'VIPContact',
+  VegaBriefingCache: 'VegaBriefingCache'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -417,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1753,6 +1756,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    VegaFollowUp: {
+      payload: Prisma.$VegaFollowUpPayload<ExtArgs>
+      fields: Prisma.VegaFollowUpFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VegaFollowUpFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VegaFollowUpFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>
+        }
+        findFirst: {
+          args: Prisma.VegaFollowUpFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VegaFollowUpFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>
+        }
+        findMany: {
+          args: Prisma.VegaFollowUpFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>[]
+        }
+        create: {
+          args: Prisma.VegaFollowUpCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>
+        }
+        createMany: {
+          args: Prisma.VegaFollowUpCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VegaFollowUpCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>[]
+        }
+        delete: {
+          args: Prisma.VegaFollowUpDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>
+        }
+        update: {
+          args: Prisma.VegaFollowUpUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>
+        }
+        deleteMany: {
+          args: Prisma.VegaFollowUpDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VegaFollowUpUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VegaFollowUpUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>[]
+        }
+        upsert: {
+          args: Prisma.VegaFollowUpUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaFollowUpPayload>
+        }
+        aggregate: {
+          args: Prisma.VegaFollowUpAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVegaFollowUp>
+        }
+        groupBy: {
+          args: Prisma.VegaFollowUpGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaFollowUpGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VegaFollowUpCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaFollowUpCountAggregateOutputType> | number
+        }
+      }
+    }
+    VIPContact: {
+      payload: Prisma.$VIPContactPayload<ExtArgs>
+      fields: Prisma.VIPContactFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VIPContactFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VIPContactFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>
+        }
+        findFirst: {
+          args: Prisma.VIPContactFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VIPContactFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>
+        }
+        findMany: {
+          args: Prisma.VIPContactFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>[]
+        }
+        create: {
+          args: Prisma.VIPContactCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>
+        }
+        createMany: {
+          args: Prisma.VIPContactCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VIPContactCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>[]
+        }
+        delete: {
+          args: Prisma.VIPContactDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>
+        }
+        update: {
+          args: Prisma.VIPContactUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>
+        }
+        deleteMany: {
+          args: Prisma.VIPContactDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VIPContactUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VIPContactUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>[]
+        }
+        upsert: {
+          args: Prisma.VIPContactUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VIPContactPayload>
+        }
+        aggregate: {
+          args: Prisma.VIPContactAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVIPContact>
+        }
+        groupBy: {
+          args: Prisma.VIPContactGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VIPContactGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VIPContactCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VIPContactCountAggregateOutputType> | number
+        }
+      }
+    }
+    VegaBriefingCache: {
+      payload: Prisma.$VegaBriefingCachePayload<ExtArgs>
+      fields: Prisma.VegaBriefingCacheFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VegaBriefingCacheFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VegaBriefingCacheFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>
+        }
+        findFirst: {
+          args: Prisma.VegaBriefingCacheFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VegaBriefingCacheFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>
+        }
+        findMany: {
+          args: Prisma.VegaBriefingCacheFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>[]
+        }
+        create: {
+          args: Prisma.VegaBriefingCacheCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>
+        }
+        createMany: {
+          args: Prisma.VegaBriefingCacheCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VegaBriefingCacheCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>[]
+        }
+        delete: {
+          args: Prisma.VegaBriefingCacheDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>
+        }
+        update: {
+          args: Prisma.VegaBriefingCacheUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>
+        }
+        deleteMany: {
+          args: Prisma.VegaBriefingCacheDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VegaBriefingCacheUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VegaBriefingCacheUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>[]
+        }
+        upsert: {
+          args: Prisma.VegaBriefingCacheUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaBriefingCachePayload>
+        }
+        aggregate: {
+          args: Prisma.VegaBriefingCacheAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVegaBriefingCache>
+        }
+        groupBy: {
+          args: Prisma.VegaBriefingCacheGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaBriefingCacheGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VegaBriefingCacheCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaBriefingCacheCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2089,6 +2314,45 @@ export const SubscriptionScalarFieldEnum = {
 export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
 
 
+export const VegaFollowUpScalarFieldEnum = {
+  id: 'id',
+  emailId: 'emailId',
+  emailSubject: 'emailSubject',
+  senderEmail: 'senderEmail',
+  dueAt: 'dueAt',
+  draftText: 'draftText',
+  status: 'status',
+  organizationId: 'organizationId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type VegaFollowUpScalarFieldEnum = (typeof VegaFollowUpScalarFieldEnum)[keyof typeof VegaFollowUpScalarFieldEnum]
+
+
+export const VIPContactScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  name: 'name',
+  organizationId: 'organizationId',
+  createdAt: 'createdAt'
+} as const
+
+export type VIPContactScalarFieldEnum = (typeof VIPContactScalarFieldEnum)[keyof typeof VIPContactScalarFieldEnum]
+
+
+export const VegaBriefingCacheScalarFieldEnum = {
+  id: 'id',
+  date: 'date',
+  type: 'type',
+  content: 'content',
+  organizationId: 'organizationId',
+  generatedAt: 'generatedAt'
+} as const
+
+export type VegaBriefingCacheScalarFieldEnum = (typeof VegaBriefingCacheScalarFieldEnum)[keyof typeof VegaBriefingCacheScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2275,6 +2539,34 @@ export type EnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<
 export type ListEnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionPlan[]'>
     
 
+
+/**
+ * Reference to a field of type 'FollowUpStatus'
+ */
+export type EnumFollowUpStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FollowUpStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FollowUpStatus[]'
+ */
+export type ListEnumFollowUpStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FollowUpStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BriefingType'
+ */
+export type EnumBriefingTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BriefingType'>
+    
+
+
+/**
+ * Reference to a field of type 'BriefingType[]'
+ */
+export type ListEnumBriefingTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BriefingType[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -2388,6 +2680,9 @@ export type GlobalOmitConfig = {
   rexPinnedCard?: Prisma.RexPinnedCardOmit
   rexSettings?: Prisma.RexSettingsOmit
   subscription?: Prisma.SubscriptionOmit
+  vegaFollowUp?: Prisma.VegaFollowUpOmit
+  vIPContact?: Prisma.VIPContactOmit
+  vegaBriefingCache?: Prisma.VegaBriefingCacheOmit
 }
 
 /* Types for Logging */

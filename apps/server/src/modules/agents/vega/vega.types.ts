@@ -141,7 +141,6 @@ export interface WorkspaceInboxResponse {
 }
 
 export interface SendReplyInput {
-  emailId: string;
   threadId?: string | null;
   to: string;
   subject: string;

@@ -47,3 +47,22 @@ export const SubscriptionPlan = {
 } as const
 
 export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan]
+
+
+export const FollowUpStatus = {
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  CANCELLED: 'CANCELLED',
+  OVERDUE: 'OVERDUE'
+} as const
+
+export type FollowUpStatus = (typeof FollowUpStatus)[keyof typeof FollowUpStatus]
+
+
+export const BriefingType = {
+  MORNING: 'MORNING',
+  EVENING: 'EVENING',
+  WEEKLY: 'WEEKLY'
+} as const
+
+export type BriefingType = (typeof BriefingType)[keyof typeof BriefingType]

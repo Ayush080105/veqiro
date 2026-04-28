@@ -29,7 +29,7 @@ export const getInbox = async (req: Request, res: Response) => {
 
 export const sendReply = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
-  const { emailId } = req.params;
+  const emailId = req.params.emailId as string;
   if (!emailId) throw new BadRequestError("emailId param required");
   const input = sendReplySchema.parse(req.body);
   const result = await ws.sendReply(userId, organizationId, emailId, input);
@@ -52,7 +52,7 @@ export const createFollowUp = async (req: Request, res: Response) => {
 
 export const cancelFollowUp = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
-  const { followUpId } = req.params;
+  const followUpId = req.params.followUpId as string;
   if (!followUpId) throw new BadRequestError("followUpId param required");
   await ws.cancelFollowUp(organizationId, followUpId);
   res.status(StatusCodes.NO_CONTENT).send();
@@ -74,7 +74,7 @@ export const addVIPContact = async (req: Request, res: Response) => {
 
 export const removeVIPContact = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
-  const { contactId } = req.params;
+  const contactId = req.params.contactId as string;
   if (!contactId) throw new BadRequestError("contactId param required");
   await ws.removeVIPContact(organizationId, contactId);
   res.status(StatusCodes.NO_CONTENT).send();

@@ -107,3 +107,18 @@ export type RexSettings = Prisma.RexSettingsModel
  * 
  */
 export type Subscription = Prisma.SubscriptionModel
+/**
+ * Model VegaFollowUp
+ * 
+ */
+export type VegaFollowUp = Prisma.VegaFollowUpModel
+/**
+ * Model VIPContact
+ * 
+ */
+export type VIPContact = Prisma.VIPContactModel
+/**
+ * Model VegaBriefingCache
+ * 
+ */
+export type VegaBriefingCache = Prisma.VegaBriefingCacheModel
