@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useRouter } from "next/navigation"
 import { ReplyEditor } from "./ReplyEditor"
 import { Star, Calendar, Clock, AlertCircle, X } from "lucide-react"
 import { toast } from "sonner"
@@ -44,6 +45,18 @@ export function EmailActionPanel({
   )
   const [followUpHours, setFollowUpHours] = useState("48")
   const [schedulingFollowUp, setSchedulingFollowUp] = useState(false)
+  const router = useRouter()
+
+  const handleScheduleMeeting = () => {
+    const params = new URLSearchParams({
+      title: email.subject,
+      attendees: email.fromEmail,
+      description: email.meetingRequest
+        ? `Meeting requested by ${email.fromName}. Topic: ${email.meetingRequest.topic ?? "Not specified"}.`
+        : `Follow-up with ${email.fromName}.`,
+    })
+    router.push(`/workspace/calendar?${params.toString()}`)
+  }
 
   const handleSendReply = async (body: string) => {
     try {
@@ -145,6 +158,21 @@ export function EmailActionPanel({
           >
             Draft Reply
           </Button>
+          {email.meetingRequest && (
+            <Button
+              variant="outline"
+              onClick={handleScheduleMeeting}
+              style={{
+                border: "2px solid #1DBC87",
+                color: "#1DBC87",
+                justifyContent: "start",
+              }}
+              size="sm"
+            >
+              <Calendar className="size-3.5" />
+              Schedule Meeting
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => setActiveView("followup")}

@@ -11,6 +11,7 @@ import {
   Newspaper,
   Users2,
   Mail,
+  Calendar,
   ChevronDown,
   LogOut,
 } from "lucide-react"
@@ -41,6 +42,7 @@ import { authClient } from "@/lib/auth-client"
 const workspaceItems = [
   { href: "/workspace/briefing", label: "Briefing", icon: Newspaper },
   { href: "/workspace/inbox", label: "Inbox", icon: Mail },
+  { href: "/workspace/calendar", label: "Calendar", icon: Calendar },
   { href: "/workspace/content", label: "Content", icon: FileText },
   { href: "/workspace/leads", label: "Leads", icon: Users2 },
 ]
