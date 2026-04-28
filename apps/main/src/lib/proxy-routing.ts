@@ -1,6 +1,18 @@
+export type SubscriptionView = {
+  status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
+  plan: "MONTHLY" | "ANNUAL" | null;
+  dodoCustomerId: string;
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  daysRemaining: number | null;
+  isEntitled: boolean;
+};
+
 export type SessionPayload = {
   user?: { id: string } | null;
   activeOrganization?: { id: string; onboarded: boolean } | null;
+  subscription?: SubscriptionView | null;
 };
 
 export type RouteContext = {
