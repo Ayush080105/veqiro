@@ -20,6 +20,9 @@ import {
   removeVIPContact,
   getBriefing,
   generateBriefing,
+  getCalendarEvents,
+  createCalendarEventHandler,
+  getMeetingPrepHandler,
 } from "./vega.workspace.controller.js";
 
 const router = Router();
@@ -50,5 +53,10 @@ router.delete("/vip-contacts/:contactId", removeVIPContact);
 // workspace: briefing cache
 router.get("/briefing", getBriefing);
 router.post("/briefing/generate", generateBriefing);
+
+// workspace: calendar
+router.get("/calendar/events", getCalendarEvents);
+router.post("/calendar/events", createCalendarEventHandler);
+router.post("/calendar/prep", getMeetingPrepHandler);
 
 export default router;

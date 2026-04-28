@@ -9,6 +9,9 @@ import {
   createFollowUpSchema,
   addVIPContactSchema,
   generateBriefingSchema,
+  getCalendarSchema,
+  createCalendarEventSchema,
+  getMeetingPrepSchema,
 } from "./vega.workspace.schema.js";
 import * as ws from "./vega.workspace.service.js";
 
@@ -96,5 +99,27 @@ export const generateBriefing = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = generateBriefingSchema.parse(req.body);
   const result = await ws.generateAndCacheBriefing(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// Calendar
+export const getCalendarEvents = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = getCalendarSchema.parse(req.query);
+  const result = await ws.getCalendar(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const createCalendarEventHandler = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = createCalendarEventSchema.parse(req.body);
+  const result = await ws.createCalendarEventWorkspace(userId, organizationId, input);
+  res.status(StatusCodes.CREATED).json(result);
+};
+
+export const getMeetingPrepHandler = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = getMeetingPrepSchema.parse(req.body);
+  const result = await ws.getMeetingPrepWorkspace(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
