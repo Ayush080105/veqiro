@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
-import { getBriefing, type Briefing, type BriefingSection } from "@/lib/api/briefing"
+import { getBriefing, generateBriefing, type Briefing, type BriefingSection } from "@/lib/api/briefing"
 import { getAgent } from "@/lib/config/agents"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -227,11 +227,13 @@ export default function BriefingPage() {
 
   const today = new Date()
 
-  async function loadBriefing() {
+  async function loadBriefing(forceRefresh = false) {
     setLoading(true)
     setError(false)
     try {
-      const data = await getBriefing(organizationId)
+      const data = forceRefresh
+        ? await generateBriefing("MORNING")
+        : await getBriefing(organizationId)
       setBriefing(data)
     } catch {
       setError(true)
@@ -267,12 +269,24 @@ export default function BriefingPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <PageHeader
-        kicker={formatBriefingDate(today)}
-        title="daily briefing"
-        subtitle="Your AI team's morning report — compiled fresh while you slept."
-        sticker={{ label: "today's brief", rot: -5, color: "var(--vq-green)" }}
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          kicker={formatBriefingDate(today)}
+          title="daily briefing"
+          subtitle="Your AI team's morning report — compiled fresh while you slept."
+          sticker={{ label: "today's brief", rot: -5, color: "var(--vq-green)" }}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-1 shrink-0"
+          onClick={() => loadBriefing(true)}
+          disabled={loading}
+        >
+          <RefreshCw className={["size-3.5", loading ? "animate-spin" : ""].join(" ").trim()} />
+          Refresh Briefing
+        </Button>
+      </div>
 
 
       {loading ? (
