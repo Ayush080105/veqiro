@@ -343,7 +343,7 @@ export const getCalendar = async (
     location: String(e.location ?? ""),
     meetLink: e.meet_link ? String(e.meet_link) : undefined,
     status: String(e.status ?? ""),
-    recurring: Boolean(e.recurring),
+    recurring: e.recurring != null ? Boolean(e.recurring) : undefined,
   }));
 
   const slots: CalendarSlot[] = (data.free_slots ?? []).map((s) => ({
@@ -379,7 +379,7 @@ export const createCalendarEventWorkspace = async (
     )?.uri;
 
   return {
-    id: result.id,
+    id: result.id ?? "",
     title: input.title,
     description: input.description ?? "",
     start: input.start,
@@ -396,7 +396,12 @@ export const getMeetingPrepWorkspace = async (
   organizationId: string,
   input: z.infer<typeof getMeetingPrepSchema>
 ): Promise<MeetingPrepResult> => {
-  const token = await requireGoogleToken(userId);
+  let token = "";
+  try {
+    token = await requireGoogleToken(userId);
+  } catch {
+    // token is optional for meeting prep — AI service degrades gracefully without it
+  }
   const { data } = await aiService.post<{ prep: Record<string, unknown> }>(
     "/ai/vega/meeting-prep",
     {
