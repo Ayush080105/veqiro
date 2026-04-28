@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed:dashboard": "tsx prisma/seed-dashboard.ts",
-    "seed:brand-kit": "tsx prisma/seed-brand-kit.ts"
+    "seed:brand-kit": "tsx prisma/seed-brand-kit.ts",
+    "test": "node --import tsx --test src/tests/unit/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
