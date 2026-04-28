@@ -111,3 +111,54 @@ export interface ComposeEmailResponse {
   draft: { to: string; subject: string; body: string; draft_id?: string };
   node_actions?: NodeAction[];
 }
+
+export type UICategory = "reply_now" | "action_needed" | "fyi" | "can_ignore";
+
+export interface TriagedEmail {
+  emailId: string;
+  subject: string;
+  fromName: string;
+  fromEmail: string;
+  priority: string;
+  uiCategory: UICategory;
+  summary: string;
+  suggestedAction: string;
+  hiddenTasks: string[];
+  suggestedReply: string | null;
+  meetingRequest: { date?: string; time?: string; topic?: string } | null;
+  isVIP: boolean;
+  receivedAt?: string | null;
+  threadId?: string | null;
+}
+
+export interface WorkspaceInboxResponse {
+  emails: TriagedEmail[];
+  stats: InboxStats;
+}
+
+export interface SendReplyInput {
+  emailId: string;
+  threadId?: string | null;
+  to: string;
+  subject: string;
+  body: string;
+}
+
+export interface VegaFollowUpRecord {
+  id: string;
+  emailId: string;
+  emailSubject: string;
+  senderEmail: string;
+  dueAt: string;
+  draftText: string;
+  status: "PENDING" | "SENT" | "CANCELLED" | "OVERDUE";
+  createdAt: string;
+}
+
+export interface BriefingCacheEntry {
+  id: string;
+  date: string;
+  type: "MORNING" | "EVENING" | "WEEKLY";
+  content: Record<string, unknown>;
+  generatedAt: string;
+}
