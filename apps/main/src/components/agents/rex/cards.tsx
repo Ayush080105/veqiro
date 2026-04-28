@@ -30,7 +30,7 @@ import { InfoSection } from "@/components/ui/info-section"
 import { KpiTile } from "@/components/ui/kpi-tile"
 import { StatusPill } from "@/components/ui/status-pill"
 import { cn } from "@/lib/utils"
-import { createPin } from "@/lib/api/rex"
+import { createPin, sharePin } from "@/lib/api/rex"
 import { PINS_KEY } from "@/components/agents/rex/today-panel"
 import { ScenarioSliders } from "@/components/agents/rex/scenario-sliders"
 import type {
@@ -43,6 +43,8 @@ import type {
   RexScenarioResult,
   RexWeeklyDigestResult,
   RexInvestorUpdateResult,
+  RexVarianceResult,
+  RexBoardDeckResult,
   DataPoint,
   AgentActionId,
 } from "@/lib/types/agents"
@@ -82,25 +84,78 @@ function ConfidenceFooter({
 
 function PinButton({ kind, payload }: { kind: string; payload: unknown }) {
   const qc = useQueryClient()
-  const [pinned, setPinned] = React.useState(false)
-  const mut = useMutation({
+  const [pinId, setPinId] = React.useState<string | null>(null)
+  const [shareUrl, setShareUrl] = React.useState<string | null>(null)
+  const [copied, setCopied] = React.useState(false)
+
+  const pinMut = useMutation({
     mutationFn: () => createPin({ kind, payload }),
-    onSuccess: () => {
-      setPinned(true)
+    onSuccess: (data) => {
+      setPinId((data as { id: string }).id)
       void qc.invalidateQueries({ queryKey: PINS_KEY })
-      setTimeout(() => setPinned(false), 2000)
     },
   })
+
+  const shareMut = useMutation({
+    mutationFn: () => {
+      if (!pinId) throw new Error("Pin first")
+      return sharePin(pinId, true)
+    },
+    onSuccess: (data) => {
+      if (data.shareToken) {
+        setShareUrl(`${window.location.origin}/share/rex/${data.shareToken}`)
+      }
+    },
+  })
+
+  const copyShare = () => {
+    if (!shareUrl) return
+    void navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  if (pinId && shareUrl) {
+    return (
+      <button
+        type="button"
+        onClick={copyShare}
+        title={shareUrl}
+        className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted"
+      >
+        <Pin className="size-2.5" />
+        {copied ? "Link copied!" : "Copy share link"}
+      </button>
+    )
+  }
+
+  if (pinId) {
+    return (
+      <div className="flex items-center gap-1">
+        <span className="border border-border bg-muted px-1.5 py-0.5 text-[10px]">Pinned</span>
+        <button
+          type="button"
+          onClick={() => shareMut.mutate()}
+          disabled={shareMut.isPending}
+          className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50"
+        >
+          <Send className="size-2.5" />
+          {shareMut.isPending ? "..." : "Share"}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <button
       type="button"
-      title={pinned ? "Pinned!" : "Pin to Today"}
-      onClick={() => mut.mutate()}
-      disabled={mut.isPending}
+      title="Pin to Today"
+      onClick={() => pinMut.mutate()}
+      disabled={pinMut.isPending}
       className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50"
     >
       <Pin className="size-2.5" />
-      {pinned ? "Pinned" : "Pin"}
+      Pin
     </button>
   )
 }
@@ -266,7 +321,8 @@ export function MetricsAnalysisCard({
                 label="Forecast this metric"
                 onClick={() => onFollowUpAction("rex:forecast", {
                   metric_name: firstMetricKey,
-                  historical_json: JSON.stringify(firstMetricData),
+                  historical_data: firstMetricData,
+                  horizon_days: 90,
                 })}
               />
             )}
@@ -274,9 +330,7 @@ export function MetricsAnalysisCard({
               label="Financial analysis"
               icon={Wallet}
               onClick={() => onFollowUpAction("rex:financial-analysis", {
-                revenue_json: JSON.stringify(
-                  charts_data.revenue ?? charts_data.mrr ?? firstMetricData
-                ),
+                revenue_data: (charts_data.revenue ?? charts_data.mrr ?? firstMetricData) as DataPoint[],
               })}
             />
           </div>
@@ -398,21 +452,23 @@ export function FinancialHealthCard({
               label="Generate investor update"
               icon={Mail}
               onClick={() => onFollowUpAction("rex:investor-update", {
-                metrics_json: JSON.stringify({
+                period: new Date().toLocaleString("en-US", { month: "long", year: "numeric" }),
+                metrics: {
                   mrr: m.mrr,
                   arr: m.arr,
-                  growth_rate: m.growth_rate_pct,
-                  churn_rate: m.churn_rate_pct,
-                  burn: m.net_burn ?? m.burn_rate,
-                }),
+                  growth_rate_pct: m.growth_rate_pct,
+                  churn_rate_pct: m.churn_rate_pct,
+                  net_burn: m.net_burn ?? m.burn_rate,
+                },
               })}
             />
             <FollowUpBtn
               label="Calculate runway"
               icon={Hourglass}
               onClick={() => onFollowUpAction("rex:runway", {
-                monthly_burn: m.net_burn ?? m.burn_rate,
-                monthly_revenue: m.mrr,
+                monthly_burn: Math.max(1, Math.abs(m.net_burn ?? m.burn_rate ?? 0)),
+                monthly_revenue: m.mrr ?? 0,
+                growth_rate_pct: m.growth_rate_pct ?? 0,
               })}
             />
           </div>
@@ -545,12 +601,13 @@ export function RunwayCard({
               label="Model a scenario"
               icon={GitBranch}
               onClick={() => onFollowUpAction("rex:scenario", {
-                base_metrics_json: JSON.stringify({
-                  mrr: result.monthly_revenue,
-                  burn: result.monthly_burn,
-                  cash: result.cash_on_hand,
+                base_metrics: {
+                  mrr: result.monthly_revenue ?? 0,
+                  burn: result.monthly_burn ?? 0,
+                  cash: result.cash_on_hand ?? 0,
                   growth_rate: 0.05,
-                }),
+                },
+                scenarios: [{ name: "", changes: {} }],
               })}
             />
           </div>
@@ -562,8 +619,14 @@ export function RunwayCard({
 
 // ─── Unit economics card ─────────────────────────────────────────────────────
 
-export function UnitEconomicsCard({ result }: { result: RexUnitEconomicsResult }) {
-  const healthLevel = (h: string) =>
+export function UnitEconomicsCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexUnitEconomicsResult
+  onFollowUpAction?: FollowUp
+}) {
+  const healthLevelLocal = (h: string) =>
     h === "green" ? "ok" : h === "amber" ? "warn" : "danger"
 
   return (
@@ -573,7 +636,7 @@ export function UnitEconomicsCard({ result }: { result: RexUnitEconomicsResult }
         title="Unit economics"
         right={
           <div className="flex items-center gap-1.5">
-            <StatusPill level={healthLevel(result.health)}>{result.health}</StatusPill>
+            <StatusPill level={healthLevelLocal(result.health)}>{result.health}</StatusPill>
             <PinButton kind="unit-economics" payload={result} />
           </div>
         }
@@ -602,6 +665,20 @@ export function UnitEconomicsCard({ result }: { result: RexUnitEconomicsResult }
         <p className="text-[11px] leading-relaxed">{result.benchmark_context}</p>
         {result.recommendations?.length > 0 && (
           <InfoSection label="recommendations" bullets={result.recommendations} />
+        )}
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Run financial analysis"
+              icon={Wallet}
+              onClick={() => onFollowUpAction("rex:financial-analysis", {})}
+            />
+            <FollowUpBtn
+              label="Calculate runway"
+              icon={Hourglass}
+              onClick={() => onFollowUpAction("rex:runway", {})}
+            />
+          </div>
         )}
       </AgentCard.Body>
     </AgentCard>
@@ -739,7 +816,8 @@ export function WeeklyDigestCard({
                   return acc
                 }, {}) ?? {}
                 onFollowUpAction("rex:investor-update", {
-                  metrics_json: JSON.stringify(metricsFromWow),
+                  period: new Date().toLocaleString("en-US", { month: "long", year: "numeric" }),
+                  metrics: metricsFromWow,
                 })
               }}
             />
@@ -832,5 +910,166 @@ export function InvestorUpdateCard({
   )
 }
 
-// ─── AlertTriangle is unused as of now but kept for future critical-state card ──
+// ─── Variance card (C9) ─────────────────────────────────────────────────────
+
+export function VarianceCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexVarianceResult
+  onFollowUpAction?: FollowUp
+}) {
+  const overallLevel =
+    Math.abs(result.total_variance_pct) <= 10 ? "ok" : Math.abs(result.total_variance_pct) <= 25 ? "warn" : "danger"
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header
+        icon={<AlertTriangle />}
+        title="Variance — actual vs budget"
+        right={
+          <div className="flex items-center gap-1.5">
+            <StatusPill level={overallLevel}>
+              {result.total_variance_pct > 0 ? "+" : ""}
+              {result.total_variance_pct.toFixed(1)}%
+            </StatusPill>
+            <PinButton kind="variance" payload={result} />
+          </div>
+        }
+      />
+      <AgentCard.Body className="flex flex-col gap-3">
+        <p className="text-[12px] font-medium leading-snug">{result.headline}</p>
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          <KpiTile label="Total actual" value={fmtCurrency(result.total_actual)} />
+          <KpiTile label="Total budget" value={fmtCurrency(result.total_budget)} />
+          <KpiTile
+            label="Variance"
+            value={`${result.total_variance_pct > 0 ? "+" : ""}${result.total_variance_pct.toFixed(1)}`}
+            suffix="%"
+          />
+        </div>
+        {result.rows.length > 0 && (
+          <div className="border border-border overflow-hidden">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Date</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Actual</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Budget</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.rows.map((r, i) => (
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="px-2 py-1">{r.date}</td>
+                    <td className="px-2 py-1 text-right font-mono">{fmtCurrency(r.actual)}</td>
+                    <td className="px-2 py-1 text-right font-mono text-muted-foreground">{fmtCurrency(r.budget)}</td>
+                    <td className={cn(
+                      "px-2 py-1 text-right",
+                      r.direction === "over" ? "text-destructive" : r.direction === "under" ? "text-amber-500" : "text-muted-foreground"
+                    )}>
+                      {r.variance_pct > 0 ? "+" : ""}
+                      {r.variance_pct.toFixed(1)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[11px] leading-relaxed">{result.narrative}</p>
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Run financial analysis"
+              icon={Wallet}
+              onClick={() => onFollowUpAction("rex:financial-analysis", {})}
+            />
+          </div>
+        )}
+      </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── Board deck card (C5) ───────────────────────────────────────────────────
+
+export function BoardDeckCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: RexBoardDeckResult
+  onFollowUpAction?: FollowUp
+}) {
+  const [copied, setCopied] = React.useState(false)
+
+  const copyHtml = () => {
+    void navigator.clipboard.writeText(result.html)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const openInNewTab = () => {
+    const blob = new Blob([result.html], { type: "text/html" })
+    const url = URL.createObjectURL(blob)
+    window.open(url, "_blank", "noopener,noreferrer")
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header
+        icon={<FileText />}
+        title="Board deck"
+        badge={
+          <Badge variant="secondary" className="text-[10px]">{result.period}</Badge>
+        }
+        right={
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={copyHtml}
+              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
+            >
+              <Copy className="size-3" />
+              {copied ? "Copied!" : "Copy HTML"}
+            </button>
+            <button
+              type="button"
+              onClick={openInNewTab}
+              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
+            >
+              <ArrowRight className="size-3" /> Open
+            </button>
+            <PinButton kind="board-deck" payload={result} />
+          </div>
+        }
+      />
+      <AgentCard.Body className="flex flex-col gap-3">
+        <p className="text-[12px] font-medium leading-snug">{result.headline}</p>
+        <div className="flex flex-col gap-2">
+          {Object.entries(result.sections).map(([key, body]) => (
+            <div key={key} className="border-l-2 border-border pl-2">
+              <p className="mb-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                {key.replace(/_/g, " ")}
+              </p>
+              <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body || "—"}</p>
+            </div>
+          ))}
+        </div>
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Generate investor update"
+              icon={Mail}
+              onClick={() => onFollowUpAction("rex:investor-update", { period: result.period })}
+            />
+          </div>
+        )}
+      </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── AlertTriangle is used by VarianceCard ──────────────────────────────────
 void AlertTriangle

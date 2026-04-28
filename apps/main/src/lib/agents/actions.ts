@@ -222,6 +222,22 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       description: "Draft a structured investor update email with metrics and asks.",
       icon: "Mail",
     },
+    {
+      id: "rex:variance",
+      agent: "rex",
+      endpoint: "variance",
+      label: "Variance analysis",
+      description: "Compare an actual dataset against a budget dataset month by month.",
+      icon: "AlertTriangle",
+    },
+    {
+      id: "rex:board-deck",
+      agent: "rex",
+      endpoint: "board-deck",
+      label: "Board deck",
+      description: "Auto-generate a structured investor-ready board update with print-friendly HTML.",
+      icon: "FileText",
+    },
   ],
   lex: [
     {

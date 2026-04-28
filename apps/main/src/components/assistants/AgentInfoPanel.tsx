@@ -1,10 +1,17 @@
 "use client"
 
+import * as React from "react"
 import { useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { X } from "lucide-react"
 
-import { getSettings, patchSettings } from "@/lib/api/rex"
+import {
+  getSettings,
+  patchSettings,
+  generateApiKey,
+  revokeApiKey,
+} from "@/lib/api/rex"
+import type { RexAlertRule } from "@/lib/types/agents"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 import { FONT } from "@/lib/fonts"
 import type { AgentConfig, BrandKit } from "@/lib/types"
@@ -102,6 +109,345 @@ const TZ_OPTIONS = [
   "Australia/Sydney",
 ]
 
+const ALERT_METRIC_OPTIONS = [
+  "mrr", "arr", "cash", "burn", "expenses", "churn_rate", "growth_rate", "new_customers", "cac", "ltv", "runway",
+]
+
+const OPERATOR_LABEL: Record<RexAlertRule["operator"], string> = {
+  lt: "drops below",
+  gt: "exceeds",
+  change_gt_pct: "jumps WoW > %",
+  change_lt_pct: "falls WoW > %",
+}
+
+function makeRuleId() {
+  return Math.random().toString(36).slice(2, 10)
+}
+
+function RexAlertsBlock({
+  rules,
+  onChange,
+  disabled,
+}: {
+  rules: RexAlertRule[]
+  onChange: (next: RexAlertRule[]) => void
+  disabled?: boolean
+}) {
+  const addRule = () => {
+    onChange([
+      ...rules,
+      { id: makeRuleId(), metric: "runway", operator: "lt", threshold: 6, enabled: true, label: "Runway warning" },
+    ])
+  }
+  const update = (id: string, patch: Partial<RexAlertRule>) =>
+    onChange(rules.map((r) => (r.id === id ? { ...r, ...patch } : r)))
+  const remove = (id: string) => onChange(rules.filter((r) => r.id !== id))
+
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "#555",
+          marginBottom: 8,
+        }}
+      >
+        alert rules
+      </div>
+      <div
+        style={{
+          background: "#fff",
+          border: "2px solid #111",
+          borderRadius: 10,
+          padding: "10px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        {rules.length === 0 && (
+          <div style={{ fontFamily: FONT.mono, fontSize: 10, color: "#888" }}>
+            No alerts configured. Add rules to receive a daily email when thresholds trip.
+          </div>
+        )}
+        {rules.map((r) => (
+          <div
+            key={r.id}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              border: "1px dashed #ccc",
+              borderRadius: 6,
+              padding: 8,
+            }}
+          >
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input
+                value={r.label ?? ""}
+                placeholder="Label (e.g. Runway warning)"
+                onChange={(e) => update(r.id, { label: e.target.value })}
+                disabled={disabled}
+                style={{
+                  flex: 1,
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  padding: "4px 6px",
+                  border: "1px solid #111",
+                  borderRadius: 4,
+                  background: "#FFF9ED",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => update(r.id, { enabled: !r.enabled })}
+                disabled={disabled}
+                title={r.enabled ? "Disable" : "Enable"}
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 10,
+                  padding: "4px 8px",
+                  border: "1.5px solid #111",
+                  borderRadius: 4,
+                  background: r.enabled ? "#1DBC87" : "#e0e0e0",
+                  color: r.enabled ? "#fff" : "#555",
+                  cursor: "pointer",
+                }}
+              >
+                {r.enabled ? "ON" : "OFF"}
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(r.id)}
+                disabled={disabled}
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 10,
+                  padding: "4px 6px",
+                  border: "1.5px solid #111",
+                  borderRadius: 4,
+                  background: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: 6 }}>
+              <select
+                value={r.metric}
+                onChange={(e) => update(r.id, { metric: e.target.value })}
+                disabled={disabled}
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  padding: "4px 6px",
+                  border: "1px solid #111",
+                  borderRadius: 4,
+                  background: "#FFF9ED",
+                }}
+              >
+                {ALERT_METRIC_OPTIONS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={r.operator}
+                onChange={(e) => update(r.id, { operator: e.target.value as RexAlertRule["operator"] })}
+                disabled={disabled}
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  padding: "4px 6px",
+                  border: "1px solid #111",
+                  borderRadius: 4,
+                  background: "#FFF9ED",
+                }}
+              >
+                {Object.entries(OPERATOR_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                value={r.threshold}
+                onChange={(e) => update(r.id, { threshold: Number(e.target.value) })}
+                disabled={disabled}
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  padding: "4px 6px",
+                  border: "1px solid #111",
+                  borderRadius: 4,
+                  background: "#FFF9ED",
+                }}
+              />
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addRule}
+          disabled={disabled}
+          style={{
+            fontFamily: FONT.mono,
+            fontSize: 11,
+            padding: "6px 10px",
+            border: "2px dashed #111",
+            borderRadius: 6,
+            background: "#FFF9ED",
+            cursor: "pointer",
+            alignSelf: "flex-start",
+          }}
+        >
+          + Add rule
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function RexApiKeyBlock({ organizationId, apiKey }: { organizationId: string; apiKey: string | null | undefined }) {
+  const qc = useQueryClient()
+  const [revealed, setRevealed] = React.useState(false)
+  const [copied, setCopied] = React.useState(false)
+
+  const genMut = useMutation({
+    mutationFn: () => generateApiKey(),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["rex", "settings", organizationId] })
+      setRevealed(true)
+    },
+  })
+  const revokeMut = useMutation({
+    mutationFn: () => revokeApiKey(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["rex", "settings", organizationId] }),
+  })
+
+  const copy = () => {
+    if (!apiKey) return
+    void navigator.clipboard.writeText(apiKey)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: FONT.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "#555",
+          marginBottom: 8,
+        }}
+      >
+        webhook ingest key
+      </div>
+      <div
+        style={{
+          background: "#fff",
+          border: "2px solid #111",
+          borderRadius: 10,
+          padding: "10px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        <div style={{ fontFamily: FONT.mono, fontSize: 10, color: "#777", lineHeight: 1.5 }}>
+          POST <span style={{ color: "#111" }}>/agents/rex/ingest</span> with{" "}
+          <code style={{ background: "#f5f5f5", padding: "1px 4px", borderRadius: 3 }}>
+            {`{ api_key, metric, date, value }`}
+          </code>{" "}
+          to append data points without UI.
+        </div>
+        {apiKey ? (
+          <>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <code
+                onClick={() => setRevealed((v) => !v)}
+                style={{
+                  flex: 1,
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  padding: "6px 8px",
+                  background: "#FFF9ED",
+                  border: "1.5px solid #111",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {revealed ? apiKey : `${apiKey.slice(0, 8)}••••••${apiKey.slice(-4)}`}
+              </code>
+              <button
+                type="button"
+                onClick={copy}
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 10,
+                  padding: "6px 10px",
+                  border: "1.5px solid #111",
+                  borderRadius: 4,
+                  background: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => revokeMut.mutate()}
+              disabled={revokeMut.isPending}
+              style={{
+                alignSelf: "flex-start",
+                fontFamily: FONT.mono,
+                fontSize: 10,
+                padding: "4px 10px",
+                border: "1.5px solid #ef4444",
+                borderRadius: 4,
+                background: "#fff",
+                color: "#ef4444",
+                cursor: "pointer",
+              }}
+            >
+              Revoke key
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => genMut.mutate()}
+            disabled={genMut.isPending}
+            style={{
+              alignSelf: "flex-start",
+              fontFamily: FONT.mono,
+              fontSize: 11,
+              padding: "6px 12px",
+              border: "2px solid #111",
+              borderRadius: 6,
+              background: "#1DBC87",
+              color: "#fff",
+              cursor: "pointer",
+              boxShadow: "2px 2px 0 #111",
+            }}
+          >
+            Generate API key
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function RexSettingsBlock({ organizationId }: { organizationId: string }) {
   const qc = useQueryClient()
   const { data: settings, isLoading } = useQuery({
@@ -118,6 +464,7 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
 
   const enabled = settings?.weeklyDigestEnabled ?? true
   const tz = settings?.weeklyDigestTimezone ?? "UTC"
+  const rules = (settings?.alertRules ?? []) as RexAlertRule[]
 
   if (isLoading) return null
 
@@ -226,6 +573,20 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Alert rules — daily threshold checks */}
+      <div style={{ marginTop: 18 }}>
+        <RexAlertsBlock
+          rules={rules}
+          disabled={mut.isPending}
+          onChange={(next) => mut.mutate({ alertRules: next })}
+        />
+      </div>
+
+      {/* Webhook ingest API key */}
+      <div style={{ marginTop: 18 }}>
+        <RexApiKeyBlock organizationId={organizationId} apiKey={settings?.ingestApiKey} />
       </div>
     </div>
   )

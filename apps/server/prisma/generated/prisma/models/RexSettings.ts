@@ -28,6 +28,7 @@ export type RexSettingsMinAggregateOutputType = {
   organizationId: string | null
   weeklyDigestEnabled: boolean | null
   weeklyDigestTimezone: string | null
+  ingestApiKey: string | null
   updatedAt: Date | null
 }
 
@@ -35,6 +36,7 @@ export type RexSettingsMaxAggregateOutputType = {
   organizationId: string | null
   weeklyDigestEnabled: boolean | null
   weeklyDigestTimezone: string | null
+  ingestApiKey: string | null
   updatedAt: Date | null
 }
 
@@ -43,6 +45,9 @@ export type RexSettingsCountAggregateOutputType = {
   weeklyDigestEnabled: number
   weeklyDigestTimezone: number
   weeklyDigestRecipients: number
+  alertRules: number
+  ingestApiKey: number
+  columnMappingTemplates: number
   updatedAt: number
   _all: number
 }
@@ -52,6 +57,7 @@ export type RexSettingsMinAggregateInputType = {
   organizationId?: true
   weeklyDigestEnabled?: true
   weeklyDigestTimezone?: true
+  ingestApiKey?: true
   updatedAt?: true
 }
 
@@ -59,6 +65,7 @@ export type RexSettingsMaxAggregateInputType = {
   organizationId?: true
   weeklyDigestEnabled?: true
   weeklyDigestTimezone?: true
+  ingestApiKey?: true
   updatedAt?: true
 }
 
@@ -67,6 +74,9 @@ export type RexSettingsCountAggregateInputType = {
   weeklyDigestEnabled?: true
   weeklyDigestTimezone?: true
   weeklyDigestRecipients?: true
+  alertRules?: true
+  ingestApiKey?: true
+  columnMappingTemplates?: true
   updatedAt?: true
   _all?: true
 }
@@ -148,6 +158,9 @@ export type RexSettingsGroupByOutputType = {
   weeklyDigestEnabled: boolean
   weeklyDigestTimezone: string
   weeklyDigestRecipients: string[]
+  alertRules: runtime.JsonValue | null
+  ingestApiKey: string | null
+  columnMappingTemplates: runtime.JsonValue | null
   updatedAt: Date
   _count: RexSettingsCountAggregateOutputType | null
   _min: RexSettingsMinAggregateOutputType | null
@@ -177,6 +190,9 @@ export type RexSettingsWhereInput = {
   weeklyDigestEnabled?: Prisma.BoolFilter<"RexSettings"> | boolean
   weeklyDigestTimezone?: Prisma.StringFilter<"RexSettings"> | string
   weeklyDigestRecipients?: Prisma.StringNullableListFilter<"RexSettings">
+  alertRules?: Prisma.JsonNullableFilter<"RexSettings">
+  ingestApiKey?: Prisma.StringNullableFilter<"RexSettings"> | string | null
+  columnMappingTemplates?: Prisma.JsonNullableFilter<"RexSettings">
   updatedAt?: Prisma.DateTimeFilter<"RexSettings"> | Date | string
 }
 
@@ -185,25 +201,34 @@ export type RexSettingsOrderByWithRelationInput = {
   weeklyDigestEnabled?: Prisma.SortOrder
   weeklyDigestTimezone?: Prisma.SortOrder
   weeklyDigestRecipients?: Prisma.SortOrder
+  alertRules?: Prisma.SortOrderInput | Prisma.SortOrder
+  ingestApiKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  columnMappingTemplates?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type RexSettingsWhereUniqueInput = Prisma.AtLeast<{
   organizationId?: string
+  ingestApiKey?: string
   AND?: Prisma.RexSettingsWhereInput | Prisma.RexSettingsWhereInput[]
   OR?: Prisma.RexSettingsWhereInput[]
   NOT?: Prisma.RexSettingsWhereInput | Prisma.RexSettingsWhereInput[]
   weeklyDigestEnabled?: Prisma.BoolFilter<"RexSettings"> | boolean
   weeklyDigestTimezone?: Prisma.StringFilter<"RexSettings"> | string
   weeklyDigestRecipients?: Prisma.StringNullableListFilter<"RexSettings">
+  alertRules?: Prisma.JsonNullableFilter<"RexSettings">
+  columnMappingTemplates?: Prisma.JsonNullableFilter<"RexSettings">
   updatedAt?: Prisma.DateTimeFilter<"RexSettings"> | Date | string
-}, "organizationId">
+}, "organizationId" | "ingestApiKey">
 
 export type RexSettingsOrderByWithAggregationInput = {
   organizationId?: Prisma.SortOrder
   weeklyDigestEnabled?: Prisma.SortOrder
   weeklyDigestTimezone?: Prisma.SortOrder
   weeklyDigestRecipients?: Prisma.SortOrder
+  alertRules?: Prisma.SortOrderInput | Prisma.SortOrder
+  ingestApiKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  columnMappingTemplates?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.RexSettingsCountOrderByAggregateInput
   _max?: Prisma.RexSettingsMaxOrderByAggregateInput
@@ -218,6 +243,9 @@ export type RexSettingsScalarWhereWithAggregatesInput = {
   weeklyDigestEnabled?: Prisma.BoolWithAggregatesFilter<"RexSettings"> | boolean
   weeklyDigestTimezone?: Prisma.StringWithAggregatesFilter<"RexSettings"> | string
   weeklyDigestRecipients?: Prisma.StringNullableListFilter<"RexSettings">
+  alertRules?: Prisma.JsonNullableWithAggregatesFilter<"RexSettings">
+  ingestApiKey?: Prisma.StringNullableWithAggregatesFilter<"RexSettings"> | string | null
+  columnMappingTemplates?: Prisma.JsonNullableWithAggregatesFilter<"RexSettings">
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"RexSettings"> | Date | string
 }
 
@@ -226,6 +254,9 @@ export type RexSettingsCreateInput = {
   weeklyDigestEnabled?: boolean
   weeklyDigestTimezone?: string
   weeklyDigestRecipients?: Prisma.RexSettingsCreateweeklyDigestRecipientsInput | string[]
+  alertRules?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  ingestApiKey?: string | null
+  columnMappingTemplates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Date | string
 }
 
@@ -234,6 +265,9 @@ export type RexSettingsUncheckedCreateInput = {
   weeklyDigestEnabled?: boolean
   weeklyDigestTimezone?: string
   weeklyDigestRecipients?: Prisma.RexSettingsCreateweeklyDigestRecipientsInput | string[]
+  alertRules?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  ingestApiKey?: string | null
+  columnMappingTemplates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Date | string
 }
 
@@ -242,6 +276,9 @@ export type RexSettingsUpdateInput = {
   weeklyDigestEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   weeklyDigestTimezone?: Prisma.StringFieldUpdateOperationsInput | string
   weeklyDigestRecipients?: Prisma.RexSettingsUpdateweeklyDigestRecipientsInput | string[]
+  alertRules?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  ingestApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  columnMappingTemplates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -250,6 +287,9 @@ export type RexSettingsUncheckedUpdateInput = {
   weeklyDigestEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   weeklyDigestTimezone?: Prisma.StringFieldUpdateOperationsInput | string
   weeklyDigestRecipients?: Prisma.RexSettingsUpdateweeklyDigestRecipientsInput | string[]
+  alertRules?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  ingestApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  columnMappingTemplates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -258,6 +298,9 @@ export type RexSettingsCreateManyInput = {
   weeklyDigestEnabled?: boolean
   weeklyDigestTimezone?: string
   weeklyDigestRecipients?: Prisma.RexSettingsCreateweeklyDigestRecipientsInput | string[]
+  alertRules?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  ingestApiKey?: string | null
+  columnMappingTemplates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Date | string
 }
 
@@ -266,6 +309,9 @@ export type RexSettingsUpdateManyMutationInput = {
   weeklyDigestEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   weeklyDigestTimezone?: Prisma.StringFieldUpdateOperationsInput | string
   weeklyDigestRecipients?: Prisma.RexSettingsUpdateweeklyDigestRecipientsInput | string[]
+  alertRules?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  ingestApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  columnMappingTemplates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -274,6 +320,9 @@ export type RexSettingsUncheckedUpdateManyInput = {
   weeklyDigestEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   weeklyDigestTimezone?: Prisma.StringFieldUpdateOperationsInput | string
   weeklyDigestRecipients?: Prisma.RexSettingsUpdateweeklyDigestRecipientsInput | string[]
+  alertRules?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  ingestApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  columnMappingTemplates?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -282,6 +331,9 @@ export type RexSettingsCountOrderByAggregateInput = {
   weeklyDigestEnabled?: Prisma.SortOrder
   weeklyDigestTimezone?: Prisma.SortOrder
   weeklyDigestRecipients?: Prisma.SortOrder
+  alertRules?: Prisma.SortOrder
+  ingestApiKey?: Prisma.SortOrder
+  columnMappingTemplates?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -289,6 +341,7 @@ export type RexSettingsMaxOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   weeklyDigestEnabled?: Prisma.SortOrder
   weeklyDigestTimezone?: Prisma.SortOrder
+  ingestApiKey?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -296,6 +349,7 @@ export type RexSettingsMinOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   weeklyDigestEnabled?: Prisma.SortOrder
   weeklyDigestTimezone?: Prisma.SortOrder
+  ingestApiKey?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -315,6 +369,9 @@ export type RexSettingsSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   weeklyDigestEnabled?: boolean
   weeklyDigestTimezone?: boolean
   weeklyDigestRecipients?: boolean
+  alertRules?: boolean
+  ingestApiKey?: boolean
+  columnMappingTemplates?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexSettings"]>
 
@@ -323,6 +380,9 @@ export type RexSettingsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   weeklyDigestEnabled?: boolean
   weeklyDigestTimezone?: boolean
   weeklyDigestRecipients?: boolean
+  alertRules?: boolean
+  ingestApiKey?: boolean
+  columnMappingTemplates?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexSettings"]>
 
@@ -331,6 +391,9 @@ export type RexSettingsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   weeklyDigestEnabled?: boolean
   weeklyDigestTimezone?: boolean
   weeklyDigestRecipients?: boolean
+  alertRules?: boolean
+  ingestApiKey?: boolean
+  columnMappingTemplates?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexSettings"]>
 
@@ -339,10 +402,13 @@ export type RexSettingsSelectScalar = {
   weeklyDigestEnabled?: boolean
   weeklyDigestTimezone?: boolean
   weeklyDigestRecipients?: boolean
+  alertRules?: boolean
+  ingestApiKey?: boolean
+  columnMappingTemplates?: boolean
   updatedAt?: boolean
 }
 
-export type RexSettingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"organizationId" | "weeklyDigestEnabled" | "weeklyDigestTimezone" | "weeklyDigestRecipients" | "updatedAt", ExtArgs["result"]["rexSettings"]>
+export type RexSettingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"organizationId" | "weeklyDigestEnabled" | "weeklyDigestTimezone" | "weeklyDigestRecipients" | "alertRules" | "ingestApiKey" | "columnMappingTemplates" | "updatedAt", ExtArgs["result"]["rexSettings"]>
 
 export type $RexSettingsPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "RexSettings"
@@ -352,6 +418,9 @@ export type $RexSettingsPayload<ExtArgs extends runtime.Types.Extensions.Interna
     weeklyDigestEnabled: boolean
     weeklyDigestTimezone: string
     weeklyDigestRecipients: string[]
+    alertRules: runtime.JsonValue | null
+    ingestApiKey: string | null
+    columnMappingTemplates: runtime.JsonValue | null
     updatedAt: Date
   }, ExtArgs["result"]["rexSettings"]>
   composites: {}
@@ -780,6 +849,9 @@ export interface RexSettingsFieldRefs {
   readonly weeklyDigestEnabled: Prisma.FieldRef<"RexSettings", 'Boolean'>
   readonly weeklyDigestTimezone: Prisma.FieldRef<"RexSettings", 'String'>
   readonly weeklyDigestRecipients: Prisma.FieldRef<"RexSettings", 'String[]'>
+  readonly alertRules: Prisma.FieldRef<"RexSettings", 'Json'>
+  readonly ingestApiKey: Prisma.FieldRef<"RexSettings", 'String'>
+  readonly columnMappingTemplates: Prisma.FieldRef<"RexSettings", 'Json'>
   readonly updatedAt: Prisma.FieldRef<"RexSettings", 'DateTime'>
 }
     

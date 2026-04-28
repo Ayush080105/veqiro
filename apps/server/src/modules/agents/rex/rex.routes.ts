@@ -11,12 +11,19 @@ import {
   scenario,
   weeklyDigest,
   investorUpdate,
+  variance,
+  boardDeck,
   getSnapshot,
   listPins,
   createPin,
   deletePin,
+  sharePin,
+  getSharedPin,
   getSettings,
   patchSettings,
+  generateApiKey,
+  revokeApiKey,
+  ingest,
   listDatasets,
   parseDataset,
   saveDatasets,
@@ -24,6 +31,10 @@ import {
 } from "./rex.controller.js";
 
 const router = Router();
+// Public webhook routes — no auth (validated by API key body field)
+export const publicRouter = Router();
+publicRouter.post("/agents/rex/ingest", ingest);
+publicRouter.get("/agents/rex/pins/public/:token", getSharedPin);
 
 router.post("/chat", msgRex);
 router.get("/chat", getRexMessages);
@@ -36,6 +47,8 @@ router.post("/unit-economics", unitEconomics);
 router.post("/scenario", scenario);
 router.post("/weekly-digest", weeklyDigest);
 router.post("/investor-update", investorUpdate);
+router.post("/variance", variance);
+router.post("/board-deck", boardDeck);
 
 // Snapshot (KPI strip)
 router.get("/snapshot", getSnapshot);
@@ -44,10 +57,15 @@ router.get("/snapshot", getSnapshot);
 router.get("/pins", listPins);
 router.post("/pins", createPin);
 router.delete("/pins/:id", deletePin);
+router.patch("/pins/:id/share", sharePin);
 
 // Settings (weekly digest opt-in)
 router.get("/settings", getSettings);
 router.patch("/settings", patchSettings);
+
+// Webhook API key admin
+router.post("/api-key/generate", generateApiKey);
+router.post("/api-key/revoke", revokeApiKey);
 
 // Dataset CRUD
 router.get("/datasets", listDatasets);

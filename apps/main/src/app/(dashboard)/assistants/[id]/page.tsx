@@ -30,6 +30,7 @@ import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-ta
 import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 import { KpiStrip } from "@/components/agents/rex/KpiStrip"
 import { TodayPanel } from "@/components/agents/rex/today-panel"
+import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
@@ -715,6 +716,7 @@ export default function AssistantChatPage() {
             </button>
           </div>
           <KpiStrip onOpenDataTab={() => setRexTab("data")} />
+          <MagicNumbers organizationId={organizationId} />
           <TodayPanel organizationId={organizationId} />
         </>
       )}

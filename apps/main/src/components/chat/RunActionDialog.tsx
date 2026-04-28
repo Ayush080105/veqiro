@@ -40,6 +40,8 @@ import {
   RexScenarioForm,
   RexWeeklyDigestForm,
   RexInvestorUpdateForm,
+  RexVarianceForm,
+  RexBoardDeckForm,
 } from "@/components/agents/rex/forms"
 // Lex forms
 import {
@@ -291,6 +293,16 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   "rex:investor-update": {
     defaultValue: { period: "", metrics: {}, highlights: [], asks: [] },
     Form: RexInvestorUpdateForm,
+    validate: (v) => (v.period?.trim() ? null : "Period is required."),
+  },
+  "rex:variance": {
+    defaultValue: { metric: "", period: "monthly" },
+    Form: RexVarianceForm,
+    validate: (v) => (v.metric?.trim() ? null : "Pick a metric."),
+  },
+  "rex:board-deck": {
+    defaultValue: { period: "", metrics: {}, highlights: [], risks: [], ask: "" },
+    Form: RexBoardDeckForm,
     validate: (v) => (v.period?.trim() ? null : "Period is required."),
   },
 

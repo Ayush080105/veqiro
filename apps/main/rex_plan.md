@@ -153,7 +153,7 @@
 
  Features that make REX the first thing founders open every morning.
 
- C1. Magic Numbers Summary Card (Home KPI Dashboard)
+ C1. Magic Numbers Summary Card (Home KPI Dashboard) [DONE]
 
  Files: New apps/main/src/components/agents/rex/magic-numbers.tsx, edit page.tsx
 
@@ -171,7 +171,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- C2. Threshold-Based Email Alerts
+ C2. Threshold-Based Email Alerts [DONE]
 
  Files: New apps/server/src/modules/agents/rex/rex.alerts.ts, rex.cron.ts, rex.repository.ts, apps/main/src/components/agents/rex/alert-settings.tsx in
  AgentInfoPanel
@@ -186,7 +186,7 @@
  Difficulty: Medium | Third-party: No (uses existing Resend)
 
  ---
- C3. Webhook Ingest Endpoint
+ C3. Webhook Ingest Endpoint [DONE]
 
  Files: apps/server/src/modules/agents/rex/rex.routes.ts, rex.controller.ts, rex.service.ts
 
@@ -225,7 +225,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- C5. Board Deck Auto-Generation
+ C5. Board Deck Auto-Generation [DONE]
 
  Files: New apps/ai/agents/rex/routes.py endpoint /ai/rex/board-deck, apps/server/src/modules/agents/rex/, new frontend card
 
@@ -249,7 +249,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- C7. Column Mapping Templates (Org Memory)
+ C7. Column Mapping Templates (Org Memory) [DONE]
 
  Files: apps/server/src/modules/agents/rex/rex.repository.ts, rex.csv.ts, apps/server/prisma/schema.prisma
 
@@ -269,7 +269,7 @@
  Difficulty: Easy | Third-party: No
 
  ---
- C9. Variance Analysis (Actual vs Budget)
+ C9. Variance Analysis (Actual vs Budget) [DONE]
 
  Files: apps/server/prisma/schema.prisma (add purpose field to RexDataset: "actual" | "budget"), apps/ai/agents/rex/routes.py (new endpoint
  /ai/rex/variance), frontend card + form
@@ -280,7 +280,7 @@
  Difficulty: Medium | Third-party: No
 
  ---
- C10. Shareable Pinned Cards
+ C10. Shareable Pinned Cards [DONE]
 
  Files: apps/server/src/modules/agents/rex/rex.repository.ts, rex.routes.ts, rex.controller.ts, new page
  apps/main/src/app/(dashboard)/rex-share/[id]/page.tsx
@@ -511,13 +511,13 @@
  ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
  │ B4  │ Improved LLM prompts + benchmarks         │ Medium     │ No        │ DONE   │
  ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
- │ C1  │ Magic Numbers summary card                │ Easy       │ No        │ TODO   │
+ │ C1  │ Magic Numbers summary card                │ Easy       │ No        │ DONE   │
  ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
  │ C4  │ Scenario builder templates                │ Easy       │ No        │ DONE   │
  ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
  │ C6  │ Multi-sheet Excel support                 │ Easy       │ No        │ DONE   │
  ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
- │ C7  │ Column mapping memory                     │ Easy       │ No        │ TODO   │
+ │ C7  │ Column mapping memory                     │ Easy       │ No        │ DONE   │
  ├─────┼───────────────────────────────────────────┼────────────┼───────────┼────────┤
  │ C8  │ REX → Vega cross-agent digest             │ Easy       │ No        │ DONE   │
  └─────┴───────────────────────────────────────────┴────────────┴───────────┴────────┘
@@ -531,15 +531,15 @@
  ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
  │ B3  │ Confidence scores + data source │ Medium     │ No        │ DONE   │
  ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
- │ C2  │ Threshold-based email alerts    │ Medium     │ No        │ TODO   │
+ │ C2  │ Threshold-based email alerts    │ Medium     │ No        │ DONE   │
  ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
- │ C3  │ Webhook ingest endpoint         │ Medium     │ No        │ TODO   │
+ │ C3  │ Webhook ingest endpoint         │ Medium     │ No        │ DONE   │
  ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
- │ C5  │ Board deck auto-generation      │ Medium     │ No        │ TODO   │
+ │ C5  │ Board deck auto-generation      │ Medium     │ No        │ DONE   │
  ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
- │ C9  │ Variance analysis               │ Medium     │ No        │ TODO   │
+ │ C9  │ Variance analysis               │ Medium     │ No        │ DONE   │
  ├─────┼─────────────────────────────────┼────────────┼───────────┼────────┤
- │ C10 │ Shareable pinned cards          │ Medium     │ No        │ TODO   │
+ │ C10 │ Shareable pinned cards          │ Medium     │ No        │ DONE   │
  └─────┴─────────────────────────────────┴────────────┴───────────┴────────┘
 
  Phase 2 — Deep product moat — 4-6 weeks

@@ -2,7 +2,7 @@ import { Router } from "express";
 import authMiddleware from "./middlewares/auth.middleware.js";
 import { internalKeyMiddleware } from "./middlewares/internal.middleware.js";
 import sageRouter from "./modules/agents/sage/sage.routes.js";
-import rexRouter from "./modules/agents/rex/rex.routes.js";
+import rexRouter, { publicRouter as rexPublicRouter } from "./modules/agents/rex/rex.routes.js";
 import scoutRouter from "./modules/agents/scout/scout.routes.js";
 import mayaRouter from "./modules/agents/maya/maya.routes.js";
 import lexRouter from "./modules/agents/lex/lex.routes.js";
@@ -12,12 +12,16 @@ import integrationsProtectedRouter, {
 } from "./modules/integrations/integrations.routes.js";
 import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
 import { getBrandKitInternal } from "./modules/brand-kit/brand-kit.controller.js";
-import { runWeeklyDigestNow } from "./modules/agents/rex/rex.cron.js";
+import { runWeeklyDigestNow, runDailyAlertsNow } from "./modules/agents/rex/rex.cron.js";
 import messagesRouter from "./modules/messages/messages.routes.js";
 import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
 import uploadsRouter from "./modules/uploads/uploads.routes.js";
 
 const router = Router();
+
+// Public REX routes — webhook ingest (validated by API key in body) and public shared pins.
+// Mounted BEFORE the protected router so authMiddleware doesn't intercept them.
+router.use(rexPublicRouter);
 
 router.use("/agents/sage", authMiddleware, sageRouter);
 router.use("/agents/rex", authMiddleware, rexRouter);
@@ -32,6 +36,9 @@ router.use("/brand-kit", authMiddleware, brandKitRouter);
 router.get("/internal/brand-kit/:organizationId", internalKeyMiddleware, getBrandKitInternal);
 router.post("/internal/cron/rex-weekly-digest", internalKeyMiddleware, (_req, res) => {
   void runWeeklyDigestNow().then(() => res.json({ ok: true }));
+});
+router.post("/internal/cron/rex-daily-alerts", internalKeyMiddleware, (_req, res) => {
+  void runDailyAlertsNow().then(() => res.json({ ok: true }));
 });
 
 router.use("/uploads", authMiddleware, uploadsRouter);

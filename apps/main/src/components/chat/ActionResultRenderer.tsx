@@ -38,6 +38,8 @@ import {
   ScenarioCard,
   WeeklyDigestCard,
   InvestorUpdateCard,
+  VarianceCard,
+  BoardDeckCard,
 } from "@/components/agents/rex/cards"
 // Lex
 import {
@@ -118,13 +120,17 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
     case "rex:runway":
       return <RunwayCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:unit-economics":
-      return <UnitEconomicsCard result={r} />
+      return <UnitEconomicsCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:scenario":
       return <ScenarioCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:weekly-digest":
       return <WeeklyDigestCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:investor-update":
       return <InvestorUpdateCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "rex:variance":
+      return <VarianceCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "rex:board-deck":
+      return <BoardDeckCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "lex:upload-source":
       return <DocumentIngestCard result={r} />

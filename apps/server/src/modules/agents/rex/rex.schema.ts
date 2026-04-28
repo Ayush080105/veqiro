@@ -78,3 +78,42 @@ export const investorUpdateSchema = z.object({
   highlights: z.array(z.string()).optional().default([]),
   asks: z.array(z.string()).optional().default([]),
 });
+
+// ── Variance (C9) ───────────────────────────────────────────────────────────
+
+export const varianceSchema = z.object({
+  metric: z.string().min(1),
+  period: z.string().optional(),
+});
+
+// ── Board deck (C5) ─────────────────────────────────────────────────────────
+
+export const boardDeckSchema = z.object({
+  period: z.string().min(1),
+  metrics: z.record(z.string(), z.unknown()).optional().default({}),
+  highlights: z.array(z.string()).optional().default([]),
+  risks: z.array(z.string()).optional().default([]),
+  ask: z.string().optional().default(""),
+});
+
+// ── Webhook ingest (C3) ─────────────────────────────────────────────────────
+
+export const ingestSchema = z.object({
+  api_key: z.string().min(8),
+  metric: z.string().min(1).max(80),
+  date: z.string().min(1),
+  value: z.number().finite(),
+  period: z.enum(["daily", "weekly", "monthly", "quarterly"]).optional(),
+});
+
+// ── Alert rules (C2) ────────────────────────────────────────────────────────
+
+export const alertRuleSchema = z.object({
+  id: z.string().min(1),
+  metric: z.string().min(1),
+  operator: z.enum(["lt", "gt", "change_gt_pct", "change_lt_pct"]),
+  threshold: z.number(),
+  enabled: z.boolean().default(true),
+  label: z.string().optional(),
+});
+export type AlertRule = z.infer<typeof alertRuleSchema>;

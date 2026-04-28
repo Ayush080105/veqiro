@@ -74,6 +74,7 @@ export const createDataset = (data: {
   unit?: string | null;
   sourceId?: string | null;
   meta?: unknown;
+  purpose?: string;
 }) =>
   prisma.rexDataset.create({
     data: {
@@ -85,6 +86,7 @@ export const createDataset = (data: {
       points: data.points as Prisma.InputJsonValue,
       unit: data.unit,
       sourceId: data.sourceId,
+      purpose: data.purpose ?? "actual",
       meta: data.meta as Prisma.InputJsonValue | undefined,
     },
   });
@@ -140,16 +142,79 @@ export const findOrCreateSettings = (organizationId: string) =>
 
 export const updateSettings = (
   organizationId: string,
-  data: { weeklyDigestEnabled?: boolean; weeklyDigestTimezone?: string; weeklyDigestRecipients?: string[] }
+  data: {
+    weeklyDigestEnabled?: boolean;
+    weeklyDigestTimezone?: string;
+    weeklyDigestRecipients?: string[];
+    alertRules?: unknown;
+    ingestApiKey?: string | null;
+    columnMappingTemplates?: unknown;
+  }
 ) =>
   prisma.rexSettings.upsert({
     where: { organizationId },
-    create: { organizationId, ...data },
-    update: data,
+    create: {
+      organizationId,
+      ...data,
+      alertRules: data.alertRules as Prisma.InputJsonValue | undefined,
+      columnMappingTemplates: data.columnMappingTemplates as Prisma.InputJsonValue | undefined,
+    },
+    update: {
+      ...data,
+      alertRules: data.alertRules as Prisma.InputJsonValue | undefined,
+      columnMappingTemplates: data.columnMappingTemplates as Prisma.InputJsonValue | undefined,
+    },
   });
 
 export const findAllOrgsWithDigestEnabled = () =>
   prisma.rexSettings.findMany({ where: { weeklyDigestEnabled: true } });
+
+export const findAllSettings = () => prisma.rexSettings.findMany();
+
+export const findOrgByApiKey = (apiKey: string) =>
+  prisma.rexSettings.findUnique({ where: { ingestApiKey: apiKey } });
+
+export const findDatasetForMetric = (
+  organizationId: string,
+  metricKey: string,
+  purpose = "actual"
+) =>
+  prisma.rexDataset.findFirst({
+    where: { organizationId, metricKey, purpose },
+    orderBy: { updatedAt: "desc" },
+  });
+
+export const updateDatasetPoints = (
+  id: string,
+  points: unknown,
+  meta?: unknown
+) =>
+  prisma.rexDataset.update({
+    where: { id },
+    data: {
+      points: points as Prisma.InputJsonValue,
+      meta: meta as Prisma.InputJsonValue | undefined,
+      updatedAt: new Date(),
+    },
+  });
+
+// ── Pin sharing (C10) ─────────────────────────────────────────────────────────
+
+export const findPin = (id: string, organizationId: string) =>
+  prisma.rexPinnedCard.findFirst({ where: { id, organizationId } });
+
+export const updatePin = (
+  id: string,
+  organizationId: string,
+  data: { isPublic?: boolean; shareToken?: string | null }
+) =>
+  prisma.rexPinnedCard.updateMany({
+    where: { id, organizationId },
+    data,
+  });
+
+export const findPinByShareToken = (token: string) =>
+  prisma.rexPinnedCard.findUnique({ where: { shareToken: token } });
 
 // ── Snapshot: latest weekly-digest result ──────────────────────────────────────
 
