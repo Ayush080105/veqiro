@@ -224,6 +224,21 @@ class ComposeEmailResponse(BaseModel):
     model_used: str = ""
 
 
+class MeetingPrepRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    event_title: str
+    attendee_emails: list[str] = []
+    description: str = ""
+    metadata: dict = {}
+
+
+class MeetingPrepResponse(BaseModel):
+    prep: dict
+    tokens_used: int = 0
+    model_used: str = ""
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Vega chat")
@@ -699,3 +714,77 @@ async def compose_email(request: ComposeEmailRequest) -> ComposeEmailResponse:
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )
+
+
+@router.post("/meeting-prep", response_model=MeetingPrepResponse, summary="Pre-meeting brief")
+async def meeting_prep(request: MeetingPrepRequest) -> MeetingPrepResponse:
+    """Generate an AI pre-meeting brief using calendar context and email history with attendees."""
+    if settings.MOCK_MODE:
+        attendee_str = ", ".join(request.attendee_emails[:2]) or "no external attendees"
+        return MeetingPrepResponse(prep={
+            "summary": f"Meeting: {request.event_title}. Attendees include {attendee_str}.",
+            "key_points": [
+                "Review recent email threads with attendees before joining",
+                "Prepare questions about their current workflow and pain points",
+                "Have the product demo or metrics deck ready to share",
+            ],
+            "attendee_context": (
+                "Based on recent emails: this attendee has shown strong interest. "
+                "They are decision-makers at their organization with budget authority."
+            ),
+            "suggested_agenda": [
+                "Introductions and quick context (5 min)",
+                "Current situation and challenges (10 min)",
+                "Product walkthrough / proposal (15 min)",
+                "Q&A and next steps (10 min)",
+            ],
+        })
+
+    token = request.metadata.get("google_access_token", "")
+    emails = []
+    if token and request.attendee_emails:
+        try:
+            all_emails = await list_unread(token, max_results=20)
+            emails = [
+                e for e in all_emails
+                if any(
+                    a.lower() in (e.get("from", "") + e.get("to", "")).lower()
+                    for a in request.attendee_emails
+                )
+            ]
+        except Exception:
+            pass
+
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    context = (
+        f"Event: {request.event_title}\n"
+        f"Attendees: {', '.join(request.attendee_emails)}\n"
+        f"Description: {request.description}"
+    )
+    if emails:
+        context += f"\n\nRecent emails involving these attendees:\n{json.dumps(emails[:3])}"
+
+    raw = await _llm.complete(
+        provider=_agent.default_provider,
+        model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": (
+            f"Generate a pre-meeting brief for this upcoming meeting:\n{context}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with keys: "
+            "summary (string — 1-2 sentences on meeting context), "
+            "key_points (list of strings — things to know or prepare), "
+            "attendee_context (string — who they are and relationship history), "
+            "suggested_agenda (list of strings — agenda items with time estimates)"
+        )}],
+    )
+    tokens_used = _llm.count_tokens(raw)
+    try:
+        data = safe_json_loads(raw)
+    except Exception:
+        data = {
+            "summary": raw[:300],
+            "key_points": [],
+            "attendee_context": "",
+            "suggested_agenda": [],
+        }
+    return MeetingPrepResponse(prep=data, tokens_used=tokens_used, model_used=_agent.default_model)
