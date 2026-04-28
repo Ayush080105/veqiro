@@ -29,3 +29,22 @@ export const generateBriefingSchema = z.object({
   includeCalendar: z.boolean().optional().default(true),
   type: z.enum(["MORNING", "EVENING", "WEEKLY"]).optional().default("MORNING"),
 });
+
+export const getCalendarSchema = z.object({
+  daysAhead: z.coerce.number().int().min(1).max(30).optional().default(7),
+});
+
+export const createCalendarEventSchema = z.object({
+  title: z.string().min(1).max(500),
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+  attendees: z.array(z.string().email()).optional().default([]),
+  description: z.string().max(2000).optional().default(""),
+  addGoogleMeet: z.boolean().optional().default(true),
+});
+
+export const getMeetingPrepSchema = z.object({
+  eventTitle: z.string().min(1).max(500),
+  attendeeEmails: z.array(z.string().email()).optional().default([]),
+  description: z.string().max(2000).optional().default(""),
+});
