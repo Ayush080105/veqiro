@@ -4,7 +4,7 @@ import {
   getGoogleAccessToken,
   GoogleNotConnectedError,
 } from "../../../common/utils/googleAuth.js";
-import { sendGmailReply } from "../../../common/utils/googleApis.js";
+import { sendGmailReply, createCalendarEvent as createGoogleCalendarEvent } from "../../../common/utils/googleApis.js";
 import { prisma } from "../../../config/prisma.js";
 import type {
   ProcessInboxResponse,
@@ -21,6 +21,9 @@ import type {
   createFollowUpSchema,
   addVIPContactSchema,
   generateBriefingSchema,
+  getCalendarSchema,
+  createCalendarEventSchema,
+  getMeetingPrepSchema,
 } from "./vega.workspace.schema.js";
 import type { z } from "zod";
 
@@ -277,5 +280,142 @@ export const generateAndCacheBriefing = async (
     type: record.type as BriefingCacheEntry["type"],
     content: record.content as Record<string, unknown>,
     generatedAt: record.generatedAt.toISOString(),
+  };
+};
+
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string;
+  start: string;
+  end: string;
+  attendees: string[];
+  location: string;
+  meetLink?: string;
+  status: string;
+  recurring?: boolean;
+}
+
+export interface CalendarSlot {
+  date: string;
+  start: string;
+  end: string;
+  durationHours: number;
+}
+
+export interface CalendarResponse {
+  events: CalendarEvent[];
+  slots: CalendarSlot[];
+}
+
+export interface MeetingPrepResult {
+  summary: string;
+  keyPoints: string[];
+  attendeeContext: string;
+  suggestedAgenda: string[];
+}
+
+export const getCalendar = async (
+  userId: string,
+  organizationId: string,
+  input: z.infer<typeof getCalendarSchema>
+): Promise<CalendarResponse> => {
+  const token = await requireGoogleToken(userId);
+  const { data } = await aiService.post<{
+    events: Array<Record<string, unknown>>;
+    free_slots: Array<Record<string, unknown>>;
+  }>("/ai/vega/calendar-summary", {
+    user_id: userId,
+    organization_id: organizationId,
+    days_ahead: input.daysAhead,
+    metadata: { google_access_token: token },
+  });
+
+  const events: CalendarEvent[] = (data.events ?? []).map((e) => ({
+    id: String(e.id ?? ""),
+    title: String(e.title ?? ""),
+    description: String(e.description ?? ""),
+    start: String(e.start ?? ""),
+    end: String(e.end ?? ""),
+    attendees: Array.isArray(e.attendees) ? e.attendees.map(String) : [],
+    location: String(e.location ?? ""),
+    meetLink: e.meet_link ? String(e.meet_link) : undefined,
+    status: String(e.status ?? ""),
+    recurring: Boolean(e.recurring),
+  }));
+
+  const slots: CalendarSlot[] = (data.free_slots ?? []).map((s) => ({
+    date: String(s.date ?? ""),
+    start: String(s.start ?? ""),
+    end: String(s.end ?? ""),
+    durationHours: Number(s.duration_hours ?? 0),
+  }));
+
+  return { events, slots };
+};
+
+export const createCalendarEventWorkspace = async (
+  userId: string,
+  _organizationId: string,
+  input: z.infer<typeof createCalendarEventSchema>
+): Promise<CalendarEvent> => {
+  const token = await requireGoogleToken(userId);
+  const result = await createGoogleCalendarEvent({
+    accessToken: token,
+    title: input.title,
+    start: input.start,
+    end: input.end,
+    attendees: input.attendees,
+    description: input.description,
+    addGoogleMeet: input.addGoogleMeet,
+  });
+
+  const meetLink =
+    result.hangoutLink ??
+    result.conferenceData?.entryPoints?.find(
+      (ep) => ep.entryPointType === "video"
+    )?.uri;
+
+  return {
+    id: result.id,
+    title: input.title,
+    description: input.description ?? "",
+    start: input.start,
+    end: input.end,
+    attendees: input.attendees ?? [],
+    location: meetLink ? "Google Meet" : "",
+    meetLink,
+    status: "confirmed",
+  };
+};
+
+export const getMeetingPrepWorkspace = async (
+  userId: string,
+  organizationId: string,
+  input: z.infer<typeof getMeetingPrepSchema>
+): Promise<MeetingPrepResult> => {
+  const token = await requireGoogleToken(userId);
+  const { data } = await aiService.post<{ prep: Record<string, unknown> }>(
+    "/ai/vega/meeting-prep",
+    {
+      user_id: userId,
+      organization_id: organizationId,
+      event_title: input.eventTitle,
+      attendee_emails: input.attendeeEmails,
+      description: input.description,
+      metadata: { google_access_token: token },
+    }
+  );
+
+  const prep = data.prep ?? {};
+  return {
+    summary: String(prep.summary ?? ""),
+    keyPoints: Array.isArray(prep.key_points) ? prep.key_points.map(String) : [],
+    attendeeContext: String(prep.attendee_context ?? ""),
+    suggestedAgenda: Array.isArray(prep.suggested_agenda)
+      ? prep.suggested_agenda.map(String)
+      : [],
   };
 };
