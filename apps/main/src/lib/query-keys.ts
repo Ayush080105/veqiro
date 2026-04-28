@@ -15,4 +15,8 @@ export const qk = {
   vegaVIPContacts: (organizationId: string) => ["vega", "vip-contacts", organizationId] as const,
   vegaBriefing: (organizationId: string, type: string) =>
     ["vega", "briefing", organizationId, type] as const,
+  vegaCalendar: (organizationId: string) =>
+    ["vega", "calendar", organizationId] as const,
+  vegaMeetingPrep: (eventId: string) =>
+    ["vega", "meeting-prep", eventId] as const,
 }
