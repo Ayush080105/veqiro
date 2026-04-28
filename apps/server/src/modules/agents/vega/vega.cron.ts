@@ -50,15 +50,19 @@ async function runBriefingForAllOrgs(type: "MORNING" | "EVENING" | "WEEKLY") {
 }
 
 async function runFollowUpCheck() {
-  const overdue = await prisma.vegaFollowUp.updateMany({
-    where: {
-      status: "PENDING",
-      dueAt: { lt: new Date() },
-    },
-    data: { status: "OVERDUE" },
-  });
-  if (overdue.count > 0) {
-    console.log(`[vega-cron] Marked ${overdue.count} follow-ups as OVERDUE`);
+  try {
+    const overdue = await prisma.vegaFollowUp.updateMany({
+      where: {
+        status: "PENDING",
+        dueAt: { lt: new Date() },
+      },
+      data: { status: "OVERDUE" },
+    });
+    if (overdue.count > 0) {
+      console.log(`[vega-cron] Marked ${overdue.count} follow-ups as OVERDUE`);
+    }
+  } catch (err) {
+    console.error("[vega-cron] Follow-up check failed:", err);
   }
 }
 
