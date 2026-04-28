@@ -42,7 +42,7 @@ export function EventSidePanel({
 }) {
   const [prepEnabled, setPrepEnabled] = useState(false)
 
-  const { data: prep, isLoading: prepLoading, isError: prepError } = useQuery({
+  const { data: prep, isLoading: prepLoading, isError: prepError, refetch: refetchPrep } = useQuery({
     queryKey: qk.vegaMeetingPrep(event.id),
     queryFn: () =>
       fetchMeetingPrep({
@@ -156,7 +156,12 @@ export function EventSidePanel({
         )}
 
         {prepEnabled && prepError && (
-          <p className="text-xs text-destructive">Failed to generate prep brief. Try again.</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-destructive flex-1">Failed to generate prep brief.</p>
+            <Button variant="ghost" size="sm" className="text-xs h-6 px-2 shrink-0" onClick={() => refetchPrep()}>
+              Retry
+            </Button>
+          </div>
         )}
 
         {prepEnabled && prep && (

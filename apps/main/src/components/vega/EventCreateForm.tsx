@@ -83,10 +83,14 @@ export function EventCreateForm({
       toast.error("Title is required")
       return
     }
+    if (endTime <= startTime) {
+      toast.error("End time must be after start time")
+      return
+    }
     mutate({
       title: title.trim(),
-      start: `${date}T${startTime}:00.000Z`,
-      end: `${date}T${endTime}:00.000Z`,
+      start: new Date(`${date}T${startTime}:00`).toISOString(),
+      end: new Date(`${date}T${endTime}:00`).toISOString(),
       attendees,
       description,
       addGoogleMeet: addMeet,
