@@ -4,6 +4,16 @@ import { prisma } from "../config/prisma.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../common/utils/mailer.js";
 import { admin, organization, customSession } from "better-auth/plugins";
+import { dodopayments, checkout, webhooks } from "@dodopayments/better-auth";
+import { dodoClient } from "./dodo.js";
+import {
+  handleSubscriptionActive,
+  handleSubscriptionRenewed,
+  handleSubscriptionCancelled,
+  handleSubscriptionExpired,
+  handleSubscriptionFailed,
+  handlePaymentFailed,
+} from "../modules/billing/billing.webhooks.js";
 
 const options = {
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
@@ -66,6 +76,28 @@ const options = {
         },
       },
     }),
+    dodopayments({
+      client: dodoClient,
+      use: [
+        checkout({
+          products: [
+            { productId: process.env.DODO_PRO_MONTHLY_PRODUCT_ID!, slug: "pro-monthly" },
+            { productId: process.env.DODO_PRO_ANNUAL_PRODUCT_ID!, slug: "pro-annual" },
+          ],
+          successUrl: "/settings/billing?status=success",
+          authenticatedUsersOnly: true,
+        }),
+        webhooks({
+          webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_SECRET!,
+          onSubscriptionActive: handleSubscriptionActive as any,
+          onSubscriptionRenewed: handleSubscriptionRenewed as any,
+          onSubscriptionCancelled: handleSubscriptionCancelled as any,
+          onSubscriptionExpired: handleSubscriptionExpired as any,
+          onSubscriptionFailed: handleSubscriptionFailed as any,
+          onPaymentFailed: handlePaymentFailed as any,
+        }),
+      ],
+    }),
   ],
   // On every fresh session (login, sign-up, OAuth callback) default the
   // session's active organization to the user's first membership. Without
@@ -124,7 +156,30 @@ export const auth = betterAuth({
         role: m.role,
       }));
 
-      return { user, session, activeOrganization, memberships };
+      const sub = activeOrganization
+        ? await prisma.subscription.findUnique({ where: { organizationId: activeOrganization.id } })
+        : null;
+
+      const now = new Date();
+      const subscription = sub
+        ? {
+            status: sub.status,
+            plan: sub.plan,
+            dodoCustomerId: sub.dodoCustomerId,
+            trialEndsAt: sub.trialEndsAt,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+            daysRemaining: sub.trialEndsAt
+              ? Math.max(0, Math.ceil((sub.trialEndsAt.getTime() - now.getTime()) / 86400000))
+              : null,
+            isEntitled:
+              sub.status === "ACTIVE" ||
+              (sub.status === "TRIALING" && !!sub.trialEndsAt && sub.trialEndsAt > now) ||
+              (sub.status === "CANCELLED" && !!sub.currentPeriodEnd && sub.currentPeriodEnd > now),
+          }
+        : null;
+
+      return { user, session, activeOrganization, memberships, subscription };
     }, options),
   ],
 });

@@ -108,6 +108,9 @@ model Organization {
   onboarded   Boolean      @default(false)
   members     Member[]
   invitations Invitation[]
+  subscriptionStatus     SubscriptionStatus?
+  entitlementExpiresAt   DateTime?
+  subscription           Subscription?
 
   @@unique([slug])
   @@map("organization")
@@ -334,4 +337,38 @@ model RexSettings {
   updatedAt               DateTime @updatedAt
 
   @@map("rex_settings")
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  ANNUAL
+}
+
+model Subscription {
+  id                    String              @id @default(cuid())
+  organizationId        String              @unique
+  organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  dodoCustomerId        String              @unique
+  dodoSubscriptionId    String?             @unique
+
+  status                SubscriptionStatus  @default(TRIALING)
+  plan                  SubscriptionPlan?
+
+  trialEndsAt           DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean             @default(false)
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("subscription")
 }

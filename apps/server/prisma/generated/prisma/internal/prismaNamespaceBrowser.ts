@@ -67,7 +67,8 @@ export const ModelName = {
   Source: 'Source',
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
-  RexSettings: 'RexSettings'
+  RexSettings: 'RexSettings',
+  Subscription: 'Subscription'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -157,7 +158,9 @@ export const OrganizationScalarFieldEnum = {
   logo: 'logo',
   createdAt: 'createdAt',
   metadata: 'metadata',
-  onboarded: 'onboarded'
+  onboarded: 'onboarded',
+  subscriptionStatus: 'subscriptionStatus',
+  entitlementExpiresAt: 'entitlementExpiresAt'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -368,6 +371,23 @@ export const RexSettingsScalarFieldEnum = {
 } as const
 
 export type RexSettingsScalarFieldEnum = (typeof RexSettingsScalarFieldEnum)[keyof typeof RexSettingsScalarFieldEnum]
+
+
+export const SubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  dodoCustomerId: 'dodoCustomerId',
+  dodoSubscriptionId: 'dodoSubscriptionId',
+  status: 'status',
+  plan: 'plan',
+  trialEndsAt: 'trialEndsAt',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -61,7 +61,9 @@
       "Bash(npx prisma *)",
       "Bash(echo \"---EXIT: $?---\")",
       "Bash(python -c \"from agents.rex.routes import router; print\\('OK', len\\(router.routes\\), 'routes'\\)\")",
-      "Bash(python -c \"import ast; ast.parse\\(open\\('agents/rex/routes.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK syntax'\\)\")"
+      "Bash(python -c \"import ast; ast.parse\\(open\\('agents/rex/routes.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK syntax'\\)\")",
+      "mcp__plugin_dodopayments_dodo-knowledge__search_docs",
+      "Bash(git add *)"
     ]
   },
   "enabledMcpjsonServers": [

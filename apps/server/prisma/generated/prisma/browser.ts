@@ -102,3 +102,8 @@ export type RexPinnedCard = Prisma.RexPinnedCardModel
  * 
  */
 export type RexSettings = Prisma.RexSettingsModel
+/**
+ * Model Subscription
+ * 
+ */
+export type Subscription = Prisma.SubscriptionModel

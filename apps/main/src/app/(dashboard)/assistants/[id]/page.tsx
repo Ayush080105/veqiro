@@ -7,7 +7,7 @@ import { Info, HelpCircle, MessageSquare, FolderOpen } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
-import { apiFetch } from "@/lib/api/client"
+import { apiFetch, ApiError } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
 import {
   useMessages,
@@ -35,6 +35,7 @@ import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
+import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
@@ -353,7 +354,7 @@ export default function AssistantChatPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
-  const { data: messages = [], isPending: messagesPending } = useMessages(
+  const { data: messages = [], isPending: messagesPending, isError: messagesError, error: messagesErrorObj } = useMessages(
     id,
     organizationId,
   )
@@ -368,6 +369,7 @@ export default function AssistantChatPage() {
   })
 
   const [content, setContent] = useState("")
+  const [sendError, setSendError] = useState<ApiError | null>(null)
   const [plusOpen, setPlusOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -402,7 +404,9 @@ export default function AssistantChatPage() {
     try {
       await sendMutation.mutateAsync(trimmed)
     } catch (err) {
-      if (err instanceof AgentNotAvailableError) {
+      if (err instanceof ApiError && err.status === 402) {
+        setSendError(err)
+      } else if (err instanceof AgentNotAvailableError) {
         toast.error(
           `${agent?.name ?? "This agent"} isn't connected yet — backend route is being set up. Try again soon.`
         )
@@ -544,6 +548,15 @@ export default function AssistantChatPage() {
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
 
   if (!agent) return null
+
+  // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402
+  const upgradeError =
+    (messagesError && messagesErrorObj instanceof ApiError && messagesErrorObj.status === 402
+      ? messagesErrorObj
+      : null) ?? sendError
+  if (upgradeError) {
+    return <UpgradeRequiredCard reason={upgradeError.code} />
+  }
 
   const isLex = agent.id === "lex"
   const isScout = agent.id === "scout"
