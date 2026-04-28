@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "./middlewares/auth.middleware.js";
+import { entitlementMiddleware } from "./middlewares/entitlement.middleware.js";
 import { internalKeyMiddleware } from "./middlewares/internal.middleware.js";
 import sageRouter from "./modules/agents/sage/sage.routes.js";
 import rexRouter from "./modules/agents/rex/rex.routes.js";
@@ -20,13 +21,13 @@ import billingRouter from "./modules/billing/billing.routes.js";
 
 const router = Router();
 
-router.use("/agents/sage", authMiddleware, sageRouter);
-router.use("/agents/rex", authMiddleware, rexRouter);
-router.use("/agents/scout", authMiddleware, scoutRouter);
-router.use("/agents/maya", authMiddleware, mayaRouter);
-router.use("/agents/lex", authMiddleware, lexRouter);
-router.use("/agents/vega", authMiddleware, vegaRouter);
-router.use("/agents", authMiddleware, messagesRouter);
+router.use("/agents/sage",  authMiddleware, entitlementMiddleware, sageRouter);
+router.use("/agents/rex",   authMiddleware, entitlementMiddleware, rexRouter);
+router.use("/agents/scout", authMiddleware, entitlementMiddleware, scoutRouter);
+router.use("/agents/maya",  authMiddleware, entitlementMiddleware, mayaRouter);
+router.use("/agents/lex",   authMiddleware, entitlementMiddleware, lexRouter);
+router.use("/agents/vega",  authMiddleware, entitlementMiddleware, vegaRouter);
+router.use("/agents",       authMiddleware, entitlementMiddleware, messagesRouter);
 router.use("/dashboard", authMiddleware, dashboardRouter);
 
 router.use("/brand-kit", authMiddleware, brandKitRouter);
