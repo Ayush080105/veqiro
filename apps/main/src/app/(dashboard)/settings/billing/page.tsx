@@ -159,7 +159,7 @@ function statusBadge(sub: Subscription | null | undefined): { label: string; var
 
 function showPlanPicker(sub: Subscription | null | undefined): boolean {
   if (!sub) return true
-  return sub.status === "TRIALING" || sub.status === "EXPIRED"
+  return sub.status !== "ACTIVE"
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -220,13 +220,15 @@ export default function BillingPage() {
     const slug = billingPeriod === "annual" ? "pro-annual" : "pro-monthly"
     setUpgrading(billingPeriod)
     try {
-      await (authClient as any).dodopayments.checkoutSession({
+      const result = await (authClient as any).dodopayments.checkoutSession({
         slug,
         customer: sub?.dodoCustomerId
           ? { customer_id: sub.dodoCustomerId }
           : undefined,
         metadata: organizationId ? { organizationId } : undefined,
       })
+      if (result?.data?.url) window.location.href = result.data.url
+      else if (result?.url) window.location.href = result.url
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start checkout")
     } finally {
