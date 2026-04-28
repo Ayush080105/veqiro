@@ -214,3 +214,45 @@ export const createCalendarEvent = async (args: CalendarEventArgs) => {
     conferenceData?: { entryPoints?: Array<{ uri: string; entryPointType: string }> };
   };
 };
+
+interface SendGmailReplyArgs {
+  accessToken: string;
+  to: string;
+  subject: string;
+  body: string;
+  replyToMessageId?: string | null;
+  replyToThreadId?: string | null;
+}
+
+export const sendGmailReply = async (args: SendGmailReplyArgs) => {
+  const raw = base64url(
+    buildRfc822({
+      to: args.to,
+      subject: args.subject.startsWith("Re:") ? args.subject : `Re: ${args.subject}`,
+      body: args.body,
+      inReplyTo: args.replyToMessageId,
+      references: args.replyToMessageId,
+    })
+  );
+  const payload: Record<string, unknown> = { raw };
+  if (args.replyToThreadId) {
+    (payload as Record<string, unknown>).threadId = args.replyToThreadId;
+  }
+
+  const res = await fetch(
+    "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${args.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gmail send failed (${res.status}): ${err}`);
+  }
+  return (await res.json()) as { id: string; threadId: string; labelIds: string[] };
+};
