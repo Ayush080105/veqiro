@@ -57,7 +57,8 @@
       "Bash(git -C D:/Projects/veqiro log --oneline -5)",
       "Bash(git -C D:/Projects/veqiro status --short apps/server/prisma/migrations/)",
       "Bash(pnpm add *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "mcp__plugin_dodopayments_dodo-knowledge__search_docs"
     ]
   },
   "enabledMcpjsonServers": [
