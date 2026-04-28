@@ -1,0 +1,172 @@
+"use client"
+
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { fetchInbox } from "@/lib/api/vega-inbox"
+import { qk } from "@/lib/query-keys"
+import { authClient } from "@/lib/auth-client"
+import { EmailCard } from "./EmailCard"
+import { EmailActionPanel } from "./EmailActionPanel"
+import { FollowUpList } from "./FollowUpList"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { AlertCircle, RefreshCw, Mail } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import type { TriagedEmail } from "@/lib/api/vega-inbox"
+
+const CATEGORIES = ["reply_now", "action_needed", "fyi", "can_ignore"] as const
+const CATEGORY_LABELS = {
+  reply_now: "Reply Now",
+  action_needed: "Action Needed",
+  fyi: "FYI",
+  can_ignore: "Can Ignore",
+}
+
+export function InboxView() {
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const organizationId = activeOrg?.id ?? ""
+  const [selectedEmail, setSelectedEmail] = useState<TriagedEmail | null>(null)
+  const queryClient = useQueryClient()
+
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: qk.vegaInbox(organizationId),
+    queryFn: () => fetchInbox(20),
+    enabled: !!organizationId,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const invalidateInbox = () =>
+    queryClient.invalidateQueries({ queryKey: qk.vegaInbox(organizationId) })
+
+  const emailsByCategory = CATEGORIES.map((cat) => ({
+    cat,
+    emails: data?.emails.filter((e) => e.uiCategory === cat) ?? [],
+  }))
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-4 h-full">
+        <div className="w-72 shrink-0 flex flex-col gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+        <div className="flex-1">
+          <Skeleton className="h-full w-full" />
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-16">
+        <AlertCircle className="size-8 text-destructive opacity-60" />
+        <p className="text-sm font-medium">Could not load inbox</p>
+        <p className="text-xs text-muted-foreground">Check your Google connection in Settings → Integrations</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <RefreshCw className="size-3.5" />
+          Retry
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-0 h-full min-h-0">
+      {/* Left: email list with tabs */}
+      <div
+        className="flex flex-col shrink-0"
+        style={{ width: 320, borderRight: "2px solid #E5E5E5" }}
+      >
+        <Tabs defaultValue="inbox" className="flex flex-col h-full min-h-0">
+          <div
+            className="flex items-center justify-between px-3 pt-3 pb-2 shrink-0"
+            style={{ borderBottom: "2px solid #E5E5E5" }}
+          >
+            <TabsList style={{ background: "#F5F5F5" }}>
+              <TabsTrigger value="inbox" style={{ fontFamily: "var(--font-mono)", fontSize: 10 }}>
+                Inbox
+              </TabsTrigger>
+              <TabsTrigger value="followups" style={{ fontFamily: "var(--font-mono)", fontSize: 10 }}>
+                Follow-ups
+              </TabsTrigger>
+            </TabsList>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+
+          <TabsContent value="inbox" className="flex-1 overflow-y-auto m-0 p-3 flex flex-col gap-4">
+            {emailsByCategory.map(({ cat, emails }) => {
+              if (!emails.length) return null
+              return (
+                <div key={cat} className="flex flex-col gap-2">
+                  <div
+                    className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground px-1"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    {CATEGORY_LABELS[cat]} ({emails.length})
+                  </div>
+                  {emails.map((email) => (
+                    <EmailCard
+                      key={email.emailId}
+                      email={email}
+                      isSelected={selectedEmail?.emailId === email.emailId}
+                      onSelect={setSelectedEmail}
+                    />
+                  ))}
+                </div>
+              )
+            })}
+
+            {!data?.emails.length && (
+              <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+                <Mail className="size-8 opacity-30" />
+                <p className="text-sm">Inbox is empty</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="followups" className="flex-1 overflow-y-auto m-0">
+            <FollowUpList />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Right: action panel */}
+      <div className="flex-1 min-w-0 overflow-y-auto p-6">
+        {selectedEmail ? (
+          <EmailActionPanel
+            email={selectedEmail}
+            onReplySent={() => {
+              setSelectedEmail(null)
+              invalidateInbox()
+            }}
+            onFollowUpScheduled={() => {
+              queryClient.invalidateQueries({ queryKey: qk.vegaFollowUps(organizationId) })
+            }}
+            onClose={() => setSelectedEmail(null)}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+            <Mail className="size-10 opacity-20" />
+            <p className="text-sm">Select an email to see details</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
