@@ -186,7 +186,7 @@ export function EmailActionPanel({
           <p className="text-xs text-muted-foreground">
             Vega will remind you to follow up on this email.
           </p>
-          <Select value={followUpHours} onValueChange={setFollowUpHours}>
+          <Select value={followUpHours} onValueChange={(v) => setFollowUpHours(v ?? "48")}>
             <SelectTrigger style={{ border: "2px solid #111", fontSize: 12, fontFamily: "var(--font-mono)" }}>
               <SelectValue />
             </SelectTrigger>
