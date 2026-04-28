@@ -10,7 +10,7 @@ export class AgentNotAvailableError extends Error {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public code?: string) {
     super(message)
     this.name = "ApiError"
   }
@@ -52,16 +52,18 @@ export async function apiFetch<T>(path: string, opts: RequestOpts = {}): Promise
 
   if (!res.ok) {
     let detail = res.statusText
+    let code: string | undefined
     try {
       const j = await res.json()
-      detail = j.message ?? j.detail ?? detail
+      detail = j.message ?? j.error ?? j.detail ?? detail
+      code = j.error
     } catch {
       /* ignore */
     }
     if (res.status >= 500) {
       toast.error("Something went wrong. Please try again.")
     }
-    throw new ApiError(res.status, detail)
+    throw new ApiError(res.status, detail, code)
   }
   if (res.status === 204) return undefined as T
   return res.json()
