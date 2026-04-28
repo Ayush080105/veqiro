@@ -51,12 +51,16 @@ class ProcessedEmail(BaseModel):
     email_id: str
     subject: str
     from_name: str
+    from_email: str = ""          # sender's email address
     priority: str
     summary: str
     suggested_action: str
     label_applied: str | None = None
     draft_created: bool = False
     draft_id: str | None = None
+    hidden_tasks: list[str] = []  # implicit action items detected
+    suggested_reply: str | None = None  # 1-3 sentence reply suggestion
+    meeting_request: dict | None = None  # {date, time, topic} if meeting detected
 
 
 class InboxStats(BaseModel):
@@ -295,7 +299,10 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             messages=[{"role": "user", "content": (
                 "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys: "
                 "priority (urgent/high/medium/low), summary (1-2 sentences), "
-                "suggested_action (string), label (one of: Investors, Sales Leads, Newsletters, Team, Legal, Finance, Other)\n\n"
+                "suggested_action (string), label (one of: Investors, Sales Leads, Newsletters, Team, Legal, Finance, Other), "
+                "hidden_tasks (list of strings — implicit action items, e.g. 'review attached deck', 'respond before Friday'), "
+                "suggested_reply (string — a 1-3 sentence reply suggestion if suggested_action is 'reply', otherwise null), "
+                "meeting_request (object with keys date, time, topic if the email requests a meeting, otherwise null)\n\n"
                 f"From: {email.get('from', '')}\n"
                 f"Subject: {email.get('subject', '')}\n"
                 f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
@@ -308,11 +315,17 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             summary = analysis.get("summary", raw[:300])
             suggested_action = analysis.get("suggested_action", "review")
             label = analysis.get("label", "Other")
+            hidden_tasks = analysis.get("hidden_tasks", [])
+            suggested_reply = analysis.get("suggested_reply", None)
+            meeting_request = analysis.get("meeting_request", None)
         except Exception:
             priority = "medium"
             summary = raw[:300]
             suggested_action = "review"
             label = "Other"
+            hidden_tasks = []
+            suggested_reply = None
+            meeting_request = None
 
         stats_counts[priority] = stats_counts.get(priority, 0) + 1
         label_messages_list.append({"email_id": email.get("id", ""), "label": label})
@@ -320,10 +333,14 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             email_id=email.get("id", ""),
             subject=email.get("subject", ""),
             from_name=email.get("from_name", email.get("from", "")),
+            from_email=email.get("from_email", ""),
             priority=priority,
             summary=summary,
             suggested_action=suggested_action,
             label_applied=label,
+            hidden_tasks=hidden_tasks,
+            suggested_reply=suggested_reply,
+            meeting_request=meeting_request,
         ))
 
     stats = InboxStats(

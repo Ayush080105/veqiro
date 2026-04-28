@@ -7,6 +7,7 @@ _MOCK_EMAILS = [
         "thread_id": "thread_001",
         "from": "sarah.chen@accelpartners.com",
         "from_name": "Sarah Chen",
+        "from_email": "sarah.chen@accelpartners.com",
         "to": "founder@veqiroai.com",
         "subject": "RE: Veqiro AI – Seed Round Interest",
         "snippet": "Hi, following up on our conversation at TechCrunch Disrupt. We'd love to schedule a deeper dive...",
@@ -29,6 +30,7 @@ _MOCK_EMAILS = [
         "thread_id": "thread_002",
         "from": "newsletter@producthunt.com",
         "from_name": "Product Hunt",
+        "from_email": "newsletter@producthunt.com",
         "to": "founder@veqiroai.com",
         "subject": "Today's top products on Product Hunt",
         "snippet": "Check out today's most popular products...",
@@ -44,6 +46,7 @@ _MOCK_EMAILS = [
         "thread_id": "thread_003",
         "from": "marcus@growthco.io",
         "from_name": "Marcus Rivera",
+        "from_email": "marcus@growthco.io",
         "to": "founder@veqiroai.com",
         "subject": "Interested in Veqiro AI for our 40-person team",
         "snippet": "Hi, I came across your product and I think it could be a great fit for our startup...",
@@ -203,15 +206,20 @@ def _extract_body(payload: dict) -> str:
 
 def _parse_message(msg_data: dict) -> dict:
     """Parse Gmail API message into simplified dict."""
+    import re
     headers = {h["name"]: h["value"] for h in msg_data.get("payload", {}).get("headers", [])}
     body = _extract_body(msg_data.get("payload", {}))
     from_header = headers.get("From", "")
     from_name = from_header.split("<")[0].strip().strip('"') if "<" in from_header else from_header
+    # Extract bare email address from header like "Name <email@example.com>" or plain "email@example.com"
+    match = re.search(r"<([^>]+)>", from_header)
+    from_email = match.group(1) if match else from_header
     return {
         "id": msg_data.get("id", ""),
         "thread_id": msg_data.get("threadId", ""),
         "from": from_header,
         "from_name": from_name,
+        "from_email": from_email,
         "to": headers.get("To", ""),
         "subject": headers.get("Subject", ""),
         "body": body or msg_data.get("snippet", ""),
