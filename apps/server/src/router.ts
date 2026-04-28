@@ -16,6 +16,7 @@ import { runWeeklyDigestNow } from "./modules/agents/rex/rex.cron.js";
 import messagesRouter from "./modules/messages/messages.routes.js";
 import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
 import uploadsRouter from "./modules/uploads/uploads.routes.js";
+import billingRouter from "./modules/billing/billing.routes.js";
 
 const router = Router();
 
@@ -35,6 +36,7 @@ router.post("/internal/cron/rex-weekly-digest", internalKeyMiddleware, (_req, re
 });
 
 router.use("/uploads", authMiddleware, uploadsRouter);
+router.use("/billing", authMiddleware, billingRouter);
 
 // Public OAuth callbacks (state-verified) mounted BEFORE the protected router
 router.use("/integrations", integrationsPublicRouter);
