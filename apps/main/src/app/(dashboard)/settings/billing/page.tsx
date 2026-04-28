@@ -23,7 +23,7 @@ type Subscription = {
   plan?: string | null
   daysRemaining?: number | null
   currentPeriodEnd?: string | null
-  cancelledAt?: string | null
+  trialEndsAt?: string | null
   dodoCustomerId?: string | null
 }
 
@@ -106,7 +106,7 @@ function formatDate(iso: string | null | undefined): string {
 function statusLabel(sub: Subscription | null | undefined): string {
   if (!sub) return "No subscription"
   if (sub.status === "ACTIVE") {
-    if (sub.plan === "pro-annual") return "Pro Annual"
+    if (sub.plan === "ANNUAL") return "Pro Annual"
     return "Pro Monthly"
   }
   if (sub.status === "TRIALING") {
@@ -127,8 +127,8 @@ function statusDescription(sub: Subscription | null | undefined): string {
       : "Your Pro plan is active."
   }
   if (sub.status === "TRIALING") {
-    return sub.currentPeriodEnd
-      ? `Your trial ends on ${formatDate(sub.currentPeriodEnd)}. Upgrade to keep access.`
+    return sub.trialEndsAt
+      ? `Your trial ends on ${formatDate(sub.trialEndsAt)}. Upgrade to keep access.`
       : "Your trial is active. Upgrade to keep access."
   }
   if (sub.status === "CANCELLED") {
@@ -140,8 +140,8 @@ function statusDescription(sub: Subscription | null | undefined): string {
     return "Your last payment failed. Update your payment method to keep your subscription."
   }
   if (sub.status === "EXPIRED") {
-    return sub.cancelledAt
-      ? `Your subscription expired on ${formatDate(sub.cancelledAt)}.`
+    return sub.currentPeriodEnd
+      ? `Your subscription expired on ${formatDate(sub.currentPeriodEnd)}.`
       : "Your subscription has expired."
   }
   return ""
