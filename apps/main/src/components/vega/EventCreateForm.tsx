@@ -46,6 +46,8 @@ export function EventCreateForm({
   onCancel,
   prefill,
 }: EventCreateFormProps) {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   const defaultDate = tomorrow.toISOString().slice(0, 10)
@@ -147,7 +149,7 @@ export function EventCreateForm({
         </div>
       </div>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#888" }}>
-        All times in: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+        All times in: {tz}
       </span>
 
       <div className="flex flex-col gap-1">

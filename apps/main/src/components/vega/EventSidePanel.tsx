@@ -41,6 +41,8 @@ export function EventSidePanel({
   event: CalendarEvent
   onClose: () => void
 }) {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+
   const [prepEnabled, setPrepEnabled] = useState(false)
 
   const isPastEvent = new Date() > new Date(event.end)
@@ -181,7 +183,7 @@ export function EventSidePanel({
             {durationLabel(event.start, event.end)}
           </p>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#888" }}>
-            {Intl.DateTimeFormat().resolvedOptions().timeZone}
+            All times in: {tz}
           </span>
         </div>
         <Button
