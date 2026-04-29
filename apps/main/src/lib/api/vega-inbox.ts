@@ -46,4 +46,15 @@ export async function sendReply(
   });
 }
 
+export function bulkInboxAction(payload: {
+  emailIds: string[]
+  action: "ignore" | "snooze"
+  snoozeUntil?: string
+}): Promise<{ succeeded: number; failed: number }> {
+  return apiFetch<{ succeeded: number; failed: number }>("/agents/vega/inbox/bulk", {
+    method: "POST",
+    body: payload,
+  })
+}
+
 // NOTE: follow-up creation is in vega-followups.ts — do NOT add it here.

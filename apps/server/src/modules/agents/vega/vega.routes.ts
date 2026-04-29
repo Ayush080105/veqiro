@@ -27,6 +27,7 @@ import {
   sendFollowUpEmailHandler,
   updateCalendarEventHandler,
   getRescheduleDraftHandler,
+  bulkInboxActionHandler,
 } from "./vega.workspace.controller.js";
 
 const router = Router();
@@ -42,6 +43,7 @@ router.post("/compose-email", composeEmail);
 
 // workspace: inbox
 router.get("/inbox", getInbox);
+router.post("/inbox/bulk", bulkInboxActionHandler);
 router.post("/inbox/:emailId/reply", sendReply);
 
 // workspace: follow-ups

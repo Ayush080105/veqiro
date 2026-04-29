@@ -84,3 +84,9 @@ export const rescheduleDraftSchema = z
     message: "newEnd must be after newStart",
     path: ["newEnd"],
   });
+
+export const bulkInboxActionSchema = z.object({
+  emailIds: z.array(z.string()).min(1).max(50),
+  action: z.enum(["ignore", "snooze"]),
+  snoozeUntil: z.string().datetime().optional(),
+});

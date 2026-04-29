@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { fetchInbox } from "@/lib/api/vega-inbox"
+import { fetchInbox, bulkInboxAction } from "@/lib/api/vega-inbox"
 import { qk } from "@/lib/query-keys"
 import { authClient } from "@/lib/auth-client"
 import { EmailCard } from "./EmailCard"
@@ -10,8 +10,9 @@ import { EmailActionPanel } from "./EmailActionPanel"
 import { FollowUpList } from "./FollowUpList"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { AlertCircle, RefreshCw, Mail } from "lucide-react"
+import { AlertCircle, RefreshCw, Mail, CheckSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import type { TriagedEmail } from "@/lib/api/vega-inbox"
 
 const CATEGORIES = ["reply_now", "action_needed", "fyi", "can_ignore"] as const
@@ -26,6 +27,9 @@ export function InboxView() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
   const [selectedEmail, setSelectedEmail] = useState<TriagedEmail | null>(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [bulkPending, setBulkPending] = useState(false)
   const queryClient = useQueryClient()
 
   const {
@@ -43,6 +47,28 @@ export function InboxView() {
 
   const invalidateInbox = () =>
     queryClient.invalidateQueries({ queryKey: qk.vegaInbox(organizationId) })
+
+  const handleBulkAction = async (action: "ignore" | "snooze") => {
+    setBulkPending(true)
+    try {
+      const snoozeUntil = action === "snooze"
+        ? new Date(Date.now() + 24 * 3_600_000).toISOString()
+        : undefined
+      const result = await bulkInboxAction({
+        emailIds: Array.from(checkedIds),
+        action,
+        snoozeUntil,
+      })
+      toast.success(`Done: ${result.succeeded} emails processed`)
+      setCheckedIds(new Set())
+      setSelectMode(false)
+      invalidateInbox()
+    } catch {
+      toast.error("Bulk action failed")
+    } finally {
+      setBulkPending(false)
+    }
+  }
 
   const emailsByCategory = CATEGORIES.map((cat) => ({
     cat,
@@ -98,15 +124,29 @@ export function InboxView() {
                 Follow-ups
               </TabsTrigger>
             </TabsList>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant={selectMode ? "default" : "ghost"}
+                size="icon"
+                className="size-7"
+                onClick={() => {
+                  setSelectMode((v) => !v)
+                  setCheckedIds(new Set())
+                }}
+                title={selectMode ? "Exit select mode" : "Select emails"}
+              >
+                <CheckSquare className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => refetch()}
+                disabled={isFetching}
+              >
+                <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </div>
 
           <TabsContent value="inbox" className="flex-1 overflow-y-auto m-0 p-3 flex flex-col gap-4">
@@ -125,7 +165,16 @@ export function InboxView() {
                       key={email.emailId}
                       email={email}
                       isSelected={selectedEmail?.emailId === email.emailId}
-                      onSelect={setSelectedEmail}
+                      onSelect={selectMode ? () => {} : setSelectedEmail}
+                      isChecked={selectMode ? checkedIds.has(email.emailId) : undefined}
+                      onCheck={selectMode ? (e, checked) => {
+                        setCheckedIds((prev) => {
+                          const next = new Set(prev)
+                          if (checked) next.add(e.emailId)
+                          else next.delete(e.emailId)
+                          return next
+                        })
+                      } : undefined}
                     />
                   ))}
                 </div>

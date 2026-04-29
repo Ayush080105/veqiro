@@ -9,6 +9,8 @@ interface EmailCardProps {
   email: TriagedEmail
   isSelected: boolean
   onSelect: (email: TriagedEmail) => void
+  isChecked?: boolean
+  onCheck?: (email: TriagedEmail, checked: boolean) => void
 }
 
 const categoryConfig = {
@@ -27,7 +29,7 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
-export function EmailCard({ email, isSelected, onSelect }: EmailCardProps) {
+export function EmailCard({ email, isSelected, onSelect, isChecked, onCheck }: EmailCardProps) {
   const cfg = categoryConfig[email.uiCategory]
 
   return (
@@ -45,6 +47,18 @@ export function EmailCard({ email, isSelected, onSelect }: EmailCardProps) {
         {/* Row 1: sender + time */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
+            {onCheck && (
+              <input
+                type="checkbox"
+                checked={isChecked ?? false}
+                onChange={(e) => {
+                  e.stopPropagation()
+                  onCheck(email, e.target.checked)
+                }}
+                onClick={(e) => e.stopPropagation()}
+                style={{ accentColor: "#111", width: 13, height: 13, cursor: "pointer", flexShrink: 0 }}
+              />
+            )}
             {email.isVIP && (
               <Star className="size-3 shrink-0 fill-current" style={{ color: "#F5C518" }} />
             )}

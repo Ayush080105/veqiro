@@ -16,6 +16,7 @@ import {
   sendFollowUpEmailSchema,
   updateCalendarEventSchema,
   rescheduleDraftSchema,
+  bulkInboxActionSchema,
 } from "./vega.workspace.schema.js";
 import * as ws from "./vega.workspace.service.js";
 
@@ -157,5 +158,12 @@ export const getRescheduleDraftHandler = async (req: Request, res: Response) => 
   const { userId, organizationId } = requireAuthContext(req);
   const input = rescheduleDraftSchema.parse(req.body);
   const result = await ws.getRescheduleDraft(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const bulkInboxActionHandler = async (req: Request, res: Response) => {
+  const { userId } = requireAuthContext(req);
+  const input = bulkInboxActionSchema.parse(req.body);
+  const result = await ws.bulkInboxAction(userId, input);
   res.status(StatusCodes.OK).json(result);
 };

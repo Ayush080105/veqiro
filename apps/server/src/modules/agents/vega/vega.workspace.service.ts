@@ -8,6 +8,8 @@ import {
   sendGmailReply,
   createCalendarEvent as createGoogleCalendarEvent,
   updateCalendarEvent as updateGoogleCalendarEvent,
+  labelMessage,
+  modifyMessageLabels,
 } from "../../../common/utils/googleApis.js";
 import { prisma } from "../../../config/prisma.js";
 import type {
@@ -32,6 +34,7 @@ import type {
   sendFollowUpEmailSchema,
   updateCalendarEventSchema,
   rescheduleDraftSchema,
+  bulkInboxActionSchema,
 } from "./vega.workspace.schema.js";
 import type { z } from "zod";
 
@@ -549,4 +552,43 @@ export const getRescheduleDraft = async (
       body: String(em.body ?? ""),
     },
   };
+};
+
+// ─── Bulk Inbox Actions ────────────────────────────────────────────────────────
+
+export const bulkInboxAction = async (
+  userId: string,
+  input: z.infer<typeof bulkInboxActionSchema>
+): Promise<{ succeeded: number; failed: number }> => {
+  const token = await requireGoogleToken(userId);
+
+  const results = await Promise.allSettled(
+    input.emailIds.map(async (emailId) => {
+      if (input.action === "ignore") {
+        // Mark as read (remove UNREAD) and archive (remove INBOX)
+        await modifyMessageLabels({
+          accessToken: token,
+          messageId: emailId,
+          removeLabelIds: ["INBOX", "UNREAD"],
+        });
+      } else {
+        // snooze: add a "Vega/Snoozed" label so it's visually distinguishable
+        await labelMessage({
+          accessToken: token,
+          messageId: emailId,
+          labelName: "Vega/Snoozed",
+        });
+        // Also remove from INBOX so it disappears from the inbox view
+        await modifyMessageLabels({
+          accessToken: token,
+          messageId: emailId,
+          removeLabelIds: ["INBOX"],
+        });
+      }
+    })
+  );
+
+  const succeeded = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.filter((r) => r.status === "rejected").length;
+  return { succeeded, failed };
 };
