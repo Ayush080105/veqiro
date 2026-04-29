@@ -21,7 +21,7 @@ export const removeAgentFact = (organizationId: string, agent: Agent, index: num
 export const removeOrgFact = (organizationId: string, index: number) =>
   repo.removeOrgFact(organizationId, index)
 
-export const patchOrgMemory = (
+export const patchOrgMemory = async (
   organizationId: string,
   patch: {
     goals?: string[]
@@ -32,9 +32,13 @@ export const patchOrgMemory = (
   }
 ) => {
   const { running_summary, ...memPatch } = patch
+  const existing = await repo.findOrgMemory(organizationId)
+  const mergedSharedMemory = Object.keys(memPatch).length > 0
+    ? { ...((existing?.sharedMemory as object) ?? {}), ...memPatch }
+    : undefined
   return repo.upsertOrgMemory(organizationId, {
     ...(running_summary !== undefined && { runningSummary: running_summary }),
-    ...(Object.keys(memPatch).length > 0 && { sharedMemory: memPatch }),
+    ...(mergedSharedMemory !== undefined && { sharedMemory: mergedSharedMemory }),
   })
 }
 
