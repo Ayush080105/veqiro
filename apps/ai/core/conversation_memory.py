@@ -1,5 +1,3 @@
-import json
-
 from core.config import settings
 
 _CREATE_TABLE_SQL = """
@@ -44,17 +42,15 @@ async def store_turn(
     metadata: dict | None = None,
 ) -> None:
     """Embed and persist a user+assistant turn pair as two rows."""
-    meta_json = json.dumps(metadata or {})
-
     if settings.MOCK_MODE:
-        vectors = [[0.0] * 1536, [0.0] * 1536]
-    else:
-        from core.embeddings import embed_batch
-        vectors = await embed_batch([user_content, assistant_content])
+        return  # skip both embedding AND db write in mock mode
+
+    from core.embeddings import embed_batch
+    vectors = await embed_batch([user_content, assistant_content])
 
     rows = [
-        (org_id, agent, "user",      user_content,      _vec(vectors[0]), meta_json),
-        (org_id, agent, "assistant", assistant_content, _vec(vectors[1]), meta_json),
+        (org_id, agent, "user",      user_content,      _vec(vectors[0]), metadata or {}),
+        (org_id, agent, "assistant", assistant_content, _vec(vectors[1]), metadata or {}),
     ]
 
     from core.db import get_pool

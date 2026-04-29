@@ -1,7 +1,10 @@
 import json
+import logging
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 from core.config import settings
 from core.conversation_memory import store_turn, retrieve_relevant
@@ -35,7 +38,7 @@ class StoreTurnRequest(BaseModel):
     agent: str
     user_content: str
     assistant_content: str
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
 
 
 class SummarizeRequest(BaseModel):
@@ -135,7 +138,8 @@ async def summarize_conversation(request: SummarizeRequest) -> SummarizeResponse
             updated_summary=data.get("updated_summary", request.existing_summary),
             extracted_facts=data.get("extracted_facts", []),
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("summarize_conversation: JSON parse failed, returning existing summary", exc_info=True)
         return SummarizeResponse(
             updated_summary=request.existing_summary,
             extracted_facts=[],
