@@ -973,3 +973,238 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
         confidence_level=confidence_level,
         metrics_count=metrics_count,
     )
+
+
+# ── Variance (C9) ───────────────────────────────────────────────────────────
+
+class VarianceRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    metric: str
+    period: str = "monthly"
+    actual_data: list[DataPoint]
+    budget_data: list[DataPoint]
+
+
+class VarianceRow(BaseModel):
+    date: str
+    actual: float
+    budget: float
+    variance: float
+    variance_pct: float
+    direction: str  # "over" | "under" | "on_track"
+
+
+class VarianceResponse(BaseModel):
+    metric: str
+    period: str
+    rows: list[VarianceRow]
+    total_actual: float
+    total_budget: float
+    total_variance_pct: float
+    headline: str
+    narrative: str
+    tokens_used: int = 0
+    model_used: str = ""
+
+
+@router.post("/variance", response_model=VarianceResponse, summary="Actual vs budget variance")
+async def variance_analysis(request: VarianceRequest) -> VarianceResponse:
+    """Compute monthly variance between actual and budget datasets, then have the LLM narrate."""
+    by_date: dict[str, dict[str, float]] = {}
+    for dp in request.actual_data:
+        by_date.setdefault(dp.date, {})["actual"] = dp.value
+    for dp in request.budget_data:
+        by_date.setdefault(dp.date, {})["budget"] = dp.value
+
+    rows: list[VarianceRow] = []
+    total_actual = 0.0
+    total_budget = 0.0
+    for date in sorted(by_date.keys()):
+        actual = float(by_date[date].get("actual", 0))
+        budget = float(by_date[date].get("budget", 0))
+        if budget == 0 and actual == 0:
+            continue
+        variance = actual - budget
+        variance_pct = (variance / budget * 100) if budget != 0 else 0.0
+        if abs(variance_pct) <= 10:
+            direction = "on_track"
+        elif variance_pct > 0:
+            direction = "over"
+        else:
+            direction = "under"
+        rows.append(VarianceRow(
+            date=date, actual=round(actual, 2), budget=round(budget, 2),
+            variance=round(variance, 2), variance_pct=round(variance_pct, 2),
+            direction=direction,
+        ))
+        total_actual += actual
+        total_budget += budget
+
+    total_variance_pct = ((total_actual - total_budget) / total_budget * 100) if total_budget != 0 else 0.0
+
+    if settings.MOCK_MODE:
+        return VarianceResponse(
+            metric=request.metric, period=request.period, rows=rows,
+            total_actual=round(total_actual, 2), total_budget=round(total_budget, 2),
+            total_variance_pct=round(total_variance_pct, 2),
+            headline=f"{request.metric} came in {abs(total_variance_pct):.1f}% {'over' if total_variance_pct > 0 else 'under'} budget",
+            narrative=f"Across {len(rows)} periods, {request.metric} totaled ${total_actual:,.0f} actual vs ${total_budget:,.0f} budgeted.",
+        )
+
+    # Build an LLM narrative
+    notable = [r for r in rows if abs(r.variance_pct) > 10]
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    prompt = (
+        f"You are Rex, the CFO. Generate a budget variance narrative for {request.metric} ({request.period}).\n\n"
+        f"Total actual: ${total_actual:,.2f}\n"
+        f"Total budget: ${total_budget:,.2f}\n"
+        f"Total variance: {total_variance_pct:.1f}%\n\n"
+        f"Notable monthly variances (>10%): {json.dumps([r.model_dump() for r in notable], default=str)}\n\n"
+        "Return a JSON object with keys:\n"
+        "headline (string — single sentence with a number, e.g. 'Marketing came in 12% over budget driven by Q2 campaign'), "
+        "narrative (string — 2-4 sentences explaining the largest variances and their likely causes)"
+    )
+    raw = await _llm.complete(
+        provider=_agent.default_provider, model=_agent.default_model,
+        system=system, messages=[{"role": "user", "content": prompt}],
+        temperature=0.4, response_format={"type": "json_object"},
+    )
+    tokens_used = _llm.count_tokens(raw)
+    try:
+        parsed = json.loads(strip_json_fences(raw))
+        headline = parsed.get("headline", f"{request.metric} variance computed")
+        narrative = parsed.get("narrative", raw[:600])
+    except Exception:
+        headline = f"{request.metric} variance computed"
+        narrative = raw[:600]
+
+    return VarianceResponse(
+        metric=request.metric, period=request.period, rows=rows,
+        total_actual=round(total_actual, 2), total_budget=round(total_budget, 2),
+        total_variance_pct=round(total_variance_pct, 2),
+        headline=headline, narrative=narrative,
+        tokens_used=tokens_used, model_used=_agent.default_model,
+    )
+
+
+# ── Board deck (C5) ─────────────────────────────────────────────────────────
+
+class BoardDeckRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    period: str
+    metrics: dict = {}
+    highlights: list[str] = []
+    risks: list[str] = []
+    ask: str = ""
+
+
+class BoardDeckSections(BaseModel):
+    company_overview: str
+    financial_health: str
+    metrics_analysis: str
+    risks_mitigations: str
+    key_ask: str
+
+
+class BoardDeckResponse(BaseModel):
+    period: str
+    headline: str
+    sections: BoardDeckSections
+    html: str
+    tokens_used: int = 0
+    model_used: str = ""
+
+
+def _render_board_html(period: str, headline: str, sections: BoardDeckSections, metrics: dict) -> str:
+    metric_rows = "".join(
+        f"<tr><td style='padding:6px 12px;border-bottom:1px solid #eee;font-weight:500;'>{k}</td>"
+        f"<td style='padding:6px 12px;border-bottom:1px solid #eee;text-align:right;font-family:monospace'>{v}</td></tr>"
+        for k, v in (metrics or {}).items()
+    )
+    sec = lambda title, body: (
+        f"<section style='margin:20px 0;page-break-inside:avoid;'>"
+        f"<h2 style='font-size:14px;text-transform:uppercase;letter-spacing:2px;color:#666;border-bottom:2px solid #111;padding-bottom:4px;margin:0 0 10px 0;'>{title}</h2>"
+        f"<div style='font-size:14px;line-height:1.6;color:#222;white-space:pre-wrap;'>{body}</div>"
+        f"</section>"
+    )
+    return (
+        f"<!doctype html><html><head><meta charset='utf-8'>"
+        f"<title>Board Deck — {period}</title>"
+        f"<style>@page{{margin:24mm}} body{{font-family:system-ui,-apple-system,sans-serif;color:#111;max-width:780px;margin:0 auto;padding:24px;}}"
+        f"h1{{font-size:32px;margin:0 0 4px 0;}}@media print{{body{{padding:0;}}}}</style></head><body>"
+        f"<header style='border-bottom:3px solid #111;padding-bottom:12px;margin-bottom:24px;'>"
+        f"<div style='font-family:monospace;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#666;'>Board update — {period}</div>"
+        f"<h1>{headline}</h1>"
+        f"</header>"
+        f"{sec('Company overview', sections.company_overview)}"
+        f"{sec('Financial health', sections.financial_health)}"
+        f"{('<section style=\"margin:20px 0;\"><h2 style=\"font-size:14px;text-transform:uppercase;letter-spacing:2px;color:#666;border-bottom:2px solid #111;padding-bottom:4px;margin:0 0 10px 0;\">Metrics</h2><table style=\"width:100%;border-collapse:collapse;font-size:14px;\">' + metric_rows + '</table></section>') if metric_rows else ''}"
+        f"{sec('Metrics analysis', sections.metrics_analysis)}"
+        f"{sec('Risks & mitigations', sections.risks_mitigations)}"
+        f"{sec('Key ask', sections.key_ask)}"
+        f"<footer style='margin-top:32px;font-family:monospace;font-size:10px;color:#888;text-align:center;'>Generated by REX · {datetime.utcnow().strftime('%Y-%m-%d')}</footer>"
+        f"</body></html>"
+    )
+
+
+@router.post("/board-deck", response_model=BoardDeckResponse, summary="Auto-generate board deck content")
+async def board_deck(request: BoardDeckRequest) -> BoardDeckResponse:
+    """Generate a structured board update with 5 sections + print-friendly HTML."""
+    if settings.MOCK_MODE:
+        sections = BoardDeckSections(
+            company_overview=f"For {request.period}, the team continued executing on the core SaaS roadmap.",
+            financial_health="MRR $62K (+6.7% MoM), runway 18 months, profitable.",
+            metrics_analysis="Strong growth with healthy LTV:CAC of 12x, churn at 2.1% (below benchmark).",
+            risks_mitigations="Enterprise sales cycle longer than expected — pipeline coverage 3x.",
+            key_ask=request.ask or "Introductions to enterprise CISOs at the Fortune 500 level.",
+        )
+        headline = f"{request.period}: $62K MRR (+6.7%), 18mo runway, 2 enterprise pilots"
+        html = _render_board_html(request.period, headline, sections, request.metrics)
+        return BoardDeckResponse(period=request.period, headline=headline, sections=sections, html=html)
+
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    prompt = (
+        f"Compose a structured board update for the period: {request.period}.\n\n"
+        f"Metrics: {json.dumps(request.metrics, default=str)}\n"
+        f"Highlights: {json.dumps(request.highlights)}\n"
+        f"Risks: {json.dumps(request.risks)}\n"
+        f"Ask: {request.ask}\n\n"
+        "Tone: data-driven, honest, concise. Lead each section with the most important number or fact.\n"
+        "Return a JSON object with keys:\n"
+        "headline (string — one-sentence bullet with the top metric and outcome), "
+        "company_overview (string, 2-3 sentences — what the company built/shipped/sold), "
+        "financial_health (string, 2-3 sentences — MRR/burn/runway with numbers), "
+        "metrics_analysis (string, 3-5 sentences — growth, churn, unit econ, what's working), "
+        "risks_mitigations (string, 2-4 sentences — top 2 risks and what's being done), "
+        "key_ask (string, 1-2 sentences — single specific ask)"
+    )
+    raw = await _llm.complete(
+        provider=_agent.default_provider, model=_agent.default_model,
+        system=system, messages=[{"role": "user", "content": prompt}],
+        temperature=0.4, response_format={"type": "json_object"},
+    )
+    tokens_used = _llm.count_tokens(raw)
+    try:
+        parsed = json.loads(strip_json_fences(raw))
+        headline = parsed.get("headline", f"Board update — {request.period}")
+        sections = BoardDeckSections(
+            company_overview=parsed.get("company_overview", ""),
+            financial_health=parsed.get("financial_health", ""),
+            metrics_analysis=parsed.get("metrics_analysis", ""),
+            risks_mitigations=parsed.get("risks_mitigations", ""),
+            key_ask=parsed.get("key_ask", request.ask),
+        )
+    except Exception:
+        headline = f"Board update — {request.period}"
+        sections = BoardDeckSections(
+            company_overview=raw[:300], financial_health="", metrics_analysis="",
+            risks_mitigations="", key_ask=request.ask,
+        )
+
+    html = _render_board_html(request.period, headline, sections, request.metrics)
+    return BoardDeckResponse(
+        period=request.period, headline=headline, sections=sections, html=html,
+        tokens_used=tokens_used, model_used=_agent.default_model,
+    )

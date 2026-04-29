@@ -337,6 +337,7 @@ export const RexDatasetScalarFieldEnum = {
   metricKey: 'metricKey',
   unit: 'unit',
   period: 'period',
+  purpose: 'purpose',
   points: 'points',
   meta: 'meta',
   createdAt: 'createdAt',
@@ -353,6 +354,8 @@ export const RexPinnedCardScalarFieldEnum = {
   kind: 'kind',
   payload: 'payload',
   position: 'position',
+  isPublic: 'isPublic',
+  shareToken: 'shareToken',
   createdAt: 'createdAt'
 } as const
 
@@ -364,6 +367,9 @@ export const RexSettingsScalarFieldEnum = {
   weeklyDigestEnabled: 'weeklyDigestEnabled',
   weeklyDigestTimezone: 'weeklyDigestTimezone',
   weeklyDigestRecipients: 'weeklyDigestRecipients',
+  alertRules: 'alertRules',
+  ingestApiKey: 'ingestApiKey',
+  columnMappingTemplates: 'columnMappingTemplates',
   updatedAt: 'updatedAt'
 } as const
 

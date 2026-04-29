@@ -299,12 +299,14 @@ model RexDataset {
   metricKey      String
   unit           String?
   period         String
+  purpose        String   @default("actual")
   points         Json
   meta           Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@index([organizationId, metricKey])
+  @@index([organizationId, purpose])
   @@map("rex_dataset")
 }
 
@@ -315,9 +317,12 @@ model RexPinnedCard {
   kind           String
   payload        Json
   position       Int      @default(0)
+  isPublic       Boolean  @default(false)
+  shareToken     String?  @unique
   createdAt      DateTime @default(now())
 
   @@index([organizationId, position])
+  @@index([shareToken])
   @@map("rex_pinned_card")
 }
 
@@ -326,6 +331,9 @@ model RexSettings {
   weeklyDigestEnabled     Boolean  @default(true)
   weeklyDigestTimezone    String   @default("UTC")
   weeklyDigestRecipients  String[]
+  alertRules              Json?
+  ingestApiKey            String?  @unique
+  columnMappingTemplates  Json?
   updatedAt               DateTime @updatedAt
 
   @@map("rex_settings")

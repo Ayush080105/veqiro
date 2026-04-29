@@ -12,6 +12,10 @@ import {
   scenarioSchema,
   weeklyDigestSchema,
   investorUpdateSchema,
+  varianceSchema,
+  boardDeckSchema,
+  ingestSchema,
+  alertRuleSchema,
 } from "./rex.schema.js";
 import * as rexService from "./rex.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -146,6 +150,7 @@ const settingsPatchSchema = z.object({
   weeklyDigestEnabled: z.boolean().optional(),
   weeklyDigestTimezone: z.string().optional(),
   weeklyDigestRecipients: z.array(z.string().email()).optional(),
+  alertRules: z.array(alertRuleSchema).optional(),
 });
 
 export const getSettings = async (req: Request, res: Response) => {
@@ -174,8 +179,15 @@ const saveDatasetBodySchema = z.object({
       points: z.array(z.object({ date: z.string(), value: z.number() })),
       unit: z.string().nullable().optional(),
       sourceId: z.string().nullable().optional(),
+      purpose: z.enum(["actual", "budget"]).optional(),
     })
   ).min(1),
+  mapping: z
+    .object({
+      dateColumn: z.string(),
+      valueColumns: z.array(z.object({ column: z.string(), metricKey: z.string() })),
+    })
+    .optional(),
 });
 
 export const listDatasets = async (req: Request, res: Response) => {
@@ -185,16 +197,16 @@ export const listDatasets = async (req: Request, res: Response) => {
 };
 
 export const parseDataset = async (req: Request, res: Response) => {
-  requireAuthContext(req);
+  const { organizationId } = requireAuthContext(req);
   const { r2Key } = parseDatasetBodySchema.parse(req.body);
-  const result = await rexService.parseDataset(r2Key);
+  const result = await rexService.parseDataset(organizationId, r2Key);
   res.status(StatusCodes.OK).json(result);
 };
 
 export const saveDatasets = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
-  const { datasets } = saveDatasetBodySchema.parse(req.body);
-  const result = await rexService.saveDatasets(userId, organizationId, datasets);
+  const { datasets, mapping } = saveDatasetBodySchema.parse(req.body);
+  const result = await rexService.saveDatasets(userId, organizationId, datasets, mapping);
   res.status(StatusCodes.CREATED).json(result);
 };
 
@@ -204,4 +216,66 @@ export const deleteDataset = async (req: Request, res: Response) => {
   if (!id) throw new BadRequestError("Dataset id is required");
   await rexService.removeDataset(id, organizationId);
   res.status(StatusCodes.NO_CONTENT).send();
+};
+
+// ── Variance (C9) ──────────────────────────────────────────────────────────
+
+export const variance = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = varianceSchema.parse(req.body);
+  const result = await rexService.variance(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// ── Board deck (C5) ─────────────────────────────────────────────────────────
+
+export const boardDeck = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = boardDeckSchema.parse(req.body);
+  const result = await rexService.boardDeck(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// ── Webhook ingest (C3) ─────────────────────────────────────────────────────
+
+export const generateApiKey = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const result = await rexService.generateApiKey(organizationId);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const revokeApiKey = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const result = await rexService.revokeApiKey(organizationId);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const ingest = async (req: Request, res: Response) => {
+  const input = ingestSchema.parse(req.body);
+  const result = await rexService.ingestPoint(input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// ── Pin sharing (C10) ───────────────────────────────────────────────────────
+
+const sharePinSchema = z.object({ isPublic: z.boolean() });
+
+export const sharePin = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const id = req.params["id"] as string | undefined;
+  if (!id) throw new BadRequestError("Pin id is required");
+  const { isPublic } = sharePinSchema.parse(req.body);
+  const result = await rexService.sharePin(id, organizationId, isPublic);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const getSharedPin = async (req: Request, res: Response) => {
+  const token = req.params["token"] as string | undefined;
+  if (!token) throw new BadRequestError("Share token is required");
+  const result = await rexService.getSharedPin(token);
+  if (!result) {
+    res.status(StatusCodes.NOT_FOUND).json({ error: "Shared card not found or no longer public" });
+    return;
+  }
+  res.status(StatusCodes.OK).json(result);
 };

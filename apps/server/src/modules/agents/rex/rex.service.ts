@@ -51,7 +51,7 @@ export const sendMessage = async (
     throw new BadRequestError("Failed to get response");
   }
 
-  await rexRepository.createAssistantMessage({
+  const assistantMessage = await rexRepository.createAssistantMessage({
     organizationId,
     userId,
     content: response.data.response,
@@ -64,7 +64,7 @@ export const sendMessage = async (
     role: "assistant" as const,
     content: response.data.response,
     imageUrl: response.data.image?.url,
-    createdAt: userMessage.createdAt,
+    createdAt: assistantMessage.createdAt,
   };
 };
 
@@ -412,8 +412,42 @@ export const patchSettings = (
 export const listDatasets = (organizationId: string) =>
   rexRepository.findDatasets(organizationId);
 
-export const parseDataset = async (r2Key: string) => {
-  return parseUploaded(r2Key);
+export const parseDataset = async (organizationId: string, r2Key: string) => {
+  const result = await parseUploaded(r2Key);
+  // C7: surface saved column mapping from prior uploads — and apply it
+  // when the headers match, so column → metricKey is stable across uploads.
+  try {
+    const settings = await rexRepository.findOrCreateSettings(organizationId);
+    const tpl = settings.columnMappingTemplates as Record<string, unknown> | null | undefined;
+    const saved = tpl?.["last"] as
+      | { dateColumn: string; valueColumns: Array<{ column: string; metricKey: string }> }
+      | undefined;
+    if (saved) {
+      result.saved_mapping = saved;
+      // If the saved mapping's columns are still present, rewrite metric keys
+      const savedByColumn = new Map(saved.valueColumns.map((v) => [v.column, v.metricKey]));
+      let applied = 0;
+      for (const vc of result.candidate_mapping.valueColumns) {
+        const key = savedByColumn.get(vc.column);
+        if (key && key !== vc.metricKey) {
+          // Update both the candidate mapping and the dataset entry
+          const ds = result.datasets.find((d) => d.metricKey === vc.metricKey);
+          if (ds) ds.metricKey = key;
+          vc.metricKey = key;
+          applied += 1;
+        }
+      }
+      if (applied > 0) {
+        result.warnings = [
+          ...(result.warnings ?? []),
+          `Applied saved mapping from prior upload: renamed ${applied} column${applied > 1 ? "s" : ""}`,
+        ];
+      }
+    }
+  } catch {
+    // best-effort
+  }
+  return result;
 };
 
 export const saveDatasets = async (
@@ -427,18 +461,192 @@ export const saveDatasets = async (
     unit?: string | null;
     sourceId?: string | null;
     meta?: unknown;
-  }>
+    purpose?: string;
+  }>,
+  mapping?: { dateColumn: string; valueColumns: Array<{ column: string; metricKey: string }> }
 ) => {
   const created = await Promise.all(
     datasets.map((d) =>
       rexRepository.createDataset({ organizationId, userId, ...d })
     )
   );
+  // C7: persist the mapping so the next upload can auto-apply
+  if (mapping && mapping.dateColumn) {
+    try {
+      const existing = await rexRepository.findOrCreateSettings(organizationId);
+      const tpl = (existing.columnMappingTemplates as Record<string, unknown> | null) ?? {};
+      tpl["last"] = mapping;
+      await rexRepository.updateSettings(organizationId, { columnMappingTemplates: tpl });
+    } catch {
+      // best-effort
+    }
+  }
   return created;
 };
 
 export const removeDataset = (id: string, organizationId: string) =>
   rexRepository.deleteDataset(id, organizationId);
+
+// ── Webhook ingest (C3) ──────────────────────────────────────────────────────
+
+export const generateApiKey = async (organizationId: string) => {
+  const { randomBytes } = await import("crypto");
+  const key = `rex_${randomBytes(24).toString("hex")}`;
+  await rexRepository.updateSettings(organizationId, { ingestApiKey: key });
+  return { ingestApiKey: key };
+};
+
+export const revokeApiKey = async (organizationId: string) => {
+  await rexRepository.updateSettings(organizationId, { ingestApiKey: null });
+  return { ok: true };
+};
+
+export const ingestPoint = async (input: {
+  api_key: string;
+  metric: string;
+  date: string;
+  value: number;
+  period?: "daily" | "weekly" | "monthly" | "quarterly";
+}) => {
+  const settings = await rexRepository.findOrgByApiKey(input.api_key);
+  if (!settings) throw new BadRequestError("Invalid API key");
+
+  const period = input.period ?? "monthly";
+  const isoDate = new Date(input.date);
+  if (isNaN(isoDate.getTime())) throw new BadRequestError("Invalid date format");
+  const dateStr = isoDate.toISOString().slice(0, 10);
+
+  const existing = await rexRepository.findDatasetForMetric(settings.organizationId, input.metric);
+
+  if (existing) {
+    const points = (existing.points as Array<{ date: string; value: number }>) ?? [];
+    const idx = points.findIndex((p) => p.date === dateStr);
+    if (idx >= 0) {
+      points[idx] = { date: dateStr, value: input.value };
+    } else {
+      points.push({ date: dateStr, value: input.value });
+      points.sort((a, b) => a.date.localeCompare(b.date));
+    }
+    const updated = await rexRepository.updateDatasetPoints(existing.id, points);
+    return { ok: true, datasetId: updated.id, pointsCount: points.length, mode: "appended" as const };
+  }
+
+  // First point for this metric → create new dataset
+  const created = await rexRepository.createDataset({
+    organizationId: settings.organizationId,
+    userId: "webhook",
+    name: `${input.metric} (webhook)`,
+    metricKey: input.metric,
+    period,
+    points: [{ date: dateStr, value: input.value }],
+    purpose: "actual",
+    meta: { source: "webhook", createdBy: "rex:ingest" },
+  });
+  return { ok: true, datasetId: created.id, pointsCount: 1, mode: "created" as const };
+};
+
+// ── Variance (C9) ────────────────────────────────────────────────────────────
+
+export const variance = async (
+  userId: string,
+  organizationId: string,
+  input: { metric: string; period?: string }
+) => {
+  await rexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Variance analysis: ${input.metric}`,
+    customInput: { actionId: "rex:variance", input },
+  });
+
+  const datasets = await rexRepository.findDatasets(organizationId);
+  const actual = datasets.find((d) => d.metricKey === input.metric && (d as unknown as { purpose?: string }).purpose !== "budget");
+  const budget = datasets.find((d) => d.metricKey === input.metric && (d as unknown as { purpose?: string }).purpose === "budget");
+
+  if (!actual || !budget) {
+    throw new BadRequestError(
+      `Need both an "actual" and a "budget" dataset for metric '${input.metric}'. Upload a dataset and tag it as budget in the Data tab.`
+    );
+  }
+
+  const { data } = await aiService.post<Record<string, unknown>>("/ai/rex/variance", {
+    user_id: userId,
+    organization_id: organizationId,
+    metric: input.metric,
+    period: input.period ?? "monthly",
+    actual_data: actual.points,
+    budget_data: budget.points,
+  });
+
+  await rexRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: (data.headline as string) ?? "Variance computed.",
+    tokensUsed: data.tokens_used as number | undefined,
+    model: data.model_used as string | undefined,
+    customInput: { actionId: "rex:variance", input, result: data },
+  });
+  return data;
+};
+
+// ── Board deck (C5) ──────────────────────────────────────────────────────────
+
+export const boardDeck = async (
+  userId: string,
+  organizationId: string,
+  input: { period: string; metrics?: Record<string, unknown>; highlights?: string[]; risks?: string[]; ask?: string }
+) => {
+  await rexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Board deck — ${input.period}`,
+    customInput: { actionId: "rex:board-deck", input },
+  });
+
+  const { data } = await aiService.post<Record<string, unknown>>("/ai/rex/board-deck", {
+    user_id: userId,
+    organization_id: organizationId,
+    period: input.period,
+    metrics: input.metrics ?? {},
+    highlights: input.highlights ?? [],
+    risks: input.risks ?? [],
+    ask: input.ask ?? "",
+  });
+
+  await rexRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: (data.headline as string) ?? "Board deck drafted.",
+    tokensUsed: data.tokens_used as number | undefined,
+    model: data.model_used as string | undefined,
+    customInput: { actionId: "rex:board-deck", input, result: data },
+  });
+  return data;
+};
+
+// ── Pin sharing (C10) ────────────────────────────────────────────────────────
+
+export const sharePin = async (id: string, organizationId: string, isPublic: boolean) => {
+  const pin = await rexRepository.findPin(id, organizationId);
+  if (!pin) throw new BadRequestError("Pin not found");
+
+  let shareToken = pin.shareToken;
+  if (isPublic && !shareToken) {
+    const { randomBytes } = await import("crypto");
+    shareToken = randomBytes(16).toString("hex");
+  }
+  if (!isPublic) {
+    shareToken = null;
+  }
+  await rexRepository.updatePin(id, organizationId, { isPublic, shareToken });
+  return { id, isPublic, shareToken };
+};
+
+export const getSharedPin = async (token: string) => {
+  const pin = await rexRepository.findPinByShareToken(token);
+  if (!pin || !pin.isPublic) return null;
+  return { kind: pin.kind, payload: pin.payload, createdAt: pin.createdAt };
+};
 
 export const investorUpdate = async (
   userId: string,

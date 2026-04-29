@@ -40,6 +40,8 @@ export type RexPinnedCardMinAggregateOutputType = {
   userId: string | null
   kind: string | null
   position: number | null
+  isPublic: boolean | null
+  shareToken: string | null
   createdAt: Date | null
 }
 
@@ -49,6 +51,8 @@ export type RexPinnedCardMaxAggregateOutputType = {
   userId: string | null
   kind: string | null
   position: number | null
+  isPublic: boolean | null
+  shareToken: string | null
   createdAt: Date | null
 }
 
@@ -59,6 +63,8 @@ export type RexPinnedCardCountAggregateOutputType = {
   kind: number
   payload: number
   position: number
+  isPublic: number
+  shareToken: number
   createdAt: number
   _all: number
 }
@@ -78,6 +84,8 @@ export type RexPinnedCardMinAggregateInputType = {
   userId?: true
   kind?: true
   position?: true
+  isPublic?: true
+  shareToken?: true
   createdAt?: true
 }
 
@@ -87,6 +95,8 @@ export type RexPinnedCardMaxAggregateInputType = {
   userId?: true
   kind?: true
   position?: true
+  isPublic?: true
+  shareToken?: true
   createdAt?: true
 }
 
@@ -97,6 +107,8 @@ export type RexPinnedCardCountAggregateInputType = {
   kind?: true
   payload?: true
   position?: true
+  isPublic?: true
+  shareToken?: true
   createdAt?: true
   _all?: true
 }
@@ -194,6 +206,8 @@ export type RexPinnedCardGroupByOutputType = {
   kind: string
   payload: runtime.JsonValue
   position: number
+  isPublic: boolean
+  shareToken: string | null
   createdAt: Date
   _count: RexPinnedCardCountAggregateOutputType | null
   _avg: RexPinnedCardAvgAggregateOutputType | null
@@ -227,6 +241,8 @@ export type RexPinnedCardWhereInput = {
   kind?: Prisma.StringFilter<"RexPinnedCard"> | string
   payload?: Prisma.JsonFilter<"RexPinnedCard">
   position?: Prisma.IntFilter<"RexPinnedCard"> | number
+  isPublic?: Prisma.BoolFilter<"RexPinnedCard"> | boolean
+  shareToken?: Prisma.StringNullableFilter<"RexPinnedCard"> | string | null
   createdAt?: Prisma.DateTimeFilter<"RexPinnedCard"> | Date | string
 }
 
@@ -237,11 +253,14 @@ export type RexPinnedCardOrderByWithRelationInput = {
   kind?: Prisma.SortOrder
   payload?: Prisma.SortOrder
   position?: Prisma.SortOrder
+  isPublic?: Prisma.SortOrder
+  shareToken?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type RexPinnedCardWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  shareToken?: string
   AND?: Prisma.RexPinnedCardWhereInput | Prisma.RexPinnedCardWhereInput[]
   OR?: Prisma.RexPinnedCardWhereInput[]
   NOT?: Prisma.RexPinnedCardWhereInput | Prisma.RexPinnedCardWhereInput[]
@@ -250,8 +269,9 @@ export type RexPinnedCardWhereUniqueInput = Prisma.AtLeast<{
   kind?: Prisma.StringFilter<"RexPinnedCard"> | string
   payload?: Prisma.JsonFilter<"RexPinnedCard">
   position?: Prisma.IntFilter<"RexPinnedCard"> | number
+  isPublic?: Prisma.BoolFilter<"RexPinnedCard"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RexPinnedCard"> | Date | string
-}, "id">
+}, "id" | "shareToken">
 
 export type RexPinnedCardOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -260,6 +280,8 @@ export type RexPinnedCardOrderByWithAggregationInput = {
   kind?: Prisma.SortOrder
   payload?: Prisma.SortOrder
   position?: Prisma.SortOrder
+  isPublic?: Prisma.SortOrder
+  shareToken?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.RexPinnedCardCountOrderByAggregateInput
   _avg?: Prisma.RexPinnedCardAvgOrderByAggregateInput
@@ -278,6 +300,8 @@ export type RexPinnedCardScalarWhereWithAggregatesInput = {
   kind?: Prisma.StringWithAggregatesFilter<"RexPinnedCard"> | string
   payload?: Prisma.JsonWithAggregatesFilter<"RexPinnedCard">
   position?: Prisma.IntWithAggregatesFilter<"RexPinnedCard"> | number
+  isPublic?: Prisma.BoolWithAggregatesFilter<"RexPinnedCard"> | boolean
+  shareToken?: Prisma.StringNullableWithAggregatesFilter<"RexPinnedCard"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"RexPinnedCard"> | Date | string
 }
 
@@ -288,6 +312,8 @@ export type RexPinnedCardCreateInput = {
   kind: string
   payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   position?: number
+  isPublic?: boolean
+  shareToken?: string | null
   createdAt?: Date | string
 }
 
@@ -298,6 +324,8 @@ export type RexPinnedCardUncheckedCreateInput = {
   kind: string
   payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   position?: number
+  isPublic?: boolean
+  shareToken?: string | null
   createdAt?: Date | string
 }
 
@@ -308,6 +336,8 @@ export type RexPinnedCardUpdateInput = {
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   position?: Prisma.IntFieldUpdateOperationsInput | number
+  isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  shareToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -318,6 +348,8 @@ export type RexPinnedCardUncheckedUpdateInput = {
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   position?: Prisma.IntFieldUpdateOperationsInput | number
+  isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  shareToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -328,6 +360,8 @@ export type RexPinnedCardCreateManyInput = {
   kind: string
   payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   position?: number
+  isPublic?: boolean
+  shareToken?: string | null
   createdAt?: Date | string
 }
 
@@ -338,6 +372,8 @@ export type RexPinnedCardUpdateManyMutationInput = {
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   position?: Prisma.IntFieldUpdateOperationsInput | number
+  isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  shareToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -348,6 +384,8 @@ export type RexPinnedCardUncheckedUpdateManyInput = {
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   position?: Prisma.IntFieldUpdateOperationsInput | number
+  isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  shareToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -358,6 +396,8 @@ export type RexPinnedCardCountOrderByAggregateInput = {
   kind?: Prisma.SortOrder
   payload?: Prisma.SortOrder
   position?: Prisma.SortOrder
+  isPublic?: Prisma.SortOrder
+  shareToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -371,6 +411,8 @@ export type RexPinnedCardMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   position?: Prisma.SortOrder
+  isPublic?: Prisma.SortOrder
+  shareToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -380,6 +422,8 @@ export type RexPinnedCardMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   position?: Prisma.SortOrder
+  isPublic?: Prisma.SortOrder
+  shareToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -396,6 +440,8 @@ export type RexPinnedCardSelect<ExtArgs extends runtime.Types.Extensions.Interna
   kind?: boolean
   payload?: boolean
   position?: boolean
+  isPublic?: boolean
+  shareToken?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["rexPinnedCard"]>
 
@@ -406,6 +452,8 @@ export type RexPinnedCardSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   kind?: boolean
   payload?: boolean
   position?: boolean
+  isPublic?: boolean
+  shareToken?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["rexPinnedCard"]>
 
@@ -416,6 +464,8 @@ export type RexPinnedCardSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   kind?: boolean
   payload?: boolean
   position?: boolean
+  isPublic?: boolean
+  shareToken?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["rexPinnedCard"]>
 
@@ -426,10 +476,12 @@ export type RexPinnedCardSelectScalar = {
   kind?: boolean
   payload?: boolean
   position?: boolean
+  isPublic?: boolean
+  shareToken?: boolean
   createdAt?: boolean
 }
 
-export type RexPinnedCardOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "kind" | "payload" | "position" | "createdAt", ExtArgs["result"]["rexPinnedCard"]>
+export type RexPinnedCardOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "kind" | "payload" | "position" | "isPublic" | "shareToken" | "createdAt", ExtArgs["result"]["rexPinnedCard"]>
 
 export type $RexPinnedCardPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "RexPinnedCard"
@@ -441,6 +493,8 @@ export type $RexPinnedCardPayload<ExtArgs extends runtime.Types.Extensions.Inter
     kind: string
     payload: runtime.JsonValue
     position: number
+    isPublic: boolean
+    shareToken: string | null
     createdAt: Date
   }, ExtArgs["result"]["rexPinnedCard"]>
   composites: {}
@@ -871,6 +925,8 @@ export interface RexPinnedCardFieldRefs {
   readonly kind: Prisma.FieldRef<"RexPinnedCard", 'String'>
   readonly payload: Prisma.FieldRef<"RexPinnedCard", 'Json'>
   readonly position: Prisma.FieldRef<"RexPinnedCard", 'Int'>
+  readonly isPublic: Prisma.FieldRef<"RexPinnedCard", 'Boolean'>
+  readonly shareToken: Prisma.FieldRef<"RexPinnedCard", 'String'>
   readonly createdAt: Prisma.FieldRef<"RexPinnedCard", 'DateTime'>
 }
     

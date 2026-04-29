@@ -594,11 +594,73 @@ export interface RexPinnedCard {
   createdAt: string
 }
 
+export interface RexAlertRule {
+  id: string
+  metric: string
+  operator: "lt" | "gt" | "change_gt_pct" | "change_lt_pct"
+  threshold: number
+  enabled: boolean
+  label?: string
+}
+
 export interface RexSettingsData {
   organizationId: string
   weeklyDigestEnabled: boolean
   weeklyDigestTimezone: string
   weeklyDigestRecipients: string[]
+  alertRules?: RexAlertRule[] | null
+  ingestApiKey?: string | null
+  columnMappingTemplates?: unknown
+}
+
+// ─── Variance (C9) ──────────────────────────────────────────────────────────
+
+export interface RexVarianceRequest {
+  metric: string
+  period?: string
+}
+
+export interface RexVarianceRow {
+  date: string
+  actual: number
+  budget: number
+  variance: number
+  variance_pct: number
+  direction: "over" | "under" | "on_track"
+}
+
+export interface RexVarianceResult {
+  metric: string
+  period: string
+  rows: RexVarianceRow[]
+  total_actual: number
+  total_budget: number
+  total_variance_pct: number
+  headline: string
+  narrative: string
+}
+
+// ─── Board deck (C5) ────────────────────────────────────────────────────────
+
+export interface RexBoardDeckRequest {
+  period: string
+  metrics?: Record<string, unknown>
+  highlights?: string[]
+  risks?: string[]
+  ask?: string
+}
+
+export interface RexBoardDeckResult {
+  period: string
+  headline: string
+  sections: {
+    company_overview: string
+    financial_health: string
+    metrics_analysis: string
+    risks_mitigations: string
+    key_ask: string
+  }
+  html: string
 }
 
 // ─── Lex ─────────────────────────────────────────────────────────────────────
@@ -922,6 +984,8 @@ export type AgentActionId =
   | "rex:scenario"
   | "rex:weekly-digest"
   | "rex:investor-update"
+  | "rex:variance"
+  | "rex:board-deck"
   | "lex:upload-source"
   | "lex:analyze-contract"
   | "lex:query-document"

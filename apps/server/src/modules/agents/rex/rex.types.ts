@@ -132,3 +132,38 @@ export interface InvestorUpdateResponse {
   tokens_used?: number;
   model_used?: string;
 }
+
+export interface VarianceResponse {
+  metric: string;
+  period: string;
+  rows: Array<{
+    date: string;
+    actual: number;
+    budget: number;
+    variance: number;
+    variance_pct: number;
+    direction: "over" | "under" | "on_track";
+  }>;
+  total_actual: number;
+  total_budget: number;
+  total_variance_pct: number;
+  headline: string;
+  narrative: string;
+  tokens_used?: number;
+  model_used?: string;
+}
+
+export interface BoardDeckResponse {
+  period: string;
+  headline: string;
+  sections: {
+    company_overview: string;
+    financial_health: string;
+    metrics_analysis: string;
+    risks_mitigations: string;
+    key_ask: string;
+  };
+  html: string;
+  tokens_used?: number;
+  model_used?: string;
+}

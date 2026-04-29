@@ -22,6 +22,11 @@ import type {
   RexPinnedCard,
   RexSettingsData,
   RexDatasetRecord,
+  RexAlertRule,
+  RexVarianceRequest,
+  RexVarianceResult,
+  RexBoardDeckRequest,
+  RexBoardDeckResult,
 } from "@/lib/types/agents"
 
 export const analyzeMetrics = (body: RexAnalyzeMetricsRequest) =>
@@ -95,8 +100,35 @@ export const deletePin = (id: string) =>
 export const getSettings = () =>
   apiFetch<RexSettingsData>("/agents/rex/settings")
 
-export const patchSettings = (body: { weeklyDigestEnabled?: boolean; weeklyDigestTimezone?: string }) =>
+export const patchSettings = (body: {
+  weeklyDigestEnabled?: boolean
+  weeklyDigestTimezone?: string
+  weeklyDigestRecipients?: string[]
+  alertRules?: RexAlertRule[]
+}) =>
   apiFetch<RexSettingsData>("/agents/rex/settings", { method: "PATCH", body })
 
 export const listDatasets = () =>
   apiFetch<RexDatasetRecord[]>("/agents/rex/datasets")
+
+// ─── New endpoints ───────────────────────────────────────────────────────────
+
+export const variance = (body: RexVarianceRequest) =>
+  apiFetch<RexVarianceResult>("/agents/rex/variance", { method: "POST", body })
+
+export const boardDeck = (body: RexBoardDeckRequest) =>
+  apiFetch<RexBoardDeckResult>("/agents/rex/board-deck", { method: "POST", body })
+
+// Webhook API key admin
+export const generateApiKey = () =>
+  apiFetch<{ ingestApiKey: string }>("/agents/rex/api-key/generate", { method: "POST" })
+
+export const revokeApiKey = () =>
+  apiFetch<{ ok: true }>("/agents/rex/api-key/revoke", { method: "POST" })
+
+// Pin sharing (C10)
+export const sharePin = (id: string, isPublic: boolean) =>
+  apiFetch<{ id: string; isPublic: boolean; shareToken: string | null }>(
+    `/agents/rex/pins/${id}/share`,
+    { method: "PATCH", body: { isPublic } }
+  )

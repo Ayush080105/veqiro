@@ -35,8 +35,14 @@ export type RexFinancialAnalysisValues = z.infer<typeof rexFinancialAnalysisSche
 
 export const rexBriefingSchema = z.object({
   date: z.string().min(1, "Date is required"),
-  all_metrics: z.record(z.string(), z.array(dataPointSchema)),
-  agent_summaries: z.record(z.string(), z.string()),
+  all_metrics: z
+    .record(z.string(), z.array(dataPointSchema))
+    .optional()
+    .default({}),
+  agent_summaries: z
+    .record(z.string(), z.string())
+    .optional()
+    .default({}),
 })
 export type RexBriefingValues = z.infer<typeof rexBriefingSchema>
 
@@ -102,3 +108,22 @@ export const rexInvestorUpdateSchema = z.object({
   asks: z.array(z.string()).optional().default([]),
 })
 export type RexInvestorUpdateValues = z.infer<typeof rexInvestorUpdateSchema>
+
+// ─── Variance (C9) ──────────────────────────────────────────────────────────
+
+export const rexVarianceSchema = z.object({
+  metric: z.string().min(1, "Metric is required"),
+  period: z.string().optional().default("monthly"),
+})
+export type RexVarianceValues = z.infer<typeof rexVarianceSchema>
+
+// ─── Board deck (C5) ────────────────────────────────────────────────────────
+
+export const rexBoardDeckSchema = z.object({
+  period: z.string().min(1, "Period is required"),
+  metrics: z.record(z.string(), z.unknown()).optional().default({}),
+  highlights: z.array(z.string()).optional().default([]),
+  risks: z.array(z.string()).optional().default([]),
+  ask: z.string().optional().default(""),
+})
+export type RexBoardDeckValues = z.infer<typeof rexBoardDeckSchema>

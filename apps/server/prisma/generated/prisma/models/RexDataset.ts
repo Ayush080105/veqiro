@@ -33,6 +33,7 @@ export type RexDatasetMinAggregateOutputType = {
   metricKey: string | null
   unit: string | null
   period: string | null
+  purpose: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -46,6 +47,7 @@ export type RexDatasetMaxAggregateOutputType = {
   metricKey: string | null
   unit: string | null
   period: string | null
+  purpose: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -59,6 +61,7 @@ export type RexDatasetCountAggregateOutputType = {
   metricKey: number
   unit: number
   period: number
+  purpose: number
   points: number
   meta: number
   createdAt: number
@@ -76,6 +79,7 @@ export type RexDatasetMinAggregateInputType = {
   metricKey?: true
   unit?: true
   period?: true
+  purpose?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -89,6 +93,7 @@ export type RexDatasetMaxAggregateInputType = {
   metricKey?: true
   unit?: true
   period?: true
+  purpose?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -102,6 +107,7 @@ export type RexDatasetCountAggregateInputType = {
   metricKey?: true
   unit?: true
   period?: true
+  purpose?: true
   points?: true
   meta?: true
   createdAt?: true
@@ -190,6 +196,7 @@ export type RexDatasetGroupByOutputType = {
   metricKey: string
   unit: string | null
   period: string
+  purpose: string
   points: runtime.JsonValue
   meta: runtime.JsonValue | null
   createdAt: Date
@@ -226,6 +233,7 @@ export type RexDatasetWhereInput = {
   metricKey?: Prisma.StringFilter<"RexDataset"> | string
   unit?: Prisma.StringNullableFilter<"RexDataset"> | string | null
   period?: Prisma.StringFilter<"RexDataset"> | string
+  purpose?: Prisma.StringFilter<"RexDataset"> | string
   points?: Prisma.JsonFilter<"RexDataset">
   meta?: Prisma.JsonNullableFilter<"RexDataset">
   createdAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
@@ -241,6 +249,7 @@ export type RexDatasetOrderByWithRelationInput = {
   metricKey?: Prisma.SortOrder
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
   period?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   points?: Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -259,6 +268,7 @@ export type RexDatasetWhereUniqueInput = Prisma.AtLeast<{
   metricKey?: Prisma.StringFilter<"RexDataset"> | string
   unit?: Prisma.StringNullableFilter<"RexDataset"> | string | null
   period?: Prisma.StringFilter<"RexDataset"> | string
+  purpose?: Prisma.StringFilter<"RexDataset"> | string
   points?: Prisma.JsonFilter<"RexDataset">
   meta?: Prisma.JsonNullableFilter<"RexDataset">
   createdAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
@@ -274,6 +284,7 @@ export type RexDatasetOrderByWithAggregationInput = {
   metricKey?: Prisma.SortOrder
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
   period?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   points?: Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -295,6 +306,7 @@ export type RexDatasetScalarWhereWithAggregatesInput = {
   metricKey?: Prisma.StringWithAggregatesFilter<"RexDataset"> | string
   unit?: Prisma.StringNullableWithAggregatesFilter<"RexDataset"> | string | null
   period?: Prisma.StringWithAggregatesFilter<"RexDataset"> | string
+  purpose?: Prisma.StringWithAggregatesFilter<"RexDataset"> | string
   points?: Prisma.JsonWithAggregatesFilter<"RexDataset">
   meta?: Prisma.JsonNullableWithAggregatesFilter<"RexDataset">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"RexDataset"> | Date | string
@@ -310,6 +322,7 @@ export type RexDatasetCreateInput = {
   metricKey: string
   unit?: string | null
   period: string
+  purpose?: string
   points: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -325,6 +338,7 @@ export type RexDatasetUncheckedCreateInput = {
   metricKey: string
   unit?: string | null
   period: string
+  purpose?: string
   points: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -340,6 +354,7 @@ export type RexDatasetUpdateInput = {
   metricKey?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   period?: Prisma.StringFieldUpdateOperationsInput | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -355,6 +370,7 @@ export type RexDatasetUncheckedUpdateInput = {
   metricKey?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   period?: Prisma.StringFieldUpdateOperationsInput | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -370,6 +386,7 @@ export type RexDatasetCreateManyInput = {
   metricKey: string
   unit?: string | null
   period: string
+  purpose?: string
   points: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -385,6 +402,7 @@ export type RexDatasetUpdateManyMutationInput = {
   metricKey?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   period?: Prisma.StringFieldUpdateOperationsInput | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -400,6 +418,7 @@ export type RexDatasetUncheckedUpdateManyInput = {
   metricKey?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   period?: Prisma.StringFieldUpdateOperationsInput | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -415,6 +434,7 @@ export type RexDatasetCountOrderByAggregateInput = {
   metricKey?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   period?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   points?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -430,6 +450,7 @@ export type RexDatasetMaxOrderByAggregateInput = {
   metricKey?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   period?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -443,6 +464,7 @@ export type RexDatasetMinOrderByAggregateInput = {
   metricKey?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   period?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -458,6 +480,7 @@ export type RexDatasetSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   metricKey?: boolean
   unit?: boolean
   period?: boolean
+  purpose?: boolean
   points?: boolean
   meta?: boolean
   createdAt?: boolean
@@ -473,6 +496,7 @@ export type RexDatasetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   metricKey?: boolean
   unit?: boolean
   period?: boolean
+  purpose?: boolean
   points?: boolean
   meta?: boolean
   createdAt?: boolean
@@ -488,6 +512,7 @@ export type RexDatasetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   metricKey?: boolean
   unit?: boolean
   period?: boolean
+  purpose?: boolean
   points?: boolean
   meta?: boolean
   createdAt?: boolean
@@ -503,13 +528,14 @@ export type RexDatasetSelectScalar = {
   metricKey?: boolean
   unit?: boolean
   period?: boolean
+  purpose?: boolean
   points?: boolean
   meta?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type RexDatasetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "sourceId" | "name" | "metricKey" | "unit" | "period" | "points" | "meta" | "createdAt" | "updatedAt", ExtArgs["result"]["rexDataset"]>
+export type RexDatasetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "sourceId" | "name" | "metricKey" | "unit" | "period" | "purpose" | "points" | "meta" | "createdAt" | "updatedAt", ExtArgs["result"]["rexDataset"]>
 
 export type $RexDatasetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "RexDataset"
@@ -523,6 +549,7 @@ export type $RexDatasetPayload<ExtArgs extends runtime.Types.Extensions.Internal
     metricKey: string
     unit: string | null
     period: string
+    purpose: string
     points: runtime.JsonValue
     meta: runtime.JsonValue | null
     createdAt: Date
@@ -958,6 +985,7 @@ export interface RexDatasetFieldRefs {
   readonly metricKey: Prisma.FieldRef<"RexDataset", 'String'>
   readonly unit: Prisma.FieldRef<"RexDataset", 'String'>
   readonly period: Prisma.FieldRef<"RexDataset", 'String'>
+  readonly purpose: Prisma.FieldRef<"RexDataset", 'String'>
   readonly points: Prisma.FieldRef<"RexDataset", 'Json'>
   readonly meta: Prisma.FieldRef<"RexDataset", 'Json'>
   readonly createdAt: Prisma.FieldRef<"RexDataset", 'DateTime'>

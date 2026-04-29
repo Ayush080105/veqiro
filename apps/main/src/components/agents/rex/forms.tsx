@@ -33,6 +33,10 @@ import {
   type RexWeeklyDigestValues,
   rexInvestorUpdateSchema,
   type RexInvestorUpdateValues,
+  rexVarianceSchema,
+  type RexVarianceValues,
+  rexBoardDeckSchema,
+  type RexBoardDeckValues,
   REX_PERIODS,
 } from "@/lib/schemas/agents/rex"
 // ─── Dataset picker ──────────────────────────────────────────────────────────
@@ -840,6 +844,157 @@ export function RexInvestorUpdateForm({
           )
         }}
       />
+    </FieldGroup>
+  )
+}
+
+// ─── Variance (C9) ──────────────────────────────────────────────────────────
+
+export function RexVarianceForm({
+  value,
+  onChange,
+}: {
+  value: RexVarianceValues
+  onChange: (patch: Partial<RexVarianceValues>) => void
+}) {
+  const form = useAgentForm({ schema: rexVarianceSchema, defaultValue: value, onChange })
+  const { data: datasets = [] } = useQuery<RexDatasetRecord[]>({
+    queryKey: REX_DATASETS_QK,
+    queryFn: listDatasets,
+    staleTime: 30_000,
+  })
+
+  const metricKeys = Array.from(new Set(datasets.map((d) => d.metricKey))).sort()
+
+  return (
+    <FieldGroup>
+      <RhfField control={form.control} name="metric" label="Metric" required
+        description="Pick a metric that has BOTH 'actual' and 'budget' datasets uploaded.">
+        {({ field }) => (
+          <select
+            value={field.value ?? ""}
+            onChange={(e) => field.onChange(e.target.value)}
+            className="h-9 w-full border border-border bg-background px-2 text-xs"
+          >
+            <option value="" disabled>Select a metric…</option>
+            {metricKeys.map((k) => (
+              <option key={k} value={k}>{k}</option>
+            ))}
+          </select>
+        )}
+      </RhfField>
+      <RhfField control={form.control} name="period" label="Period">
+        {({ field }) => (
+          <div className="flex gap-1.5">
+            {REX_PERIODS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => field.onChange(p)}
+                className={cn(
+                  "flex-1 border border-border px-2 py-1.5 text-xs capitalize",
+                  (field.value ?? "monthly") === p
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "hover:bg-muted"
+                )}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
+      </RhfField>
+    </FieldGroup>
+  )
+}
+
+// ─── Board deck (C5) ────────────────────────────────────────────────────────
+
+export function RexBoardDeckForm({
+  value,
+  onChange,
+}: {
+  value: RexBoardDeckValues
+  onChange: (patch: Partial<RexBoardDeckValues>) => void
+}) {
+  const form = useAgentForm({ schema: rexBoardDeckSchema, defaultValue: value, onChange })
+  return (
+    <FieldGroup>
+      <RhfField control={form.control} name="period" label="Period" required>
+        {({ field, invalid, id }) => (
+          <Input {...field} id={id} placeholder="e.g. Q1 2026" aria-invalid={invalid} />
+        )}
+      </RhfField>
+
+      <Controller
+        control={form.control}
+        name="highlights"
+        render={({ field }) => {
+          const items: string[] = field.value ?? []
+          const commit = (next: string[]) => field.onChange(next)
+          return (
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+                Highlights
+              </span>
+              {items.map((item, i) => (
+                <div key={i} className="flex gap-1.5">
+                  <Input value={item} placeholder="e.g. Crossed $62K MRR"
+                    onChange={(e) => commit(items.map((x, j) => j === i ? e.target.value : x))} />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove"
+                    onClick={() => commit(items.filter((_, j) => j !== i))}>
+                    <X />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => commit([...items, ""])} className="self-start">
+                <Plus data-icon="inline-start" /> Add highlight
+              </Button>
+            </div>
+          )
+        }}
+      />
+
+      <Controller
+        control={form.control}
+        name="risks"
+        render={({ field }) => {
+          const items: string[] = field.value ?? []
+          const commit = (next: string[]) => field.onChange(next)
+          return (
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+                Risks
+              </span>
+              {items.map((item, i) => (
+                <div key={i} className="flex gap-1.5">
+                  <Input value={item} placeholder="e.g. Enterprise sales cycle slowing"
+                    onChange={(e) => commit(items.map((x, j) => j === i ? e.target.value : x))} />
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove"
+                    onClick={() => commit(items.filter((_, j) => j !== i))}>
+                    <X />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => commit([...items, ""])} className="self-start">
+                <Plus data-icon="inline-start" /> Add risk
+              </Button>
+            </div>
+          )
+        }}
+      />
+
+      <RhfField control={form.control} name="ask" label="Key ask">
+        {({ field, invalid, id }) => (
+          <CountedTextarea
+            value={field.value ?? ""}
+            rows={3}
+            onChange={(v) => field.onChange(v)}
+          />
+        )}
+      </RhfField>
     </FieldGroup>
   )
 }

@@ -24,6 +24,8 @@ interface ParseResult {
   sample_rows: Record<string, string>[]
   headers: string[]
   datasets: Array<{ metricKey: string; points: DataPoint[] }>
+  warnings?: string[]
+  saved_mapping?: ColumnMapping | null
 }
 
 export interface RexDataset {
@@ -49,12 +51,19 @@ const parseDataset = (r2Key: string) =>
     body: { r2Key },
   })
 
-const saveDatasets = (datasets: Array<{
-  name: string; metricKey: string; period: string; points: DataPoint[]
-}>) =>
+const saveDatasets = (
+  datasets: Array<{
+    name: string
+    metricKey: string
+    period: string
+    points: DataPoint[]
+    purpose?: "actual" | "budget"
+  }>,
+  mapping?: ColumnMapping,
+) =>
   apiFetch<RexDataset[]>("/agents/rex/datasets", {
     method: "POST",
-    body: { datasets },
+    body: { datasets, mapping },
   })
 
 const deleteDataset = (id: string) =>
@@ -77,7 +86,7 @@ export function RexDataTab({
   const [uploadError, setUploadError] = React.useState<string | null>(null)
   const [parseResult, setParseResult] = React.useState<ParseResult | null>(null)
   const [editableDatasets, setEditableDatasets] = React.useState<Array<{
-    metricKey: string; name: string; period: string; points: DataPoint[]
+    metricKey: string; name: string; period: string; points: DataPoint[]; purpose: "actual" | "budget"
   }>>([])
   const [saving, setSaving] = React.useState(false)
   const [lastSaved, setLastSaved] = React.useState<Array<{ metricKey: string; name: string; points: DataPoint[] }> | null>(null)
@@ -109,6 +118,7 @@ export function RexDataTab({
           name: `${d.metricKey} — ${new Date().toLocaleDateString()}`,
           period: "monthly",
           points: d.points,
+          purpose: "actual" as const,
         }))
       )
     } catch (err) {
@@ -128,7 +138,7 @@ export function RexDataTab({
   const handleSave = async () => {
     setSaving(true)
     try {
-      await saveDatasets(editableDatasets)
+      await saveDatasets(editableDatasets, parseResult?.candidate_mapping)
       setLastSaved(editableDatasets)
       setParseResult(null)
       setEditableDatasets([])
@@ -257,6 +267,27 @@ export function RexDataTab({
         </div>
       )}
 
+      {/* Parse warnings (non-blocking) */}
+      {parseResult && (parseResult.warnings?.length ?? 0) > 0 && (
+        <div className="flex flex-col gap-1 border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900">
+          <div className="flex items-center gap-1.5">
+            <AlertCircle className="size-3.5 shrink-0" />
+            <span className="font-medium">Parser notes</span>
+          </div>
+          {parseResult.warnings!.map((w, i) => (
+            <p key={i} className="pl-5 text-[10.5px] leading-snug">• {w}</p>
+          ))}
+        </div>
+      )}
+
+      {/* No-data warning when parse produced 0 datasets */}
+      {parseResult && editableDatasets.length === 0 && (
+        <div className="flex items-center gap-2 border border-destructive/30 bg-destructive/5 p-3 text-[11px] text-destructive">
+          <AlertCircle className="size-3.5 shrink-0" />
+          REX could not extract any usable metrics. CSV needs at least one date column and one numeric column. See parser notes above.
+        </div>
+      )}
+
       {/* Inferred mapping confirmation */}
       {parseResult && editableDatasets.length > 0 && (
         <div className="flex flex-col gap-3 border border-border p-3">
@@ -264,8 +295,14 @@ export function RexDataTab({
             Review inferred datasets
           </p>
           <p className="text-[11px] text-muted-foreground">
-            REX detected {editableDatasets.length} metric column{editableDatasets.length > 1 ? "s" : ""}. Adjust names and period before saving.
+            REX detected {editableDatasets.length} metric column{editableDatasets.length > 1 ? "s" : ""} from{" "}
+            {parseResult.headers.length} header{parseResult.headers.length !== 1 ? "s" : ""}. Adjust names and period before saving.
           </p>
+          {parseResult.saved_mapping && parseResult.saved_mapping.valueColumns.length > 0 && (
+            <p className="text-[10.5px] text-muted-foreground">
+              Saved mapping found from prior upload — applied automatically.
+            </p>
+          )}
           {editableDatasets.map((d, i) => (
             <div key={i} className="flex flex-col gap-2 border border-border bg-muted/10 p-2">
               <div className="grid grid-cols-2 gap-2">
@@ -300,6 +337,24 @@ export function RexDataTab({
                     <span>{d.points[0].date} → {d.points[d.points.length - 1]?.date}</span>
                   </>
                 )}
+              </div>
+              <div className="flex gap-1.5">
+                {(["actual", "budget"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => updateEditable(i, { purpose: p })}
+                    className={cn(
+                      "border border-border px-2 py-0.5 text-[10px] capitalize",
+                      d.purpose === p ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <span className="text-[10px] text-muted-foreground">
+                  Tag as &ldquo;budget&rdquo; to enable variance analysis.
+                </span>
               </div>
             </div>
           ))}

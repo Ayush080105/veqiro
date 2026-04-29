@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { aiService } from "../../../common/utils/aiService.js";
 import { resend } from "../../../lib/resend.js";
 import * as rexRepository from "./rex.repository.js";
+import type { AlertRule } from "./rex.schema.js";
 
 async function runWeeklyDigestForOrg(organizationId: string, recipients: string[]) {
   try {
@@ -62,10 +63,133 @@ export async function runWeeklyDigestNow() {
   );
 }
 
+// ─── C2: Threshold-based alerts (daily) ─────────────────────────────────────
+
+interface FiredAlert {
+  metric: string;
+  rule: AlertRule;
+  current: number;
+  previous?: number;
+  message: string;
+}
+
+function evaluateRule(rule: AlertRule, points: Array<{ date: string; value: number }>): FiredAlert | null {
+  if (!rule.enabled) return null;
+  if (points.length === 0) return null;
+  const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
+  const current = sorted[sorted.length - 1]!.value;
+  const previous = sorted[sorted.length - 2]?.value;
+  const labelOrMetric = rule.label || rule.metric;
+
+  switch (rule.operator) {
+    case "lt":
+      if (current < rule.threshold) {
+        return {
+          metric: rule.metric,
+          rule,
+          current,
+          message: `${labelOrMetric} dropped below ${rule.threshold}: now ${current.toLocaleString()}`,
+        };
+      }
+      return null;
+    case "gt":
+      if (current > rule.threshold) {
+        return {
+          metric: rule.metric,
+          rule,
+          current,
+          message: `${labelOrMetric} exceeded ${rule.threshold}: now ${current.toLocaleString()}`,
+        };
+      }
+      return null;
+    case "change_gt_pct": {
+      if (previous == null || previous === 0) return null;
+      const pct = ((current - previous) / Math.abs(previous)) * 100;
+      if (pct > rule.threshold) {
+        return {
+          metric: rule.metric,
+          rule,
+          current,
+          previous,
+          message: `${labelOrMetric} jumped ${pct.toFixed(1)}% (${previous.toLocaleString()} → ${current.toLocaleString()})`,
+        };
+      }
+      return null;
+    }
+    case "change_lt_pct": {
+      if (previous == null || previous === 0) return null;
+      const pct = ((current - previous) / Math.abs(previous)) * 100;
+      if (pct < rule.threshold) {
+        return {
+          metric: rule.metric,
+          rule,
+          current,
+          previous,
+          message: `${labelOrMetric} fell ${pct.toFixed(1)}% (${previous.toLocaleString()} → ${current.toLocaleString()})`,
+        };
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
+async function runDailyAlertsForOrg(organizationId: string, recipients: string[], rules: AlertRule[]) {
+  if (rules.length === 0 || recipients.length === 0) return;
+  try {
+    const datasets = await rexRepository.findDatasets(organizationId);
+    const fired: FiredAlert[] = [];
+
+    for (const rule of rules) {
+      const ds = datasets
+        .filter((d) => d.metricKey === rule.metric)
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+      if (!ds) continue;
+      const result = evaluateRule(rule, ds.points as Array<{ date: string; value: number }>);
+      if (result) fired.push(result);
+    }
+
+    if (fired.length === 0) return;
+
+    const html = `
+      <h2 style="margin:0 0 12px 0;font-family:system-ui,sans-serif;">REX alerts triggered (${fired.length})</h2>
+      <ul style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;">
+        ${fired.map((f) => `<li><strong>${f.rule.label || f.metric}</strong>: ${f.message}</li>`).join("")}
+      </ul>
+      <p style="color:#888;font-size:12px;font-family:system-ui,sans-serif;">Configured in your REX settings panel. Reply to disable.</p>
+    `;
+
+    await resend.emails.send({
+      from: process.env.EMAIL_USER!,
+      to: recipients,
+      subject: `REX alert${fired.length > 1 ? "s" : ""} — ${fired[0]!.rule.label || fired[0]!.metric}${fired.length > 1 ? ` +${fired.length - 1} more` : ""}`,
+      html,
+    });
+  } catch (err) {
+    console.error(`[rex-cron] daily alerts failed for org ${organizationId}:`, err);
+  }
+}
+
+export async function runDailyAlertsNow() {
+  const orgs = await rexRepository.findAllSettings();
+  await Promise.allSettled(
+    orgs.map((s) => {
+      const rules = (s.alertRules as unknown as AlertRule[] | null) ?? [];
+      return runDailyAlertsForOrg(s.organizationId, s.weeklyDigestRecipients, rules);
+    })
+  );
+}
+
 export function startRexCron() {
   // Every Monday at 09:00 UTC
   cron.schedule("0 9 * * 1", () => {
     void runWeeklyDigestNow();
   });
+  // Every day at 09:00 UTC (alerts)
+  cron.schedule("0 9 * * *", () => {
+    void runDailyAlertsNow();
+  });
   console.log("[rex-cron] Weekly digest scheduled — every Monday 09:00 UTC");
+  console.log("[rex-cron] Daily alerts scheduled — every day 09:00 UTC");
 }
