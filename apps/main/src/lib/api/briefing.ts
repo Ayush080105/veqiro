@@ -69,20 +69,21 @@ function mapContentToBriefing(cache: RawBriefingCache): Briefing {
   };
 }
 
-export async function getBriefing(_organizationId: string): Promise<Briefing> {
-  // Try to get cached morning briefing
+export async function getBriefing(
+  _organizationId: string,
+  type: "MORNING" | "EVENING" | "WEEKLY" = "MORNING"
+): Promise<Briefing> {
   const cache = await apiFetch<RawBriefingCache | null>(
-    "/agents/vega/briefing?type=MORNING"
+    `/agents/vega/briefing?type=${type}`
   ).catch(() => null);
 
   if (cache?.content) {
     return mapContentToBriefing(cache);
   }
 
-  // No cache — generate fresh
   const fresh = await apiFetch<RawBriefingCache>("/agents/vega/briefing/generate", {
     method: "POST",
-    body: { includeEmail: true, includeCalendar: true, type: "MORNING" },
+    body: { includeEmail: true, includeCalendar: true, type },
   });
 
   return mapContentToBriefing(fresh);

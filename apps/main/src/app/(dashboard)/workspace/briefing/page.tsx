@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import {
   CheckCircle2,
   ChevronDown,
@@ -10,6 +10,9 @@ import {
   MessageSquare,
   AlertCircle,
   RotateCcw,
+  Sun,
+  Moon,
+  BarChart2,
 } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
@@ -213,6 +216,81 @@ function TableOfContents({
   )
 }
 
+// ─── Briefing Tabs ────────────────────────────────────────────────────────────
+
+type BriefingType = "MORNING" | "EVENING" | "WEEKLY"
+
+const BRIEFING_TABS: Array<{
+  type: BriefingType
+  label: string
+  icon: React.ElementType
+  subtitle: string
+}> = [
+  {
+    type: "MORNING",
+    label: "Morning",
+    icon: Sun,
+    subtitle: "Your AI team's morning report — compiled fresh while you slept.",
+  },
+  {
+    type: "EVENING",
+    label: "Evening",
+    icon: Moon,
+    subtitle: "What got done today and what's coming tomorrow.",
+  },
+  {
+    type: "WEEKLY",
+    label: "Weekly",
+    icon: BarChart2,
+    subtitle: "This week vs last — response rates, busy senders, and trends.",
+  },
+]
+
+function BriefingTypeTabs({
+  active,
+  onChange,
+}: {
+  active: BriefingType
+  onChange: (t: BriefingType) => void
+}) {
+  return (
+    <div className="flex gap-1" style={{ borderBottom: "2px solid #E5E5E5", paddingBottom: 0 }}>
+      {BRIEFING_TABS.map((tab) => {
+        const Icon = tab.icon
+        const isActive = tab.type === active
+        return (
+          <button
+            key={tab.type}
+            onClick={() => onChange(tab.type)}
+            style={{
+              padding: "6px 14px",
+              fontSize: 11,
+              fontFamily: "var(--font-mono)",
+              fontWeight: isActive ? 700 : 400,
+              letterSpacing: 1,
+              textTransform: "uppercase" as const,
+              background: "transparent",
+              border: "none",
+              borderBottomWidth: 2,
+              borderBottomStyle: "solid",
+              borderBottomColor: isActive ? "#111" : "transparent",
+              marginBottom: -2,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: isActive ? "#111" : "#888",
+            }}
+          >
+            <Icon size={12} />
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BriefingPage() {
@@ -224,16 +302,19 @@ export default function BriefingPage() {
   const [error, setError] = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
   const sectionRefs = useRef<(HTMLElement | null)[]>([])
+  const [briefingType, setBriefingType] = useState<BriefingType>("MORNING")
+  const activeTab = BRIEFING_TABS.find((t) => t.type === briefingType)!
 
   const today = new Date()
 
-  async function loadBriefing(forceRefresh = false) {
+  async function loadBriefing(type: BriefingType = briefingType, forceRefresh = false) {
     setLoading(true)
     setError(false)
+    setBriefing(null)
     try {
       const data = forceRefresh
-        ? await generateBriefing("MORNING")
-        : await getBriefing(organizationId)
+        ? await generateBriefing(type)
+        : await getBriefing(organizationId, type)
       setBriefing(data)
     } catch {
       setError(true)
@@ -243,9 +324,9 @@ export default function BriefingPage() {
   }
 
   useEffect(() => {
-    loadBriefing()
+    loadBriefing(briefingType)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId])
+  }, [organizationId, briefingType])
 
   // Highlight active TOC section on scroll
   useEffect(() => {
@@ -273,14 +354,14 @@ export default function BriefingPage() {
         <PageHeader
           kicker={formatBriefingDate(today)}
           title="daily briefing"
-          subtitle="Your AI team's morning report — compiled fresh while you slept."
+          subtitle={activeTab.subtitle}
           sticker={{ label: "today's brief", rot: -5, color: "var(--vq-green)" }}
         />
         <Button
           variant="outline"
           size="sm"
           className="mt-1 shrink-0"
-          onClick={() => loadBriefing(true)}
+          onClick={() => loadBriefing(briefingType, true)}
           disabled={loading}
         >
           <RefreshCw className={["size-3.5", loading ? "animate-spin" : ""].join(" ").trim()} />
@@ -288,11 +369,12 @@ export default function BriefingPage() {
         </Button>
       </div>
 
+      <BriefingTypeTabs active={briefingType} onChange={(t) => setBriefingType(t)} />
 
       {loading ? (
         <BriefingLoadingSkeleton />
       ) : error ? (
-        <BriefingError onRetry={loadBriefing} />
+        <BriefingError onRetry={() => loadBriefing(briefingType)} />
       ) : briefing ? (
         <div className="flex gap-8">
           {/* Main content */}
