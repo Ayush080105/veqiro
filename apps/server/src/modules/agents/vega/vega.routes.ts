@@ -25,6 +25,8 @@ import {
   getMeetingPrepHandler,
   postMeetingFollowUpHandler,
   sendFollowUpEmailHandler,
+  updateCalendarEventHandler,
+  getRescheduleDraftHandler,
 } from "./vega.workspace.controller.js";
 
 const router = Router();
@@ -64,5 +66,9 @@ router.post("/calendar/prep", getMeetingPrepHandler);
 // workspace: post-meeting follow-up
 router.post("/calendar/followup", postMeetingFollowUpHandler);
 router.post("/calendar/followup/send", sendFollowUpEmailHandler);
+
+// workspace: reschedule
+router.patch("/calendar/events/:eventId", updateCalendarEventHandler);
+router.post("/calendar/reschedule-draft", getRescheduleDraftHandler);
 
 export default router;

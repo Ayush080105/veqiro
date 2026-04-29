@@ -4,7 +4,11 @@ import {
   getGoogleAccessToken,
   GoogleNotConnectedError,
 } from "../../../common/utils/googleAuth.js";
-import { sendGmailReply, createCalendarEvent as createGoogleCalendarEvent } from "../../../common/utils/googleApis.js";
+import {
+  sendGmailReply,
+  createCalendarEvent as createGoogleCalendarEvent,
+  updateCalendarEvent as updateGoogleCalendarEvent,
+} from "../../../common/utils/googleApis.js";
 import { prisma } from "../../../config/prisma.js";
 import type {
   ProcessInboxResponse,
@@ -26,6 +30,8 @@ import type {
   getMeetingPrepSchema,
   postMeetingFollowUpSchema,
   sendFollowUpEmailSchema,
+  updateCalendarEventSchema,
+  rescheduleDraftSchema,
 } from "./vega.workspace.schema.js";
 import type { z } from "zod";
 
@@ -486,4 +492,60 @@ export const sendFollowUpEmail = async (
     replyToThreadId: null,
   });
   return { messageId: sent.id };
+};
+
+// ─── Auto-reschedule ──────────────────────────────────────────────────────────
+
+export const updateCalendarEventWorkspace = async (
+  userId: string,
+  _organizationId: string,
+  eventId: string,
+  input: z.infer<typeof updateCalendarEventSchema>
+): Promise<{ id: string }> => {
+  const token = await requireGoogleToken(userId);
+  const result = await updateGoogleCalendarEvent({
+    accessToken: token,
+    eventId,
+    start: input.start,
+    end: input.end,
+  });
+  return { id: result.id };
+};
+
+export interface RescheduleDraft {
+  email: { to: string; subject: string; body: string };
+}
+
+export const getRescheduleDraft = async (
+  userId: string,
+  organizationId: string,
+  input: z.infer<typeof rescheduleDraftSchema>
+): Promise<RescheduleDraft> => {
+  let token = "";
+  try {
+    token = await requireGoogleToken(userId);
+  } catch {
+    // token is optional
+  }
+  const { data } = await aiService.post<{ email: Record<string, unknown> }>(
+    "/ai/vega/reschedule-draft",
+    {
+      user_id: userId,
+      organization_id: organizationId,
+      event_title: input.eventTitle,
+      attendee_emails: input.attendeeEmails,
+      original_start: input.originalStart,
+      new_start: input.newStart,
+      new_end: input.newEnd,
+      metadata: { google_access_token: token },
+    }
+  );
+  const em = data.email ?? {};
+  return {
+    email: {
+      to: String(em.to ?? ""),
+      subject: String(em.subject ?? ""),
+      body: String(em.body ?? ""),
+    },
+  };
 };

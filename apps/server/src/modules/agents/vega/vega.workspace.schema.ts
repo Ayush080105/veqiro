@@ -61,3 +61,16 @@ export const sendFollowUpEmailSchema = z.object({
   subject: z.string().min(1).max(500),
   body: z.string().min(1),
 });
+
+export const updateCalendarEventSchema = z.object({
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+});
+
+export const rescheduleDraftSchema = z.object({
+  eventTitle: z.string().min(1).max(500),
+  attendeeEmails: z.array(z.string().email()).optional().default([]),
+  originalStart: z.string().datetime(),
+  newStart: z.string().datetime(),
+  newEnd: z.string().datetime(),
+});

@@ -14,6 +14,8 @@ import {
   getMeetingPrepSchema,
   postMeetingFollowUpSchema,
   sendFollowUpEmailSchema,
+  updateCalendarEventSchema,
+  rescheduleDraftSchema,
 } from "./vega.workspace.schema.js";
 import * as ws from "./vega.workspace.service.js";
 
@@ -138,5 +140,22 @@ export const sendFollowUpEmailHandler = async (req: Request, res: Response) => {
   const { userId } = requireAuthContext(req);
   const input = sendFollowUpEmailSchema.parse(req.body);
   const result = await ws.sendFollowUpEmail(userId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// Auto-reschedule
+export const updateCalendarEventHandler = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const eventId = req.params.eventId as string;
+  if (!eventId) throw new BadRequestError("eventId param required");
+  const input = updateCalendarEventSchema.parse(req.body);
+  const result = await ws.updateCalendarEventWorkspace(userId, organizationId, eventId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const getRescheduleDraftHandler = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = rescheduleDraftSchema.parse(req.body);
+  const result = await ws.getRescheduleDraft(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
