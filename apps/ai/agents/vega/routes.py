@@ -256,6 +256,23 @@ class PostMeetingFollowUpResponse(BaseModel):
     model_used: str = ""
 
 
+class RescheduleDraftRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    event_title: str
+    attendee_emails: list[str] = []
+    original_start: str
+    new_start: str
+    new_end: str
+    metadata: dict = {}
+
+
+class RescheduleDraftResponse(BaseModel):
+    email: dict
+    tokens_used: int = 0
+    model_used: str = ""
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Vega chat")
@@ -865,6 +882,57 @@ async def post_meeting_followup(request: PostMeetingFollowUpRequest) -> PostMeet
     return PostMeetingFollowUpResponse(
         follow_up=data.get("follow_up", {}),
         action_items=data.get("action_items", []),
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
+
+
+@router.post("/reschedule-draft", response_model=RescheduleDraftResponse, summary="Draft rescheduling email")
+async def reschedule_draft(request: RescheduleDraftRequest) -> RescheduleDraftResponse:
+    """Draft a polite rescheduling email when a calendar event is moved."""
+    attendee_str = ", ".join(request.attendee_emails[:3]) or "attendees"
+    if settings.MOCK_MODE:
+        return RescheduleDraftResponse(
+            email={
+                "to": request.attendee_emails[0] if request.attendee_emails else "",
+                "subject": f"Re: {request.event_title} — New time",
+                "body": (
+                    f"Hi {attendee_str},\n\n"
+                    f"I hope this message finds you well. I need to reschedule our upcoming "
+                    f"{request.event_title} meeting.\n\n"
+                    f"I'd like to propose moving it to {request.new_start}. "
+                    f"Please let me know if this new time works for you.\n\n"
+                    f"Apologies for any inconvenience, and thanks for your flexibility.\n\nBest,"
+                ),
+            }
+        )
+
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    raw = await _llm.complete(
+        provider=_agent.default_provider,
+        model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": (
+            f"Draft a short, professional rescheduling email for:\n"
+            f"Meeting: {request.event_title}\n"
+            f"Attendees: {', '.join(request.attendee_emails)}\n"
+            f"Original time: {request.original_start}\n"
+            f"New proposed time: {request.new_start} to {request.new_end}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with keys: "
+            "to (first attendee email), subject (string), body (string — brief, warm, professional)"
+        )}],
+    )
+    tokens_used = _llm.count_tokens(raw)
+    try:
+        data = safe_json_loads(raw)
+    except Exception:
+        data = {
+            "to": request.attendee_emails[0] if request.attendee_emails else "",
+            "subject": f"Re: {request.event_title} — New time",
+            "body": raw[:500],
+        }
+    return RescheduleDraftResponse(
+        email=data,
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )
