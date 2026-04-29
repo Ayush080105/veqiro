@@ -63,6 +63,16 @@ export type BrandKit = Prisma.BrandKitModel
  */
 export type Message = Prisma.MessageModel
 /**
+ * Model AgentMemory
+ * 
+ */
+export type AgentMemory = Prisma.AgentMemoryModel
+/**
+ * Model OrgMemory
+ * 
+ */
+export type OrgMemory = Prisma.OrgMemoryModel
+/**
  * Model SocialAccount
  * 
  */

@@ -60,6 +60,8 @@ export const ModelName = {
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
   Message: 'Message',
+  AgentMemory: 'AgentMemory',
+  OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
   CompetitorWatch: 'CompetitorWatch',
@@ -238,6 +240,33 @@ export const MessageScalarFieldEnum = {
 } as const
 
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
+
+
+export const AgentMemoryScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  runningSummary: 'runningSummary',
+  longTermFacts: 'longTermFacts',
+  messageCount: 'messageCount',
+  lastSummarizedAt: 'lastSummarizedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentMemoryScalarFieldEnum = (typeof AgentMemoryScalarFieldEnum)[keyof typeof AgentMemoryScalarFieldEnum]
+
+
+export const OrgMemoryScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  runningSummary: 'runningSummary',
+  longTermFacts: 'longTermFacts',
+  sharedMemory: 'sharedMemory',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrgMemoryScalarFieldEnum = (typeof OrgMemoryScalarFieldEnum)[keyof typeof OrgMemoryScalarFieldEnum]
 
 
 export const SocialAccountScalarFieldEnum = {

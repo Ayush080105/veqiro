@@ -111,6 +111,8 @@ model Organization {
   subscriptionStatus     SubscriptionStatus?
   entitlementExpiresAt   DateTime?
   subscription           Subscription?
+  agentMemory            AgentMemory[]
+  orgMemory              OrgMemory?
 
   @@unique([slug])
   @@map("organization")
@@ -191,6 +193,35 @@ model Message{
 
   @@index([agent,organizationId])
   @@map("message")
+}
+
+model AgentMemory {
+  id               String    @id @default(uuid())
+  organizationId   String
+  agent            Agent
+  runningSummary   String    @default("") @db.Text
+  longTermFacts    Json      @default("[]")
+  messageCount     Int       @default(0)
+  lastSummarizedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, agent])
+  @@index([organizationId])
+  @@map("agent_memory")
+}
+
+model OrgMemory {
+  id             String   @id @default(uuid())
+  organizationId String   @unique
+  runningSummary String   @default("") @db.Text
+  longTermFacts  Json     @default("[]")
+  sharedMemory   Json     @default("{}")
+  updatedAt      DateTime @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("org_memory")
 }
 
 model SocialAccount {

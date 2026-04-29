@@ -217,6 +217,8 @@ export type OrganizationWhereInput = {
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   subscription?: Prisma.XOR<Prisma.SubscriptionNullableScalarRelationFilter, Prisma.SubscriptionWhereInput> | null
+  agentMemory?: Prisma.AgentMemoryListRelationFilter
+  orgMemory?: Prisma.XOR<Prisma.OrgMemoryNullableScalarRelationFilter, Prisma.OrgMemoryWhereInput> | null
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -232,6 +234,8 @@ export type OrganizationOrderByWithRelationInput = {
   members?: Prisma.MemberOrderByRelationAggregateInput
   invitations?: Prisma.InvitationOrderByRelationAggregateInput
   subscription?: Prisma.SubscriptionOrderByWithRelationInput
+  agentMemory?: Prisma.AgentMemoryOrderByRelationAggregateInput
+  orgMemory?: Prisma.OrgMemoryOrderByWithRelationInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -250,6 +254,8 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   subscription?: Prisma.XOR<Prisma.SubscriptionNullableScalarRelationFilter, Prisma.SubscriptionWhereInput> | null
+  agentMemory?: Prisma.AgentMemoryListRelationFilter
+  orgMemory?: Prisma.XOR<Prisma.OrgMemoryNullableScalarRelationFilter, Prisma.OrgMemoryWhereInput> | null
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -295,6 +301,8 @@ export type OrganizationCreateInput = {
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -310,6 +318,8 @@ export type OrganizationUncheckedCreateInput = {
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -325,6 +335,8 @@ export type OrganizationUpdateInput = {
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -340,6 +352,8 @@ export type OrganizationUncheckedUpdateInput = {
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -451,6 +465,34 @@ export type OrganizationUpdateOneRequiredWithoutInvitationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutInvitationsInput, Prisma.OrganizationUpdateWithoutInvitationsInput>, Prisma.OrganizationUncheckedUpdateWithoutInvitationsInput>
 }
 
+export type OrganizationCreateNestedOneWithoutAgentMemoryInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutAgentMemoryInput, Prisma.OrganizationUncheckedCreateWithoutAgentMemoryInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutAgentMemoryInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutAgentMemoryNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutAgentMemoryInput, Prisma.OrganizationUncheckedCreateWithoutAgentMemoryInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutAgentMemoryInput
+  upsert?: Prisma.OrganizationUpsertWithoutAgentMemoryInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutAgentMemoryInput, Prisma.OrganizationUpdateWithoutAgentMemoryInput>, Prisma.OrganizationUncheckedUpdateWithoutAgentMemoryInput>
+}
+
+export type OrganizationCreateNestedOneWithoutOrgMemoryInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutOrgMemoryInput, Prisma.OrganizationUncheckedCreateWithoutOrgMemoryInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutOrgMemoryInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutOrgMemoryNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutOrgMemoryInput, Prisma.OrganizationUncheckedCreateWithoutOrgMemoryInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutOrgMemoryInput
+  upsert?: Prisma.OrganizationUpsertWithoutOrgMemoryInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutOrgMemoryInput, Prisma.OrganizationUpdateWithoutOrgMemoryInput>, Prisma.OrganizationUncheckedUpdateWithoutOrgMemoryInput>
+}
+
 export type OrganizationCreateNestedOneWithoutSubscriptionInput = {
   create?: Prisma.XOR<Prisma.OrganizationCreateWithoutSubscriptionInput, Prisma.OrganizationUncheckedCreateWithoutSubscriptionInput>
   connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutSubscriptionInput
@@ -477,6 +519,8 @@ export type OrganizationCreateWithoutMembersInput = {
   entitlementExpiresAt?: Date | string | null
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -491,6 +535,8 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   entitlementExpiresAt?: Date | string | null
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -521,6 +567,8 @@ export type OrganizationUpdateWithoutMembersInput = {
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -535,6 +583,8 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -549,6 +599,8 @@ export type OrganizationCreateWithoutInvitationsInput = {
   entitlementExpiresAt?: Date | string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -563,6 +615,8 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   entitlementExpiresAt?: Date | string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -593,6 +647,8 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -607,6 +663,168 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutAgentMemoryInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutAgentMemoryInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutAgentMemoryInput, Prisma.OrganizationUncheckedCreateWithoutAgentMemoryInput>
+}
+
+export type OrganizationUpsertWithoutAgentMemoryInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutAgentMemoryInput, Prisma.OrganizationUncheckedUpdateWithoutAgentMemoryInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutAgentMemoryInput, Prisma.OrganizationUncheckedCreateWithoutAgentMemoryInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutAgentMemoryInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutAgentMemoryInput, Prisma.OrganizationUncheckedUpdateWithoutAgentMemoryInput>
+}
+
+export type OrganizationUpdateWithoutAgentMemoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutOrgMemoryInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutOrgMemoryInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutOrgMemoryInput, Prisma.OrganizationUncheckedCreateWithoutOrgMemoryInput>
+}
+
+export type OrganizationUpsertWithoutOrgMemoryInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutOrgMemoryInput, Prisma.OrganizationUncheckedUpdateWithoutOrgMemoryInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutOrgMemoryInput, Prisma.OrganizationUncheckedCreateWithoutOrgMemoryInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutOrgMemoryInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutOrgMemoryInput, Prisma.OrganizationUncheckedUpdateWithoutOrgMemoryInput>
+}
+
+export type OrganizationUpdateWithoutOrgMemoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutSubscriptionInput = {
@@ -621,6 +839,8 @@ export type OrganizationCreateWithoutSubscriptionInput = {
   entitlementExpiresAt?: Date | string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
@@ -635,6 +855,8 @@ export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
   entitlementExpiresAt?: Date | string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutSubscriptionInput = {
@@ -665,6 +887,8 @@ export type OrganizationUpdateWithoutSubscriptionInput = {
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
@@ -679,6 +903,8 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 
@@ -689,11 +915,13 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
 export type OrganizationCountOutputType = {
   members: number
   invitations: number
+  agentMemory: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | OrganizationCountOutputTypeCountMembersArgs
   invitations?: boolean | OrganizationCountOutputTypeCountInvitationsArgs
+  agentMemory?: boolean | OrganizationCountOutputTypeCountAgentMemoryArgs
 }
 
 /**
@@ -720,6 +948,13 @@ export type OrganizationCountOutputTypeCountInvitationsArgs<ExtArgs extends runt
   where?: Prisma.InvitationWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountAgentMemoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AgentMemoryWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -734,6 +969,8 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
   subscription?: boolean | Prisma.Organization$subscriptionArgs<ExtArgs>
+  agentMemory?: boolean | Prisma.Organization$agentMemoryArgs<ExtArgs>
+  orgMemory?: boolean | Prisma.Organization$orgMemoryArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -778,6 +1015,8 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
   subscription?: boolean | Prisma.Organization$subscriptionArgs<ExtArgs>
+  agentMemory?: boolean | Prisma.Organization$agentMemoryArgs<ExtArgs>
+  orgMemory?: boolean | Prisma.Organization$orgMemoryArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -789,6 +1028,8 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     members: Prisma.$MemberPayload<ExtArgs>[]
     invitations: Prisma.$InvitationPayload<ExtArgs>[]
     subscription: Prisma.$SubscriptionPayload<ExtArgs> | null
+    agentMemory: Prisma.$AgentMemoryPayload<ExtArgs>[]
+    orgMemory: Prisma.$OrgMemoryPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1197,6 +1438,8 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   members<T extends Prisma.Organization$membersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$membersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invitations<T extends Prisma.Organization$invitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$invitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   subscription<T extends Prisma.Organization$subscriptionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$subscriptionArgs<ExtArgs>>): Prisma.Prisma__SubscriptionClient<runtime.Types.Result.GetResult<Prisma.$SubscriptionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  agentMemory<T extends Prisma.Organization$agentMemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$agentMemoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  orgMemory<T extends Prisma.Organization$orgMemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$orgMemoryArgs<ExtArgs>>): Prisma.Prisma__OrgMemoryClient<runtime.Types.Result.GetResult<Prisma.$OrgMemoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1692,6 +1935,49 @@ export type Organization$subscriptionArgs<ExtArgs extends runtime.Types.Extensio
    */
   include?: Prisma.SubscriptionInclude<ExtArgs> | null
   where?: Prisma.SubscriptionWhereInput
+}
+
+/**
+ * Organization.agentMemory
+ */
+export type Organization$agentMemoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AgentMemory
+   */
+  select?: Prisma.AgentMemorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentMemory
+   */
+  omit?: Prisma.AgentMemoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentMemoryInclude<ExtArgs> | null
+  where?: Prisma.AgentMemoryWhereInput
+  orderBy?: Prisma.AgentMemoryOrderByWithRelationInput | Prisma.AgentMemoryOrderByWithRelationInput[]
+  cursor?: Prisma.AgentMemoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AgentMemoryScalarFieldEnum | Prisma.AgentMemoryScalarFieldEnum[]
+}
+
+/**
+ * Organization.orgMemory
+ */
+export type Organization$orgMemoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrgMemory
+   */
+  select?: Prisma.OrgMemorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrgMemory
+   */
+  omit?: Prisma.OrgMemoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrgMemoryInclude<ExtArgs> | null
+  where?: Prisma.OrgMemoryWhereInput
 }
 
 /**

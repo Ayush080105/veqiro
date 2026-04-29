@@ -393,6 +393,8 @@ export const ModelName = {
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
   Message: 'Message',
+  AgentMemory: 'AgentMemory',
+  OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
   CompetitorWatch: 'CompetitorWatch',
@@ -420,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1087,6 +1089,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.MessageCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.MessageCountAggregateOutputType> | number
+        }
+      }
+    }
+    AgentMemory: {
+      payload: Prisma.$AgentMemoryPayload<ExtArgs>
+      fields: Prisma.AgentMemoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AgentMemoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AgentMemoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>
+        }
+        findFirst: {
+          args: Prisma.AgentMemoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AgentMemoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>
+        }
+        findMany: {
+          args: Prisma.AgentMemoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>[]
+        }
+        create: {
+          args: Prisma.AgentMemoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>
+        }
+        createMany: {
+          args: Prisma.AgentMemoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AgentMemoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>[]
+        }
+        delete: {
+          args: Prisma.AgentMemoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>
+        }
+        update: {
+          args: Prisma.AgentMemoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.AgentMemoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AgentMemoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AgentMemoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.AgentMemoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMemoryPayload>
+        }
+        aggregate: {
+          args: Prisma.AgentMemoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAgentMemory>
+        }
+        groupBy: {
+          args: Prisma.AgentMemoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentMemoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AgentMemoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentMemoryCountAggregateOutputType> | number
+        }
+      }
+    }
+    OrgMemory: {
+      payload: Prisma.$OrgMemoryPayload<ExtArgs>
+      fields: Prisma.OrgMemoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OrgMemoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OrgMemoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>
+        }
+        findFirst: {
+          args: Prisma.OrgMemoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OrgMemoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>
+        }
+        findMany: {
+          args: Prisma.OrgMemoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>[]
+        }
+        create: {
+          args: Prisma.OrgMemoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>
+        }
+        createMany: {
+          args: Prisma.OrgMemoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OrgMemoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>[]
+        }
+        delete: {
+          args: Prisma.OrgMemoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>
+        }
+        update: {
+          args: Prisma.OrgMemoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.OrgMemoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OrgMemoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OrgMemoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.OrgMemoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OrgMemoryPayload>
+        }
+        aggregate: {
+          args: Prisma.OrgMemoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOrgMemory>
+        }
+        groupBy: {
+          args: Prisma.OrgMemoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OrgMemoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OrgMemoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OrgMemoryCountAggregateOutputType> | number
         }
       }
     }
@@ -2167,6 +2317,33 @@ export const MessageScalarFieldEnum = {
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
 
 
+export const AgentMemoryScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  runningSummary: 'runningSummary',
+  longTermFacts: 'longTermFacts',
+  messageCount: 'messageCount',
+  lastSummarizedAt: 'lastSummarizedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentMemoryScalarFieldEnum = (typeof AgentMemoryScalarFieldEnum)[keyof typeof AgentMemoryScalarFieldEnum]
+
+
+export const OrgMemoryScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  runningSummary: 'runningSummary',
+  longTermFacts: 'longTermFacts',
+  sharedMemory: 'sharedMemory',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrgMemoryScalarFieldEnum = (typeof OrgMemoryScalarFieldEnum)[keyof typeof OrgMemoryScalarFieldEnum]
+
+
 export const SocialAccountScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -2677,6 +2854,8 @@ export type GlobalOmitConfig = {
   invitation?: Prisma.InvitationOmit
   brandKit?: Prisma.BrandKitOmit
   message?: Prisma.MessageOmit
+  agentMemory?: Prisma.AgentMemoryOmit
+  orgMemory?: Prisma.OrgMemoryOmit
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit
   competitorWatch?: Prisma.CompetitorWatchOmit
