@@ -1,6 +1,8 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
-import { REX_HISTORY_LIMIT } from "../../../config/constants.js";
+import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as rexRepository from "./rex.repository.js";
 import { parseUploaded } from "./rex.csv.js";
 import type {
@@ -38,32 +40,35 @@ export const sendMessage = async (
   });
   const history = await rexRepository.findRecentMessages(
     organizationId,
-    REX_HISTORY_LIMIT
+    CONTEXT_HISTORY_LIMIT
   );
-  const response = await aiService.post<AssistantMessagePayload>("/ai/rex/chat", {
-    user_id: userId,
-    organization_id: organizationId,
-    conversation_id: userMessage.id,
-    message: input.content,
-    history,
-  });
-  if (!response.data) {
+  const responseData = await callAgentWithContext({
+    agentApiPath: "/ai/rex/chat",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMessage.id,
+    userMessage: input.content,
+    rawHistory: history,
+  }) as AssistantMessagePayload;
+  if (!responseData) {
     throw new BadRequestError("Failed to get response");
   }
 
   const assistantMessage = await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: response.data.response,
-    imageUrl: response.data.image?.url,
-    tokensUsed: response.data.tokens_used,
-    model: response.data.model_used,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
+    tokensUsed: responseData.tokens_used,
+    model: responseData.model_used,
   });
 
   return {
     role: "assistant" as const,
-    content: response.data.response,
-    imageUrl: response.data.image?.url,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
     createdAt: assistantMessage.createdAt,
   };
 };

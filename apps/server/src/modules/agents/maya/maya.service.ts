@@ -1,7 +1,9 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
-import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
+import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64 } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsRepository from "../../integrations/integrations.repository.js";
@@ -70,25 +72,28 @@ export const sendMessage = async (
   });
   const history = await mayaRepository.findRecentMessages(
     organizationId,
-    SAGE_HISTORY_LIMIT
+    CONTEXT_HISTORY_LIMIT
   );
-  const { data } = await aiService.post<AssistantMessagePayload>("/ai/maya/chat", {
-    user_id: userId,
-    organization_id: organizationId,
-    conversation_id: userMessage.id,
-    message: input.content,
-    history,
-  });
-  if (!data) throw new BadRequestError("Failed to get response from AI");
+  const responseData = await callAgentWithContext({
+    agentApiPath: "/ai/maya/chat",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMessage.id,
+    userMessage: input.content,
+    rawHistory: history,
+  }) as AssistantMessagePayload;
+  if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
-  let imageUrl: string | undefined = data.image?.url;
-  if (!imageUrl && data.image?.image_base64 && isR2Configured()) {
+  let imageUrl: string | undefined = responseData.image?.url;
+  if (!imageUrl && responseData.image?.image_base64 && isR2Configured()) {
     try {
       const upload = await uploadImageBase64({
         organizationId,
         name: "maya",
-        base64: data.image.image_base64,
-        contentType: data.image.content_type,
+        base64: responseData.image.image_base64,
+        contentType: responseData.image.content_type,
       });
       imageUrl = upload.url;
     } catch (err) {
@@ -99,15 +104,15 @@ export const sendMessage = async (
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.response,
+    content: responseData.response,
     imageUrl,
-    tokensUsed: data.tokens_used,
-    model: data.model_used,
+    tokensUsed: responseData.tokens_used,
+    model: responseData.model_used,
   });
 
   return {
     role: "assistant" as const,
-    content: data.response,
+    content: responseData.response,
     imageUrl,
     createdAt: userMessage.createdAt,
   };

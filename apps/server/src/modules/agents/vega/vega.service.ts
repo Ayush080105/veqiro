@@ -1,6 +1,8 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
-import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
+import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import {
   getGoogleAccessToken,
   GoogleNotConnectedError,
@@ -104,7 +106,7 @@ export const sendMessage = async (
   });
   const history = await vegaRepository.findRecentMessages(
     organizationId,
-    SAGE_HISTORY_LIMIT
+    CONTEXT_HISTORY_LIMIT
   );
 
   let googleAccessToken: string | null = null;
@@ -114,17 +116,20 @@ export const sendMessage = async (
     if (!(err instanceof GoogleNotConnectedError)) throw err;
   }
 
-  const { data } = await aiService.post<AssistantMessagePayload>("/ai/vega/chat", {
-    user_id: userId,
-    organization_id: organizationId,
-    conversation_id: userMessage.id,
-    message: input.content,
-    history,
-    metadata: googleAccessToken ? { google_access_token: googleAccessToken } : {},
-  });
-  if (!data) throw new BadRequestError("Failed to get response from AI");
+  const responseData = await callAgentWithContext({
+    agentApiPath: "/ai/vega/chat",
+    agentEnum: Agent.VEGA,
+    agentRole: "Vega: Executive assistant for email and calendar management",
+    userId,
+    organizationId,
+    conversationId: userMessage.id,
+    userMessage: input.content,
+    rawHistory: history,
+    ...(googleAccessToken ? { extraPayload: { google_access_token: googleAccessToken } } : {}),
+  }) as AssistantMessagePayload;
+  if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
-  const nodeActions = data.metadata?.node_actions;
+  const nodeActions = responseData.metadata?.node_actions;
   let execResult:
     | { executed: number; errors: string[]; artifacts: Record<string, unknown> }
     | undefined;
@@ -135,17 +140,17 @@ export const sendMessage = async (
   await vegaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.response,
-    imageUrl: data.image?.url,
-    tokensUsed: data.tokens_used,
-    model: data.model_used,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
+    tokensUsed: responseData.tokens_used,
+    model: responseData.model_used,
     customInput: execResult ? { execResult } : undefined,
   });
 
   return {
     role: "assistant" as const,
-    content: data.response,
-    imageUrl: data.image?.url,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
     nodeActionsExecuted: execResult?.executed ?? 0,
     nodeActionErrors: execResult?.errors ?? [],
     googleNotConnected: !googleAccessToken,

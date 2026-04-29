@@ -1,7 +1,9 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
-import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
+import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import {
   deleteObject,
   headObject,
@@ -40,32 +42,35 @@ export const sendMessage = async (
   });
   const history = await lexRepository.findRecentMessages(
     organizationId,
-    SAGE_HISTORY_LIMIT
+    CONTEXT_HISTORY_LIMIT
   );
 
-  const { data } = await aiService.post<AssistantMessagePayload>("/ai/lex/chat", {
-    user_id: userId,
-    organization_id: organizationId,
-    conversation_id: userMessage.id,
-    message: input.content,
-    history,
-  });
-  if (!data) throw new BadRequestError("Failed to get response from AI");
+  const responseData = await callAgentWithContext({
+    agentApiPath: "/ai/lex/chat",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMessage.id,
+    userMessage: input.content,
+    rawHistory: history,
+  }) as AssistantMessagePayload;
+  if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.response,
-    imageUrl: data.image?.url,
-    tokensUsed: data.tokens_used,
-    model: data.model_used,
-    customInput: data.metadata ? { metadata: data.metadata } : undefined,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
+    tokensUsed: responseData.tokens_used,
+    model: responseData.model_used,
+    customInput: responseData.metadata ? { metadata: responseData.metadata } : undefined,
   });
 
   return {
     role: "assistant" as const,
-    content: data.response,
-    imageUrl: data.image?.url,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
     createdAt: userMessage.createdAt,
   };
 };

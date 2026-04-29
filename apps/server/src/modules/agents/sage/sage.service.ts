@@ -1,6 +1,8 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
-import { SAGE_HISTORY_LIMIT } from "../../../config/constants.js";
+import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as sageRepository from "./sage.repository.js";
 import type {
   SendMessageInput,
@@ -30,32 +32,35 @@ export const sendMessage = async (
   });
   const history = await sageRepository.findRecentMessages(
     organizationId,
-    SAGE_HISTORY_LIMIT
+    CONTEXT_HISTORY_LIMIT
   );
-  const response = await aiService.post<AssistantMessagePayload>("/ai/sage/chat", {
-    user_id: userId,
-    organization_id: organizationId,
-    conversation_id: userMessage.id,
-    message: input.content,
-    history,
-  });
-  if (!response.data) {
+  const responseData = await callAgentWithContext({
+    agentApiPath: "/ai/sage/chat",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMessage.id,
+    userMessage: input.content,
+    rawHistory: history,
+  }) as AssistantMessagePayload;
+  if (!responseData) {
     throw new BadRequestError("Failed to get response ");
   }
 
   await sageRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: response.data.response,
-    imageUrl: response.data.image?.url,
-    tokensUsed: response.data.tokens_used,
-    model: response.data.model_used,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
+    tokensUsed: responseData.tokens_used,
+    model: responseData.model_used,
   });
 
   return {
     role: "assistant" as const,
-    content: response.data.response,
-    imageUrl: response.data.image?.url,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
     createdAt: userMessage.createdAt,
   };
 };
