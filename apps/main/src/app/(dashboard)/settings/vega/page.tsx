@@ -61,11 +61,17 @@ export default function VegaSettingsPage() {
   })
 
   const handleAdd = () => {
-    if (!email.trim()) {
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
       toast.error("Email is required")
       return
     }
-    addMutation.mutate({ email: email.trim(), name: name.trim() || undefined })
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address")
+      return
+    }
+    addMutation.mutate({ email: trimmedEmail, name: name.trim() || undefined })
   }
 
   return (
