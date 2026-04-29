@@ -20,11 +20,12 @@ def _configure_logging():
         log.propagate = False
 
 
-def create_app() -> FastAPI:
+def create_app(lifespan=None) -> FastAPI:
     _configure_logging()
     app = FastAPI(
         title="AI Platform",
         version="1.0.0",
+        lifespan=lifespan,
     )
 
     app.add_middleware(

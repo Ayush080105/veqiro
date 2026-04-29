@@ -1,8 +1,10 @@
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import Depends
 from app import create_app
 from core.auth import verify_internal_key
+from core.conversation_memory import initialize_tables
 
 # New V1 agent routers
 from agents.maya.routes import router as maya_router
@@ -15,7 +17,12 @@ from agents.router import router as agent_router
 from briefing import router as briefing_router
 from core.context_routes import router as context_router
 
-app = create_app()
+@asynccontextmanager
+async def lifespan(app):
+    await initialize_tables()
+    yield
+
+app = create_app(lifespan=lifespan)
 
 
 _auth = [Depends(verify_internal_key)]
