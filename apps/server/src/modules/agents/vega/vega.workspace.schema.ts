@@ -62,15 +62,25 @@ export const sendFollowUpEmailSchema = z.object({
   body: z.string().min(1),
 });
 
-export const updateCalendarEventSchema = z.object({
-  start: z.string().datetime(),
-  end: z.string().datetime(),
-});
+export const updateCalendarEventSchema = z
+  .object({
+    start: z.string().datetime(),
+    end: z.string().datetime(),
+  })
+  .refine((data) => new Date(data.start) < new Date(data.end), {
+    message: "end must be after start",
+    path: ["end"],
+  });
 
-export const rescheduleDraftSchema = z.object({
-  eventTitle: z.string().min(1).max(500),
-  attendeeEmails: z.array(z.string().email()).optional().default([]),
-  originalStart: z.string().datetime(),
-  newStart: z.string().datetime(),
-  newEnd: z.string().datetime(),
-});
+export const rescheduleDraftSchema = z
+  .object({
+    eventTitle: z.string().min(1).max(500),
+    attendeeEmails: z.array(z.string().email()).optional().default([]),
+    originalStart: z.string().datetime(),
+    newStart: z.string().datetime(),
+    newEnd: z.string().datetime(),
+  })
+  .refine((data) => new Date(data.newStart) < new Date(data.newEnd), {
+    message: "newEnd must be after newStart",
+    path: ["newEnd"],
+  });
