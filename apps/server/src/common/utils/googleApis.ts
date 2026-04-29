@@ -256,3 +256,34 @@ export const sendGmailReply = async (args: SendGmailReplyArgs) => {
   }
   return (await res.json()) as { id: string; threadId: string; labelIds: string[] };
 };
+
+interface UpdateCalendarEventArgs {
+  accessToken: string;
+  eventId: string;
+  start: string;
+  end: string;
+}
+
+export const updateCalendarEvent = async (args: UpdateCalendarEventArgs) => {
+  const url = new URL(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${args.eventId}`
+  );
+  url.searchParams.set("sendUpdates", "all");
+
+  const res = await fetch(url.toString(), {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${args.accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      start: { dateTime: args.start },
+      end: { dateTime: args.end },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Calendar event update failed (${res.status}): ${err}`);
+  }
+  return (await res.json()) as { id: string; htmlLink?: string };
+};
