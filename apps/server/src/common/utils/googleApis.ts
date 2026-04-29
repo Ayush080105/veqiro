@@ -266,7 +266,7 @@ interface UpdateCalendarEventArgs {
 
 export const updateCalendarEvent = async (args: UpdateCalendarEventArgs) => {
   const url = new URL(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${args.eventId}`
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(args.eventId)}`
   );
   url.searchParams.set("sendUpdates", "all");
 
