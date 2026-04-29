@@ -33,15 +33,15 @@ export const sendMessage = async (
   organizationId: string,
   input: SendMessageInput
 ) => {
+  const history = await rexRepository.findRecentMessages(
+    organizationId,
+    CONTEXT_HISTORY_LIMIT
+  );
   const userMessage = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: input.content,
   });
-  const history = await rexRepository.findRecentMessages(
-    organizationId,
-    CONTEXT_HISTORY_LIMIT
-  );
   const responseData = await callAgentWithContext({
     agentApiPath: "/ai/rex/chat",
     agentEnum: Agent.REX,

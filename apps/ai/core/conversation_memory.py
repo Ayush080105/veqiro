@@ -1,3 +1,5 @@
+import json
+
 from core.config import settings
 
 _CREATE_TABLE_SQL = """
@@ -48,9 +50,10 @@ async def store_turn(
     from core.embeddings import embed_batch
     vectors = await embed_batch([user_content, assistant_content])
 
+    meta_json = json.dumps(metadata or {})
     rows = [
-        (org_id, agent, "user",      user_content,      _vec(vectors[0]), metadata or {}),
-        (org_id, agent, "assistant", assistant_content, _vec(vectors[1]), metadata or {}),
+        (org_id, agent, "user",      user_content,      _vec(vectors[0]), meta_json),
+        (org_id, agent, "assistant", assistant_content, _vec(vectors[1]), meta_json),
     ]
 
     from core.db import get_pool

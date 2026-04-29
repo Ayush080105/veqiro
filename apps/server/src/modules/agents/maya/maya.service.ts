@@ -65,15 +65,15 @@ export const sendMessage = async (
   organizationId: string,
   input: SendMessageInput
 ) => {
+  const history = await mayaRepository.findRecentMessages(
+    organizationId,
+    CONTEXT_HISTORY_LIMIT
+  );
   const userMessage = await mayaRepository.createUserMessage({
     organizationId,
     userId,
     content: input.content,
   });
-  const history = await mayaRepository.findRecentMessages(
-    organizationId,
-    CONTEXT_HISTORY_LIMIT
-  );
   const responseData = await callAgentWithContext({
     agentApiPath: "/ai/maya/chat",
     agentEnum: Agent.MAYA,

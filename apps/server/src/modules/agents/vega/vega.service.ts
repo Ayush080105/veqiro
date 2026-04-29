@@ -99,15 +99,15 @@ export const sendMessage = async (
   organizationId: string,
   input: SendMessageInput
 ) => {
+  const history = await vegaRepository.findRecentMessages(
+    organizationId,
+    CONTEXT_HISTORY_LIMIT
+  );
   const userMessage = await vegaRepository.createUserMessage({
     organizationId,
     userId,
     content: input.content,
   });
-  const history = await vegaRepository.findRecentMessages(
-    organizationId,
-    CONTEXT_HISTORY_LIMIT
-  );
 
   let googleAccessToken: string | null = null;
   try {

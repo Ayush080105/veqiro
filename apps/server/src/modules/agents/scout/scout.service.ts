@@ -24,15 +24,15 @@ export const sendMessage = async (
   organizationId: string,
   input: SendMessageInput
 ) => {
+  const history = await scoutRepository.findRecentMessages(
+    organizationId,
+    CONTEXT_HISTORY_LIMIT
+  );
   const userMessage = await scoutRepository.createUserMessage({
     organizationId,
     userId,
     content: input.content,
   });
-  const history = await scoutRepository.findRecentMessages(
-    organizationId,
-    CONTEXT_HISTORY_LIMIT
-  );
   const responseData = await callAgentWithContext({
     agentApiPath: "/ai/scout/chat",
     agentEnum: Agent.SCOUT,

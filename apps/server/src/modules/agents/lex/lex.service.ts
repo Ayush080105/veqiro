@@ -35,15 +35,15 @@ export const sendMessage = async (
   organizationId: string,
   input: SendMessageInput
 ) => {
+  const history = await lexRepository.findRecentMessages(
+    organizationId,
+    CONTEXT_HISTORY_LIMIT
+  );
   const userMessage = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: input.content,
   });
-  const history = await lexRepository.findRecentMessages(
-    organizationId,
-    CONTEXT_HISTORY_LIMIT
-  );
 
   const responseData = await callAgentWithContext({
     agentApiPath: "/ai/lex/chat",
