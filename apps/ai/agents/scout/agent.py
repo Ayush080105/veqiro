@@ -53,34 +53,38 @@ class ScoutAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
         extra_context: str | None = None,
+        use_brand_kit: bool = True,
     ) -> str:
-        from core.brand_kit import load_brand_kit, get_site_context_block
-        brand_kit = await load_brand_kit(organization_id)
-
         today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+
+        company_name = "your client"
         prompt = (
             "You are Scout — a sharp market intelligence analyst embedded in a founder's team. "
             "You deliver the actual competitive picture: specific, sourced, and strategically actionable. "
             "No consultant fluff, no sanitised summaries. "
             "Think ex-strategy analyst who has seen the real numbers — not a search engine regurgitating headlines.\n\n"
             f"**Today's date: {today}**\n"
-            f"**You are researching on behalf of: {brand_kit.company_name}**\n"
-            f"Industry: {brand_kit.industry}\n"
-            f"Target Audience: {brand_kit.target_audience}\n"
         )
-        if brand_kit.value_proposition:
-            prompt += f"Value Proposition: {brand_kit.value_proposition}\n"
-        prompt += f"Key Differentiators: {brand_kit.key_differentiators}\n"
-        if brand_kit.competitors:
-            prompt += f"Known Competitors: {', '.join(str(c) for c in brand_kit.competitors)}\n"
-        if brand_kit.website_url:
-            prompt += f"Founder's Website: {brand_kit.website_url}\n"
 
-        # Crawled site context — gives Scout the real positioning language to
-        # measure against competitors. Empty string if no crawl yet.
-        site_block = get_site_context_block(brand_kit)
-        if site_block:
-            prompt += "\n" + site_block + "\n"
+        if use_brand_kit:
+            from core.brand_kit import load_brand_kit, get_site_context_block
+            brand_kit = await load_brand_kit(organization_id)
+            company_name = brand_kit.company_name
+            prompt += (
+                f"**You are researching on behalf of: {brand_kit.company_name}**\n"
+                f"Industry: {brand_kit.industry}\n"
+                f"Target Audience: {brand_kit.target_audience}\n"
+            )
+            if brand_kit.value_proposition:
+                prompt += f"Value Proposition: {brand_kit.value_proposition}\n"
+            prompt += f"Key Differentiators: {brand_kit.key_differentiators}\n"
+            if brand_kit.competitors:
+                prompt += f"Known Competitors: {', '.join(str(c) for c in brand_kit.competitors)}\n"
+            if brand_kit.website_url:
+                prompt += f"Founder's Website: {brand_kit.website_url}\n"
+            site_block = get_site_context_block(brand_kit)
+            if site_block:
+                prompt += "\n" + site_block + "\n"
 
         prompt += (
             "\n## Research Standards\n"
@@ -88,7 +92,7 @@ class ScoutAgent(BaseAgent):
             "2. **Label every claim**: [FACT] for verified data, [INFERRED] for logical conclusions, [ESTIMATED] for approximations.\n"
             "3. **Cite inline** — link source URLs directly after any claim that came from the web.\n"
             "4. **Use tables** for any comparison of 2+ companies or data points.\n"
-            "5. **Strategic implications** — end every competitive analysis with a 'So what for {company_name}?' block.\n"
+            f"5. **Strategic implications** — end every competitive analysis with a 'So what for {company_name}?' block.\n"
             "6. **Highlight gaps** — competitor weaknesses are the founder's opportunities; call them out explicitly.\n"
             f"7. **Recency matters** — today is {today}. Flag data older than 6 months. Always prefer the most recent sources.\n\n"
             "## Output Format\n"
@@ -96,7 +100,7 @@ class ScoutAgent(BaseAgent):
             "  - Bottom line (1-2 sentences)\n"
             "  - Comparison table (if multiple companies)\n"
             "  - Key findings with [FACT/INFERRED/ESTIMATED] labels and source links\n"
-            "  - Strategic implications for {company_name}\n\n"
+            f"  - Strategic implications for {company_name}\n\n"
             "For market research:\n"
             "  - Bottom line\n"
             "  - Market size & trajectory (with source)\n"
@@ -112,7 +116,7 @@ class ScoutAgent(BaseAgent):
             "Use research_company for companies, research_topic for markets, "
             "web_search for live data, discover_competitors to find who's competing, "
             "trending_topics for market signals.\n"
-        ).format(company_name=brand_kit.company_name)
+        )
 
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"

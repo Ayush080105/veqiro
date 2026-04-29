@@ -442,7 +442,7 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
         + _fmt(results_vs, "Competitors & Alternatives search")
     )
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -523,7 +523,7 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
         news_context = ""
         if news_results:
             news_context = "\n\nRecent news:\n" + "\n".join(f"- {r['title']}: {r['snippet']}" for r in news_results[:6])
-        system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
@@ -638,7 +638,7 @@ async def discover_competitors(request: DiscoverCompetitorsRequest) -> DiscoverC
         f"- {r['title']}: {r['snippet']} ({r['link']})" for r in all_results
     ) if all_results else ""
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,

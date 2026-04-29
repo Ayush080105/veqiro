@@ -416,7 +416,7 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
     total_points = sum(len(v) for v in request.metrics.values())
     confidence_level = "high" if total_points >= 12 else "medium" if total_points >= 6 else "low"
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     metrics_summary = json.dumps({k: [{"date": d.date, "value": d.value} for d in v] for k, v in request.metrics.items()})
     prompt = (
         f"You are Rex, a CFO analyst. Analyze these {request.period} business metrics for a SaaS startup:\n"
@@ -530,7 +530,7 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
     health = compute_health_indicator(derived)
     total_points = len(request.revenue_data) + len(request.expenses_data) + len(request.subscribers_data)
     confidence_level = "high" if total_points >= 12 else "medium" if total_points >= 4 else "low"
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
 
     prompt = (
         "You are Rex, a startup CFO. Provide a financial narrative and specific action items based on these computed metrics:\n"
@@ -602,7 +602,7 @@ async def compile_briefing(request: BriefingRequest) -> BriefingResponse:
             }
         )
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     context = f"Date: {request.date or datetime.utcnow().strftime('%Y-%m-%d')}\nMetrics: {json.dumps(request.all_metrics)}\nAgent summaries: {json.dumps(request.agent_summaries)}"
     prompt = (
         "Compile a concise executive briefing for a startup founder. Structure it clearly:\n"
@@ -683,7 +683,7 @@ async def investor_update(request: InvestorUpdateRequest) -> InvestorUpdateRespo
             ),
         )
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     prompt = (
         f"Write a professional, direct investor update for {request.period}.\n\n"
         f"Metrics: {json.dumps(request.metrics)}\n"
@@ -918,7 +918,7 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
     has_prev = bool(request.prev_week)
     confidence_level = "high" if metrics_count >= 6 and has_prev else "medium" if metrics_count >= 3 else "low"
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     period_str = datetime.utcnow().strftime("Week of %b %d %Y")
     prompt = (
         f"You are Rex, the CFO analyst. Generate a Monday morning digest for a startup founder.\n\n"
@@ -1054,7 +1054,7 @@ async def variance_analysis(request: VarianceRequest) -> VarianceResponse:
 
     # Build an LLM narrative
     notable = [r for r in rows if abs(r.variance_pct) > 10]
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     prompt = (
         f"You are Rex, the CFO. Generate a budget variance narrative for {request.metric} ({request.period}).\n\n"
         f"Total actual: ${total_actual:,.2f}\n"
@@ -1164,7 +1164,7 @@ async def board_deck(request: BoardDeckRequest) -> BoardDeckResponse:
         html = _render_board_html(request.period, headline, sections, request.metrics)
         return BoardDeckResponse(period=request.period, headline=headline, sections=sections, html=html)
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     prompt = (
         f"Compose a structured board update for the period: {request.period}.\n\n"
         f"Metrics: {json.dumps(request.metrics, default=str)}\n"

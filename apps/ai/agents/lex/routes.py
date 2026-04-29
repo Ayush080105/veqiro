@@ -531,7 +531,7 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
 
     full_text = "\n\n".join(c.get("content", "") for c in chunks)
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     raw = await _llm.complete(
         provider=_agent.default_provider,
         model=_agent.default_model,
@@ -769,7 +769,7 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
             ],
         )
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -916,7 +916,7 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
             estimated_effort="2-4 weeks for critical compliance items, 2-3 months for full implementation and documentation",
         )
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
