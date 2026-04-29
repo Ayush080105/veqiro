@@ -239,6 +239,23 @@ class MeetingPrepResponse(BaseModel):
     model_used: str = ""
 
 
+class PostMeetingFollowUpRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    event_title: str
+    attendee_emails: list[str] = []
+    description: str = ""
+    notes: str = ""
+    metadata: dict = {}
+
+
+class PostMeetingFollowUpResponse(BaseModel):
+    follow_up: dict
+    action_items: list[str] = []
+    tokens_used: int = 0
+    model_used: str = ""
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatSyncResponse, summary="Vega chat")
@@ -788,3 +805,66 @@ async def meeting_prep(request: MeetingPrepRequest) -> MeetingPrepResponse:
             "suggested_agenda": [],
         }
     return MeetingPrepResponse(prep=data, tokens_used=tokens_used, model_used=_agent.default_model)
+
+
+@router.post("/post-meeting-followup", response_model=PostMeetingFollowUpResponse, summary="Post-meeting follow-up draft")
+async def post_meeting_followup(request: PostMeetingFollowUpRequest) -> PostMeetingFollowUpResponse:
+    """Generate a follow-up email draft and action item list after a meeting."""
+    attendee_str = ", ".join(request.attendee_emails[:3]) or "attendees"
+    if settings.MOCK_MODE:
+        return PostMeetingFollowUpResponse(
+            follow_up={
+                "to": request.attendee_emails[0] if request.attendee_emails else "",
+                "subject": f"Follow-up: {request.event_title}",
+                "body": (
+                    f"Hi {attendee_str},\n\n"
+                    f"Thanks for joining our {request.event_title} call today. "
+                    f"Here's a quick recap of what we discussed and the next steps.\n\n"
+                    f"Please let me know if I missed anything.\n\nBest,"
+                ),
+            },
+            action_items=[
+                "Share meeting notes with all attendees by EOD",
+                "Schedule follow-up call within 2 weeks",
+                "Send over any documents mentioned during the call",
+            ],
+        )
+
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    context = (
+        f"Meeting: {request.event_title}\n"
+        f"Attendees: {', '.join(request.attendee_emails)}\n"
+        f"Description: {request.description}"
+    )
+    if request.notes:
+        context += f"\nMeeting notes: {request.notes}"
+
+    raw = await _llm.complete(
+        provider=_agent.default_provider,
+        model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": (
+            f"Generate a professional post-meeting follow-up for:\n{context}\n\n"
+            "Return ONLY a JSON object (no markdown fences) with keys: "
+            "follow_up (object with keys: to (first attendee email), subject (string), body (string — friendly professional follow-up email text)), "
+            "action_items (list of strings — concrete next steps identified during the meeting)"
+        )}],
+    )
+    tokens_used = _llm.count_tokens(raw)
+    try:
+        data = safe_json_loads(raw)
+    except Exception:
+        data = {
+            "follow_up": {
+                "to": request.attendee_emails[0] if request.attendee_emails else "",
+                "subject": f"Follow-up: {request.event_title}",
+                "body": raw[:500],
+            },
+            "action_items": [],
+        }
+    return PostMeetingFollowUpResponse(
+        follow_up=data.get("follow_up", {}),
+        action_items=data.get("action_items", []),
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
