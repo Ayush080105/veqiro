@@ -180,6 +180,9 @@ export function EventSidePanel({
           <p className="text-xs text-muted-foreground">
             {durationLabel(event.start, event.end)}
           </p>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#888" }}>
+            {Intl.DateTimeFormat().resolvedOptions().timeZone}
+          </span>
         </div>
         <Button
           variant="ghost"

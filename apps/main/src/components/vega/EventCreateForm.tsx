@@ -146,6 +146,9 @@ export function EventCreateForm({
           />
         </div>
       </div>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#888" }}>
+        All times in: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+      </span>
 
       <div className="flex flex-col gap-1">
         <label style={labelStyle}>Attendees</label>
