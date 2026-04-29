@@ -94,6 +94,10 @@ class BaseAgent(ABC):
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
 
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system_prompt += f"\n\n{memory_context}"
+
         messages = [
             {"role": m.role, "content": m.content} for m in request.history
         ] + [{"role": "user", "content": request.message}]
@@ -158,6 +162,10 @@ class BaseAgent(ABC):
         if rag_chunks:
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
+
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system_prompt += f"\n\n{memory_context}"
 
         # Add tool-use instructions to system prompt
         system_prompt += self.get_tool_instructions()
