@@ -128,7 +128,11 @@ export function EventSidePanel({
   }
 
   const handleConfirmReschedule = async () => {
-    if (rescheduleEndTime <= rescheduleStartTime) {
+    if (!newStart || !newEnd) {
+      toast.error("Please set a new date and time")
+      return
+    }
+    if (new Date(newEnd) <= new Date(newStart)) {
       toast.error("End time must be after start time")
       return
     }
