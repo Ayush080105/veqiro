@@ -118,7 +118,7 @@ export function EventSidePanel({
         newEnd,
       }),
     enabled: rescheduleDraftEnabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   })
 
   const prevRescheduleDataRef = React.useRef<typeof rescheduleData>(undefined)
