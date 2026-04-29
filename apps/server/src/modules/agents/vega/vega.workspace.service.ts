@@ -253,6 +253,7 @@ export const generateAndCacheBriefing = async (
   organizationId: string,
   input: z.infer<typeof generateBriefingSchema>
 ): Promise<BriefingCacheEntry> => {
+  const date = today();
   const token = await requireGoogleToken(userId);
   const { data } = await aiService.post<ExecutiveBriefingResponse>(
     "/ai/vega/executive-briefing",
@@ -268,14 +269,14 @@ export const generateAndCacheBriefing = async (
   const record = await prisma.vegaBriefingCache.upsert({
     where: {
       date_type_organizationId: {
-        date: today(),
+        date,
         type: input.type,
         organizationId,
       },
     },
     update: { content: data.briefing as object, generatedAt: new Date() },
     create: {
-      date: today(),
+      date,
       type: input.type,
       content: data.briefing as object,
       organizationId,
