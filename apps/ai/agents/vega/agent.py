@@ -57,28 +57,31 @@ class VegaAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
         extra_context: str | None = None,
+        use_brand_kit: bool = True,
     ) -> str:
-        from core.brand_kit import load_brand_kit, get_site_context_block
         base = await super().build_system_prompt(user_id, organization_id, extra_context)
-        brand_kit = await load_brand_kit(organization_id)
 
-        client_ctx = "\n\n## Client Context\n"
-        client_ctx += f"Company: **{brand_kit.company_name}**\n"
-        if brand_kit.industry:
-            client_ctx += f"Industry: {brand_kit.industry}\n"
-        if brand_kit.brand_voice:
-            client_ctx += f"Brand Voice: {brand_kit.brand_voice}\n"
-        if brand_kit.website_url:
-            client_ctx += f"Website: {brand_kit.website_url}\n"
-        platform_tones = brand_kit.platform_tones or {}
-        if any(platform_tones.values()):
-            tones_str = ", ".join(
-                f"{k}: {v}" for k, v in platform_tones.items() if v
-            )
-            client_ctx += f"Platform Tones: {tones_str}\n"
-        site_block = get_site_context_block(brand_kit)
-        if site_block:
-            client_ctx += "\n" + site_block + "\n"
+        client_ctx = ""
+        if use_brand_kit:
+            from core.brand_kit import load_brand_kit, get_site_context_block
+            brand_kit = await load_brand_kit(organization_id)
+            client_ctx = "\n\n## Client Context\n"
+            client_ctx += f"Company: **{brand_kit.company_name}**\n"
+            if brand_kit.industry:
+                client_ctx += f"Industry: {brand_kit.industry}\n"
+            if brand_kit.brand_voice:
+                client_ctx += f"Brand Voice: {brand_kit.brand_voice}\n"
+            if brand_kit.website_url:
+                client_ctx += f"Website: {brand_kit.website_url}\n"
+            platform_tones = brand_kit.platform_tones or {}
+            if any(platform_tones.values()):
+                tones_str = ", ".join(
+                    f"{k}: {v}" for k, v in platform_tones.items() if v
+                )
+                client_ctx += f"Platform Tones: {tones_str}\n"
+            site_block = get_site_context_block(brand_kit)
+            if site_block:
+                client_ctx += "\n" + site_block + "\n"
 
         vega_specific = (
             "\n\nAs Vega, you specialize in:\n"

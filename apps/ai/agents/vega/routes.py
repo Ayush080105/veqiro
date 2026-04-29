@@ -335,7 +335,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
         ]
         return ProcessInboxResponse(processed=processed, stats=stats, node_actions=node_actions)
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     processed = []
     stats_counts = {"urgent": 0, "high": 0, "medium": 0, "low": 0}
     label_messages_list = []
@@ -554,7 +554,7 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
     now = datetime.now(timezone.utc)
     next_day = (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -907,7 +907,7 @@ async def reschedule_draft(request: RescheduleDraftRequest) -> RescheduleDraftRe
             }
         )
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     raw = await _llm.complete(
         provider=_agent.default_provider,
         model=_agent.default_model,
