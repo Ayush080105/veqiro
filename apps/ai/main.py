@@ -13,6 +13,7 @@ from agents.lex.routes import router as lex_router
 from agents.vega.routes import router as vega_router
 from agents.router import router as agent_router
 from briefing import router as briefing_router
+from core.context_routes import router as context_router
 
 app = create_app()
 
@@ -28,6 +29,7 @@ app.include_router(sage_router,   dependencies=_auth)   # /ai/sage/...
 app.include_router(lex_router,    dependencies=_auth)   # /ai/lex/...
 app.include_router(vega_router,     dependencies=_auth)   # /ai/vega/...
 app.include_router(briefing_router, dependencies=_auth)   # /ai/briefing
+app.include_router(context_router,  dependencies=_auth)   # /ai/context/...
 
 
 # ── Health endpoints ──────────────────────────────────────────────────────────
