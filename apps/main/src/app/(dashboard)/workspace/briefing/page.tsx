@@ -369,7 +369,13 @@ export default function BriefingPage() {
         </Button>
       </div>
 
-      <BriefingTypeTabs active={briefingType} onChange={(t) => setBriefingType(t)} />
+      <BriefingTypeTabs
+        active={briefingType}
+        onChange={(t) => {
+          setBriefingType(t)
+          window.scrollTo(0, 0)
+        }}
+      />
 
       {loading ? (
         <BriefingLoadingSkeleton />
