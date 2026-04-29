@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import React, { useState } from "react"
+import { useQuery, useMutation } from "@tanstack/react-query"
 import { qk } from "@/lib/query-keys"
-import { fetchMeetingPrep } from "@/lib/api/vega-calendar"
+import { fetchMeetingPrep, fetchPostMeetingFollowUp, sendFollowUpEmail } from "@/lib/api/vega-calendar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { X, Video, Users, Sparkles } from "lucide-react"
+import { X, Video, Users, Sparkles, Send, RotateCcw } from "lucide-react"
+import { toast } from "sonner"
 import type { CalendarEvent } from "@/lib/api/vega-calendar"
 
 function fmtDateTime(iso: string): string {
@@ -41,6 +42,44 @@ export function EventSidePanel({
   onClose: () => void
 }) {
   const [prepEnabled, setPrepEnabled] = useState(false)
+
+  const isPastEvent = new Date() > new Date(event.end)
+  const [followUpEnabled, setFollowUpEnabled] = useState(false)
+  const [followUpBody, setFollowUpBody] = useState("")
+
+  const {
+    data: followUpData,
+    isLoading: followUpLoading,
+    isError: followUpError,
+    refetch: refetchFollowUp,
+  } = useQuery({
+    queryKey: qk.vegaPostMeetingFollowup(event.id),
+    queryFn: () =>
+      fetchPostMeetingFollowUp({
+        eventTitle: event.title,
+        attendeeEmails: event.attendees,
+        description: event.description,
+        notes: "",
+      }),
+    enabled: followUpEnabled,
+    staleTime: 10 * 60 * 1000,
+  })
+
+  const sendMutation = useMutation({
+    mutationFn: sendFollowUpEmail,
+    onSuccess: () => {
+      toast.success("Follow-up sent")
+      setFollowUpEnabled(false)
+    },
+    onError: () => toast.error("Failed to send follow-up"),
+  })
+
+  // Sync body from fetched data (without useEffect — ref comparison pattern)
+  const prevFollowUpDataRef = React.useRef<typeof followUpData>(undefined)
+  if (followUpData !== prevFollowUpDataRef.current) {
+    prevFollowUpDataRef.current = followUpData
+    if (followUpData) setFollowUpBody(followUpData.followUp.body)
+  }
 
   const { data: prep, isLoading: prepLoading, isError: prepError, refetch: refetchPrep } = useQuery({
     queryKey: qk.vegaMeetingPrep(event.id),
@@ -219,6 +258,122 @@ export function EventSidePanel({
           </div>
         )}
       </div>
+
+      {/* Post-meeting follow-up — shown only after the event has ended */}
+      {isPastEvent && (
+        <div className="flex flex-col gap-2">
+          <div
+            className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            After the meeting
+          </div>
+
+          {!followUpEnabled && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              style={{ border: "2px solid #111", justifyContent: "start" }}
+              onClick={() => setFollowUpEnabled(true)}
+            >
+              <Send className="size-3.5" />
+              Generate Follow-up Email
+            </Button>
+          )}
+
+          {followUpEnabled && followUpLoading && (
+            <div
+              className="flex flex-col gap-2 rounded-lg p-3"
+              style={{ background: "#FFF9ED", border: "1.5px solid #E5E5E5" }}
+            >
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-4/5" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          )}
+
+          {followUpEnabled && followUpError && (
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-destructive flex-1">Failed to generate follow-up.</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-6 px-2 shrink-0"
+                onClick={() => refetchFollowUp()}
+              >
+                <RotateCcw className="size-3" />
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {followUpEnabled && followUpData && (
+            <div
+              className="flex flex-col gap-3 rounded-lg p-3"
+              style={{ background: "#FFF9ED", border: "1.5px solid #E5E5E5" }}
+            >
+              {followUpData.actionItems.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
+                    Action Items
+                  </p>
+                  {followUpData.actionItems.map((item, i) => (
+                    <div key={i} className="text-xs text-foreground pl-2">
+                      · {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1">
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  Email Draft
+                </p>
+                <textarea
+                  value={followUpBody}
+                  onChange={(e) => setFollowUpBody(e.target.value)}
+                  style={{
+                    width: "100%",
+                    minHeight: 100,
+                    padding: "6px 8px",
+                    border: "1.5px solid #111",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono)",
+                    background: "#fff",
+                    resize: "vertical",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <Button
+                size="sm"
+                onClick={() =>
+                  sendMutation.mutate({
+                    to: followUpData.followUp.to,
+                    subject: followUpData.followUp.subject,
+                    body: followUpBody,
+                  })
+                }
+                disabled={sendMutation.isPending}
+                style={{ border: "2px solid #111", boxShadow: "2px 2px 0 #111" }}
+              >
+                <Send className="size-3.5" />
+                {sendMutation.isPending ? "Sending…" : "Send Follow-up"}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

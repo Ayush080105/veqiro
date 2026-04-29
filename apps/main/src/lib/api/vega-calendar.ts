@@ -66,3 +66,31 @@ export function createCalendarEvent(
     body: payload,
   });
 }
+
+export interface PostMeetingFollowUp {
+  followUp: { to: string; subject: string; body: string }
+  actionItems: string[]
+}
+
+export function fetchPostMeetingFollowUp(payload: {
+  eventTitle: string
+  attendeeEmails: string[]
+  description: string
+  notes?: string
+}): Promise<PostMeetingFollowUp> {
+  return apiFetch<PostMeetingFollowUp>("/agents/vega/calendar/followup", {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function sendFollowUpEmail(payload: {
+  to: string
+  subject: string
+  body: string
+}): Promise<{ messageId: string }> {
+  return apiFetch<{ messageId: string }>("/agents/vega/calendar/followup/send", {
+    method: "POST",
+    body: payload,
+  })
+}
