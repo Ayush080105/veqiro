@@ -94,3 +94,30 @@ export function sendFollowUpEmail(payload: {
     body: payload,
   })
 }
+
+export interface RescheduleDraft {
+  email: { to: string; subject: string; body: string }
+}
+
+export function fetchRescheduleDraft(payload: {
+  eventTitle: string
+  attendeeEmails: string[]
+  originalStart: string
+  newStart: string
+  newEnd: string
+}): Promise<RescheduleDraft> {
+  return apiFetch<RescheduleDraft>("/agents/vega/calendar/reschedule-draft", {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function patchCalendarEvent(
+  eventId: string,
+  payload: { start: string; end: string }
+): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/agents/vega/calendar/events/${eventId}`, {
+    method: "PATCH",
+    body: payload,
+  })
+}
