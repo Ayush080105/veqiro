@@ -1,5 +1,5 @@
 import { prisma } from "../../config/prisma.js";
-import { Agent } from "../../../prisma/generated/prisma/client.js";
+import { Agent, Prisma } from "../../../prisma/generated/prisma/client.js";
 
 // AgentMemory
 
@@ -56,7 +56,7 @@ export const upsertOrgMemory = (
   data: {
     runningSummary?: string
     longTermFacts?: string[]
-    sharedMemory?: object
+    sharedMemory?: Prisma.InputJsonValue
   }
 ) =>
   prisma.orgMemory.upsert({
