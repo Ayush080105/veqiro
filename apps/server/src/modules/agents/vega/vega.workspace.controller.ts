@@ -12,6 +12,8 @@ import {
   getCalendarSchema,
   createCalendarEventSchema,
   getMeetingPrepSchema,
+  postMeetingFollowUpSchema,
+  sendFollowUpEmailSchema,
 } from "./vega.workspace.schema.js";
 import * as ws from "./vega.workspace.service.js";
 
@@ -121,5 +123,20 @@ export const getMeetingPrepHandler = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = getMeetingPrepSchema.parse(req.body);
   const result = await ws.getMeetingPrepWorkspace(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// Post-meeting follow-up
+export const postMeetingFollowUpHandler = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = postMeetingFollowUpSchema.parse(req.body);
+  const result = await ws.getPostMeetingFollowUp(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const sendFollowUpEmailHandler = async (req: Request, res: Response) => {
+  const { userId } = requireAuthContext(req);
+  const input = sendFollowUpEmailSchema.parse(req.body);
+  const result = await ws.sendFollowUpEmail(userId, input);
   res.status(StatusCodes.OK).json(result);
 };

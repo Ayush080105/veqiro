@@ -48,3 +48,16 @@ export const getMeetingPrepSchema = z.object({
   attendeeEmails: z.array(z.string().email()).optional().default([]),
   description: z.string().max(2000).optional().default(""),
 });
+
+export const postMeetingFollowUpSchema = z.object({
+  eventTitle: z.string().min(1).max(500),
+  attendeeEmails: z.array(z.string().email()).optional().default([]),
+  description: z.string().max(2000).optional().default(""),
+  notes: z.string().max(2000).optional().default(""),
+});
+
+export const sendFollowUpEmailSchema = z.object({
+  to: z.string().email(),
+  subject: z.string().min(1).max(500),
+  body: z.string().min(1),
+});

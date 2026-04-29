@@ -23,6 +23,8 @@ import {
   getCalendarEvents,
   createCalendarEventHandler,
   getMeetingPrepHandler,
+  postMeetingFollowUpHandler,
+  sendFollowUpEmailHandler,
 } from "./vega.workspace.controller.js";
 
 const router = Router();
@@ -58,5 +60,9 @@ router.post("/briefing/generate", generateBriefing);
 router.get("/calendar/events", getCalendarEvents);
 router.post("/calendar/events", createCalendarEventHandler);
 router.post("/calendar/prep", getMeetingPrepHandler);
+
+// workspace: post-meeting follow-up
+router.post("/calendar/followup", postMeetingFollowUpHandler);
+router.post("/calendar/followup/send", sendFollowUpEmailHandler);
 
 export default router;

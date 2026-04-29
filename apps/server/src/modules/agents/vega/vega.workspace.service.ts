@@ -24,6 +24,8 @@ import type {
   getCalendarSchema,
   createCalendarEventSchema,
   getMeetingPrepSchema,
+  postMeetingFollowUpSchema,
+  sendFollowUpEmailSchema,
 } from "./vega.workspace.schema.js";
 import type { z } from "zod";
 
@@ -423,4 +425,64 @@ export const getMeetingPrepWorkspace = async (
       ? prep.suggested_agenda.map(String)
       : [],
   };
+};
+
+// ─── Post-meeting follow-up ────────────────────────────────────────────────────
+
+export interface PostMeetingFollowUp {
+  followUp: { to: string; subject: string; body: string };
+  actionItems: string[];
+}
+
+export const getPostMeetingFollowUp = async (
+  userId: string,
+  organizationId: string,
+  input: z.infer<typeof postMeetingFollowUpSchema>
+): Promise<PostMeetingFollowUp> => {
+  let token = "";
+  try {
+    token = await requireGoogleToken(userId);
+  } catch {
+    // token is optional for follow-up generation
+  }
+  const { data } = await aiService.post<{
+    follow_up: Record<string, unknown>;
+    action_items: string[];
+  }>("/ai/vega/post-meeting-followup", {
+    user_id: userId,
+    organization_id: organizationId,
+    event_title: input.eventTitle,
+    attendee_emails: input.attendeeEmails,
+    description: input.description,
+    notes: input.notes,
+    metadata: { google_access_token: token },
+  });
+
+  const fu = data.follow_up ?? {};
+  return {
+    followUp: {
+      to: String(fu.to ?? ""),
+      subject: String(fu.subject ?? ""),
+      body: String(fu.body ?? ""),
+    },
+    actionItems: Array.isArray(data.action_items)
+      ? data.action_items.map(String)
+      : [],
+  };
+};
+
+export const sendFollowUpEmail = async (
+  userId: string,
+  input: z.infer<typeof sendFollowUpEmailSchema>
+): Promise<{ messageId: string }> => {
+  const token = await requireGoogleToken(userId);
+  const sent = await sendGmailReply({
+    accessToken: token,
+    to: input.to,
+    subject: input.subject,
+    body: input.body,
+    replyToMessageId: null,
+    replyToThreadId: null,
+  });
+  return { messageId: sent.id };
 };
