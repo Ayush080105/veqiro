@@ -476,6 +476,7 @@ export const sendFollowUpEmail = async (
   input: z.infer<typeof sendFollowUpEmailSchema>
 ): Promise<{ messageId: string }> => {
   const token = await requireGoogleToken(userId);
+  // Fresh email (not a reply to an existing thread)
   const sent = await sendGmailReply({
     accessToken: token,
     to: input.to,
