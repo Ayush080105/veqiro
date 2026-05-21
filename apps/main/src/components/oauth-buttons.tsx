@@ -6,6 +6,12 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { FONT } from "@/lib/fonts";
 
+function toAppCallbackURL(path: string): string {
+  if (/^https?:\/\//u.test(path)) return path;
+  if (typeof window === "undefined") return path;
+  return new URL(path, window.location.origin).toString();
+}
+
 export default function OAuthButtons({
   // "/" lets proxy.ts route to /dashboard or /onboarding based on the
   // (possibly fresh) session — onboarded users never get sent back to
@@ -18,7 +24,10 @@ export default function OAuthButtons({
 
   const handleClick = () => {
     setGoogleLoading(true);
-    signIn.social({ provider: "google", callbackURL });
+    signIn.social({
+      provider: "google",
+      callbackURL: toAppCallbackURL(callbackURL),
+    });
   };
 
   return (

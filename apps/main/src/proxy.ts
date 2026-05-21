@@ -5,6 +5,67 @@ import { routeForUser, type SessionPayload } from "@/lib/proxy-routing";
 
 const BETTER_AUTH_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL!;
 const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || "v1";
+const SESSION_CACHE_TTL_MS = 8_000;
+const SESSION_CACHE_MAX = 250;
+
+type SessionCacheEntry = {
+  payload: SessionPayload | null;
+  expiresAt: number;
+};
+
+const sessionCache = new Map<string, SessionCacheEntry>();
+
+function getSessionCacheKey(cookie: string): string | null {
+  const tokenMatch = cookie.match(
+    /(?:^|;\s*)(?:__Secure-)?better-auth\.session(?:-|_)token=([^;]+)/u,
+  );
+  return tokenMatch?.[1] ?? null;
+}
+
+function pruneSessionCache(now: number) {
+  if (sessionCache.size <= SESSION_CACHE_MAX) return;
+  for (const [key, entry] of sessionCache) {
+    if (entry.expiresAt <= now || sessionCache.size > SESSION_CACHE_MAX) {
+      sessionCache.delete(key);
+    }
+  }
+}
+
+async function getSessionPayload(
+  cookie: string,
+  forceRefresh: boolean,
+): Promise<SessionPayload | null> {
+  const now = Date.now();
+  const cacheKey = getSessionCacheKey(cookie);
+
+  if (cacheKey && !forceRefresh) {
+    const cached = sessionCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.payload;
+    }
+  }
+
+  let payload: SessionPayload | null = null;
+  try {
+    const res = await fetch(
+      `${BETTER_AUTH_URL}/api/${API_VERSION}/auth/get-session`,
+      { headers: { cookie }, cache: "no-store" },
+    );
+    if (res.ok) payload = (await res.json()) as SessionPayload;
+  } catch {
+    // Treat network failure as unauthenticated.
+  }
+
+  if (cacheKey) {
+    sessionCache.set(cacheKey, {
+      payload,
+      expiresAt: now + SESSION_CACHE_TTL_MS,
+    });
+    pruneSessionCache(now);
+  }
+
+  return payload;
+}
 
 // Single source of truth for "where should this user be?". The client guards
 // (OnboardingGuard, onboarding layout effects) used to race each other and
@@ -21,21 +82,18 @@ const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || "v1";
 // filtered at the matcher layer (see config below).
 export async function proxy(request: NextRequest) {
   const cookie = request.headers.get("cookie") ?? "";
-
-  let payload: SessionPayload | null = null;
-  try {
-    const res = await fetch(
-      `${BETTER_AUTH_URL}/api/${API_VERSION}/auth/get-session`,
-      { headers: { cookie }, cache: "no-store" },
-    );
-    if (res.ok) payload = (await res.json()) as SessionPayload;
-  } catch {
-    // Treat network failure as unauthenticated.
-  }
+  const forceRefresh =
+    request.nextUrl.searchParams.get("__session") === "refresh";
+  const payload = await getSessionPayload(cookie, forceRefresh);
 
   const destination = routeForUser(payload, { pathname: request.nextUrl.pathname });
   if (destination) {
     return NextResponse.redirect(new URL(destination, request.url));
+  }
+  if (forceRefresh) {
+    const cleanUrl = request.nextUrl.clone();
+    cleanUrl.searchParams.delete("__session");
+    return NextResponse.redirect(cleanUrl);
   }
   return NextResponse.next();
 }
@@ -55,6 +113,7 @@ export const config = {
   matcher: [
     { source: "/", missing: SKIP_FOR_NAVIGATION },
     { source: "/login", missing: SKIP_FOR_NAVIGATION },
+    { source: "/workspaces", missing: SKIP_FOR_NAVIGATION },
     { source: "/onboarding", missing: SKIP_FOR_NAVIGATION },
     { source: "/onboarding/:path*", missing: SKIP_FOR_NAVIGATION },
     { source: "/dashboard", missing: SKIP_FOR_NAVIGATION },

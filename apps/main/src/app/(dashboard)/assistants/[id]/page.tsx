@@ -876,7 +876,7 @@ export default function AssistantChatPage() {
               onClick={() => {
                 authClient.signIn.social({
                   provider: "google",
-                  callbackURL: "/assistants/vega",
+                  callbackURL: `${window.location.origin}/assistants/vega`,
                 })
               }}
             >

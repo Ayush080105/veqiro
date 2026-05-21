@@ -2,6 +2,7 @@ import { authClient } from '@/lib/auth-client';
 import { toast } from 'sonner';
 
 type Router = { push: (href: string) => void; replace: (href: string) => void };
+const SESSION_REFRESH_QUERY = '__session=refresh';
 
 export type CreateOrganizationInput = {
   name: string;
@@ -108,7 +109,7 @@ export async function switchToOrganization(
   } catch {
     // Proxy will gate the next page anyway.
   }
-  router.replace('/dashboard');
+  router.replace(`/dashboard?${SESSION_REFRESH_QUERY}`);
 }
 
 /**
@@ -127,5 +128,5 @@ export async function clearActiveAndStartNew(router: Router): Promise<void> {
   } catch {
     // Proxy will gate the next page anyway.
   }
-  router.push('/onboarding/step1');
+  router.push(`/onboarding/step1?${SESSION_REFRESH_QUERY}`);
 }

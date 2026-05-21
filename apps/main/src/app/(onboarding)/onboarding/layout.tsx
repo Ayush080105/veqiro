@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { LogOut, User } from "lucide-react"
 import {
   useForm,
   FormProvider,
@@ -34,6 +35,9 @@ import {
 } from "./_lib/converters"
 import { DRAFT_KEY } from "./_lib/constants"
 
+const LANDING_URL =
+  process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3001"
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function readDraft(): OnboardingValues {
@@ -54,15 +58,54 @@ function getCurrentSlug(pathname: string): string | null {
 
 // ─── Header ────────────────────────────────────────────────────────────────
 
-function OnboardingHeader({ stepIndex }: { stepIndex: number }) {
+function OnboardingHeader({
+  stepIndex,
+  user,
+  onLogout,
+}: {
+  stepIndex: number
+  user?: { name?: string | null; email?: string | null; image?: string | null } | null
+  onLogout: () => void
+}) {
+  const profileLabel = user?.name ?? user?.email ?? "Profile"
+
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between border-b-[3px] border-foreground bg-background px-8 py-5">
+    <nav className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b-[3px] border-foreground bg-background px-5 py-4 sm:px-8 sm:py-5">
       <Link href="/" className="flex items-center gap-2.5 text-foreground">
         <Logo className="w-10 h-10" />
         <span className="font-head text-xl tracking-tight">veqiro</span>
       </Link>
-      <div className="rounded-full border-2 border-foreground bg-secondary px-3.5 py-2 font-mono text-xs uppercase tracking-[0.18em] text-foreground">
-        Step {stepIndex} / {TOTAL_STEPS}
+
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          title={user?.email ?? profileLabel}
+          className="flex max-w-[180px] items-center gap-2 rounded-full border-2 border-foreground bg-white px-3 py-2 text-left font-mono text-[11px] uppercase tracking-[0.14em] text-foreground shadow-[2px_2px_0_#111] sm:max-w-[240px]"
+        >
+          {user?.image ? (
+            <img
+              src={user.image}
+              alt=""
+              className="size-5 shrink-0 rounded-full border border-foreground object-cover"
+            />
+          ) : (
+            <User className="size-4 shrink-0" />
+          )}
+          <span className="truncate">{profileLabel}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex items-center gap-2 rounded-full border-2 border-foreground bg-destructive px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground shadow-[2px_2px_0_#111] transition-transform active:translate-x-0.5 active:translate-y-0.5"
+        >
+          <LogOut className="size-4" />
+          Logout
+        </button>
+
+        <div className="rounded-full border-2 border-foreground bg-secondary px-3.5 py-2 font-mono text-xs uppercase tracking-[0.18em] text-foreground">
+          Step {stepIndex} / {TOTAL_STEPS}
+        </div>
       </div>
     </nav>
   )
@@ -130,6 +173,16 @@ export default function OnboardingLayout({
 
   const [saving, setSaving] = React.useState(false)
   const [draftLoaded, setDraftLoaded] = React.useState(false)
+
+  const onLogout = React.useCallback(() => {
+    void authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          window.location.href = LANDING_URL
+        },
+      },
+    })
+  }, [])
 
   // Hydrate from localStorage AFTER mount. Runs once.
   React.useEffect(() => {
@@ -323,7 +376,7 @@ export default function OnboardingLayout({
         /* even if refetch fails, proxy.ts will gate the next page anyway */
       }
       toast.success("Brand kit saved. Meet the crew.")
-      router.push("/dashboard")
+      router.push("/dashboard?__session=refresh")
     } catch {
       toast.error("Could not save brand kit. Your draft is kept locally.")
       setSaving(false)
@@ -341,7 +394,11 @@ export default function OnboardingLayout({
     <FormProvider {...form}>
       <div className="min-h-screen bg-background">
         <div className="noise-overlay" aria-hidden />
-        <OnboardingHeader stepIndex={stepIndex} />
+        <OnboardingHeader
+          stepIndex={stepIndex}
+          user={session?.user}
+          onLogout={onLogout}
+        />
 
         <form
           onSubmit={handleSubmit(onFinish)}

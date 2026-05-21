@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Users,
@@ -14,6 +15,10 @@ import {
   Calendar,
   ChevronDown,
   LogOut,
+  Plus,
+  Check,
+  ArrowUpRight,
+  Loader2,
 } from "lucide-react"
 import {
   Sidebar,
@@ -35,9 +40,20 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Logo from "@/components/logo"
 import { FONT } from "@/lib/fonts"
 import { authClient } from "@/lib/auth-client"
+import {
+  clearActiveAndStartNew,
+  switchToOrganization,
+} from "@/lib/api/organizations"
 
 const workspaceItems = [
   { href: "/workspace/briefing", label: "Briefing", icon: Newspaper },
@@ -64,16 +80,46 @@ const monoLabelStyle: React.CSSProperties = {
   textTransform: "uppercase",
 }
 
+type Membership = {
+  id: string
+  name: string
+  slug: string
+  onboarded: boolean
+  role: string
+}
+
+type SessionWithMemberships = {
+  memberships?: Membership[] | null
+}
+
 const LANDING_URL =
-  process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3000"
+  process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3001"
 const POST_LOGOUT_URL = LANDING_URL
 
 export function AppSidebar() {
+  const router = useRouter()
   const pathname = usePathname()
   const { data: session } = authClient.useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const memberships =
+    (session as SessionWithMemberships | null | undefined)?.memberships ?? []
+  const [switchingId, setSwitchingId] = useState<string | null>(null)
 
   const isWorkspaceActive = pathname.startsWith("/workspace")
+
+  const switchOrg = async (organizationId: string) => {
+    if (switchingId || organizationId === activeOrg?.id) return
+    setSwitchingId(organizationId)
+    await switchToOrganization(organizationId, router)
+    setSwitchingId(null)
+  }
+
+  const createOrg = async () => {
+    if (switchingId) return
+    setSwitchingId("__new__")
+    await clearActiveAndStartNew(router)
+    setSwitchingId(null)
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -97,53 +143,149 @@ export function AppSidebar() {
           </span>
         </a>
         {activeOrg && (
-          <div
-            className="flex items-center gap-2 group-data-[collapsible=icon]:hidden"
-            style={{
-              padding: "6px 10px",
-              background: "#FFF9ED",
-              border: "2px solid #111",
-              borderRadius: 8,
-              boxShadow: "2px 2px 0 #111",
-            }}
-          >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "#1DBC87",
-                flexShrink: 0,
-              }}
-            />
-            <span
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 11,
-                color: "#111",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flex: 1,
-              }}
-            >
-              {activeOrg.name}
-            </span>
-            <span
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 9,
-                letterSpacing: 1.5,
-                textTransform: "uppercase",
-                padding: "2px 6px",
-                border: "1.5px solid #111",
-                borderRadius: 999,
-                background: "#F5C518",
-                color: "#111",
-              }}
-            >
-              Free
-            </span>
+          <div className="group-data-[collapsible=icon]:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 text-left transition-transform active:translate-y-px"
+                    style={{
+                      padding: "6px 10px",
+                      background: "#FFF9ED",
+                      border: "2px solid #111",
+                      borderRadius: 8,
+                      boxShadow: "2px 2px 0 #111",
+                      cursor: "pointer",
+                    }}
+                  />
+                }
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "#1DBC87",
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: FONT.mono,
+                    fontSize: 11,
+                    color: "#111",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    flex: 1,
+                  }}
+                >
+                  {activeOrg.name}
+                </span>
+                <span
+                  style={{
+                    fontFamily: FONT.mono,
+                    fontSize: 9,
+                    letterSpacing: 1.5,
+                    textTransform: "uppercase",
+                    padding: "2px 6px",
+                    border: "1.5px solid #111",
+                    borderRadius: 999,
+                    background: "#F5C518",
+                    color: "#111",
+                  }}
+                >
+                  Free
+                </span>
+                <ChevronDown className="size-3 text-foreground/70" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-64 border-2 border-foreground bg-white p-1 shadow-[4px_4px_0_#111]"
+              >
+                {memberships.map((membership) => {
+                  const isCurrent = membership.id === activeOrg.id
+                  const isSwitching = switchingId === membership.id
+                  return (
+                    <DropdownMenuItem
+                      key={membership.id}
+                      disabled={isCurrent || !!switchingId}
+                      onClick={() => void switchOrg(membership.id)}
+                      className="flex-col items-start gap-1 rounded-md py-2"
+                    >
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <span
+                          className="truncate"
+                          style={{
+                            fontFamily: FONT.head,
+                            fontSize: 13,
+                            color: "#111",
+                          }}
+                        >
+                          {membership.name}
+                        </span>
+                        {isSwitching ? (
+                          <Loader2 className="size-3.5 animate-spin text-foreground/70" />
+                        ) : isCurrent ? (
+                          <Check className="size-3.5 text-foreground/70" />
+                        ) : null}
+                      </div>
+                      <span
+                        className="truncate"
+                        style={{
+                          fontFamily: FONT.mono,
+                          fontSize: 10,
+                          color: "#555",
+                        }}
+                      >
+                        {membership.slug} /{" "}
+                        {membership.onboarded ? "Onboarded" : "Setup needed"}
+                      </span>
+                    </DropdownMenuItem>
+                  )
+                })}
+                <DropdownMenuSeparator className="my-1 bg-foreground/20" />
+                <DropdownMenuItem
+                  disabled={!!switchingId}
+                  onClick={() => void createOrg()}
+                  className="gap-2 rounded-md"
+                >
+                  {switchingId === "__new__" ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Plus className="size-4" />
+                  )}
+                  <span
+                    style={{
+                      fontFamily: FONT.mono,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Create workspace
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!!switchingId}
+                  onClick={() => router.push("/workspaces")}
+                  className="gap-2 rounded-md"
+                >
+                  <ArrowUpRight className="size-4" />
+                  <span
+                    style={{
+                      fontFamily: FONT.mono,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    See all workspaces
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </SidebarHeader>
