@@ -54,6 +54,7 @@ google-auth
 sentry-sdk[fastapi]
 posthog
 structlog
+langfuse>=2.0.0
 
 # ── SSE streaming (kept for optional future use) ──────────────────────────────
 sse-starlette

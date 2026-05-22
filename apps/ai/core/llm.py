@@ -203,6 +203,31 @@ class LLMClient:
         return await self._real_complete(provider, model, system, messages, temperature, max_tokens, response_format)
 
     async def _real_complete(self, provider, model, system, messages, temperature, max_tokens, response_format):
+        import time
+        from langfuse import Langfuse as _Langfuse
+        from core.observability import get_llm_context, get_langfuse
+
+        obs_ctx = get_llm_context()
+        lf = get_langfuse()
+        generation = None
+
+        if lf:
+            try:
+                if obs_ctx.trace_id is None:
+                    obs_ctx.trace_id = _Langfuse.create_trace_id()
+                generation = lf.start_observation(
+                    trace_context={"trace_id": obs_ctx.trace_id},
+                    name=f"complete.{provider}",
+                    as_type="generation",
+                    model=model,
+                    input={"system": system, "messages": messages},
+                    model_parameters={"temperature": temperature, "max_tokens": max_tokens},
+                    metadata={"agent": obs_ctx.agent_slug, "org_id": obs_ctx.org_id},
+                )
+            except Exception:
+                pass
+
+        t0 = time.perf_counter()
         retries = [1, 3, 9]
         last_exc = None
         for delay in [0] + retries:
@@ -210,13 +235,32 @@ class LLMClient:
                 await asyncio.sleep(delay)
             try:
                 if provider == "gemini":
-                    return await self._gemini_complete(model, system, messages, temperature, max_tokens)
+                    result = await self._gemini_complete(model, system, messages, temperature, max_tokens)
+                    input_text = system + " ".join(str(m.get("content", "")) for m in messages)
+                    pt, ct = self.count_tokens(input_text), self.count_tokens(result)
                 elif provider == "openai":
-                    return await self._openai_complete(model, system, messages, temperature, max_tokens, response_format)
+                    result, pt, ct = await self._openai_complete(model, system, messages, temperature, max_tokens, response_format)
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
+                if generation:
+                    try:
+                        generation.update(
+                            output=result,
+                            usage_details={"input": pt, "output": ct},
+                            metadata={"latency_ms": int((time.perf_counter() - t0) * 1000), "agent": obs_ctx.agent_slug, "org_id": obs_ctx.org_id},
+                        )
+                        generation.end()
+                    except Exception:
+                        pass
+                return result
             except Exception as e:
                 last_exc = e
+        if generation:
+            try:
+                generation.update(level="ERROR", status_message=str(last_exc))
+                generation.end()
+            except Exception:
+                pass
         raise LLMError(f"LLM call failed after retries: {last_exc}")
 
     async def _gemini_complete(self, model, system, messages, temperature, max_tokens):
@@ -244,7 +288,8 @@ class LLMClient:
         if response_format:
             kwargs["response_format"] = response_format
         resp = await client.chat.completions.create(**kwargs)
-        return resp.choices[0].message.content
+        usage = resp.usage
+        return resp.choices[0].message.content, usage.prompt_tokens, usage.completion_tokens
 
     async def stream(
         self,
@@ -265,25 +310,76 @@ class LLMClient:
             yield token
 
     async def _real_stream(self, provider, model, system, messages, temperature):
+        import time
+        from langfuse import Langfuse as _Langfuse
+        from core.observability import get_llm_context, get_langfuse
+
+        obs_ctx = get_llm_context()
+        lf = get_langfuse()
+        generation = None
+
+        if lf:
+            try:
+                if obs_ctx.trace_id is None:
+                    obs_ctx.trace_id = _Langfuse.create_trace_id()
+                generation = lf.start_observation(
+                    trace_context={"trace_id": obs_ctx.trace_id},
+                    name=f"stream.{provider}",
+                    as_type="generation",
+                    model=model,
+                    input={"system": system, "messages": messages},
+                    model_parameters={"temperature": temperature},
+                    metadata={"agent": obs_ctx.agent_slug, "org_id": obs_ctx.org_id},
+                )
+            except Exception:
+                pass
+
+        t0 = time.perf_counter()
+        accumulated: list[str] = []
         retries = [1, 3, 9]
         last_exc = None
+        succeeded = False
+
         for delay in [0] + retries:
             if delay:
                 await asyncio.sleep(delay)
             try:
                 if provider == "gemini":
                     async for token in self._gemini_stream(model, system, messages, temperature):
+                        accumulated.append(token)
                         yield token
-                    return
+                    succeeded = True
+                    break
                 elif provider == "openai":
                     async for token in self._openai_stream(model, system, messages, temperature):
+                        accumulated.append(token)
                         yield token
-                    return
+                    succeeded = True
+                    break
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
             except Exception as e:
                 last_exc = e
-        raise LLMError(f"LLM stream failed after retries: {last_exc}")
+                accumulated = []
+
+        if generation:
+            try:
+                full_text = "".join(accumulated)
+                input_text = system + " ".join(str(m.get("content", "")) for m in messages)
+                if succeeded:
+                    generation.update(
+                        output=full_text,
+                        usage_details={"input": self.count_tokens(input_text), "output": self.count_tokens(full_text)},
+                        metadata={"latency_ms": int((time.perf_counter() - t0) * 1000), "agent": obs_ctx.agent_slug, "org_id": obs_ctx.org_id},
+                    )
+                else:
+                    generation.update(level="ERROR", status_message=str(last_exc))
+                generation.end()
+            except Exception:
+                pass
+
+        if not succeeded:
+            raise LLMError(f"LLM stream failed after retries: {last_exc}")
 
     async def _gemini_stream(self, model, system, messages, temperature):
         import google.generativeai as genai
@@ -335,6 +431,31 @@ class LLMClient:
     async def _real_complete_with_tools(
         self, provider, model, system, messages, tools, temperature, max_tokens
     ) -> LLMToolResponse:
+        import time
+        from langfuse import Langfuse as _Langfuse
+        from core.observability import get_llm_context, get_langfuse
+
+        obs_ctx = get_llm_context()
+        lf = get_langfuse()
+        generation = None
+
+        if lf:
+            try:
+                if obs_ctx.trace_id is None:
+                    obs_ctx.trace_id = _Langfuse.create_trace_id()
+                generation = lf.start_observation(
+                    trace_context={"trace_id": obs_ctx.trace_id},
+                    name=f"complete_with_tools.{provider}",
+                    as_type="generation",
+                    model=model,
+                    input={"system": system, "messages": messages},
+                    model_parameters={"temperature": temperature, "max_tokens": max_tokens},
+                    metadata={"agent": obs_ctx.agent_slug, "org_id": obs_ctx.org_id},
+                )
+            except Exception:
+                pass
+
+        t0 = time.perf_counter()
         retries = [1, 3, 9]
         last_exc = None
         for delay in [0] + retries:
@@ -342,22 +463,50 @@ class LLMClient:
                 await asyncio.sleep(delay)
             try:
                 if provider == "gemini":
-                    return await self._gemini_complete_with_tools(
+                    result = await self._gemini_complete_with_tools(
                         model, system, messages, tools, temperature, max_tokens
                     )
+                    input_text = system + " ".join(str(m.get("content", "")) for m in messages)
+                    pt = self.count_tokens(input_text)
+                    output_text = result.content or " ".join(tc.name for tc in result.tool_calls)
+                    ct = self.count_tokens(output_text)
                 elif provider == "openai":
-                    return await self._openai_complete_with_tools(
+                    result, pt, ct = await self._openai_complete_with_tools(
                         model, system, messages, tools, temperature, max_tokens
                     )
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
+                if generation:
+                    try:
+                        output_repr = result.content or f"[{len(result.tool_calls)} tool call(s): {', '.join(tc.name for tc in result.tool_calls)}]"
+                        generation.update(
+                            output=output_repr,
+                            usage_details={"input": pt, "output": ct},
+                            metadata={
+                                "latency_ms": int((time.perf_counter() - t0) * 1000),
+                                "finish_reason": result.finish_reason,
+                                "tool_calls": [tc.name for tc in result.tool_calls],
+                                "agent": obs_ctx.agent_slug,
+                                "org_id": obs_ctx.org_id,
+                            },
+                        )
+                        generation.end()
+                    except Exception:
+                        pass
+                return result
             except Exception as e:
                 last_exc = e
+        if generation:
+            try:
+                generation.update(level="ERROR", status_message=str(last_exc))
+                generation.end()
+            except Exception:
+                pass
         raise LLMError(f"LLM tool call failed after retries: {last_exc}")
 
     async def _openai_complete_with_tools(
         self, model, system, messages, tools, temperature, max_tokens
-    ) -> LLMToolResponse:
+    ) -> tuple:
         import openai as _openai
         client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         oai_messages = [{"role": "system", "content": system}] + messages
@@ -370,6 +519,8 @@ class LLMClient:
             max_tokens=max_tokens,
         )
         choice = resp.choices[0]
+        usage = resp.usage
+        pt, ct = usage.prompt_tokens, usage.completion_tokens
         if choice.message.tool_calls:
             calls = []
             for tc in choice.message.tool_calls:
@@ -386,12 +537,12 @@ class LLMClient:
                 content=choice.message.content,
                 tool_calls=calls,
                 finish_reason="tool_calls",
-            )
+            ), pt, ct
         return LLMToolResponse(
             content=choice.message.content or "",
             tool_calls=[],
             finish_reason="stop",
-        )
+        ), pt, ct
 
     async def _gemini_complete_with_tools(
         self, model, system, messages, tools, temperature, max_tokens

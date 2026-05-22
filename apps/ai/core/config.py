@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Observability
     SENTRY_DSN: str = Field(default="")
     POSTHOG_API_KEY: str = Field(default="")
+    LANGFUSE_PUBLIC_KEY: str = Field(default="")
+    LANGFUSE_SECRET_KEY: str = Field(default="")
+    LANGFUSE_HOST: str = Field(default="https://us.cloud.langfuse.com")
 
     # Security
     API_SECRET: str = Field(default="dev-secret")

@@ -4,6 +4,7 @@ from abc import ABC
 from typing import AsyncGenerator
 
 from core.llm import LLMClient
+from core.observability import set_llm_context
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolCall, ToolResult
@@ -78,6 +79,11 @@ class BaseAgent(ABC):
 
     async def chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
         """Full pipeline: brand_kit -> RAG -> prompt -> stream LLM."""
+        set_llm_context(
+            org_id=request.organization_id,
+            agent_slug=self.slug,
+            conversation_id=request.conversation_id,
+        )
         system_prompt = await self.build_system_prompt(request.user_id, request.organization_id)
 
         # RAG retrieval
@@ -132,6 +138,11 @@ class BaseAgent(ABC):
 
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
         """Tool-calling chat loop. LLM decides when to call tools autonomously."""
+        set_llm_context(
+            org_id=request.organization_id,
+            agent_slug=self.slug,
+            conversation_id=request.conversation_id,
+        )
         from agents.registry import get_ask_agent_tool
 
         tools = self.get_tools()
