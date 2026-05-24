@@ -56,6 +56,18 @@ export const regenerateContentSchema = z.object({
   platform: platformEnum.default("linkedin"),
 });
 
+export const draftCarouselSchema = z.object({
+  topic: z.string().min(1).max(500),
+  platform: platformEnum.default("linkedin"),
+  carouselCount: z.number().int().min(2).max(8).optional().default(3),
+  toneOverride: z.string().max(100).nullable().optional(),
+  includeImages: z.boolean().optional().default(true),
+  useLogo: z.boolean().optional().default(false),
+  useMascot: z.boolean().optional().default(false),
+  additionalContext: z.string().max(1000).nullable().optional(),
+  imageAspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3"]).optional().default("1:1"),
+});
+
 export const publishSchema = z
   .object({
     socialAccountId: z.string().min(1),

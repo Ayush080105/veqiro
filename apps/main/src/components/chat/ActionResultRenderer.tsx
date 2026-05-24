@@ -15,6 +15,7 @@ import {
 import {
   IdeasGridCard,
   DraftCard,
+  CarouselDraftCard,
   VariantsTabsCard,
   RevisionDiffCard,
   ImageRegenCard,
@@ -91,6 +92,8 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
       return <IdeasGridCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:draft-content":
       return <DraftCard result={r} onFollowUpAction={onFollowUpAction} onRevertImage={onRevertImage} />
+    case "maya:draft-carousel":
+      return <CarouselDraftCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:generate-variants":
       return <VariantsTabsCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:revise":

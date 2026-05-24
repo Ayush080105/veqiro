@@ -4,6 +4,7 @@ import {
   sendMessageSchema,
   generateIdeasSchema,
   draftContentSchema,
+  draftCarouselSchema,
   generateVariantsSchema,
   reviseSchema,
   regenerateImageSchema,
@@ -84,6 +85,13 @@ export const publish = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = publishSchema.parse(req.body);
   const result = await mayaService.publish(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const draftCarousel = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = draftCarouselSchema.parse(req.body);
+  const result = await mayaService.draftCarousel(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

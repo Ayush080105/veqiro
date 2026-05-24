@@ -171,6 +171,31 @@ export interface MayaDraftResult {
   _previousImage?: ImageResult | null
 }
 
+export interface MayaCarouselSlide {
+  slide_number: number
+  image?: ImageResult | null
+}
+
+export interface MayaCarouselDraftResult {
+  draft: MayaDraftResult["draft"]   // single caption for the whole post
+  slides: MayaCarouselSlide[]       // one image per swipeable slide
+  platform: ContentPlatform
+  tokens_used?: number
+  model_used?: string
+}
+
+export interface MayaCarouselDraftRequest {
+  topic: string
+  platform: ContentPlatform
+  carousel_count?: number
+  tone_override?: string
+  include_images?: boolean
+  use_logo?: boolean
+  use_mascot?: boolean
+  additional_context?: string
+  image_aspect_ratio?: string
+}
+
 export interface MayaVariantRequest {
   original_content: string
   original_platform: ContentPlatform
@@ -967,6 +992,7 @@ export type AgentActionId =
   | "sage:generate-blog-ideas"
   | "maya:generate-ideas"
   | "maya:draft-content"
+  | "maya:draft-carousel"
   | "maya:generate-variants"
   | "maya:revise"
   | "maya:regenerate-image"

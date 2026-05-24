@@ -48,6 +48,8 @@ export interface ActionDialogProps<TInput, TResult> {
   /** Override the default JSON `runAgentAction` submit (e.g. for multipart uploads). */
   customSubmit?: (value: TInput, organizationId: string) => Promise<TResult>
   submitLabel?: string
+  /** Optionally resolve a different actionId based on current form value (e.g. carousel routing). */
+  resolveActionId?: (value: TInput) => AgentActionId
 }
 
 export function ActionDialog<TInput, TResult>({
@@ -64,6 +66,7 @@ export function ActionDialog<TInput, TResult>({
   onComplete,
   customSubmit,
   submitLabel = "Run",
+  resolveActionId,
 }: ActionDialogProps<TInput, TResult>) {
   const [value, setValue] = React.useState<TInput>(defaultValue)
   const [submitting, setSubmitting] = React.useState(false)
@@ -87,16 +90,17 @@ export function ActionDialog<TInput, TResult>({
       }
     }
     setSubmitting(true)
+    const effectiveActionId = resolveActionId ? resolveActionId(value) : actionId
     try {
       const result = customSubmit
         ? await customSubmit(value, organizationId)
         : await runAgentAction<TInput, TResult>(
-            actionId,
+            effectiveActionId,
             organizationId,
             value,
             conversationId
           )
-      onComplete({ actionId, input: value, result })
+      onComplete({ actionId: effectiveActionId, input: value, result })
       onOpenChange(false)
       return result
     } catch (err) {
@@ -109,7 +113,7 @@ export function ActionDialog<TInput, TResult>({
     } finally {
       setSubmitting(false)
     }
-  }, [value, actionId, organizationId, conversationId, validate, onComplete, onOpenChange, customSubmit])
+  }, [value, actionId, resolveActionId, organizationId, conversationId, validate, onComplete, onOpenChange, customSubmit])
 
   const handleSubmit = () => {
     submit().catch(() => {

@@ -15,6 +15,9 @@ import type {
   IdeationResponse,
   DraftContentInput,
   DraftResponse,
+  DraftCarouselInput,
+  CarouselDraftResponse,
+  CarouselSlide,
   GenerateVariantsInput,
   VariantResponse,
   ReviseInput,
@@ -485,6 +488,53 @@ export const publish = async (
     });
     throw new BadRequestError(`Publish failed: ${message}`);
   }
+};
+
+export const draftCarousel = async (
+  userId: string,
+  organizationId: string,
+  input: DraftCarouselInput
+): Promise<CarouselDraftResponse> => {
+  await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Carousel post (${input.carouselCount} slides) on ${input.platform}: ${input.topic}`,
+    customInput: { actionId: "maya:draft-carousel", input },
+  });
+
+  const { data } = await aiService.post<CarouselDraftResponse>("/ai/maya/draft-carousel", {
+    user_id: userId,
+    organization_id: organizationId,
+    topic: input.topic,
+    platform: input.platform,
+    carousel_count: input.carouselCount,
+    tone_override: input.toneOverride,
+    include_images: input.includeImages,
+    use_logo: input.useLogo,
+    use_mascot: input.useMascot,
+    additional_context: input.additionalContext,
+    image_aspect_ratio: input.imageAspectRatio,
+  });
+
+  const hostedSlides: CarouselSlide[] = await Promise.all(
+    data.slides.map(async (slide) => ({
+      slide_number: slide.slide_number,
+      image: await hostImage(organizationId, slide.image),
+    }))
+  );
+
+  const result: CarouselDraftResponse = { ...data, slides: hostedSlides };
+
+  await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Carousel: ${data.slides.length} slides for ${data.platform}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:draft-carousel", input, result },
+  });
+
+  return result;
 };
 
 export const listPublishedPosts = async (organizationId: string) => {

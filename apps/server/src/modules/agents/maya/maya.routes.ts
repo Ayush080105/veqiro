@@ -4,6 +4,7 @@ import {
   getMayaMessages,
   generateIdeas,
   draftContent,
+  draftCarousel,
   generateVariants,
   revise,
   regenerateImage,
@@ -18,6 +19,7 @@ router.post("/chat", msgMaya);
 router.get("/chat", getMayaMessages);
 router.post("/generate-ideas", generateIdeas);
 router.post("/draft-content", draftContent);
+router.post("/draft-carousel", draftCarousel);
 router.post("/generate-variants", generateVariants);
 router.post("/revise", revise);
 router.post("/regenerate-image", regenerateImage);

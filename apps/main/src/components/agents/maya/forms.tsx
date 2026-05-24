@@ -135,6 +135,7 @@ export function MayaDraftForm({
 
   const platform = form.watch("platform")
   const includeImage = form.watch("include_image") ?? true
+  const makeCarousel = form.watch("make_carousel") ?? false
 
   const [uploading, setUploading] = React.useState(false)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
@@ -281,7 +282,37 @@ export function MayaDraftForm({
             </label>
           )}
         />
+        <Controller
+          control={form.control}
+          name="make_carousel"
+          render={({ field }) => (
+            <label className="flex items-center gap-2 text-xs">
+              <Switch
+                checked={field.value ?? false}
+                onCheckedChange={field.onChange}
+              />
+              Make carousel
+            </label>
+          )}
+        />
       </div>
+
+      {makeCarousel && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Slides</span>
+          <Input
+            type="number"
+            min={2}
+            max={8}
+            value={form.watch("carousel_count") ?? 3}
+            onChange={(e) =>
+              form.setValue("carousel_count", Math.min(8, Math.max(2, Number(e.target.value))))
+            }
+            className="h-7 w-16 text-xs"
+          />
+          <span className="text-[10px] text-muted-foreground opacity-60">max 8</span>
+        </div>
+      )}
 
       {includeImage && (
         <div className="space-y-1.5">

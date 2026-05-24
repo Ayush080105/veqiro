@@ -78,6 +78,15 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       icon: "PenLine",
     },
     {
+      id: "maya:draft-carousel",
+      agent: "maya",
+      endpoint: "draft-carousel",
+      label: "Draft a carousel",
+      description: "Multi-slide carousel post with connected images for any platform.",
+      icon: "GalleryHorizontal",
+      hideFromMenu: true,
+    },
+    {
       id: "maya:generate-variants",
       agent: "maya",
       endpoint: "generate-variants",

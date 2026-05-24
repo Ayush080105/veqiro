@@ -76,6 +76,8 @@ interface ActionSpec {
   validate?: (v: any) => string | null
   /** Override the default JSON `runAgentAction` submit, e.g. for file uploads. */
   customSubmit?: (value: any, organizationId: string) => Promise<unknown>
+  /** Dynamically resolve action ID from current form value (e.g. carousel routing). */
+  resolveActionId?: (v: any) => AgentActionId
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -142,9 +144,26 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       include_image: true,
       use_logo: false,
       use_mascot: false,
+      make_carousel: false,
+      carousel_count: 3,
     },
     Form: MayaDraftForm,
     validate: (v) => (v.topic?.trim() ? null : "Topic is required."),
+    resolveActionId: (v) => (v.make_carousel ? "maya:draft-carousel" : "maya:draft-content"),
+  },
+  "maya:draft-carousel": {
+    defaultValue: {
+      topic: "",
+      platform: "linkedin",
+      include_image: true,
+      use_logo: false,
+      use_mascot: false,
+      make_carousel: true,
+      carousel_count: 3,
+    },
+    Form: MayaDraftForm,
+    validate: (v) => (v.topic?.trim() ? null : "Topic is required."),
+    resolveActionId: () => "maya:draft-carousel",
   },
   "maya:generate-variants": {
     defaultValue: {
@@ -448,7 +467,7 @@ export function RunActionDialog({
   const spec = SPECS[actionId]
   if (!meta || !spec) return null
 
-  const { Form, defaultValue, validate, customSubmit } = spec
+  const { Form, defaultValue, validate, customSubmit, resolveActionId } = spec
   const merged = prefill
     ? { ...(defaultValue as object), ...prefill }
     : defaultValue
@@ -465,6 +484,7 @@ export function RunActionDialog({
       defaultValue={merged}
       validate={validate}
       customSubmit={customSubmit}
+      resolveActionId={resolveActionId}
       renderForm={({ value, onChange }) => (
         <Form value={value} onChange={onChange} />
       )}

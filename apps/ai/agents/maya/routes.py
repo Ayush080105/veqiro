@@ -198,6 +198,35 @@ class ReviseResponse(BaseModel):
     model_used: str = ""
 
 
+# ── Carousel Models ──────────────────────────────────────────────────────────
+
+class CarouselDraftRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    topic: str = Field(..., min_length=1, max_length=500)
+    platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
+    carousel_count: int = Field(3, ge=2, le=8)
+    tone_override: str | None = Field(None, max_length=100)
+    include_images: bool = True
+    use_logo: bool = False
+    use_mascot: bool = False
+    additional_context: str | None = Field(None, max_length=1000)
+    image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
+
+
+class CarouselSlide(BaseModel):
+    slide_number: int
+    image: ImageResult | None = None
+
+
+class CarouselDraftResponse(BaseModel):
+    draft: DraftContent        # single caption for the whole post
+    slides: list[CarouselSlide]  # one image per swipeable slide
+    platform: str
+    tokens_used: int = 0
+    model_used: str = ""
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _mock_ideas(count: int, topic_hint: str) -> list[ContentIdea]:
@@ -730,3 +759,118 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
         return ContentRegenResponse(**data, platform=request.platform, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content regeneration failed — retry. ({exc})")
+
+
+# ── Carousel Endpoint ─────────────────────────────────────────────────────────
+
+@router.post("/draft-carousel", response_model=CarouselDraftResponse, summary="Draft carousel post")
+async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse:
+    """One caption + N swipeable images. Images generated in parallel for minimal latency."""
+    import asyncio
+    from core.carousel import build_carousel_content, CarouselImagePrompt
+
+    brand_kit = await load_brand_kit(request.organization_id)
+    tone = request.tone_override or get_platform_tone(brand_kit, request.platform)
+
+    if settings.MOCK_MODE:
+        from core.image_gen import _PLACEHOLDER_B64
+        mock_draft = _mock_draft(request.topic, request.platform, tone)
+        mock_slides = [
+            CarouselSlide(
+                slide_number=i + 1,
+                image=ImageResult(
+                    image_base64=_PLACEHOLDER_B64,
+                    content_type="image/png",
+                    prompt_used=f"Mock slide {i+1}",
+                ) if request.include_images else None,
+            )
+            for i in range(request.carousel_count)
+        ]
+        return CarouselDraftResponse(
+            draft=mock_draft,
+            slides=mock_slides,
+            platform=request.platform,
+            tokens_used=0,
+            model_used="mock",
+        )
+
+    # Step 1: One LLM call → single caption + N image prompts
+    try:
+        content = await build_carousel_content(
+            topic=request.topic,
+            platform=request.platform,
+            count=request.carousel_count,
+            brand_kit=brand_kit,
+            llm=_llm,
+            additional_context=request.additional_context or "",
+            tone=tone,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    draft = DraftContent(
+        title=content.caption_title,
+        body=content.caption_body,
+        hashtags=content.hashtags,
+        cta=content.cta,
+        meta_description=content.meta_description,
+        word_count=content.word_count,
+        platform=request.platform,
+        tone_used=content.tone_used,
+    )
+
+    total = len(content.image_prompts)
+
+    async def _gen(prompt_data: CarouselImagePrompt, idx: int, anchor_b64: str | None = None) -> ImageResult | None:
+        if not request.include_images:
+            return None
+        # Pass only visual direction — never slide numbers or meta text
+        context = prompt_data.context_note
+        try:
+            return await generate_social_image(
+                prompt_data.image_prompt,
+                request.platform,
+                aspect_ratio=request.image_aspect_ratio,
+                use_logo=request.use_logo,
+                use_mascot=request.use_mascot,
+                user_id=request.user_id,
+                organization_id=request.organization_id,
+                brand_kit=brand_kit,
+                context_hints=context,
+                carousel_anchor_b64=anchor_b64,
+            )
+        except Exception as img_err:
+            logger.error("carousel image_gen failed | slide=%d error=%s", idx + 1, img_err)
+            return None
+
+    # Step 2a: Generate slide 1 first — it defines the visual DNA for the carousel
+    slide_1_image = await _gen(content.image_prompts[0], 0, anchor_b64=None)
+    anchor_b64 = slide_1_image.image_base64 if slide_1_image else None
+
+    # Step 2b: Generate remaining slides in parallel, each anchored to slide 1
+    if len(content.image_prompts) > 1:
+        rest = await asyncio.gather(
+            *[_gen(p, i + 1, anchor_b64=anchor_b64) for i, p in enumerate(content.image_prompts[1:])],
+            return_exceptions=True,
+        )
+    else:
+        rest = []
+
+    images = [slide_1_image] + list(rest)
+
+    result_slides = [
+        CarouselSlide(
+            slide_number=p.slide_number,
+            image=images[i] if not isinstance(images[i], Exception) else None,
+        )
+        for i, p in enumerate(content.image_prompts)
+    ]
+
+    logger.info("carousel done | user=%s platform=%s slides=%d", request.user_id, request.platform, len(result_slides))
+    return CarouselDraftResponse(
+        draft=draft,
+        slides=result_slides,
+        platform=request.platform,
+        tokens_used=0,
+        model_used=_agent.default_model,
+    )

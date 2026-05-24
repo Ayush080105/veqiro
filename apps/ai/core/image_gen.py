@@ -87,12 +87,16 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         if tone:
             platform_tone = f"Brand's {platform} tone: {tone}. "
 
-    context_section = f"Key messaging to reflect visually: {context_hints}. " if context_hints else ""
+    # context_hints is composition/narrative guidance only — never rendered as text
+    composition_context = (
+        f"[COMPOSITION CONTEXT — for visual direction only, do NOT render as text]: {context_hints}. "
+        if context_hints else ""
+    )
 
     return (
         f"Design a premium {platform} social media graphic ({aspect_ratio}). "
         f"Main topic: \"{topic}\". "
-        f"{context_section}"
+        f"{composition_context}"
         f"{brand}"
         f"{colors}"
         f"{fonts}"
@@ -101,10 +105,17 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"Visual style: {style}. "
         f"TYPOGRAPHY: Include bold, well-designed text directly in the image. "
         f"Derive a SHORT punchy headline (3-6 words max) that captures the essence of the topic — do NOT copy the topic text verbatim. "
-        f"Pull 1-2 key stats or power phrases from the context and display them as supporting text. "
+        f"Pull 1-2 key stats or power phrases from the brand/topic context and display them as supporting text. "
         f"Text must be clean, modern, perfectly legible, and part of the design — not an afterthought. "
-        f"COMPOSITION: Strong visual hierarchy, intentional layout, cohesive color story. "
-        f"Output must look like it was designed by a top-tier social media creative director."
+        f"COMPOSITION: Dynamic, bold, brand-driven. Use full-bleed brand colors, asymmetric layouts, "
+        f"oversized typography, diagonal splits, or large geometric brand-color shapes. "
+        f"FORBIDDEN: bordered card inside canvas, square frame inside square, centered text on plain gradient, "
+        f"generic white panel on colored background — these look like stock templates. "
+        f"Output must look like it was designed by a top-tier social media creative director. "
+        f"TEXT GUARDRAILS: The ONLY text visible in the image must be: (1) a short punchy headline (3-6 words), "
+        f"(2) optional 1-2 supporting stats or brand phrases, (3) optional brand name. "
+        f"NEVER render: slide numbers, internal instructions, prompt text, meta commentary, "
+        f"analytical summaries, or any text from the composition context above."
     )
 
 
@@ -119,6 +130,7 @@ async def generate_social_image(
     brand_kit=None,
     context_hints: str = "",
     reference_urls: list[str] | None = None,
+    carousel_anchor_b64: str | None = None,
 ) -> ImageResult:
     """Generate a premium social media image.
 
@@ -149,6 +161,42 @@ async def generate_social_image(
 
     from core.llm import LLMClient
     llm = LLMClient()
+
+    # ── Carousel continuity mode: slide 1 is the visual anchor ───────────
+    if carousel_anchor_b64:
+        import base64 as _base64
+        from core.llm import _resize_for_reference
+        raw_anchor = _base64.b64decode(carousel_anchor_b64)
+        # Downscale to 512 px — enough for style matching, avoids API input size errors
+        anchor_images: list[bytes] = [_resize_for_reference(raw_anchor, max_side=512)]
+        anchor_instructions = [
+            "Reference image 1 is slide 1 of this carousel. "
+            "CRITICAL — match its EXACT design template: same background color and texture, "
+            "same color palette, same layout grid and margins, same typography weight and style, "
+            "same decorative motif and its position, same logo/brand placement (corner, size). "
+            "Only the headline text and visual illustration change per slide. "
+            "The set of carousel images MUST look like they came from a single design template."
+        ]
+        if use_mascot and brand_kit and brand_kit.mascot_url:
+            mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
+            if mascot_bytes:
+                anchor_images.append(mascot_bytes)
+                anchor_instructions.append(
+                    f"Reference image {len(anchor_images)} is the brand mascot. "
+                    f"Place it in the same position and size as it appears in slide 1."
+                )
+        if use_logo and brand_kit and brand_kit.logo_url:
+            logo_bytes = await _fetch_asset(brand_kit.logo_url)
+            if logo_bytes:
+                anchor_images.append(logo_bytes)
+                anchor_instructions.append(
+                    f"Reference image {len(anchor_images)} is the brand logo. "
+                    f"Place it in the exact same position, size, and styling as in slide 1."
+                )
+        full_prompt = base_prompt + "\n\n" + "\n".join(anchor_instructions)
+        b64 = await llm.generate_image_with_image_bytes(full_prompt, anchor_images, aspect_ratio=aspect_ratio)
+        logger.info("image_gen carousel-anchor done | user=%s slide", user_id or "anon")
+        return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
 
     # ── Reference-image mode: theme/mood inspiration + brand kit ─────────
     has_references = bool(reference_urls)

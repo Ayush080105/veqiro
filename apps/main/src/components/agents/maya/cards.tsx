@@ -9,6 +9,9 @@ import {
   PenLine,
   Lightbulb,
   Undo2,
+  ChevronLeft,
+  ChevronRight,
+  GalleryHorizontal,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -30,6 +33,7 @@ import type {
   MayaReviseResult,
   MayaImageRegenResult,
   MayaContentRegenResult,
+  MayaCarouselDraftResult,
   ContentIdea,
   ContentPlatform,
   ImageResult,
@@ -46,6 +50,44 @@ function imageSrc(img?: ImageResult | null): string | undefined {
   if (img.image_base64)
     return `data:${img.content_type || "image/png"};base64,${img.image_base64}`
   return undefined
+}
+
+// Converts CDN URLs to blob: URLs so <img> renders and <a download> works cross-origin.
+function useBlobUrls(srcs: (string | undefined)[]): (string | undefined)[] {
+  const [blobUrls, setBlobUrls] = React.useState<(string | undefined)[]>(() =>
+    srcs.map((s) => (s?.startsWith("data:") ? s : undefined))
+  )
+
+  React.useEffect(() => {
+    let cancelled = false
+    const created: string[] = []
+
+    Promise.all(
+      srcs.map(async (src, i) => {
+        if (!src) return undefined
+        if (src.startsWith("data:") || src.startsWith("blob:")) return src
+        try {
+          const res = await fetch(src)
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          created.push(url)
+          return url
+        } catch {
+          return src
+        }
+      })
+    ).then((resolved) => {
+      if (!cancelled) setBlobUrls(resolved)
+    })
+
+    return () => {
+      cancelled = true
+      created.forEach((u) => URL.revokeObjectURL(u))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [srcs.join(",")])
+
+  return blobUrls
 }
 
 const PLATFORM_LIMITS: Record<ContentPlatform, number> = {
@@ -596,6 +638,142 @@ export function ContentRegenCard({ result }: { result: MayaContentRegenResult })
           image={undefined}
         />
       </AgentCard.Footer>
+    </AgentCard>
+  )
+}
+
+// ─── Carousel draft card ──────────────────────────────────────────────────────
+
+export function CarouselDraftCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: MayaCarouselDraftResult
+  onFollowUpAction?: FollowUpHandler
+}) {
+  const [current, setCurrent] = React.useState(0)
+  const slides = result.slides ?? []
+  const total = slides.length
+  const d = result.draft
+
+  if (total === 0 || !d) return null
+
+  const currentSlide = slides[current]
+  // Pre-resolve all slide CDN URLs to blob: URLs so images render and download works cross-origin
+  const rawSrcs = React.useMemo(() => slides.map((s) => imageSrc(s.image)), [slides])
+  const blobSrcs = useBlobUrls(rawSrcs)
+  const currentSrc = blobSrcs[current] ?? rawSrcs[current]
+
+  const navBtnCls =
+    "flex size-7 items-center justify-center border border-foreground bg-background text-foreground shadow-[1px_1px_0_var(--foreground)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_var(--foreground)] active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-30 disabled:pointer-events-none"
+
+  const fullText = `${d.body}${d.cta ? `\n\n${d.cta}` : ""}${
+    d.hashtags?.length ? `\n\n${d.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}` : ""
+  }`
+
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header
+        icon={<GalleryHorizontal />}
+        title="Carousel post"
+        badge={
+          <Badge variant="secondary" className="text-[10px]">
+            {total} images
+          </Badge>
+        }
+      />
+      <AgentCard.Body>
+        <div className="mx-auto flex w-full max-w-[320px] flex-col border border-border bg-background">
+          {/* Image strip with navigation */}
+          <div className="relative w-full">
+            {currentSrc && (
+              <img
+                src={currentSrc}
+                alt={`Slide ${current + 1}`}
+                className="w-full object-contain"
+                onError={(e) => {
+                  ;(e.target as HTMLImageElement).style.display = "none"
+                }}
+              />
+            )}
+            {/* Overlay nav arrows */}
+            {total > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCurrent((c) => c - 1)}
+                  disabled={current === 0}
+                  aria-label="Previous image"
+                  className="absolute left-1 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-full bg-background/80 border border-border shadow disabled:opacity-0"
+                >
+                  <ChevronLeft className="size-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrent((c) => c + 1)}
+                  disabled={current === total - 1}
+                  aria-label="Next image"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-full bg-background/80 border border-border shadow disabled:opacity-0"
+                >
+                  <ChevronRight className="size-3" />
+                </button>
+                {/* Dot indicators */}
+                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1">
+                  {slides.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setCurrent(i)}
+                      aria-label={`Go to image ${i + 1}`}
+                      className={cn(
+                        "size-1.5 rounded-full transition-colors",
+                        i === current ? "bg-foreground" : "bg-foreground/30"
+                      )}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Single caption — same for all slides */}
+          <div className="flex flex-col gap-1 px-2.5 py-2">
+            {d.title && (
+              <p className="text-[11px] font-semibold leading-tight">{d.title}</p>
+            )}
+            <p className="whitespace-pre-wrap text-[11px] leading-snug">{d.body}</p>
+            {d.cta && (
+              <p className="text-[10px] italic text-muted-foreground">{d.cta}</p>
+            )}
+            {d.hashtags && d.hashtags.length > 0 && (
+              <p className="text-[10px] leading-relaxed text-primary/70">
+                {[...new Set(d.hashtags)]
+                  .map((h) => (h.startsWith("#") ? h : `#${h}`))
+                  .join(" ")}
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="border-t border-border px-2.5 py-1.5">
+            <ActionRow
+              copy={{ text: fullText, label: "Copy caption" }}
+              download={
+                rawSrcs[current]
+                  ? { href: currentSrc ?? rawSrcs[current]!, name: `maya-carousel-${current + 1}.png`, label: `Image ${current + 1}` }
+                  : undefined
+              }
+            >
+              <PublishDialog
+                platform={result.platform}
+                caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
+                hashtags={d.hashtags ?? []}
+                image={currentSlide.image}
+              />
+            </ActionRow>
+          </div>
+        </div>
+      </AgentCard.Body>
     </AgentCard>
   )
 }

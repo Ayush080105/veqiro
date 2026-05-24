@@ -3,6 +3,7 @@ import {
   sendMessageSchema,
   generateIdeasSchema,
   draftContentSchema,
+  draftCarouselSchema,
   generateVariantsSchema,
   reviseSchema,
   regenerateImageSchema,
@@ -13,6 +14,7 @@ import {
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type GenerateIdeasInput = z.infer<typeof generateIdeasSchema>;
 export type DraftContentInput = z.infer<typeof draftContentSchema>;
+export type DraftCarouselInput = z.infer<typeof draftCarouselSchema>;
 export type GenerateVariantsInput = z.infer<typeof generateVariantsSchema>;
 export type ReviseInput = z.infer<typeof reviseSchema>;
 export type RegenerateImageInput = z.infer<typeof regenerateImageSchema>;
@@ -116,6 +118,19 @@ export interface ContentRegenResponse {
   caption: string;
   hashtags: string[];
   cta: string;
+  tokens_used?: number;
+  model_used?: string;
+}
+
+export interface CarouselSlide {
+  slide_number: number;
+  image?: ImageResult | null;
+}
+
+export interface CarouselDraftResponse {
+  draft: DraftContent;
+  slides: CarouselSlide[];
+  platform: ContentPlatform;
   tokens_used?: number;
   model_used?: string;
 }
