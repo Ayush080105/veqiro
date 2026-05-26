@@ -156,3 +156,13 @@ export type VIPContact = Prisma.VIPContactModel
  * 
  */
 export type VegaBriefingCache = Prisma.VegaBriefingCacheModel
+/**
+ * Model VegaLabel
+ * 
+ */
+export type VegaLabel = Prisma.VegaLabelModel
+/**
+ * Model VegaInboxCache
+ * 
+ */
+export type VegaInboxCache = Prisma.VegaInboxCacheModel

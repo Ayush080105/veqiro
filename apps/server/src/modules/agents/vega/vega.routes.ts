@@ -28,6 +28,10 @@ import {
   updateCalendarEventHandler,
   getRescheduleDraftHandler,
   bulkInboxActionHandler,
+  getLabelsList,
+  createLabelHandler,
+  deleteLabelHandler,
+  updateLabelHandler,
 } from "./vega.workspace.controller.js";
 
 const router = Router();
@@ -72,5 +76,11 @@ router.post("/calendar/followup/send", sendFollowUpEmailHandler);
 // workspace: reschedule
 router.patch("/calendar/events/:eventId", updateCalendarEventHandler);
 router.post("/calendar/reschedule-draft", getRescheduleDraftHandler);
+
+// workspace: labels
+router.get("/labels", getLabelsList);
+router.post("/labels", createLabelHandler);
+router.delete("/labels/:labelId", deleteLabelHandler);
+router.patch("/labels/:labelId", updateLabelHandler);
 
 export default router;

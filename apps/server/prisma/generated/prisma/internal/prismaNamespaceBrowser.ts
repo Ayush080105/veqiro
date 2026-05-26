@@ -73,7 +73,9 @@ export const ModelName = {
   Subscription: 'Subscription',
   VegaFollowUp: 'VegaFollowUp',
   VIPContact: 'VIPContact',
-  VegaBriefingCache: 'VegaBriefingCache'
+  VegaBriefingCache: 'VegaBriefingCache',
+  VegaLabel: 'VegaLabel',
+  VegaInboxCache: 'VegaInboxCache'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -459,6 +461,28 @@ export const VegaBriefingCacheScalarFieldEnum = {
 } as const
 
 export type VegaBriefingCacheScalarFieldEnum = (typeof VegaBriefingCacheScalarFieldEnum)[keyof typeof VegaBriefingCacheScalarFieldEnum]
+
+
+export const VegaLabelScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  color: 'color',
+  autoReply: 'autoReply',
+  organizationId: 'organizationId',
+  createdAt: 'createdAt'
+} as const
+
+export type VegaLabelScalarFieldEnum = (typeof VegaLabelScalarFieldEnum)[keyof typeof VegaLabelScalarFieldEnum]
+
+
+export const VegaInboxCacheScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  snapshot: 'snapshot',
+  cachedAt: 'cachedAt'
+} as const
+
+export type VegaInboxCacheScalarFieldEnum = (typeof VegaInboxCacheScalarFieldEnum)[keyof typeof VegaInboxCacheScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -90,3 +90,13 @@ export const bulkInboxActionSchema = z.object({
   action: z.enum(["ignore", "snooze"]),
   snoozeUntil: z.string().datetime().optional(),
 });
+
+export const createLabelSchema = z.object({
+  name: z.string().min(1).max(50),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().default("#999999"),
+});
+
+export const updateLabelSchema = z.object({
+  autoReply: z.boolean().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+});

@@ -19,6 +19,7 @@ import type {
   UICategory,
   SendReplyInput,
   VegaFollowUpRecord,
+  VegaLabelRecord,
   BriefingCacheEntry,
   ExecutiveBriefingResponse,
 } from "./vega.types.js";
@@ -35,6 +36,8 @@ import type {
   updateCalendarEventSchema,
   rescheduleDraftSchema,
   bulkInboxActionSchema,
+  createLabelSchema,
+  updateLabelSchema,
 } from "./vega.workspace.schema.js";
 import type { z } from "zod";
 
@@ -51,7 +54,7 @@ const requireGoogleToken = async (userId: string): Promise<string> => {
   }
 };
 
-const mapPriorityToCategory = (
+export const mapPriorityToCategory = (
   priority: string,
   suggestedAction: string
 ): UICategory => {
@@ -64,12 +67,29 @@ const mapPriorityToCategory = (
   return "fyi";
 };
 
+const INBOX_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 export const getInbox = async (
   userId: string,
   organizationId: string,
-  input: z.infer<typeof getInboxSchema>
+  input: z.infer<typeof getInboxSchema>,
+  force = false
 ): Promise<WorkspaceInboxResponse> => {
+  // Serve from server-side cache if fresh (unless force=true)
+  if (!force) {
+    const cached = await prisma.vegaInboxCache.findUnique({
+      where: { organizationId },
+    });
+    if (cached && Date.now() - cached.cachedAt.getTime() < INBOX_CACHE_TTL_MS) {
+      return cached.snapshot as unknown as WorkspaceInboxResponse;
+    }
+  }
+
   const token = await requireGoogleToken(userId);
+
+  // Fetch org labels (seeds defaults if none exist yet) for dynamic label list
+  const orgLabels = await getLabels(organizationId);
+  const customLabelNames = orgLabels.map((l) => l.name);
 
   // Fetch VIP emails for this org to mark emails
   const vipContacts = await prisma.vIPContact.findMany({
@@ -86,6 +106,7 @@ export const getInbox = async (
       max_emails: input.maxEmails,
       auto_label: false,
       draft_replies: false,
+      custom_labels: customLabelNames,
       metadata: { google_access_token: token },
     }
   );
@@ -97,6 +118,7 @@ export const getInbox = async (
     fromEmail: e.from_email ?? "",
     priority: e.priority,
     uiCategory: mapPriorityToCategory(e.priority, e.suggested_action),
+    label: e.label_applied ?? "Other",
     summary: e.summary,
     suggestedAction: e.suggested_action,
     hiddenTasks: e.hidden_tasks ?? [],
@@ -115,7 +137,16 @@ export const getInbox = async (
     return a.isVIP === b.isVIP ? 0 : a.isVIP ? -1 : 1;
   });
 
-  return { emails, stats: data.stats };
+  const result: WorkspaceInboxResponse = { emails, stats: data.stats };
+
+  // Upsert cache
+  await prisma.vegaInboxCache.upsert({
+    where: { organizationId },
+    update: { snapshot: result as object, cachedAt: new Date() },
+    create: { organizationId, snapshot: result as object },
+  });
+
+  return result;
 };
 
 export const sendReply = async (
@@ -591,4 +622,96 @@ export const bulkInboxAction = async (
   const succeeded = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.filter((r) => r.status === "rejected").length;
   return { succeeded, failed };
+};
+
+// ─── Labels ───────────────────────────────────────────────────────────────────
+
+const DEFAULT_LABEL_NAMES = [
+  "Investors",
+  "Sales Leads",
+  "Newsletters",
+  "Team",
+  "Legal",
+  "Finance",
+  "Other",
+];
+
+export const getLabels = async (organizationId: string): Promise<VegaLabelRecord[]> => {
+  const count = await prisma.vegaLabel.count({ where: { organizationId } });
+  if (count === 0) {
+    await prisma.vegaLabel.createMany({
+      data: DEFAULT_LABEL_NAMES.map((name) => ({ name, organizationId })),
+      skipDuplicates: true,
+    });
+  }
+  const rows = await prisma.vegaLabel.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: "asc" },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    color: r.color,
+    autoReply: r.autoReply,
+    organizationId: r.organizationId,
+    createdAt: r.createdAt.toISOString(),
+  }));
+};
+
+export const createLabel = async (
+  organizationId: string,
+  input: z.infer<typeof createLabelSchema>
+): Promise<VegaLabelRecord> => {
+  const existing = await prisma.vegaLabel.findFirst({
+    where: { name: input.name, organizationId },
+  });
+  if (existing) throw new BadRequestError("A label with this name already exists");
+  const row = await prisma.vegaLabel.create({
+    data: { name: input.name, color: input.color ?? "#999999", organizationId },
+  });
+  return {
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    autoReply: row.autoReply,
+    organizationId: row.organizationId,
+    createdAt: row.createdAt.toISOString(),
+  };
+};
+
+export const deleteLabel = async (
+  organizationId: string,
+  labelId: string
+): Promise<void> => {
+  const existing = await prisma.vegaLabel.findFirst({
+    where: { id: labelId, organizationId },
+  });
+  if (!existing) throw new BadRequestError("Label not found");
+  await prisma.vegaLabel.delete({ where: { id: labelId } });
+};
+
+export const updateLabel = async (
+  organizationId: string,
+  labelId: string,
+  input: z.infer<typeof updateLabelSchema>
+): Promise<VegaLabelRecord> => {
+  const existing = await prisma.vegaLabel.findFirst({
+    where: { id: labelId, organizationId },
+  });
+  if (!existing) throw new BadRequestError("Label not found");
+  const row = await prisma.vegaLabel.update({
+    where: { id: labelId },
+    data: {
+      ...(input.autoReply !== undefined ? { autoReply: input.autoReply } : {}),
+      ...(input.color !== undefined ? { color: input.color } : {}),
+    },
+  });
+  return {
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    autoReply: row.autoReply,
+    organizationId: row.organizationId,
+    createdAt: row.createdAt.toISOString(),
+  };
 };

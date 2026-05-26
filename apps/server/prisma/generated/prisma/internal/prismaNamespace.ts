@@ -406,7 +406,9 @@ export const ModelName = {
   Subscription: 'Subscription',
   VegaFollowUp: 'VegaFollowUp',
   VIPContact: 'VIPContact',
-  VegaBriefingCache: 'VegaBriefingCache'
+  VegaBriefingCache: 'VegaBriefingCache',
+  VegaLabel: 'VegaLabel',
+  VegaInboxCache: 'VegaInboxCache'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -422,7 +424,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxCache"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2128,6 +2130,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    VegaLabel: {
+      payload: Prisma.$VegaLabelPayload<ExtArgs>
+      fields: Prisma.VegaLabelFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VegaLabelFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VegaLabelFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>
+        }
+        findFirst: {
+          args: Prisma.VegaLabelFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VegaLabelFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>
+        }
+        findMany: {
+          args: Prisma.VegaLabelFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>[]
+        }
+        create: {
+          args: Prisma.VegaLabelCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>
+        }
+        createMany: {
+          args: Prisma.VegaLabelCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VegaLabelCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>[]
+        }
+        delete: {
+          args: Prisma.VegaLabelDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>
+        }
+        update: {
+          args: Prisma.VegaLabelUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>
+        }
+        deleteMany: {
+          args: Prisma.VegaLabelDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VegaLabelUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VegaLabelUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>[]
+        }
+        upsert: {
+          args: Prisma.VegaLabelUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaLabelPayload>
+        }
+        aggregate: {
+          args: Prisma.VegaLabelAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVegaLabel>
+        }
+        groupBy: {
+          args: Prisma.VegaLabelGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaLabelGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VegaLabelCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaLabelCountAggregateOutputType> | number
+        }
+      }
+    }
+    VegaInboxCache: {
+      payload: Prisma.$VegaInboxCachePayload<ExtArgs>
+      fields: Prisma.VegaInboxCacheFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VegaInboxCacheFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VegaInboxCacheFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+        }
+        findFirst: {
+          args: Prisma.VegaInboxCacheFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VegaInboxCacheFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+        }
+        findMany: {
+          args: Prisma.VegaInboxCacheFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>[]
+        }
+        create: {
+          args: Prisma.VegaInboxCacheCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+        }
+        createMany: {
+          args: Prisma.VegaInboxCacheCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VegaInboxCacheCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>[]
+        }
+        delete: {
+          args: Prisma.VegaInboxCacheDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+        }
+        update: {
+          args: Prisma.VegaInboxCacheUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+        }
+        deleteMany: {
+          args: Prisma.VegaInboxCacheDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VegaInboxCacheUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VegaInboxCacheUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>[]
+        }
+        upsert: {
+          args: Prisma.VegaInboxCacheUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+        }
+        aggregate: {
+          args: Prisma.VegaInboxCacheAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVegaInboxCache>
+        }
+        groupBy: {
+          args: Prisma.VegaInboxCacheGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaInboxCacheGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VegaInboxCacheCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaInboxCacheCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2536,6 +2686,28 @@ export const VegaBriefingCacheScalarFieldEnum = {
 export type VegaBriefingCacheScalarFieldEnum = (typeof VegaBriefingCacheScalarFieldEnum)[keyof typeof VegaBriefingCacheScalarFieldEnum]
 
 
+export const VegaLabelScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  color: 'color',
+  autoReply: 'autoReply',
+  organizationId: 'organizationId',
+  createdAt: 'createdAt'
+} as const
+
+export type VegaLabelScalarFieldEnum = (typeof VegaLabelScalarFieldEnum)[keyof typeof VegaLabelScalarFieldEnum]
+
+
+export const VegaInboxCacheScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  snapshot: 'snapshot',
+  cachedAt: 'cachedAt'
+} as const
+
+export type VegaInboxCacheScalarFieldEnum = (typeof VegaInboxCacheScalarFieldEnum)[keyof typeof VegaInboxCacheScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2868,6 +3040,8 @@ export type GlobalOmitConfig = {
   vegaFollowUp?: Prisma.VegaFollowUpOmit
   vIPContact?: Prisma.VIPContactOmit
   vegaBriefingCache?: Prisma.VegaBriefingCacheOmit
+  vegaLabel?: Prisma.VegaLabelOmit
+  vegaInboxCache?: Prisma.VegaInboxCacheOmit
 }
 
 /* Types for Logging */

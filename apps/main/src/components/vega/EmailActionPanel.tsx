@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 import { ReplyEditor } from "./ReplyEditor"
-import { Star, Calendar, Clock, AlertCircle, X } from "lucide-react"
+import { Star, Calendar, Clock, AlertCircle, X, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { sendReply } from "@/lib/api/vega-inbox"
+import { sendReply, draftVegaReply } from "@/lib/api/vega-inbox"
 import { createFollowUp } from "@/lib/api/vega-followups"
 import type { TriagedEmail } from "@/lib/api/vega-inbox"
 
@@ -40,12 +40,26 @@ export function EmailActionPanel({
   onFollowUpScheduled,
   onClose,
 }: EmailActionPanelProps) {
-  const [activeView, setActiveView] = useState<ActiveView>(
-    email.uiCategory === "reply_now" ? "reply" : null
-  )
+  const [activeView, setActiveView] = useState<ActiveView>(null)
   const [followUpHours, setFollowUpHours] = useState("48")
   const [schedulingFollowUp, setSchedulingFollowUp] = useState(false)
+  const [draftLoading, setDraftLoading] = useState(false)
+  const [fullDraft, setFullDraft] = useState<string | null>(null)
   const router = useRouter()
+
+  const handleDraftReply = async () => {
+    setActiveView("reply")
+    setDraftLoading(true)
+    setFullDraft(null)
+    try {
+      const result = await draftVegaReply(email.emailId)
+      setFullDraft(result.body)
+    } catch {
+      toast.error("Could not generate draft — using suggestion instead")
+    } finally {
+      setDraftLoading(false)
+    }
+  }
 
   const handleScheduleMeeting = () => {
     const params = new URLSearchParams({
@@ -152,7 +166,7 @@ export function EmailActionPanel({
       {activeView === null && (
         <div className="flex flex-col gap-2">
           <Button
-            onClick={() => setActiveView("reply")}
+            onClick={handleDraftReply}
             style={{ border: "2px solid #111", boxShadow: "2px 2px 0 #111", justifyContent: "start" }}
             size="sm"
           >
@@ -190,15 +204,30 @@ export function EmailActionPanel({
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold">Reply to {email.fromName}</span>
-            <Button variant="ghost" size="sm" className="text-xs h-6 px-2" onClick={() => setActiveView(null)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-6 px-2"
+              onClick={() => { setActiveView(null); setFullDraft(null) }}
+            >
               ← Back
             </Button>
           </div>
-          <ReplyEditor
-            initialDraft={email.suggestedReply}
-            onSend={handleSendReply}
-            onDiscard={() => setActiveView(null)}
-          />
+          {draftLoading ? (
+            <div
+              className="flex items-center gap-2 py-6 justify-center text-muted-foreground"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}
+            >
+              <Loader2 className="size-3.5 animate-spin" />
+              Vega is drafting your reply…
+            </div>
+          ) : (
+            <ReplyEditor
+              initialDraft={fullDraft ?? email.suggestedReply}
+              onSend={handleSendReply}
+              onDiscard={() => { setActiveView(null); setFullDraft(null) }}
+            />
+          )}
         </div>
       )}
 
