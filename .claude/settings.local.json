@@ -66,7 +66,15 @@
       "Bash(git add *)",
       "Bash(xargs ls *)",
       "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && head -15 \"{}\"')",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(pnpm check-types *)",
+      "Bash(tee /tmp/veqiro-check-types.txt)",
+      "Bash(git rm *)",
+      "Bash(rm -f apps/server/prisma/migrations/add_vega_label_inbox_cache.sql)",
+      "Bash(node --import tsx --test --test-name-pattern=\"long-format\" src/tests/unit/rex-csv.test.ts)",
+      "Bash(node --import tsx _dbg.mts)",
+      "Bash(rm -f _dbg.mts)",
+      "Bash(./venv/Scripts/python.exe -c \"import pytest; print\\('pytest', pytest.__version__\\)\")"
     ]
   },
   "enabledMcpjsonServers": [

@@ -65,7 +65,7 @@ const MONTH_NAMES: Record<string, number> = {
  * Handles: ISO, US (MM/DD/YYYY), EU (DD/MM/YYYY), "Jan 2025", "2025-01", "Q1 2025",
  * "2025-Q1", Excel serial numbers, "Jan-25", "January 1, 2025".
  */
-function parseDateCell(raw: string | number | null | undefined): string | null {
+export function parseDateCell(raw: string | number | null | undefined): string | null {
   if (raw == null) return null;
 
   // Excel serial number → JS date (Excel epoch = 1899-12-30)
@@ -138,6 +138,15 @@ function parseDateCell(raw: string | number | null | undefined): string | null {
     }
   }
 
+  // Bare numeric strings ("1000", "2.1", "45000") are values, not dates.
+  // Allow only a plausible 4-digit year; otherwise don't let Date.parse coerce
+  // a number into a bogus date — that would corrupt column-type detection
+  // (e.g. a numeric "value" column being misread as a date column).
+  if (/^[+-]?[\d.,]+$/.test(s)) {
+    if (/^(19|20)\d{2}$/.test(s)) return `${s}-01-01`;
+    return null;
+  }
+
   // Last resort: native Date.parse
   const t = Date.parse(s);
   if (!isNaN(t)) {
@@ -152,7 +161,7 @@ function parseDateCell(raw: string | number | null | undefined): string | null {
  * "K"/"M"/"B" suffixes, EU "1.234,56".
  * Returns NaN if not parseable.
  */
-function parseNumeric(raw: string | number | null | undefined): number {
+export function parseNumeric(raw: string | number | null | undefined): number {
   if (raw == null) return NaN;
   if (typeof raw === "number") return isFinite(raw) ? raw : NaN;
   let s = String(raw).trim();
@@ -209,15 +218,34 @@ function parseNumeric(raw: string | number | null | undefined): number {
 
 type CellLike = string | number | null | undefined;
 
+// Common spreadsheet "missing value" tokens — excluded from type detection so a
+// valid date/number column isn't misclassified by interspersed blanks/N/As.
+const NULL_TOKENS = new Set([
+  "n/a", "na", "n.a.", "-", "--", "null", "none", "nan", "#n/a", "#n/a!",
+  "#value!", "#ref!", "#div/0!", "tbd", ".", "—",
+]);
+
+function isNullToken(v: CellLike): boolean {
+  if (v == null) return true;
+  const s = String(v).trim();
+  return s === "" || NULL_TOKENS.has(s.toLowerCase());
+}
+
+// Scan the FULL column (not just the first 30 rows) with missing-value tokens
+// removed, so type detection sees the real data distribution.
+function cleanValues(values: CellLike[]): (string | number)[] {
+  return values.filter((v): v is string | number => !isNullToken(v));
+}
+
 function isMostlyDates(values: CellLike[]): boolean {
-  const sample = values.slice(0, 30).filter((v): v is string | number => v != null && String(v).trim() !== "");
+  const sample = cleanValues(values);
   if (sample.length === 0) return false;
   const ok = sample.filter((v) => parseDateCell(v) != null).length;
   return ok >= Math.max(3, Math.floor(sample.length * 0.7));
 }
 
 function isMostlyNumeric(values: CellLike[]): boolean {
-  const sample = values.slice(0, 30).filter((v): v is string | number => v != null && String(v).trim() !== "");
+  const sample = cleanValues(values);
   if (sample.length < 2) return false;
   const ok = sample.filter((v) => !isNaN(parseNumeric(v))).length;
   return ok >= Math.max(2, Math.floor(sample.length * 0.7));
@@ -226,15 +254,31 @@ function isMostlyNumeric(values: CellLike[]): boolean {
 function isCategoricalString(values: CellLike[]): boolean {
   // Looks like discrete categories (e.g. metric names): non-empty strings,
   // limited unique values, none parse as numeric or date.
-  const sample = values
-    .filter((v): v is string | number => v != null && String(v).trim() !== "")
-    .map((v) => String(v).trim());
+  const sample = cleanValues(values).map((v) => String(v).trim());
   if (sample.length < 3) return false;
   const numericFrac = sample.filter((v) => !isNaN(parseNumeric(v))).length / sample.length;
   const dateFrac = sample.filter((v) => parseDateCell(v) != null).length / sample.length;
   if (numericFrac > 0.3 || dateFrac > 0.3) return false;
   const uniq = new Set(sample.map((v) => v.toLowerCase()));
   return uniq.size >= 2 && uniq.size <= Math.max(20, sample.length / 2);
+}
+
+// A slash/dash date like "05/06/2025" is ambiguous when both leading parts are
+// <= 12 (could be MM/DD or DD/MM). We default to US MM/DD but want to flag it
+// rather than silently guess.
+function isAmbiguousSlashDate(s: string): boolean {
+  const m = s.trim().match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (!m) return false;
+  const a = parseInt(m[1]!, 10);
+  const b = parseInt(m[2]!, 10);
+  return a <= 12 && b <= 12 && a !== b;
+}
+
+function hasAmbiguousDates(rows: Record<string, unknown>[], dateCol: string): boolean {
+  return rows.some((r) => {
+    const v = r[dateCol];
+    return v != null && isAmbiguousSlashDate(String(v));
+  });
 }
 
 function dedupeKey(used: Set<string>, key: string): string {
@@ -305,7 +349,7 @@ function pivotLongFormat(
     .filter((d) => d.points.length > 0);
 }
 
-function parseRows(rows: Record<string, unknown>[]): {
+export function parseRows(rows: Record<string, unknown>[]): {
   result: ParseResult;
 } {
   const warnings: string[] = [];
@@ -363,6 +407,9 @@ function parseRows(rows: Record<string, unknown>[]): {
     );
     if (datasets.length > 0) {
       warnings.push(`Detected long-format CSV: pivoted '${metricCol}' × '${valueCol}' into ${datasets.length} metric${datasets.length > 1 ? "s" : ""}`);
+      if (hasAmbiguousDates(rows as Record<string, unknown>[], dateCol)) {
+        warnings.push(`Ambiguous date format in '${dateCol}' (DD/MM vs MM/DD) — assuming US MM/DD. Use YYYY-MM-DD to be certain.`);
+      }
       return {
         result: {
           candidate_mapping: {
@@ -382,6 +429,9 @@ function parseRows(rows: Record<string, unknown>[]): {
   const dateCol = dateCols[0]?.header ?? headers[0]!;
   if (!dateCols[0]) {
     warnings.push(`No clear date column detected — falling back to '${dateCol}'`);
+  }
+  if (hasAmbiguousDates(rows as Record<string, unknown>[], dateCol)) {
+    warnings.push(`Ambiguous date format in '${dateCol}' (DD/MM vs MM/DD) — assuming US MM/DD. Use YYYY-MM-DD to be certain.`);
   }
 
   const usedKeys = new Set<string>();
@@ -446,12 +496,15 @@ async function fetchR2Buffer(r2Key: string): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-export async function parseUploaded(r2Key: string): Promise<ParseResult> {
-  const ext = r2Key.split(".").pop()?.toLowerCase() ?? "";
-  const buffer = await fetchR2Buffer(r2Key);
-
+export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
   if (ext === "csv" || ext === "tsv" || ext === "txt") {
-    const text = buffer.toString("utf-8");
+    let text = buffer.toString("utf-8");
+    // If UTF-8 decoding produced replacement characters, the file is likely
+    // ISO-8859-1 / Windows-1252 (common from Excel "Save as CSV" on Windows).
+    // Re-decode as latin-1 so headers and currency values aren't garbled.
+    if (text.includes("�")) {
+      text = buffer.toString("latin1");
+    }
     const result = Papa.parse<Record<string, string>>(text, {
       header: true,
       skipEmptyLines: "greedy",
@@ -514,4 +567,10 @@ export async function parseUploaded(r2Key: string): Promise<ParseResult> {
     };
   }
   return { ...firstResult, datasets: allDatasets, warnings: allWarnings.length ? allWarnings : firstResult.warnings };
+}
+
+export async function parseUploaded(r2Key: string): Promise<ParseResult> {
+  const ext = r2Key.split(".").pop()?.toLowerCase() ?? "";
+  const buffer = await fetchR2Buffer(r2Key);
+  return parseBuffer(buffer, ext);
 }

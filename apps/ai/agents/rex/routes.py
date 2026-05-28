@@ -10,7 +10,12 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, DataPoint
 from core.config import settings
-from core.utils import strip_json_fences, safe_json_loads
+from core.utils import strip_json_fences, safe_json_loads, downsample_points
+
+# Cap how many points per metric are embedded in an LLM prompt so large CSVs
+# (tens of thousands of rows) can't overflow the model context. Analytics and
+# chart data below still use the full series.
+MAX_LLM_POINTS_PER_METRIC = 200
 from agents.rex.agent import RexAgent
 from agents.rex.analytics import compute_anomalies, compute_health_indicator, compute_derived_metrics, compute_runway_scenarios, compute_unit_economics, correlate_anomalies
 from agents.rex.forecasting import forecast_metric
@@ -417,7 +422,13 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
     confidence_level = "high" if total_points >= 12 else "medium" if total_points >= 6 else "low"
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
-    metrics_summary = json.dumps({k: [{"date": d.date, "value": d.value} for d in v] for k, v in request.metrics.items()})
+    metrics_summary = json.dumps({
+        k: [
+            {"date": d.date, "value": d.value}
+            for d in downsample_points(sorted(v, key=lambda dp: dp.date), MAX_LLM_POINTS_PER_METRIC)
+        ]
+        for k, v in request.metrics.items()
+    })
     prompt = (
         f"You are Rex, a CFO analyst. Analyze these {request.period} business metrics for a SaaS startup:\n"
         f"{metrics_summary}\n\n"
@@ -441,15 +452,17 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
     )
     tokens_used = _llm.count_tokens(raw)
     try:
-        parsed = json.loads(strip_json_fences(raw))
+        parsed = safe_json_loads(raw)
         summary = parsed.get("summary", "Analysis complete.")
         trend = parsed.get("trend", "up")
         insights = parsed.get("insights", [])
         llm_health = parsed.get("health_indicator", health)
     except Exception:
-        summary = raw[:400]
-        trend = "up"
-        insights = [raw[:200]]
+        # Don't surface a mid-sentence truncation of the raw model output as the
+        # "analysis" — the charts and anomalies below are computed from real data.
+        summary = "Couldn't parse the written analysis, but the charts and anomaly detection below are computed directly from your data."
+        trend = "flat"
+        insights = []
         llm_health = health
 
     return MetricsAnalysisResponse(
