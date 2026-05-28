@@ -62,7 +62,7 @@ export function FollowUpList() {
       <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
         <Clock className="size-8 opacity-30" />
         <p className="text-sm">No follow-ups scheduled</p>
-        <p className="text-xs">Select an email and choose "Follow-up Later" to add one.</p>
+        <p className="text-xs">Select an email and choose &ldquo;Follow-up Later&rdquo; to add one.</p>
       </div>
     )
   }
