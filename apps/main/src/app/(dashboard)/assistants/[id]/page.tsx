@@ -1,11 +1,9 @@
 "use client"
-
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Info, HelpCircle, MessageSquare, FolderOpen, Rocket } from "lucide-react"
 import { toast } from "sonner"
-
 import { authClient } from "@/lib/auth-client"
 import { apiFetch, ApiError } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
@@ -17,7 +15,6 @@ import {
 import { useBrandKit } from "@/lib/api/brain"
 import { useGoogleConnected } from "@/lib/api/auth-accounts"
 import { qk } from "@/lib/query-keys"
-
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { PlusMenu } from "@/components/chat/PlusMenu"
@@ -33,14 +30,12 @@ import { TodayPanel } from "@/components/agents/rex/today-panel"
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
-
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
-
 import type {
   Message,
   AgentConfig,
@@ -257,7 +252,6 @@ function EmptyState({
             </div>
           )}
         </div>
-
         <h2
           style={{
             fontFamily: FONT.display,
@@ -294,7 +288,6 @@ function EmptyState({
         >
           {"// try one of these"}
         </p>
-
         <div
           style={{
             display: "flex",
@@ -350,10 +343,8 @@ export default function AssistantChatPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const agent = getAgent(id)
-
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
-
   const { data: messages = [], isPending: messagesPending, isError: messagesError, error: messagesErrorObj } = useMessages(
     id,
     organizationId,
@@ -416,7 +407,6 @@ export default function AssistantChatPage() {
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
     if (!trimmed || trimmed.length > 1000 || isLoading) return
-
     setContent("")
     try {
       await sendMutation.mutateAsync(trimmed)
@@ -459,6 +449,22 @@ export default function AssistantChatPage() {
 
   const handleActionComplete = useCallback(
     (ctx: ActionResultContext<unknown, unknown>) => {
+      const meta = findAction(ctx.actionId)
+      const now = new Date().toISOString()
+
+      // Build the user-facing trigger message that shows what the user ran.
+      // This is what was missing — it was only persisted server-side but never
+      // written to the client cache, so it only appeared after a page refresh.
+      const userMsg: Message = {
+        role: "user",
+        content: meta?.label ?? "Action",
+        imageUrl: null,
+        createdAt: now,
+      }
+
+      // ── maya:regenerate-image ─────────────────────────────────────────────
+      // Special case: patches an existing draft message in-place rather than
+      // appending new messages. No user message needed here.
       if (ctx.actionId === "maya:regenerate-image") {
         const regenResult = ctx.result as MayaImageRegenResult
         queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
@@ -484,6 +490,9 @@ export default function AssistantChatPage() {
         return
       }
 
+      // ── maya:generate-variants ────────────────────────────────────────────
+      // Enriches the result with the original image from the last draft before
+      // appending both the user trigger message and the assistant result card.
       if (ctx.actionId === "maya:generate-variants") {
         const serverResult = ctx.result as MayaVariantResult
         let originalImage: ImageResult | null = null
@@ -495,25 +504,28 @@ export default function AssistantChatPage() {
           }
         }
         const enrichedResult: MayaVariantResult = { ...serverResult, _originalImage: originalImage }
-        const meta = findAction(ctx.actionId)
-        const msg: Message = {
+        const assistantMsg: Message = {
           role: "assistant",
           content: meta ? `${meta.label} — done.` : "Action complete.",
           imageUrl: null,
-          createdAt: new Date().toISOString(),
+          createdAt: now,
           customInput: { actionId: ctx.actionId, input: ctx.input, result: enrichedResult },
         }
-        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [...(prev ?? []), msg])
+        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
+          ...(prev ?? []),
+          userMsg,
+          assistantMsg,
+        ])
         toast.success(meta ? `${meta.label} complete.` : "Action complete.")
         return
       }
 
-      const meta = findAction(ctx.actionId)
-      const msg: Message = {
+      // ── all other actions ─────────────────────────────────────────────────
+      const assistantMsg: Message = {
         role: "assistant",
         content: meta ? `${meta.label} — done.` : "Action complete.",
         imageUrl: null,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
         customInput: {
           actionId: ctx.actionId,
           input: ctx.input,
@@ -522,7 +534,7 @@ export default function AssistantChatPage() {
       }
       queryClient.setQueryData<Message[]>(
         qk.chat(id, organizationId),
-        (prev) => [...(prev ?? []), msg],
+        (prev) => [...(prev ?? []), userMsg, assistantMsg],
       )
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
     },
@@ -623,11 +635,11 @@ export default function AssistantChatPage() {
 
   if (!agent) return null
 
-  // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402
   const upgradeError =
     (messagesError && messagesErrorObj instanceof ApiError && messagesErrorObj.status === 402
       ? messagesErrorObj
       : null) ?? sendError
+
   if (upgradeError) {
     return <UpgradeRequiredCard reason={upgradeError.code} />
   }
@@ -958,8 +970,11 @@ export default function AssistantChatPage() {
             </Button>
           </div>
         )}
-
-        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && !(isRex && rexTab === "data") && !(isMaya && mayaTab === "published") && (
+        {!(isLex && lexTab === "documents") &&
+          !(isScout && scoutTab === "watchlist") &&
+          !(isSage && sageTab === "favourites") &&
+          !(isRex && rexTab === "data") &&
+          !(isMaya && mayaTab === "published") && (
           <ChatInput
             value={content}
             onChange={setContent}
@@ -982,7 +997,6 @@ export default function AssistantChatPage() {
         onClose={() => setInfoOpen(false)}
         organizationId={organizationId}
       />
-
       <PlusMenu
         open={plusOpen}
         onOpenChange={setPlusOpen}

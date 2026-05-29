@@ -59,6 +59,7 @@ export interface ActionDialogProps<TInput, TResult> {
   submitLabel?: string
   /** Optionally resolve a different actionId based on current form value (e.g. carousel routing). */
   resolveActionId?: (value: TInput) => AgentActionId
+  
 }
 
 export function ActionDialog<TInput, TResult>({
