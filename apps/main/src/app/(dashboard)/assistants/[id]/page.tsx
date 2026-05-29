@@ -1,9 +1,11 @@
 "use client"
+
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Info, HelpCircle, MessageSquare, FolderOpen, Rocket } from "lucide-react"
 import { toast } from "sonner"
+
 import { authClient } from "@/lib/auth-client"
 import { apiFetch, ApiError } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
@@ -15,12 +17,13 @@ import {
 import { useBrandKit } from "@/lib/api/brain"
 import { useGoogleConnected } from "@/lib/api/auth-accounts"
 import { qk } from "@/lib/query-keys"
+
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { PlusMenu } from "@/components/chat/PlusMenu"
 import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
-import type { ActionResultContext, ActionStartContext } from "@/components/chat/ActionDialog"
+import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
@@ -30,12 +33,14 @@ import { TodayPanel } from "@/components/agents/rex/today-panel"
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
+
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
 import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
+
 import type {
   Message,
   AgentConfig,
@@ -252,6 +257,7 @@ function EmptyState({
             </div>
           )}
         </div>
+
         <h2
           style={{
             fontFamily: FONT.display,
@@ -288,6 +294,7 @@ function EmptyState({
         >
           {"// try one of these"}
         </p>
+
         <div
           style={{
             display: "flex",
@@ -343,8 +350,10 @@ export default function AssistantChatPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const agent = getAgent(id)
+
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
+
   const { data: messages = [], isPending: messagesPending, isError: messagesError, error: messagesErrorObj } = useMessages(
     id,
     organizationId,
@@ -367,7 +376,7 @@ export default function AssistantChatPage() {
   const [infoOpen, setInfoOpen] = useState(false)
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
   const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
-  const [pendingActionCount, setPendingActionCount] = useState(0)
+  const [actionSubmitting, setActionSubmitting] = useState(false)
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
   const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
@@ -380,7 +389,7 @@ export default function AssistantChatPage() {
 
   const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current)
   const isLoading = sendMutation.isPending
-  const isBusy = isLoading || pendingActionCount > 0
+  const isBusy = isLoading || actionSubmitting
   const historyLoaded = !messagesPending
 
   useEffect(() => {
@@ -407,6 +416,7 @@ export default function AssistantChatPage() {
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
     if (!trimmed || trimmed.length > 1000 || isLoading) return
+
     setContent("")
     try {
       await sendMutation.mutateAsync(trimmed)
@@ -423,38 +433,14 @@ export default function AssistantChatPage() {
     }
   }, [content, isLoading, sendMutation, agent])
 
-  const handleActionStart = useCallback(
-    (ctx: ActionStartContext<unknown>) => {
-      const meta = findAction(ctx.actionId)
-      const msg: Message = {
-        role: "user",
-        content: `Run: ${meta?.label ?? "Action"}`,
-        imageUrl: null,
-        createdAt: new Date().toISOString(),
-        customInput: { actionId: ctx.actionId, input: ctx.input },
-      }
-      setPendingActionCount((count) => count + 1)
-      void queryClient.cancelQueries({ queryKey: qk.chat(id, organizationId) })
-      queryClient.setQueryData<Message[]>(
-        qk.chat(id, organizationId),
-        (prev) => [...(prev ?? []), msg],
-      )
-    },
-    [queryClient, id, organizationId],
-  )
-
-  const handleActionSettled = useCallback(() => {
-    setPendingActionCount((count) => Math.max(0, count - 1))
-  }, [])
-
   const handleActionComplete = useCallback(
     (ctx: ActionResultContext<unknown, unknown>) => {
       const meta = findAction(ctx.actionId)
       const now = new Date().toISOString()
 
       // Build the user-facing trigger message that shows what the user ran.
-      // This is what was missing — it was only persisted server-side but never
-      // written to the client cache, so it only appeared after a page refresh.
+      // This was missing — it was only persisted server-side but never written
+      // to the client cache, so it only appeared after a page refresh.
       const userMsg: Message = {
         role: "user",
         content: meta?.label ?? "Action",
@@ -615,31 +601,31 @@ export default function AssistantChatPage() {
   const openAnalyzeForSource = useCallback((source: LexSource) => {
     setLexTab("chat")
     openAction("lex:analyze-contract", { source_id: source.sourceId })
-  }, [])
+  }, [openAction])
 
   const openQueryForSource = useCallback((source: LexSource) => {
     setLexTab("chat")
     openAction("lex:query-document", { sourceId: source.sourceId })
-  }, [])
+  }, [openAction])
 
   const openUploadAction = useCallback(() => {
     setLexTab("chat")
     openAction("lex:upload-source")
-  }, [])
+  }, [openAction])
 
   const openCampaignAction = useCallback(() => {
     openAction("maya:campaign")
-  }, [])
+  }, [openAction])
 
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
 
   if (!agent) return null
 
+  // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402
   const upgradeError =
     (messagesError && messagesErrorObj instanceof ApiError && messagesErrorObj.status === 402
       ? messagesErrorObj
       : null) ?? sendError
-
   if (upgradeError) {
     return <UpgradeRequiredCard reason={upgradeError.code} />
   }
@@ -970,6 +956,7 @@ export default function AssistantChatPage() {
             </Button>
           </div>
         )}
+
         {!(isLex && lexTab === "documents") &&
           !(isScout && scoutTab === "watchlist") &&
           !(isSage && sageTab === "favourites") &&
@@ -997,6 +984,7 @@ export default function AssistantChatPage() {
         onClose={() => setInfoOpen(false)}
         organizationId={organizationId}
       />
+
       <PlusMenu
         open={plusOpen}
         onOpenChange={setPlusOpen}
@@ -1017,9 +1005,8 @@ export default function AssistantChatPage() {
         organizationId={organizationId}
         conversationId={conversationIdRef.current}
         prefill={activePrefill}
-        onStart={handleActionStart}
-        onSettled={handleActionSettled}
         onComplete={handleActionComplete}
+        onSubmittingChange={setActionSubmitting}
       />
     </div>
   )

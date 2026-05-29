@@ -328,7 +328,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   "rex:scenario": {
     defaultValue: {
       base_metrics: { mrr: 0, burn: 0, cash: 0, growth_rate: 0 },
-      scenarios: [],
+      scenarios: [{ name: "", changes: {} }], // Merged from file 2's structure
     },
     Form: RexScenarioForm,
     validate: (v) =>
@@ -488,6 +488,8 @@ export interface RunActionDialogProps {
   onStart?: (ctx: ActionStartContext<unknown>) => void
   onSettled?: (ctx: ActionStartContext<unknown>) => void
   onComplete: (ctx: ActionResultContext<unknown, unknown>) => void
+  /** Bubble up submitting state so the chat page can show the typing indicator. */
+  onSubmittingChange?: (submitting: boolean) => void
 }
 
 export function RunActionDialog({
@@ -500,6 +502,7 @@ export function RunActionDialog({
   onStart,
   onSettled,
   onComplete,
+  onSubmittingChange,
 }: RunActionDialogProps) {
   if (!actionId) return null
   const meta = findAction(actionId)
@@ -507,6 +510,8 @@ export function RunActionDialog({
   if (!meta || !spec) return null
 
   const { Form, defaultValue, validate, customSubmit, resolveActionId } = spec
+  
+  // Inject organization_id along with default values & prefill
   const merged = {
     ...(defaultValue as Record<string, unknown>),
     ...(prefill ?? {}),
@@ -526,6 +531,7 @@ export function RunActionDialog({
       validate={validate}
       customSubmit={customSubmit}
       resolveActionId={resolveActionId}
+      onSubmittingChange={onSubmittingChange}
       renderForm={({ value, onChange }) => (
         <Form value={value} onChange={onChange} />
       )}

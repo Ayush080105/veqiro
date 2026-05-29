@@ -59,7 +59,8 @@ export interface ActionDialogProps<TInput, TResult> {
   submitLabel?: string
   /** Optionally resolve a different actionId based on current form value (e.g. carousel routing). */
   resolveActionId?: (value: TInput) => AgentActionId
-  
+  /** Called whenever the submitting state changes so the parent can show a loader. */
+  onSubmittingChange?: (submitting: boolean) => void
 }
 
 export function ActionDialog<TInput, TResult>({
@@ -79,13 +80,10 @@ export function ActionDialog<TInput, TResult>({
   customSubmit,
   submitLabel = "Run",
   resolveActionId,
+  onSubmittingChange,
 }: ActionDialogProps<TInput, TResult>) {
   const [value, setValue] = React.useState<TInput>(defaultValue)
   const [submitting, setSubmitting] = React.useState(false)
-
-  // Always keep a ref in sync so submit() never reads a stale closure value.
-  const latestValueRef = React.useRef<TInput>(defaultValue)
-  latestValueRef.current = value
 
   // Reset on open
   React.useEffect(() => {
@@ -97,30 +95,41 @@ export function ActionDialog<TInput, TResult>({
     setValue((prev) => ({ ...(prev as object), ...patch } as TInput))
   }, [])
 
+  const setSubmittingWithNotify = React.useCallback(
+    (v: boolean) => {
+      setSubmitting(v)
+      onSubmittingChange?.(v)
+    },
+    [onSubmittingChange],
+  )
+
   const submit = React.useCallback(async (): Promise<TResult> => {
-    // Read from ref so we always get the latest value, even if the closure is stale.
-    const currentValue = latestValueRef.current
+    const submittedValue = value
     if (validate) {
-      const err = validate(currentValue)
+      const err = validate(submittedValue)
       if (err) {
         toast.error(err)
         throw new Error(err)
       }
     }
-    setSubmitting(true)
-    const effectiveActionId = resolveActionId ? resolveActionId(currentValue) : actionId
-    onStart?.({ actionId, input: currentValue })
-    onOpenChange(false)
+    
+    setSubmittingWithNotify(true)
+    const effectiveActionId = resolveActionId ? resolveActionId(submittedValue) : actionId
+    
+    onStart?.({ actionId: effectiveActionId, input: submittedValue })
+    
     try {
       const result = customSubmit
-        ? await customSubmit(currentValue, organizationId)
+        ? await customSubmit(submittedValue, organizationId)
         : await runAgentAction<TInput, TResult>(
             effectiveActionId,
             organizationId,
-            currentValue,
+            submittedValue,
             conversationId
           )
-      onComplete({ actionId: effectiveActionId, input: currentValue, result })
+          
+      onComplete({ actionId: effectiveActionId, input: submittedValue, result })
+      onOpenChange(false) // Modal closes only after a successful completion
       return result
     } catch (err) {
       if (err instanceof AgentNotAvailableError) {
@@ -130,11 +139,23 @@ export function ActionDialog<TInput, TResult>({
       }
       throw err
     } finally {
-      onSettled?.({ actionId, input: currentValue })
-      setSubmitting(false)
+      onSettled?.({ actionId: effectiveActionId, input: submittedValue })
+      setSubmittingWithNotify(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actionId, resolveActionId, organizationId, conversationId, validate, onStart, onComplete, onSettled, onOpenChange, customSubmit])
+  }, [
+    value, 
+    actionId, 
+    resolveActionId, 
+    organizationId, 
+    conversationId, 
+    validate, 
+    onComplete, 
+    onOpenChange, 
+    customSubmit, 
+    setSubmittingWithNotify,
+    onStart,
+    onSettled
+  ])
 
   const handleSubmit = () => {
     submit().catch(() => {
