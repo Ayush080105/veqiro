@@ -9,6 +9,8 @@ import {
   regenerateImageSchema,
   regenerateContentSchema,
   publishSchema,
+  campaignSchema,
+  expandBriefSchema,
 } from "./maya.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
@@ -20,6 +22,8 @@ export type ReviseInput = z.infer<typeof reviseSchema>;
 export type RegenerateImageInput = z.infer<typeof regenerateImageSchema>;
 export type RegenerateContentInput = z.infer<typeof regenerateContentSchema>;
 export type PublishInput = z.infer<typeof publishSchema>;
+export type CampaignInput = z.infer<typeof campaignSchema>;
+export type ExpandBriefInput = z.infer<typeof expandBriefSchema>;
 
 export type ContentPlatform = "linkedin" | "twitter" | "instagram";
 
@@ -140,4 +144,15 @@ export interface PublishResponse {
   platformPostId: string;
   url?: string;
   publishedAt: string;
+}
+
+export interface CampaignPhoto {
+  image: ImageResult;
+  composition_role: string;
+}
+
+export interface CampaignResponse {
+  photos: CampaignPhoto[];
+  tokens_used: number;
+  model_used: string;
 }

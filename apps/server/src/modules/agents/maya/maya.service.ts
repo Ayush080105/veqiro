@@ -29,6 +29,9 @@ import type {
   PublishInput,
   PublishResponse,
   ImageResult,
+  CampaignInput,
+  CampaignResponse,
+  ExpandBriefInput,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
@@ -539,4 +542,65 @@ export const draftCarousel = async (
 
 export const listPublishedPosts = async (organizationId: string) => {
   return mayaRepository.findPublishedPosts(organizationId);
+};
+
+export const expandBrief = async (
+  userId: string,
+  organizationId: string,
+  input: ExpandBriefInput
+): Promise<{ expanded: string }> => {
+  const { data } = await aiService.post<{ expanded: string }>("/ai/maya/expand-brief", {
+    user_id: userId,
+    organization_id: organizationId,
+    brief: input.brief,
+    platform: input.platform,
+  });
+  return data;
+};
+
+export const createCampaign = async (
+  userId: string,
+  organizationId: string,
+  input: CampaignInput
+): Promise<CampaignResponse> => {
+  await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    customInput: { actionId: "maya:campaign", input },
+  });
+
+  const { data } = await aiService.post<CampaignResponse>("/ai/maya/campaign", {
+    user_id: userId,
+    organization_id: organizationId,
+    product_image_url: input.productImageUrl,
+    campaign_brief: input.campaignBrief,
+    photo_count: input.photoCount,
+    use_brand_kit: input.useBrandKit,
+    platform: input.platform,
+  });
+
+  const hostedPhotos = await Promise.all(
+    data.photos.map(async (photo) => ({
+      ...photo,
+      image: (await hostImage(organizationId, photo.image)) ?? photo.image,
+    }))
+  );
+
+  const result: CampaignResponse = {
+    ...data,
+    photos: hostedPhotos,
+  };
+
+  await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Campaign generated: ${hostedPhotos.length} photos for ${input.platform}`,
+    imageUrl: hostedPhotos[0]?.image?.image_url,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:campaign", input, result },
+  });
+
+  return result;
 };

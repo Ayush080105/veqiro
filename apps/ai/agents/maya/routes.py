@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import uuid
@@ -455,6 +456,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                     aspect_ratio=request.image_aspect_ratio,
                     use_logo=request.use_logo, use_mascot=request.use_mascot,
                     user_id=request.user_id, organization_id=request.organization_id,
+                    brand_kit=brand_kit,
                     context_hints=request.additional_context or "",
                     reference_urls=request.reference_images if request.use_reference else [],
                 )
@@ -499,6 +501,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         raise HTTPException(status_code=500, detail=f"Draft generation failed — retry. ({exc})")
 
     image = None
+    logger.info("draft_content | include_image=%s user=%s", request.include_image, request.user_id)
     if request.include_image:
         try:
             image = await generate_social_image(
@@ -506,6 +509,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 aspect_ratio=request.image_aspect_ratio,
                 use_logo=request.use_logo, use_mascot=request.use_mascot,
                 user_id=request.user_id, organization_id=request.organization_id,
+                brand_kit=brand_kit,
                 context_hints=request.additional_context or "",
                 reference_urls=request.reference_images if request.use_reference else [],
             )
@@ -871,6 +875,223 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
         draft=draft,
         slides=result_slides,
         platform=request.platform,
+        tokens_used=0,
+        model_used=_agent.default_model,
+    )
+
+
+# ── Expand Brief ─────────────────────────────────────────────────────────────
+
+class ExpandBriefRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    brief: str = Field(..., min_length=1, max_length=500)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+
+
+class ExpandBriefResponse(BaseModel):
+    expanded: str
+
+
+_EXPAND_SYSTEM = (
+    "You are a world-class creative director and brand photographer with 20 years of "
+    "experience shooting product campaigns for global brands. "
+    "You receive a rough campaign idea and expand it into a comprehensive, professional "
+    "creative brief that will be used directly to prompt an AI image generation model. "
+    "The brief must be extremely specific about every visual detail. "
+    "Never invent product details not in the original idea. Only build on what was given."
+)
+
+_EXPAND_USER_TMPL = (
+    'Platform: {platform}\n'
+    'Original idea: "{brief}"\n\n'
+    "Write a comprehensive campaign photography brief covering ALL of the following — "
+    "be specific, visual, and professional:\n\n"
+    "1. CAMPAIGN THEME & EMOTIONAL STORY: What feeling should every image evoke? "
+    "What narrative arc runs through the campaign?\n"
+    "2. TARGET AUDIENCE & MINDSET: Who is this for? What are they feeling/wanting?\n"
+    "3. VISUAL AESTHETIC & MOOD: Overall look — editorial, cinematic, raw, luxury, "
+    "playful, moody, etc. Reference specific visual styles if relevant.\n"
+    "4. LIGHTING: Type of light (golden hour, studio strobe, neon, natural diffused, "
+    "dramatic chiaroscuro, etc.), direction, intensity, color temperature.\n"
+    "5. COLOR PALETTE & GRADING: Dominant colors, shadows, highlights, overall grade "
+    "(warm, cool, desaturated, punchy, filmic, etc.).\n"
+    "6. CAMERA & LENS STYLE: Depth of field, focal length feel (wide/standard/telephoto), "
+    "shutter (crisp/motion blur), film grain or clean digital.\n"
+    "7. COMPOSITION & SHOT TYPES: What compositions work for this campaign "
+    "(hero shot, flat lay, lifestyle, macro, overhead, dynamic action, etc.).\n"
+    "8. SETTING & ENVIRONMENT: Where are we? Indoor/outdoor, specific location "
+    "details, time of day, props and styling elements.\n"
+    "9. PRODUCT TREATMENT: How does the product appear — hero-centered, integrated "
+    "naturally, held/used, pristine studio, in-motion, etc.\n\n"
+    "Write this as one flowing creative brief paragraph (200-250 words). "
+    "No numbered lists, no headers — dense, vivid, professional prose that a "
+    "photographer or AI model can execute immediately."
+)
+
+
+@router.post("/expand-brief", response_model=ExpandBriefResponse)
+async def expand_brief(request: ExpandBriefRequest):
+    if settings.MOCK_MODE:
+        return ExpandBriefResponse(
+            expanded=f"[MOCK] Expanded brief for: {request.brief}"
+        )
+    prompt = _EXPAND_USER_TMPL.format(
+        platform=request.platform,
+        brief=request.brief,
+    )
+    expanded = await _llm.complete(
+        *("gemini", "gemini-2.5-flash"),
+        system=_EXPAND_SYSTEM,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.85,
+        max_tokens=2048,
+    )
+    return ExpandBriefResponse(expanded=expanded.strip())
+
+
+# ── Campaign Generator ────────────────────────────────────────────────────────
+
+_CAMPAIGN_SYSTEM_PROMPT = """You are an expert visual brand strategist and creative director specializing in high-converting social media campaign photography. Your job is to generate stunning, trend-aware product campaign images that stop the scroll.
+
+When generating campaign images, always apply these principles:
+- Study the product image provided and make it the HERO of every shot
+- Match the visual language to current social media trends (bold typography zones, cinematic lighting, lifestyle integration, editorial aesthetics)
+- Each image in the campaign must feel part of a cohesive series but have a DISTINCT composition (flat lay, lifestyle, close-up macro, editorial, dynamic motion blur, etc.)
+- Use color grading that is rich, intentional, and on-trend — avoid flat or generic renders
+- Leave clean zones for logo/text overlays when brand kit is enabled
+- The mood, setting, and style must directly reflect the campaign brief provided
+
+Output: One campaign-ready product photograph per generation call."""
+
+_CAMPAIGN_ROLES: dict[int, list[str]] = {
+    1: ["hero product shot — perfect studio lighting, product centered, clean premium background"],
+    2: [
+        "hero product shot — perfect studio lighting, product centered, clean premium background",
+        "lifestyle/editorial — product in a natural aspirational environment with human element or context",
+    ],
+    3: [
+        "hero product shot — perfect studio lighting, product centered, clean premium background",
+        "lifestyle integration — product in a real-world aspirational environment",
+        "macro/detail close-up — extreme close-up highlighting the product's most compelling feature or texture",
+    ],
+    4: [
+        "hero product shot — perfect studio lighting, product centered, clean premium background",
+        "lifestyle integration — product in a real-world aspirational environment",
+        "flat lay with brand props — overhead shot with complementary lifestyle objects arranged artfully",
+        "editorial/action shot — dynamic angle or motion blur, product in use or mid-motion",
+    ],
+    6: [
+        "hero product shot — perfect studio lighting, product centered, clean premium background",
+        "lifestyle integration — product in a real-world aspirational environment",
+        "macro/detail close-up — extreme close-up of the product's most compelling feature",
+        "flat lay with brand props — overhead shot with complementary lifestyle objects",
+        "editorial/motion shot — dynamic angle, motion blur, or dramatic lighting",
+        "social proof/packaging overhead — product in packaging or grouped with accessories, top-down view",
+    ],
+}
+
+
+class CampaignRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    product_image_url: str = Field(..., min_length=1)
+    campaign_brief: str = Field(..., min_length=1, max_length=2000)
+    photo_count: int = Field(4)
+    use_brand_kit: bool = True
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+class CampaignPhoto(BaseModel):
+    image: ImageResult
+    composition_role: str
+
+
+class CampaignResponse(BaseModel):
+    photos: list[CampaignPhoto]
+    tokens_used: int
+    model_used: str
+
+
+def _build_campaign_style_lock(campaign_brief: str, brand_kit, platform: str) -> str:
+    """Build a shared visual language spec from brand kit — injected into every photo's context
+    so all N photos share the same aesthetic without locking composition (unlike anchor_b64)."""
+    parts: list[str] = [
+        "CAMPAIGN VISUAL CONSISTENCY — all photos in this series must share this aesthetic:"
+    ]
+    if brand_kit:
+        if brand_kit.brand_colors:
+            c = brand_kit.brand_colors
+            parts.append(
+                f"Colour palette: primary {c.get('primary', '')}, "
+                f"secondary {c.get('secondary', '')}, accent {c.get('accent', '')}. "
+                f"These tones must dominate every photo's colour grading."
+            )
+        if brand_kit.brand_voice:
+            parts.append(f"Visual mood & energy: {brand_kit.brand_voice}.")
+        if brand_kit.target_audience:
+            parts.append(f"Audience aesthetic: designed to resonate with {brand_kit.target_audience}.")
+    parts.append(
+        f"Campaign brief: {campaign_brief}. "
+        f"All photos must feel like they came from ONE professional shoot — "
+        f"same lighting style, same colour grading, same atmospheric energy. "
+        f"ONLY the composition and scene changes per photo."
+    )
+    return " ".join(parts)
+
+
+@router.post("/campaign", response_model=CampaignResponse)
+async def create_campaign(request: CampaignRequest):
+    valid_counts = {1, 2, 3, 4, 6}
+    if request.photo_count not in valid_counts:
+        raise HTTPException(status_code=422, detail=f"photo_count must be one of {sorted(valid_counts)}")
+
+    brand_kit = None
+    if request.use_brand_kit and request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("campaign brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    roles = _CAMPAIGN_ROLES.get(request.photo_count, _CAMPAIGN_ROLES[4])
+
+    # Build a shared style description from brand kit data — gives all photos the same
+    # colour/mood/energy without the carousel anchor that locks composition too tightly.
+    style_lock = _build_campaign_style_lock(request.campaign_brief, brand_kit, request.platform)
+
+    async def _gen_photo(role: str) -> CampaignPhoto | None:
+        hints = (
+            f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
+            f"{style_lock}\n\n"
+            f"COMPOSITION STYLE FOR THIS PHOTO: {role}\n\n"
+            f"CAMPAIGN BRIEF: {request.campaign_brief}"
+        )
+        try:
+            image = await generate_social_image(
+                prompt=request.campaign_brief,
+                platform=request.platform,
+                use_logo=request.use_brand_kit,
+                use_mascot=request.use_brand_kit,
+                user_id=request.user_id,
+                organization_id=request.organization_id,
+                brand_kit=brand_kit,
+                context_hints=hints,
+                reference_urls=[request.product_image_url],
+                campaign_mode=True,
+            )
+            return CampaignPhoto(image=image, composition_role=role)
+        except Exception as err:
+            logger.error("campaign image_gen failed | role=%s error=%s", role, err)
+            return None
+
+    results = await asyncio.gather(*[_gen_photo(role) for role in roles], return_exceptions=True)
+
+    photos = [p for p in results if p is not None and not isinstance(p, Exception)]
+
+    logger.info(
+        "campaign done | user=%s platform=%s photos=%d",
+        request.user_id, request.platform, len(photos),
+    )
+    return CampaignResponse(
+        photos=photos,
         tokens_used=0,
         model_used=_agent.default_model,
     )

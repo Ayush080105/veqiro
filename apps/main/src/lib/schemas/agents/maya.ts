@@ -67,3 +67,12 @@ export const mayaPublishSchema = z.object({
   image_url: z.string().optional(),
 })
 export type MayaPublishValues = z.infer<typeof mayaPublishSchema>
+
+export const mayaCampaignSchema = z.object({
+  product_image: z.instanceof(typeof window !== "undefined" ? File : Object).nullable(),
+  campaign_brief: z.string().min(1, "Campaign brief is required").max(2000),
+  photo_count: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6)]),
+  use_brand_kit: z.boolean(),
+  platform: platformSchema,
+})
+export type MayaCampaignValues = z.infer<typeof mayaCampaignSchema>

@@ -984,6 +984,25 @@ export interface SageSavedKeyword {
 
 // ─── Union result type (discriminated by action id) ─────────────────────────
 
+export interface MayaCampaignRequest {
+  product_image_url: string
+  campaign_brief: string
+  photo_count: 1 | 2 | 3 | 4 | 6
+  use_brand_kit: boolean
+  platform: ContentPlatform
+}
+
+export interface MayaCampaignPhoto {
+  image: ImageResult
+  composition_role: string
+}
+
+export interface MayaCampaignResult {
+  photos: MayaCampaignPhoto[]
+  tokens_used?: number
+  model_used?: string
+}
+
 export type AgentActionId =
   | "sage:keyword-research"
   | "sage:generate-blog"
@@ -997,6 +1016,7 @@ export type AgentActionId =
   | "maya:revise"
   | "maya:regenerate-image"
   | "maya:regenerate-content"
+  | "maya:campaign"
   | "scout:research-topic"
   | "scout:research-company"
   | "scout:trending-topics"

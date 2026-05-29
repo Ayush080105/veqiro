@@ -54,6 +54,18 @@ export async function runAgentAction<TInput, TResult>(
   })
 }
 
+export async function expandCampaignBrief(
+  organizationId: string,
+  brief: string,
+  platform: string
+): Promise<string> {
+  const result = await apiFetch<{ expanded: string }>("/agents/maya/expand-brief", {
+    method: "POST",
+    body: { organizationId, brief, platform },
+  })
+  return result.expanded
+}
+
 export interface PublishPostInput {
   socialAccountId: string
   caption: string

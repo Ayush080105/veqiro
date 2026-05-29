@@ -285,20 +285,25 @@ class LLMClient:
         raise LLMError(f"LLM call failed after retries: {last_exc}")
 
     async def _gemini_complete(self, model, system, messages, temperature, max_tokens):
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        gm = genai.GenerativeModel(
-            model,
-            system_instruction=system,
-            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        contents = [
+            types.Content(
+                role="user" if m["role"] == "user" else "model",
+                parts=[types.Part(text=m["content"] if isinstance(m["content"], str) else str(m["content"]))],
+            )
+            for m in messages
+        ]
+        response = await client.aio.models.generate_content(
+            model=model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            ),
         )
-        history = []
-        for m in messages[:-1]:
-            role = "user" if m["role"] == "user" else "model"
-            history.append({"role": role, "parts": [m["content"]]})
-        chat = gm.start_chat(history=history)
-        last_msg = messages[-1]["content"] if messages else ""
-        response = await asyncio.to_thread(chat.send_message, last_msg)
         return response.text
 
     async def _openai_complete(self, model, system, messages, temperature, max_tokens, response_format):
@@ -403,20 +408,24 @@ class LLMClient:
             raise LLMError(f"LLM stream failed after retries: {last_exc}")
 
     async def _gemini_stream(self, model, system, messages, temperature):
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        gm = genai.GenerativeModel(
-            model,
-            system_instruction=system,
-            generation_config={"temperature": temperature},
-        )
-        last_msg = messages[-1]["content"] if messages else ""
-
-        def _sync_stream():
-            return gm.generate_content(last_msg, stream=True)
-
-        response = await asyncio.to_thread(_sync_stream)
-        for chunk in response:
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        contents = [
+            types.Content(
+                role="user" if m["role"] == "user" else "model",
+                parts=[types.Part(text=m["content"] if isinstance(m["content"], str) else str(m["content"]))],
+            )
+            for m in messages
+        ]
+        async for chunk in client.aio.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=temperature,
+            ),
+        ):
             if chunk.text:
                 yield chunk.text
 
@@ -568,45 +577,32 @@ class LLMClient:
     async def _gemini_complete_with_tools(
         self, model, system, messages, tools, temperature, max_tokens
     ) -> LLMToolResponse:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        from google import genai
+        from google.genai import types
 
-        # Build Gemini tool declarations
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
         gem_declarations = tool_defs_to_gemini(tools)
-        gem_tools = genai.types.Tool(function_declarations=gem_declarations)
+        gem_tools = types.Tool(function_declarations=gem_declarations)
 
-        gm = genai.GenerativeModel(
-            model,
-            system_instruction=system,
-            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
-            tools=[gem_tools],
+        contents = [
+            types.Content(
+                role="user" if m["role"] == "user" else "model",
+                parts=[types.Part(text=m["content"] if isinstance(m["content"], str) else str(m["content"]))],
+            )
+            for m in messages
+        ]
+
+        response = await client.aio.models.generate_content(
+            model=model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+                tools=[gem_tools],
+            ),
         )
-
-        # Build history for Gemini
-        history = []
-        for m in messages[:-1]:
-            role = "user" if m["role"] == "user" else "model"
-            # Handle dict content (tool results) vs string content
-            if isinstance(m.get("content"), str):
-                history.append({"role": role, "parts": [m["content"]]})
-            elif isinstance(m.get("content"), list):
-                # Gemini function response parts
-                parts = []
-                for part in m["content"]:
-                    if isinstance(part, str):
-                        parts.append(part)
-                    else:
-                        parts.append(part)
-                if parts:
-                    history.append({"role": role, "parts": parts})
-
-        chat = gm.start_chat(history=history)
-        last_msg = messages[-1]["content"] if messages else ""
-
-        if isinstance(last_msg, str):
-            response = await asyncio.to_thread(chat.send_message, last_msg)
-        else:
-            response = await asyncio.to_thread(chat.send_message, last_msg)
 
         # Check for function calls in response
         calls = []

@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   GalleryHorizontal,
+  Rocket,
+  Download,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,6 +36,7 @@ import type {
   MayaImageRegenResult,
   MayaContentRegenResult,
   MayaCarouselDraftResult,
+  MayaCampaignResult,
   ContentIdea,
   ContentPlatform,
   ImageResult,
@@ -772,6 +775,92 @@ export function CarouselDraftCard({
               />
             </ActionRow>
           </div>
+        </div>
+      </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── Campaign Result Card ────────────────────────────────────────────────────
+
+export function CampaignResultCard({
+  result,
+}: {
+  result: MayaCampaignResult
+  onFollowUpAction?: FollowUpHandler
+}) {
+  const photos = result?.photos ?? []
+  const rawSrcs = photos.map((p) => imageSrc(p.image))
+  const blobUrls = useBlobUrls(rawSrcs)
+
+  if (!photos.length) return null
+
+  return (
+    <AgentCard>
+      <AgentCard.Header icon={<Rocket size={14} />} label="Product Campaign">
+        <span className="text-xs text-muted-foreground">{photos.length} photos</span>
+      </AgentCard.Header>
+      <AgentCard.Body>
+        <div
+          className="grid gap-2 p-2.5"
+          style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+        >
+          {photos.map((photo, i) => {
+            const src = blobUrls[i] ?? rawSrcs[i]
+            const rawSrc = rawSrcs[i]
+            return (
+              <div
+                key={i}
+                className="flex flex-col gap-1"
+                style={{ border: "2px solid var(--border)", borderRadius: 6, overflow: "hidden" }}
+              >
+                {src ? (
+                  <img
+                    src={src}
+                    alt={`Campaign photo ${i + 1}`}
+                    className="w-full object-cover"
+                    style={{ aspectRatio: "1/1" }}
+                  />
+                ) : (
+                  <div
+                    className="w-full flex items-center justify-center text-xs text-muted-foreground bg-muted"
+                    style={{ aspectRatio: "1/1" }}
+                  >
+                    Generating…
+                  </div>
+                )}
+                <div className="px-1.5 pb-1.5 flex flex-col gap-1">
+                  <p className="text-[10px] text-muted-foreground leading-snug capitalize">
+                    {photo.composition_role.split("—")[0].trim()}
+                  </p>
+                  <div className="flex gap-1">
+                    {rawSrc && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={src ?? rawSrc}
+                            download={`campaign-photo-${i + 1}.png`}
+                            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted transition-colors"
+                            style={{ border: "1px solid var(--border)" }}
+                          >
+                            <Download size={10} />
+                            Download
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>Download photo {i + 1}</TooltipContent>
+                      </Tooltip>
+                    )}
+                    <PublishDialog
+                      platform="instagram"
+                      caption=""
+                      hashtags={[]}
+                      image={photo.image}
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </AgentCard.Body>
     </AgentCard>

@@ -19,6 +19,10 @@ export interface ChatInputProps {
   onPlusClick: () => void
   onHelpClick: () => void
   onAttachClick?: () => void
+  /** Optional icon rendered inside the attach button (defaults to Paperclip). */
+  attachIcon?: React.ReactNode
+  /** Tooltip text for the attach button (defaults to "Attach PDF"). */
+  attachTitle?: string
   placeholder?: string
   disabled?: boolean
   max?: number
@@ -81,6 +85,8 @@ export function ChatInput({
   onPlusClick,
   onHelpClick,
   onAttachClick,
+  attachIcon,
+  attachTitle = "Attach PDF",
   placeholder = "Message the agent…",
   disabled = false,
   max = CHAT_MESSAGE_MAX,
@@ -149,10 +155,10 @@ export function ChatInput({
         {onAttachClick && (
           <IconButton
             onClick={onAttachClick}
-            ariaLabel="Attach document"
-            title="Attach PDF"
+            ariaLabel={attachTitle}
+            title={attachTitle}
           >
-            <Paperclip className="size-4" />
+            {attachIcon ?? <Paperclip className="size-4" />}
           </IconButton>
         )}
 

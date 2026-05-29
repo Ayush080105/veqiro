@@ -20,6 +20,7 @@ import {
   RevisionDiffCard,
   ImageRegenCard,
   ContentRegenCard,
+  CampaignResultCard,
 } from "@/components/agents/maya/cards"
 // Scout
 import {
@@ -102,6 +103,8 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
       return <ImageRegenCard result={r} />
     case "maya:regenerate-content":
       return <ContentRegenCard result={r} />
+    case "maya:campaign":
+      return <CampaignResultCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "scout:research-topic":
       return <ResearchReportCard result={r} />

@@ -62,6 +62,14 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
   ],
   maya: [
     {
+      id: "maya:campaign",
+      agent: "maya",
+      endpoint: "campaign",
+      label: "Create Product Campaign",
+      description: "Generate a cohesive batch of product campaign photos from a single product image.",
+      icon: "Rocket",
+    },
+    {
       id: "maya:generate-ideas",
       agent: "maya",
       endpoint: "generate-ideas",

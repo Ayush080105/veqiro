@@ -26,9 +26,12 @@ import {
   type MayaImageRegenValues,
   mayaContentRegenSchema,
   type MayaContentRegenValues,
+  mayaCampaignSchema,
+  type MayaCampaignValues,
 } from "@/lib/schemas/agents/maya"
 import type { ContentPlatform } from "@/lib/types/agents"
 import { uploadToR2 } from "@/lib/api/uploads"
+import { expandCampaignBrief } from "@/lib/api/assistants"
 
 const limitHint: Record<ContentPlatform, string> = {
   linkedin: "Max 3000 chars, 3-5 hashtags.",
@@ -644,6 +647,204 @@ export function MayaContentRegenForm({
         )}
       </RhfField>
 
+      <RhfField
+        control={form.control}
+        name="platform"
+        label="Platform"
+        required
+      >
+        {({ field }) => (
+          <PlatformPicker value={field.value} onChange={field.onChange} />
+        )}
+      </RhfField>
+    </FieldGroup>
+  )
+}
+
+// ─── Campaign ───────────────────────────────────────────────────────────────
+
+const PHOTO_COUNT_OPTIONS = [1, 2, 3, 4, 6] as const
+
+export function MayaCampaignForm({
+  value,
+  onChange,
+}: {
+  value: MayaCampaignValues
+  onChange: (patch: Partial<MayaCampaignValues>) => void
+}) {
+  const form = useAgentForm({
+    schema: mayaCampaignSchema,
+    defaultValue: value,
+    onChange,
+  })
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    form.setValue("product_image" as never, file as never)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(file ? URL.createObjectURL(file) : null)
+  }
+
+  const photoCount = form.watch("photo_count")
+  const useBrandKit = form.watch("use_brand_kit")
+  const [expanding, setExpanding] = React.useState(false)
+
+  const handleExpand = async () => {
+    const brief = form.getValues("campaign_brief" as never) as string
+    const platform = form.getValues("platform" as never) as string
+    const orgId = (value as Record<string, unknown>).organization_id as string
+    if (!brief?.trim() || !orgId) return
+    setExpanding(true)
+    try {
+      const expanded = await expandCampaignBrief(orgId, brief, platform ?? "instagram")
+      form.setValue("campaign_brief" as never, expanded as never)
+      onChange({ campaign_brief: expanded } as never)
+    } catch {
+      // silently fail — user still has their original brief
+    } finally {
+      setExpanding(false)
+    }
+  }
+
+  return (
+    <FieldGroup>
+      {/* Product Image Upload */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Upload Your Product Image</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        {previewUrl ? (
+          <div className="relative w-full">
+            <img
+              src={previewUrl}
+              alt="Product preview"
+              className="w-full max-h-40 object-cover rounded"
+              style={{ border: "2px solid var(--border)", borderRadius: 6 }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                form.setValue("product_image" as never, null as never)
+                if (previewUrl) URL.revokeObjectURL(previewUrl)
+                setPreviewUrl(null)
+                if (fileInputRef.current) fileInputRef.current.value = ""
+              }}
+              className="absolute top-1 right-1 text-xs bg-background border border-border rounded px-1.5 py-0.5 hover:bg-muted"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex flex-col items-center justify-center gap-1.5 rounded py-6 text-xs text-muted-foreground hover:bg-muted transition-colors"
+            style={{ border: "2px dashed var(--border)" }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <span>Click to upload — JPG, PNG, or WEBP</span>
+          </button>
+        )}
+      </div>
+
+      {/* Campaign Brief */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium">Campaign Brief <span className="text-destructive">*</span></span>
+          <button
+            type="button"
+            onClick={handleExpand}
+            disabled={expanding || !form.watch("campaign_brief" as never)}
+            className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ border: "1.5px solid var(--border)" }}
+          >
+            {expanding ? (
+              <>
+                <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                Expanding…
+              </>
+            ) : (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Expand with AI
+              </>
+            )}
+          </button>
+        </div>
+        <RhfField
+          control={form.control}
+          name="campaign_brief"
+          required
+        >
+          {({ field }) => (
+            <CountedTextarea
+              value={field.value}
+              rows={4}
+              onChange={field.onChange}
+              placeholder="Describe your product, campaign goal, target audience, or vibe (e.g. 'Summer launch for a hydration drink targeting Gen Z athletes')"
+            />
+          )}
+        </RhfField>
+      </div>
+
+      {/* Photo Count */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Number of Campaign Photos</span>
+        <div className="flex gap-1.5">
+          {PHOTO_COUNT_OPTIONS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => form.setValue("photo_count" as never, n as never)}
+              className="flex-1 py-1.5 text-xs rounded transition-colors"
+              style={{
+                border: "2px solid var(--border)",
+                background: photoCount === n ? "var(--foreground)" : "transparent",
+                color: photoCount === n ? "var(--background)" : "var(--foreground)",
+                fontWeight: photoCount === n ? 700 : 400,
+              }}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Brand Kit Toggle */}
+      <Controller
+        control={form.control}
+        name="use_brand_kit"
+        render={({ field }) => (
+          <label className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              Apply Logo & Mascot from Brand Kit
+              <span className="ml-1 text-[10px] opacity-60">overlays your brand assets</span>
+            </span>
+            <Switch
+              checked={field.value ?? true}
+              onCheckedChange={field.onChange}
+            />
+          </label>
+        )}
+      />
+
+      {/* Platform */}
       <RhfField
         control={form.control}
         name="platform"

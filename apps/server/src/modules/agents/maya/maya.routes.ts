@@ -11,6 +11,8 @@ import {
   regenerateContent,
   publish,
   getPublishedPosts,
+  createCampaign,
+  expandBrief,
 } from "./maya.controller.js";
 
 const router = Router();
@@ -26,5 +28,7 @@ router.post("/regenerate-image", regenerateImage);
 router.post("/regenerate-content", regenerateContent);
 router.post("/publish", publish);
 router.get("/published-posts", getPublishedPosts);
+router.post("/campaign", createCampaign);
+router.post("/expand-brief", expandBrief);
 
 export default router;

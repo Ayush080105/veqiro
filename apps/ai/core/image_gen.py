@@ -131,6 +131,7 @@ async def generate_social_image(
     context_hints: str = "",
     reference_urls: list[str] | None = None,
     carousel_anchor_b64: str | None = None,
+    campaign_mode: bool = False,
 ) -> ImageResult:
     """Generate a premium social media image.
 
@@ -210,45 +211,95 @@ async def generate_social_image(
             all_images: list[bytes] = list(ref_images_ext)
             extra_instructions: list[str] = []
 
-            if use_mascot and brand_kit and brand_kit.mascot_url:
-                mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
-                if mascot_bytes:
-                    all_images.append(mascot_bytes)
-                    idx = len(all_images)
-                    extra_instructions.append(
-                        f"Reference image {idx} is a mascot character. "
-                        f"Study the character's visual identity — shape, colors, face, style, proportions. "
-                        f"Recreate this character in a COMPLETELY NEW scene. "
-                        f"Place the character naturally in the scene, actively engaged with the topic, in a dynamic pose."
-                    )
-                    logger.info("mascot reference added (ref mode) | user=%s", user_id)
+            if campaign_mode:
+                # ── Campaign mode: product is the hero, not mood inspiration ──
+                product_instructions = "\n".join(
+                    f"Reference image {i+1} is the ACTUAL PRODUCT being photographed for this campaign. "
+                    f"This product MUST appear as the absolute focal hero in the generated image — "
+                    f"centred, prominent, perfectly lit. Reproduce its exact shape, label, branding, "
+                    f"colours, and proportions with complete fidelity. "
+                    f"DO NOT replace it with a generic stand-in or a different product."
+                    for i in range(len(ref_images_ext))
+                )
 
-            if use_logo and brand_kit and brand_kit.logo_url:
-                logo_bytes = await _fetch_asset(brand_kit.logo_url)
-                if logo_bytes:
-                    all_images.append(logo_bytes)
-                    idx = len(all_images)
-                    extra_instructions.append(
-                        f"Reference image {idx} is the brand logo. "
-                        f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, colors, proportions. "
-                        f"Place it prominently on a billboard, screen, or signage. Large, sharp, blended into the scene."
-                    )
-                    logger.info("logo reference added (ref mode) | user=%s", user_id)
+                if use_mascot and brand_kit and brand_kit.mascot_url:
+                    mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
+                    if mascot_bytes:
+                        all_images.append(mascot_bytes)
+                        idx = len(all_images)
+                        extra_instructions.append(
+                            f"Reference image {idx} is a brand mascot character. "
+                            f"Include ONLY as a small, tasteful supporting element — e.g. peeking from a corner, "
+                            f"appearing small in the background, or as a subtle accent. "
+                            f"The PRODUCT from the first reference images remains the undeniable hero. "
+                            f"DO NOT make the mascot the primary or equal subject."
+                        )
+                        logger.info("mascot reference added (campaign mode) | user=%s", user_id)
 
-            theme_instructions = "\n".join(
-                f"Reference image {i+1}: Study its overall theme, mood, and general visual direction. Use as loose inspiration only — do NOT copy layouts, text, or specific elements."
-                for i in range(len(ref_images_ext))
-            )
-            full_prompt = (
-                f"{base_prompt}\n\n"
-                f"THEME INSPIRATION: The reference images are mood/theme guides — extract their general vibe, "
-                f"dominant energy, and overall feel. Create a completely original design that reflects the same "
-                f"mood while applying the brand kit above. Do NOT reproduce any elements from the references.\n\n"
-                f"{theme_instructions}"
-                + ("\n" + "\n".join(extra_instructions) if extra_instructions else "")
-            )
+                if use_logo and brand_kit and brand_kit.logo_url:
+                    logo_bytes = await _fetch_asset(brand_kit.logo_url)
+                    if logo_bytes:
+                        all_images.append(logo_bytes)
+                        idx = len(all_images)
+                        extra_instructions.append(
+                            f"Reference image {idx} is the brand logo. "
+                            f"Reproduce with pixel-perfect fidelity — exact shapes, colours, proportions. "
+                            f"Place as a SMALL tasteful overlay in one corner of the image "
+                            f"(no larger than 10% of image area). It should NOT compete with or "
+                            f"overshadow the product."
+                        )
+                        logger.info("logo reference added (campaign mode) | user=%s", user_id)
+
+                full_prompt = (
+                    f"{base_prompt}\n\n"
+                    f"PRODUCT CAMPAIGN PHOTOGRAPH: The uploaded product is the absolute hero of this image. "
+                    f"Every compositional decision — lighting, angle, background, props — exists to showcase the product. "
+                    f"This is a professional product campaign shot, not a brand awareness graphic.\n\n"
+                    f"{product_instructions}"
+                    + ("\n" + "\n".join(extra_instructions) if extra_instructions else "")
+                )
+            else:
+                # ── Standard mode: reference images are mood/theme inspiration ──
+                if use_mascot and brand_kit and brand_kit.mascot_url:
+                    mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
+                    if mascot_bytes:
+                        all_images.append(mascot_bytes)
+                        idx = len(all_images)
+                        extra_instructions.append(
+                            f"Reference image {idx} is a mascot character. "
+                            f"Study the character's visual identity — shape, colors, face, style, proportions. "
+                            f"Recreate this character in a COMPLETELY NEW scene. "
+                            f"Place the character naturally in the scene, actively engaged with the topic, in a dynamic pose."
+                        )
+                        logger.info("mascot reference added (ref mode) | user=%s", user_id)
+
+                if use_logo and brand_kit and brand_kit.logo_url:
+                    logo_bytes = await _fetch_asset(brand_kit.logo_url)
+                    if logo_bytes:
+                        all_images.append(logo_bytes)
+                        idx = len(all_images)
+                        extra_instructions.append(
+                            f"Reference image {idx} is the brand logo. "
+                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, colors, proportions. "
+                            f"Place it prominently on a billboard, screen, or signage. Large, sharp, blended into the scene."
+                        )
+                        logger.info("logo reference added (ref mode) | user=%s", user_id)
+
+                theme_instructions = "\n".join(
+                    f"Reference image {i+1}: Study its overall theme, mood, and general visual direction. Use as loose inspiration only — do NOT copy layouts, text, or specific elements."
+                    for i in range(len(ref_images_ext))
+                )
+                full_prompt = (
+                    f"{base_prompt}\n\n"
+                    f"THEME INSPIRATION: The reference images are mood/theme guides — extract their general vibe, "
+                    f"dominant energy, and overall feel. Create a completely original design that reflects the same "
+                    f"mood while applying the brand kit above. Do NOT reproduce any elements from the references.\n\n"
+                    f"{theme_instructions}"
+                    + ("\n" + "\n".join(extra_instructions) if extra_instructions else "")
+                )
+
             b64 = await llm.generate_image_with_image_bytes(full_prompt, all_images, aspect_ratio=aspect_ratio)
-            logger.info("image_gen reference+brand done | user=%s refs=%d logo=%s mascot=%s", user_id, len(ref_images_ext), use_logo, use_mascot)
+            logger.info("image_gen reference+brand done | user=%s refs=%d logo=%s mascot=%s campaign=%s", user_id, len(ref_images_ext), use_logo, use_mascot, campaign_mode)
             return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
 
     ref_images: list[bytes] = []

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Info, HelpCircle, MessageSquare, FolderOpen } from "lucide-react"
+import { Info, HelpCircle, MessageSquare, FolderOpen, Rocket } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -545,6 +545,10 @@ export default function AssistantChatPage() {
     openAction("lex:upload-source")
   }, [])
 
+  const openCampaignAction = useCallback(() => {
+    openAction("maya:campaign")
+  }, [])
+
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
 
   if (!agent) return null
@@ -892,7 +896,9 @@ export default function AssistantChatPage() {
             onSend={handleSend}
             onPlusClick={() => setPlusOpen(true)}
             onHelpClick={() => setHelpOpen(true)}
-            onAttachClick={isLex ? openUploadAction : undefined}
+            onAttachClick={isLex ? openUploadAction : isMaya ? openCampaignAction : undefined}
+            attachIcon={isMaya ? <Rocket className="size-4" /> : undefined}
+            attachTitle={isMaya ? "Create Product Campaign" : undefined}
             placeholder={`Message ${agent.name.toLowerCase()}…`}
             disabled={isLoading}
           />

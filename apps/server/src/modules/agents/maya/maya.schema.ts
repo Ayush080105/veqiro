@@ -68,6 +68,19 @@ export const draftCarouselSchema = z.object({
   imageAspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3"]).optional().default("1:1"),
 });
 
+export const expandBriefSchema = z.object({
+  brief: z.string().min(1).max(500),
+  platform: platformEnum.default("instagram"),
+});
+
+export const campaignSchema = z.object({
+  productImageUrl: z.string().url(),
+  campaignBrief: z.string().min(1).max(2000),
+  photoCount: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6)]).default(4),
+  useBrandKit: z.boolean().default(true),
+  platform: platformEnum.default("instagram"),
+});
+
 export const publishSchema = z
   .object({
     socialAccountId: z.string().min(1),

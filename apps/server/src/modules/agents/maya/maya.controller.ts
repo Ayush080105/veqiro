@@ -10,6 +10,8 @@ import {
   regenerateImageSchema,
   regenerateContentSchema,
   publishSchema,
+  campaignSchema,
+  expandBriefSchema,
 } from "./maya.schema.js";
 import * as mayaService from "./maya.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -100,4 +102,18 @@ export const getPublishedPosts = async (req: Request, res: Response) => {
   if (!organizationId) throw new BadRequestError("Organization ID is required");
   const posts = await mayaService.listPublishedPosts(organizationId);
   res.status(StatusCodes.OK).json(posts);
+};
+
+export const createCampaign = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = campaignSchema.parse(req.body);
+  const result = await mayaService.createCampaign(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const expandBrief = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = expandBriefSchema.parse(req.body);
+  const result = await mayaService.expandBrief(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
 };

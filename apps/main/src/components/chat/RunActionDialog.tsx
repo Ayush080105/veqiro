@@ -3,6 +3,8 @@
 import * as React from "react"
 import { ActionDialog, type ActionResultContext } from "@/components/chat/ActionDialog"
 import { findAction } from "@/lib/agents/actions"
+import { runAgentAction } from "@/lib/api/assistants"
+import { uploadToR2 } from "@/lib/api/uploads"
 import type { AgentActionId } from "@/lib/types/agents"
 
 // Sage forms
@@ -21,6 +23,7 @@ import {
   MayaReviseForm,
   MayaImageRegenForm,
   MayaContentRegenForm,
+  MayaCampaignForm,
 } from "@/components/agents/maya/forms"
 // Scout forms
 import {
@@ -132,6 +135,34 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     Form: SageGenerateBlogIdeasForm,
   },
 
+  "maya:campaign": {
+    defaultValue: {
+      product_image: null,
+      campaign_brief: "",
+      photo_count: 4,
+      use_brand_kit: true,
+      platform: "instagram",
+    },
+    Form: MayaCampaignForm,
+    validate: (v) =>
+      !v.product_image
+        ? "Upload a product image."
+        : !v.campaign_brief?.trim()
+          ? "Campaign brief is required."
+          : null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customSubmit: async (v: any, organizationId: string) => {
+      const uploaded = await uploadToR2("inspiration", v.product_image as File)
+      if (!uploaded.ok) throw new Error(uploaded.message ?? "Image upload failed")
+      return runAgentAction("maya:campaign", organizationId, {
+        product_image_url: uploaded.publicUrl,
+        campaign_brief: v.campaign_brief,
+        photo_count: v.photo_count,
+        use_brand_kit: v.use_brand_kit,
+        platform: v.platform,
+      })
+    },
+  },
   "maya:generate-ideas": {
     defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },
     Form: MayaIdeationForm,
@@ -468,9 +499,10 @@ export function RunActionDialog({
   if (!meta || !spec) return null
 
   const { Form, defaultValue, validate, customSubmit, resolveActionId } = spec
-  const merged = prefill
-    ? { ...(defaultValue as object), ...prefill }
-    : defaultValue
+  const merged = {
+    ...(prefill ? { ...(defaultValue as object), ...prefill } : defaultValue),
+    organization_id: organizationId,
+  }
 
   return (
     <ActionDialog<unknown, unknown>
