@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.r2.cloudflarestorage.com" },
       { protocol: "https", hostname: "**.cloudflarestorage.com" },
       { protocol: "https", hostname: "**.googleusercontent.com" },
+      { protocol: "https", hostname: "**.veqiro.com" },
     ],
   },
 };
