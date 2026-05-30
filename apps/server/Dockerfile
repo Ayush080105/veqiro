@@ -1,0 +1,45 @@
+FROM node:20-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && apk add --no-cache libc6-compat openssl
+
+# ── builder ────────────────────────────────────────────────────────────────────
+FROM base AS builder
+WORKDIR /repo
+
+# Layer-cache manifests before copying source
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/server/package.json            ./apps/server/
+COPY packages/transactional/package.json ./packages/transactional/
+RUN pnpm install --frozen-lockfile
+
+# Copy source (selective — avoids .env and other apps)
+COPY apps/server/src/             ./apps/server/src/
+COPY apps/server/prisma/          ./apps/server/prisma/
+COPY apps/server/tsconfig.json    ./apps/server/tsconfig.json
+COPY apps/server/prisma.config.ts ./apps/server/prisma.config.ts
+COPY packages/transactional/      ./packages/transactional/
+
+# Generate Prisma client then compile TypeScript
+WORKDIR /repo/apps/server
+RUN pnpm exec prisma generate
+RUN pnpm run build
+
+# pnpm deploy resolves workspace deps into a standalone dir (no symlinks).
+# dist/ and prisma/generated/ are gitignored so pnpm deploy skips them;
+# copy them explicitly after.
+WORKDIR /repo
+RUN pnpm --filter=server deploy --prod /standalone
+RUN cp -r /repo/apps/server/dist   /standalone/dist && \
+    cp -r /repo/apps/server/prisma /standalone/prisma
+
+# ── runner ─────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder /standalone .
+
+EXPOSE 5000
+CMD ["node", "dist/server.js"]

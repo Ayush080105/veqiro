@@ -23,7 +23,7 @@ import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { PlusMenu } from "@/components/chat/PlusMenu"
 import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
-import type { ActionResultContext } from "@/components/chat/ActionDialog"
+import type { ActionResultContext, ActionStartContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
@@ -375,6 +375,7 @@ export default function AssistantChatPage() {
   const [infoOpen, setInfoOpen] = useState(false)
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
   const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
+  const [pendingActionCount, setPendingActionCount] = useState(0)
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
   const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
@@ -382,10 +383,12 @@ export default function AssistantChatPage() {
   const [mayaTab, setMayaTab] = useState<"chat" | "published">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
+  const scrollFrameRef = useRef<number | null>(null)
 
   const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current)
   const isLoading = sendMutation.isPending
+  const isBusy = isLoading || pendingActionCount > 0
   const historyLoaded = !messagesPending
 
   useEffect(() => {
@@ -393,8 +396,21 @@ export default function AssistantChatPage() {
   }, [agent, router])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isLoading])
+    if (scrollFrameRef.current != null) {
+      cancelAnimationFrame(scrollFrameRef.current)
+    }
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      const el = chatScrollRef.current
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+    })
+    return () => {
+      if (scrollFrameRef.current != null) {
+        cancelAnimationFrame(scrollFrameRef.current)
+        scrollFrameRef.current = null
+      }
+    }
+  }, [messages.length, isBusy])
 
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
@@ -415,6 +431,30 @@ export default function AssistantChatPage() {
       }
     }
   }, [content, isLoading, sendMutation, agent])
+
+  const handleActionStart = useCallback(
+    (ctx: ActionStartContext<unknown>) => {
+      const meta = findAction(ctx.actionId)
+      const msg: Message = {
+        role: "user",
+        content: `Run: ${meta?.label ?? "Action"}`,
+        imageUrl: null,
+        createdAt: new Date().toISOString(),
+        customInput: { actionId: ctx.actionId, input: ctx.input },
+      }
+      setPendingActionCount((count) => count + 1)
+      void queryClient.cancelQueries({ queryKey: qk.chat(id, organizationId) })
+      queryClient.setQueryData<Message[]>(
+        qk.chat(id, organizationId),
+        (prev) => [...(prev ?? []), msg],
+      )
+    },
+    [queryClient, id, organizationId],
+  )
+
+  const handleActionSettled = useCallback(() => {
+    setPendingActionCount((count) => Math.max(0, count - 1))
+  }, [])
 
   const handleActionComplete = useCallback(
     (ctx: ActionResultContext<unknown, unknown>) => {
@@ -509,10 +549,10 @@ export default function AssistantChatPage() {
     [queryClient, id, organizationId],
   )
 
-  const openAction = (actionId: AgentActionId, prefill?: Record<string, unknown>) => {
+  const openAction = useCallback((actionId: AgentActionId, prefill?: Record<string, unknown>) => {
     setActivePrefill(prefill)
     setActiveActionId(actionId)
-  }
+  }, [])
 
   const discoverCompetitorsPrefill = useMemo(() =>
     brandKit
@@ -816,10 +856,11 @@ export default function AssistantChatPage() {
             }}
           />
         </div>
-      ) : historyLoaded && !hasMessages ? (
+      ) : historyLoaded && !hasMessages && !isBusy ? (
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
         <div
+          ref={chatScrollRef}
           className="flex-1 min-h-0 overflow-y-auto"
           style={{
             display: "flex",
@@ -840,13 +881,12 @@ export default function AssistantChatPage() {
               onRevertImage={() => handleRevertImage(i)}
             />
           ))}
-          {isLoading && (
+          {isBusy && (
             <TypingIndicator
               agentInitials={agent.initials}
               agentColor={agentColor}
             />
           )}
-          <div ref={bottomRef} />
         </div>
       )}
 
@@ -933,6 +973,8 @@ export default function AssistantChatPage() {
         organizationId={organizationId}
         conversationId={conversationIdRef.current}
         prefill={activePrefill}
+        onStart={handleActionStart}
+        onSettled={handleActionSettled}
         onComplete={handleActionComplete}
       />
     </div>

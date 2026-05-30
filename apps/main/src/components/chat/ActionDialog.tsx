@@ -20,6 +20,11 @@ export interface ActionResultContext<TInput, TResult> {
   result: TResult
 }
 
+export interface ActionStartContext<TInput> {
+  actionId: AgentActionId
+  input: TInput
+}
+
 export interface ActionFormProps<TInput, TResult> {
   /** Current form state */
   value: TInput
@@ -45,6 +50,10 @@ export interface ActionDialogProps<TInput, TResult> {
   renderForm: (props: ActionFormProps<TInput, TResult>) => React.ReactNode
   /** Called with successful result. Usually pushes a rich message to chat. */
   onComplete: (ctx: ActionResultContext<TInput, TResult>) => void
+  /** Called after validation passes and before the API request starts. */
+  onStart?: (ctx: ActionStartContext<TInput>) => void
+  /** Called when the API request settles, successfully or with an error. */
+  onSettled?: (ctx: ActionStartContext<TInput>) => void
   /** Override the default JSON `runAgentAction` submit (e.g. for multipart uploads). */
   customSubmit?: (value: TInput, organizationId: string) => Promise<TResult>
   submitLabel?: string
@@ -64,6 +73,8 @@ export function ActionDialog<TInput, TResult>({
   validate,
   renderForm,
   onComplete,
+  onStart,
+  onSettled,
   customSubmit,
   submitLabel = "Run",
   resolveActionId,
@@ -82,8 +93,9 @@ export function ActionDialog<TInput, TResult>({
   }, [])
 
   const submit = React.useCallback(async (): Promise<TResult> => {
+    const submittedValue = value
     if (validate) {
-      const err = validate(value)
+      const err = validate(submittedValue)
       if (err) {
         toast.error(err)
         throw new Error(err)
@@ -91,17 +103,18 @@ export function ActionDialog<TInput, TResult>({
     }
     setSubmitting(true)
     const effectiveActionId = resolveActionId ? resolveActionId(value) : actionId
+    onStart?.({ actionId, input: submittedValue })
+    onOpenChange(false)
     try {
       const result = customSubmit
-        ? await customSubmit(value, organizationId)
+        ? await customSubmit(submittedValue, organizationId)
         : await runAgentAction<TInput, TResult>(
             effectiveActionId,
             organizationId,
-            value,
+            submittedValue,
             conversationId
           )
-      onComplete({ actionId: effectiveActionId, input: value, result })
-      onOpenChange(false)
+      onComplete({ actionId: effectiveActionId, input: submittedValue, result })
       return result
     } catch (err) {
       if (err instanceof AgentNotAvailableError) {
@@ -111,9 +124,10 @@ export function ActionDialog<TInput, TResult>({
       }
       throw err
     } finally {
+      onSettled?.({ actionId, input: submittedValue })
       setSubmitting(false)
     }
-  }, [value, actionId, resolveActionId, organizationId, conversationId, validate, onComplete, onOpenChange, customSubmit])
+  }, [value, actionId, resolveActionId, organizationId, conversationId, validate, onStart, onComplete, onSettled, onOpenChange, customSubmit])
 
   const handleSubmit = () => {
     submit().catch(() => {
@@ -121,9 +135,16 @@ export function ActionDialog<TInput, TResult>({
     })
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Enter" || e.shiftKey) return
+    if ((e.target as HTMLElement).closest("button")) return
+    e.preventDefault()
+    if (!submitting) handleSubmit()
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
