@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "seed:dashboard": "tsx prisma/seed-dashboard.ts",
     "seed:brand-kit": "tsx prisma/seed-brand-kit.ts",
     "test": "node --import tsx --test src/tests/unit/*.test.ts"

@@ -44,4 +44,4 @@ ENV NODE_ENV=production
 COPY --from=builder /standalone .
 
 EXPOSE 5000
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/src/server.js"]
