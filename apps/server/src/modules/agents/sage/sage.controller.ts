@@ -89,7 +89,7 @@ export const addSavedKeyword = async (req: Request, res: Response) => {
 
 export const removeSavedKeyword = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
-  const { id } = req.params;
+  const id = req.params["id"] as string | undefined;
   if (!id) throw new BadRequestError("Keyword id is required");
   await sageService.unsaveKeyword(id, organizationId);
   res.status(StatusCodes.NO_CONTENT).send();

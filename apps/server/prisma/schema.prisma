@@ -458,3 +458,25 @@ model VegaBriefingCache {
   @@index([organizationId, date])
   @@map("vega_briefing_cache")
 }
+
+model VegaLabel {
+  id             String   @id @default(cuid())
+  name           String
+  color          String   @default("#999999")
+  autoReply      Boolean  @default(false)
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("vega_label")
+}
+
+model VegaInboxCache {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  snapshot       Json
+  cachedAt       DateTime @default(now())
+
+  @@map("vega_inbox_cache")
+}

@@ -7,6 +7,7 @@ export interface TriagedEmail {
   fromEmail: string;
   priority: string;
   uiCategory: "reply_now" | "action_needed" | "fyi" | "can_ignore";
+  label: string;
   summary: string;
   suggestedAction: string;
   hiddenTasks: string[];
@@ -32,8 +33,13 @@ export interface InboxResponse {
   stats: InboxStats;
 }
 
-export async function fetchInbox(maxEmails = 20): Promise<InboxResponse> {
-  return apiFetch<InboxResponse>(`/agents/vega/inbox?maxEmails=${maxEmails}`);
+export async function fetchInbox(
+  maxEmails = 20,
+  options?: { force?: boolean }
+): Promise<InboxResponse> {
+  const params = new URLSearchParams({ maxEmails: String(maxEmails) });
+  if (options?.force) params.set("force", "true");
+  return apiFetch<InboxResponse>(`/agents/vega/inbox?${params.toString()}`);
 }
 
 export async function sendReply(
@@ -55,6 +61,23 @@ export function bulkInboxAction(payload: {
     method: "POST",
     body: payload,
   })
+}
+
+export async function draftVegaReply(
+  emailId: string,
+  options?: { instructions?: string; tone?: string }
+): Promise<{ body: string }> {
+  const res = await apiFetch<{ draft: { body: string } }>("/agents/vega/draft-reply", {
+    method: "POST",
+    body: {
+      emailId,
+      replyInstructions:
+        options?.instructions ??
+        "Draft a professional contextual reply based on the email content",
+      tone: options?.tone ?? "professional",
+    },
+  });
+  return { body: res.draft.body };
 }
 
 // NOTE: follow-up creation is in vega-followups.ts — do NOT add it here.

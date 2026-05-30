@@ -151,7 +151,7 @@ export const EMPLOYEES: Employee[] = [
     skills: ['Market scans', 'Competitor teardowns', 'Memo writing', 'Trend spotting'],
     quote: "Pulled 23 comps, killed 18 that were noise. Here's the 5 that actually move the needle — and one weird one.",
     stats: [{ k: 'Reports written', v: '89K' }, { k: 'Sources cited', v: '4.1M' }, { k: 'Hours saved/week', v: '38' }],
-    description: "Scout digs into competitors, markets, and companies so you don't have to spend a Thursday in browser tabs. She gives you a memo, not a data dump — with the stuff that actually matters highlighted.",
+    description: "Scout digs into competitors, markets, and companies so you don't have to spend a Thursday in browser tabs. He gives you a memo, not a data dump — with the stuff that actually matters highlighted.",
     capabilities: [
       { title: "Topic Research", description: "Deep-dive any topic at quick, standard, or deep depth — Scout pulls from 20+ web sources, synthesizes, and writes a memo with citations and recommendations." },
       { title: "Company Research", description: "Full company profile on any target: size, funding, tech stack, key contacts, recent news, and why now — in one structured report." },
@@ -433,7 +433,7 @@ export const EMPLOYEES: Employee[] = [
     skills: ['NDA review', 'Contract drafting', 'Clause flagging', 'Policy audits'],
     quote: "Clause 7.3 is a trap. Redlined it. Also Clause 4 is fine but written by a poet — I cleaned it up.",
     stats: [{ k: 'Contracts reviewed', v: '180K' }, { k: 'Red flags caught', v: '41K' }, { k: 'Avg review time', v: '4 min' }],
-    description: "Lex reads contracts, spots the traps, and explains what the clauses actually mean — in plain English, not legalese. She doesn't replace a lawyer, but she makes sure you don't go into a lawyer meeting blind.",
+    description: "Lex reads contracts, spots the traps, and explains what the clauses actually mean — in plain English, not legalese. He doesn't replace a lawyer, but she makes sure you don't go into a lawyer meeting blind.",
     capabilities: [
       { title: "PDF Contract Upload & Ingestion", description: "Upload any PDF or Word contract directly. Lex reads the full document — NDAs, MSAs, vendor agreements, offer letters, contractor agreements — in under 5 minutes." },
       { title: "Contract Analysis", description: "Full risk analysis: flags perpetual licenses, uncapped liability, one-sided indemnification, auto-renewal traps, and unusual IP assignments — with clause references in plain English." },

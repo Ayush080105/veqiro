@@ -6,7 +6,7 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
-from core.utils import strip_json_fences, safe_json_loads
+from core.utils import strip_json_fences, safe_json_loads, downsample_points
 
 
 class RexAgent(BaseAgent):
@@ -254,7 +254,12 @@ class RexAgent(BaseAgent):
             }
             health = compute_health_indicator(health_inputs)
 
-            metrics_summary = json.dumps(metrics_raw)
+            # Cap points per metric so a large CSV can't overflow the LLM context.
+            metrics_summary = json.dumps({
+                k: downsample_points(sorted(v, key=lambda p: p.get("date", "")), 200)
+                if isinstance(v, list) else v
+                for k, v in metrics_raw.items()
+            })
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system,

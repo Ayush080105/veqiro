@@ -64,7 +64,18 @@
       "Bash(python -c \"import ast; ast.parse\\(open\\('agents/rex/routes.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK syntax'\\)\")",
       "mcp__plugin_dodopayments_dodo-knowledge__search_docs",
       "Bash(git add *)",
-      "Bash(grep -r \"https://api\\\\.\" \"D:\\\\Projects\\\\veqiro\" --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" ! -path \"*/venv/*\" ! -path \"*/prisma/generated/*\")"
+      "Bash(grep -r \"https://api\\\\.\" \"D:\\\\Projects\\\\veqiro\" --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" ! -path \"*/venv/*\" ! -path \"*/prisma/generated/*\")",
+      "Bash(xargs ls *)",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && head -15 \"{}\"')",
+      "Bash(xargs cat *)",
+      "Bash(pnpm check-types *)",
+      "Bash(tee /tmp/veqiro-check-types.txt)",
+      "Bash(git rm *)",
+      "Bash(rm -f apps/server/prisma/migrations/add_vega_label_inbox_cache.sql)",
+      "Bash(node --import tsx --test --test-name-pattern=\"long-format\" src/tests/unit/rex-csv.test.ts)",
+      "Bash(node --import tsx _dbg.mts)",
+      "Bash(rm -f _dbg.mts)",
+      "Bash(./venv/Scripts/python.exe -c \"import pytest; print\\('pytest', pytest.__version__\\)\")"
     ]
   },
   "enabledMcpjsonServers": [

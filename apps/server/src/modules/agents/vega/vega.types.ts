@@ -125,6 +125,7 @@ export interface TriagedEmail {
   fromEmail: string;
   priority: string;
   uiCategory: UICategory;
+  label: string;
   summary: string;
   suggestedAction: string;
   hiddenTasks: string[];
@@ -133,6 +134,15 @@ export interface TriagedEmail {
   isVIP: boolean;
   receivedAt?: string | null;
   threadId?: string | null;
+}
+
+export interface VegaLabelRecord {
+  id: string;
+  name: string;
+  color: string;
+  autoReply: boolean;
+  organizationId: string;
+  createdAt: string;
 }
 
 export interface WorkspaceInboxResponse {

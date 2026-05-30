@@ -17,6 +17,8 @@ import {
   updateCalendarEventSchema,
   rescheduleDraftSchema,
   bulkInboxActionSchema,
+  createLabelSchema,
+  updateLabelSchema,
 } from "./vega.workspace.schema.js";
 import * as ws from "./vega.workspace.service.js";
 
@@ -31,7 +33,8 @@ const requireAuthContext = (req: Request): { userId: string; organizationId: str
 export const getInbox = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = getInboxSchema.parse(req.query);
-  const result = await ws.getInbox(userId, organizationId, input);
+  const force = req.query.force === "true";
+  const result = await ws.getInbox(userId, organizationId, input, force);
   res.status(StatusCodes.OK).json(result);
 };
 
@@ -165,5 +168,36 @@ export const bulkInboxActionHandler = async (req: Request, res: Response) => {
   const { userId } = requireAuthContext(req);
   const input = bulkInboxActionSchema.parse(req.body);
   const result = await ws.bulkInboxAction(userId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+// Labels
+export const getLabelsList = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const result = await ws.getLabels(organizationId);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const createLabelHandler = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const input = createLabelSchema.parse(req.body);
+  const result = await ws.createLabel(organizationId, input);
+  res.status(StatusCodes.CREATED).json(result);
+};
+
+export const deleteLabelHandler = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const labelId = req.params.labelId as string;
+  if (!labelId) throw new BadRequestError("labelId param required");
+  await ws.deleteLabel(organizationId, labelId);
+  res.status(StatusCodes.NO_CONTENT).send();
+};
+
+export const updateLabelHandler = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const labelId = req.params.labelId as string;
+  if (!labelId) throw new BadRequestError("labelId param required");
+  const input = updateLabelSchema.parse(req.body);
+  const result = await ws.updateLabel(organizationId, labelId, input);
   res.status(StatusCodes.OK).json(result);
 };

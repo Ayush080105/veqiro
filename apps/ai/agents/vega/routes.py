@@ -32,6 +32,7 @@ class ProcessInboxRequest(BaseModel):
     max_emails: int = 20
     auto_label: bool = True
     draft_replies: bool = True
+    custom_labels: list[str] = []
     metadata: dict = {}
 
     model_config = ConfigDict(
@@ -41,6 +42,7 @@ class ProcessInboxRequest(BaseModel):
                 "max_emails": 10,
                 "auto_label": True,
                 "draft_replies": True,
+                "custom_labels": ["Investors", "Sales Leads", "Newsletters"],
                 "metadata": {"google_access_token": "ya29.xxx"},
             }
         }
@@ -335,20 +337,19 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
         ]
         return ProcessInboxResponse(processed=processed, stats=stats, node_actions=node_actions)
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
-    processed = []
-    stats_counts = {"urgent": 0, "high": 0, "medium": 0, "low": 0}
-    label_messages_list = []
-    total_tokens = 0
+    import asyncio
 
-    for email in emails[:request.max_emails]:
+    label_list = ", ".join(request.custom_labels) if request.custom_labels else "Investors, Sales Leads, Newsletters, Team, Legal, Finance, Other"
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+
+    async def _analyze_email(email: dict) -> tuple[ProcessedEmail, int]:
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
             messages=[{"role": "user", "content": (
                 "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys: "
                 "priority (urgent/high/medium/low), summary (1-2 sentences), "
-                "suggested_action (string), label (one of: Investors, Sales Leads, Newsletters, Team, Legal, Finance, Other), "
+                f"suggested_action (string), label (one of: {label_list}), "
                 "hidden_tasks (list of strings — implicit action items, e.g. 'review attached deck', 'respond before Friday'), "
                 "suggested_reply (string — a 1-3 sentence reply suggestion if suggested_action is 'reply', otherwise null), "
                 "meeting_request (object with keys date, time, topic if the email requests a meeting, otherwise null)\n\n"
@@ -357,7 +358,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
                 f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
             )}],
         )
-        total_tokens += _llm.count_tokens(raw)
+        tokens = _llm.count_tokens(raw)
         try:
             analysis = safe_json_loads(raw)
             priority = analysis.get("priority", "medium")
@@ -376,9 +377,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             suggested_reply = None
             meeting_request = None
 
-        stats_counts[priority] = stats_counts.get(priority, 0) + 1
-        label_messages_list.append({"email_id": email.get("id", ""), "label": label})
-        processed.append(ProcessedEmail(
+        result = ProcessedEmail(
             email_id=email.get("id", ""),
             subject=email.get("subject", ""),
             from_name=email.get("from_name", email.get("from", "")),
@@ -390,7 +389,21 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             hidden_tasks=hidden_tasks,
             suggested_reply=suggested_reply,
             meeting_request=meeting_request,
-        ))
+        )
+        return result, tokens
+
+    results = await asyncio.gather(*[_analyze_email(e) for e in emails[:request.max_emails]])
+
+    processed = []
+    total_tokens = 0
+    stats_counts = {"urgent": 0, "high": 0, "medium": 0, "low": 0}
+    label_messages_list = []
+
+    for pe, tok in results:
+        total_tokens += tok
+        stats_counts[pe.priority] = stats_counts.get(pe.priority, 0) + 1
+        label_messages_list.append({"email_id": pe.email_id, "label": pe.label_applied or "Other"})
+        processed.append(pe)
 
     stats = InboxStats(
         total_processed=len(processed),

@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { prisma } from "../../../config/prisma.js";
 import { generateAndCacheBriefing } from "./vega.workspace.service.js";
+import { runEmailPipeline } from "./email.job.js";
 
 async function findOrgsWithGoogle(): Promise<
   Array<{ organizationId: string; userId: string }>
@@ -66,6 +67,21 @@ async function runFollowUpCheck() {
   }
 }
 
+async function runEmailPipelineForAllOrgs() {
+  const orgs = await findOrgsWithGoogle();
+  await Promise.allSettled(
+    orgs.map(({ userId, organizationId }) =>
+      runEmailPipeline(userId, organizationId).catch((err) =>
+        console.error(
+          `[vega-cron] email pipeline failed for org ${organizationId}:`,
+          err
+        )
+      )
+    )
+  );
+  console.log(`[vega-cron] Email pipeline complete for ${orgs.length} orgs`);
+}
+
 export function startVegaCron() {
   // Morning briefing — 08:00 UTC daily
   cron.schedule("0 8 * * *", () => {
@@ -87,5 +103,10 @@ export function startVegaCron() {
     void runBriefingForAllOrgs("WEEKLY");
   });
 
-  console.log("[vega-cron] Scheduled: morning briefing, evening wrap-up, follow-up check, weekly insights");
+  // Email pipeline: auto-label + auto-draft for new emails — every 30 minutes
+  cron.schedule("*/30 * * * *", () => {
+    void runEmailPipelineForAllOrgs();
+  });
+
+  console.log("[vega-cron] Scheduled: morning briefing, evening wrap-up, follow-up check, weekly insights, email pipeline (30min)");
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetchInbox, bulkInboxAction } from "@/lib/api/vega-inbox"
 import { qk } from "@/lib/query-keys"
@@ -30,6 +30,7 @@ export function InboxView() {
   const [selectMode, setSelectMode] = useState(false)
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [bulkPending, setBulkPending] = useState(false)
+  const [activeLabel, setActiveLabel] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const {
@@ -40,10 +41,18 @@ export function InboxView() {
     isFetching,
   } = useQuery({
     queryKey: qk.vegaInbox(organizationId),
-    queryFn: () => fetchInbox(20),
+    queryFn: ({ meta }) => fetchInbox(20, { force: !!(meta as { force?: boolean } | undefined)?.force }),
     enabled: !!organizationId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
   })
+
+  const handleForceRefetch = () => {
+    void queryClient.fetchQuery({
+      queryKey: qk.vegaInbox(organizationId),
+      queryFn: () => fetchInbox(20, { force: true }),
+      staleTime: 0,
+    })
+  }
 
   const invalidateInbox = () =>
     queryClient.invalidateQueries({ queryKey: qk.vegaInbox(organizationId) })
@@ -70,9 +79,22 @@ export function InboxView() {
     }
   }
 
+  const uniqueLabels = useMemo(
+    () => [...new Set((data?.emails ?? []).map((e) => e.label))].sort(),
+    [data?.emails]
+  )
+
+  const visibleEmails = useMemo(
+    () =>
+      activeLabel
+        ? (data?.emails ?? []).filter((e) => e.label === activeLabel)
+        : (data?.emails ?? []),
+    [data?.emails, activeLabel]
+  )
+
   const emailsByCategory = CATEGORIES.map((cat) => ({
     cat,
-    emails: data?.emails.filter((e) => e.uiCategory === cat) ?? [],
+    emails: visibleEmails.filter((e) => e.uiCategory === cat),
   }))
 
   if (isLoading) {
@@ -141,52 +163,144 @@ export function InboxView() {
                 variant="ghost"
                 size="icon"
                 className="size-7"
-                onClick={() => refetch()}
+                onClick={handleForceRefetch}
                 disabled={isFetching}
+                title="Refresh inbox"
               >
                 <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
 
-          <TabsContent value="inbox" className="flex-1 overflow-y-auto m-0 p-3 flex flex-col gap-4">
-            {emailsByCategory.map(({ cat, emails }) => {
-              if (!emails.length) return null
-              return (
-                <div key={cat} className="flex flex-col gap-2">
-                  <div
-                    className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground px-1"
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  >
-                    {CATEGORY_LABELS[cat]} ({emails.length})
-                  </div>
-                  {emails.map((email) => (
-                    <EmailCard
-                      key={email.emailId}
-                      email={email}
-                      isSelected={selectedEmail?.emailId === email.emailId}
-                      onSelect={selectMode ? () => {} : setSelectedEmail}
-                      isChecked={selectMode ? checkedIds.has(email.emailId) : undefined}
-                      onCheck={selectMode ? (e, checked) => {
-                        setCheckedIds((prev) => {
-                          const next = new Set(prev)
-                          if (checked) next.add(e.emailId)
-                          else next.delete(e.emailId)
-                          return next
-                        })
-                      } : undefined}
-                    />
-                  ))}
-                </div>
-              )
-            })}
+          {/* Bulk action bar — visible when emails are checked */}
+          {selectMode && checkedIds.size > 0 && (
+            <div
+              className="flex items-center gap-2 px-3 py-2 shrink-0"
+              style={{ background: "#F0FFF8", borderBottom: "1px solid #D1FAE5" }}
+            >
+              <span
+                className="text-xs text-muted-foreground"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {checkedIds.size} selected
+              </span>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2"
+                  onClick={() => handleBulkAction("snooze")}
+                  disabled={bulkPending}
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {bulkPending ? "…" : "Snooze 24h"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 text-destructive border-destructive hover:text-destructive"
+                  onClick={() => handleBulkAction("ignore")}
+                  disabled={bulkPending}
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {bulkPending ? "…" : "Ignore"}
+                </Button>
+              </div>
+            </div>
+          )}
 
-            {!data?.emails.length && (
-              <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
-                <Mail className="size-8 opacity-30" />
-                <p className="text-sm">Inbox is empty</p>
+          <TabsContent value="inbox" className="flex-1 overflow-y-auto m-0 flex flex-col">
+            {/* Label filter pills */}
+            {uniqueLabels.length > 0 && (
+              <div
+                className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1.5 shrink-0"
+                style={{ borderBottom: "1px solid #E5E5E5" }}
+              >
+                <button
+                  onClick={() => setActiveLabel(null)}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 9,
+                    letterSpacing: 1,
+                    padding: "3px 8px",
+                    border: "1.5px solid #111",
+                    borderRadius: 999,
+                    background: activeLabel === null ? "#111" : "#fff",
+                    color: activeLabel === null ? "#fff" : "#111",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  All
+                </button>
+                {uniqueLabels.map((label) => (
+                  <button
+                    key={label}
+                    onClick={() => setActiveLabel(activeLabel === label ? null : label)}
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 9,
+                      letterSpacing: 1,
+                      padding: "3px 8px",
+                      border: "1.5px solid #111",
+                      borderRadius: 999,
+                      background: activeLabel === label ? "#111" : "#fff",
+                      color: activeLabel === label ? "#fff" : "#111",
+                      cursor: "pointer",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             )}
+            <div className="flex flex-col gap-4 p-3 overflow-y-auto flex-1">
+              {emailsByCategory.map(({ cat, emails }) => {
+                if (!emails.length) return null
+                return (
+                  <div key={cat} className="flex flex-col gap-2">
+                    <div
+                      className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground px-1"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
+                      {CATEGORY_LABELS[cat]} ({emails.length})
+                    </div>
+                    {emails.map((email) => (
+                      <EmailCard
+                        key={email.emailId}
+                        email={email}
+                        isSelected={selectedEmail?.emailId === email.emailId}
+                        onSelect={selectMode ? (e) => {
+                          setCheckedIds((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(e.emailId)) next.delete(e.emailId)
+                            else next.add(e.emailId)
+                            return next
+                          })
+                        } : setSelectedEmail}
+                        isChecked={selectMode ? checkedIds.has(email.emailId) : undefined}
+                        onCheck={selectMode ? (e, checked) => {
+                          setCheckedIds((prev) => {
+                            const next = new Set(prev)
+                            if (checked) next.add(e.emailId)
+                            else next.delete(e.emailId)
+                            return next
+                          })
+                        } : undefined}
+                      />
+                    ))}
+                  </div>
+                )
+              })}
+
+              {visibleEmails.length === 0 && (
+                <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+                  <Mail className="size-8 opacity-30" />
+                  <p className="text-sm">{activeLabel ? `No emails labeled "${activeLabel}"` : "Inbox is empty"}</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="followups" className="flex-1 overflow-y-auto m-0">
