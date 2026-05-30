@@ -20,6 +20,16 @@ COPY apps/server/tsconfig.json    ./apps/server/tsconfig.json
 COPY apps/server/prisma.config.ts ./apps/server/prisma.config.ts
 COPY packages/transactional/      ./packages/transactional/
 
+# Compile @repo/transactional .tsx → .js so Node.js ESM can resolve them.
+# pnpm deploy will copy the resulting .js files into the standalone's
+# node_modules/@repo/transactional/emails/ alongside the .tsx sources.
+WORKDIR /repo/packages/transactional
+RUN /repo/node_modules/.bin/esbuild \
+    emails/verificationEmail.tsx \
+    emails/resetPasswordEmail.tsx \
+    --bundle=false --format=esm --jsx=automatic --platform=node \
+    --outdir=emails
+
 # Generate Prisma client then compile TypeScript
 WORKDIR /repo/apps/server
 RUN pnpm exec prisma generate
