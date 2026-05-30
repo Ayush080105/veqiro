@@ -103,28 +103,24 @@ export async function proxy(request: NextRequest) {
 // recommended pattern from the Next.js docs since these headers are stripped
 // from `request.headers` inside the proxy function and can only be filtered
 // here at the routing layer.
-const SKIP_FOR_NAVIGATION = [
-  { type: "header" as const, key: "rsc" },
-  { type: "header" as const, key: "next-router-prefetch" },
-  { type: "header" as const, key: "purpose", value: "prefetch" },
-];
-
+// NOTE: `missing` must be inlined — Next.js static analysis can't resolve
+// variable references inside the config export.
 export const config = {
   matcher: [
-    { source: "/", missing: SKIP_FOR_NAVIGATION },
-    { source: "/login", missing: SKIP_FOR_NAVIGATION },
-    { source: "/workspaces", missing: SKIP_FOR_NAVIGATION },
-    { source: "/onboarding", missing: SKIP_FOR_NAVIGATION },
-    { source: "/onboarding/:path*", missing: SKIP_FOR_NAVIGATION },
-    { source: "/dashboard", missing: SKIP_FOR_NAVIGATION },
-    { source: "/dashboard/:path*", missing: SKIP_FOR_NAVIGATION },
-    { source: "/assistants", missing: SKIP_FOR_NAVIGATION },
-    { source: "/assistants/:path*", missing: SKIP_FOR_NAVIGATION },
-    { source: "/brain", missing: SKIP_FOR_NAVIGATION },
-    { source: "/brain/:path*", missing: SKIP_FOR_NAVIGATION },
-    { source: "/settings", missing: SKIP_FOR_NAVIGATION },
-    { source: "/settings/:path*", missing: SKIP_FOR_NAVIGATION },
-    { source: "/workspace", missing: SKIP_FOR_NAVIGATION },
-    { source: "/workspace/:path*", missing: SKIP_FOR_NAVIGATION },
+    { source: "/", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/login", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/workspaces", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/onboarding", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/onboarding/:path*", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/dashboard", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/dashboard/:path*", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/assistants", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/assistants/:path*", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/brain", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/brain/:path*", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/settings", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/settings/:path*", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/workspace", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+    { source: "/workspace/:path*", missing: [{ type: "header", key: "rsc" }, { type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
   ],
 };

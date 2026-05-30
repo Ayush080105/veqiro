@@ -508,7 +508,7 @@ export function RunActionDialog({
 
   const { Form, defaultValue, validate, customSubmit, resolveActionId } = spec
   const merged = {
-    ...(prefill ? { ...(defaultValue as object), ...prefill } : defaultValue),
+    ...(prefill ? { ...(defaultValue as object), ...prefill } : defaultValue as object),
     organization_id: organizationId,
   }
 

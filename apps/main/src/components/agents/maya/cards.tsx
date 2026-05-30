@@ -836,7 +836,7 @@ export function CampaignResultCard({
                   <div className="flex gap-1">
                     {rawSrc && (
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger>
                           <a
                             href={src ?? rawSrc}
                             download={`campaign-photo-${i + 1}.png`}
