@@ -797,7 +797,7 @@ export function CampaignResultCard({
 
   return (
     <AgentCard>
-      <AgentCard.Header icon={<Rocket size={14} />} label="Product Campaign">
+      <AgentCard.Header icon={<Rocket size={14} />} title="Product Campaign">
         <span className="text-xs text-muted-foreground">{photos.length} photos</span>
       </AgentCard.Header>
       <AgentCard.Body>
