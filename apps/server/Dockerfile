@@ -26,11 +26,13 @@ RUN pnpm exec prisma generate
 RUN pnpm run build
 
 # pnpm deploy resolves workspace deps into a standalone dir (no symlinks).
-# dist/ and prisma/generated/ are gitignored so pnpm deploy skips them;
-# copy them explicitly after.
+# Use rm -rf before each cp to prevent nesting when pnpm deploy already
+# included the directory (e.g. prisma/ is not gitignored).
+# dist/ is excluded by root .gitignore but copied explicitly here.
 WORKDIR /repo
 RUN pnpm --filter=server deploy --prod /standalone
-RUN cp -r /repo/apps/server/dist   /standalone/dist && \
+RUN rm -rf /standalone/dist /standalone/prisma && \
+    cp -r /repo/apps/server/dist   /standalone/dist && \
     cp -r /repo/apps/server/prisma /standalone/prisma
 
 # ── runner ─────────────────────────────────────────────────────────────────────
