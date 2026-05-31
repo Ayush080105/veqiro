@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Info, HelpCircle, MessageSquare, FolderOpen, Rocket } from "lucide-react"
 import { toast } from "sonner"
@@ -549,10 +549,39 @@ export default function AssistantChatPage() {
     [queryClient, id, organizationId],
   )
 
+  const searchParams = useSearchParams()
+
   const openAction = useCallback((actionId: AgentActionId, prefill?: Record<string, unknown>) => {
     setActivePrefill(prefill)
     setActiveActionId(actionId)
   }, [])
+
+  // Cross-agent handoff: navigate to the target agent's page with the action pre-loaded.
+  // Same-agent follow-ups open the dialog inline as before.
+  const handleFollowUp = useCallback(
+    (actionId: AgentActionId, prefill?: Record<string, unknown>) => {
+      const targetAgent = actionId.split(":")[0]
+      if (targetAgent === id) {
+        openAction(actionId, prefill)
+      } else {
+        const qs = new URLSearchParams({ action: actionId })
+        if (prefill) qs.set("prefill", JSON.stringify(prefill))
+        router.push(`/assistants/${targetAgent}?${qs.toString()}`)
+      }
+    },
+    [id, openAction, router]
+  )
+
+  // On mount: if URL contains ?action=..., open that action dialog then clean the URL.
+  useEffect(() => {
+    const action = searchParams.get("action") as AgentActionId | null
+    if (!action) return
+    const prefillStr = searchParams.get("prefill")
+    const prefill = prefillStr ? (JSON.parse(prefillStr) as Record<string, unknown>) : undefined
+    openAction(action, prefill)
+    router.replace(`/assistants/${id}`)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // run once on mount only
 
   const discoverCompetitorsPrefill = useMemo(() =>
     brandKit
@@ -877,7 +906,7 @@ export default function AssistantChatPage() {
               agentInitials={agent.initials}
               agentColor={agentColor}
               isLex={isLex}
-              onFollowUpAction={openAction}
+              onFollowUpAction={handleFollowUp}
               onRevertImage={() => handleRevertImage(i)}
             />
           ))}

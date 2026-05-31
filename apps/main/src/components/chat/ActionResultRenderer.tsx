@@ -79,13 +79,13 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
 
   switch (actionId) {
     case "sage:keyword-research":
-      return <KeywordClusterCard result={r} />
+      return <KeywordClusterCard result={r} onFollowUpAction={onFollowUpAction} />
     case "sage:generate-blog":
       return <BlogPreviewCard result={r} />
     case "sage:analyze-content":
       return <ContentAuditCard result={r} />
     case "sage:content-brief":
-      return <ContentBriefCard result={r} />
+      return <ContentBriefCard result={r} onFollowUpAction={onFollowUpAction} />
     case "sage:generate-blog-ideas":
       return <BlogIdeasCard result={r} onFollowUpAction={onFollowUpAction} />
 
@@ -107,11 +107,11 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
       return <CampaignResultCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "scout:research-topic":
-      return <ResearchReportCard result={r} />
+      return <ResearchReportCard result={r} onFollowUpAction={onFollowUpAction} />
     case "scout:research-company":
-      return <CompanyProfileCard result={r} />
+      return <CompanyProfileCard result={r} onFollowUpAction={onFollowUpAction} />
     case "scout:trending-topics":
-      return <TrendsBoardCard result={r} />
+      return <TrendsBoardCard result={r} onFollowUpAction={onFollowUpAction} />
     case "scout:discover-competitors":
       return <DiscoverCompetitorsCard result={r} />
 
@@ -141,7 +141,7 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
     case "lex:upload-source":
       return <DocumentIngestCard result={r} />
     case "lex:analyze-contract":
-      return <ContractAnalysisCard result={r} />
+      return <ContractAnalysisCard result={r} onFollowUpAction={onFollowUpAction} />
     case "lex:query-document":
       return <QueryDocumentCard result={r} />
     case "lex:draft-document":
@@ -151,10 +151,10 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
     case "lex:legal-research":
       return <LegalResearchCard result={r} />
     case "lex:compliance-check":
-      return <ComplianceCheckCard result={r} />
+      return <ComplianceCheckCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "vega:process-inbox":
-      return <InboxTriageCard result={r} />
+      return <InboxTriageCard result={r} onFollowUpAction={onFollowUpAction} />
     case "vega:draft-reply":
       return <DraftReplyCard result={r} />
     case "vega:calendar-summary":

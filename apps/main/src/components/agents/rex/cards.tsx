@@ -386,6 +386,15 @@ export function ForecastCard({
               icon={GitBranch}
               onClick={() => onFollowUpAction("rex:scenario", {})}
             />
+            <FollowUpBtn
+              label="Share forecast · Maya"
+              icon={ArrowRight}
+              onClick={() => onFollowUpAction("maya:draft-content" as AgentActionId, {
+                topic: result.summary,
+                platform: "linkedin",
+                additional_context: `${Math.round((result.confidence ?? 0) * 100)}% confidence. Method: ${result.methodology ?? ""}`,
+              })}
+            />
           </div>
         )}
         <ConfidenceFooter
@@ -448,6 +457,15 @@ export function FinancialHealthCard({
         )}
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Share growth update · Maya"
+              icon={ArrowRight}
+              onClick={() => onFollowUpAction("maya:draft-content" as AgentActionId, {
+                topic: "Our latest financial milestone",
+                platform: "linkedin",
+                additional_context: result.narrative ?? "",
+              })}
+            />
             <FollowUpBtn
               label="Generate investor update"
               icon={Mail}
@@ -608,6 +626,14 @@ export function RunwayCard({
                   growth_rate: 0.05,
                 },
                 scenarios: [{ name: "", changes: {} }],
+              })}
+            />
+            <FollowUpBtn
+              label="Email board · Vega"
+              icon={Mail}
+              onClick={() => onFollowUpAction("vega:compose-email" as AgentActionId, {
+                subject: `Runway update: ${result.months_remaining != null ? `${result.months_remaining} months` : "Profitable"}`,
+                instructions: result.recommendation,
               })}
             />
           </div>
@@ -821,6 +847,17 @@ export function WeeklyDigestCard({
                 })
               }}
             />
+            {result.headline && (
+              <FollowUpBtn
+                label="Share on LinkedIn · Maya"
+                icon={ArrowRight}
+                onClick={() => onFollowUpAction("maya:draft-content" as AgentActionId, {
+                  topic: result.headline,
+                  platform: "linkedin",
+                  additional_context: result.focus_this_week?.slice(0, 2).join("; ") ?? "",
+                })}
+              />
+            )}
           </div>
         )}
         <ConfidenceFooter

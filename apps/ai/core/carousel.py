@@ -1,17 +1,37 @@
+import re
 import logging
 from pydantic import BaseModel
 from core.utils import safe_json_loads
+from core.image_gen import _hex_to_color_name
 
 logger = logging.getLogger("carousel")
 
 MAX_SLIDES = 8
 
 
+def _extract_numbers(text: str) -> list[str]:
+    """Extract numeric phrases from topic text to lock consistency across carousel slides."""
+    raw = re.findall(
+        r'(?:[\$£€])?\d[\d,\.]*\s*(?:%|[kKmMbBxX]|employees?|users?|customers?|clients?|months?|weeks?|days?|hours?)?',
+        text, re.IGNORECASE,
+    )
+    seen: set[str] = set()
+    out = []
+    for m in (r.strip() for r in raw):
+        if m and m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
+
+
 class CarouselImagePrompt(BaseModel):
     """Visual spec for a single carousel slide image — no caption, just image generation data."""
     slide_number: int
-    image_prompt: str   # full vivid prompt for Gemini
-    context_note: str   # how this connects to the previous slide (used as context_hints)
+    image_prompt: str       # visual composition prompt for Gemini — no text content here
+    context_note: str       # visual direction note (used as context_hints)
+    headline: str = ""      # exact headline text to render in the image
+    stat: str | None = None    # exact stat/power phrase, or None
+    subtext: str | None = None  # optional 1-line supporting copy, or None
 
 
 class CarouselContent(BaseModel):
@@ -66,6 +86,7 @@ def _build_carousel_prompt(
     brand_fonts: dict | None = None,
     industry: str = "",
     target_audience: str = "",
+    locked_numbers: list[str] | None = None,
 ) -> str:
     roles = _SLIDE_ROLES.get(count, _SLIDE_ROLES[5])
     roles_str = "\n".join(
@@ -94,18 +115,22 @@ def _build_carousel_prompt(
     if additional_context:
         brand_context += f"Context: {additional_context}. "
 
-    # Build an explicit brand visual spec so the design_system uses real brand values
+    # Build an explicit brand visual spec — label hex codes as design values so they never render as text
     brand_visual = ""
     if brand_colors:
         primary = brand_colors.get("primary", "")
         secondary = brand_colors.get("secondary", "")
         accent = brand_colors.get("accent", "")
-        parts = [f"primary {primary}" if primary else "",
-                 f"secondary {secondary}" if secondary else "",
-                 f"accent {accent}" if accent else ""]
+        parts = [
+            f"primary {_hex_to_color_name(primary)} ({primary})" if primary else "",
+            f"secondary {_hex_to_color_name(secondary)} ({secondary})" if secondary else "",
+            f"accent {_hex_to_color_name(accent)} ({accent})" if accent else "",
+        ]
         color_str = ", ".join(p for p in parts if p)
         if color_str:
-            brand_visual += f"Brand colors (MUST use these — no other colors): {color_str}. "
+            brand_visual += (
+                f"BRAND COLOR VALUES (apply to design only — NEVER print these codes as text): {color_str}. "
+            )
     if brand_fonts:
         heading = brand_fonts.get("heading") or brand_fonts.get("primary") or brand_fonts.get("display") or ""
         body = brand_fonts.get("body") or brand_fonts.get("secondary") or ""
@@ -114,11 +139,22 @@ def _build_carousel_prompt(
         if body:
             brand_visual += f"Body font: {body}. "
 
+    # Locked numbers block — injected when numeric facts are extracted from topic
+    locked_block = ""
+    if locked_numbers:
+        nums = "\n".join(f"  • {n}" for n in locked_numbers)
+        locked_block = (
+            f"LOCKED NUMBERS — these exact values appear in the topic. "
+            f"Every slide that references a metric MUST use these precise values — never approximate or change them:\n"
+            f"{nums}\n\n"
+        )
+
     return (
         f"Create a {platform} carousel post with {count} swipeable images for this topic.\n"
         f"Topic: \"{topic}\"\n"
         f"{brand_context}\n"
-        f"{brand_visual}\n\n"
+        f"{brand_visual}\n"
+        f"{locked_block}"
         f"TASK:\n"
         f"1. Write ONE single caption for the whole post ({limit_rule})\n"
         f"2. Define ONE locked DESIGN SYSTEM that will be applied identically to every slide image.\n"
@@ -129,7 +165,7 @@ def _build_carousel_prompt(
         f"  Do NOT invent a different color palette — use the brand's exact colors.\n"
         f"- Define a specific, locked design template in 2-3 sentences covering:\n"
         f"  * Background: use the brand's primary or secondary color as the dominant background\n"
-        f"  * Accent & text colors: derived from the brand palette (exact hex values from above)\n"
+        f"  * Accent & text colors: derived from the brand palette (use color names, not hex codes)\n"
         f"  * Layout grid: where the headline sits, where the visual element sits, margins\n"
         f"  * Typography style: font weight, size relationship (e.g. 'large bold display headline top-left, small caption bottom-right')\n"
         f"  * Logo/brand placement: exact corner and size (e.g. 'brand name bottom-right in accent color, small')\n"
@@ -137,7 +173,8 @@ def _build_carousel_prompt(
         f"- This design_system string gets embedded verbatim at the start of every image_prompt.\n\n"
         f"Image prompt rules:\n"
         f"- Start every image_prompt with 'DESIGN SYSTEM: [the exact design_system text above]. '\n"
-        f"- Then specify the slide's composition (from the arc above) + visual metaphor + headline text to embed (3-5 words).\n"
+        f"- Then describe ONLY the slide's visual composition and scene — no headline text in image_prompt.\n"
+        f"  The headline/stat/subtext fields below carry the exact text to render.\n"
         f"- The visual metaphor/scene and composition CHANGE per slide; the color palette and brand elements NEVER change.\n"
         f"- FORBIDDEN PATTERNS (never use these): bordered card with inner content, square frame inside a square canvas, "
         f"centered text on a plain gradient, generic white card on colored background, template-like bordered panels. "
@@ -147,6 +184,12 @@ def _build_carousel_prompt(
         f"- context_note: 5-8 words max describing VISUAL direction only "
         f"(e.g. 'warmer tone, solution revealed', 'darker bg, consequence shown'). "
         f"NEVER write summaries, analytical text, research findings, or anything resembling prose.\n\n"
+        f"Text fields per slide (CRITICAL — these control ALL text rendered in each image):\n"
+        f"- headline: 3-5 words, the EXACT main headline to render. Correct spelling. "
+        f"Use LOCKED NUMBERS exactly if the slide references a metric.\n"
+        f"- stat: optional key stat or power phrase (e.g. '6x faster', '$2M ARR'). "
+        f"Must use LOCKED NUMBERS exactly. Use null if not needed for this slide.\n"
+        f"- subtext: optional 1-line supporting copy, max 8 words. Use null if not needed.\n\n"
         f"Return ONLY a JSON object:\n"
         f"{{\n"
         f'  "caption_title": "<post title/headline>",\n'
@@ -156,12 +199,15 @@ def _build_carousel_prompt(
         f'  "meta_description": "<SEO meta description>",\n'
         f'  "word_count": <integer>,\n'
         f'  "tone_used": "<tone>",\n'
-        f'  "design_system": "<2-3 sentence locked visual template covering bg, accent, layout, typography, logo placement, motif>",\n'
+        f'  "design_system": "<2-3 sentence locked visual template covering bg, accent, layout, typography, logo placement, motif — describe colors by name (e.g. deep violet), not hex codes>",\n'
         f'  "image_prompts": [\n'
         f'    {{\n'
         f'      "slide_number": 1,\n'
-        f'      "image_prompt": "DESIGN SYSTEM: [copy design_system here]. [slide-specific visual metaphor + headline text to embed]",\n'
-        f'      "context_note": "Opening image — introduces the hook"\n'
+        f'      "image_prompt": "DESIGN SYSTEM: [copy design_system here]. [slide-specific visual composition and scene only — no text content here]",\n'
+        f'      "context_note": "Opening image — introduces the hook",\n'
+        f'      "headline": "Exact 3-5 word headline to render",\n'
+        f'      "stat": "Key stat or null",\n'
+        f'      "subtext": "1-line supporting copy or null"\n'
         f'    }},\n'
         f'    ...\n'
         f'  ]\n'
@@ -195,10 +241,13 @@ async def build_carousel_content(
         "The caption hooks the reader; the images reward the swipe. "
         "Always use the brand's exact colors and visual identity — never invent a new palette."
     )
+    locked_numbers = _extract_numbers(f"{topic} {additional_context}")
+
     prompt = _build_carousel_prompt(
         topic, platform, count, brand_name, brand_voice, tone, additional_context,
         brand_colors=brand_colors, brand_fonts=brand_fonts,
         industry=industry, target_audience=target_audience,
+        locked_numbers=locked_numbers,
     )
 
     logger.info("carousel build start | topic=%s platform=%s count=%d", topic, platform, count)

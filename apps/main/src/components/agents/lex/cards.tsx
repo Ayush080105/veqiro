@@ -11,6 +11,8 @@ import {
   FilePlus,
   Scale,
   ClipboardCheck,
+  Mail,
+  PenLine,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -35,7 +37,10 @@ import type {
   LexExplainResult,
   LexLegalResearchResult,
   LexComplianceCheckResult,
+  AgentActionId,
 } from "@/lib/types/agents"
+
+type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 
 function copyText(text: string, label = "Copied") {
   navigator.clipboard.writeText(text).then(() => toast.success(label))
@@ -140,7 +145,13 @@ export function QueryDocumentCard({ result }: { result: LexQueryDocumentResult }
 
 // ─── Contract analysis card ──────────────────────────────────────────────────
 
-export function ContractAnalysisCard({ result }: { result: LexAnalyzeContractResult }) {
+export function ContractAnalysisCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: LexAnalyzeContractResult
+  onFollowUpAction?: FollowUp
+}) {
   const a = result.analysis
   const riskLevel = sevLevel(a.risk_level as "low" | "medium" | "high" | "critical")
 
@@ -335,6 +346,30 @@ export function ContractAnalysisCard({ result }: { result: LexAnalyzeContractRes
           </p>
         )}
 
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => {
+                const highRisks = a.risks
+                  ?.filter((r) => r.severity === "high" || r.severity === "critical")
+                  .map((r) => `${r.clause}: ${r.risk}`)
+                  .slice(0, 3)
+                  .join("\n") ?? ""
+                onFollowUpAction("vega:compose-email", {
+                  subject: `Contract review: ${a.document_type ?? "document"} — ${a.risk_level} risk`,
+                  instructions: highRisks
+                    ? `Alert team about these contract risks:\n${highRisks}`
+                    : a.executive_summary ?? "",
+                })
+              }}
+            >
+              <Mail data-icon="inline-start" /> Email team about risks · Vega
+            </Button>
+          </div>
+        )}
+
       </AgentCard.Body>
     </AgentCard>
   )
@@ -473,7 +508,13 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
 
 // ─── Compliance check card ───────────────────────────────────────────────────
 
-export function ComplianceCheckCard({ result }: { result: LexComplianceCheckResult }) {
+export function ComplianceCheckCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: LexComplianceCheckResult
+  onFollowUpAction?: FollowUp
+}) {
   const status = result.overall_status.toLowerCase()
   const statusLevel: React.ComponentProps<typeof StatusPill>["level"] =
     status.includes("non") || status.includes("fail")
@@ -552,6 +593,25 @@ export function ComplianceCheckCard({ result }: { result: LexComplianceCheckResu
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => {
+                const topFramework = result.framework_results[0]?.framework ?? "compliance"
+                onFollowUpAction("maya:draft-content", {
+                  topic: `Our commitment to ${topFramework} compliance`,
+                  platform: "linkedin",
+                  additional_context: result.critical_gaps?.slice(0, 3).join("; ") ?? "",
+                })
+              }}
+            >
+              <PenLine data-icon="inline-start" /> Draft awareness post · Maya
+            </Button>
           </div>
         )}
 

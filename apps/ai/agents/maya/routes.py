@@ -849,8 +849,14 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
     async def _gen(prompt_data: CarouselImagePrompt, idx: int, anchor_b64: str | None = None) -> ImageResult | None:
         if not request.include_images:
             return None
-        # Pass only visual direction — never slide numbers or meta text
-        context = prompt_data.context_note
+        # Build text_spec from pre-generated exact text fields — prevents spelling mistakes
+        text_spec: dict | None = None
+        if prompt_data.headline:
+            text_spec = {
+                "headline": prompt_data.headline,
+                "stat": prompt_data.stat,
+                "subtext": prompt_data.subtext,
+            }
         try:
             return await generate_social_image(
                 prompt_data.image_prompt,
@@ -861,7 +867,8 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                 user_id=request.user_id,
                 organization_id=request.organization_id,
                 brand_kit=brand_kit,
-                context_hints=context,
+                context_hints=prompt_data.context_note,
+                text_spec=text_spec,
                 carousel_anchor_b64=anchor_b64,
             )
         except Exception as img_err:

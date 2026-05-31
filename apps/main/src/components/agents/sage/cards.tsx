@@ -67,7 +67,13 @@ function copyText(text: string, label = "Copied") {
 
 // ─── Keyword Cluster Card ────────────────────────────────────────────────────
 
-export function KeywordClusterCard({ result }: { result: SageKeywordResearchResult }) {
+export function KeywordClusterCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: SageKeywordResearchResult
+  onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+}) {
   const clusters = result.clusters ?? []
   const flatList = result.keywords ?? []
 
@@ -189,6 +195,17 @@ export function KeywordClusterCard({ result }: { result: SageKeywordResearchResu
                             </Badge>
                           </>
                         )}
+                        {onFollowUpAction && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-5 shrink-0"
+                            title="Generate ideas · Maya"
+                            onClick={() => onFollowUpAction("maya:generate-ideas", { topic_hint: kwStr })}
+                          >
+                            <Sparkles className="size-3 text-muted-foreground" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -252,6 +269,17 @@ export function KeywordClusterCard({ result }: { result: SageKeywordResearchResu
                       <Badge variant="outline" className="text-[10px]">
                         {Math.round(k.relevance_score * 100)}%
                       </Badge>
+                      {onFollowUpAction && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-5 shrink-0"
+                          title="Generate ideas · Maya"
+                          onClick={() => onFollowUpAction("maya:generate-ideas", { topic_hint: k.keyword })}
+                        >
+                          <Sparkles className="size-3 text-muted-foreground" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -623,7 +651,13 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
 
 // ─── Content brief card ──────────────────────────────────────────────────────
 
-export function ContentBriefCard({ result }: { result: SageContentBriefResult }) {
+export function ContentBriefCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: SageContentBriefResult
+  onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+}) {
   const b = result.brief
   return (
     <AgentCard size="sm">
@@ -741,6 +775,22 @@ export function ContentBriefCard({ result }: { result: SageContentBriefResult })
             <em>{b.topical_authority_tip}</em>
           </p>
         )}
+
+        {onFollowUpAction && b.title_options?.[0] && (
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => onFollowUpAction("maya:draft-content", {
+                topic: b.title_options[0],
+                platform: "linkedin",
+                additional_context: [b.cta_recommendation, b.topical_authority_tip].filter(Boolean).join("\n"),
+              })}
+            >
+              <Sparkles data-icon="inline-start" /> Draft social post · Maya
+            </Button>
+          </div>
+        )}
       </AgentCard.Body>
     </AgentCard>
   )
@@ -799,13 +849,12 @@ function IdeaCard({
         </p>
       )}
 
-      {/* Create Blog button */}
       {onFollowUpAction && (
-        <div className="pt-0.5">
+        <div className="flex gap-1.5 pt-0.5">
           <Button
             size="xs"
             variant="outline"
-            className="w-full gap-1"
+            className="flex-1 gap-1"
             onClick={() =>
               onFollowUpAction("sage:generate-blog", {
                 topic: idea.title,
@@ -815,7 +864,22 @@ function IdeaCard({
             }
           >
             <PenLine className="size-3" />
-            Create blog post
+            Write blog
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            className="flex-1 gap-1"
+            onClick={() =>
+              onFollowUpAction("maya:draft-content", {
+                topic: idea.title,
+                platform: "linkedin",
+                additional_context: [idea.content_angle, idea.rationale].filter(Boolean).join("\n"),
+              })
+            }
+          >
+            <Sparkles className="size-3" />
+            Post about this · Maya
           </Button>
         </div>
       )}
