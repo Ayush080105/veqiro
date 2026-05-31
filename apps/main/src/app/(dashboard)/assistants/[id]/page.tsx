@@ -362,7 +362,8 @@ export default function AssistantChatPage() {
   const { data: googleLinked } = useGoogleConnected(agent?.id === "vega")
   const { data: rexDatasetCount = 0 } = useQuery({
     queryKey: REX_DATASETS_KEY(organizationId),
-    queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets").then((d) => d.length),
+    queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets"),
+    select: (d) => d.length,
     enabled: id === "rex" && !!organizationId,
     staleTime: 30_000,
     placeholderData: (prev) => prev,

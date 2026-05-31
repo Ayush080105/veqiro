@@ -392,6 +392,7 @@ export interface RexDatasetRecord {
   metricKey: string
   unit: string | null
   period: string
+  purpose: "actual" | "budget"
   points: DataPoint[]
   createdAt: string
   updatedAt: string

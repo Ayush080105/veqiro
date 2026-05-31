@@ -98,9 +98,15 @@ export function RexDataTab({
     placeholderData: (prev) => prev,
   })
 
+  const invalidateAllDatasetKeys = () => {
+    // Invalidate all dataset-related query keys across components (picker, magic, strip, data-tab)
+    void qc.invalidateQueries({ queryKey: ["rex", "datasets"] })
+    void qc.invalidateQueries({ queryKey: ["rex", "snapshot"] })
+  }
+
   const deleteMut = useMutation({
     mutationFn: deleteDataset,
-    onSuccess: () => qc.invalidateQueries({ queryKey: REX_DATASETS_KEY(organizationId) }),
+    onSuccess: invalidateAllDatasetKeys,
   })
 
   const handleFile = async (file: File) => {
@@ -142,7 +148,7 @@ export function RexDataTab({
       setLastSaved(editableDatasets)
       setParseResult(null)
       setEditableDatasets([])
-      void qc.invalidateQueries({ queryKey: REX_DATASETS_KEY(organizationId) })
+      invalidateAllDatasetKeys()
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Save failed.")
     } finally {

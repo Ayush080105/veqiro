@@ -49,7 +49,7 @@ function DatasetPicker({
   label = "Load from dataset",
 }: {
   metricHints?: string[]
-  onSelect: (points: DataPoint[]) => void
+  onSelect: (points: DataPoint[], dataset: RexDatasetRecord) => void
   label?: string
 }) {
   const { data: datasets = [] } = useQuery<RexDatasetRecord[]>({
@@ -73,7 +73,7 @@ function DatasetPicker({
           defaultValue=""
           onChange={(e) => {
             const ds = filtered.find((d) => d.id === e.target.value)
-            if (ds) onSelect(ds.points as DataPoint[])
+            if (ds) onSelect(ds.points as DataPoint[], ds)
             e.target.value = ""
           }}
           className={cn(
@@ -114,6 +114,87 @@ function entriesToMetricsMap(
 
 // ─── Analyze metrics ────────────────────────────────────────────────────────
 
+// Maintains local entry state so empty-named rows persist after "Add metric"
+// (entriesToMetricsMap filters empty names, which made new rows disappear).
+function MetricsEditor({
+  value,
+  onChange,
+}: {
+  value: Record<string, DataPoint[]>
+  onChange: (v: Record<string, DataPoint[]>) => void
+}) {
+  const [entries, setEntries] = React.useState<MetricEntry[]>(() =>
+    metricsMapToEntries(value ?? {})
+  )
+
+  // Sync when the parent value changes externally (prefill / form reset)
+  const prevValueRef = React.useRef(value)
+  React.useEffect(() => {
+    if (value !== prevValueRef.current) {
+      prevValueRef.current = value
+      setEntries(metricsMapToEntries(value ?? {}))
+    }
+  }, [value])
+
+  // Commits both local state and RHF map
+  const commit = (next: MetricEntry[]) => {
+    setEntries(next)
+    onChange(entriesToMetricsMap(next))
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <DatasetPicker
+        onSelect={(_, ds) =>
+          commit([...entries, { name: ds.metricKey, data: ds.points as DataPoint[] }])
+        }
+        label="Add metric from saved dataset"
+      />
+      {entries.map((entry, i) => (
+        <div
+          key={i}
+          className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
+        >
+          <div className="flex gap-1.5">
+            <Input
+              value={entry.name}
+              placeholder="e.g. mrr, signups, dau"
+              onChange={(e) =>
+                commit(entries.map((x, j) => j === i ? { ...x, name: e.target.value } : x))
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Remove metric"
+              onClick={() => commit(entries.filter((_, j) => j !== i))}
+            >
+              <X />
+            </Button>
+          </div>
+          <DataPointTable
+            value={entry.data}
+            onChange={(data) =>
+              commit(entries.map((x, j) => (j === i ? { ...x, data } : x)))
+            }
+          />
+        </div>
+      ))}
+      {/* "Add metric" only updates local state so the empty row is not filtered away */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setEntries((prev) => [...prev, { name: "", data: [] }])}
+        className="self-start"
+      >
+        <Plus data-icon="inline-start" /> Add metric
+      </Button>
+    </div>
+  )
+}
+
 export function RexAnalyzeMetricsForm({
   value,
   onChange,
@@ -134,63 +215,14 @@ export function RexAnalyzeMetricsForm({
         name="metrics"
         label="Metrics"
         required
-        description="Add one row per metric you track."
+        description="Add one row per metric, or load from a saved dataset."
       >
-        {({ field }) => {
-          const entries = metricsMapToEntries(field.value ?? {})
-          const commit = (next: MetricEntry[]) =>
-            field.onChange(entriesToMetricsMap(next))
-          return (
-            <div className="flex flex-col gap-2">
-              {entries.map((entry, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
-                >
-                  <div className="flex gap-1.5">
-                    <Input
-                      value={entry.name}
-                      placeholder="e.g. mrr, signups, dau"
-                      onChange={(e) =>
-                        commit(
-                          entries.map((x, j) =>
-                            j === i ? { ...x, name: e.target.value } : x
-                          )
-                        )
-                      }
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove metric"
-                      onClick={() => commit(entries.filter((_, j) => j !== i))}
-                    >
-                      <X />
-                    </Button>
-                  </div>
-                  <DataPointTable
-                    value={entry.data}
-                    onChange={(data) =>
-                      commit(
-                        entries.map((x, j) => (j === i ? { ...x, data } : x))
-                      )
-                    }
-                  />
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => commit([...entries, { name: "", data: [] }])}
-                className="self-start"
-              >
-                <Plus data-icon="inline-start" /> Add metric
-              </Button>
-            </div>
-          )
-        }}
+        {({ field }) => (
+          <MetricsEditor
+            value={field.value ?? {}}
+            onChange={field.onChange}
+          />
+        )}
       </RhfField>
 
       <RhfField control={form.control} name="period" label="Period">
@@ -262,7 +294,7 @@ export function RexForecastForm({
           <div className="flex flex-col gap-1.5">
             <DatasetPicker
               metricHints={["mrr", "revenue", "arr", "subscribers", "new_customers"]}
-              onSelect={field.onChange}
+              onSelect={(pts) => field.onChange(pts)}
             />
             <DataPointTable
               value={field.value ?? []}
@@ -321,7 +353,7 @@ export function RexFinancialAnalysisForm({
           <div className="flex flex-col gap-1.5">
             <DatasetPicker
               metricHints={["mrr", "revenue", "arr"]}
-              onSelect={field.onChange}
+              onSelect={(pts) => field.onChange(pts)}
               label="Load revenue dataset"
             />
             <DataPointTable
@@ -337,7 +369,7 @@ export function RexFinancialAnalysisForm({
           <div className="flex flex-col gap-1.5">
             <DatasetPicker
               metricHints={["expenses", "burn", "marketing_spend"]}
-              onSelect={field.onChange}
+              onSelect={(pts) => field.onChange(pts)}
               label="Load expenses dataset"
             />
             <DataPointTable
@@ -357,7 +389,7 @@ export function RexFinancialAnalysisForm({
           <div className="flex flex-col gap-1.5">
             <DatasetPicker
               metricHints={["subscribers", "new_customers"]}
-              onSelect={field.onChange}
+              onSelect={(pts) => field.onChange(pts)}
               label="Load subscribers dataset"
             />
             <DataPointTable
@@ -468,7 +500,7 @@ export function RexUnitEconomicsForm({
           <div className="flex flex-col gap-1.5">
             <DatasetPicker
               metricHints={["marketing_spend", "expenses", "burn"]}
-              onSelect={field.onChange}
+              onSelect={(pts) => field.onChange(pts)}
               label="Load spend dataset"
             />
             <DataPointTable value={field.value ?? []} onChange={field.onChange} />
@@ -486,7 +518,7 @@ export function RexUnitEconomicsForm({
           <div className="flex flex-col gap-1.5">
             <DatasetPicker
               metricHints={["new_customers", "subscribers"]}
-              onSelect={field.onChange}
+              onSelect={(pts) => field.onChange(pts)}
               label="Load customers dataset"
             />
             <DataPointTable value={field.value ?? []} onChange={field.onChange} />
@@ -864,23 +896,35 @@ export function RexVarianceForm({
     staleTime: 30_000,
   })
 
-  const metricKeys = Array.from(new Set(datasets.map((d) => d.metricKey))).sort()
+  const actualKeys = new Set(
+    datasets.filter((d) => d.purpose === "actual").map((d) => d.metricKey)
+  )
+  const budgetKeys = new Set(
+    datasets.filter((d) => d.purpose === "budget").map((d) => d.metricKey)
+  )
+  const metricKeys = Array.from(actualKeys).filter((k) => budgetKeys.has(k)).sort()
 
   return (
     <FieldGroup>
       <RhfField control={form.control} name="metric" label="Metric" required
-        description="Pick a metric that has BOTH 'actual' and 'budget' datasets uploaded.">
+        description="Only metrics with BOTH an 'actual' and a 'budget' dataset appear here.">
         {({ field }) => (
-          <select
-            value={field.value ?? ""}
-            onChange={(e) => field.onChange(e.target.value)}
-            className="h-9 w-full border border-border bg-background px-2 text-xs"
-          >
-            <option value="" disabled>Select a metric…</option>
-            {metricKeys.map((k) => (
-              <option key={k} value={k}>{k}</option>
-            ))}
-          </select>
+          metricKeys.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground">
+              No metrics have both actual and budget datasets yet. Upload your data in the Data tab and tag one dataset as &ldquo;budget&rdquo;.
+            </p>
+          ) : (
+            <select
+              value={field.value ?? ""}
+              onChange={(e) => field.onChange(e.target.value)}
+              className="h-9 w-full border border-border bg-background px-2 text-xs"
+            >
+              <option value="" disabled>Select a metric…</option>
+              {metricKeys.map((k) => (
+                <option key={k} value={k}>{k}</option>
+              ))}
+            </select>
+          )
         )}
       </RhfField>
       <RhfField control={form.control} name="period" label="Period">
