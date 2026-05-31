@@ -535,6 +535,8 @@ export function MayaReviseForm({
 
 // ─── Image regen ────────────────────────────────────────────────────────────
 
+// Replace the entire MayaImageRegenForm function in maya/forms.tsx with this:
+
 export function MayaImageRegenForm({
   value,
   onChange,
@@ -564,6 +566,20 @@ export function MayaImageRegenForm({
             onChange={field.onChange}
             placeholder="e.g. Bold product shot with dark background and brand colours."
           />
+        )}
+      </RhfField>
+
+      {/* ↓ THIS WAS MISSING — platform was never shown or registered in the form,
+            so useAgentForm never synced the prefilled value back to the parent,
+            causing the backend to receive an empty/invalid platform string */}
+      <RhfField
+        control={form.control}
+        name="platform"
+        label="Platform"
+        required
+      >
+        {({ field }) => (
+          <PlatformPicker value={field.value} onChange={field.onChange} />
         )}
       </RhfField>
 

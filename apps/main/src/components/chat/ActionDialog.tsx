@@ -172,15 +172,16 @@ export function ActionDialog<TInput, TResult>({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" onKeyDown={handleKeyDown}>
-        <DialogHeader>
+      {/* flex + max-h so tall forms scroll inside the dialog and the footer stays visible */}
+      <DialogContent className="sm:max-w-lg flex flex-col max-h-[90vh]" onKeyDown={handleKeyDown}>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0 pr-1">
           {renderForm({ value, onChange, submit, submitting })}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

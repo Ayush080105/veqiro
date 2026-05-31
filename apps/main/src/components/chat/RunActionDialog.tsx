@@ -485,6 +485,7 @@ export interface RunActionDialogProps {
   conversationId?: string
   /** Optional partial that's shallow-merged over the spec's defaultValue. */
   prefill?: Record<string, unknown>
+  /** Fired when validation passes and the API call begins */
   onStart?: (ctx: ActionStartContext<unknown>) => void
   onSettled?: (ctx: ActionStartContext<unknown>) => void
   onComplete: (ctx: ActionResultContext<unknown, unknown>) => void

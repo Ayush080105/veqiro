@@ -397,21 +397,8 @@ export default function AssistantChatPage() {
   }, [agent, router])
 
   useEffect(() => {
-    if (scrollFrameRef.current != null) {
-      cancelAnimationFrame(scrollFrameRef.current)
-    }
-    scrollFrameRef.current = requestAnimationFrame(() => {
-      const el = chatScrollRef.current
-      if (!el) return
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
-    })
-    return () => {
-      if (scrollFrameRef.current != null) {
-        cancelAnimationFrame(scrollFrameRef.current)
-        scrollFrameRef.current = null
-      }
-    }
-  }, [messages.length, isBusy])
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, isLoading])
 
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
@@ -433,52 +420,87 @@ export default function AssistantChatPage() {
     }
   }, [content, isLoading, sendMutation, agent])
 
-  const handleActionComplete = useCallback(
-    (ctx: ActionResultContext<unknown, unknown>) => {
+  // NEW: Injects optimistic user message when the dialog starts submitting
+  const handleActionStart = useCallback(
+    (ctx: { actionId: AgentActionId; input: any }) => {
+      // Special case: regenerative actions mutate existing messages, they don't create new user threads
+      if (ctx.actionId === "maya:regenerate-image") return
+
       const meta = findAction(ctx.actionId)
       const now = new Date().toISOString()
 
       // Build the user-facing trigger message that shows what the user ran.
-      // This was missing — it was only persisted server-side but never written
-      // to the client cache, so it only appeared after a page refresh.
+      // This is what was missing — it was only persisted server-side but never
+      // written to the client cache, so it only appeared after a page refresh.
       const userMsg: Message = {
+        id: `optimistic-${Date.now()}`,
         role: "user",
         content: meta?.label ?? "Action",
         imageUrl: null,
         createdAt: now,
       }
 
+      queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
+        ...(prev ?? []),
+        userMsg,
+      ])
+    },
+    [queryClient, id, organizationId],
+  )
+
+  const handleActionComplete = useCallback(
+    (ctx: ActionResultContext<unknown, unknown>) => {
+      const meta = findAction(ctx.actionId)
+      const now = new Date().toISOString()
+
       // ── maya:regenerate-image ─────────────────────────────────────────────
-      // Special case: patches an existing draft message in-place rather than
-      // appending new messages. No user message needed here.
       if (ctx.actionId === "maya:regenerate-image") {
-        const regenResult = ctx.result as MayaImageRegenResult
-        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
-          if (!prev) return prev
-          const msgs = [...prev]
-          for (let i = msgs.length - 1; i >= 0; i--) {
-            const m = msgs[i]
-            if (m.customInput?.actionId === "maya:draft-content") {
-              const r = m.customInput.result as MayaDraftResult
-              msgs[i] = {
-                ...m,
-                customInput: {
-                  ...m.customInput,
-                  result: { ...r, _previousImage: r.image ?? null, image: regenResult.image },
-                },
-              }
-              break
-            }
+    const regenResult = ctx.result as MayaImageRegenResult
+    const now = new Date().toISOString()
+
+    queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
+      if (!prev) return prev
+      const msgs = [...prev]
+
+      // 1. Patch the original DraftCard so its image updates in place
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const m = msgs[i]
+        if (m.customInput?.actionId === "maya:draft-content") {
+          const r = m.customInput.result as MayaDraftResult
+          msgs[i] = {
+            ...m,
+            customInput: {
+              ...m.customInput,
+              result: { ...r, _previousImage: r.image ?? null, image: regenResult.image },
+            },
           }
-          return msgs
-        })
-        toast.success("Image regenerated.")
-        return
+          break
+        }
       }
 
+      // 2. Append user trigger + regen result card so the new image
+      //    is visible immediately without waiting for a server refetch
+      const userMsg: Message = {
+        role: "user",
+        content: meta?.label ?? "Regenerate image",
+        imageUrl: null,
+        createdAt: now,
+      }
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: "Image regenerated.",
+        imageUrl: null,
+        createdAt: now,
+        customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult },
+      }
+      return [...msgs, userMsg, assistantMsg]
+    })
+
+    toast.success("Image regenerated.")
+    return
+}
+
       // ── maya:generate-variants ────────────────────────────────────────────
-      // Enriches the result with the original image from the last draft before
-      // appending both the user trigger message and the assistant result card.
       if (ctx.actionId === "maya:generate-variants") {
         const serverResult = ctx.result as MayaVariantResult
         let originalImage: ImageResult | null = null
@@ -490,7 +512,10 @@ export default function AssistantChatPage() {
           }
         }
         const enrichedResult: MayaVariantResult = { ...serverResult, _originalImage: originalImage }
+        
+        // Note: We only append the assistant msg here; the userMsg was handled in onStart
         const assistantMsg: Message = {
+          id: `temp-asst-${Date.now()}`,
           role: "assistant",
           content: meta ? `${meta.label} — done.` : "Action complete.",
           imageUrl: null,
@@ -499,7 +524,6 @@ export default function AssistantChatPage() {
         }
         queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
           ...(prev ?? []),
-          userMsg,
           assistantMsg,
         ])
         toast.success(meta ? `${meta.label} complete.` : "Action complete.")
@@ -507,7 +531,9 @@ export default function AssistantChatPage() {
       }
 
       // ── all other actions ─────────────────────────────────────────────────
+      // Note: We only append the assistant msg here; the userMsg was handled in onStart
       const assistantMsg: Message = {
+        id: `temp-asst-${Date.now()}`,
         role: "assistant",
         content: meta ? `${meta.label} — done.` : "Action complete.",
         imageUrl: null,
@@ -520,7 +546,7 @@ export default function AssistantChatPage() {
       }
       queryClient.setQueryData<Message[]>(
         qk.chat(id, organizationId),
-        (prev) => [...(prev ?? []), userMsg, assistantMsg],
+        (prev) => [...(prev ?? []), assistantMsg],
       )
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
     },
@@ -1005,6 +1031,7 @@ export default function AssistantChatPage() {
         organizationId={organizationId}
         conversationId={conversationIdRef.current}
         prefill={activePrefill}
+        onStart={handleActionStart}
         onComplete={handleActionComplete}
         onSubmittingChange={setActionSubmitting}
       />
