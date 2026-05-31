@@ -1,5 +1,6 @@
 import io
 import base64
+import colorsys
 import logging
 
 from core.models import ImageResult
@@ -24,6 +25,57 @@ _ASPECT_FOR_PLATFORM = {
     "twitter":  "16:9",
 }
 
+# Hue angle thresholds → color name (colorsys HSV hue is 0-1, multiply by 360 for degrees)
+_HUE_STOPS: list[tuple[float, str]] = [
+    (15,  "red"),
+    (38,  "orange"),
+    (65,  "yellow"),
+    (150, "green"),
+    (190, "teal"),
+    (255, "blue"),
+    (285, "violet"),
+    (325, "magenta"),
+    (360, "red"),
+]
+
+
+def _hex_to_color_name(hex_code: str) -> str:
+    """Convert a CSS hex color code to a human-readable name for safe prompt injection."""
+    if not hex_code:
+        return ""
+    h = hex_code.strip().lstrip("#")
+    if len(h) == 3:
+        h = h[0] * 2 + h[1] * 2 + h[2] * 2
+    if len(h) != 6:
+        return h  # unknown format — return without the # at minimum
+    try:
+        r, g, b = int(h[0:2], 16) / 255, int(h[2:4], 16) / 255, int(h[4:6], 16) / 255
+        hue, sat, val = colorsys.rgb_to_hsv(r, g, b)
+        # Achromatic cases
+        if val < 0.12:
+            return "near-black"
+        if val > 0.92 and sat < 0.08:
+            return "near-white"
+        if sat < 0.12:
+            return "dark gray" if val < 0.5 else "light gray"
+        # Map hue angle to name
+        hue_deg = hue * 360
+        name = "red"
+        for threshold, color in _HUE_STOPS:
+            if hue_deg <= threshold:
+                name = color
+                break
+        # Lightness qualifier
+        if val < 0.35:
+            return f"deep {name}"
+        if val > 0.82 and sat < 0.55:
+            return f"light {name}"
+        if sat > 0.75 and val > 0.6:
+            return f"vivid {name}"
+        return name
+    except Exception:
+        return h
+
 
 async def _fetch_asset(url: str) -> bytes | None:
     try:
@@ -36,18 +88,29 @@ async def _fetch_asset(url: str) -> bytes | None:
         return None
 
 
-def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "") -> str:
+def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None) -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
-    # Colors
+    # Colors — kept as hex for accuracy; framed as design values so the model never prints them as text
     colors = ""
     if brand_kit and brand_kit.brand_colors:
         c = brand_kit.brand_colors
-        colors = (
-            f"Brand color palette — primary: {c.get('primary', '')}, "
-            f"secondary: {c.get('secondary', '')}, accent: {c.get('accent', '')}. "
-            f"These colors must dominate the entire design. "
-        )
+        primary = c.get("primary", "")
+        secondary = c.get("secondary", "")
+        accent = c.get("accent", "")
+        color_parts = []
+        if primary:
+            color_parts.append(f"primary {_hex_to_color_name(primary)} ({primary})")
+        if secondary:
+            color_parts.append(f"secondary {_hex_to_color_name(secondary)} ({secondary})")
+        if accent:
+            color_parts.append(f"accent {_hex_to_color_name(accent)} ({accent})")
+        if color_parts:
+            colors = (
+                f"BRAND COLOR VALUES (apply to design only — NEVER print these codes as text): "
+                f"{', '.join(color_parts)}. "
+                f"These colors must dominate the entire design. "
+            )
 
     # Fonts
     fonts = ""
@@ -93,6 +156,56 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         if context_hints else ""
     )
 
+    # Pre-specified text to render exactly — prevents spelling mistakes and hallucinations
+    exact_text_block = ""
+    if text_spec:
+        lines = []
+        if text_spec.get("headline"):
+            lines.append(f'• Headline: "{text_spec["headline"]}"')
+        if text_spec.get("stat"):
+            lines.append(f'• Stat: "{text_spec["stat"]}"')
+        if text_spec.get("subtext"):
+            lines.append(f'• Subtext: "{text_spec["subtext"]}"')
+        if lines:
+            exact_text_block = (
+                "EXACT TEXT TO RENDER — copy these strings letter-for-letter, zero changes:\n"
+                + "\n".join(lines)
+                + "\nDO NOT paraphrase, abbreviate, or alter any word or character. "
+                "Render the text exactly as written.\n"
+            )
+
+    # Typography instruction differs based on whether text is pre-specified
+    if text_spec:
+        typography = (
+            "TYPOGRAPHY: Render ONLY the text from EXACT TEXT TO RENDER above — nothing else invented. "
+            "Text must be bold, modern, perfectly legible, and integrated into the design as a core element. "
+        )
+    else:
+        typography = (
+            "TYPOGRAPHY: Include bold, well-designed text directly in the image. "
+            "Derive a SHORT punchy headline (3-6 words max) that captures the essence of the topic — do NOT copy the topic text verbatim. "
+            "Pull 1-2 key stats or power phrases from the brand/topic context and display them as supporting text. "
+            "Text must be clean, modern, perfectly legible, and part of the design — not an afterthought. "
+        )
+
+    # Guardrails — explicit list of what must never appear as visible text
+    guardrails_extra = (
+        "  ✗ Any text NOT from EXACT TEXT TO RENDER — do not invent or add any extra text\n"
+        if text_spec else
+        "  ✗ Internal instructions, prompt fragments, meta commentary, or analytical summaries\n"
+    )
+    guardrails = (
+        "=== TEXT GUARDRAILS ===\n"
+        "ABSOLUTELY NEVER render any of the following as visible text in the image:\n"
+        "  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225) — apply as color values only, never print them\n"
+        "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [EXACT TEXT TO RENDER]\n"
+        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb\n"
+        "  ✗ Slide numbers, bullet markers, list syntax, or numbered sequences\n"
+        "  ✗ Any text from the composition context section\n"
+        + guardrails_extra
+        + "=== END GUARDRAILS ==="
+    )
+
     return (
         f"Design a premium {platform} social media graphic ({aspect_ratio}). "
         f"Main topic: \"{topic}\". "
@@ -103,19 +216,14 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"{context}"
         f"{platform_tone}"
         f"Visual style: {style}. "
-        f"TYPOGRAPHY: Include bold, well-designed text directly in the image. "
-        f"Derive a SHORT punchy headline (3-6 words max) that captures the essence of the topic — do NOT copy the topic text verbatim. "
-        f"Pull 1-2 key stats or power phrases from the brand/topic context and display them as supporting text. "
-        f"Text must be clean, modern, perfectly legible, and part of the design — not an afterthought. "
+        f"{typography}"
+        f"{exact_text_block}"
         f"COMPOSITION: Dynamic, bold, brand-driven. Use full-bleed brand colors, asymmetric layouts, "
         f"oversized typography, diagonal splits, or large geometric brand-color shapes. "
         f"FORBIDDEN: bordered card inside canvas, square frame inside square, centered text on plain gradient, "
         f"generic white panel on colored background — these look like stock templates. "
         f"Output must look like it was designed by a top-tier social media creative director. "
-        f"TEXT GUARDRAILS: The ONLY text visible in the image must be: (1) a short punchy headline (3-6 words), "
-        f"(2) optional 1-2 supporting stats or brand phrases, (3) optional brand name. "
-        f"NEVER render: slide numbers, internal instructions, prompt text, meta commentary, "
-        f"analytical summaries, or any text from the composition context above."
+        f"{guardrails}"
     )
 
 
@@ -129,6 +237,7 @@ async def generate_social_image(
     organization_id: str = "",
     brand_kit=None,
     context_hints: str = "",
+    text_spec: dict | None = None,
     reference_urls: list[str] | None = None,
     carousel_anchor_b64: str | None = None,
     campaign_mode: bool = False,
@@ -149,7 +258,7 @@ async def generate_social_image(
         brand_kit = await load_brand_kit(organization_id)
         logger.info("brand_kit auto-loaded | org=%s company=%s", organization_id, brand_kit.company_name)
 
-    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints)
+    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec)
 
     logger.info(
         "image_gen start | user=%s platform=%s aspect=%s use_logo=%s use_mascot=%s brand=%s",

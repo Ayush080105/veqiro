@@ -28,6 +28,8 @@ import type {
   ContentRegenResponse,
   PublishInput,
   PublishResponse,
+  PublishCarouselInput,
+  PublishCarouselResponse,
   ImageResult,
   CampaignInput,
   CampaignResponse,
@@ -132,6 +134,9 @@ export const generateIdeas = async (
   organizationId: string,
   input: GenerateIdeasInput
 ): Promise<IdeationResponse> => {
+  const platformEnum = platformToEnum[input.platform];
+  const pastIdeas = await mayaRepository.getRecentIdeas(organizationId, platformEnum, 100);
+
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -149,10 +154,21 @@ export const generateIdeas = async (
     use_logo: input.useLogo,
     use_mascot: input.useMascot,
     use_brandkit: input.useBrandkit,
+    past_ideas: pastIdeas,
   });
 
   const hostedImage = await hostImage(organizationId, data.image);
   const result: IdeationResponse = { ...data, image: hostedImage };
+
+  await mayaRepository.saveIdeas(
+    data.ideas.map((idea) => ({
+      organizationId,
+      platform: platformToEnum[idea.platform] ?? platformEnum,
+      title: idea.title,
+      hook: idea.hook,
+      contentType: idea.content_type,
+    }))
+  );
 
   await mayaRepository.createAssistantMessage({
     organizationId,
@@ -556,6 +572,76 @@ export const expandBrief = async (
     platform: input.platform,
   });
   return data;
+};
+
+export const publishCarousel = async (
+  userId: string,
+  organizationId: string,
+  input: PublishCarouselInput
+): Promise<PublishCarouselResponse> => {
+  const account = await integrationsRepository.findById(input.socialAccountId);
+  if (!account || account.organizationId !== organizationId) {
+    throw new NotFoundError("Social account not found");
+  }
+  if (account.platform !== SocialPlatform.INSTAGRAM) {
+    throw new BadRequestError("Carousel publishing is only supported for Instagram");
+  }
+
+  const provider = providers["instagram"];
+  if (!provider.publishCarousel) {
+    throw new BadRequestError("Carousel publishing not supported by this provider");
+  }
+
+  const normalizedHashtags = (input.hashtags ?? [])
+    .map((raw) => raw.trim().replace(/^#+/, "").replace(/\s+/g, ""))
+    .filter((tag) => tag.length > 0)
+    .map((tag) => `#${tag}`);
+
+  const caption = normalizedHashtags.length
+    ? `${input.caption}\n\n${normalizedHashtags.join(" ")}`
+    : input.caption;
+
+  const pending = await prisma.publishedPost.create({
+    data: {
+      organizationId,
+      userId,
+      socialAccountId: account.id,
+      platform: SocialPlatform.INSTAGRAM,
+      caption,
+      hashtags: input.hashtags ?? [],
+      imageUrl: input.imageUrls[0],
+      status: "pending",
+    },
+  });
+
+  try {
+    const { platformPostId, url } = await provider.publishCarousel({
+      account,
+      caption,
+      imageUrls: input.imageUrls,
+    });
+
+    await prisma.publishedPost.update({
+      where: { id: pending.id },
+      data: { status: "success", platformPostId, publishedAt: new Date() },
+    });
+
+    await mayaRepository.createAssistantMessage({
+      organizationId,
+      userId,
+      content: `Campaign carousel (${input.imageUrls.length} photos) published to Instagram${url ? `: ${url}` : ""}`,
+      customInput: { actionId: "maya:publish-carousel", input, result: { platformPostId, url } },
+    });
+
+    return { platform: "instagram", platformPostId, url, publishedAt: new Date().toISOString() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await prisma.publishedPost.update({
+      where: { id: pending.id },
+      data: { status: "failed", error: message },
+    });
+    throw new BadRequestError(`Carousel publish failed: ${message}`);
+  }
 };
 
 export const createCampaign = async (

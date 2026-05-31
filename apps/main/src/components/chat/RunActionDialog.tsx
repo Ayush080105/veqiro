@@ -1,7 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { ActionDialog, type ActionResultContext } from "@/components/chat/ActionDialog"
+import {
+  ActionDialog,
+  type ActionResultContext,
+  type ActionStartContext,
+} from "@/components/chat/ActionDialog"
 import { findAction } from "@/lib/agents/actions"
 import { runAgentAction } from "@/lib/api/assistants"
 import { uploadToR2 } from "@/lib/api/uploads"
@@ -481,6 +485,8 @@ export interface RunActionDialogProps {
   conversationId?: string
   /** Optional partial that's shallow-merged over the spec's defaultValue. */
   prefill?: Record<string, unknown>
+  onStart?: (ctx: ActionStartContext<unknown>) => void
+  onSettled?: (ctx: ActionStartContext<unknown>) => void
   onComplete: (ctx: ActionResultContext<unknown, unknown>) => void
 }
 
@@ -491,6 +497,8 @@ export function RunActionDialog({
   organizationId,
   conversationId,
   prefill,
+  onStart,
+  onSettled,
   onComplete,
 }: RunActionDialogProps) {
   if (!actionId) return null
@@ -521,6 +529,8 @@ export function RunActionDialog({
       renderForm={({ value, onChange }) => (
         <Form value={value} onChange={onChange} />
       )}
+      onStart={onStart}
+      onSettled={onSettled}
       onComplete={onComplete}
     />
   )

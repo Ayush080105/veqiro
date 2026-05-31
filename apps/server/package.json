@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "seed:dashboard": "tsx prisma/seed-dashboard.ts",
     "seed:brand-kit": "tsx prisma/seed-brand-kit.ts",
     "test": "node --import tsx --test src/tests/unit/*.test.ts"
@@ -41,6 +41,8 @@
     "sharp": "^0.34.5",
     "swagger-ui-express": "^5.0.1",
     "xlsx": "^0.18.5",
+    "prisma": "^7.6.0",
+    "tsx": "^4.21.0",
     "zod": "^4.3.6",
     "zod-openapi": "^5.4.6"
   },
@@ -53,8 +55,6 @@
     "@types/papaparse": "^5.5.2",
     "@types/pg": "^8.20.0",
     "@types/swagger-ui-express": "^4.1.8",
-    "prisma": "^7.6.0",
-    "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }
 }

@@ -693,8 +693,8 @@ export function MayaCampaignForm({
   const [expanding, setExpanding] = React.useState(false)
 
   const handleExpand = async () => {
-    const brief = form.getValues("campaign_brief" as never) as string
-    const platform = form.getValues("platform" as never) as string
+    const brief = form.getValues("campaign_brief" as never) as unknown as string
+    const platform = form.getValues("platform" as never) as unknown as string
     const orgId = (value as Record<string, unknown>).organization_id as string
     if (!brief?.trim() || !orgId) return
     setExpanding(true)

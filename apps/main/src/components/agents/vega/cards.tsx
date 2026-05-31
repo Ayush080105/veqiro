@@ -10,6 +10,7 @@ import {
   Sunrise,
   ExternalLink,
   Mail,
+  PenLine,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -31,7 +32,12 @@ import type {
   VegaCreateEventResult,
   VegaExecutiveBriefingResult,
   VegaComposeEmailResult,
+  AgentActionId,
 } from "@/lib/types/agents"
+
+import { Button } from "@/components/ui/button"
+
+type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 
 function priorityLevel(p: "urgent" | "high" | "medium" | "low") {
   return p === "urgent" ? "danger" : p === "high" ? "warn" : p === "medium" ? "info" : "info"
@@ -56,7 +62,13 @@ function copyText(text: string, label = "Copied") {
 
 // ─── Inbox triage card ──────────────────────────────────────────────────────
 
-export function InboxTriageCard({ result }: { result: VegaProcessInboxResult }) {
+export function InboxTriageCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: VegaProcessInboxResult
+  onFollowUpAction?: FollowUp
+}) {
   const s = result.stats
   return (
     <AgentCard size="sm">
@@ -107,12 +119,25 @@ export function InboxTriageCard({ result }: { result: VegaProcessInboxResult }) 
                         Label: {e.label_applied}
                       </p>
                     )}
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-between gap-2">
                       <CopyButton
                         text={e.email_id}
                         label="Copy ID"
                         successLabel="Email ID copied"
                       />
+                      {onFollowUpAction && (e.priority === "urgent" || e.priority === "high") && (
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => onFollowUpAction("maya:draft-content", {
+                            topic: e.subject,
+                            platform: "linkedin",
+                            additional_context: [e.summary, e.suggested_action].filter(Boolean).join("\n"),
+                          })}
+                        >
+                          <PenLine data-icon="inline-start" /> Draft post · Maya
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CollapsibleContent>

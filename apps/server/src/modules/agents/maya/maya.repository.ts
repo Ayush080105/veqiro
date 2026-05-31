@@ -1,5 +1,5 @@
 import { prisma } from "../../../config/prisma.js";
-import { Agent, Prisma } from "../../../../prisma/generated/prisma/client.js";
+import { Agent, Prisma, SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
 
 export const createUserMessage = (data: {
   organizationId: string;
@@ -78,3 +78,25 @@ export const findPublishedPosts = (organizationId: string) =>
       platformPostId: true,
     },
   });
+
+export const getRecentIdeas = (
+  organizationId: string,
+  platform: SocialPlatform,
+  limit = 100
+) =>
+  prisma.contentIdea.findMany({
+    where: { organizationId, platform },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: { title: true, hook: true, contentType: true },
+  });
+
+export const saveIdeas = (
+  ideas: {
+    organizationId: string;
+    platform: SocialPlatform;
+    title: string;
+    hook: string;
+    contentType: string;
+  }[]
+) => prisma.contentIdea.createMany({ data: ideas });

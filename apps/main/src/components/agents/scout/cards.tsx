@@ -12,6 +12,9 @@ import {
   ExternalLink,
   BookmarkPlus,
   Check,
+  PenLine,
+  Sparkles,
+  Search,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { AgentCard } from "@/components/ui/agent-card"
@@ -26,7 +29,10 @@ import type {
   ScoutResearchCompanyResult,
   ScoutTrendingTopicsResult,
   ScoutDiscoverCompetitorsResult,
+  AgentActionId,
 } from "@/lib/types/agents"
+
+type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 
 // ─── Research topic ──────────────────────────────────────────────────────────
 
@@ -39,7 +45,13 @@ function ResearchSection({ label, children }: { label: string; children: React.R
   )
 }
 
-export function ResearchReportCard({ result }: { result: ScoutResearchTopicResult }) {
+export function ResearchReportCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: ScoutResearchTopicResult
+  onFollowUpAction?: FollowUp
+}) {
   return (
     <AgentCard size="sm">
       <AgentCard.Header
@@ -174,6 +186,41 @@ export function ResearchReportCard({ result }: { result: ScoutResearchTopicResul
           </div>
         )}
 
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => onFollowUpAction("maya:draft-content", {
+                topic: result.bottom_line?.slice(0, 500) ?? result.market_overview?.slice(0, 200) ?? "",
+                platform: "linkedin",
+                additional_context: result.market_overview?.slice(0, 800) ?? "",
+              })}
+            >
+              <PenLine data-icon="inline-start" /> Draft post · Maya
+            </Button>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => onFollowUpAction("sage:content-brief", {
+                topic: result.bottom_line?.slice(0, 300) ?? "",
+                target_keyword: result.keywords_found?.[0] ?? "",
+              })}
+            >
+              <Sparkles data-icon="inline-start" /> Write blog brief · Sage
+            </Button>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => onFollowUpAction("sage:keyword-research", {
+                seed_topic: result.market_overview?.slice(0, 200) ?? result.bottom_line?.slice(0, 200) ?? "",
+              })}
+            >
+              <Search data-icon="inline-start" /> Find keywords · Sage
+            </Button>
+          </div>
+        )}
+
       </AgentCard.Body>
     </AgentCard>
   )
@@ -181,7 +228,13 @@ export function ResearchReportCard({ result }: { result: ScoutResearchTopicResul
 
 // ─── Research company ────────────────────────────────────────────────────────
 
-export function CompanyProfileCard({ result }: { result: ScoutResearchCompanyResult }) {
+export function CompanyProfileCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: ScoutResearchCompanyResult
+  onFollowUpAction?: FollowUp
+}) {
   const c = result.company
   return (
     <AgentCard size="sm">
@@ -231,6 +284,22 @@ export function CompanyProfileCard({ result }: { result: ScoutResearchCompanyRes
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => onFollowUpAction("maya:draft-content", {
+                topic: `Why we're different from ${c.name}`,
+                platform: "linkedin",
+                additional_context: [c.description, c.weaknesses?.slice(0, 3).join("; ")].filter(Boolean).join("\n"),
+              })}
+            >
+              <PenLine data-icon="inline-start" /> Draft post · Maya
+            </Button>
           </div>
         )}
       </AgentCard.Body>
@@ -323,7 +392,13 @@ function TrendSection({ label, children }: { label: string; children: React.Reac
   )
 }
 
-export function TrendsBoardCard({ result }: { result: ScoutTrendingTopicsResult }) {
+export function TrendsBoardCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: ScoutTrendingTopicsResult
+  onFollowUpAction?: FollowUp
+}) {
   return (
     <AgentCard size="sm">
       <AgentCard.Header icon={<TrendingUp />} title="Trending topics" />
@@ -442,6 +517,31 @@ export function TrendsBoardCard({ result }: { result: ScoutTrendingTopicsResult 
                         ))}
                       </ol>
                     </TrendSection>
+                  )}
+
+                  {onFollowUpAction && (
+                    <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-2">
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        onClick={() => onFollowUpAction("maya:draft-content", {
+                          topic: t.topic,
+                          platform: "linkedin",
+                          additional_context: [t.content_hook, t.why_trending, t.opportunity].filter(Boolean).join("\n"),
+                        })}
+                      >
+                        <PenLine data-icon="inline-start" /> Draft post · Maya
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        onClick={() => onFollowUpAction("maya:generate-ideas", {
+                          topic_hint: t.topic,
+                        })}
+                      >
+                        <Sparkles data-icon="inline-start" /> Generate ideas · Maya
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>

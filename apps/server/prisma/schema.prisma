@@ -267,6 +267,20 @@ model PublishedPost {
   @@map("published_post")
 }
 
+model ContentIdea {
+  id             String         @id @default(uuid())
+  organizationId String
+  platform       SocialPlatform
+  title          String
+  hook           String
+  contentType    String
+  createdAt      DateTime       @default(now())
+  isPublished    Boolean        @default(false)
+
+  @@index([organizationId, platform])
+  @@map("content_idea")
+}
+
 model CompetitorWatch {
   id             String    @id @default(uuid())
   organizationId String

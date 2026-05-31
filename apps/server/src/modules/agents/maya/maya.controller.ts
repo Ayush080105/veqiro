@@ -10,6 +10,7 @@ import {
   regenerateImageSchema,
   regenerateContentSchema,
   publishSchema,
+  publishCarouselSchema,
   campaignSchema,
   expandBriefSchema,
 } from "./maya.schema.js";
@@ -102,6 +103,13 @@ export const getPublishedPosts = async (req: Request, res: Response) => {
   if (!organizationId) throw new BadRequestError("Organization ID is required");
   const posts = await mayaService.listPublishedPosts(organizationId);
   res.status(StatusCodes.OK).json(posts);
+};
+
+export const publishCarousel = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = publishCarouselSchema.parse(req.body);
+  const result = await mayaService.publishCarousel(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
 };
 
 export const createCampaign = async (req: Request, res: Response) => {

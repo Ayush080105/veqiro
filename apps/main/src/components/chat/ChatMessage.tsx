@@ -52,7 +52,7 @@ function AgentDisc({
   )
 }
 
-export function TypingIndicator({
+function TypingIndicatorComponent({
   agentInitials,
   agentColor = "var(--vq-yellow)",
 }: {
@@ -92,6 +92,8 @@ export function TypingIndicator({
   )
 }
 
+export const TypingIndicator = React.memo(TypingIndicatorComponent)
+
 export interface ChatMessageProps {
   message: Message
   agentName: string
@@ -104,7 +106,7 @@ export interface ChatMessageProps {
   onRevertImage?: () => void
 }
 
-export function ChatMessage({
+function ChatMessageComponent({
   message,
   agentName,
   agentInitials,
@@ -251,3 +253,13 @@ export function ChatMessage({
     </div>
   )
 }
+
+export const ChatMessage = React.memo(
+  ChatMessageComponent,
+  (prev, next) =>
+    prev.message === next.message &&
+    prev.agentName === next.agentName &&
+    prev.agentInitials === next.agentInitials &&
+    prev.agentColor === next.agentColor &&
+    prev.isLex === next.isLex,
+)

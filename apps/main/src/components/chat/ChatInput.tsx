@@ -1,16 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Send, Paperclip, HelpCircle } from "lucide-react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { HelpCircle, Paperclip, Plus, Send } from "lucide-react"
 
 import { FONT } from "@/lib/fonts"
-import {
-  chatMessageSchema,
-  type ChatMessageValues,
-  CHAT_MESSAGE_MAX,
-} from "@/lib/schemas/chat"
+import { CHAT_MESSAGE_MAX } from "@/lib/schemas/chat"
 
 export interface ChatInputProps {
   value: string
@@ -91,34 +85,8 @@ export function ChatInput({
   disabled = false,
   max = CHAT_MESSAGE_MAX,
 }: ChatInputProps) {
-  const form = useForm<ChatMessageValues>({
-    resolver: zodResolver(chatMessageSchema),
-    defaultValues: { message: value },
-    mode: "onChange",
-  })
-
-  // Parent → form sync (e.g. parent clears `content` after send, or seeds via
-  // EmptyState prompt). Equality-gated to avoid feedback loops.
-  React.useEffect(() => {
-    if (form.getValues("message") !== value) {
-      form.setValue("message", value, { shouldValidate: true })
-    }
-  }, [value, form])
-
-  // Form → parent sync. One-way: when the user types, push the message up.
-  React.useEffect(() => {
-    const sub = form.watch((v, { name }) => {
-      if (name === "message" && typeof v.message === "string" && v.message !== value) {
-        onChange(v.message)
-      }
-    })
-    return () => sub.unsubscribe()
-  }, [form, onChange, value])
-
-  const message = form.watch("message")
-  const charCount = message.length
-  const isValid = form.formState.isValid
-  const canSend = isValid && !disabled
+  const charCount = value.length
+  const canSend = value.trim().length > 0 && charCount <= max && !disabled
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -164,7 +132,8 @@ export function ChatInput({
 
         <div style={{ flex: 1, position: "relative" }}>
           <textarea
-            {...form.register("message")}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKey}
             placeholder={placeholder}
             disabled={disabled}

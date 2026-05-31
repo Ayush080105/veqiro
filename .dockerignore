@@ -1,0 +1,11 @@
+.git
+**/.git
+**/node_modules
+**/.env
+**/.env.*
+apps/main/.next
+apps/landing/.next
+apps/ai/.next
+**/*.log
+.vscode
+.idea

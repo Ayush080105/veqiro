@@ -30,6 +30,12 @@ register_agent(_agent)
 
 # ── Request / Response Models ────────────────────────────────────────────────
 
+class PastIdea(BaseModel):
+    title: str
+    hook: str
+    contentType: str
+
+
 class IdeationRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     organization_id: str = Field("", max_length=128)
@@ -40,6 +46,7 @@ class IdeationRequest(BaseModel):
     use_logo: bool = False
     use_mascot: bool = False
     use_brandkit: bool = False
+    past_ideas: list[PastIdea] = Field(default_factory=list)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -390,9 +397,23 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
     else:
         topic_line = f"Generate {request.count} high-performing content ideas for {request.platform} about: {request.topic_hint}"
 
+    dedupe_block = ""
+    if request.past_ideas:
+        lines = "\n".join(
+            f"{i + 1}. {idea.title} | {idea.contentType} | Hook: {idea.hook}"
+            for i, idea in enumerate(request.past_ideas)
+        )
+        dedupe_block = (
+            f"\nPREVIOUSLY GENERATED IDEAS – Do NOT repeat or closely paraphrase "
+            f"these topics, angles, or hooks:\n{lines}\n"
+            f"Produce ideas that explore entirely DIFFERENT angles, formats, and narratives "
+            f"from the list above.\n"
+        )
+
     prompt = (
         f"{topic_line}\n\n"
-        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n\n"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n"
+        f"{dedupe_block}\n"
         "IMPORTANT: Only generate ideas for static image posts (linkedin_post, instagram_post, tweet). "
         "Do NOT suggest videos, reels, infographics, carousels, threads, or blog posts.\n\n"
         "Return a JSON array. Each idea must have:\n"
@@ -828,8 +849,14 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
     async def _gen(prompt_data: CarouselImagePrompt, idx: int, anchor_b64: str | None = None) -> ImageResult | None:
         if not request.include_images:
             return None
-        # Pass only visual direction — never slide numbers or meta text
-        context = prompt_data.context_note
+        # Build text_spec from pre-generated exact text fields — prevents spelling mistakes
+        text_spec: dict | None = None
+        if prompt_data.headline:
+            text_spec = {
+                "headline": prompt_data.headline,
+                "stat": prompt_data.stat,
+                "subtext": prompt_data.subtext,
+            }
         try:
             return await generate_social_image(
                 prompt_data.image_prompt,
@@ -840,7 +867,8 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                 user_id=request.user_id,
                 organization_id=request.organization_id,
                 brand_kit=brand_kit,
-                context_hints=context,
+                context_hints=prompt_data.context_note,
+                text_spec=text_spec,
                 carousel_anchor_b64=anchor_b64,
             )
         except Exception as img_err:

@@ -64,6 +64,7 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
+  ContentIdea: 'ContentIdea',
   CompetitorWatch: 'CompetitorWatch',
   SavedKeyword: 'SavedKeyword',
   Source: 'Source',
@@ -307,6 +308,20 @@ export const PublishedPostScalarFieldEnum = {
 } as const
 
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
+
+
+export const ContentIdeaScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  platform: 'platform',
+  title: 'title',
+  hook: 'hook',
+  contentType: 'contentType',
+  createdAt: 'createdAt',
+  isPublished: 'isPublished'
+} as const
+
+export type ContentIdeaScalarFieldEnum = (typeof ContentIdeaScalarFieldEnum)[keyof typeof ContentIdeaScalarFieldEnum]
 
 
 export const CompetitorWatchScalarFieldEnum = {

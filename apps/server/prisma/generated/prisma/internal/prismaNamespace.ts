@@ -397,6 +397,7 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
+  ContentIdea: 'ContentIdea',
   CompetitorWatch: 'CompetitorWatch',
   SavedKeyword: 'SavedKeyword',
   Source: 'Source',
@@ -424,7 +425,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxCache"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "contentIdea" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxCache"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1387,6 +1388,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.PublishedPostCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.PublishedPostCountAggregateOutputType> | number
+        }
+      }
+    }
+    ContentIdea: {
+      payload: Prisma.$ContentIdeaPayload<ExtArgs>
+      fields: Prisma.ContentIdeaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ContentIdeaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ContentIdeaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+        }
+        findFirst: {
+          args: Prisma.ContentIdeaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ContentIdeaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+        }
+        findMany: {
+          args: Prisma.ContentIdeaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>[]
+        }
+        create: {
+          args: Prisma.ContentIdeaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+        }
+        createMany: {
+          args: Prisma.ContentIdeaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ContentIdeaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>[]
+        }
+        delete: {
+          args: Prisma.ContentIdeaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+        }
+        update: {
+          args: Prisma.ContentIdeaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+        }
+        deleteMany: {
+          args: Prisma.ContentIdeaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ContentIdeaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ContentIdeaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>[]
+        }
+        upsert: {
+          args: Prisma.ContentIdeaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+        }
+        aggregate: {
+          args: Prisma.ContentIdeaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateContentIdea>
+        }
+        groupBy: {
+          args: Prisma.ContentIdeaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContentIdeaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ContentIdeaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContentIdeaCountAggregateOutputType> | number
         }
       }
     }
@@ -2532,6 +2607,20 @@ export const PublishedPostScalarFieldEnum = {
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
+export const ContentIdeaScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  platform: 'platform',
+  title: 'title',
+  hook: 'hook',
+  contentType: 'contentType',
+  createdAt: 'createdAt',
+  isPublished: 'isPublished'
+} as const
+
+export type ContentIdeaScalarFieldEnum = (typeof ContentIdeaScalarFieldEnum)[keyof typeof ContentIdeaScalarFieldEnum]
+
+
 export const CompetitorWatchScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -3030,6 +3119,7 @@ export type GlobalOmitConfig = {
   orgMemory?: Prisma.OrgMemoryOmit
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit
+  contentIdea?: Prisma.ContentIdeaOmit
   competitorWatch?: Prisma.CompetitorWatchOmit
   savedKeyword?: Prisma.SavedKeywordOmit
   source?: Prisma.SourceOmit
