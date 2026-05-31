@@ -10,6 +10,7 @@ import {
   regenerateImage,
   regenerateContent,
   publish,
+  publishCarousel,
   getPublishedPosts,
   createCampaign,
   expandBrief,
@@ -27,6 +28,7 @@ router.post("/revise", revise);
 router.post("/regenerate-image", regenerateImage);
 router.post("/regenerate-content", regenerateContent);
 router.post("/publish", publish);
+router.post("/publish-carousel", publishCarousel);
 router.get("/published-posts", getPublishedPosts);
 router.post("/campaign", createCampaign);
 router.post("/expand-brief", expandBrief);

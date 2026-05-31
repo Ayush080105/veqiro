@@ -5,6 +5,7 @@ import type {
   ExchangeContext,
   ExchangeResult,
   PublishArgs,
+  PublishCarouselArgs,
   PublishResult,
   RefreshResult,
   SocialProvider,
@@ -332,6 +333,71 @@ export const instagram: SocialProvider = {
     if (!pubRes.ok) {
       const err = await pubRes.text();
       throw new Error(`Instagram media_publish failed (${pubRes.status}): ${err}`);
+    }
+    const { id: mediaId } = (await pubRes.json()) as { id: string };
+
+    const handle = meta.username;
+    const url = handle ? `https://www.instagram.com/${handle}/` : undefined;
+    return { platformPostId: mediaId, url };
+  },
+
+  async publishCarousel({ account, caption, imageUrls }: PublishCarouselArgs): Promise<PublishResult> {
+    if (!imageUrls.length) {
+      throw new Error("At least one image URL is required for a carousel post");
+    }
+
+    const meta = (account.metadata ?? {}) as InstagramMetadata;
+    const igUserId = meta.igUserId ?? account.providerAccountId;
+
+    // Stage all images to Cloudinary in parallel (Meta's API rejects our CDN domains)
+    const stagedUrls = await Promise.all(imageUrls.map(stageImageForMeta));
+
+    // Create one media container per image (carousel items — no caption, no publish)
+    const containerIds = await Promise.all(
+      stagedUrls.map(async (stagedUrl) => {
+        const body = new URLSearchParams({
+          image_url: stagedUrl,
+          is_carousel_item: "true",
+          access_token: account.accessToken,
+        });
+        const res = await fetch(MEDIA_URL(igUserId), { method: "POST", body });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Instagram carousel item create failed (${res.status}): ${err}`);
+        }
+        const { id } = (await res.json()) as { id: string };
+        return id;
+      })
+    );
+
+    // Wait for every item container to finish ingesting before creating the carousel
+    await Promise.all(containerIds.map((id) => waitForContainerReady(id, account.accessToken)));
+
+    // Create the carousel container (holds caption + references to item containers)
+    const carouselBody = new URLSearchParams({
+      media_type: "CAROUSEL",
+      children: containerIds.join(","),
+      caption,
+      access_token: account.accessToken,
+    });
+    const carouselRes = await fetch(MEDIA_URL(igUserId), { method: "POST", body: carouselBody });
+    if (!carouselRes.ok) {
+      const err = await carouselRes.text();
+      throw new Error(`Instagram carousel container create failed (${carouselRes.status}): ${err}`);
+    }
+    const { id: carouselId } = (await carouselRes.json()) as { id: string };
+
+    await waitForContainerReady(carouselId, account.accessToken);
+
+    // Publish the carousel
+    const publishBody = new URLSearchParams({
+      creation_id: carouselId,
+      access_token: account.accessToken,
+    });
+    const pubRes = await fetch(PUBLISH_URL(igUserId), { method: "POST", body: publishBody });
+    if (!pubRes.ok) {
+      const err = await pubRes.text();
+      throw new Error(`Instagram carousel publish failed (${pubRes.status}): ${err}`);
     }
     const { id: mediaId } = (await pubRes.json()) as { id: string };
 

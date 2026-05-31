@@ -38,6 +38,12 @@ export interface PublishArgs {
   imageUrl?: string;
 }
 
+export interface PublishCarouselArgs {
+  account: SocialAccount;
+  caption: string;
+  imageUrls: string[];
+}
+
 export interface PublishResult {
   platformPostId: string;
   url?: string;
@@ -52,6 +58,7 @@ export interface SocialProvider {
   exchangeCode(ctx: ExchangeContext): Promise<ExchangeResult>;
   refresh?(refreshToken: string): Promise<RefreshResult>;
   publish(args: PublishArgs): Promise<PublishResult>;
+  publishCarousel?(args: PublishCarouselArgs): Promise<PublishResult>;
   revoke?(account: SocialAccount): Promise<void>;
 }
 

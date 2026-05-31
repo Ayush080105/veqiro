@@ -92,6 +92,24 @@ export async function publishPost(
   })
 }
 
+export interface PublishCarouselInput {
+  socialAccountId: string
+  caption?: string
+  hashtags?: string[]
+  imageUrls: string[]
+}
+
+export async function publishCarousel(
+  organizationId: string,
+  input: PublishCarouselInput
+): Promise<PublishPostResult> {
+  return apiFetch<PublishPostResult>("/agents/maya/publish-carousel", {
+    method: "POST",
+    body: { organizationId, ...input },
+    agentSlugForNotFound: "maya",
+  })
+}
+
 // ─── Status (mock-fallback) ───────────────────────────────────────────────────
 
 export async function getAssistantStatuses(

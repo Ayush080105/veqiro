@@ -9,6 +9,7 @@ import {
   regenerateImageSchema,
   regenerateContentSchema,
   publishSchema,
+  publishCarouselSchema,
   campaignSchema,
   expandBriefSchema,
 } from "./maya.schema.js";
@@ -22,6 +23,7 @@ export type ReviseInput = z.infer<typeof reviseSchema>;
 export type RegenerateImageInput = z.infer<typeof regenerateImageSchema>;
 export type RegenerateContentInput = z.infer<typeof regenerateContentSchema>;
 export type PublishInput = z.infer<typeof publishSchema>;
+export type PublishCarouselInput = z.infer<typeof publishCarouselSchema>;
 export type CampaignInput = z.infer<typeof campaignSchema>;
 export type ExpandBriefInput = z.infer<typeof expandBriefSchema>;
 
@@ -141,6 +143,13 @@ export interface CarouselDraftResponse {
 
 export interface PublishResponse {
   platform: ContentPlatform;
+  platformPostId: string;
+  url?: string;
+  publishedAt: string;
+}
+
+export interface PublishCarouselResponse {
+  platform: "instagram";
   platformPostId: string;
   url?: string;
   publishedAt: string;

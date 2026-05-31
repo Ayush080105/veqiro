@@ -93,3 +93,10 @@ export const publishSchema = z
     (v) => !(v.imageBase64 && v.imageUrl),
     "Provide either imageUrl or imageBase64, not both"
   );
+
+export const publishCarouselSchema = z.object({
+  socialAccountId: z.string().min(1),
+  caption: z.string().max(2200).optional().default(""),
+  hashtags: z.array(z.string()).max(30).optional().default([]),
+  imageUrls: z.array(z.string().url()).min(1).max(10),
+});

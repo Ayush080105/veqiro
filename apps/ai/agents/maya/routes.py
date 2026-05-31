@@ -30,6 +30,12 @@ register_agent(_agent)
 
 # ── Request / Response Models ────────────────────────────────────────────────
 
+class PastIdea(BaseModel):
+    title: str
+    hook: str
+    contentType: str
+
+
 class IdeationRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     organization_id: str = Field("", max_length=128)
@@ -40,6 +46,7 @@ class IdeationRequest(BaseModel):
     use_logo: bool = False
     use_mascot: bool = False
     use_brandkit: bool = False
+    past_ideas: list[PastIdea] = Field(default_factory=list)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -390,9 +397,23 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
     else:
         topic_line = f"Generate {request.count} high-performing content ideas for {request.platform} about: {request.topic_hint}"
 
+    dedupe_block = ""
+    if request.past_ideas:
+        lines = "\n".join(
+            f"{i + 1}. {idea.title} | {idea.contentType} | Hook: {idea.hook}"
+            for i, idea in enumerate(request.past_ideas)
+        )
+        dedupe_block = (
+            f"\nPREVIOUSLY GENERATED IDEAS – Do NOT repeat or closely paraphrase "
+            f"these topics, angles, or hooks:\n{lines}\n"
+            f"Produce ideas that explore entirely DIFFERENT angles, formats, and narratives "
+            f"from the list above.\n"
+        )
+
     prompt = (
         f"{topic_line}\n\n"
-        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n\n"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n"
+        f"{dedupe_block}\n"
         "IMPORTANT: Only generate ideas for static image posts (linkedin_post, instagram_post, tweet). "
         "Do NOT suggest videos, reels, infographics, carousels, threads, or blog posts.\n\n"
         "Return a JSON array. Each idea must have:\n"

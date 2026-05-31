@@ -26,7 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { PublishDialog } from "./publish-dialog"
+import { PublishDialog, CampaignPublishDialog } from "./publish-dialog"
 import type { AgentActionId } from "@/lib/types/agents"
 import type {
   MayaIdeationResult,
@@ -795,6 +795,8 @@ export function CampaignResultCard({
 
   if (!photos.length) return null
 
+  const publishableUrls = rawSrcs.filter((src): src is string => !!src)
+
   return (
     <AgentCard>
       <AgentCard.Header icon={<Rocket size={14} />} title="Product Campaign">
@@ -829,38 +831,33 @@ export function CampaignResultCard({
                     Generating…
                   </div>
                 )}
-                <div className="px-1.5 pb-1.5 flex flex-col gap-1">
-                  <p className="text-[10px] text-muted-foreground leading-snug capitalize">
+                <div className="px-1.5 pb-1.5">
+                  <p className="text-[10px] text-muted-foreground leading-snug capitalize mb-1">
                     {photo.composition_role.split("—")[0].trim()}
                   </p>
-                  <div className="flex gap-1">
-                    {rawSrc && (
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <a
-                            href={src ?? rawSrc}
-                            download={`campaign-photo-${i + 1}.png`}
-                            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted transition-colors"
-                            style={{ border: "1px solid var(--border)" }}
-                          >
-                            <Download size={10} />
-                            Download
-                          </a>
-                        </TooltipTrigger>
-                        <TooltipContent>Download photo {i + 1}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    <PublishDialog
-                      platform="instagram"
-                      caption=""
-                      hashtags={[]}
-                      image={photo.image}
-                    />
-                  </div>
+                  {rawSrc && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a
+                          href={src ?? rawSrc}
+                          download={`campaign-photo-${i + 1}.png`}
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted transition-colors"
+                          style={{ border: "1px solid var(--border)" }}
+                        >
+                          <Download size={10} />
+                          Download
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent>Download photo {i + 1}</TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
             )
           })}
+        </div>
+        <div className="px-2.5 pb-2.5">
+          <CampaignPublishDialog imageUrls={publishableUrls} photoCount={photos.length} />
         </div>
       </AgentCard.Body>
     </AgentCard>
