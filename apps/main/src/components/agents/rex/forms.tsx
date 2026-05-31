@@ -63,7 +63,13 @@ function DatasetPicker({
       ? datasets.filter((d) => metricHints.includes(d.metricKey))
       : datasets
 
-  if (filtered.length === 0) return null
+  if (filtered.length === 0) {
+    return (
+      <p className="text-[10px] italic text-muted-foreground">
+        No datasets yet — upload data in the Data tab to load from here.
+      </p>
+    )
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -288,13 +294,16 @@ export function RexForecastForm({
         name="historical_data"
         label="Historical data"
         required
-        description="At least 6 data points recommended for a meaningful forecast."
+        description="Select a saved dataset to auto-fill both data and metric name. At least 6 points recommended."
       >
         {({ field }) => (
           <div className="flex flex-col gap-1.5">
             <DatasetPicker
-              metricHints={["mrr", "revenue", "arr", "subscribers", "new_customers"]}
-              onSelect={(pts) => field.onChange(pts)}
+              onSelect={(pts, ds) => {
+                field.onChange(pts)
+                form.setValue("metric_name", ds.metricKey)
+              }}
+              label="Load from dataset (auto-fills name)"
             />
             <DataPointTable
               value={field.value ?? []}
@@ -708,6 +717,90 @@ export function RexScenarioForm({
   )
 }
 
+// ─── Metric KV editor ────────────────────────────────────────────────────────
+// Maintains local entry state so empty-named rows persist after "Add metric"
+// (the RHF commit filters out empty-key entries, making new rows vanish).
+
+function MetricKVEditor({
+  value,
+  onChange,
+  label,
+  hint,
+}: {
+  value: Record<string, number>
+  onChange: (v: Record<string, number>) => void
+  label: string
+  hint?: string
+}) {
+  const [entries, setEntries] = React.useState<[string, number][]>(() =>
+    Object.entries(value ?? {})
+  )
+
+  const prevRef = React.useRef(value)
+  React.useEffect(() => {
+    if (value !== prevRef.current) {
+      prevRef.current = value
+      setEntries(Object.entries(value ?? {}))
+    }
+  }, [value])
+
+  const commit = (next: [string, number][]) => {
+    setEntries(next)
+    onChange(Object.fromEntries(next.filter(([k]) => k.trim())))
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
+        <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+          {label}
+        </span>
+        {hint && (
+          <span className="text-[10px] text-muted-foreground">{hint}</span>
+        )}
+      </div>
+      {entries.map(([k, v], i) => (
+        <div key={i} className="flex gap-1.5">
+          <Input
+            value={k}
+            placeholder="metric name"
+            onChange={(e) =>
+              commit(entries.map((x, j) => (j === i ? [e.target.value, x[1]] : x)))
+            }
+          />
+          <Input
+            type="number"
+            value={v}
+            placeholder="value"
+            onChange={(e) =>
+              commit(entries.map((x, j) => (j === i ? [x[0], Number(e.target.value)] : x)))
+            }
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Remove"
+            onClick={() => commit(entries.filter((_, j) => j !== i))}
+          >
+            <X />
+          </Button>
+        </div>
+      ))}
+      {/* "Add metric" only updates local state so the empty row is not filtered away */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setEntries((prev) => [...prev, ["", 0]])}
+        className="self-start"
+      >
+        <Plus data-icon="inline-start" /> Add metric
+      </Button>
+    </div>
+  )
+}
+
 // ─── Weekly digest ───────────────────────────────────────────────────────────
 
 export function RexWeeklyDigestForm({
@@ -724,75 +817,25 @@ export function RexWeeklyDigestForm({
       <Controller
         control={form.control}
         name="metrics"
-        render={({ field }) => {
-          const entries = Object.entries(field.value ?? {})
-          const commit = (e: [string, number][]) =>
-            field.onChange(Object.fromEntries(e.filter(([k]) => k.trim())))
-          return (
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1.5">
-                <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
-                  This week&apos;s metrics
-                </span>
-                <span className="text-[10px] text-muted-foreground">
-                  Key: mrr, arr, burn, cash, churn_rate, growth_rate, new_customers, cac, ltv
-                </span>
-              </div>
-              {entries.map(([k, v], i) => (
-                <div key={i} className="flex gap-1.5">
-                  <Input value={k} placeholder="metric name"
-                    onChange={(e) => commit(entries.map((x, j) => j === i ? [e.target.value, x[1]] : x))} />
-                  <Input type="number" value={v} placeholder="value"
-                    onChange={(e) => commit(entries.map((x, j) => j === i ? [x[0], Number(e.target.value)] : x))} />
-                  <Button type="button" variant="ghost" size="icon" aria-label="Remove"
-                    onClick={() => commit(entries.filter((_, j) => j !== i))}>
-                    <X />
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm"
-                onClick={() => commit([...entries, ["", 0]])}
-                className="self-start">
-                <Plus data-icon="inline-start" /> Add metric
-              </Button>
-            </div>
-          )
-        }}
+        render={({ field }) => (
+          <MetricKVEditor
+            value={field.value ?? {}}
+            onChange={field.onChange}
+            label="This week's metrics"
+            hint="Keys: mrr, arr, burn, cash, churn_rate, growth_rate, new_customers, cac, ltv"
+          />
+        )}
       />
       <Controller
         control={form.control}
         name="prev_week"
-        render={({ field }) => {
-          const entries = Object.entries(field.value ?? {})
-          const commit = (e: [string, number][]) =>
-            field.onChange(Object.fromEntries(e.filter(([k]) => k.trim())))
-          return (
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1.5">
-                <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
-                  Last week&apos;s metrics (optional)
-                </span>
-              </div>
-              {entries.map(([k, v], i) => (
-                <div key={i} className="flex gap-1.5">
-                  <Input value={k} placeholder="metric name"
-                    onChange={(e) => commit(entries.map((x, j) => j === i ? [e.target.value, x[1]] : x))} />
-                  <Input type="number" value={v} placeholder="value"
-                    onChange={(e) => commit(entries.map((x, j) => j === i ? [x[0], Number(e.target.value)] : x))} />
-                  <Button type="button" variant="ghost" size="icon" aria-label="Remove"
-                    onClick={() => commit(entries.filter((_, j) => j !== i))}>
-                    <X />
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm"
-                onClick={() => commit([...entries, ["", 0]])}
-                className="self-start">
-                <Plus data-icon="inline-start" /> Add metric
-              </Button>
-            </div>
-          )
-        }}
+        render={({ field }) => (
+          <MetricKVEditor
+            value={field.value ?? {}}
+            onChange={field.onChange}
+            label="Last week's metrics (optional)"
+          />
+        )}
       />
     </FieldGroup>
   )

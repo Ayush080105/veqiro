@@ -128,7 +128,7 @@ export function ActionDialog<TInput, TResult>({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
           {renderForm({ value, onChange, submit, submitting })}
         </div>
         <DialogFooter>

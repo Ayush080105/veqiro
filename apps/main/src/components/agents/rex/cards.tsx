@@ -38,6 +38,7 @@ import type {
   RexForecastResult,
   RexFinancialAnalysisResult,
   RexBriefingResult,
+  RexBriefingSectionObj,
   RexRunwayResult,
   RexUnitEconomicsResult,
   RexScenarioResult,
@@ -508,14 +509,38 @@ export function BriefingCard({
       <AgentCard.Body className="flex flex-col gap-3">
         <p className="text-xs font-medium">{b.headline}</p>
         <div className="flex flex-col gap-2">
-          {Object.entries(b.sections).map(([title, body]) => (
-            <div key={title} className="border-l-2 border-border pl-2">
-              <p className="mb-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                {title}
-              </p>
-              <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body}</p>
-            </div>
-          ))}
+          {Object.entries(b.sections).map(([title, body]) => {
+            const isObj = typeof body === "object" && body !== null
+            const sectionObj = isObj ? (body as RexBriefingSectionObj) : null
+            const textContent = isObj ? sectionObj?.summary : (body as string)
+            return (
+              <div key={title} className="border-l-2 border-border pl-2">
+                <div className="mb-0.5 flex items-center gap-1.5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {title}
+                  </p>
+                  {sectionObj?.status && (
+                    <StatusPill level={healthLevel(sectionObj.status)}>
+                      {sectionObj.status}
+                    </StatusPill>
+                  )}
+                </div>
+                {textContent && (
+                  <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{textContent}</p>
+                )}
+                {sectionObj?.key_actions && sectionObj.key_actions.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {sectionObj.key_actions.map((action, i) => (
+                      <li key={i} className="flex items-start gap-1 text-[11px]">
+                        <span className="mt-0.5 shrink-0 text-muted-foreground">→</span>
+                        <span>{action}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
         </div>
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 pt-1">

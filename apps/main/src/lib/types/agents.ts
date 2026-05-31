@@ -443,11 +443,17 @@ export interface RexBriefingRequest {
   agent_summaries: Record<string, string>
 }
 
+export interface RexBriefingSectionObj {
+  status?: "green" | "amber" | "red"
+  summary?: string
+  key_actions?: string[]
+}
+
 export interface RexBriefingResult {
   briefing: {
     date: string
     headline: string
-    sections: Record<string, string>
+    sections: Record<string, string | RexBriefingSectionObj>
     generated_at: string
   }
 }
