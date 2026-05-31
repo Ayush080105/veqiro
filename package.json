@@ -24,5 +24,8 @@
       "@types/react": "19.2.2",
       "@types/react-dom": "19.2.2"
     }
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4"
   }
 }

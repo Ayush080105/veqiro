@@ -485,7 +485,7 @@ export interface RunActionDialogProps {
   conversationId?: string
   /** Optional partial that's shallow-merged over the spec's defaultValue. */
   prefill?: Record<string, unknown>
-  /** Fired when validation passes and the API call begins */
+  /** Fired when validation passes and the API call begins. */
   onStart?: (ctx: ActionStartContext<unknown>) => void
   onSettled?: (ctx: ActionStartContext<unknown>) => void
   onComplete: (ctx: ActionResultContext<unknown, unknown>) => void
@@ -511,9 +511,10 @@ export function RunActionDialog({
   if (!meta || !spec) return null
 
   const { Form, defaultValue, validate, customSubmit, resolveActionId } = spec
-  
-  // Inject organization_id along with default values & prefill
-  const merged = {
+
+  // Cast to Record<string, unknown> before spreading to satisfy TS —
+  // defaultValue is typed as `unknown` so a direct spread would error.
+  const merged: Record<string, unknown> = {
     ...(defaultValue as Record<string, unknown>),
     ...(prefill ?? {}),
     organization_id: organizationId,

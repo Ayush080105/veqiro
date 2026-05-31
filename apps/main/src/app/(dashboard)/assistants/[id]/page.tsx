@@ -348,6 +348,7 @@ function genConversationId(): string {
 export default function AssistantChatPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const agent = getAgent(id)
 
@@ -397,8 +398,21 @@ export default function AssistantChatPage() {
   }, [agent, router])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isLoading])
+    if (scrollFrameRef.current != null) {
+      cancelAnimationFrame(scrollFrameRef.current)
+    }
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      const el = chatScrollRef.current
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+    })
+    return () => {
+      if (scrollFrameRef.current != null) {
+        cancelAnimationFrame(scrollFrameRef.current)
+        scrollFrameRef.current = null
+      }
+    }
+  }, [messages.length, isBusy])
 
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
@@ -420,26 +434,22 @@ export default function AssistantChatPage() {
     }
   }, [content, isLoading, sendMutation, agent])
 
-  // NEW: Injects optimistic user message when the dialog starts submitting
+  // Writes an optimistic user message as soon as the dialog starts submitting,
+  // so the chat doesn't look empty while the API call is in flight.
+  // Skipped for maya:regenerate-image since that action mutates an existing
+  // message in-place rather than starting a new thread.
   const handleActionStart = useCallback(
-    (ctx: { actionId: AgentActionId; input: any }) => {
-      // Special case: regenerative actions mutate existing messages, they don't create new user threads
+    (ctx: { actionId: AgentActionId; input: unknown }) => {
       if (ctx.actionId === "maya:regenerate-image") return
 
       const meta = findAction(ctx.actionId)
-      const now = new Date().toISOString()
-
-      // Build the user-facing trigger message that shows what the user ran.
-      // This is what was missing — it was only persisted server-side but never
-      // written to the client cache, so it only appeared after a page refresh.
       const userMsg: Message = {
         id: `optimistic-${Date.now()}`,
         role: "user",
         content: meta?.label ?? "Action",
         imageUrl: null,
-        createdAt: now,
+        createdAt: new Date().toISOString(),
       }
-
       queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
         ...(prev ?? []),
         userMsg,
@@ -454,53 +464,55 @@ export default function AssistantChatPage() {
       const now = new Date().toISOString()
 
       // ── maya:regenerate-image ─────────────────────────────────────────────
+      // Patches the existing draft card in-place so its image updates live,
+      // then also appends a user trigger + result card so the regeneration is
+      // visible as a distinct chat thread entry.
       if (ctx.actionId === "maya:regenerate-image") {
-    const regenResult = ctx.result as MayaImageRegenResult
-    const now = new Date().toISOString()
+        const regenResult = ctx.result as MayaImageRegenResult
+        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
+          if (!prev) return prev
+          const msgs = [...prev]
 
-    queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
-      if (!prev) return prev
-      const msgs = [...prev]
-
-      // 1. Patch the original DraftCard so its image updates in place
-      for (let i = msgs.length - 1; i >= 0; i--) {
-        const m = msgs[i]
-        if (m.customInput?.actionId === "maya:draft-content") {
-          const r = m.customInput.result as MayaDraftResult
-          msgs[i] = {
-            ...m,
-            customInput: {
-              ...m.customInput,
-              result: { ...r, _previousImage: r.image ?? null, image: regenResult.image },
-            },
+          // Patch the original DraftCard so its image updates in place
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const m = msgs[i]
+            if (m.customInput?.actionId === "maya:draft-content") {
+              const r = m.customInput.result as MayaDraftResult
+              msgs[i] = {
+                ...m,
+                customInput: {
+                  ...m.customInput,
+                  result: { ...r, _previousImage: r.image ?? null, image: regenResult.image },
+                },
+              }
+              break
+            }
           }
-          break
-        }
-      }
 
-      // 2. Append user trigger + regen result card so the new image
-      //    is visible immediately without waiting for a server refetch
-      const userMsg: Message = {
-        role: "user",
-        content: meta?.label ?? "Regenerate image",
-        imageUrl: null,
-        createdAt: now,
+          // Append user trigger + result card
+          const userMsg: Message = {
+            role: "user",
+            content: meta?.label ?? "Regenerate image",
+            imageUrl: null,
+            createdAt: now,
+          }
+          const assistantMsg: Message = {
+            role: "assistant",
+            content: "Image regenerated.",
+            imageUrl: null,
+            createdAt: now,
+            customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult },
+          }
+          return [...msgs, userMsg, assistantMsg]
+        })
+        toast.success("Image regenerated.")
+        return
       }
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: "Image regenerated.",
-        imageUrl: null,
-        createdAt: now,
-        customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult },
-      }
-      return [...msgs, userMsg, assistantMsg]
-    })
-
-    toast.success("Image regenerated.")
-    return
-}
 
       // ── maya:generate-variants ────────────────────────────────────────────
+      // Enriches the result with the original image from the last draft.
+      // The userMsg was already written by handleActionStart, so only the
+      // assistant result card is appended here.
       if (ctx.actionId === "maya:generate-variants") {
         const serverResult = ctx.result as MayaVariantResult
         let originalImage: ImageResult | null = null
@@ -512,10 +524,7 @@ export default function AssistantChatPage() {
           }
         }
         const enrichedResult: MayaVariantResult = { ...serverResult, _originalImage: originalImage }
-        
-        // Note: We only append the assistant msg here; the userMsg was handled in onStart
         const assistantMsg: Message = {
-          id: `temp-asst-${Date.now()}`,
           role: "assistant",
           content: meta ? `${meta.label} — done.` : "Action complete.",
           imageUrl: null,
@@ -531,9 +540,9 @@ export default function AssistantChatPage() {
       }
 
       // ── all other actions ─────────────────────────────────────────────────
-      // Note: We only append the assistant msg here; the userMsg was handled in onStart
+      // The userMsg was already written by handleActionStart; only append the
+      // assistant result card here.
       const assistantMsg: Message = {
-        id: `temp-asst-${Date.now()}`,
         role: "assistant",
         content: meta ? `${meta.label} — done.` : "Action complete.",
         imageUrl: null,
@@ -574,8 +583,6 @@ export default function AssistantChatPage() {
     [queryClient, id, organizationId],
   )
 
-  const searchParams = useSearchParams()
-
   const openAction = useCallback((actionId: AgentActionId, prefill?: Record<string, unknown>) => {
     setActivePrefill(prefill)
     setActiveActionId(actionId)
@@ -594,7 +601,7 @@ export default function AssistantChatPage() {
         router.push(`/assistants/${targetAgent}?${qs.toString()}`)
       }
     },
-    [id, openAction, router]
+    [id, openAction, router],
   )
 
   // On mount: if URL contains ?action=..., open that action dialog then clean the URL.
@@ -605,7 +612,7 @@ export default function AssistantChatPage() {
     const prefill = prefillStr ? (JSON.parse(prefillStr) as Record<string, unknown>) : undefined
     openAction(action, prefill)
     router.replace(`/assistants/${id}`)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount only
 
   const discoverCompetitorsPrefill = useMemo(() =>

@@ -1,6 +1,8 @@
 "use client"
 
+import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
+import { Slot } from "@radix-ui/react-slot"
 
 import { cn } from "@/lib/utils"
 
@@ -21,8 +23,22 @@ function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
 }
 
-function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+// 1. Extend the Base UI props to accept `asChild`
+interface TooltipTriggerProps extends TooltipPrimitive.Trigger.Props {
+  asChild?: boolean
+}
+
+function TooltipTrigger({ asChild, ...props }: TooltipTriggerProps) {
+  // 2. Map `asChild` to Base UI's `render` prop using Radix's Slot
+  const render = asChild ? <Slot /> : undefined
+
+  return (
+    <TooltipPrimitive.Trigger 
+      data-slot="tooltip-trigger" 
+      render={render}
+      {...props} 
+    />
+  )
 }
 
 function TooltipContent({
