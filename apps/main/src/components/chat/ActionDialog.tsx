@@ -71,6 +71,10 @@ export function ActionDialog<TInput, TResult>({
   const [value, setValue] = React.useState<TInput>(defaultValue)
   const [submitting, setSubmitting] = React.useState(false)
 
+  // Always keep a ref in sync so submit() never reads a stale closure value.
+  const latestValueRef = React.useRef<TInput>(defaultValue)
+  latestValueRef.current = value
+
   // Reset on open
   React.useEffect(() => {
     if (open) setValue(defaultValue)
@@ -82,25 +86,27 @@ export function ActionDialog<TInput, TResult>({
   }, [])
 
   const submit = React.useCallback(async (): Promise<TResult> => {
+    // Read from ref so we always get the latest value, even if the closure is stale.
+    const currentValue = latestValueRef.current
     if (validate) {
-      const err = validate(value)
+      const err = validate(currentValue)
       if (err) {
         toast.error(err)
         throw new Error(err)
       }
     }
     setSubmitting(true)
-    const effectiveActionId = resolveActionId ? resolveActionId(value) : actionId
+    const effectiveActionId = resolveActionId ? resolveActionId(currentValue) : actionId
     try {
       const result = customSubmit
-        ? await customSubmit(value, organizationId)
+        ? await customSubmit(currentValue, organizationId)
         : await runAgentAction<TInput, TResult>(
             effectiveActionId,
             organizationId,
-            value,
+            currentValue,
             conversationId
           )
-      onComplete({ actionId: effectiveActionId, input: value, result })
+      onComplete({ actionId: effectiveActionId, input: currentValue, result })
       onOpenChange(false)
       return result
     } catch (err) {
@@ -113,7 +119,8 @@ export function ActionDialog<TInput, TResult>({
     } finally {
       setSubmitting(false)
     }
-  }, [value, actionId, resolveActionId, organizationId, conversationId, validate, onComplete, onOpenChange, customSubmit])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionId, resolveActionId, organizationId, conversationId, validate, onComplete, onOpenChange, customSubmit])
 
   const handleSubmit = () => {
     submit().catch(() => {

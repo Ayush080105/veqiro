@@ -1088,6 +1088,87 @@ export function RexBoardDeckForm({
 
 // ─── Briefing ───────────────────────────────────────────────────────────────
 
+// ─── Agent summary editor ────────────────────────────────────────────────────
+// Local state so the "Add" button shows an empty row before the user types a
+// name (same pattern as MetricKVEditor — the commit filter strips empty keys).
+
+function AgentSummaryEditor({
+  value,
+  onChange,
+}: {
+  value: Record<string, string>
+  onChange: (v: Record<string, string>) => void
+}) {
+  const [entries, setEntries] = React.useState<[string, string][]>(() =>
+    Object.entries(value ?? {})
+  )
+
+  const prevRef = React.useRef(value)
+  React.useEffect(() => {
+    if (value !== prevRef.current) {
+      prevRef.current = value
+      setEntries(Object.entries(value ?? {}))
+    }
+  }, [value])
+
+  const commit = (next: [string, string][]) => {
+    setEntries(next)
+    onChange(Object.fromEntries(next.filter(([k]) => k.trim())))
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
+        <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+          Agent summaries
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          Paste each agent&apos;s status note.
+        </span>
+      </div>
+      {entries.map(([name, summary], i) => (
+        <div key={i} className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2">
+          <div className="flex gap-1.5">
+            <Input
+              value={name}
+              placeholder="Agent (sage, maya, scout…)"
+              onChange={(e) =>
+                commit(entries.map((x, j) => j === i ? [e.target.value, x[1]] : x))
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Remove"
+              onClick={() => commit(entries.filter((_, j) => j !== i))}
+            >
+              <X />
+            </Button>
+          </div>
+          <CountedTextarea
+            value={summary}
+            rows={2}
+            onChange={(v) =>
+              commit(entries.map((x, j) => j === i ? [x[0], v] : x))
+            }
+          />
+        </div>
+      ))}
+      {/* Add only updates local state so the empty row is not immediately filtered */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setEntries((prev) => [...prev, ["", ""]])}
+        className="self-start"
+      >
+        <Plus data-icon="inline-start" /> Add agent summary
+      </Button>
+    </div>
+  )
+}
+
 export function RexBriefingForm({
   value,
   onChange,
@@ -1112,76 +1193,12 @@ export function RexBriefingForm({
       <Controller
         control={form.control}
         name="agent_summaries"
-        render={({ field }) => {
-          const agentEntries = Object.entries(field.value ?? {})
-          const commitAgents = (entries: [string, string][]) =>
-            field.onChange(
-              Object.fromEntries(entries.filter(([k]) => k.trim()))
-            )
-          return (
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-col gap-1.5">
-                <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
-                  Agent summaries
-                </span>
-                <span className="text-[10px] text-muted-foreground">
-                  Paste each agent&apos;s status note.
-                </span>
-              </div>
-              {agentEntries.map(([name, summary], i) => (
-                <div
-                  key={i}
-                  className="flex flex-col gap-1.5 border border-border bg-muted/20 p-2"
-                >
-                  <div className="flex gap-1.5">
-                    <Input
-                      value={name}
-                      placeholder="Agent (sage, maya, scout…)"
-                      onChange={(e) =>
-                        commitAgents(
-                          agentEntries.map((x, j) =>
-                            j === i ? [e.target.value, x[1]] : x
-                          )
-                        )
-                      }
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove"
-                      onClick={() =>
-                        commitAgents(agentEntries.filter((_, j) => j !== i))
-                      }
-                    >
-                      <X />
-                    </Button>
-                  </div>
-                  <CountedTextarea
-                    value={summary}
-                    rows={2}
-                    onChange={(v) =>
-                      commitAgents(
-                        agentEntries.map((x, j) =>
-                          j === i ? [x[0], v] : x
-                        )
-                      )
-                    }
-                  />
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => commitAgents([...agentEntries, ["", ""]])}
-                className="self-start"
-              >
-                <Plus data-icon="inline-start" /> Add agent summary
-              </Button>
-            </div>
-          )
-        }}
+        render={({ field }) => (
+          <AgentSummaryEditor
+            value={field.value ?? {}}
+            onChange={field.onChange}
+          />
+        )}
       />
     </FieldGroup>
   )

@@ -50,6 +50,13 @@ export function useAgentForm<TValues extends Record<string, unknown>>({
       ) as Partial<TValues>
       onChangeRef.current(patch)
     })
+    // Seed parent immediately with current RHF values so ActionDialog never
+    // submits the raw defaultValue when the form has been interacted with.
+    const current = form.getValues()
+    const seed = Object.fromEntries(
+      Object.entries(current as Record<string, unknown>).filter(([, val]) => val !== undefined)
+    ) as Partial<TValues>
+    if (Object.keys(seed).length > 0) onChangeRef.current(seed)
     return () => sub.unsubscribe()
   }, [form])
 

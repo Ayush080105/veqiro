@@ -324,7 +324,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   "rex:scenario": {
     defaultValue: {
       base_metrics: { mrr: 0, burn: 0, cash: 0, growth_rate: 0 },
-      scenarios: [{ name: "", changes: {} }],
+      scenarios: [],
     },
     Form: RexScenarioForm,
     validate: (v) =>
