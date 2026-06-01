@@ -369,7 +369,7 @@ export function DraftPreview({
                     onClick={() =>
                       onFollowUpAction("maya:regenerate-image", {
                         image_url: src,
-                        prompt: image?.prompt_used ?? "",
+                        prompt: "",
                         platform,
                       })
                     }

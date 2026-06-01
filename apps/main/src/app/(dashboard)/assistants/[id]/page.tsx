@@ -23,7 +23,7 @@ import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { PlusMenu } from "@/components/chat/PlusMenu"
 import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
-import type { ActionResultContext, ActionStartContext } from "@/components/chat/ActionDialog"
+import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
@@ -348,6 +348,7 @@ function genConversationId(): string {
 export default function AssistantChatPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const agent = getAgent(id)
 
@@ -376,7 +377,7 @@ export default function AssistantChatPage() {
   const [infoOpen, setInfoOpen] = useState(false)
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
   const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
-  const [pendingActionCount, setPendingActionCount] = useState(0)
+  const [actionSubmitting, setActionSubmitting] = useState(false)
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
   const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
@@ -389,7 +390,7 @@ export default function AssistantChatPage() {
 
   const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current)
   const isLoading = sendMutation.isPending
-  const isBusy = isLoading || pendingActionCount > 0
+  const isBusy = isLoading || actionSubmitting
   const historyLoaded = !messagesPending
 
   useEffect(() => {
@@ -433,37 +434,46 @@ export default function AssistantChatPage() {
     }
   }, [content, isLoading, sendMutation, agent])
 
+  // Writes an optimistic user message as soon as the dialog starts submitting,
+  // so the chat doesn't look empty while the API call is in flight.
+  // Skipped for maya:regenerate-image since that action mutates an existing
+  // message in-place rather than starting a new thread.
   const handleActionStart = useCallback(
-    (ctx: ActionStartContext<unknown>) => {
+    (ctx: { actionId: AgentActionId; input: unknown }) => {
+      if (ctx.actionId === "maya:regenerate-image") return
+
       const meta = findAction(ctx.actionId)
-      const msg: Message = {
+      const userMsg: Message = {
+        id: `optimistic-${Date.now()}`,
         role: "user",
-        content: `Run: ${meta?.label ?? "Action"}`,
+        content: meta?.label ?? "Action",
         imageUrl: null,
         createdAt: new Date().toISOString(),
-        customInput: { actionId: ctx.actionId, input: ctx.input },
       }
-      setPendingActionCount((count) => count + 1)
-      void queryClient.cancelQueries({ queryKey: qk.chat(id, organizationId) })
-      queryClient.setQueryData<Message[]>(
-        qk.chat(id, organizationId),
-        (prev) => [...(prev ?? []), msg],
-      )
+      queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
+        ...(prev ?? []),
+        userMsg,
+      ])
     },
     [queryClient, id, organizationId],
   )
 
-  const handleActionSettled = useCallback(() => {
-    setPendingActionCount((count) => Math.max(0, count - 1))
-  }, [])
-
   const handleActionComplete = useCallback(
     (ctx: ActionResultContext<unknown, unknown>) => {
+      const meta = findAction(ctx.actionId)
+      const now = new Date().toISOString()
+
+      // ── maya:regenerate-image ─────────────────────────────────────────────
+      // Patches the existing draft card in-place so its image updates live,
+      // then also appends a user trigger + result card so the regeneration is
+      // visible as a distinct chat thread entry.
       if (ctx.actionId === "maya:regenerate-image") {
         const regenResult = ctx.result as MayaImageRegenResult
         queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
           if (!prev) return prev
           const msgs = [...prev]
+
+          // Patch the original DraftCard so its image updates in place
           for (let i = msgs.length - 1; i >= 0; i--) {
             const m = msgs[i]
             if (m.customInput?.actionId === "maya:draft-content") {
@@ -478,12 +488,31 @@ export default function AssistantChatPage() {
               break
             }
           }
-          return msgs
+
+          // Append user trigger + result card
+          const userMsg: Message = {
+            role: "user",
+            content: meta?.label ?? "Regenerate image",
+            imageUrl: null,
+            createdAt: now,
+          }
+          const assistantMsg: Message = {
+            role: "assistant",
+            content: "Image regenerated.",
+            imageUrl: null,
+            createdAt: now,
+            customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult },
+          }
+          return [...msgs, userMsg, assistantMsg]
         })
         toast.success("Image regenerated.")
         return
       }
 
+      // ── maya:generate-variants ────────────────────────────────────────────
+      // Enriches the result with the original image from the last draft.
+      // The userMsg was already written by handleActionStart, so only the
+      // assistant result card is appended here.
       if (ctx.actionId === "maya:generate-variants") {
         const serverResult = ctx.result as MayaVariantResult
         let originalImage: ImageResult | null = null
@@ -495,25 +524,29 @@ export default function AssistantChatPage() {
           }
         }
         const enrichedResult: MayaVariantResult = { ...serverResult, _originalImage: originalImage }
-        const meta = findAction(ctx.actionId)
-        const msg: Message = {
+        const assistantMsg: Message = {
           role: "assistant",
           content: meta ? `${meta.label} — done.` : "Action complete.",
           imageUrl: null,
-          createdAt: new Date().toISOString(),
+          createdAt: now,
           customInput: { actionId: ctx.actionId, input: ctx.input, result: enrichedResult },
         }
-        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [...(prev ?? []), msg])
+        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
+          ...(prev ?? []),
+          assistantMsg,
+        ])
         toast.success(meta ? `${meta.label} complete.` : "Action complete.")
         return
       }
 
-      const meta = findAction(ctx.actionId)
-      const msg: Message = {
+      // ── all other actions ─────────────────────────────────────────────────
+      // The userMsg was already written by handleActionStart; only append the
+      // assistant result card here.
+      const assistantMsg: Message = {
         role: "assistant",
         content: meta ? `${meta.label} — done.` : "Action complete.",
         imageUrl: null,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
         customInput: {
           actionId: ctx.actionId,
           input: ctx.input,
@@ -522,7 +555,7 @@ export default function AssistantChatPage() {
       }
       queryClient.setQueryData<Message[]>(
         qk.chat(id, organizationId),
-        (prev) => [...(prev ?? []), msg],
+        (prev) => [...(prev ?? []), assistantMsg],
       )
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
     },
@@ -550,8 +583,6 @@ export default function AssistantChatPage() {
     [queryClient, id, organizationId],
   )
 
-  const searchParams = useSearchParams()
-
   const openAction = useCallback((actionId: AgentActionId, prefill?: Record<string, unknown>) => {
     setActivePrefill(prefill)
     setActiveActionId(actionId)
@@ -570,7 +601,7 @@ export default function AssistantChatPage() {
         router.push(`/assistants/${targetAgent}?${qs.toString()}`)
       }
     },
-    [id, openAction, router]
+    [id, openAction, router],
   )
 
   // On mount: if URL contains ?action=..., open that action dialog then clean the URL.
@@ -581,7 +612,7 @@ export default function AssistantChatPage() {
     const prefill = prefillStr ? (JSON.parse(prefillStr) as Record<string, unknown>) : undefined
     openAction(action, prefill)
     router.replace(`/assistants/${id}`)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount only
 
   const discoverCompetitorsPrefill = useMemo(() =>
@@ -603,21 +634,21 @@ export default function AssistantChatPage() {
   const openAnalyzeForSource = useCallback((source: LexSource) => {
     setLexTab("chat")
     openAction("lex:analyze-contract", { source_id: source.sourceId })
-  }, [])
+  }, [openAction])
 
   const openQueryForSource = useCallback((source: LexSource) => {
     setLexTab("chat")
     openAction("lex:query-document", { sourceId: source.sourceId })
-  }, [])
+  }, [openAction])
 
   const openUploadAction = useCallback(() => {
     setLexTab("chat")
     openAction("lex:upload-source")
-  }, [])
+  }, [openAction])
 
   const openCampaignAction = useCallback(() => {
     openAction("maya:campaign")
-  }, [])
+  }, [openAction])
 
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
 
@@ -959,7 +990,11 @@ export default function AssistantChatPage() {
           </div>
         )}
 
-        {!(isLex && lexTab === "documents") && !(isScout && scoutTab === "watchlist") && !(isSage && sageTab === "favourites") && !(isRex && rexTab === "data") && !(isMaya && mayaTab === "published") && (
+        {!(isLex && lexTab === "documents") &&
+          !(isScout && scoutTab === "watchlist") &&
+          !(isSage && sageTab === "favourites") &&
+          !(isRex && rexTab === "data") &&
+          !(isMaya && mayaTab === "published") && (
           <ChatInput
             value={content}
             onChange={setContent}
@@ -1004,8 +1039,8 @@ export default function AssistantChatPage() {
         conversationId={conversationIdRef.current}
         prefill={activePrefill}
         onStart={handleActionStart}
-        onSettled={handleActionSettled}
         onComplete={handleActionComplete}
+        onSubmittingChange={setActionSubmitting}
       />
     </div>
   )

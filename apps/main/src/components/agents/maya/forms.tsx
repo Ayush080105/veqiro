@@ -62,7 +62,7 @@ export function MayaIdeationForm({
       <RhfField control={form.control} name="platform" label="Platform" required>
         {({ field }) => (
           <PlatformPicker
-            value={field.value}
+            value={field.value as ContentPlatform}
             onChange={(p) => field.onChange(p)}
           />
         )}
@@ -196,7 +196,7 @@ export function MayaDraftForm({
         description={limitHint[platform]}
       >
         {({ field }) => (
-          <PlatformPicker value={field.value} onChange={field.onChange} />
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
         )}
       </RhfField>
 
@@ -457,7 +457,7 @@ export function MayaVariantsForm({
       >
         {({ field }) => (
           <PlatformMultiPicker
-            value={field.value}
+            value={field.value as ContentPlatform[]}
             onChange={field.onChange}
             exclude={[originalPlatform]}
           />
@@ -520,7 +520,7 @@ export function MayaReviseForm({
         required
       >
         {({ field }) => (
-          <PlatformPicker value={field.value} onChange={field.onChange} />
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
         )}
       </RhfField>
 
@@ -589,6 +589,17 @@ export function MayaImageRegenForm({
             onChange={field.onChange}
             placeholder="e.g. Bold product shot with dark background and brand colours."
           />
+        )}
+      </RhfField>
+
+      <RhfField
+        control={form.control}
+        name="platform"
+        label="Platform"
+        required
+      >
+        {({ field }) => (
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
         )}
       </RhfField>
 
@@ -679,7 +690,7 @@ export function MayaContentRegenForm({
         required
       >
         {({ field }) => (
-          <PlatformPicker value={field.value} onChange={field.onChange} />
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
         )}
       </RhfField>
     </FieldGroup>
@@ -896,7 +907,7 @@ export function MayaCampaignForm({
         required
       >
         {({ field }) => (
-          <PlatformPicker value={field.value} onChange={field.onChange} />
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
         )}
       </RhfField>
     </FieldGroup>

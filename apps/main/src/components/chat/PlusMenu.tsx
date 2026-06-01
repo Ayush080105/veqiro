@@ -34,7 +34,7 @@ export function PlusMenu({
   const actions = (AGENT_ACTIONS[agentSlug] ?? []).filter((a) => !a.hideFromMenu)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>What can {agentName} do?</DialogTitle>
