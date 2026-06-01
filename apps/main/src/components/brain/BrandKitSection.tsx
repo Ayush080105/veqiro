@@ -17,6 +17,7 @@ import {
   Palette,
   Trophy,
   ImageIcon,
+  Images,
   Loader2,
   Globe,
   PlusIcon,
@@ -41,6 +42,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 import { BrainCompletionBar } from "@/components/brain/BrainCompletionBar"
 import { AgentReadiness } from "@/components/brain/AgentReadiness"
+import { BrandImagesTab } from "@/components/brain/BrandImagesTab"
 import { Card } from "@/components/ui/card"
 import { CharCount } from "@/components/forms/CharCount"
 import { AssetUpload } from "@/components/forms/AssetUpload"
@@ -208,6 +210,10 @@ export function BrandKitSection({
           <TabsTrigger value="site-context">
             <Sparkles className="size-3.5" />
             Site Context
+          </TabsTrigger>
+          <TabsTrigger value="brand-images">
+            <Images className="size-3.5" />
+            Brand Images
           </TabsTrigger>
         </TabsList>
 
@@ -751,6 +757,11 @@ export function BrandKitSection({
               />
             </details>
           </VqSectionCard>
+        </TabsContent>
+
+        {/* Brand Images — persistent reference images for Maya */}
+        <TabsContent value="brand-images">
+          <BrandImagesTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -82,6 +82,11 @@ class IdeationResponse(BaseModel):
     model_used: str = ""
 
 
+class BrandImageRef(BaseModel):
+    url: str
+    prompt: str | None = None
+
+
 class DraftRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     organization_id: str = Field("", max_length=128)
@@ -96,6 +101,7 @@ class DraftRequest(BaseModel):
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
     use_reference: bool = False
     reference_images: list[str] = Field(default_factory=list, max_length=5)
+    brand_images: list[BrandImageRef] = Field(default_factory=list)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -132,6 +138,49 @@ class DraftResponse(BaseModel):
     image: ImageResult | None = None
     tokens_used: int = 0
     model_used: str = ""
+
+
+def _strip_duplicate_cta_hashtags(draft: DraftContent) -> DraftContent:
+    """Remove CTA and hashtag lines that the LLM leaked into the body field.
+
+    LLMs frequently write the complete post inside `body` (including CTA + hashtags)
+    even when instructed to keep them separate. This strips the trailing duplication
+    so the UI doesn't render those sections twice.
+    """
+    body = draft.body.rstrip()
+
+    # 1. Strip trailing hashtag lines — lines where every non-empty token starts with #
+    lines = body.split("\n")
+    while lines:
+        stripped_line = lines[-1].strip()
+        if not stripped_line:
+            lines.pop()
+            continue
+        tokens = stripped_line.split()
+        if tokens and all(t.startswith("#") for t in tokens):
+            lines.pop()
+        else:
+            break
+    body = "\n".join(lines).rstrip()
+
+    # 2. Strip the CTA from the end of body (exact match after stripping whitespace)
+    cta = (draft.cta or "").strip()
+    if cta and body.endswith(cta):
+        body = body[: -len(cta)].rstrip()
+
+    # 3. Normalise hashtags — strip leading # if the LLM included it despite instructions
+    hashtags = [h.lstrip("#") for h in draft.hashtags if h.strip()]
+
+    return DraftContent(
+        title=draft.title,
+        body=body,
+        hashtags=hashtags,
+        cta=draft.cta,
+        meta_description=draft.meta_description,
+        word_count=len(body.split()),
+        platform=draft.platform,
+        tone_used=draft.tone_used,
+    )
 
 
 class VariantRequest(BaseModel):
@@ -480,6 +529,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                     brand_kit=brand_kit,
                     context_hints=request.additional_context or "",
                     reference_urls=request.reference_images if request.use_reference else [],
+                    brand_images=request.brand_images or [],
                 )
             except Exception as _img_err:
                 logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
@@ -506,7 +556,11 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         "- Sound like the founder typed it themselves — direct, confident, no filler.\n"
         "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
         "- CTA: a direct question or action, not vague 'share your thoughts'.\n\n"
-        "Return JSON with: title, body, hashtags (list), cta, meta_description, word_count, platform, tone_used. "
+        "Return JSON with these exact fields: title, body, hashtags (list of strings WITHOUT the # symbol), cta, meta_description, word_count, platform, tone_used.\n"
+        "CRITICAL FIELD RULES:\n"
+        "- `body`: the post text ONLY — do NOT append the CTA or hashtags here. Body ends before the CTA.\n"
+        "- `cta`: the call-to-action sentence/line only — do NOT repeat it in body.\n"
+        "- `hashtags`: list of tag strings only, e.g. [\"Veqiro\", \"AI\"] — do NOT include them in body.\n"
         "Return ONLY the JSON object, no markdown fences."
     )
     raw = await _llm.complete(
@@ -518,6 +572,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         from core.utils import safe_json_loads
         data = safe_json_loads(raw)
         draft = DraftContent(**data)
+        draft = _strip_duplicate_cta_hashtags(draft)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Draft generation failed — retry. ({exc})")
 
@@ -533,6 +588,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 brand_kit=brand_kit,
                 context_hints=request.additional_context or "",
                 reference_urls=request.reference_images if request.use_reference else [],
+                brand_images=request.brand_images or [],
             )
         except Exception as _img_err:
             logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
@@ -975,47 +1031,54 @@ async def expand_brief(request: ExpandBriefRequest):
         temperature=0.85,
         max_tokens=2048,
     )
-    return ExpandBriefResponse(expanded=expanded.strip())
+    result = expanded.strip()
+    # Hard cap to stay under schema limits — trim at last sentence boundary if possible
+    _BRIEF_CHAR_LIMIT = 4800
+    if len(result) > _BRIEF_CHAR_LIMIT:
+        cutoff = result.rfind(".", 0, _BRIEF_CHAR_LIMIT)
+        result = result[: cutoff + 1] if cutoff > 0 else result[:_BRIEF_CHAR_LIMIT]
+    return ExpandBriefResponse(expanded=result)
 
 
 # ── Campaign Generator ────────────────────────────────────────────────────────
 
-_CAMPAIGN_SYSTEM_PROMPT = """You are an expert visual brand strategist and creative director specializing in high-converting social media campaign photography. Your job is to generate stunning, trend-aware product campaign images that stop the scroll.
+_CAMPAIGN_SYSTEM_PROMPT = """You are a creative director shooting a multi-image campaign. You receive a reference showing the campaign subject (a character, mascot, or person) — your job is to place that subject into completely original scenes, NOT to reproduce or copy the reference image.
 
-When generating campaign images, always apply these principles:
-- Study the product image provided and make it the HERO of every shot
-- Match the visual language to current social media trends (bold typography zones, cinematic lighting, lifestyle integration, editorial aesthetics)
-- Each image in the campaign must feel part of a cohesive series but have a DISTINCT composition (flat lay, lifestyle, close-up macro, editorial, dynamic motion blur, etc.)
-- Use color grading that is rich, intentional, and on-trend — avoid flat or generic renders
-- Leave clean zones for logo/text overlays when brand kit is enabled
-- The mood, setting, and style must directly reflect the campaign brief provided
+CRITICAL RULES FOR EVERY CAMPAIGN PHOTO:
+- The reference image is an IDENTITY REFERENCE only — it tells you what the subject looks like. Their face, costume, colors, and style must be recognizable. But the pose, angle, background, scene, and mood must be entirely your own creation.
+- Each photo in this series must be COMPOSITIONALLY UNIQUE — different camera angle, different pose, different scene, different depth of field, different environment. If one photo is a close-up portrait, the next must NOT be a close-up portrait.
+- Think like a photographer on a real shoot: same subject, but every frame is a fresh creative choice. Do NOT repeat yourself across frames.
+- Color palette and brand energy stay consistent. Everything else — angle, pose, environment, composition — changes per photo.
+- Avoid symmetrical frontal standing poses unless the role explicitly requires it. Default to dynamic, interesting angles.
 
-Output: One campaign-ready product photograph per generation call."""
+Output: One campaign photo per call. Commit fully to the assigned composition role."""
 
 _CAMPAIGN_ROLES: dict[int, list[str]] = {
-    1: ["hero product shot — perfect studio lighting, product centered, clean premium background"],
+    1: [
+        "HERO SHOT — Subject centered, bold studio lighting, confident direct gaze at camera, clean premium background. Classic power pose.",
+    ],
     2: [
-        "hero product shot — perfect studio lighting, product centered, clean premium background",
-        "lifestyle/editorial — product in a natural aspirational environment with human element or context",
+        "HERO SHOT — Subject centered, bold studio lighting, confident direct gaze at camera, clean premium background. Classic power pose.",
+        "LIFESTYLE/EDITORIAL — Subject actively doing something in a real aspirational environment. Side angle or three-quarter view. Scene tells a story.",
     ],
     3: [
-        "hero product shot — perfect studio lighting, product centered, clean premium background",
-        "lifestyle integration — product in a real-world aspirational environment",
-        "macro/detail close-up — extreme close-up highlighting the product's most compelling feature or texture",
+        "HERO SHOT — Subject centered, bold studio lighting, confident direct gaze at camera, clean premium background.",
+        "LIFESTYLE IN ENVIRONMENT — Subject in an aspirational real-world setting, NOT a studio. Three-quarter or side profile. They are engaged with their surroundings.",
+        "EXTREME CLOSE-UP / MACRO — Tight crop on the face, hands, or a key detail. Fill the entire frame. No full-body visible.",
     ],
     4: [
-        "hero product shot — perfect studio lighting, product centered, clean premium background",
-        "lifestyle integration — product in a real-world aspirational environment",
-        "flat lay with brand props — overhead shot with complementary lifestyle objects arranged artfully",
-        "editorial/action shot — dynamic angle or motion blur, product in use or mid-motion",
+        "HERO SHOT — Subject centered in studio, direct camera gaze, bold lighting, clean background. Full or half body.",
+        "LIFESTYLE ENVIRONMENT — Subject naturally integrated in a real-world aspirational scene. Profile or three-quarter angle. They are in motion or interacting with something.",
+        "FLAT LAY / OVERHEAD — Pure top-down bird's-eye view. Subject and props arranged on a surface. Camera is directly above. No standing pose — this is an overhead composition.",
+        "EDITORIAL / ACTION — Subject in motion: running, jumping, gesturing dynamically, or shot from a dramatic low or high angle. Fast energy. Motion blur or dramatic perspective.",
     ],
     6: [
-        "hero product shot — perfect studio lighting, product centered, clean premium background",
-        "lifestyle integration — product in a real-world aspirational environment",
-        "macro/detail close-up — extreme close-up of the product's most compelling feature",
-        "flat lay with brand props — overhead shot with complementary lifestyle objects",
-        "editorial/motion shot — dynamic angle, motion blur, or dramatic lighting",
-        "social proof/packaging overhead — product in packaging or grouped with accessories, top-down view",
+        "HERO SHOT — Subject centered in studio, direct camera gaze, bold lighting, clean background.",
+        "LIFESTYLE ENVIRONMENT — Subject in a real aspirational environment, three-quarter angle, engaged with surroundings.",
+        "EXTREME CLOSE-UP — Tight crop: face filling the frame, or hands/detail shot. Absolutely no full-body.",
+        "FLAT LAY / OVERHEAD — Pure top-down composition. Everything arranged on a surface viewed from directly above.",
+        "EDITORIAL / ACTION — Subject fully in motion or shot from a low dramatic angle. Energy, speed, dynamism.",
+        "WIDE ESTABLISHING — Subject small within a large, dramatic environment. Architecture, nature, or urban scene dominates. Subject is part of the world, not the center of the frame.",
     ],
 }
 
@@ -1024,9 +1087,10 @@ class CampaignRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     organization_id: str = Field("", max_length=128)
     product_image_url: str = Field(..., min_length=1)
-    campaign_brief: str = Field(..., min_length=1, max_length=2000)
+    campaign_brief: str = Field(..., min_length=1, max_length=5000)
     photo_count: int = Field(4)
-    use_brand_kit: bool = True
+    use_logo: bool = True
+    use_mascot: bool = True
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
 class CampaignPhoto(BaseModel):
     image: ImageResult
@@ -1073,7 +1137,7 @@ async def create_campaign(request: CampaignRequest):
         raise HTTPException(status_code=422, detail=f"photo_count must be one of {sorted(valid_counts)}")
 
     brand_kit = None
-    if request.use_brand_kit and request.organization_id:
+    if (request.use_logo or request.use_mascot) and request.organization_id:
         try:
             brand_kit = await load_brand_kit(request.organization_id)
         except Exception as bk_err:
@@ -1085,19 +1149,26 @@ async def create_campaign(request: CampaignRequest):
     # colour/mood/energy without the carousel anchor that locks composition too tightly.
     style_lock = _build_campaign_style_lock(request.campaign_brief, brand_kit, request.platform)
 
-    async def _gen_photo(role: str) -> CampaignPhoto | None:
+    total_photos = len(roles)
+
+    async def _gen_photo(role: str, photo_index: int) -> CampaignPhoto | None:
         hints = (
             f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
             f"{style_lock}\n\n"
-            f"COMPOSITION STYLE FOR THIS PHOTO: {role}\n\n"
+            f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n"
+            f"REQUIRED COMPOSITION FOR THIS PHOTO — commit fully to this, it must look NOTHING like the other photos:\n"
+            f"{role}\n\n"
+            f"DISTINCTNESS RULE: This photo must be immediately recognizable as different from all others in the series. "
+            f"Different camera angle, different pose, different scene depth, different energy level. "
+            f"If in doubt, push the composition further — be bolder, not safer.\n\n"
             f"CAMPAIGN BRIEF: {request.campaign_brief}"
         )
         try:
             image = await generate_social_image(
                 prompt=request.campaign_brief,
                 platform=request.platform,
-                use_logo=request.use_brand_kit,
-                use_mascot=request.use_brand_kit,
+                use_logo=request.use_logo,
+                use_mascot=request.use_mascot,
                 user_id=request.user_id,
                 organization_id=request.organization_id,
                 brand_kit=brand_kit,
@@ -1110,7 +1181,7 @@ async def create_campaign(request: CampaignRequest):
             logger.error("campaign image_gen failed | role=%s error=%s", role, err)
             return None
 
-    results = await asyncio.gather(*[_gen_photo(role) for role in roles], return_exceptions=True)
+    results = await asyncio.gather(*[_gen_photo(role, i) for i, role in enumerate(roles)], return_exceptions=True)
 
     photos = [p for p in results if p is not None and not isinstance(p, Exception)]
 

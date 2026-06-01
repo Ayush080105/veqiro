@@ -32,6 +32,7 @@ import {
 import type { ContentPlatform } from "@/lib/types/agents"
 import { uploadToR2 } from "@/lib/api/uploads"
 import { expandCampaignBrief } from "@/lib/api/assistants"
+import { BrandImagesSelector } from "@/components/agents/maya/BrandImagesSelector"
 
 const limitHint: Record<ContentPlatform, string> = {
   linkedin: "Max 3000 chars, 3-5 hashtags.",
@@ -368,6 +369,30 @@ export function MayaDraftForm({
           )}
         </div>
       )}
+
+      {includeImage && (
+        <div className="space-y-1.5">
+          <span className="text-xs text-muted-foreground">
+            Brand images
+            <span className="ml-1 opacity-60">(select from your saved assets)</span>
+          </span>
+          <BrandImagesSelector
+            selected={form.watch("brand_image_ids") ?? []}
+            prompts={form.watch("brand_image_prompts") ?? {}}
+            onSelectionChange={(ids) => form.setValue("brand_image_ids", ids)}
+            onPromptChange={(id, prompt) => {
+              const current = form.getValues("brand_image_prompts") ?? {}
+              if (prompt) {
+                form.setValue("brand_image_prompts", { ...current, [id]: prompt })
+              } else {
+                const next = { ...current }
+                delete next[id]
+                form.setValue("brand_image_prompts", next)
+              }
+            }}
+          />
+        </div>
+      )}
     </FieldGroup>
   )
 }
@@ -689,7 +714,8 @@ export function MayaCampaignForm({
   }
 
   const photoCount = form.watch("photo_count")
-  const useBrandKit = form.watch("use_brand_kit")
+  const useLogo = form.watch("use_logo")
+  const useMascot = form.watch("use_mascot")
   const [expanding, setExpanding] = React.useState(false)
 
   const handleExpand = async () => {
@@ -826,15 +852,33 @@ export function MayaCampaignForm({
         </div>
       </div>
 
-      {/* Brand Kit Toggle */}
+      {/* Logo overlay */}
       <Controller
         control={form.control}
-        name="use_brand_kit"
+        name="use_logo"
         render={({ field }) => (
           <label className="flex items-center justify-between gap-2 text-xs">
             <span className="text-muted-foreground">
-              Apply Logo & Mascot from Brand Kit
-              <span className="ml-1 text-[10px] opacity-60">overlays your brand assets</span>
+              Overlay logo
+              <span className="ml-1 text-[10px] opacity-60">from brand kit</span>
+            </span>
+            <Switch
+              checked={field.value ?? true}
+              onCheckedChange={field.onChange}
+            />
+          </label>
+        )}
+      />
+
+      {/* Mascot overlay */}
+      <Controller
+        control={form.control}
+        name="use_mascot"
+        render={({ field }) => (
+          <label className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              Overlay mascot
+              <span className="ml-1 text-[10px] opacity-60">from brand kit</span>
             </span>
             <Switch
               checked={field.value ?? true}

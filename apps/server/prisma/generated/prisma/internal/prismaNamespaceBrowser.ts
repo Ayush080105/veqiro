@@ -59,6 +59,7 @@ export const ModelName = {
   Member: 'Member',
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
+  BrandImage: 'BrandImage',
   Message: 'Message',
   AgentMemory: 'AgentMemory',
   OrgMemory: 'OrgMemory',
@@ -226,6 +227,19 @@ export const BrandKitScalarFieldEnum = {
 } as const
 
 export type BrandKitScalarFieldEnum = (typeof BrandKitScalarFieldEnum)[keyof typeof BrandKitScalarFieldEnum]
+
+
+export const BrandImageScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  url: 'url',
+  key: 'key',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrandImageScalarFieldEnum = (typeof BrandImageScalarFieldEnum)[keyof typeof BrandImageScalarFieldEnum]
 
 
 export const MessageScalarFieldEnum = {

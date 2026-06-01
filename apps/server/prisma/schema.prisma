@@ -178,6 +178,19 @@ model BrandKit {
   @@map("brand_kit")
 }
 
+model BrandImage {
+  id             String   @id @default(uuid())
+  organizationId String
+  url            String
+  key            String
+  name           String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("brand_image")
+}
+
 model Message{
   id     String @id @default(uuid())
   organizationId  String

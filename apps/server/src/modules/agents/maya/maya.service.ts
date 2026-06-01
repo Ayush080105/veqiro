@@ -1,4 +1,5 @@
 import { aiService } from "../../../common/utils/aiService.js";
+import { getBrandImagesForGeneration } from "../../brand-images/brand-images.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
@@ -195,6 +196,15 @@ export const draftContent = async (
     customInput: { actionId: "maya:draft-content", input },
   });
 
+  const brandImagesBase = await getBrandImagesForGeneration(
+    organizationId,
+    input.brandImageIds ?? [],
+  );
+  const brandImages = brandImagesBase.map((img) => ({
+    url: img.url,
+    prompt: input.brandImagePrompts?.[img.id] ?? null,
+  }));
+
   const { data } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
     user_id: userId,
     organization_id: organizationId,
@@ -208,6 +218,7 @@ export const draftContent = async (
     additional_context: input.additionalContext,
     use_reference: (input.inspirationImages?.length ?? 0) > 0,
     reference_images: input.inspirationImages ?? [],
+    brand_images: brandImages,
   });
 
   const hostedImage = await hostImage(organizationId, data.image);
@@ -662,7 +673,8 @@ export const createCampaign = async (
     product_image_url: input.productImageUrl,
     campaign_brief: input.campaignBrief,
     photo_count: input.photoCount,
-    use_brand_kit: input.useBrandKit,
+    use_logo: input.useLogo,
+    use_mascot: input.useMascot,
     platform: input.platform,
   });
 

@@ -23,6 +23,8 @@ export const mayaDraftSchema = z.object({
   inspiration_images: z.array(z.string().url()).max(5).optional(),
   make_carousel: z.boolean().optional(),
   carousel_count: z.number().int().min(2).max(8).optional(),
+  brand_image_ids: z.array(z.string()).max(20).optional(),
+  brand_image_prompts: z.record(z.string(), z.string().max(1000)).optional(),
 })
 export type MayaDraftValues = z.infer<typeof mayaDraftSchema>
 
@@ -70,9 +72,10 @@ export type MayaPublishValues = z.infer<typeof mayaPublishSchema>
 
 export const mayaCampaignSchema = z.object({
   product_image: z.instanceof(typeof window !== "undefined" ? File : Object).nullable(),
-  campaign_brief: z.string().min(1, "Campaign brief is required").max(2000),
+  campaign_brief: z.string().min(1, "Campaign brief is required").max(5000),
   photo_count: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6)]),
-  use_brand_kit: z.boolean(),
+  use_logo: z.boolean(),
+  use_mascot: z.boolean(),
   platform: platformSchema,
 })
 export type MayaCampaignValues = z.infer<typeof mayaCampaignSchema>

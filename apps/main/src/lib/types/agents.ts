@@ -995,7 +995,8 @@ export interface MayaCampaignRequest {
   product_image_url: string
   campaign_brief: string
   photo_count: 1 | 2 | 3 | 4 | 6
-  use_brand_kit: boolean
+  use_logo: boolean
+  use_mascot: boolean
   platform: ContentPlatform
 }
 

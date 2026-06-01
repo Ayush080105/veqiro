@@ -26,6 +26,8 @@ export const draftContentSchema = z.object({
   useMascot: z.boolean().optional().default(false),
   additionalContext: z.string().max(1000).nullable().optional(),
   inspirationImages: z.array(z.string().url()).max(5).optional().default([]),
+  brandImageIds: z.array(z.string().uuid()).max(20).optional().default([]),
+  brandImagePrompts: z.record(z.string().uuid(), z.string().max(1000)).optional().default({}),
 });
 
 export const generateVariantsSchema = z.object({
@@ -75,9 +77,10 @@ export const expandBriefSchema = z.object({
 
 export const campaignSchema = z.object({
   productImageUrl: z.string().url(),
-  campaignBrief: z.string().min(1).max(2000),
+  campaignBrief: z.string().min(1).max(5000),
   photoCount: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6)]).default(4),
-  useBrandKit: z.boolean().default(true),
+  useLogo: z.boolean().default(true),
+  useMascot: z.boolean().default(true),
   platform: platformEnum.default("instagram"),
 });
 

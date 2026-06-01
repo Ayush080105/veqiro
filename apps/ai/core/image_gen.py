@@ -125,30 +125,46 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         if fonts:
             fonts = f"Typography: {fonts}Use these fonts for all text in the image. "
 
-    # Brand identity
+    # Brand identity — framed as visual atmosphere direction, never as text to render
     brand = ""
     if brand_kit:
+        brand_parts = []
         if brand_kit.company_name:
-            brand += f"Brand: {brand_kit.company_name}. "
+            brand_parts.append(f"brand: {brand_kit.company_name}")
         if brand_kit.brand_voice:
-            brand += f"Brand voice/visual tone: {brand_kit.brand_voice}. "
+            brand_parts.append(f"visual atmosphere/mood: {brand_kit.brand_voice}")
         if brand_kit.key_differentiators:
-            brand += f"Brand tagline/differentiator (can use as visual sub-copy): \"{brand_kit.key_differentiators}\". "
+            brand_parts.append(f"brand personality: {brand_kit.key_differentiators}")
+        if brand_parts:
+            brand = (
+                f"[BRAND ATMOSPHERE — use to inform visual mood, style, and feel ONLY — "
+                f"do NOT copy, paraphrase, or render any of this as visible text in the image]: "
+                f"{'; '.join(brand_parts)}. "
+            )
 
-    # Audience & industry
+    # Audience & industry — context only, not text
     context = ""
     if brand_kit:
+        ctx_parts = []
         if brand_kit.industry:
-            context += f"Industry: {brand_kit.industry}. "
+            ctx_parts.append(f"industry: {brand_kit.industry}")
         if brand_kit.target_audience:
-            context += f"Audience: {brand_kit.target_audience}. "
+            ctx_parts.append(f"audience: {brand_kit.target_audience}")
+        if ctx_parts:
+            context = (
+                f"[AUDIENCE CONTEXT — for visual direction only, do NOT render as text]: "
+                f"{'; '.join(ctx_parts)}. "
+            )
 
-    # Platform-specific tone from brand kit
+    # Platform-specific tone — design energy direction only
     platform_tone = ""
     if brand_kit and brand_kit.platform_tones:
         tone = brand_kit.platform_tones.get(platform.lower())
         if tone:
-            platform_tone = f"Brand's {platform} tone: {tone}. "
+            platform_tone = (
+                f"[PLATFORM ENERGY — inform composition energy and feel ONLY, do NOT render as text]: "
+                f"{tone}. "
+            )
 
     # context_hints is composition/narrative guidance only — never rendered as text
     composition_context = (
@@ -183,8 +199,8 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     else:
         typography = (
             "TYPOGRAPHY: Include bold, well-designed text directly in the image. "
-            "Derive a SHORT punchy headline (3-6 words max) that captures the essence of the topic — do NOT copy the topic text verbatim. "
-            "Pull 1-2 key stats or power phrases from the brand/topic context and display them as supporting text. "
+            "Derive a SHORT punchy headline (3-6 words max) from the TOPIC ONLY — do NOT copy the topic text verbatim and do NOT lift phrases from the brand atmosphere or audience context sections. "
+            "You may add a very brief supporting line (5-8 words) relevant to the topic. "
             "Text must be clean, modern, perfectly legible, and part of the design — not an afterthought. "
         )
 
@@ -198,10 +214,11 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         "=== TEXT GUARDRAILS ===\n"
         "ABSOLUTELY NEVER render any of the following as visible text in the image:\n"
         "  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225) — apply as color values only, never print them\n"
-        "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [EXACT TEXT TO RENDER]\n"
+        "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [BRAND ATMOSPHERE], [AUDIENCE CONTEXT], [PLATFORM ENERGY], [EXACT TEXT TO RENDER]\n"
         "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb\n"
         "  ✗ Slide numbers, bullet markers, list syntax, or numbered sequences\n"
-        "  ✗ Any text from the composition context section\n"
+        "  ✗ Any text from the composition context, brand atmosphere, audience context, or platform energy sections\n"
+        "  ✗ Brand voice phrases, company differentiators, taglines, or audience descriptors — these inform visual style only, never appear as image text\n"
         + guardrails_extra
         + "=== END GUARDRAILS ==="
     )
@@ -241,6 +258,7 @@ async def generate_social_image(
     reference_urls: list[str] | None = None,
     carousel_anchor_b64: str | None = None,
     campaign_mode: bool = False,
+    brand_images: list | None = None,
 ) -> ImageResult:
     """Generate a premium social media image.
 
@@ -321,13 +339,14 @@ async def generate_social_image(
             extra_instructions: list[str] = []
 
             if campaign_mode:
-                # ── Campaign mode: product is the hero, not mood inspiration ──
+                # ── Campaign mode: subject identity reference, NOT pose/composition copy ──
                 product_instructions = "\n".join(
-                    f"Reference image {i+1} is the ACTUAL PRODUCT being photographed for this campaign. "
-                    f"This product MUST appear as the absolute focal hero in the generated image — "
-                    f"centred, prominent, perfectly lit. Reproduce its exact shape, label, branding, "
-                    f"colours, and proportions with complete fidelity. "
-                    f"DO NOT replace it with a generic stand-in or a different product."
+                    f"Reference image {i+1} shows the campaign subject (character, product, or mascot). "
+                    f"Use it to understand WHAT they look like — their visual identity, appearance, style, and colours. "
+                    f"Then REINTERPRET them in a completely original scene that matches the composition role specified. "
+                    f"The reference tells you WHO they are, NOT how to pose them. "
+                    f"Every photo in this campaign must show the subject from a DIFFERENT angle, in a DIFFERENT pose, "
+                    f"in a DIFFERENT scene or environment. Do NOT copy the reference image's pose, framing, or background."
                     for i in range(len(ref_images_ext))
                 )
 
@@ -352,10 +371,10 @@ async def generate_social_image(
                         idx = len(all_images)
                         extra_instructions.append(
                             f"Reference image {idx} is the brand logo. "
-                            f"Reproduce with pixel-perfect fidelity — exact shapes, colours, proportions. "
-                            f"Place as a SMALL tasteful overlay in one corner of the image "
-                            f"(no larger than 10% of image area). It should NOT compete with or "
-                            f"overshadow the product."
+                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                            f"Do NOT simplify, redraw, or reinterpret it. "
+                            f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
+                            f"occupying roughly 8-12% of the image width. Must not compete with the product hero."
                         )
                         logger.info("logo reference added (campaign mode) | user=%s", user_id)
 
@@ -389,10 +408,35 @@ async def generate_social_image(
                         idx = len(all_images)
                         extra_instructions.append(
                             f"Reference image {idx} is the brand logo. "
-                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, colors, proportions. "
-                            f"Place it prominently on a billboard, screen, or signage. Large, sharp, blended into the scene."
+                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                            f"Do NOT simplify, redraw, or reinterpret it. "
+                            f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
+                            f"occupying roughly 8-12% of the image width. Crisp and exact."
                         )
                         logger.info("logo reference added (ref mode) | user=%s", user_id)
+
+                if brand_images:
+                    import asyncio as _asyncio
+                    bi_urls = [bi.url if hasattr(bi, "url") else bi["url"] for bi in brand_images]
+                    bi_prompts = [bi.prompt if hasattr(bi, "prompt") else bi.get("prompt") for bi in brand_images]
+                    bi_bytes_list = await _asyncio.gather(*[_fetch_asset(url) for url in bi_urls])
+                    for bi_bytes, bi_prompt, bi_url in zip(bi_bytes_list, bi_prompts, bi_urls):
+                        if bi_bytes:
+                            all_images.append(bi_bytes)
+                            idx = len(all_images)
+                            if bi_prompt:
+                                extra_instructions.append(f"Reference image {idx}: {bi_prompt}")
+                            else:
+                                extra_instructions.append(
+                                    f"Reference image {idx} is a brand asset. "
+                                    f"Study its subjects, characters, objects, or visual elements. "
+                                    f"Recreate them within the newly generated scene in a pose, angle, or context "
+                                    f"that fits the composition naturally — do NOT copy the reference background or layout. "
+                                    f"Ensure the key subjects remain clearly present and recognizable."
+                                )
+                            logger.info("brand_image added (ref mode) | user=%s idx=%d", user_id, idx)
+                        else:
+                            logger.warning("brand_image fetch failed (ref mode) | user=%s url=%s", user_id, bi_url)
 
                 theme_instructions = "\n".join(
                     f"Reference image {i+1}: Study its overall theme, mood, and general visual direction. Use as loose inspiration only — do NOT copy layouts, text, or specific elements."
@@ -438,25 +482,47 @@ async def generate_social_image(
             idx = len(ref_images)
             ref_instructions.append(
                 f"Reference image {idx} is the brand logo. "
-                f"CRITICAL: reproduce the logo with PIXEL-PERFECT fidelity — exact same shapes, "
-                f"exact same colors, exact same proportions as the reference. Do NOT redraw it, "
-                f"simplify it, reinterpret it, or change anything about it. "
-                f"Place it prominently in the scene so it is immediately visible and occupies a "
-                f"meaningful area of the composition — on a large billboard, filling a screen or monitor, "
-                f"printed boldly on a product or packaging, or featured on signage. "
-                f"It must feel like a natural, intentional part of the scene — large, sharp, and blended in, "
-                f"not floating or pasted on top."
+                f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                f"Do NOT simplify, redraw, reinterpret, or approximate it. "
+                f"Place it as a clean, sharp overlay in one corner of the image (top-right or bottom-right preferred), "
+                f"occupying roughly 8-12% of the image width. It must look crisp and exactly like the reference."
             )
             logger.info("logo reference added | user=%s url=%s", user_id, brand_kit.logo_url)
         else:
             logger.warning("logo fetch failed | user=%s url=%s", user_id, brand_kit.logo_url)
 
+    # ── Persistent brand images: user-selected assets with optional instructions ──
+    if brand_images:
+        import asyncio as _asyncio
+        bi_urls = [bi.url if hasattr(bi, "url") else bi["url"] for bi in brand_images]
+        bi_prompts = [bi.prompt if hasattr(bi, "prompt") else bi.get("prompt") for bi in brand_images]
+        bi_bytes_list = await _asyncio.gather(*[_fetch_asset(url) for url in bi_urls])
+        for bi_bytes, bi_prompt, bi_url in zip(bi_bytes_list, bi_prompts, bi_urls):
+            if bi_bytes:
+                ref_images.append(bi_bytes)
+                idx = len(ref_images)
+                if bi_prompt:
+                    ref_instructions.append(f"Reference image {idx}: {bi_prompt}")
+                else:
+                    ref_instructions.append(
+                        f"Reference image {idx} is a brand asset. "
+                        f"Study its subjects, characters, objects, or visual elements. "
+                        f"Recreate them within the newly generated scene in a pose, angle, or context "
+                        f"that fits the composition naturally — do NOT copy the reference background or layout. "
+                        f"Ensure the key subjects remain clearly present and recognizable."
+                    )
+                logger.info("brand_image added | user=%s idx=%d has_prompt=%s", user_id, idx, bool(bi_prompt))
+            else:
+                logger.warning("brand_image fetch failed | user=%s url=%s", user_id, bi_url)
+
     if ref_images:
         logo_only = use_logo and not use_mascot and len(ref_images) == 1
         preamble = (
             "CRITICAL INSTRUCTION: Build a COMPLETELY NEW social media scene from scratch. "
-            "Do NOT edit, modify, or use the reference image itself as the scene. "
-            "The reference is ONLY the brand logo — extract it and place it into your newly created scene.\n\n"
+            "Do NOT use the reference image as the scene background. "
+            "The reference is the brand logo — reproduce it with PIXEL-PERFECT fidelity (exact shapes, colors, proportions) "
+            "and place it as a clean, sharp corner overlay in the newly created scene. "
+            "Do NOT simplify, redraw, or reinterpret the logo design.\n\n"
             if logo_only else ""
         )
         full_prompt = base_prompt + "\n\n" + preamble + "\n".join(ref_instructions)

@@ -82,6 +82,11 @@ export type Invitation = Prisma.InvitationModel
  */
 export type BrandKit = Prisma.BrandKitModel
 /**
+ * Model BrandImage
+ * 
+ */
+export type BrandImage = Prisma.BrandImageModel
+/**
  * Model Message
  * 
  */

@@ -392,6 +392,7 @@ export const ModelName = {
   Member: 'Member',
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
+  BrandImage: 'BrandImage',
   Message: 'Message',
   AgentMemory: 'AgentMemory',
   OrgMemory: 'OrgMemory',
@@ -425,7 +426,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "contentIdea" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxCache"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "contentIdea" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxCache"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1018,6 +1019,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.BrandKitCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.BrandKitCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrandImage: {
+      payload: Prisma.$BrandImagePayload<ExtArgs>
+      fields: Prisma.BrandImageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrandImageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrandImageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>
+        }
+        findFirst: {
+          args: Prisma.BrandImageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrandImageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>
+        }
+        findMany: {
+          args: Prisma.BrandImageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>[]
+        }
+        create: {
+          args: Prisma.BrandImageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>
+        }
+        createMany: {
+          args: Prisma.BrandImageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrandImageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>[]
+        }
+        delete: {
+          args: Prisma.BrandImageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>
+        }
+        update: {
+          args: Prisma.BrandImageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>
+        }
+        deleteMany: {
+          args: Prisma.BrandImageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrandImageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrandImageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>[]
+        }
+        upsert: {
+          args: Prisma.BrandImageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandImagePayload>
+        }
+        aggregate: {
+          args: Prisma.BrandImageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrandImage>
+        }
+        groupBy: {
+          args: Prisma.BrandImageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandImageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrandImageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandImageCountAggregateOutputType> | number
         }
       }
     }
@@ -2525,6 +2600,19 @@ export const BrandKitScalarFieldEnum = {
 export type BrandKitScalarFieldEnum = (typeof BrandKitScalarFieldEnum)[keyof typeof BrandKitScalarFieldEnum]
 
 
+export const BrandImageScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  url: 'url',
+  key: 'key',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrandImageScalarFieldEnum = (typeof BrandImageScalarFieldEnum)[keyof typeof BrandImageScalarFieldEnum]
+
+
 export const MessageScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -3114,6 +3202,7 @@ export type GlobalOmitConfig = {
   member?: Prisma.MemberOmit
   invitation?: Prisma.InvitationOmit
   brandKit?: Prisma.BrandKitOmit
+  brandImage?: Prisma.BrandImageOmit
   message?: Prisma.MessageOmit
   agentMemory?: Prisma.AgentMemoryOmit
   orgMemory?: Prisma.OrgMemoryOmit

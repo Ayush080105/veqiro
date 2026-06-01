@@ -14,6 +14,7 @@ import integrationsProtectedRouter, {
 } from "./modules/integrations/integrations.routes.js";
 import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
 import { getBrandKitInternal } from "./modules/brand-kit/brand-kit.controller.js";
+import brandImagesRouter from "./modules/brand-images/brand-images.routes.js";
 import { runWeeklyDigestNow, runDailyAlertsNow } from "./modules/agents/rex/rex.cron.js";
 import messagesRouter from "./modules/messages/messages.routes.js";
 import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
@@ -37,6 +38,7 @@ router.use("/agents",       authMiddleware, entitlementMiddleware, messagesRoute
 router.use("/dashboard", authMiddleware, dashboardRouter);
 
 router.use("/brand-kit", authMiddleware, brandKitRouter);
+router.use("/brand-images", authMiddleware, brandImagesRouter);
 router.get("/internal/brand-kit/:organizationId", internalKeyMiddleware, getBrandKitInternal);
 router.post("/internal/cron/rex-weekly-digest", internalKeyMiddleware, (_req, res) => {
   void runWeeklyDigestNow().then(() => res.json({ ok: true }));
