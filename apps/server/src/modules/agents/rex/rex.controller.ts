@@ -16,6 +16,8 @@ import {
   boardDeckSchema,
   ingestSchema,
   alertRuleSchema,
+  queryDatasetSchema,
+  analyzeDatasetSchema,
 } from "./rex.schema.js";
 import * as rexService from "./rex.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -170,6 +172,12 @@ export const patchSettings = async (req: Request, res: Response) => {
 
 const parseDatasetBodySchema = z.object({ r2Key: z.string().min(1) });
 
+const rawTableSchema = z.object({
+  headers: z.array(z.string()),
+  rows: z.array(z.record(z.string(), z.unknown())),
+  columnTypes: z.record(z.string(), z.enum(["date", "numeric", "categorical", "text"])),
+}).optional();
+
 const saveDatasetBodySchema = z.object({
   datasets: z.array(
     z.object({
@@ -188,6 +196,7 @@ const saveDatasetBodySchema = z.object({
       valueColumns: z.array(z.object({ column: z.string(), metricKey: z.string() })),
     })
     .optional(),
+  rawTable: rawTableSchema,
 });
 
 export const listDatasets = async (req: Request, res: Response) => {
@@ -205,9 +214,34 @@ export const parseDataset = async (req: Request, res: Response) => {
 
 export const saveDatasets = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
-  const { datasets, mapping } = saveDatasetBodySchema.parse(req.body);
-  const result = await rexService.saveDatasets(userId, organizationId, datasets, mapping);
+  const { datasets, mapping, rawTable } = saveDatasetBodySchema.parse(req.body);
+  // Attach rawTable to each dataset's meta so query-dataset can access the full table
+  const datasetsWithMeta = datasets.map((d) => ({
+    ...d,
+    meta: rawTable ? { rawTable } : undefined,
+  }));
+  const result = await rexService.saveDatasets(userId, organizationId, datasetsWithMeta, mapping);
   res.status(StatusCodes.CREATED).json(result);
+};
+
+// ── Query dataset (Ask REX about any uploaded CSV/Excel) ─────────────────────
+
+export const queryDataset = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const datasetId = req.params["id"] as string | undefined;
+  if (!datasetId) throw new BadRequestError("Dataset id is required");
+  const input = queryDatasetSchema.parse(req.body);
+  const result = await rexService.queryDataset(userId, organizationId, datasetId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const analyzeDataset = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const datasetId = req.params["id"] as string | undefined;
+  if (!datasetId) throw new BadRequestError("Dataset id is required");
+  analyzeDatasetSchema.parse(req.body);
+  const result = await rexService.analyzeDataset(userId, organizationId, datasetId);
+  res.status(StatusCodes.OK).json(result);
 };
 
 export const deleteDataset = async (req: Request, res: Response) => {

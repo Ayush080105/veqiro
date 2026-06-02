@@ -28,6 +28,8 @@ import {
   parseDataset,
   saveDatasets,
   deleteDataset,
+  queryDataset,
+  analyzeDataset,
 } from "./rex.controller.js";
 
 const router = Router();
@@ -67,10 +69,12 @@ router.patch("/settings", patchSettings);
 router.post("/api-key/generate", generateApiKey);
 router.post("/api-key/revoke", revokeApiKey);
 
-// Dataset CRUD
+// Dataset CRUD + natural language Q&A
 router.get("/datasets", listDatasets);
 router.post("/datasets/parse", parseDataset);
 router.post("/datasets", saveDatasets);
 router.delete("/datasets/:id", deleteDataset);
+router.post("/datasets/:id/query", queryDataset);
+router.post("/datasets/:id/analyze", analyzeDataset);
 
 export default router;

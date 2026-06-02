@@ -42,6 +42,8 @@ import {
   InvestorUpdateCard,
   VarianceCard,
   BoardDeckCard,
+  RexQueryDatasetCard,
+  RexAnalyzeDatasetCard,
 } from "@/components/agents/rex/cards"
 // Lex
 import {
@@ -137,6 +139,14 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
       return <VarianceCard result={r} onFollowUpAction={onFollowUpAction} />
     case "rex:board-deck":
       return <BoardDeckCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "rex:query-dataset": {
+      const qr = result as { _datasetName?: string; _query?: string }
+      return <RexQueryDatasetCard result={r} datasetName={qr._datasetName} query={qr._query} onFollowUpAction={onFollowUpAction} />
+    }
+    case "rex:analyze-dataset": {
+      const ar = result as { _datasetName?: string }
+      return <RexAnalyzeDatasetCard result={r} datasetName={ar._datasetName} onFollowUpAction={onFollowUpAction} />
+    }
 
     case "lex:upload-source":
       return <DocumentIngestCard result={r} />

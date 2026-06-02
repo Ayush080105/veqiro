@@ -7,6 +7,9 @@ import * as rexRepository from "./rex.repository.js";
 import { parseUploaded } from "./rex.csv.js";
 import type {
   SendMessageInput,
+  QueryDatasetInput,
+  QueryDatasetResponse,
+  AnalyzeDatasetResponse,
   AssistantMessagePayload,
   AnalyzeMetricsInput,
   AnalyzeMetricsResponse,
@@ -27,16 +30,36 @@ import type {
   InvestorUpdateInput,
   InvestorUpdateResponse,
 } from "./rex.types.js";
+import type { RawTable } from "./rex.csv.js";
 
 export const sendMessage = async (
   userId: string,
   organizationId: string,
   input: SendMessageInput
 ) => {
-  const history = await rexRepository.findRecentMessages(
-    organizationId,
-    CONTEXT_HISTORY_LIMIT
-  );
+  const [history, datasets] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    rexRepository.findDatasets(organizationId),
+  ]);
+
+  // Build a brief dataset context summary so REX can answer data questions in chat
+  let datasetContext = "";
+  if (datasets.length > 0) {
+    const summaries = datasets.slice(0, 5).map((ds) => {
+      const meta = ds.meta as Record<string, unknown> | null;
+      const rawTable = meta?.rawTable as RawTable | undefined;
+      const pts = ds.points as Array<{ date: string; value: number }>;
+      if (rawTable && rawTable.headers.length > 0) {
+        const types = Object.entries(rawTable.columnTypes)
+          .map(([col, t]) => `${col}(${t})`)
+          .join(", ");
+        return `• ${ds.name} [${rawTable.rows.length} rows, columns: ${types}]`;
+      }
+      return `• ${ds.name} [metric=${ds.metricKey}, ${pts.length} data points, period=${ds.period}]`;
+    });
+    datasetContext = `\n\nUser's uploaded datasets:\n${summaries.join("\n")}`;
+  }
+
   const userMessage = await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -45,7 +68,7 @@ export const sendMessage = async (
   const responseData = await callAgentWithContext({
     agentApiPath: "/ai/rex/chat",
     agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
+    agentRole: `Rex: Data analytics and reporting assistant.${datasetContext}`,
     userId,
     organizationId,
     conversationId: userMessage.id,
@@ -75,6 +98,133 @@ export const sendMessage = async (
 
 export const listMessages = (organizationId: string) =>
   rexRepository.findAllRexMessages(organizationId);
+
+// ── Query dataset: natural language Q&A on any uploaded CSV/Excel ─────────────
+
+export const queryDataset = async (
+  userId: string,
+  organizationId: string,
+  datasetId: string,
+  input: QueryDatasetInput
+) => {
+  const dataset = await rexRepository.findDataset(datasetId, organizationId);
+  if (!dataset) {
+    throw new BadRequestError("Dataset not found");
+  }
+
+  // Extract table data: prefer rawTable from meta, fall back to points for legacy datasets
+  const meta = dataset.meta as Record<string, unknown> | null;
+  const rawTable = meta?.rawTable as RawTable | undefined;
+  const points = dataset.points as Array<{ date: string; value: number }>;
+
+  let tableForAI: Record<string, unknown>;
+  if (rawTable && rawTable.headers.length > 0) {
+    tableForAI = {
+      headers: rawTable.headers,
+      rows: rawTable.rows.slice(0, 300),
+      columnTypes: rawTable.columnTypes,
+    };
+  } else if (points.length > 0) {
+    // Legacy dataset — synthesize a table from time-series points
+    tableForAI = {
+      headers: ["date", dataset.metricKey],
+      rows: points.map((p) => ({ date: p.date, [dataset.metricKey]: p.value })),
+      columnTypes: { date: "date", [dataset.metricKey]: "numeric" },
+    };
+  } else {
+    throw new BadRequestError("Dataset has no data to query");
+  }
+
+  await rexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: input.query,
+    customInput: { actionId: "rex:query-dataset", datasetId, datasetName: dataset.name },
+  });
+
+  const { data } = await aiService.post<QueryDatasetResponse>("/ai/rex/query-dataset", {
+    user_id: userId,
+    organization_id: organizationId,
+    dataset_name: dataset.name,
+    query: input.query,
+    table: tableForAI,
+  });
+
+  // Embed dataset name and original query inside result so the chat card can display them
+  const resultWithMeta = { ...data, _datasetName: dataset.name, _query: input.query };
+
+  await rexRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: data.answer ?? "Query complete.",
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "rex:query-dataset", datasetId, result: resultWithMeta },
+  });
+
+  return resultWithMeta;
+};
+
+// ── Analyze dataset — full automatic AI analysis ──────────────────────────────
+
+export const analyzeDataset = async (
+  userId: string,
+  organizationId: string,
+  datasetId: string,
+) => {
+  const dataset = await rexRepository.findDataset(datasetId, organizationId);
+  if (!dataset) {
+    throw new BadRequestError("Dataset not found");
+  }
+
+  const meta = dataset.meta as Record<string, unknown> | null;
+  const rawTable = meta?.rawTable as RawTable | undefined;
+  const points = dataset.points as Array<{ date: string; value: number }>;
+
+  let tableForAI: Record<string, unknown>;
+  if (rawTable && rawTable.headers.length > 0) {
+    tableForAI = {
+      headers: rawTable.headers,
+      rows: rawTable.rows.slice(0, 300),
+      columnTypes: rawTable.columnTypes,
+    };
+  } else if (points.length > 0) {
+    tableForAI = {
+      headers: ["date", dataset.metricKey],
+      rows: points.map((p) => ({ date: p.date, [dataset.metricKey]: p.value })),
+      columnTypes: { date: "date", [dataset.metricKey]: "numeric" },
+    };
+  } else {
+    throw new BadRequestError("Dataset has no data to analyze");
+  }
+
+  await rexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Analyze dataset: ${dataset.name}`,
+    customInput: { actionId: "rex:analyze-dataset", datasetId, datasetName: dataset.name },
+  });
+
+  const { data } = await aiService.post<AnalyzeDatasetResponse>("/ai/rex/analyze-dataset", {
+    user_id: userId,
+    organization_id: organizationId,
+    dataset_name: dataset.name,
+    table: tableForAI,
+  });
+
+  const resultWithMeta = { ...data, _datasetName: dataset.name };
+
+  await rexRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: data.summary ?? "Analysis complete.",
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "rex:analyze-dataset", datasetId, result: resultWithMeta },
+  });
+
+  return resultWithMeta;
+};
 
 export const analyzeMetrics = async (
   userId: string,

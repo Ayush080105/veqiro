@@ -1307,3 +1307,337 @@ async def board_deck(request: BoardDeckRequest) -> BoardDeckResponse:
         period=request.period, headline=headline, sections=sections, html=html,
         tokens_used=tokens_used, model_used=_agent.default_model,
     )
+
+
+# ── Query dataset — natural language Q&A on any uploaded CSV/Excel ─────────────
+
+class RawTablePayload(BaseModel):
+    headers: list[str] = []
+    rows: list[dict] = []
+    columnTypes: dict[str, str] = {}
+
+
+class QueryDatasetRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    dataset_name: str = "Dataset"
+    query: str
+    table: RawTablePayload
+
+
+class ChartYKey(BaseModel):
+    key: str
+    label: str
+    color: str
+
+
+class ChartSpec(BaseModel):
+    type: str  # "bar" | "line" | "pie" | "scatter" | "table"
+    title: str
+    data: list[dict]
+    xKey: str
+    yKeys: list[ChartYKey]
+
+
+class QueryDatasetResponse(BaseModel):
+    answer: str
+    chart: ChartSpec | None = None
+    tokens_used: int = 0
+    model_used: str = ""
+
+
+CHART_COLORS = ["#1DBC87", "#6366F1", "#f59e0b", "#ef4444", "#8b5cf6",
+                "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#14b8a6"]
+
+
+@router.post("/query-dataset", response_model=QueryDatasetResponse, summary="Natural language Q&A on any dataset")
+async def query_dataset(request: QueryDatasetRequest) -> QueryDatasetResponse:
+    """Answer any natural language question about an uploaded CSV/Excel table,
+    with an optional dynamic chart spec."""
+
+    if settings.MOCK_MODE:
+        return QueryDatasetResponse(
+            answer=f"Mock answer for: {request.query}",
+            chart=None,
+            tokens_used=0,
+            model_used="mock",
+        )
+
+    table = request.table
+    headers = table.headers
+    rows = table.rows[:200]  # cap to avoid context overflow
+    col_types = table.columnTypes
+
+    # Build a compact table representation for the LLM
+    col_summary = ", ".join(
+        f"{h} ({col_types.get(h, 'unknown')})" for h in headers
+    )
+
+    # Format rows as a readable CSV-like string (first 50 rows for context)
+    preview_rows = rows[:50]
+    if preview_rows:
+        row_lines = [", ".join(str(r.get(h, "")) for h in headers) for r in preview_rows]
+        table_text = "\n".join(row_lines)
+    else:
+        table_text = "(no rows)"
+
+    total_rows = len(table.rows)
+
+    system = await _agent.build_system_prompt(
+        request.user_id, request.organization_id, use_brand_kit=False
+    )
+
+    numeric_cols = [h for h in headers if col_types.get(h) == "numeric"]
+    date_cols = [h for h in headers if col_types.get(h) == "date"]
+    cat_cols = [h for h in headers if col_types.get(h) == "categorical"]
+
+    prompt = f"""You are Rex, an expert data analyst. The user has uploaded a dataset called "{request.dataset_name}" with {total_rows} rows.
+
+Dataset columns: {col_summary}
+
+Sample data (first {len(preview_rows)} rows):
+{headers[0] if headers else ""}{", " + ", ".join(headers[1:]) if len(headers) > 1 else ""}
+{table_text}
+
+User's question: {request.query}
+
+Answer the question based on the data provided. If the question asks for a chart or visualization, include a chart specification.
+
+Respond with a JSON object containing:
+- "answer": string — your analytical answer (2-5 sentences, reference specific numbers from the data)
+- "chart": object or null — include ONLY if the question asks for a chart/visualization or a chart would clearly help. If included:
+  - "type": one of "bar", "line", "pie", "scatter", "table"
+  - "title": short descriptive title
+  - "data": array of objects (max 20 items), each row is one data point
+  - "xKey": the field name used for the x-axis / labels
+  - "yKeys": array of {{"key": fieldName, "label": displayLabel, "color": hexColor}} (use colors from: {CHART_COLORS[:5]})
+
+Guidelines:
+- For "Show me a chart", "visualize", "bar chart", "compare" queries → include chart
+- For "summarize", "what is", "average", "find" queries → answer only, chart=null
+- Keep data arrays concise (top 10-20 items if aggregating)
+- Use actual values from the dataset rows above, do not invent data"""
+
+    raw = await _llm.complete(
+        provider=_agent.default_provider,
+        model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+        response_format={"type": "json_object"},
+    )
+
+    tokens_used = _llm.count_tokens(raw)
+
+    try:
+        parsed = safe_json_loads(raw)
+        answer = parsed.get("answer", "Analysis complete.")
+        chart_raw = parsed.get("chart")
+        chart = None
+        if chart_raw and isinstance(chart_raw, dict):
+            y_keys_raw = chart_raw.get("yKeys", [])
+            y_keys = []
+            for i, yk in enumerate(y_keys_raw):
+                if isinstance(yk, dict):
+                    y_keys.append(ChartYKey(
+                        key=yk.get("key", "value"),
+                        label=yk.get("label", yk.get("key", "value")),
+                        color=yk.get("color", CHART_COLORS[i % len(CHART_COLORS)]),
+                    ))
+            chart_data = chart_raw.get("data", [])
+            if chart_data and y_keys:
+                chart = ChartSpec(
+                    type=chart_raw.get("type", "bar"),
+                    title=chart_raw.get("title", ""),
+                    data=chart_data,
+                    xKey=chart_raw.get("xKey", headers[0] if headers else "x"),
+                    yKeys=y_keys,
+                )
+    except Exception:
+        answer = raw[:500] if raw else "Could not parse response."
+        chart = None
+
+    return QueryDatasetResponse(
+        answer=answer,
+        chart=chart,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )
+
+
+# ── Analyze dataset — full automatic business analysis ────────────────────────
+
+class AnalyzeDatasetRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    dataset_name: str = "Dataset"
+    table: RawTablePayload
+
+
+class ColumnStat(BaseModel):
+    min: float | None = None
+    max: float | None = None
+    mean: float | None = None
+    unique_count: int | None = None
+    sample_values: list[str] = []
+
+
+class AnalyzeDatasetResponse(BaseModel):
+    summary: str
+    key_findings: list[str] = []
+    column_stats: dict[str, ColumnStat] = {}
+    insights: list[str] = []
+    recommendations: list[str] = []
+    chart: ChartSpec | None = None
+    tokens_used: int = 0
+    model_used: str = ""
+
+
+def _compute_column_stats(headers: list[str], rows: list[dict], col_types: dict[str, str]) -> dict:
+    stats = {}
+    for h in headers:
+        values = [r.get(h) for r in rows if r.get(h) not in (None, "", "N/A", "n/a")]
+        col_type = col_types.get(h, "text")
+        if col_type == "numeric":
+            nums = []
+            for v in values:
+                try:
+                    nums.append(float(str(v).replace(",", "").replace("$", "").replace("%", "").strip()))
+                except Exception:
+                    pass
+            if nums:
+                stats[h] = ColumnStat(
+                    min=min(nums),
+                    max=max(nums),
+                    mean=round(sum(nums) / len(nums), 2),
+                    unique_count=len(set(nums)),
+                )
+        elif col_type in ("categorical", "text"):
+            str_vals = [str(v) for v in values]
+            stats[h] = ColumnStat(
+                unique_count=len(set(str_vals)),
+                sample_values=list(dict.fromkeys(str_vals))[:5],
+            )
+    return stats
+
+
+@router.post("/analyze-dataset", response_model=AnalyzeDatasetResponse, summary="Full automatic AI analysis of any dataset")
+async def analyze_dataset(request: AnalyzeDatasetRequest) -> AnalyzeDatasetResponse:
+    """Auto-analyze the entire dataset and return business insights, patterns, and strategic recommendations."""
+
+    if settings.MOCK_MODE:
+        return AnalyzeDatasetResponse(
+            summary=f"Mock analysis of {request.dataset_name}.",
+            key_findings=["Mock finding 1", "Mock finding 2"],
+            insights=["Mock insight"],
+            recommendations=["Mock recommendation"],
+            tokens_used=0,
+            model_used="mock",
+        )
+
+    table = request.table
+    headers = table.headers
+    rows = table.rows
+    col_types = table.columnTypes
+
+    total_rows = len(rows)
+    preview_rows = rows[:50]
+
+    # Compute stats client-side to save tokens
+    col_stats = _compute_column_stats(headers, rows[:500], col_types)
+
+    col_summary = ", ".join(f"{h} ({col_types.get(h, 'unknown')})" for h in headers)
+    stats_text = json.dumps(
+        {k: v.model_dump(exclude_none=True) for k, v in col_stats.items()},
+        indent=2
+    )
+
+    # Build a sample of data rows
+    row_lines = [", ".join(str(r.get(h, "")) for h in headers) for r in preview_rows[:30]]
+    table_text = "\n".join(row_lines)
+
+    system = await _agent.build_system_prompt(
+        request.user_id, request.organization_id, use_brand_kit=False
+    )
+
+    prompt = f"""You are Rex, a world-class data analyst. Perform a comprehensive analysis of this dataset called "{request.dataset_name}".
+
+Dataset: {total_rows} rows × {len(headers)} columns
+Columns: {col_summary}
+
+Pre-computed statistics per column:
+{stats_text}
+
+Sample data (first {len(preview_rows[:30])} rows):
+{", ".join(headers)}
+{table_text}
+
+Provide a thorough business analysis. Respond with a JSON object containing:
+- "summary": string — executive summary (3-4 sentences covering what the data is, key patterns, and overall health)
+- "key_findings": array of 4-6 strings — the most important specific findings with actual numbers (e.g. "Revenue peaked at $45K in March, 23% above average")
+- "insights": array of 3-5 strings — deeper patterns, correlations, or anomalies discovered
+- "recommendations": array of 3-5 strings — specific, actionable next steps based on the data
+- "chart": object or null — the single most impactful visualization for this data:
+  - "type": "bar" | "line" | "pie" | "scatter"
+  - "title": chart title
+  - "data": array of up to 15 data points
+  - "xKey": field name for x-axis
+  - "yKeys": array of {{"key": str, "label": str, "color": str}} (use colors: {CHART_COLORS[:4]})
+
+Be specific — reference actual column names and numbers from the statistics. Think like a senior data analyst presenting to a CEO."""
+
+    raw = await _llm.complete(
+        provider=_agent.default_provider,
+        model=_agent.default_model,
+        system=system,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+        response_format={"type": "json_object"},
+    )
+
+    tokens_used = _llm.count_tokens(raw)
+
+    try:
+        parsed = safe_json_loads(raw)
+        summary = parsed.get("summary", "Analysis complete.")
+        key_findings = parsed.get("key_findings", [])
+        insights = parsed.get("insights", [])
+        recommendations = parsed.get("recommendations", [])
+        chart_raw = parsed.get("chart")
+        chart = None
+        if chart_raw and isinstance(chart_raw, dict):
+            y_keys_raw = chart_raw.get("yKeys", [])
+            y_keys = []
+            for i, yk in enumerate(y_keys_raw):
+                if isinstance(yk, dict):
+                    y_keys.append(ChartYKey(
+                        key=yk.get("key", "value"),
+                        label=yk.get("label", yk.get("key", "value")),
+                        color=yk.get("color", CHART_COLORS[i % len(CHART_COLORS)]),
+                    ))
+            chart_data = chart_raw.get("data", [])
+            if chart_data and y_keys:
+                chart = ChartSpec(
+                    type=chart_raw.get("type", "bar"),
+                    title=chart_raw.get("title", ""),
+                    data=chart_data,
+                    xKey=chart_raw.get("xKey", headers[0] if headers else "x"),
+                    yKeys=y_keys,
+                )
+    except Exception:
+        summary = raw[:400] if raw else "Analysis failed."
+        key_findings = []
+        insights = []
+        recommendations = []
+        chart = None
+
+    return AnalyzeDatasetResponse(
+        summary=summary,
+        key_findings=key_findings,
+        column_stats={k: v for k, v in col_stats.items()},
+        insights=insights,
+        recommendations=recommendations,
+        chart=chart,
+        tokens_used=tokens_used,
+        model_used=_agent.default_model,
+    )

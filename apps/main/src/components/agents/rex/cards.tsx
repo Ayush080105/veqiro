@@ -33,6 +33,11 @@ import { cn } from "@/lib/utils"
 import { createPin, sharePin } from "@/lib/api/rex"
 import { PINS_KEY } from "@/components/agents/rex/today-panel"
 import { ScenarioSliders } from "@/components/agents/rex/scenario-sliders"
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from "recharts"
+import { MessageSquare, BarChart2, Sparkles, TrendingUp as TrendUp, Lightbulb, CheckCircle2 } from "lucide-react"
 import type {
   RexAnalyzeMetricsResult,
   RexForecastResult,
@@ -46,6 +51,9 @@ import type {
   RexInvestorUpdateResult,
   RexVarianceResult,
   RexBoardDeckResult,
+  RexQueryDatasetResult,
+  RexQueryDatasetChartSpec,
+  RexAnalyzeDatasetResult,
   DataPoint,
   AgentActionId,
 } from "@/lib/types/agents"
@@ -1135,3 +1143,300 @@ export function BoardDeckCard({
 
 // ─── AlertTriangle is used by VarianceCard ──────────────────────────────────
 void AlertTriangle
+
+// ─── Dynamic chart renderer ──────────────────────────────────────────────────
+
+const CHART_COLORS = [
+  "#1DBC87", "#6366F1", "#f59e0b", "#ef4444", "#8b5cf6",
+  "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#14b8a6",
+]
+
+function DynamicChart({ spec }: { spec: RexQueryDatasetChartSpec }) {
+  if (spec.type === "table") {
+    const allKeys = spec.xKey ? [spec.xKey, ...spec.yKeys.map((y) => y.key)] : spec.yKeys.map((y) => y.key)
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px] border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-muted/50">
+              {allKeys.map((k) => (
+                <th key={k} className="px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{k}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {spec.data.map((row, i) => (
+              <tr key={i} className={cn("border-b border-border/50", i % 2 === 0 ? "bg-background" : "bg-muted/20")}>
+                {allKeys.map((k) => (
+                  <td key={k} className="px-2 py-1.5">{String(row[k] ?? "—")}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  if (spec.type === "pie") {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <PieChart>
+          <Pie
+            data={spec.data}
+            dataKey={spec.yKeys[0]?.key ?? "value"}
+            nameKey={spec.xKey}
+            cx="50%"
+            cy="50%"
+            outerRadius={80}
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            labelLine={false}
+          >
+            {spec.data.map((_, idx) => (
+              <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  if (spec.type === "scatter") {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <ScatterChart>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey={spec.xKey} tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Scatter data={spec.data} fill={CHART_COLORS[0]} />
+        </ScatterChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  if (spec.type === "line") {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={spec.data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey={spec.xKey} tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          {spec.yKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 10 }} />}
+          {spec.yKeys.map((y, i) => (
+            <Line
+              key={y.key}
+              type="monotone"
+              dataKey={y.key}
+              name={y.label}
+              stroke={y.color || CHART_COLORS[i % CHART_COLORS.length]}
+              strokeWidth={2}
+              dot={false}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  // Default: bar chart
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={spec.data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+        <XAxis dataKey={spec.xKey} tick={{ fontSize: 10 }} />
+        <YAxis tick={{ fontSize: 10 }} />
+        <Tooltip />
+        {spec.yKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 10 }} />}
+        {spec.yKeys.map((y, i) => (
+          <Bar
+            key={y.key}
+            dataKey={y.key}
+            name={y.label}
+            fill={y.color || CHART_COLORS[i % CHART_COLORS.length]}
+            radius={[2, 2, 0, 0]}
+          />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+// ─── Query Dataset Card ───────────────────────────────────────────────────────
+
+export function RexQueryDatasetCard({
+  result,
+  datasetName,
+  query,
+  onFollowUpAction,
+}: {
+  result: RexQueryDatasetResult
+  datasetName?: string
+  query?: string
+  onFollowUpAction?: FollowUp
+}) {
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header
+        icon={<MessageSquare />}
+        title={datasetName ? `Ask REX · ${datasetName}` : "Ask REX"}
+        right={
+          <div className="flex items-center gap-1.5">
+            {result.chart && (
+              <Badge variant="secondary" className="text-[10px] capitalize">
+                <BarChart2 className="size-2.5 mr-0.5" />
+                {result.chart.type}
+              </Badge>
+            )}
+            <PinButton kind="query-dataset" payload={{ result, datasetName, query }} />
+          </div>
+        }
+      />
+      <AgentCard.Body className="flex flex-col gap-3">
+        {query && (
+          <div className="border-l-2 pl-2" style={{ borderColor: "var(--vq-green)" }}>
+            <p className="text-[11px] italic text-muted-foreground leading-snug">"{query}"</p>
+          </div>
+        )}
+        <p className="text-[12px] leading-relaxed whitespace-pre-wrap">{result.answer}</p>
+        {result.chart && (
+          <div className="flex flex-col gap-1.5">
+            {result.chart.title && (
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                {result.chart.title}
+              </p>
+            )}
+            <DynamicChart spec={result.chart} />
+          </div>
+        )}
+        {onFollowUpAction && result.answer && (
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+            <FollowUpBtn
+              label="Turn into a post · Maya"
+              icon={ArrowRight}
+              onClick={() => onFollowUpAction("maya:draft-content" as AgentActionId, {
+                topic: datasetName ? `Key insight from ${datasetName}` : "Data insight",
+                platform: "linkedin",
+                additional_context: result.answer.slice(0, 800),
+              })}
+            />
+          </div>
+        )}
+      </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── Analyze Dataset Card ─────────────────────────────────────────────────────
+
+export function RexAnalyzeDatasetCard({
+  result,
+  datasetName,
+  onFollowUpAction,
+}: {
+  result: RexAnalyzeDatasetResult
+  datasetName?: string
+  onFollowUpAction?: FollowUp
+}) {
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header
+        icon={<Sparkles />}
+        title={datasetName ? `Analysis · ${datasetName}` : "Dataset analysis"}
+        right={<PinButton kind="analyze-dataset" payload={{ result, datasetName }} />}
+      />
+      <AgentCard.Body className="flex flex-col gap-4">
+        {/* Summary */}
+        <p className="text-[12px] leading-relaxed">{result.summary}</p>
+
+        {/* Key findings */}
+        {result.key_findings?.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <TrendUp className="size-3" /> Key findings
+            </p>
+            <ul className="flex flex-col gap-1">
+              {result.key_findings.map((f, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-[11px]">
+                  <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-[#1DBC87]" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Chart */}
+        {result.chart && (
+          <div className="flex flex-col gap-1.5">
+            {result.chart.title && (
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                {result.chart.title}
+              </p>
+            )}
+            <DynamicChart spec={result.chart} />
+          </div>
+        )}
+
+        {/* Insights */}
+        {result.insights?.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Lightbulb className="size-3" /> Insights
+            </p>
+            <ul className="flex flex-col gap-1">
+              {result.insights.map((ins, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="mt-1 size-1 shrink-0 rounded-full bg-muted-foreground" />
+                  {ins}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {result.recommendations?.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <CheckCircle2 className="size-3" /> Recommendations
+            </p>
+            <ul className="flex flex-col gap-1">
+              {result.recommendations.map((rec, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-[11px]">
+                  <span className="mt-0.5 shrink-0 font-mono text-[9px] text-muted-foreground">{i + 1}.</span>
+                  {rec}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Handoffs */}
+        {onFollowUpAction && (
+          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+            <FollowUpBtn
+              label="Share insights · Maya"
+              icon={ArrowRight}
+              onClick={() => onFollowUpAction("maya:draft-content" as AgentActionId, {
+                topic: result.summary?.slice(0, 300) ?? (datasetName ? `${datasetName} analysis` : "Data analysis"),
+                platform: "linkedin",
+                additional_context: result.key_findings?.slice(0, 3).join("\n") ?? "",
+              })}
+            />
+            <FollowUpBtn
+              label="Generate post ideas · Maya"
+              icon={ArrowRight}
+              onClick={() => onFollowUpAction("maya:generate-ideas" as AgentActionId, {
+                topic_hint: result.summary?.slice(0, 200) ?? (datasetName ?? "data analysis"),
+                platform: "linkedin",
+              })}
+            />
+          </div>
+        )}
+      </AgentCard.Body>
+    </AgentCard>
+  )
+}

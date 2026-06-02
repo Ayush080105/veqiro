@@ -915,6 +915,7 @@ export default function AssistantChatPage() {
               setRexTab("chat")
               openAction(actionId as AgentActionId, prefill)
             }}
+            onSwitchToChat={() => setRexTab("chat")}
           />
         </div>
       ) : historyLoaded && !hasMessages && !isBusy ? (

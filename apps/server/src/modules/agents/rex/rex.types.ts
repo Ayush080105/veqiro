@@ -10,9 +10,11 @@ import {
   scenarioSchema,
   weeklyDigestSchema,
   investorUpdateSchema,
+  queryDatasetSchema,
 } from "./rex.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type QueryDatasetInput = z.infer<typeof queryDatasetSchema>;
 export type AnalyzeMetricsInput = z.infer<typeof analyzeMetricsSchema>;
 export type ForecastInput = z.infer<typeof forecastSchema>;
 export type FinancialAnalysisInput = z.infer<typeof financialAnalysisSchema>;
@@ -149,6 +151,38 @@ export interface VarianceResponse {
   total_variance_pct: number;
   headline: string;
   narrative: string;
+  tokens_used?: number;
+  model_used?: string;
+}
+
+export interface AnalyzeDatasetResponse {
+  summary: string;
+  key_findings: string[];
+  column_stats: Record<string, {
+    min?: number;
+    max?: number;
+    mean?: number;
+    unique_count?: number;
+    sample_values?: string[];
+  }>;
+  insights: string[];
+  recommendations: string[];
+  chart?: QueryDatasetChartSpec;
+  tokens_used?: number;
+  model_used?: string;
+}
+
+export interface QueryDatasetChartSpec {
+  type: "bar" | "line" | "pie" | "scatter" | "table";
+  title: string;
+  data: Record<string, unknown>[];
+  xKey: string;
+  yKeys: Array<{ key: string; label: string; color: string }>;
+}
+
+export interface QueryDatasetResponse {
+  answer: string;
+  chart?: QueryDatasetChartSpec;
   tokens_used?: number;
   model_used?: string;
 }

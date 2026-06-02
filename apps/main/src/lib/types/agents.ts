@@ -385,6 +385,12 @@ export interface RexAnalyzeMetricsResult {
   confidence_level?: "high" | "medium" | "low"
 }
 
+export interface RexRawTable {
+  headers: string[]
+  rows: Record<string, string>[]
+  columnTypes: Record<string, "date" | "numeric" | "categorical" | "text">
+}
+
 export interface RexDatasetRecord {
   id: string
   organizationId: string
@@ -394,8 +400,51 @@ export interface RexDatasetRecord {
   period: string
   purpose: "actual" | "budget"
   points: DataPoint[]
+  meta?: { rawTable?: RexRawTable } | null
   createdAt: string
   updatedAt: string
+}
+
+export interface RexQueryDatasetChartSpec {
+  type: "bar" | "line" | "pie" | "scatter" | "table"
+  title: string
+  data: Record<string, unknown>[]
+  xKey: string
+  yKeys: Array<{ key: string; label: string; color: string }>
+}
+
+export interface RexQueryDatasetRequest {
+  query: string
+}
+
+export interface RexQueryDatasetResult {
+  answer: string
+  chart?: RexQueryDatasetChartSpec
+  tokens_used?: number
+  model_used?: string
+}
+
+export interface RexAnalyzeDatasetRequest {
+  dataset_id: string
+}
+
+export interface RexColumnStat {
+  min?: number
+  max?: number
+  mean?: number
+  unique_count?: number
+  sample_values?: string[]
+}
+
+export interface RexAnalyzeDatasetResult {
+  summary: string
+  key_findings: string[]
+  column_stats: Record<string, RexColumnStat>
+  insights: string[]
+  recommendations: string[]
+  chart?: RexQueryDatasetChartSpec
+  tokens_used?: number
+  model_used?: string
 }
 
 export interface RexForecastRequest {
@@ -1040,6 +1089,8 @@ export type AgentActionId =
   | "rex:investor-update"
   | "rex:variance"
   | "rex:board-deck"
+  | "rex:query-dataset"
+  | "rex:analyze-dataset"
   | "lex:upload-source"
   | "lex:analyze-contract"
   | "lex:query-document"

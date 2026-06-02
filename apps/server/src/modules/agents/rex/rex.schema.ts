@@ -106,6 +106,16 @@ export const ingestSchema = z.object({
   period: z.enum(["daily", "weekly", "monthly", "quarterly"]).optional(),
 });
 
+// ── Query dataset (natural language Q&A on any uploaded CSV/Excel) ───────────
+
+export const queryDatasetSchema = z.object({
+  query: z.string().min(1).max(2000),
+});
+
+// ── Analyze dataset (full automatic AI analysis) ─────────────────────────────
+
+export const analyzeDatasetSchema = z.object({});
+
 // ── Alert rules (C2) ────────────────────────────────────────────────────────
 
 export const alertRuleSchema = z.object({

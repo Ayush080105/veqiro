@@ -12,6 +12,12 @@ export interface ColumnMapping {
   valueColumns: Array<{ column: string; metricKey: string }>;
 }
 
+export interface RawTable {
+  headers: string[];
+  rows: Record<string, string>[];
+  columnTypes: Record<string, "date" | "numeric" | "categorical" | "text">;
+}
+
 export interface ParseResult {
   candidate_mapping: ColumnMapping;
   sample_rows: Record<string, string>[];
@@ -19,6 +25,7 @@ export interface ParseResult {
   datasets: Array<{ metricKey: string; points: DataRow[] }>;
   warnings: string[];
   saved_mapping?: ColumnMapping | null;
+  rawTable: RawTable;
 }
 
 const METRIC_KEY_PATTERNS: Array<{ pattern: RegExp; metricKey: string }> = [
@@ -361,6 +368,7 @@ export function parseRows(rows: Record<string, unknown>[]): {
         sample_rows: [],
         headers: [],
         datasets: [],
+        rawTable: { headers: [], rows: [], columnTypes: {} },
         warnings: ["No rows found in upload"],
       },
     };
@@ -375,7 +383,7 @@ export function parseRows(rows: Record<string, unknown>[]): {
     return nonEmpty > 0;
   });
   if (headers.length < 2) {
-    warnings.push("CSV has fewer than 2 usable columns — at least one date column and one value column are required");
+    warnings.push("CSV has fewer than 2 usable columns — limited analysis available");
   }
 
   // Per-column profile
@@ -389,6 +397,20 @@ export function parseRows(rows: Record<string, unknown>[]): {
       isCategorical: isCategoricalString(vals),
     };
   });
+
+  // Build rawTable — always populated, used for natural language Q&A on any CSV
+  const columnTypes: Record<string, "date" | "numeric" | "categorical" | "text"> = {};
+  for (const p of profile) {
+    if (p.isDate) columnTypes[p.header] = "date";
+    else if (p.isNumeric) columnTypes[p.header] = "numeric";
+    else if (p.isCategorical) columnTypes[p.header] = "categorical";
+    else columnTypes[p.header] = "text";
+  }
+  const rawTable: RawTable = {
+    headers,
+    rows: rows.slice(0, 500) as Record<string, string>[],
+    columnTypes,
+  };
 
   // ── Long-format detection: date col + categorical metric col + numeric value col
   const dateCols = profile.filter((p) => p.isDate);
@@ -419,6 +441,7 @@ export function parseRows(rows: Record<string, unknown>[]): {
           sample_rows: rows.slice(0, 5) as Record<string, string>[],
           headers,
           datasets,
+          rawTable,
           warnings,
         },
       };
@@ -444,7 +467,7 @@ export function parseRows(rows: Record<string, unknown>[]): {
     });
 
   if (valueCols.length === 0) {
-    warnings.push("No numeric value columns detected — REX needs at least one column with numbers");
+    warnings.push("No numeric value columns detected — dataset saved for text Q&A analysis");
   }
 
   // Note skipped non-numeric columns
@@ -466,12 +489,23 @@ export function parseRows(rows: Record<string, unknown>[]): {
     warnings.push(`${valueCols.length - datasets.length} column${valueCols.length - datasets.length > 1 ? "s" : ""} produced no usable data points (date or value parsing failed)`);
   }
 
+  // Fallback: always produce exactly one dataset so any CSV can be uploaded for Q&A.
+  // We do NOT create one dataset per column here — the full table lives in rawTable
+  // (stored in meta on save) and is used by the query-dataset endpoint for all columns.
+  if (datasets.length === 0) {
+    datasets.push({ metricKey: "table", points: [] });
+    if (valueCols.length > 0) {
+      warnings.push(`No time-series data extracted (${valueCols.length} numeric column${valueCols.length > 1 ? "s" : ""} found) — dataset available for Ask REX Q&A`);
+    }
+  }
+
   return {
     result: {
       candidate_mapping: { dateColumn: dateCol, valueColumns: valueCols },
       sample_rows: rows.slice(0, 5) as Record<string, string>[],
       headers,
       datasets,
+      rawTable,
       warnings,
     },
   };
@@ -518,6 +552,7 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
         sample_rows: [],
         headers: [],
         datasets: [],
+        rawTable: { headers: [], rows: [], columnTypes: {} },
         warnings: [`CSV parse error on row ${first.row}: ${first.message}`],
       };
     }
@@ -563,6 +598,7 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
       sample_rows: [],
       headers: [],
       datasets: [],
+      rawTable: { headers: [], rows: [], columnTypes: {} },
       warnings: ["No usable sheets in workbook"],
     };
   }

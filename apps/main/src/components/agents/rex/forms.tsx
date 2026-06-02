@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Plus, X, Database, ChevronDown } from "lucide-react"
+import { Plus, X, Database, ChevronDown, Send, Sparkles, Loader2 } from "lucide-react"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { Controller } from "react-hook-form"
-import { useQuery } from "@tanstack/react-query"
 
-import { listDatasets } from "@/lib/api/rex"
+import { listDatasets, queryDataset, analyzeDataset } from "@/lib/api/rex"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
@@ -13,7 +13,7 @@ import { DataPointTable, CountedTextarea } from "@/components/chat/ActionForm/fi
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
 import { cn } from "@/lib/utils"
-import type { DataPoint, RexDatasetRecord } from "@/lib/types/agents"
+import type { DataPoint, RexDatasetRecord, RexQueryDatasetResult, RexAnalyzeDatasetResult } from "@/lib/types/agents"
 import {
   rexAnalyzeMetricsSchema,
   type RexAnalyzeMetricsValues,
@@ -38,6 +38,10 @@ import {
   rexBoardDeckSchema,
   type RexBoardDeckValues,
   REX_PERIODS,
+  rexQueryDatasetSchema,
+  type RexQueryDatasetValues,
+  rexAnalyzeDatasetSchema,
+  type RexAnalyzeDatasetValues,
 } from "@/lib/schemas/agents/rex"
 // ─── Dataset picker ──────────────────────────────────────────────────────────
 
@@ -1201,5 +1205,335 @@ export function RexBriefingForm({
         )}
       />
     </FieldGroup>
+  )
+}
+
+// ─── Ask REX about any dataset ────────────────────────────────────────────────
+
+const SUGGESTED_QUESTIONS = [
+  "Summarize this dataset",
+  "Show me a bar chart",
+  "What are the trends?",
+  "Find anomalies or outliers",
+  "What is the average value?",
+  "Which category has the highest value?",
+  "Compare columns",
+  "Show top 10 rows",
+]
+
+export function RexQueryDatasetForm({
+  initialDatasetId,
+  onResult,
+}: {
+  initialDatasetId?: string
+  onResult?: (result: RexQueryDatasetResult, datasetName: string, query: string) => void
+}) {
+  const { data: datasets = [] } = useQuery<RexDatasetRecord[]>({
+    queryKey: REX_DATASETS_QK,
+    queryFn: listDatasets,
+    staleTime: 30_000,
+  })
+
+  const [selectedDatasetId, setSelectedDatasetId] = React.useState(initialDatasetId ?? "")
+  const [query, setQuery] = React.useState("")
+
+  const selectedDataset = datasets.find((d) => d.id === selectedDatasetId)
+
+  // Generate contextual suggestions based on detected column types
+  const suggestions = React.useMemo(() => {
+    if (!selectedDataset?.meta?.rawTable) return SUGGESTED_QUESTIONS.slice(0, 4)
+    const ct = selectedDataset.meta.rawTable.columnTypes
+    const hasDate = Object.values(ct).includes("date")
+    const hasNumeric = Object.values(ct).includes("numeric")
+    const hasCategorical = Object.values(ct).includes("categorical")
+    const numericCols = Object.entries(ct).filter(([, t]) => t === "numeric").map(([k]) => k)
+    const catCols = Object.entries(ct).filter(([, t]) => t === "categorical").map(([k]) => k)
+    const out: string[] = ["Summarize this dataset"]
+    if (hasDate && hasNumeric) out.push("What are the trends over time?")
+    if (hasNumeric) out.push(`Show me a chart of ${numericCols[0] ?? "values"}`)
+    if (hasCategorical && hasNumeric) out.push(`Which ${catCols[0] ?? "category"} has the highest ${numericCols[0] ?? "value"}?`)
+    if (numericCols.length >= 2) out.push(`Compare ${numericCols[0]} vs ${numericCols[1]}`)
+    out.push("Find anomalies or outliers")
+    return out.slice(0, 5)
+  }, [selectedDataset])
+
+  const mutation = useMutation({
+    mutationFn: () => queryDataset(selectedDatasetId, { query }),
+    onSuccess: (result) => {
+      onResult?.(result, selectedDataset?.name ?? "", query)
+      setQuery("")
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedDatasetId || !query.trim()) return
+    mutation.mutate()
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {/* Dataset picker */}
+      <div>
+        <p className="mb-1 text-[10px] text-muted-foreground">Dataset</p>
+        <div className="relative">
+          <select
+            value={selectedDatasetId}
+            onChange={(e) => setSelectedDatasetId(e.target.value)}
+            className="w-full appearance-none border border-border bg-background px-2 py-1.5 pr-6 text-[12px]"
+          >
+            <option value="" disabled>Select a dataset…</option>
+            {datasets.map((d) => {
+              const rowCount = d.meta?.rawTable?.rows?.length ?? d.points.length
+              return (
+                <option key={d.id} value={d.id}>
+                  {d.name} — {rowCount} rows
+                </option>
+              )
+            })}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      </div>
+
+      {/* Column type info */}
+      {selectedDataset?.meta?.rawTable && (
+        <div className="flex flex-wrap gap-1">
+          {Object.entries(selectedDataset.meta.rawTable.columnTypes).map(([col, type]) => (
+            <span
+              key={col}
+              className="border border-border bg-muted/30 px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground"
+            >
+              {col}
+              <span className={cn(
+                "ml-1",
+                type === "date" && "text-blue-500",
+                type === "numeric" && "text-green-600",
+                type === "categorical" && "text-purple-500",
+              )}>
+                {type === "date" ? "📅" : type === "numeric" ? "#" : type === "categorical" ? "Aa" : "T"}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Suggested questions */}
+      {selectedDatasetId && (
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setQuery(s)}
+              className={cn(
+                "border border-dashed border-border px-2 py-0.5 text-[10px] hover:bg-muted",
+                query === s && "border-solid border-primary bg-primary/5 text-primary"
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Question input */}
+      <div className="relative">
+        <textarea
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ask anything about your data… e.g. 'Show me a bar chart of sales by region'"
+          rows={3}
+          className="w-full resize-none border border-border bg-background p-2 pr-10 text-[12px] placeholder:text-muted-foreground focus:outline-none"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(e as unknown as React.FormEvent)
+          }}
+        />
+        <button
+          type="submit"
+          disabled={!selectedDatasetId || !query.trim() || mutation.isPending}
+          className="absolute bottom-2 right-2 flex items-center gap-1 border border-border bg-background px-2 py-1 text-[10px] hover:bg-muted disabled:opacity-40"
+        >
+          {mutation.isPending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
+          Ask
+        </button>
+      </div>
+
+      {mutation.isError && (
+        <p className="text-[11px] text-destructive">
+          {mutation.error instanceof Error ? mutation.error.message : "Something went wrong"}
+        </p>
+      )}
+
+      {/* Sparkles hint */}
+      {!selectedDatasetId && datasets.length === 0 && (
+        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Sparkles className="size-3" />
+          Upload a CSV or Excel file in the Data tab to get started
+        </p>
+      )}
+    </form>
+  )
+}
+
+// ─── Action-dialog form: Ask about a dataset ──────────────────────────────────
+// Uses {value, onChange} pattern for RunActionDialog
+
+export function RexQueryDatasetActionForm({
+  value,
+  onChange,
+}: {
+  value: RexQueryDatasetValues
+  onChange: (patch: Partial<RexQueryDatasetValues>) => void
+}) {
+  const { data: datasets = [] } = useQuery<RexDatasetRecord[]>({
+    queryKey: REX_DATASETS_QK,
+    queryFn: listDatasets,
+    staleTime: 30_000,
+  })
+
+  const selected = datasets.find((d) => d.id === value.dataset_id)
+  const ct = selected?.meta?.rawTable?.columnTypes ?? {}
+  const numCols = Object.entries(ct).filter(([, t]) => t === "numeric").map(([k]) => k)
+  const catCols = Object.entries(ct).filter(([, t]) => t === "categorical").map(([k]) => k)
+  const hasDate = Object.values(ct).includes("date")
+
+  const suggestions: string[] = ["Summarize this dataset"]
+  if (hasDate && numCols.length) suggestions.push("What are the trends over time?")
+  if (numCols.length) suggestions.push(`Show me a ${hasDate ? "line" : "bar"} chart`)
+  if (catCols.length && numCols.length) suggestions.push(`Which ${catCols[0]} has the highest ${numCols[0]}?`)
+  if (numCols.length >= 2) suggestions.push(`Compare ${numCols[0]} vs ${numCols[1]}`)
+  suggestions.push("Find anomalies or outliers")
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <p className="mb-1 text-[10px] text-muted-foreground">Dataset</p>
+        <div className="relative">
+          <select
+            value={value.dataset_id}
+            onChange={(e) => onChange({ dataset_id: e.target.value })}
+            className="w-full appearance-none border border-border bg-background px-2 py-1.5 pr-6 text-[12px]"
+          >
+            <option value="" disabled>Select a dataset…</option>
+            {datasets.map((d) => {
+              const rows = d.meta?.rawTable?.rows?.length ?? d.points.length
+              return (
+                <option key={d.id} value={d.id}>
+                  {d.name} — {rows} rows
+                </option>
+              )
+            })}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      </div>
+
+      {value.dataset_id && (
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.slice(0, 4).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange({ query: s })}
+              className={cn(
+                "border border-dashed border-border px-2 py-0.5 text-[10px] hover:bg-muted",
+                value.query === s && "border-solid border-primary bg-primary/5 text-primary"
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <p className="mb-1 text-[10px] text-muted-foreground">Your question</p>
+        <textarea
+          value={value.query}
+          onChange={(e) => onChange({ query: e.target.value })}
+          placeholder="Ask anything about your data…"
+          rows={3}
+          className="w-full resize-none border border-border bg-background p-2 text-[12px] placeholder:text-muted-foreground focus:outline-none"
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Action-dialog form: Analyze dataset ─────────────────────────────────────
+
+export function RexAnalyzeDatasetForm({
+  value,
+  onChange,
+}: {
+  value: RexAnalyzeDatasetValues
+  onChange: (patch: Partial<RexAnalyzeDatasetValues>) => void
+}) {
+  const { data: datasets = [] } = useQuery<RexDatasetRecord[]>({
+    queryKey: REX_DATASETS_QK,
+    queryFn: listDatasets,
+    staleTime: 30_000,
+  })
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start gap-2 border border-border bg-muted/20 p-3">
+        <Sparkles className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div>
+          <p className="text-[12px] font-medium">Automatic deep analysis</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            REX will analyze your entire dataset and generate business insights, patterns, statistics, and strategic recommendations — no question needed.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1 text-[10px] text-muted-foreground">Dataset to analyze</p>
+        <div className="relative">
+          <select
+            value={value.dataset_id}
+            onChange={(e) => onChange({ dataset_id: e.target.value })}
+            className="w-full appearance-none border border-border bg-background px-2 py-1.5 pr-6 text-[12px]"
+          >
+            <option value="" disabled>Select a dataset…</option>
+            {datasets.map((d) => {
+              const rows = d.meta?.rawTable?.rows?.length ?? d.points.length
+              const cols = d.meta?.rawTable?.headers?.length ?? 1
+              return (
+                <option key={d.id} value={d.id}>
+                  {d.name} — {rows} rows × {cols} columns
+                </option>
+              )
+            })}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      </div>
+
+      {value.dataset_id && (() => {
+        const ds = datasets.find((d) => d.id === value.dataset_id)
+        const ct = ds?.meta?.rawTable?.columnTypes ?? {}
+        if (!Object.keys(ct).length) return null
+        return (
+          <div className="flex flex-wrap gap-1">
+            {Object.entries(ct).map(([col, type]) => (
+              <span
+                key={col}
+                className={cn(
+                  "border px-1.5 py-0.5 font-mono text-[9px]",
+                  type === "date" && "border-blue-200 bg-blue-50 text-blue-700",
+                  type === "numeric" && "border-green-200 bg-green-50 text-green-700",
+                  type === "categorical" && "border-purple-200 bg-purple-50 text-purple-700",
+                  type === "text" && "border-border bg-muted/30 text-muted-foreground",
+                )}
+              >
+                {col} <span className="opacity-60">({type})</span>
+              </span>
+            ))}
+          </div>
+        )
+      })()}
+    </div>
   )
 }

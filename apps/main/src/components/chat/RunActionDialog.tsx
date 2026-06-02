@@ -49,7 +49,10 @@ import {
   RexInvestorUpdateForm,
   RexVarianceForm,
   RexBoardDeckForm,
+  RexQueryDatasetActionForm,
+  RexAnalyzeDatasetForm,
 } from "@/components/agents/rex/forms"
+import { queryDataset, analyzeDataset } from "@/lib/api/rex"
 // Lex forms
 import {
   LexUploadSourceForm,
@@ -360,6 +363,19 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     defaultValue: { period: "", metrics: {}, highlights: [], risks: [], ask: "" },
     Form: RexBoardDeckForm,
     validate: (v) => (v.period?.trim() ? null : "Period is required."),
+  },
+  "rex:query-dataset": {
+    defaultValue: { dataset_id: "", query: "" },
+    Form: RexQueryDatasetActionForm,
+    validate: (v) =>
+      !v.dataset_id ? "Select a dataset." : !v.query?.trim() ? "Enter a question." : null,
+    customSubmit: async (v) => queryDataset(v.dataset_id, { query: v.query }),
+  },
+  "rex:analyze-dataset": {
+    defaultValue: { dataset_id: "" },
+    Form: RexAnalyzeDatasetForm,
+    validate: (v) => (v.dataset_id ? null : "Select a dataset."),
+    customSubmit: async (v) => analyzeDataset(v.dataset_id),
   },
 
   "lex:upload-source": {

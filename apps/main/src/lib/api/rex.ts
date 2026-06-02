@@ -27,6 +27,9 @@ import type {
   RexVarianceResult,
   RexBoardDeckRequest,
   RexBoardDeckResult,
+  RexQueryDatasetRequest,
+  RexQueryDatasetResult,
+  RexAnalyzeDatasetResult,
 } from "@/lib/types/agents"
 
 export const analyzeMetrics = (body: RexAnalyzeMetricsRequest) =>
@@ -132,3 +135,17 @@ export const sharePin = (id: string, isPublic: boolean) =>
     `/agents/rex/pins/${id}/share`,
     { method: "PATCH", body: { isPublic } }
   )
+
+// Query dataset — natural language Q&A on any uploaded CSV/Excel
+export const queryDataset = (datasetId: string, body: RexQueryDatasetRequest) =>
+  apiFetch<RexQueryDatasetResult>(`/agents/rex/datasets/${datasetId}/query`, {
+    method: "POST",
+    body,
+  })
+
+// Analyze dataset — full automatic AI analysis with insights & recommendations
+export const analyzeDataset = (datasetId: string) =>
+  apiFetch<RexAnalyzeDatasetResult>(`/agents/rex/datasets/${datasetId}/analyze`, {
+    method: "POST",
+    body: {},
+  })

@@ -168,6 +168,22 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
   ],
   rex: [
     {
+      id: "rex:query-dataset",
+      agent: "rex",
+      endpoint: "datasets/query",
+      label: "Ask about a dataset",
+      description: "Ask any natural language question about an uploaded CSV or Excel file.",
+      icon: "MessageSquare",
+    },
+    {
+      id: "rex:analyze-dataset",
+      agent: "rex",
+      endpoint: "datasets/analyze",
+      label: "Analyze dataset",
+      description: "Full AI-powered analysis of any dataset — insights, patterns, and business recommendations.",
+      icon: "Sparkles",
+    },
+    {
       id: "rex:analyze-metrics",
       agent: "rex",
       endpoint: "analyze-metrics",
@@ -190,6 +206,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Financial analysis",
       description: "MRR, ARR, churn, burn, runway and recommendations.",
       icon: "DollarSign",
+      hideFromMenu: true,
     },
     {
       id: "rex:compile-briefing",
@@ -198,6 +215,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Executive briefing",
       description: "Stitch metrics + agent summaries into one briefing.",
       icon: "Newspaper",
+      hideFromMenu: true,
     },
     {
       id: "rex:runway",
@@ -206,6 +224,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Runway scenarios",
       description: "Calculate cash runway with base, optimistic, and pessimistic scenarios.",
       icon: "Hourglass",
+      hideFromMenu: true,
     },
     {
       id: "rex:unit-economics",
@@ -214,6 +233,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Unit economics",
       description: "Compute CAC, LTV, LTV:CAC ratio, and payback period with benchmarks.",
       icon: "Coins",
+      hideFromMenu: true,
     },
     {
       id: "rex:scenario",
@@ -222,6 +242,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "What-if scenarios",
       description: "Model burn, MRR, and growth changes to compare runway outcomes.",
       icon: "GitBranch",
+      hideFromMenu: true,
     },
     {
       id: "rex:weekly-digest",
@@ -230,6 +251,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Weekly CFO digest",
       description: "Monday morning digest with WoW changes, alerts, and 3 focus actions.",
       icon: "CalendarRange",
+      hideFromMenu: true,
     },
     {
       id: "rex:investor-update",
@@ -238,6 +260,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Investor update",
       description: "Draft a structured investor update email with metrics and asks.",
       icon: "Mail",
+      hideFromMenu: true,
     },
     {
       id: "rex:variance",
@@ -246,6 +269,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Variance analysis",
       description: "Compare an actual dataset against a budget dataset month by month.",
       icon: "AlertTriangle",
+      hideFromMenu: true,
     },
     {
       id: "rex:board-deck",
@@ -254,6 +278,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Board deck",
       description: "Auto-generate a structured investor-ready board update with print-friendly HTML.",
       icon: "FileText",
+      hideFromMenu: true,
     },
   ],
   lex: [

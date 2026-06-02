@@ -127,3 +127,16 @@ export const rexBoardDeckSchema = z.object({
   ask: z.string().optional().default(""),
 })
 export type RexBoardDeckValues = z.infer<typeof rexBoardDeckSchema>
+
+// ─── Query dataset (Ask REX) ─────────────────────────────────────────────────
+
+export const rexQueryDatasetSchema = z.object({
+  dataset_id: z.string().min(1, "Select a dataset"),
+  query: z.string().min(2, "Ask a question about your data"),
+})
+export type RexQueryDatasetValues = z.infer<typeof rexQueryDatasetSchema>
+
+export const rexAnalyzeDatasetSchema = z.object({
+  dataset_id: z.string().min(1, "Select a dataset"),
+})
+export type RexAnalyzeDatasetValues = z.infer<typeof rexAnalyzeDatasetSchema>
