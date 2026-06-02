@@ -3,7 +3,7 @@ import { organizationClient } from "better-auth/client/plugins"
 import { dodopaymentsClient } from "@dodopayments/better-auth"
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001",
+  baseURL: (typeof window !== "undefined" ? window.location.origin : null) ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001",
   basePath: `/api/${process.env.NEXT_PUBLIC_API_VERSION || "v1"}/auth`,
   // Caching strategy:
   //  - The session is held in better-auth's nanostore cache, so multiple
