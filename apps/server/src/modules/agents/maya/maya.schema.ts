@@ -25,6 +25,7 @@ export const draftContentSchema = z.object({
   useLogo: z.boolean().optional().default(false),
   useMascot: z.boolean().optional().default(false),
   additionalContext: z.string().max(1000).nullable().optional(),
+  fromRex: z.boolean().optional().default(false),
   inspirationImages: z.array(z.string().url()).max(5).optional().default([]),
   brandImageIds: z.array(z.string().uuid()).max(20).optional().default([]),
   brandImagePrompts: z.record(z.string().uuid(), z.string().max(1000)).optional().default({}),

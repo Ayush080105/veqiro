@@ -1320,6 +1320,7 @@ export function RexQueryDatasetCard({
                 topic: datasetName ? `Key insight from ${datasetName}` : "Data insight",
                 platform: "linkedin",
                 additional_context: result.answer.slice(0, 800),
+                from_rex: true,
               })}
             />
           </div>
@@ -1424,6 +1425,7 @@ export function RexAnalyzeDatasetCard({
                 topic: result.summary?.slice(0, 300) ?? (datasetName ? `${datasetName} analysis` : "Data analysis"),
                 platform: "linkedin",
                 additional_context: result.key_findings?.slice(0, 3).join("\n") ?? "",
+                from_rex: true,
               })}
             />
             <FollowUpBtn

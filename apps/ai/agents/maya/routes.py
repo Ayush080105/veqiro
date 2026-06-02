@@ -98,6 +98,7 @@ class DraftRequest(BaseModel):
     use_logo: bool = False
     use_mascot: bool = False
     additional_context: str | None = Field(None, max_length=1000)
+    from_rex: bool = False
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
     use_reference: bool = False
     reference_images: list[str] = Field(default_factory=list, max_length=5)
@@ -543,10 +544,33 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome. Hashtags at the end.",
     }
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+
+    # When context comes from Rex (internal analytics), distill it into a clean marketing brief
+    # so internal metrics like churn risk counts don't leak into the public post.
+    effective_context = request.additional_context
+    if request.from_rex and request.additional_context:
+        distill_prompt = (
+            "You are a marketing strategist converting internal data findings into a campaign brief.\n\n"
+            f"Internal analysis:\n{request.additional_context}\n\n"
+            "Write a 2-3 sentence brief for a promotional social media post. Describe:\n"
+            "- What product, plan, or service to promote\n"
+            "- Its key customer-facing benefits (what the customer gets — features, value, reliability, savings, etc.)\n"
+            "- Any compelling value points that would make someone want to choose it\n\n"
+            "Write from the CUSTOMER'S perspective — what makes this worth buying or switching to.\n"
+            "Do NOT include: internal business metrics, churn risk labels, at-risk counts, retention strategy language, "
+            "or anything framed as an internal business goal.\n"
+            "Return only the brief."
+        )
+        effective_context = await _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system="You are a precise marketing brief writer. Return only the brief, no preamble.",
+            messages=[{"role": "user", "content": distill_prompt}],
+        )
+
     prompt = (
         f"Write a ready-to-publish {request.platform} post about this topic: {request.topic}\n"
         f"Tone: {tone}\n"
-        f"Additional context: {request.additional_context or 'None'}\n"
+        f"Additional context: {effective_context or 'None'}\n"
         f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n"
         f"{website_line}\n\n"
         "STRICT RULES:\n"
