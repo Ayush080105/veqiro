@@ -8,23 +8,36 @@ async function proxy(req: NextRequest, path: string[]) {
 
   const fwdHeaders = new Headers()
   req.headers.forEach((v, k) => {
-    if (!["host", "connection", "transfer-encoding"].includes(k)) {
+    if (!["host", "connection", "transfer-encoding", "content-length"].includes(k)) {
       fwdHeaders.set(k, v)
     }
   })
 
-  const upstream = await fetch(target, {
-    method: req.method,
-    headers: fwdHeaders,
-    body: ["GET", "HEAD"].includes(req.method) ? null : req.body,
-    // @ts-ignore — Next.js needs duplex for streaming request bodies
-    duplex: "half",
-  })
+  // Read body as buffer to avoid streaming issues in Node.js runtime
+  let body: string | null = null
+  if (!["GET", "HEAD"].includes(req.method)) {
+    body = await req.text()
+  }
+
+  let upstream: Response
+  try {
+    upstream = await fetch(target, {
+      method: req.method,
+      headers: fwdHeaders,
+      body,
+    })
+  } catch (err) {
+    console.error("[auth-proxy] upstream fetch failed", target, err)
+    return NextResponse.json(
+      { error: "Auth service unreachable", detail: String(err) },
+      { status: 502 },
+    )
+  }
 
   const out = new Headers()
   upstream.headers.forEach((v, k) => {
     if (k === "set-cookie") {
-      // Rewrite Domain so cookie is stored for .veqiro.com (accessible to all subdomains)
+      // Rewrite Domain so cookie is stored for .veqiro.com (shared across subdomains)
       out.append("set-cookie", v.replace(/;\s*Domain=[^;]*/i, "") + "; Domain=.veqiro.com")
     } else if (!["content-encoding", "transfer-encoding", "connection"].includes(k)) {
       out.set(k, v)
@@ -36,7 +49,7 @@ async function proxy(req: NextRequest, path: string[]) {
 
 type Ctx = { params: Promise<{ path: string[] }> }
 
-const handler = (req: NextRequest, ctx: Ctx) => ctx.params.then((p) => proxy(req, p.path))
+const handler = async (req: NextRequest, ctx: Ctx) => proxy(req, (await ctx.params).path)
 
 export const GET    = handler
 export const POST   = handler
