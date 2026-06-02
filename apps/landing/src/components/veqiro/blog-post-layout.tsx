@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { BlogPost, BlogPostMeta } from '@/lib/blog';
+import { consoleUrl } from '@/lib/site-config';
 import { JsonLd } from './json-ld';
 import { Breadcrumbs } from './breadcrumbs';
 import { BlogToc } from './blog-toc';
@@ -226,7 +227,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
           Six AI employees. One subscription. $39/mo.
         </p>
         <a
-          href="https://app.veqiro.com/signup"
+          href={`${consoleUrl}/signup`}
           style={{
             display: 'inline-block',
             background: 'var(--vq-yellow)',

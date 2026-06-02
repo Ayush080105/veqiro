@@ -6,7 +6,7 @@ import { Breadcrumbs } from '@/components/veqiro/breadcrumbs';
 import { JsonLd } from '@/components/veqiro/json-ld';
 import { faqPageJsonLd } from '@/lib/jsonld';
 import { SITE_URL } from '@/lib/seo';
-import { mainAppUrl } from '@/lib/site-config';
+import { consoleUrl } from '@/lib/site-config';
 import { UseCaseFaq } from '@/components/veqiro/use-case-faq';
 
 export interface AgentSpotlight {
@@ -125,7 +125,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           </div>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Button variant="dark" href={`${mainAppUrl}/signup`}>Start free →</Button>
+            <Button variant="dark" href={`${consoleUrl}/signup`}>Start free →</Button>
             <Button variant="ghost" href="/pricing">View pricing</Button>
           </div>
         </div>
@@ -653,7 +653,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
             One subscription. Six AI employees. 7-day free trial — no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button variant="dark" href={`${mainAppUrl}/signup`}>Start free →</Button>
+            <Button variant="dark" href={`${consoleUrl}/signup`}>Start free →</Button>
             <Button variant="ghost" href="/pricing">View pricing</Button>
           </div>
         </div>

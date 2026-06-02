@@ -1,8 +1,8 @@
 // Single source of truth for marketing data.
 // Edit copy, links, and content here; components consume from this file.
 
-export const mainAppUrl =
-  process.env.NEXT_PUBLIC_MAIN_APP_URL || 'http://localhost:3001';
+export const consoleUrl =
+  process.env.NEXT_PUBLIC_CONSOLE_URL || 'http://localhost:3001';
 
 export const landingUrl =
   process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
@@ -231,7 +231,7 @@ export const footerBottom = {
 };
 
 export const siteConfig = {
-  mainAppUrl,
+  consoleUrl,
   landingUrl,
   contact,
   social,

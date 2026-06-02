@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { FONT } from './shared';
 import { NavShared } from './nav-shared';
-import { mainAppUrl } from '@/lib/site-config';
+import { consoleUrl } from '@/lib/site-config';
 
 // Drives a 0..1 progress value from how far the `ref`'d element has been scrolled
 // past its own height. Disabled (always 0) when `enabled` is false — used to skip
@@ -245,7 +245,7 @@ export function Hero() {
           </p>
 
           <div style={{ display: 'flex', gap: 'clamp(10px, 2vw, 16px)', justifyContent: 'center', marginTop: 36, flexWrap: 'wrap', padding: '0 clamp(8px, 2vw, 16px)' }}>
-            <a href={`${mainAppUrl}/signup`} style={{
+            <a href={`${consoleUrl}/signup`} style={{
               background: '#F5C518', color: '#111', padding: 'clamp(14px, 2.5vw, 18px) clamp(20px, 4vw, 32px)',
               fontFamily: FONT.head, fontSize: 'clamp(13px, 1.8vw, 15px)', textTransform: 'uppercase', letterSpacing: 1,
               textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '6px 6px 0 #111',

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT, Button } from '@/components/veqiro/shared';
-import { pricingTiers, mainAppUrl, demoCtaHref } from '@/lib/site-config';
+import { pricingTiers, consoleUrl, demoCtaHref } from '@/lib/site-config';
 import { EMPLOYEES } from '@/components/veqiro/data';
 import { CHARACTER_COMPONENTS } from '@/components/veqiro/characters';
 
@@ -181,7 +181,7 @@ export default function PricingPageContent() {
             {/* CTA */}
             <div style={{ background: '#fff', padding: 'clamp(18px, 4vw, 24px) clamp(20px, 5vw, 36px)', textAlign: 'center' }}>
               <a
-                href={`${mainAppUrl}/signup`}
+                href={`${consoleUrl}/signup`}
                 style={{
                   display: 'block', width: '100%', textAlign: 'center',
                   padding: '16px 26px', background: '#111', color: '#EFE7D6',
@@ -334,7 +334,7 @@ export default function PricingPageContent() {
             7 days free. No credit card. Cancel anytime.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button variant="dark" href={`${mainAppUrl}/signup`}>Start 7-day free trial →</Button>
+            <Button variant="dark" href={`${consoleUrl}/signup`}>Start 7-day free trial →</Button>
             <Button variant="ghost" href={demoCtaHref}>Talk to a human first</Button>
           </div>
         </div>

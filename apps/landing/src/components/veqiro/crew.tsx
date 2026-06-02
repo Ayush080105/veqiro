@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { EMPLOYEES, Employee } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 import { FONT } from './shared';
-import { crewReplies, crewFollows, mainAppUrl } from '@/lib/site-config';
+import { crewReplies, crewFollows, consoleUrl } from '@/lib/site-config';
 
 function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; active: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);

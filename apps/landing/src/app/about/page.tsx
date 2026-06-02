@@ -3,7 +3,7 @@ import { Footer } from '@/components/veqiro/sections';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { FONT, Button } from '@/components/veqiro/shared';
 import { AboutCrewGrid } from '@/components/veqiro/about-crew-grid';
-import { mainAppUrl } from '@/lib/site-config';
+import { consoleUrl } from '@/lib/site-config';
 import { buildPageMetadata } from '@/lib/seo';
 import { JsonLd } from '@/components/veqiro/json-ld';
 import { organizationJsonLd, faqPageJsonLd } from '@/lib/jsonld';
@@ -437,7 +437,7 @@ export default function AboutPage() {
             </span>
           </h2>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button variant="dark" href={`${mainAppUrl}/signup`}>Start hiring →</Button>
+            <Button variant="dark" href={`${consoleUrl}/signup`}>Start hiring →</Button>
             <Button variant="ghost" href="/">Back to home</Button>
           </div>
         </div>

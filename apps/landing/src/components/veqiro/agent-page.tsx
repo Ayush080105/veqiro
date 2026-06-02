@@ -5,7 +5,7 @@ import { FONT, Button } from './shared';
 import { PageNav } from './page-nav';
 import { MobileChatDemo } from './mobile-chat';
 import { CHARACTER_COMPONENTS } from './characters';
-import { mainAppUrl } from '@/lib/site-config';
+import { consoleUrl } from '@/lib/site-config';
 import type { Employee } from './data';
 import { EMPLOYEES } from './data';
 import { JsonLd } from '@/components/veqiro/json-ld';
@@ -179,7 +179,7 @@ export function AgentPage({ employee }: Props) {
 
             {/* CTAs */}
             <div style={{ display: 'flex', gap: 14, marginTop: 36, flexWrap: 'wrap' }}>
-              <Button variant="dark" href={`${mainAppUrl}/signup`}>
+              <Button variant="dark" href={`${consoleUrl}/signup`}>
                 Hire {employee.name} →
               </Button>
               <Button variant="ghost" href="/pricing">View pricing</Button>
@@ -604,7 +604,7 @@ export function AgentPage({ employee }: Props) {
             Start with {employee.name} on the Crew plan at $39/mo, or try free for 7 days — no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button variant="dark" href={`${mainAppUrl}/signup`}>Start free →</Button>
+            <Button variant="dark" href={`${consoleUrl}/signup`}>Start free →</Button>
             <Button variant="ghost" href="/pricing">View pricing</Button>
           </div>
         </div>

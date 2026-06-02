@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FONT } from './shared';
 import { EMPLOYEES } from './data';
-import { mainAppUrl, nav as navLinks, useCaseNavItems } from '@/lib/site-config';
+import { consoleUrl, nav as navLinks, useCaseNavItems } from '@/lib/site-config';
 
 type Variant = 'hero' | 'page';
 
@@ -152,7 +152,7 @@ export function NavShared({ variant = 'page' }: Props) {
       <div className="vq-nav-right">
         <a
           className="vq-nav-login"
-          href={`${mainAppUrl}/login`}
+          href={`${consoleUrl}/login`}
           style={{
             color: '#555', textDecoration: 'none',
             fontFamily: FONT.head, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase',
@@ -162,7 +162,7 @@ export function NavShared({ variant = 'page' }: Props) {
         </a>
         <a
           className="vq-nav-cta"
-          href={`${mainAppUrl}/signup`}
+          href={`${consoleUrl}/signup`}
           style={{
             background: '#111', color: '#EFE7D6', padding: '14px 26px', borderRadius: 12,
             fontFamily: FONT.head, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase',
@@ -291,7 +291,7 @@ export function NavShared({ variant = 'page' }: Props) {
               <div className="vq-drawer-divider" />
 
               <a
-                href={`${mainAppUrl}/login`}
+                href={`${consoleUrl}/login`}
                 className="vq-drawer-link"
                 onClick={() => setOpen(false)}
               >
@@ -301,7 +301,7 @@ export function NavShared({ variant = 'page' }: Props) {
 
             <div className="vq-drawer-footer">
               <a
-                href={`${mainAppUrl}/signup`}
+                href={`${consoleUrl}/signup`}
                 onClick={() => setOpen(false)}
                 style={{
                   background: '#111', color: '#EFE7D6',

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { BlogPostMeta } from '@/lib/blog';
+import { consoleUrl } from '@/lib/site-config';
 import { BlogCard } from './blog-card';
 import { PageNav } from './page-nav';
 import { Footer } from './sections';
@@ -169,7 +170,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
           }}
         >
           <a
-            href="https://app.veqiro.com/signup"
+            href={`${consoleUrl}/signup`}
             style={{
               background: 'var(--vq-yellow)',
               color: '#111',
