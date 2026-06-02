@@ -45,6 +45,9 @@ jinja2
 tiktoken
 PyPDF2
 pillow
+matplotlib
+reportlab
+python-docx
 
 # ── Google APIs (Vega) ────────────────────────────────────────────────────────
 google-api-python-client

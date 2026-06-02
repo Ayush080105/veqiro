@@ -30,6 +30,7 @@ import {
   deleteDataset,
   queryDataset,
   analyzeDataset,
+  generateDatasetReport,
 } from "./rex.controller.js";
 
 const router = Router();
@@ -76,5 +77,6 @@ router.post("/datasets", saveDatasets);
 router.delete("/datasets/:id", deleteDataset);
 router.post("/datasets/:id/query", queryDataset);
 router.post("/datasets/:id/analyze", analyzeDataset);
+router.post("/datasets/:id/report", generateDatasetReport);
 
 export default router;

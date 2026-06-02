@@ -226,6 +226,51 @@ export const analyzeDataset = async (
   return resultWithMeta;
 };
 
+// ── Generate full report (multi-page PDF/DOCX) ────────────────────────────────
+
+export const generateDatasetReport = async (
+  userId: string,
+  organizationId: string,
+  datasetId: string,
+  format: "pdf" | "docx",
+) => {
+  const dataset = await rexRepository.findDataset(datasetId, organizationId);
+  if (!dataset) throw new BadRequestError("Dataset not found");
+
+  const meta = dataset.meta as Record<string, unknown> | null;
+  const rawTable = meta?.rawTable as RawTable | undefined;
+  const points = dataset.points as Array<{ date: string; value: number }>;
+
+  let tableForAI: Record<string, unknown>;
+  if (rawTable && rawTable.headers.length > 0) {
+    tableForAI = {
+      headers: rawTable.headers,
+      rows: rawTable.rows,          // pass full table — report does its own capping
+      columnTypes: rawTable.columnTypes,
+    };
+  } else if (points.length > 0) {
+    tableForAI = {
+      headers: ["date", dataset.metricKey],
+      rows: points.map((p) => ({ date: p.date, [dataset.metricKey]: p.value })),
+      columnTypes: { date: "date", [dataset.metricKey]: "numeric" },
+    };
+  } else {
+    throw new BadRequestError("Dataset has no data to report");
+  }
+
+  const { data } = await aiService.post<{ file_b64: string; mime_type: string; filename: string }>(
+    "/ai/rex/generate-report",
+    {
+      user_id: userId,
+      organization_id: organizationId,
+      dataset_name: dataset.name,
+      format,
+      raw_table: tableForAI,
+    },
+  );
+  return data;
+};
+
 export const analyzeMetrics = async (
   userId: string,
   organizationId: string,

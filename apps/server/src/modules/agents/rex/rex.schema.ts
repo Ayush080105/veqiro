@@ -116,6 +116,12 @@ export const queryDatasetSchema = z.object({
 
 export const analyzeDatasetSchema = z.object({});
 
+// ── Generate full report (multi-page PDF/DOCX) ────────────────────────────────
+
+export const generateDatasetReportSchema = z.object({
+  format: z.enum(["docx"]).default("docx"),
+});
+
 // ── Alert rules (C2) ────────────────────────────────────────────────────────
 
 export const alertRuleSchema = z.object({

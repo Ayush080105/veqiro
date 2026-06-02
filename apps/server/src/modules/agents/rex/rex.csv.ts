@@ -12,10 +12,15 @@ export interface ColumnMapping {
   valueColumns: Array<{ column: string; metricKey: string }>;
 }
 
-export interface RawTable {
+export interface SheetTable {
   headers: string[];
   rows: Record<string, string>[];
   columnTypes: Record<string, "date" | "numeric" | "categorical" | "text">;
+}
+
+export interface RawTable extends SheetTable {
+  /** Present when the source file had multiple non-empty sheets. */
+  sheets?: Record<string, SheetTable>;
 }
 
 export interface ParseResult {
@@ -478,24 +483,36 @@ export function parseRows(rows: Record<string, unknown>[]): {
     warnings.push(`Skipped non-numeric column${skipped.length > 1 ? "s" : ""}: ${skipped.join(", ")}`);
   }
 
-  const datasets = valueCols
-    .map(({ column, metricKey }) => ({
-      metricKey,
-      points: rowsToDataset(rows as Record<string, unknown>[], dateCol, column),
-    }))
-    .filter((d) => d.points.length > 0);
+  // When there are many numeric columns the file is a general table, not a set of
+  // separate tracked metrics. Collapse to one Q&A dataset to avoid showing N cards.
+  const TABLE_MODE_THRESHOLD = 4;
+  const isTableMode = valueCols.length > TABLE_MODE_THRESHOLD;
 
-  if (datasets.length < valueCols.length) {
-    warnings.push(`${valueCols.length - datasets.length} column${valueCols.length - datasets.length > 1 ? "s" : ""} produced no usable data points (date or value parsing failed)`);
-  }
+  let datasets: ParseResult["datasets"];
 
-  // Fallback: always produce exactly one dataset so any CSV can be uploaded for Q&A.
-  // We do NOT create one dataset per column here — the full table lives in rawTable
-  // (stored in meta on save) and is used by the query-dataset endpoint for all columns.
-  if (datasets.length === 0) {
-    datasets.push({ metricKey: "table", points: [] });
-    if (valueCols.length > 0) {
-      warnings.push(`No time-series data extracted (${valueCols.length} numeric column${valueCols.length > 1 ? "s" : ""} found) — dataset available for Ask REX Q&A`);
+  if (isTableMode) {
+    datasets = [{ metricKey: "table", points: [] }];
+    warnings.push(
+      `${valueCols.length} numeric columns detected — saving as a unified table for Ask REX Q&A, analysis, and report generation`
+    );
+  } else {
+    datasets = valueCols
+      .map(({ column, metricKey }) => ({
+        metricKey,
+        points: rowsToDataset(rows as Record<string, unknown>[], dateCol, column),
+      }))
+      .filter((d) => d.points.length > 0);
+
+    if (datasets.length < valueCols.length) {
+      warnings.push(`${valueCols.length - datasets.length} column${valueCols.length - datasets.length > 1 ? "s" : ""} produced no usable data points (date or value parsing failed)`);
+    }
+
+    // Fallback: always produce at least one dataset so any CSV can be uploaded for Q&A.
+    if (datasets.length === 0) {
+      datasets.push({ metricKey: "table", points: [] });
+      if (valueCols.length > 0) {
+        warnings.push(`No time-series data extracted (${valueCols.length} numeric column${valueCols.length > 1 ? "s" : ""} found) — dataset available for Ask REX Q&A`);
+      }
     }
   }
 
@@ -559,10 +576,11 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
     return parseRows(result.data).result;
   }
 
-  // xlsx / xls — parse every sheet and merge all datasets
+  // xlsx / xls — parse every sheet, merge datasets, collect per-sheet rawTables
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
   const allDatasets: ParseResult["datasets"] = [];
   const allWarnings: string[] = [];
+  const allSheets: Record<string, SheetTable> = {};
   let firstResult: ParseResult | null = null;
 
   for (const sheetName of workbook.SheetNames) {
@@ -576,6 +594,8 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
     if (rows.length === 0) continue;
     const { result } = parseRows(rows);
     if (!firstResult) firstResult = result;
+    // Store this sheet's rawTable so Q&A / analysis / reports can use it
+    allSheets[sheetName] = result.rawTable;
     if (result.warnings.length > 0) {
       allWarnings.push(...result.warnings.map((w) => `[${sheetName}] ${w}`));
     }
@@ -602,7 +622,30 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
       warnings: ["No usable sheets in workbook"],
     };
   }
-  return { ...firstResult, datasets: allDatasets, warnings: allWarnings.length ? allWarnings : firstResult.warnings };
+
+  const multiSheet = Object.keys(allSheets).length > 1;
+  const rawTable: RawTable = {
+    ...firstResult.rawTable,
+    ...(multiSheet ? { sheets: allSheets } : {}),
+  };
+
+  // Multi-sheet workbooks are always treated as a unified table — one dataset entry,
+  // all sheets accessible via rawTable.sheets for Q&A, analysis, and reports.
+  const finalDatasets = multiSheet
+    ? [{ metricKey: "table", points: [] }]
+    : allDatasets;
+
+  const sheetNames = Object.keys(allSheets);
+  const multiSheetWarning = multiSheet
+    ? [`Multi-sheet workbook (${sheetNames.join(", ")}) — saved as a unified table for Ask REX Q&A, analysis, and reports`]
+    : [];
+
+  return {
+    ...firstResult,
+    datasets: finalDatasets,
+    rawTable,
+    warnings: [...multiSheetWarning, ...(allWarnings.length ? allWarnings : firstResult.warnings)],
+  };
 }
 
 export async function parseUploaded(r2Key: string): Promise<ParseResult> {

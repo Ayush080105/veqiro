@@ -1311,10 +1311,39 @@ async def board_deck(request: BoardDeckRequest) -> BoardDeckResponse:
 
 # ── Query dataset — natural language Q&A on any uploaded CSV/Excel ─────────────
 
-class RawTablePayload(BaseModel):
+class SheetTable(BaseModel):
     headers: list[str] = []
     rows: list[dict] = []
     columnTypes: dict[str, str] = {}
+
+
+class RawTablePayload(SheetTable):
+    sheets: dict[str, SheetTable] | None = None  # present for multi-sheet Excel
+
+
+def _sheet_context(table: "RawTablePayload") -> str:
+    """Build a combined text description of all sheets for LLM prompts."""
+    sheets = table.sheets or {}
+    if not sheets:
+        # Single-sheet: use primary table
+        sheets = {"Dataset": SheetTable(
+            headers=table.headers, rows=table.rows, columnTypes=table.columnTypes
+        )}
+    parts: list[str] = []
+    for name, sheet in sheets.items():
+        col_summary = ", ".join(
+            f"{h} ({sheet.columnTypes.get(h, 'text')})" for h in sheet.headers
+        )
+        row_lines = [
+            ", ".join(str(r.get(h, "")) for h in sheet.headers)
+            for r in sheet.rows[:25]
+        ]
+        parts.append(
+            f'Sheet "{name}" — {len(sheet.rows)} rows\n'
+            f"Columns: {col_summary}\n"
+            f"Sample rows:\n" + "\n".join(row_lines)
+        )
+    return "\n\n---\n\n".join(parts)
 
 
 class QueryDatasetRequest(BaseModel):
@@ -1364,40 +1393,23 @@ async def query_dataset(request: QueryDatasetRequest) -> QueryDatasetResponse:
         )
 
     table = request.table
-    headers = table.headers
-    rows = table.rows[:200]  # cap to avoid context overflow
-    col_types = table.columnTypes
-
-    # Build a compact table representation for the LLM
-    col_summary = ", ".join(
-        f"{h} ({col_types.get(h, 'unknown')})" for h in headers
-    )
-
-    # Format rows as a readable CSV-like string (first 50 rows for context)
-    preview_rows = rows[:50]
-    if preview_rows:
-        row_lines = [", ".join(str(r.get(h, "")) for h in headers) for r in preview_rows]
-        table_text = "\n".join(row_lines)
-    else:
-        table_text = "(no rows)"
-
-    total_rows = len(table.rows)
+    is_multi = bool(table.sheets)
+    total_rows = sum(len(s.rows) for s in table.sheets.values()) if is_multi else len(table.rows)
 
     system = await _agent.build_system_prompt(
         request.user_id, request.organization_id, use_brand_kit=False
     )
 
-    numeric_cols = [h for h in headers if col_types.get(h) == "numeric"]
-    date_cols = [h for h in headers if col_types.get(h) == "date"]
-    cat_cols = [h for h in headers if col_types.get(h) == "categorical"]
+    data_context = _sheet_context(table)
+    sheet_note = (
+        f"This file contains {len(table.sheets)} sheets. You have access to all of them and can answer cross-sheet questions."
+        if is_multi else ""
+    )
 
-    prompt = f"""You are Rex, an expert data analyst. The user has uploaded a dataset called "{request.dataset_name}" with {total_rows} rows.
+    prompt = f"""You are Rex, an expert data analyst. The user has uploaded a dataset called "{request.dataset_name}" with {total_rows} total rows.
+{sheet_note}
 
-Dataset columns: {col_summary}
-
-Sample data (first {len(preview_rows)} rows):
-{headers[0] if headers else ""}{", " + ", ".join(headers[1:]) if len(headers) > 1 else ""}
-{table_text}
+{data_context}
 
 User's question: {request.query}
 
@@ -1536,41 +1548,44 @@ async def analyze_dataset(request: AnalyzeDatasetRequest) -> AnalyzeDatasetRespo
         )
 
     table = request.table
-    headers = table.headers
-    rows = table.rows
-    col_types = table.columnTypes
-
-    total_rows = len(rows)
-    preview_rows = rows[:50]
-
-    # Compute stats client-side to save tokens
-    col_stats = _compute_column_stats(headers, rows[:500], col_types)
-
-    col_summary = ", ".join(f"{h} ({col_types.get(h, 'unknown')})" for h in headers)
-    stats_text = json.dumps(
-        {k: v.model_dump(exclude_none=True) for k, v in col_stats.items()},
-        indent=2
-    )
-
-    # Build a sample of data rows
-    row_lines = [", ".join(str(r.get(h, "")) for h in headers) for r in preview_rows[:30]]
-    table_text = "\n".join(row_lines)
-
     system = await _agent.build_system_prompt(
         request.user_id, request.organization_id, use_brand_kit=False
     )
 
+    is_multi = bool(table.sheets)
+    sheets_map = table.sheets if is_multi else {
+        "Dataset": SheetTable(headers=table.headers, rows=table.rows, columnTypes=table.columnTypes)
+    }
+    total_rows = sum(len(s.rows) for s in sheets_map.values())
+
+    # Per-sheet stats + sample
+    sheets_detail_parts: list[str] = []
+    for sheet_name, sheet in sheets_map.items():
+        col_stats = _compute_column_stats(sheet.headers, sheet.rows[:500], sheet.columnTypes)
+        col_summary = ", ".join(f"{h} ({sheet.columnTypes.get(h, 'text')})" for h in sheet.headers)
+        stats_text = json.dumps(
+            {k: v.model_dump(exclude_none=True) for k, v in col_stats.items()}, indent=2
+        )
+        row_lines = [", ".join(str(r.get(h, "")) for h in sheet.headers) for r in sheet.rows[:20]]
+        sheets_detail_parts.append(
+            f'Sheet "{sheet_name}" — {len(sheet.rows)} rows × {len(sheet.headers)} cols\n'
+            f"Columns: {col_summary}\n\n"
+            f"Column statistics:\n{stats_text}\n\n"
+            f"Sample rows:\n{', '.join(sheet.headers)}\n" + "\n".join(row_lines)
+        )
+
+    all_sheets_text = "\n\n---\n\n".join(sheets_detail_parts)
+    sheet_note = (
+        f"This is a multi-sheet workbook with {len(sheets_map)} sheets. Analyse them holistically — look for cross-sheet relationships and patterns."
+        if is_multi else ""
+    )
+
     prompt = f"""You are Rex, a world-class data analyst. Perform a comprehensive analysis of this dataset called "{request.dataset_name}".
+{sheet_note}
 
-Dataset: {total_rows} rows × {len(headers)} columns
-Columns: {col_summary}
+Total rows across all sheets: {total_rows}
 
-Pre-computed statistics per column:
-{stats_text}
-
-Sample data (first {len(preview_rows[:30])} rows):
-{", ".join(headers)}
-{table_text}
+{all_sheets_text}
 
 Provide a thorough business analysis. Respond with a JSON object containing:
 - "summary": string — executive summary (3-4 sentences covering what the data is, key patterns, and overall health)
@@ -1641,3 +1656,35 @@ Be specific — reference actual column names and numbers from the statistics. T
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )
+
+
+# ── Generate full report — multi-page PDF/DOCX from raw dataset ───────────────
+
+class FullReportRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    dataset_name: str = "Dataset"
+    format: str = "docx"
+    raw_table: RawTablePayload
+
+
+class FullReportResponse(BaseModel):
+    file_b64: str
+    mime_type: str
+    filename: str
+
+
+@router.post("/generate-report", response_model=FullReportResponse,
+             summary="Generate a full multi-page DOCX analytical report from a dataset")
+async def generate_report(request: FullReportRequest) -> FullReportResponse:
+    """Deep-dive report: profiling → LLM section plan → pandas charts → DOCX assembly."""
+    from agents.rex.report import generate_full_report
+    file_b64, mime_type = await generate_full_report(
+        dataset_name=request.dataset_name,
+        raw_table=request.raw_table.model_dump(),
+        fmt="docx",
+        org_id=request.organization_id,
+        llm=_llm,
+    )
+    filename = f"{request.dataset_name.replace(' ', '_')}_report.docx"
+    return FullReportResponse(file_b64=file_b64, mime_type=mime_type, filename=filename)

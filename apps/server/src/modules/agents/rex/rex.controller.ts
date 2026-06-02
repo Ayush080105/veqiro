@@ -18,6 +18,7 @@ import {
   alertRuleSchema,
   queryDatasetSchema,
   analyzeDatasetSchema,
+  generateDatasetReportSchema,
 } from "./rex.schema.js";
 import * as rexService from "./rex.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -172,10 +173,14 @@ export const patchSettings = async (req: Request, res: Response) => {
 
 const parseDatasetBodySchema = z.object({ r2Key: z.string().min(1) });
 
-const rawTableSchema = z.object({
+const singleSheetSchema = z.object({
   headers: z.array(z.string()),
   rows: z.array(z.record(z.string(), z.unknown())),
   columnTypes: z.record(z.string(), z.enum(["date", "numeric", "categorical", "text"])),
+});
+
+const rawTableSchema = singleSheetSchema.extend({
+  sheets: z.record(z.string(), singleSheetSchema).optional(),
 }).optional();
 
 const saveDatasetBodySchema = z.object({
@@ -241,6 +246,15 @@ export const analyzeDataset = async (req: Request, res: Response) => {
   if (!datasetId) throw new BadRequestError("Dataset id is required");
   analyzeDatasetSchema.parse(req.body);
   const result = await rexService.analyzeDataset(userId, organizationId, datasetId);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const generateDatasetReport = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const datasetId = req.params["id"] as string | undefined;
+  if (!datasetId) throw new BadRequestError("Dataset id is required");
+  const { format } = generateDatasetReportSchema.parse(req.body);
+  const result = await rexService.generateDatasetReport(userId, organizationId, datasetId, format);
   res.status(StatusCodes.OK).json(result);
 };
 

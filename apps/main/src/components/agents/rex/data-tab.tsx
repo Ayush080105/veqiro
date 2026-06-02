@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Upload, Trash2, BarChart2, CheckCircle, AlertCircle, Loader2, TrendingUp, LineChart, DollarSign, MessageSquare, Send } from "lucide-react"
+import { Upload, Trash2, BarChart2, CheckCircle, AlertCircle, Loader2, TrendingUp, LineChart, DollarSign, MessageSquare, Send, FileDown } from "lucide-react"
 import { apiFetch } from "@/lib/api/client"
 import { uploadToR2 } from "@/lib/api/uploads"
-import { queryDataset } from "@/lib/api/rex"
+import { queryDataset, generateDatasetReport } from "@/lib/api/rex"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StatusPill } from "@/components/ui/status-pill"
@@ -99,6 +99,7 @@ export function RexDataTab({
   const [savedRawTable, setSavedRawTable] = React.useState<RexRawTable | null>(null)
   const [quickQuery, setQuickQuery] = React.useState("")
   const [queryingDatasetId, setQueryingDatasetId] = React.useState<string | null>(null)
+  const [generatingReportId, setGeneratingReportId] = React.useState<string | null>(null)
 
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: REX_DATASETS_KEY(organizationId),
@@ -191,6 +192,25 @@ export function RexDataTab({
     }
   }
 
+  const handleGenerateReport = async (datasetId: string) => {
+    setGeneratingReportId(datasetId)
+    try {
+      const res = await generateDatasetReport(datasetId, "docx")
+      const bytes = Uint8Array.from(atob(res.file_b64), (c) => c.charCodeAt(0))
+      const blob = new Blob([bytes], { type: res.mime_type })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = res.filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // apiFetch already surfaces a toast on error
+    } finally {
+      setGeneratingReportId(null)
+    }
+  }
+
   const updateEditable = (i: number, patch: Partial<(typeof editableDatasets)[0]>) => {
     setEditableDatasets((prev) => prev.map((d, j) => j === i ? { ...d, ...patch } : d))
   }
@@ -229,7 +249,7 @@ export function RexDataTab({
           />
         </label>
         <p className="text-[10px] text-muted-foreground">
-          CSV or Excel · max 10 MB · first sheet only (multi-sheet xlsx)
+          CSV or Excel · max 10 MB 
         </p>
       </div>
 
@@ -403,71 +423,87 @@ export function RexDataTab({
             Review inferred datasets
           </p>
           <p className="text-[11px] text-muted-foreground">
-            REX detected {editableDatasets.length} metric column{editableDatasets.length > 1 ? "s" : ""} from{" "}
-            {parseResult.headers.length} header{parseResult.headers.length !== 1 ? "s" : ""}. Adjust names and period before saving.
+            {editableDatasets.length === 1 && editableDatasets[0]?.metricKey === "table"
+              ? parseResult.rawTable?.sheets
+                ? `REX detected a ${Object.keys(parseResult.rawTable.sheets).length}-sheet workbook — saving as one unified dataset. All sheets will be available for Q&A, analysis, and reports.`
+                : `REX detected ${parseResult.headers.length} columns — saving as a unified table for Q&A, analysis, and reports.`
+              : `REX detected ${editableDatasets.length} metric column${editableDatasets.length > 1 ? "s" : ""} from ${parseResult.headers.length} header${parseResult.headers.length !== 1 ? "s" : ""}. Adjust names and period before saving.`
+            }
           </p>
           {parseResult.saved_mapping && parseResult.saved_mapping.valueColumns.length > 0 && (
             <p className="text-[10.5px] text-muted-foreground">
               Saved mapping found from prior upload — applied automatically.
             </p>
           )}
-          {editableDatasets.map((d, i) => (
-            <div key={i} className="flex flex-col gap-2 border border-border bg-muted/10 p-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="mb-0.5 text-[10px] text-muted-foreground">Name</p>
-                  <Input
-                    value={d.name}
-                    onChange={(e) => updateEditable(i, { name: e.target.value })}
-                    className="h-7 text-xs"
-                  />
+          {editableDatasets.map((d, i) => {
+            const isTable = d.metricKey === "table" || d.points.length === 0
+            return (
+              <div key={i} className="flex flex-col gap-2 border border-border bg-muted/10 p-2">
+                <div className={isTable ? "w-full" : "grid grid-cols-2 gap-2"}>
+                  <div>
+                    <p className="mb-0.5 text-[10px] text-muted-foreground">Name</p>
+                    <Input
+                      value={d.name}
+                      onChange={(e) => updateEditable(i, { name: e.target.value })}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  {!isTable && (
+                    <div>
+                      <p className="mb-0.5 text-[10px] text-muted-foreground">Period</p>
+                      <select
+                        value={d.period}
+                        onChange={(e) => updateEditable(i, { period: e.target.value })}
+                        className="h-7 w-full border border-border bg-background px-2 text-xs"
+                      >
+                        {["daily", "weekly", "monthly", "quarterly"].map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="mb-0.5 text-[10px] text-muted-foreground">Period</p>
-                  <select
-                    value={d.period}
-                    onChange={(e) => updateEditable(i, { period: e.target.value })}
-                    className="h-7 w-full border border-border bg-background px-2 text-xs"
-                  >
-                    {["daily", "weekly", "monthly", "quarterly"].map((p) => (
-                      <option key={p} value={p}>{p}</option>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  {isTable ? (
+                    <span className="text-blue-600">
+                      {parseResult?.rawTable?.sheets
+                        ? `${Object.keys(parseResult.rawTable.sheets).length} sheets (${Object.keys(parseResult.rawTable.sheets).join(", ")}) · ${Object.values(parseResult.rawTable.sheets).reduce((s, sh) => s + sh.rows.length, 0)} total rows · Ask REX anything across all sheets`
+                        : `General table · ${parseResult?.rawTable?.headers.length ?? 0} columns · ${parseResult?.rawTable?.rows.length ?? 0} rows · Ask REX anything, query, analyze, or generate a report`
+                      }
+                    </span>
+                  ) : (
+                    <>
+                      <span className="font-mono">{d.metricKey}</span>
+                      <span>·</span>
+                      <span>{d.points.length} data points</span>
+                      <span>·</span>
+                      <span>{d.points[0]!.date} → {d.points[d.points.length - 1]?.date}</span>
+                    </>
+                  )}
+                </div>
+                {!isTable && (
+                  <div className="flex gap-1.5">
+                    {(["actual", "budget"] as const).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => updateEditable(i, { purpose: p })}
+                        className={cn(
+                          "border border-border px-2 py-0.5 text-[10px] capitalize",
+                          d.purpose === p ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
+                        )}
+                      >
+                        {p}
+                      </button>
                     ))}
-                  </select>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                <span className="font-mono">{d.metricKey}</span>
-                <span>·</span>
-                {d.points.length > 0 ? (
-                  <>
-                    <span>{d.points.length} data points</span>
-                    <span>·</span>
-                    <span>{d.points[0]!.date} → {d.points[d.points.length - 1]?.date}</span>
-                  </>
-                ) : (
-                  <span className="text-blue-600">Q&amp;A ready — {parseResult?.rawTable?.rows.length ?? 0} rows</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Tag as &ldquo;budget&rdquo; to enable variance analysis.
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className="flex gap-1.5">
-                {(["actual", "budget"] as const).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => updateEditable(i, { purpose: p })}
-                    className={cn(
-                      "border border-border px-2 py-0.5 text-[10px] capitalize",
-                      d.purpose === p ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
-                    )}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <span className="text-[10px] text-muted-foreground">
-                  Tag as &ldquo;budget&rdquo; to enable variance analysis.
-                </span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
           <div className="flex gap-2">
             <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle className="size-3" />}
@@ -523,6 +559,18 @@ export function RexDataTab({
                   className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
                 >
                   <MessageSquare className="size-2.5" /> Ask
+                </button>
+                <button
+                  type="button"
+                  title="Generate DOCX report"
+                  onClick={() => void handleGenerateReport(ds.id)}
+                  disabled={generatingReportId === ds.id}
+                  className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50"
+                >
+                  {generatingReportId === ds.id
+                    ? <Loader2 className="size-2.5 animate-spin" />
+                    : <FileDown className="size-2.5" />}
+                  Report
                 </button>
                 <button
                   type="button"

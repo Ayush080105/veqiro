@@ -1,0 +1,258 @@
+{
+  "Goods": {
+    "rows": 234,
+    "cols": 15,
+    "headers": [
+      "Award No",
+      "Awarding Authority",
+      "States",
+      "Special",
+      "BTBC-PSU-UID",
+      "BTBC-A-UID",
+      "Value (\u20b9 Lakhs)",
+      "Original",
+      "Contract Date",
+      "Contract Period",
+      "AOC Description",
+      "Matching Keyword",
+      "Awardee(s)",
+      "Purchaser Address",
+      "Email"
+    ],
+    "sample": [
+      [
+        "GEM/2026/B/7495723",
+        "Directorate Of Training And Employment",
+        " Uttar Pradesh",
+        "Directorate Of Training And Employment -",
+        "DOTAEUP1",
+        "RE2",
+        "26.16",
+        "26.16 Lac",
+        "25 May 2026",
+        "20",
+        "FACE SERUM,FACE SCRUB,SOCKET 6A,COPPER W",
+        "Ms Flats",
+        "ROYAL ENGINEERS",
+        "Rajeev Kumar Litoriya,,Harkisan road bra",
+        "rajeev.07163@gov.in"
+      ],
+      [
+        "GEM/2026/B/7464580",
+        "Indian Army",
+        " Jammu & Kashmir",
+        "Indian Army - Jammu & Kashmir",
+        "IAJK1",
+        "DT1",
+        "98.65",
+        "98.65 Lac",
+        "22 May 2026",
+        "45",
+        "Chisel Firmer,Chisels Cold Flat,T M Ches",
+        "Ms Flats",
+        "DURGA TRADERS",
+        "*********** UDHAMPUR",
+        "-"
+      ],
+      [
+        "GEM/2026/B/7457950",
+        "Uttar Pradesh Cooperative Sugar Factorie",
+        " Uttar Pradesh",
+        "Uttar Pradesh Cooperative Sugar Factorie",
+        "UPCSFFLUP1",
+        "BI1",
+        "25.27",
+        "25.27 Lac",
+        "21 May 2026",
+        "20",
+        "EXTRA HEAVY DUTY EXPORT QUALITY FLEXIBLE",
+        "Ms Angles, Ms Flats",
+        "M/S BALAJI INDUSTRIES",
+        "Rajesh Varshney,,Sahkari Chini Mills Ltd",
+        "bycn4.upcsffl.sre@gembuyer.in"
+      ]
+    ]
+  },
+  "Works": {
+    "rows": 154,
+    "cols": 16,
+    "headers": [
+      "Award No",
+      "Awarding Authority",
+      "States",
+      "Special Id",
+      "BTBC-PSU-UID",
+      "BTBC-A-UID",
+      "Value (\u20b9 Lakhs)",
+      "Contract Amount",
+      "Contract Date",
+      "Contract Period",
+      "AOC Description",
+      "Matching Keyword",
+      "Awardee(s)",
+      "Purchaser Address",
+      "Email",
+      "Website"
+    ],
+    "sample": [
+      [
+        "MCC/H-2/54/2026",
+        "Municipal Corporation",
+        " Chandigarh",
+        "Municipal Corporation - Chandigarh",
+        "MCCH1",
+        "RKCAC1",
+        "29.41",
+        "29.41 Lac",
+        "21 May 2026",
+        "120",
+        "CONSTRUCTION OF TOE WALL UNDER EXISTING ",
+        "Ms Flats",
+        "R.K. Construction And Co",
+        "Excecutive Engineer Hort.Divn.No.2 M.C.C",
+        "-",
+        ""
+      ],
+      [
+        "06/EE/SRDP-1/PWD/2026-27",
+        "Public Works Department",
+        " Delhi",
+        "Public Works Department - Delhi",
+        "PWDDL1",
+        "BGM1",
+        "168",
+        "1.68 Cr",
+        "20 May 2026",
+        "300",
+        "A/R and M/O VIP flats at Tilak Marg Unde",
+        "Ms Flats",
+        "BRIJ GOPAL MANN",
+        "O/o Executive Engineer SRD Project Divis",
+        "-",
+        ""
+      ],
+      [
+        "70/GM(C)/SM(WC-8)/ET/2025-26",
+        "New Okhla Industrial Development Authori",
+        " Uttar Pradesh",
+        "New Okhla Industrial Development Authori",
+        "NOIDAUP1",
+        "AE1",
+        "59.77",
+        "59.77 Lac",
+        "20 May 2026",
+        "180",
+        "M/o Drain (M/o Drain, Drain Cover, Culve",
+        "Ms Flats",
+        "M/S AADHYA ENTERPRISES",
+        "Sector-6, Noida",
+        "-",
+        "https://www.noidaauthorityonline.in/"
+      ]
+    ]
+  },
+  "Seller Ananlysis": {
+    "rows": 308,
+    "cols": 9,
+    "headers": [
+      "Sr. No.",
+      "BTBC-A-UID",
+      "Awardee",
+      "Goods Tenders",
+      "Tender Value",
+      "Works Tenders",
+      "Tender Value",
+      "Total No. of Tenders",
+      "Total Value (\u20b9 Lakhs)"
+    ],
+    "sample": [
+      [
+        "1",
+        "AKECPL1",
+        "A.K. ENGINEERS & CONTRACTORS PVT. LTD.",
+        "0",
+        "0",
+        "1",
+        "3049",
+        "1",
+        "3049"
+      ],
+      [
+        "2",
+        "BSIL1",
+        "BALAJEE STRUCTURALS INDIA LIMITED",
+        "2",
+        "1441",
+        "0",
+        "0",
+        "2",
+        "1441"
+      ],
+      [
+        "3",
+        "CUMIPL1",
+        "CHENNAI UNITED METAL INDUSTRIES PRIVATE ",
+        "1",
+        "1341",
+        "0",
+        "0",
+        "1",
+        "1341"
+      ]
+    ]
+  },
+  "Buyer Analysis": {
+    "rows": 160,
+    "cols": 10,
+    "headers": [
+      "Sr. No.",
+      "BTBC-PSU-UID",
+      "Genral Sector",
+      "Department - State",
+      "Goods Tenders",
+      "Tender Value",
+      "Works Tenders",
+      "Tender Value",
+      "Total No. of Tenders",
+      "Total Value (\u20b9 Lakhs)"
+    ],
+    "sample": [
+      [
+        "1",
+        "AAOITN1",
+        "Airports Authority Of India ",
+        "Airports Authority Of India - Tamil Nadu",
+        "1",
+        "29.86",
+        "0",
+        "0",
+        "1",
+        "29.86"
+      ],
+      [
+        "2",
+        "AVVNLRJ1",
+        "Ajmer Vidyut Vitran Nigam Limited ",
+        "Ajmer Vidyut Vitran Nigam Limited - Raja",
+        "1",
+        "316",
+        "0",
+        "0",
+        "1",
+        "316"
+      ],
+      [
+        "3",
+        "APCPLHR1",
+        "Aravali Power Company Private Limited ",
+        "Aravali Power Company Private Limited - ",
+        "4",
+        "482.73",
+        "0",
+        "0",
+        "4",
+        "482.73"
+      ]
+    ]
+  }
+}

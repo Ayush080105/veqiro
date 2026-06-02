@@ -184,6 +184,14 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       icon: "Sparkles",
     },
     {
+      id: "rex:generate-report",
+      agent: "rex",
+      endpoint: "datasets/report",
+      label: "Generate dataset report",
+      description: "Create a comprehensive multi-section DOCX report with charts, narratives, and strategic takeaways from any uploaded dataset.",
+      icon: "FileDown",
+    },
+    {
       id: "rex:analyze-metrics",
       agent: "rex",
       endpoint: "analyze-metrics",

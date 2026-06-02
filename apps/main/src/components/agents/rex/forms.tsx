@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Plus, X, Database, ChevronDown, Send, Sparkles, Loader2 } from "lucide-react"
+import { Plus, X, Database, ChevronDown, Send, Sparkles, Loader2, FileDown } from "lucide-react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Controller } from "react-hook-form"
 
-import { listDatasets, queryDataset, analyzeDataset } from "@/lib/api/rex"
+import { listDatasets, queryDataset, analyzeDataset, generateDatasetReport } from "@/lib/api/rex"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
@@ -1534,6 +1534,111 @@ export function RexAnalyzeDatasetForm({
           </div>
         )
       })()}
+    </div>
+  )
+}
+
+// ─── Generate Dataset Report ──────────────────────────────────────────────────
+
+export interface RexGenerateReportValues {
+  dataset_id: string
+}
+
+export function RexGenerateReportForm({
+  value,
+  onChange,
+}: {
+  value: RexGenerateReportValues
+  onChange: (patch: Partial<RexGenerateReportValues>) => void
+}) {
+  const { data: datasets = [] } = useQuery<RexDatasetRecord[]>({
+    queryKey: REX_DATASETS_QK,
+    queryFn: listDatasets,
+    staleTime: 30_000,
+  })
+
+  const [generating, setGenerating] = React.useState(false)
+  const [done, setDone] = React.useState(false)
+
+  const handleGenerate = async () => {
+    if (!value.dataset_id) return
+    setGenerating(true)
+    setDone(false)
+    try {
+      const res = await generateDatasetReport(value.dataset_id, "docx")
+      const bytes = Uint8Array.from(atob(res.file_b64), (c) => c.charCodeAt(0))
+      const blob = new Blob([bytes], { type: res.mime_type })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = res.filename
+      a.click()
+      URL.revokeObjectURL(url)
+      setDone(true)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const selected = datasets.find((d) => d.id === value.dataset_id)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start gap-2 border border-border bg-muted/20 p-3">
+        <FileDown className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div>
+          <p className="text-[12px] font-medium">Full analytical report</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            REX will profile the dataset, plan 5–7 chart sections with AI narratives, and export a ready-to-share DOCX report.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1 text-[10px] text-muted-foreground">Dataset to report on</p>
+        <div className="relative">
+          <select
+            value={value.dataset_id}
+            onChange={(e) => { onChange({ dataset_id: e.target.value }); setDone(false) }}
+            className="w-full appearance-none border border-border bg-background px-2 py-1.5 pr-6 text-[12px]"
+          >
+            <option value="" disabled>Select a dataset…</option>
+            {datasets.map((d) => {
+              const rows = d.meta?.rawTable?.rows?.length ?? d.points.length
+              const cols = d.meta?.rawTable?.headers?.length ?? 1
+              const sheetCount = d.meta?.rawTable?.sheets ? Object.keys(d.meta.rawTable.sheets).length : null
+              return (
+                <option key={d.id} value={d.id}>
+                  {d.name} — {sheetCount ? `${sheetCount} sheets · ` : ""}{rows} rows × {cols} cols
+                </option>
+              )
+            })}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      </div>
+
+      {selected && (
+        <button
+          type="button"
+          onClick={() => void handleGenerate()}
+          disabled={generating}
+          className="flex items-center justify-center gap-2 border border-border bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          {generating
+            ? <><Loader2 className="size-3.5 animate-spin" /> Generating report…</>
+            : done
+              ? <><FileDown className="size-3.5" /> Downloaded — generate again?</>
+              : <><FileDown className="size-3.5" /> Generate &amp; download report</>
+          }
+        </button>
+      )}
+
+      {done && (
+        <p className="text-center text-[11px] text-green-600">
+          Report downloaded successfully.
+        </p>
+      )}
     </div>
   )
 }

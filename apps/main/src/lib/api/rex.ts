@@ -149,3 +149,10 @@ export const analyzeDataset = (datasetId: string) =>
     method: "POST",
     body: {},
   })
+
+// Generate full report — multi-page PDF/DOCX analytical report from raw dataset
+export const generateDatasetReport = (datasetId: string, format: "pdf" | "docx") =>
+  apiFetch<{ file_b64: string; mime_type: string; filename: string }>(
+    `/agents/rex/datasets/${datasetId}/report`,
+    { method: "POST", body: { format } },
+  )

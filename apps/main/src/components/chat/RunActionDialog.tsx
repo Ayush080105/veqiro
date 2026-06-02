@@ -51,6 +51,8 @@ import {
   RexBoardDeckForm,
   RexQueryDatasetActionForm,
   RexAnalyzeDatasetForm,
+  RexGenerateReportForm,
+  type RexGenerateReportValues,
 } from "@/components/agents/rex/forms"
 import { queryDataset, analyzeDataset } from "@/lib/api/rex"
 // Lex forms
@@ -88,6 +90,8 @@ interface ActionSpec {
   customSubmit?: (value: any, organizationId: string) => Promise<unknown>
   /** Dynamically resolve action ID from current form value (e.g. carousel routing). */
   resolveActionId?: (v: any) => AgentActionId
+  /** Override the footer submit button label. */
+  submitLabel?: string
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -377,6 +381,13 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     validate: (v) => (v.dataset_id ? null : "Select a dataset."),
     customSubmit: async (v) => analyzeDataset(v.dataset_id),
   },
+  "rex:generate-report": {
+    defaultValue: { dataset_id: "" } as RexGenerateReportValues,
+    Form: RexGenerateReportForm,
+    validate: () => null,
+    customSubmit: async () => ({ ok: true }),
+    submitLabel: "Close",
+  },
 
   "lex:upload-source": {
     defaultValue: { file: null, document_name: "", document_type: "contract" },
@@ -528,7 +539,7 @@ export function RunActionDialog({
   const spec = SPECS[actionId]
   if (!meta || !spec) return null
 
-  const { Form, defaultValue, validate, customSubmit, resolveActionId } = spec
+  const { Form, defaultValue, validate, customSubmit, resolveActionId, submitLabel } = spec
 
   // Cast to Record<string, unknown> before spreading to satisfy TS —
   // defaultValue is typed as `unknown` so a direct spread would error.
@@ -550,6 +561,7 @@ export function RunActionDialog({
       defaultValue={merged}
       validate={validate}
       customSubmit={customSubmit}
+      submitLabel={submitLabel}
       resolveActionId={resolveActionId}
       onSubmittingChange={onSubmittingChange}
       renderForm={({ value, onChange }) => (

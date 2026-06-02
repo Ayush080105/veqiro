@@ -48,7 +48,7 @@ app.use(morgan("dev"));
 // Better Auth must be mounted BEFORE express.json() so it can stream request bodies
 app.use(`/api/${env.API_VERSION}/auth`, toNodeHandler(auth));
 
-app.use(express.json());
+app.use(express.json({ limit: "20mb" }));
 app.use(camelizeBody);
 app.use(`/api/${env.API_VERSION}`, router);
 
