@@ -19,6 +19,12 @@ const options = {
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
   basePath: `/api/${process.env.API_VERSION! || "v1"}/auth`,
   trustedOrigins: [process.env.CLIENT_URL || "http://localhost:3001"],
+  advanced: {
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: process.env.COOKIE_DOMAIN || undefined,
+    },
+  },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
