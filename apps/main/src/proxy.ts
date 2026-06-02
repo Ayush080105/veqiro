@@ -3,8 +3,8 @@ import type { NextRequest } from "next/server";
 
 import { routeForUser, type SessionPayload } from "@/lib/proxy-routing";
 
-const BETTER_AUTH_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL!;
-const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || "v1";
+const BETTER_AUTH_URL = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_BETTER_AUTH_URL!;
+const API_VERSION = process.env.API_VERSION || process.env.NEXT_PUBLIC_API_VERSION || "v1";
 const SESSION_CACHE_TTL_MS = 8_000;
 const SESSION_CACHE_MAX = 250;
 
