@@ -118,16 +118,16 @@ export const forecast = async (
   await rexRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Forecast: ${input.metric_name}`,
+    content: `Forecast: ${input.metricName}`,
     customInput: { actionId: "rex:forecast", input },
   });
 
   const { data } = await aiService.post<ForecastResponse>("/ai/rex/forecast", {
     user_id: userId,
     organization_id: organizationId,
-    metric_name: input.metric_name,
-    historical_data: input.historical_data,
-    horizon_days: input.horizon_days,
+    metric_name: input.metricName,
+    historical_data: input.historicalData,
+    horizon_days: input.horizonDays,
   });
 
   await rexRepository.createAssistantMessage({
@@ -159,9 +159,9 @@ export const financialAnalysis = async (
     {
       user_id: userId,
       organization_id: organizationId,
-      revenue_data: input.revenue_data,
-      expenses_data: input.expenses_data,
-      subscribers_data: input.subscribers_data,
+      revenue_data: input.revenueData,
+      expenses_data: input.expensesData,
+      subscribers_data: input.subscribersData,
     }
   );
 
@@ -195,8 +195,8 @@ export const compileBriefing = async (
       user_id: userId,
       organization_id: organizationId,
       date: input.date,
-      all_metrics: input.all_metrics,
-      agent_summaries: input.agent_summaries,
+      all_metrics: input.allMetrics,
+      agent_summaries: input.agentSummaries,
     }
   );
 
@@ -220,17 +220,17 @@ export const runway = async (
   await rexRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Runway analysis — $${input.cash_on_hand.toLocaleString()} cash, $${input.monthly_burn.toLocaleString()}/mo burn`,
+    content: `Runway analysis — $${input.cashOnHand.toLocaleString()} cash, $${input.monthlyBurn.toLocaleString()}/mo burn`,
     customInput: { actionId: "rex:runway", input },
   });
 
   const { data } = await aiService.post<RunwayResponse>("/ai/rex/runway", {
     user_id: userId,
     organization_id: organizationId,
-    cash_on_hand: input.cash_on_hand,
-    monthly_burn: input.monthly_burn,
-    monthly_revenue: input.monthly_revenue,
-    growth_rate_pct: input.growth_rate_pct,
+    cash_on_hand: input.cashOnHand,
+    monthly_burn: input.monthlyBurn,
+    monthly_revenue: input.monthlyRevenue,
+    growth_rate_pct: input.growthRatePct,
   });
 
   const monthsLabel =
@@ -266,10 +266,10 @@ export const unitEconomics = async (
     {
       user_id: userId,
       organization_id: organizationId,
-      marketing_spend: input.marketing_spend,
-      new_customers: input.new_customers,
-      avg_monthly_revenue_per_customer: input.avg_monthly_revenue_per_customer,
-      avg_customer_lifetime_months: input.avg_customer_lifetime_months,
+      marketing_spend: input.marketingSpend,
+      new_customers: input.newCustomers,
+      avg_monthly_revenue_per_customer: input.avgMonthlyRevenuePerCustomer,
+      avg_customer_lifetime_months: input.avgCustomerLifetimeMonths,
     }
   );
 
@@ -300,7 +300,7 @@ export const scenario = async (
   const { data } = await aiService.post<ScenarioResponse>("/ai/rex/scenario", {
     user_id: userId,
     organization_id: organizationId,
-    base_metrics: input.base_metrics,
+    base_metrics: input.baseMetrics,
     scenarios: input.scenarios,
   });
 
@@ -334,7 +334,7 @@ export const weeklyDigest = async (
       user_id: userId,
       organization_id: organizationId,
       metrics: input.metrics,
-      prev_week: input.prev_week,
+      prev_week: input.prevWeek,
     }
   );
 
@@ -507,13 +507,13 @@ export const revokeApiKey = async (organizationId: string) => {
 };
 
 export const ingestPoint = async (input: {
-  api_key: string;
+  apiKey: string;
   metric: string;
   date: string;
   value: number;
   period?: "daily" | "weekly" | "monthly" | "quarterly";
 }) => {
-  const settings = await rexRepository.findOrgByApiKey(input.api_key);
+  const settings = await rexRepository.findOrgByApiKey(input.apiKey);
   if (!settings) throw new BadRequestError("Invalid API key");
 
   const period = input.period ?? "monthly";
