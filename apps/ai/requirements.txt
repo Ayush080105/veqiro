@@ -8,31 +8,12 @@ python-dotenv
 
 # ── LLM providers ─────────────────────────────────────────────────────────────
 openai
-google-generativeai
-litellm[proxy]
-
-# ── LangChain ─────────────────────────────────────────────────────────────────
-langchain
-langchain-core
-langchain-openai
-langchain-google-genai
-langchain-community
-
-# ── Data & analytics ──────────────────────────────────────────────────────────
-pandas
-numpy
-scikit-learn
-statsmodels
-openpyxl
-xlrd
+google-genai>=1.0.0
 
 # ── Database ──────────────────────────────────────────────────────────────────
 asyncpg
 sqlalchemy[asyncio]
 pgvector
-
-# ── Caching ───────────────────────────────────────────────────────────────────
-redis[hiredis]
 
 # ── HTTP & scraping ───────────────────────────────────────────────────────────
 httpx
@@ -40,16 +21,20 @@ trafilatura
 beautifulsoup4
 feedparser
 
-# ── Templating & utilities ────────────────────────────────────────────────────
+# ── Data & analytics (Rex agent) ──────────────────────────────────────────────
+numpy
+pandas
+matplotlib
+prophet
+
+# ── Document processing ───────────────────────────────────────────────────────
 jinja2
 tiktoken
 PyPDF2
 pillow
-matplotlib
-reportlab
 python-docx
 
-# ── Google APIs (Vega) ────────────────────────────────────────────────────────
+# ── Google APIs (Vega agent) ──────────────────────────────────────────────────
 google-api-python-client
 google-auth
 
@@ -59,13 +44,9 @@ posthog
 structlog
 langfuse>=2.0.0
 
-# ── SSE streaming (kept for optional future use) ──────────────────────────────
+# ── SSE streaming ─────────────────────────────────────────────────────────────
 sse-starlette
-
-# ── AI frameworks ─────────────────────────────────────────────────────────────
-agno
 
 # ── Testing ───────────────────────────────────────────────────────────────────
 pytest
 pytest-asyncio
-prophet
