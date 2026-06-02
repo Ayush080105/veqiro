@@ -1091,6 +1091,7 @@ export type AgentActionId =
   | "rex:board-deck"
   | "rex:query-dataset"
   | "rex:analyze-dataset"
+  | "rex:generate-report"
   | "lex:upload-source"
   | "lex:analyze-contract"
   | "lex:query-document"

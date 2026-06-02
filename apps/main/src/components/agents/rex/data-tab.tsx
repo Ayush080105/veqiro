@@ -281,7 +281,7 @@ export function RexDataTab({
             </div>
             <button
               type="button"
-              onClick={() => { setSavedRecords(null); setSavedRawTable(null); setQueryResult(null) }}
+              onClick={() => { setSavedRecords(null); setSavedRawTable(null); setQuickQuery("") }}
               className="text-[10px] text-muted-foreground underline hover:text-foreground shrink-0"
             >
               Dismiss
@@ -424,9 +424,7 @@ export function RexDataTab({
           </p>
           <p className="text-[11px] text-muted-foreground">
             {editableDatasets.length === 1 && editableDatasets[0]?.metricKey === "table"
-              ? parseResult.rawTable?.sheets
-                ? `REX detected a ${Object.keys(parseResult.rawTable.sheets).length}-sheet workbook — saving as one unified dataset. All sheets will be available for Q&A, analysis, and reports.`
-                : `REX detected ${parseResult.headers.length} columns — saving as a unified table for Q&A, analysis, and reports.`
+              ? `REX detected ${parseResult.headers.length} columns — saving as a unified table for Q&A, analysis, and reports.`
               : `REX detected ${editableDatasets.length} metric column${editableDatasets.length > 1 ? "s" : ""} from ${parseResult.headers.length} header${parseResult.headers.length !== 1 ? "s" : ""}. Adjust names and period before saving.`
             }
           </p>
@@ -466,10 +464,7 @@ export function RexDataTab({
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                   {isTable ? (
                     <span className="text-blue-600">
-                      {parseResult?.rawTable?.sheets
-                        ? `${Object.keys(parseResult.rawTable.sheets).length} sheets (${Object.keys(parseResult.rawTable.sheets).join(", ")}) · ${Object.values(parseResult.rawTable.sheets).reduce((s, sh) => s + sh.rows.length, 0)} total rows · Ask REX anything across all sheets`
-                        : `General table · ${parseResult?.rawTable?.headers.length ?? 0} columns · ${parseResult?.rawTable?.rows.length ?? 0} rows · Ask REX anything, query, analyze, or generate a report`
-                      }
+                      {`General table · ${parseResult?.rawTable?.headers.length ?? 0} columns · ${parseResult?.rawTable?.rows.length ?? 0} rows · Ask REX anything, query, analyze, or generate a report`}
                     </span>
                   ) : (
                     <>

@@ -1606,7 +1606,7 @@ export function RexGenerateReportForm({
             {datasets.map((d) => {
               const rows = d.meta?.rawTable?.rows?.length ?? d.points.length
               const cols = d.meta?.rawTable?.headers?.length ?? 1
-              const sheetCount = d.meta?.rawTable?.sheets ? Object.keys(d.meta.rawTable.sheets).length : null
+              const sheetCount = null
               return (
                 <option key={d.id} value={d.id}>
                   {d.name} — {sheetCount ? `${sheetCount} sheets · ` : ""}{rows} rows × {cols} cols
