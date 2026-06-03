@@ -1,5 +1,13 @@
-"""Gmail API utilities. In mock mode returns realistic mock email data."""
+"""Gmail REST API utilities using httpx. In mock mode returns realistic mock email data."""
+import asyncio
+import base64
+import re
+from email.mime.text import MIMEText
+
 from core.config import settings
+
+_GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me"
+_TIMEOUT = 30
 
 _MOCK_EMAILS = [
     {
@@ -66,36 +74,34 @@ _MOCK_EMAILS = [
 ]
 
 
+def _auth(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
 async def list_unread(access_token: str, max_results: int = 50) -> list[dict]:
     """List unread emails. In mock mode returns sample unread emails."""
     if settings.MOCK_MODE:
         return _MOCK_EMAILS[:min(max_results, len(_MOCK_EMAILS))]
 
-    from googleapiclient.discovery import build
-    from google.oauth2.credentials import Credentials
-    import asyncio
-    from concurrent.futures import ThreadPoolExecutor
+    import httpx
 
-    def _fetch():
-        creds = Credentials(token=access_token)
-        service = build("gmail", "v1", credentials=creds)
-        results = service.users().messages().list(
-            userId="me", labelIds=["UNREAD"], maxResults=max_results
-        ).execute()
-        msg_ids = [msg["id"] for msg in results.get("messages", [])]
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        hdrs = _auth(access_token)
+        r = await client.get(
+            f"{_GMAIL}/messages",
+            headers=hdrs,
+            params={"labelIds": "UNREAD", "maxResults": max_results},
+        )
+        r.raise_for_status()
+        msg_ids = [m["id"] for m in r.json().get("messages", [])]
         if not msg_ids:
             return []
 
-        def _get_one(msg_id: str) -> dict:
-            return _parse_message(
-                service.users().messages().get(userId="me", id=msg_id, format="full").execute()
-            )
-
-        # Fetch all messages in parallel instead of sequentially
-        with ThreadPoolExecutor(max_workers=min(10, len(msg_ids))) as pool:
-            return list(pool.map(_get_one, msg_ids))
-
-    return await asyncio.to_thread(_fetch)
+        responses = await asyncio.gather(*[
+            client.get(f"{_GMAIL}/messages/{mid}", headers=hdrs, params={"format": "full"})
+            for mid in msg_ids
+        ])
+        return [_parse_message(resp.json()) for resp in responses if resp.is_success]
 
 
 async def get_message(access_token: str, msg_id: str) -> dict:
@@ -106,17 +112,16 @@ async def get_message(access_token: str, msg_id: str) -> dict:
                 return email
         return _MOCK_EMAILS[0]
 
-    from googleapiclient.discovery import build
-    from google.oauth2.credentials import Credentials
-    import asyncio
+    import httpx
 
-    def _fetch():
-        creds = Credentials(token=access_token)
-        service = build("gmail", "v1", credentials=creds)
-        msg_data = service.users().messages().get(userId="me", id=msg_id, format="full").execute()
-        return _parse_message(msg_data)
-
-    return await asyncio.to_thread(_fetch)
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        r = await client.get(
+            f"{_GMAIL}/messages/{msg_id}",
+            headers=_auth(access_token),
+            params={"format": "full"},
+        )
+        r.raise_for_status()
+        return _parse_message(r.json())
 
 
 async def label_message(access_token: str, msg_id: str, label_id: str) -> bool:
@@ -124,19 +129,28 @@ async def label_message(access_token: str, msg_id: str, label_id: str) -> bool:
     if settings.MOCK_MODE:
         return True
 
-    from googleapiclient.discovery import build
-    from google.oauth2.credentials import Credentials
-    import asyncio
+    import httpx
 
-    def _apply():
-        creds = Credentials(token=access_token)
-        service = build("gmail", "v1", credentials=creds)
-        service.users().messages().modify(
-            userId="me", id=msg_id, body={"addLabelIds": [label_id]}
-        ).execute()
-        return True
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        r = await client.post(
+            f"{_GMAIL}/messages/{msg_id}/modify",
+            headers=_auth(access_token),
+            json={"addLabelIds": [label_id]},
+        )
+        return r.is_success
 
-    return await asyncio.to_thread(_apply)
+
+async def list_labels(access_token: str) -> list[dict]:
+    """List all Gmail labels."""
+    if settings.MOCK_MODE:
+        return []
+
+    import httpx
+
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        r = await client.get(f"{_GMAIL}/labels", headers=_auth(access_token))
+        r.raise_for_status()
+        return r.json().get("labels", [])
 
 
 async def create_label(access_token: str, label_name: str) -> str:
@@ -144,19 +158,20 @@ async def create_label(access_token: str, label_name: str) -> str:
     if settings.MOCK_MODE:
         return f"label_{label_name.lower().replace(' ', '_')}_mock"
 
-    from googleapiclient.discovery import build
-    from google.oauth2.credentials import Credentials
-    import asyncio
+    import httpx
 
-    def _create():
-        creds = Credentials(token=access_token)
-        service = build("gmail", "v1", credentials=creds)
-        result = service.users().labels().create(
-            userId="me", body={"name": label_name, "labelListVisibility": "labelShow", "messageListVisibility": "show"}
-        ).execute()
-        return result["id"]
-
-    return await asyncio.to_thread(_create)
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        r = await client.post(
+            f"{_GMAIL}/labels",
+            headers=_auth(access_token),
+            json={
+                "name": label_name,
+                "labelListVisibility": "labelShow",
+                "messageListVisibility": "show",
+            },
+        )
+        r.raise_for_status()
+        return r.json()["id"]
 
 
 async def create_draft(
@@ -170,31 +185,28 @@ async def create_draft(
     if settings.MOCK_MODE:
         return f"draft_{str(id(body))[:8]}_mock"
 
-    import base64
-    from email.mime.text import MIMEText
-    from googleapiclient.discovery import build
-    from google.oauth2.credentials import Credentials
-    import asyncio
+    import httpx
 
-    def _create():
-        creds = Credentials(token=access_token)
-        service = build("gmail", "v1", credentials=creds)
-        message = MIMEText(body)
-        message["to"] = to
-        message["subject"] = subject
-        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        draft_body = {"message": {"raw": raw}}
-        if reply_to_id:
-            draft_body["message"]["threadId"] = reply_to_id
-        result = service.users().drafts().create(userId="me", body=draft_body).execute()
-        return result["id"]
+    message = MIMEText(body)
+    message["to"] = to
+    message["subject"] = subject
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    draft_body: dict = {"message": {"raw": raw}}
+    if reply_to_id:
+        draft_body["message"]["threadId"] = reply_to_id
 
-    return await asyncio.to_thread(_create)
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        r = await client.post(
+            f"{_GMAIL}/drafts",
+            headers=_auth(access_token),
+            json=draft_body,
+        )
+        r.raise_for_status()
+        return r.json()["id"]
 
 
 def _extract_body(payload: dict) -> str:
     """Recursively extract plaintext body from Gmail payload."""
-    import base64
     mime_type = payload.get("mimeType", "")
     body = payload.get("body", {})
     data = body.get("data", "")
@@ -214,12 +226,10 @@ def _extract_body(payload: dict) -> str:
 
 def _parse_message(msg_data: dict) -> dict:
     """Parse Gmail API message into simplified dict."""
-    import re
     headers = {h["name"]: h["value"] for h in msg_data.get("payload", {}).get("headers", [])}
     body = _extract_body(msg_data.get("payload", {}))
     from_header = headers.get("From", "")
     from_name = from_header.split("<")[0].strip().strip('"') if "<" in from_header else from_header
-    # Extract bare email address from header like "Name <email@example.com>" or plain "email@example.com"
     match = re.search(r"<([^>]+)>", from_header)
     from_email = match.group(1) if match else from_header
     return {

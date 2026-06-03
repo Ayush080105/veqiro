@@ -294,17 +294,9 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
     # Cron-only: skip emails that already carry a Vega/* label
     if request.skip_labeled and token and token != "mock-token":
         try:
-            import asyncio as _asyncio
-            from googleapiclient.discovery import build as _build
-            from google.oauth2.credentials import Credentials as _Creds
-            def _vega_ids():
-                svc = _build("gmail", "v1", credentials=_Creds(token=token))
-                return {
-                    l["id"] for l in
-                    svc.users().labels().list(userId="me").execute().get("labels", [])
-                    if l["name"].startswith("Vega/")
-                }
-            vega_label_ids = await _asyncio.to_thread(_vega_ids)
+            from agents.vega.gmail import list_labels as _list_labels
+            all_labels = await _list_labels(token)
+            vega_label_ids = {l["id"] for l in all_labels if l["name"].startswith("Vega/")}
             emails = [e for e in emails if not any(lid in vega_label_ids for lid in e.get("labels", []))]
         except Exception:
             pass

@@ -37,6 +37,7 @@ python-docx
 # ── Google APIs (Vega agent) ──────────────────────────────────────────────────
 google-api-python-client
 google-auth
+google-auth-httplib2
 
 # ── Observability ─────────────────────────────────────────────────────────────
 sentry-sdk[fastapi]
