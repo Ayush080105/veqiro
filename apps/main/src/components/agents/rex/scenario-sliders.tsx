@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useMutation } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import { scenario as runScenario } from "@/lib/api/rex"
 import { StatusPill } from "@/components/ui/status-pill"
