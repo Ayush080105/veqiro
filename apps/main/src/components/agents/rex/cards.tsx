@@ -32,7 +32,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts"
-import { MessageSquare, BarChart2, Sparkles, TrendingUp as TrendUp, Lightbulb, CheckCircle2 } from "lucide-react"
+import { MessageSquare, BarChart2, Sparkles, TrendingUp as TrendUp, Lightbulb, CheckCircle2, Send } from "lucide-react"
 import type {
   RexAnalyzeMetricsResult,
   RexForecastResult,
