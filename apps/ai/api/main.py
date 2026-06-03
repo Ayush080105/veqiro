@@ -57,4 +57,4 @@ async def ready():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", reload=True)
+    uvicorn.run("api.main:app", reload=True)
