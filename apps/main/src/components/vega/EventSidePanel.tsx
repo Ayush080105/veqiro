@@ -3,10 +3,12 @@
 import React, { useState } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { qk } from "@/lib/query-keys"
-import { fetchMeetingPrep, fetchPostMeetingFollowUp, sendFollowUpEmail, fetchRescheduleDraft, patchCalendarEvent } from "@/lib/api/vega-calendar"
+import { fetchPostMeetingFollowUp, sendFollowUpEmail, fetchRescheduleDraft, patchCalendarEvent } from "@/lib/api/vega-calendar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { X, Video, Users, Sparkles, Send, RotateCcw, CalendarClock } from "lucide-react"
 import { toast } from "sonner"
 import type { CalendarEvent } from "@/lib/api/vega-calendar"
@@ -34,6 +36,42 @@ function durationLabel(start: string, end: string): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
+function toLocalDateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [hStr, mStr] = value.split(":")
+  const h = parseInt(hStr, 10)
+  const m = Math.round(parseInt(mStr, 10) / 5) * 5 % 60
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const sel: React.CSSProperties = {
+    appearance: "none",
+    padding: "5px 10px",
+    border: "1.5px solid #111",
+    borderRadius: 6,
+    fontSize: 13,
+    fontFamily: "var(--font-mono)",
+    fontWeight: 600,
+    background: "#fff",
+    outline: "none",
+    cursor: "pointer",
+    textAlign: "center",
+    minWidth: 48,
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <select value={h} onChange={(e) => onChange(`${pad(Number(e.target.value))}:${pad(m)}`)} style={sel}>
+        {Array.from({ length: 24 }, (_, i) => <option key={i} value={i}>{pad(i)}</option>)}
+      </select>
+      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 14, color: "#111" }}>:</span>
+      <select value={m} onChange={(e) => onChange(`${pad(h)}:${pad(Number(e.target.value))}`)} style={sel}>
+        {Array.from({ length: 12 }, (_, i) => <option key={i} value={i * 5}>{pad(i * 5)}</option>)}
+      </select>
+    </div>
+  )
+}
+
 export function EventSidePanel({
   event,
   onClose,
@@ -42,8 +80,6 @@ export function EventSidePanel({
   onClose: () => void
 }) {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-  const [prepEnabled, setPrepEnabled] = useState(false)
 
   const isPastEvent = new Date() > new Date(event.end)
   const [followUpEnabled, setFollowUpEnabled] = useState(false)
@@ -84,9 +120,7 @@ export function EventSidePanel({
   }
 
   const [showReschedule, setShowReschedule] = useState(false)
-  const [rescheduleDate, setRescheduleDate] = useState(
-    new Date(event.start).toISOString().slice(0, 10)
-  )
+  const [rescheduleDate, setRescheduleDate] = useState(() => toLocalDateKey(new Date(event.start)))
   const [rescheduleStartTime, setRescheduleStartTime] = useState(
     new Date(event.start).toTimeString().slice(0, 5)
   )
@@ -159,18 +193,6 @@ export function EventSidePanel({
       setRescheduling(false)
     }
   }
-
-  const { data: prep, isLoading: prepLoading, isError: prepError, refetch: refetchPrep } = useQuery({
-    queryKey: qk.vegaMeetingPrep(event.id),
-    queryFn: () =>
-      fetchMeetingPrep({
-        eventTitle: event.title,
-        attendeeEmails: event.attendees,
-        description: event.description,
-      }),
-    enabled: prepEnabled,
-    staleTime: 10 * 60 * 1000,
-  })
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto">
@@ -253,95 +275,6 @@ export function EventSidePanel({
         </a>
       )}
 
-      {/* Prep Brief */}
-      <div className="flex flex-col gap-2">
-        {!prepEnabled && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            style={{ border: "2px solid #111", justifyContent: "start" }}
-            onClick={() => setPrepEnabled(true)}
-          >
-            <Sparkles className="size-3.5" />
-            Generate Prep Brief
-          </Button>
-        )}
-
-        {prepEnabled && prepLoading && (
-          <div className="flex flex-col gap-2 rounded-lg p-3" style={{ background: "#FFF9ED", border: "1.5px solid #E5E5E5" }}>
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-4/5" />
-            <Skeleton className="h-3 w-3/5" />
-          </div>
-        )}
-
-        {prepEnabled && prepError && (
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-destructive flex-1">Failed to generate prep brief.</p>
-            <Button variant="ghost" size="sm" className="text-xs h-6 px-2 shrink-0" onClick={() => refetchPrep()}>
-              Retry
-            </Button>
-          </div>
-        )}
-
-        {prepEnabled && prep && (
-          <div
-            className="flex flex-col gap-3 rounded-lg p-3"
-            style={{ background: "#FFF9ED", border: "1.5px solid #E5E5E5" }}
-          >
-            <p className="text-xs leading-relaxed text-foreground">{prep.summary}</p>
-
-            {prep.keyPoints.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  Key Points
-                </p>
-                {prep.keyPoints.map((pt, i) => (
-                  <div key={i} className="text-xs text-foreground pl-2">
-                    · {pt}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {prep.suggestedAgenda.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  Suggested Agenda
-                </p>
-                {prep.suggestedAgenda.map((item, i) => (
-                  <div key={i} className="text-xs text-foreground pl-2">
-                    {i + 1}. {item}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {prep.attendeeContext && (
-              <div className="flex flex-col gap-1">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-                  style={{ fontFamily: "var(--font-mono)" }}
-                >
-                  Attendee Context
-                </p>
-                <p className="text-xs text-foreground leading-relaxed">
-                  {prep.attendeeContext}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Post-meeting follow-up — shown only after the event has ended */}
       {/* Reschedule section */}
       <div className="flex flex-col gap-2">
         {!showReschedule ? (
@@ -380,51 +313,59 @@ export function EventSidePanel({
               </Button>
             </div>
 
-            <input
-              type="date"
-              value={rescheduleDate}
-              onChange={(e) => {
-                setRescheduleDate(e.target.value)
-                setRescheduleDraftEnabled(false)
-              }}
-              style={{
-                width: "100%",
-                padding: "5px 8px",
-                border: "1.5px solid #111",
-                borderRadius: 6,
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-                background: "#fff",
-                outline: "none",
-              }}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  style={{
+                    width: "100%",
+                    padding: "6px 10px",
+                    border: "1.5px solid #111",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono)",
+                    fontWeight: 600,
+                    background: "#fff",
+                    outline: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  {rescheduleDate
+                    ? new Date(rescheduleDate + "T00:00:00").toLocaleDateString("en-US", {
+                        weekday: "short", month: "short", day: "numeric", year: "numeric",
+                      })
+                    : "Select date"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="start" style={{ width: "auto", padding: 0, border: "2px solid #111", borderRadius: 8, boxShadow: "4px 4px 0 #111" }}>
+                <Calendar
+                  mode="single"
+                  selected={rescheduleDate ? new Date(rescheduleDate + "T00:00:00") : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      setRescheduleDate(toLocalDateKey(date))
+                      setRescheduleDraftEnabled(false)
+                    }
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {(["Start", "End"] as const).map((label) => (
-                <div key={label} className="flex flex-col gap-0.5 flex-1">
+                <div key={label} className="flex flex-col gap-1">
                   <span
                     className="text-[9px] uppercase tracking-wider text-muted-foreground"
                     style={{ fontFamily: "var(--font-mono)" }}
                   >
                     {label}
                   </span>
-                  <input
-                    type="time"
+                  <TimeSelect
                     value={label === "Start" ? rescheduleStartTime : rescheduleEndTime}
-                    onChange={(e) => {
-                      if (label === "Start") setRescheduleStartTime(e.target.value)
-                      else setRescheduleEndTime(e.target.value)
+                    onChange={(v) => {
+                      if (label === "Start") setRescheduleStartTime(v)
+                      else setRescheduleEndTime(v)
                       setRescheduleDraftEnabled(false)
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "5px 8px",
-                      border: "1.5px solid #111",
-                      borderRadius: 6,
-                      fontSize: 11,
-                      fontFamily: "var(--font-mono)",
-                      background: "#fff",
-                      outline: "none",
                     }}
                   />
                 </div>

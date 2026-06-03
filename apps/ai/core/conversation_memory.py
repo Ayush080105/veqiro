@@ -19,6 +19,24 @@ CREATE INDEX IF NOT EXISTS conv_mem_org_agent_time_idx
     ON conversation_memories (org_id, agent, created_at DESC);
 CREATE INDEX IF NOT EXISTS conv_mem_org_idx
     ON conversation_memories (org_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS rag_chunks (
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      TEXT        NOT NULL,
+    source_id    TEXT        NOT NULL,
+    source_type  TEXT        NOT NULL DEFAULT '',
+    source_agent TEXT        NOT NULL DEFAULT '',
+    content      TEXT        NOT NULL,
+    embedding    vector(1536),
+    metadata     JSONB       DEFAULT '{}',
+    created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS rag_chunks_embedding_idx
+    ON rag_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS rag_chunks_user_agent_idx
+    ON rag_chunks (user_id, source_agent);
+CREATE INDEX IF NOT EXISTS rag_chunks_source_idx
+    ON rag_chunks (user_id, source_id);
 """
 
 

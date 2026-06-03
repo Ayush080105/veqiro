@@ -74,6 +74,7 @@ async def list_unread(access_token: str, max_results: int = 50) -> list[dict]:
     from googleapiclient.discovery import build
     from google.oauth2.credentials import Credentials
     import asyncio
+    from concurrent.futures import ThreadPoolExecutor
 
     def _fetch():
         creds = Credentials(token=access_token)
@@ -81,11 +82,18 @@ async def list_unread(access_token: str, max_results: int = 50) -> list[dict]:
         results = service.users().messages().list(
             userId="me", labelIds=["UNREAD"], maxResults=max_results
         ).execute()
-        messages = []
-        for msg in results.get("messages", []):
-            msg_data = service.users().messages().get(userId="me", id=msg["id"], format="full").execute()
-            messages.append(_parse_message(msg_data))
-        return messages
+        msg_ids = [msg["id"] for msg in results.get("messages", [])]
+        if not msg_ids:
+            return []
+
+        def _get_one(msg_id: str) -> dict:
+            return _parse_message(
+                service.users().messages().get(userId="me", id=msg_id, format="full").execute()
+            )
+
+        # Fetch all messages in parallel instead of sequentially
+        with ThreadPoolExecutor(max_workers=min(10, len(msg_ids))) as pool:
+            return list(pool.map(_get_one, msg_ids))
 
     return await asyncio.to_thread(_fetch)
 

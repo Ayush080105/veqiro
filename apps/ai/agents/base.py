@@ -58,6 +58,7 @@ class BaseAgent(ABC):
         user_id: str,
         organization_id: str = "",
         extra_context: str | None = None,
+        use_brand_kit: bool = True,
     ) -> str:
         # Subclasses override this to inject brand_kit context. The base prompt
         # is intentionally minimal so the registry/cross-agent fallbacks don't
@@ -158,8 +159,12 @@ class BaseAgent(ABC):
         if len(tools) <= 1:  # only ask_agent
             return await self._chat_sync_no_tools(request)
 
-        # Build system prompt with RAG
-        system_prompt = await self.build_system_prompt(request.user_id, request.organization_id)
+        # Build system prompt with RAG (skip brand kit for internal cross-agent calls)
+        is_cross_agent = request.metadata.get("_cross_agent_call", False)
+        system_prompt = await self.build_system_prompt(
+            request.user_id, request.organization_id,
+            use_brand_kit=not is_cross_agent,
+        )
 
         try:
             rag_chunks = await self.rag.retrieve(

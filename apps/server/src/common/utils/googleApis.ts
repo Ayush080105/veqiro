@@ -88,6 +88,46 @@ interface LabelMessageArgs {
 
 // Cache label ids per access token + name to avoid re-listing for every message
 const labelIdCache = new Map<string, string>();
+// All known Vega/* label IDs per token prefix — used to remove stale labels
+const vegaLabelIds = new Map<string, Set<string>>();
+
+// Gmail only accepts colors from its predefined palette
+const LABEL_COLOR_MAP: Record<string, { backgroundColor: string; textColor: string }> = {
+  finance:     { backgroundColor: "#149e60", textColor: "#ffffff" },
+  financial:   { backgroundColor: "#149e60", textColor: "#ffffff" },
+  newsletter:  { backgroundColor: "#8e63ce", textColor: "#ffffff" },
+  newsletters: { backgroundColor: "#8e63ce", textColor: "#ffffff" },
+  snoozed:     { backgroundColor: "#4a86e8", textColor: "#ffffff" },
+  urgent:      { backgroundColor: "#cc3a21", textColor: "#ffffff" },
+  important:   { backgroundColor: "#fb4c2f", textColor: "#ffffff" },
+  work:        { backgroundColor: "#3c78d8", textColor: "#ffffff" },
+  personal:    { backgroundColor: "#16a766", textColor: "#ffffff" },
+  social:      { backgroundColor: "#e07798", textColor: "#ffffff" },
+  promotions:  { backgroundColor: "#eaa041", textColor: "#ffffff" },
+  updates:     { backgroundColor: "#6d9eeb", textColor: "#ffffff" },
+  other:       { backgroundColor: "#666666", textColor: "#ffffff" },
+};
+
+const COLOR_PALETTE = [
+  { backgroundColor: "#4a86e8", textColor: "#ffffff" },
+  { backgroundColor: "#16a766", textColor: "#ffffff" },
+  { backgroundColor: "#a479e2", textColor: "#ffffff" },
+  { backgroundColor: "#fb4c2f", textColor: "#ffffff" },
+  { backgroundColor: "#eaa041", textColor: "#ffffff" },
+  { backgroundColor: "#43d692", textColor: "#222222" },
+  { backgroundColor: "#e07798", textColor: "#ffffff" },
+  { backgroundColor: "#3c78d8", textColor: "#ffffff" },
+];
+
+function getLabelColor(labelName: string) {
+  const lower = labelName.toLowerCase().replace(/^vega\//, "");
+  for (const [key, color] of Object.entries(LABEL_COLOR_MAP)) {
+    if (lower.includes(key)) return color;
+  }
+  let hash = 0;
+  for (const char of lower) hash = (hash * 31 + char.charCodeAt(0)) & 0xffffffff;
+  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
+}
 
 const getOrCreateLabel = async (
   accessToken: string,
@@ -103,13 +143,28 @@ const getOrCreateLabel = async (
   );
   if (listRes.ok) {
     const data = (await listRes.json()) as {
-      labels?: Array<{ id: string; name: string }>;
+      labels?: Array<{ id: string; name: string; color?: { backgroundColor?: string } }>;
     };
+    // Cache ALL Vega/* label IDs so we can remove stale ones on apply
+    const tokenPrefix = accessToken.slice(0, 12);
+    if (!vegaLabelIds.has(tokenPrefix)) vegaLabelIds.set(tokenPrefix, new Set());
+    for (const l of data.labels ?? []) {
+      if (l.name.startsWith("Vega/")) vegaLabelIds.get(tokenPrefix)!.add(l.id);
+    }
+
     const found = data.labels?.find(
       (l) => l.name.toLowerCase() === labelName.toLowerCase()
     );
     if (found) {
       labelIdCache.set(key, found.id);
+      // Patch color if the label has no color set yet
+      if (!found.color?.backgroundColor) {
+        fetch(`https://gmail.googleapis.com/gmail/v1/users/me/labels/${found.id}`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ color: getLabelColor(labelName) }),
+        }).catch(() => {});
+      }
       return found.id;
     }
   }
@@ -126,6 +181,7 @@ const getOrCreateLabel = async (
         name: labelName,
         labelListVisibility: "labelShow",
         messageListVisibility: "show",
+        color: getLabelColor(labelName),
       }),
     }
   );
@@ -135,6 +191,9 @@ const getOrCreateLabel = async (
   }
   const label = (await createRes.json()) as { id: string };
   labelIdCache.set(key, label.id);
+  const tokenPrefix = accessToken.slice(0, 12);
+  if (!vegaLabelIds.has(tokenPrefix)) vegaLabelIds.set(tokenPrefix, new Set());
+  vegaLabelIds.get(tokenPrefix)!.add(label.id);
   return label.id;
 };
 
@@ -145,6 +204,11 @@ export const labelMessage = async ({
 }: LabelMessageArgs) => {
   if (!messageId) return;
   const labelId = await getOrCreateLabel(accessToken, labelName);
+  // Remove all other Vega/* labels so each email has exactly one
+  const tokenPrefix = accessToken.slice(0, 12);
+  const removeLabelIds = [...(vegaLabelIds.get(tokenPrefix) ?? [])].filter(
+    (id) => id !== labelId
+  );
   const res = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
     {
@@ -153,7 +217,7 @@ export const labelMessage = async ({
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ addLabelIds: [labelId] }),
+      body: JSON.stringify({ addLabelIds: [labelId], removeLabelIds }),
     }
   );
   if (!res.ok) {

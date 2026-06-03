@@ -19,7 +19,6 @@ import type {
   RexInvestorUpdateRequest,
   RexInvestorUpdateResult,
   RexSnapshot,
-  RexPinnedCard,
   RexSettingsData,
   RexDatasetRecord,
   RexAlertRule,
@@ -91,14 +90,6 @@ export const investorUpdate = (body: RexInvestorUpdateRequest) =>
 export const getSnapshot = () =>
   apiFetch<RexSnapshot>("/agents/rex/snapshot")
 
-export const listPins = () =>
-  apiFetch<RexPinnedCard[]>("/agents/rex/pins")
-
-export const createPin = (body: { kind: string; payload: unknown }) =>
-  apiFetch<RexPinnedCard>("/agents/rex/pins", { method: "POST", body })
-
-export const deletePin = (id: string) =>
-  apiFetch<void>(`/agents/rex/pins/${id}`, { method: "DELETE" })
 
 export const getSettings = () =>
   apiFetch<RexSettingsData>("/agents/rex/settings")
@@ -129,12 +120,6 @@ export const generateApiKey = () =>
 export const revokeApiKey = () =>
   apiFetch<{ ok: true }>("/agents/rex/api-key/revoke", { method: "POST" })
 
-// Pin sharing (C10)
-export const sharePin = (id: string, isPublic: boolean) =>
-  apiFetch<{ id: string; isPublic: boolean; shareToken: string | null }>(
-    `/agents/rex/pins/${id}/share`,
-    { method: "PATCH", body: { isPublic } }
-  )
 
 // Query dataset — natural language Q&A on any uploaded CSV/Excel
 export const queryDataset = (datasetId: string, body: RexQueryDatasetRequest) =>

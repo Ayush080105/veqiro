@@ -1458,11 +1458,15 @@ Guidelines:
                     ))
             chart_data = chart_raw.get("data", [])
             if chart_data and y_keys:
+                fallback_x = next(
+                    (k for k in chart_data[0].keys() if k not in {yk.key for yk in y_keys}),
+                    list(chart_data[0].keys())[0] if chart_data[0] else "x",
+                )
                 chart = ChartSpec(
                     type=chart_raw.get("type", "bar"),
                     title=chart_raw.get("title", ""),
                     data=chart_data,
-                    xKey=chart_raw.get("xKey", headers[0] if headers else "x"),
+                    xKey=chart_raw.get("xKey") or fallback_x,
                     yKeys=y_keys,
                 )
     except Exception:
@@ -1632,11 +1636,15 @@ Be specific — reference actual column names and numbers from the statistics. T
                     ))
             chart_data = chart_raw.get("data", [])
             if chart_data and y_keys:
+                fallback_x = next(
+                    (k for k in chart_data[0].keys() if k not in {yk.key for yk in y_keys}),
+                    list(chart_data[0].keys())[0] if chart_data[0] else "x",
+                )
                 chart = ChartSpec(
                     type=chart_raw.get("type", "bar"),
                     title=chart_raw.get("title", ""),
                     data=chart_data,
-                    xKey=chart_raw.get("xKey", headers[0] if headers else "x"),
+                    xKey=chart_raw.get("xKey") or fallback_x,
                     yKeys=y_keys,
                 )
     except Exception:

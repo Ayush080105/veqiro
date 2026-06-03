@@ -236,7 +236,7 @@ class ScoutAgent(BaseAgent):
 
         today = datetime.now(timezone.utc).strftime("%B %d, %Y")
         year = datetime.now(timezone.utc).year
-        system = await self.build_system_prompt(user_id, organization_id)
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
 
         if name == "web_search":
             try:

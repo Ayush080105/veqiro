@@ -216,7 +216,7 @@ class RexAgent(BaseAgent):
         from agents.rex.forecasting import forecast_metric
         from core.models import DataPoint
 
-        system = await self.build_system_prompt(user_id, organization_id)
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
 
         if name == "analyze_metrics":
             try:

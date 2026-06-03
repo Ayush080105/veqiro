@@ -1,10 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Save, RefreshCw } from "lucide-react"
-import { scenario as runScenario, createPin } from "@/lib/api/rex"
-import { PINS_KEY } from "@/components/agents/rex/today-panel"
+import { RefreshCw } from "lucide-react"
+import { scenario as runScenario } from "@/lib/api/rex"
 import { StatusPill } from "@/components/ui/status-pill"
 import { cn } from "@/lib/utils"
 import type { RexScenarioResult, RexScenarioResultItem } from "@/lib/types/agents"
@@ -129,7 +127,6 @@ export function ScenarioSliders({
   initialResult: RexScenarioResult
   baseMetrics: { mrr: number; burn: number; cash: number; growth_rate: number }
 }) {
-  const qc = useQueryClient()
   const [result, setResult] = React.useState(initialResult)
   const [editingIdx, setEditingIdx] = React.useState(0)
   const [burnDelta, setBurnDelta] = React.useState(0)
@@ -157,11 +154,6 @@ export function ScenarioSliders({
         ),
       }),
     onSuccess: (data) => setResult(data),
-  })
-
-  const pinMut = useMutation({
-    mutationFn: () => createPin({ kind: "scenario", payload: result }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PINS_KEY }),
   })
 
   const triggerRecompute = React.useCallback(() => {
@@ -243,14 +235,6 @@ export function ScenarioSliders({
 
       <p className="text-[11px] leading-relaxed">{result.recommendation}</p>
 
-      <button
-        type="button"
-        onClick={() => pinMut.mutate()}
-        disabled={pinMut.isPending}
-        className="flex items-center gap-1.5 self-start border border-border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-50"
-      >
-        <Save className="size-3" /> Save snapshot
-      </button>
     </div>
   )
 }

@@ -164,7 +164,7 @@ class LexAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
     ) -> str:
-        system = await self.build_system_prompt(user_id, organization_id)
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
 
         if name == "list_documents":
             sources = await self.rag.list_sources(user_id, source_agent="lex")

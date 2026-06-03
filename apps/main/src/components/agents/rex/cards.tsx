@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   TrendingUp,
   TrendingDown,
@@ -20,9 +19,7 @@ import {
   XCircle,
   ArrowUp,
   ArrowDown,
-  Pin,
   ArrowRight,
-  Send,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { AgentCard } from "@/components/ui/agent-card"
@@ -30,8 +27,6 @@ import { InfoSection } from "@/components/ui/info-section"
 import { KpiTile } from "@/components/ui/kpi-tile"
 import { StatusPill } from "@/components/ui/status-pill"
 import { cn } from "@/lib/utils"
-import { createPin, sharePin } from "@/lib/api/rex"
-import { PINS_KEY } from "@/components/agents/rex/today-panel"
 import { ScenarioSliders } from "@/components/agents/rex/scenario-sliders"
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter,
@@ -86,86 +81,6 @@ function ConfidenceFooter({
         {[label, dataPoints ? `${dataPoints} data pts` : null, note].filter(Boolean).join(" · ")}
       </span>
     </div>
-  )
-}
-
-// ─── Pin button ──────────────────────────────────────────────────────────────
-
-function PinButton({ kind, payload }: { kind: string; payload: unknown }) {
-  const qc = useQueryClient()
-  const [pinId, setPinId] = React.useState<string | null>(null)
-  const [shareUrl, setShareUrl] = React.useState<string | null>(null)
-  const [copied, setCopied] = React.useState(false)
-
-  const pinMut = useMutation({
-    mutationFn: () => createPin({ kind, payload }),
-    onSuccess: (data) => {
-      setPinId((data as { id: string }).id)
-      void qc.invalidateQueries({ queryKey: PINS_KEY })
-    },
-  })
-
-  const shareMut = useMutation({
-    mutationFn: () => {
-      if (!pinId) throw new Error("Pin first")
-      return sharePin(pinId, true)
-    },
-    onSuccess: (data) => {
-      if (data.shareToken) {
-        setShareUrl(`${window.location.origin}/share/rex/${data.shareToken}`)
-      }
-    },
-  })
-
-  const copyShare = () => {
-    if (!shareUrl) return
-    void navigator.clipboard.writeText(shareUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
-  if (pinId && shareUrl) {
-    return (
-      <button
-        type="button"
-        onClick={copyShare}
-        title={shareUrl}
-        className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted"
-      >
-        <Pin className="size-2.5" />
-        {copied ? "Link copied!" : "Copy share link"}
-      </button>
-    )
-  }
-
-  if (pinId) {
-    return (
-      <div className="flex items-center gap-1">
-        <span className="border border-border bg-muted px-1.5 py-0.5 text-[10px]">Pinned</span>
-        <button
-          type="button"
-          onClick={() => shareMut.mutate()}
-          disabled={shareMut.isPending}
-          className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50"
-        >
-          <Send className="size-2.5" />
-          {shareMut.isPending ? "..." : "Share"}
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      title="Pin to Today"
-      onClick={() => pinMut.mutate()}
-      disabled={pinMut.isPending}
-      className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50"
-    >
-      <Pin className="size-2.5" />
-      Pin
-    </button>
   )
 }
 
@@ -297,7 +212,6 @@ export function MetricsAnalysisCard({
             <StatusPill level={healthLevel(analysis.health_indicator)}>
               {analysis.health_indicator}
             </StatusPill>
-            <PinButton kind="analyze-metrics" payload={result} />
           </div>
         }
       />
@@ -381,7 +295,6 @@ export function ForecastCard({
             confidence {Math.round(result.confidence * 100)}%
           </Badge>
         }
-        right={<PinButton kind="forecast" payload={result} />}
       />
       <AgentCard.Body className="flex flex-col gap-3">
         <div className="border border-border bg-muted/20 p-2">
@@ -435,7 +348,6 @@ export function FinancialHealthCard({
             <StatusPill level={healthLevel(result.health_indicator)}>
               {result.health_indicator}
             </StatusPill>
-            <PinButton kind="financial-analysis" payload={result} />
           </div>
         }
       />
@@ -530,7 +442,6 @@ export function BriefingCard({
             {b.date}
           </Badge>
         }
-        right={<PinButton kind="briefing" payload={result} />}
       />
       <AgentCard.Body className="flex flex-col gap-3">
         <p className="text-xs font-medium">{b.headline}</p>
@@ -605,7 +516,6 @@ export function RunwayCard({
         right={
           <div className="flex items-center gap-1.5">
             <StatusPill level={verdictLevel}>{result.verdict}</StatusPill>
-            <PinButton kind="runway" payload={result} />
           </div>
         }
       />
@@ -696,7 +606,6 @@ export function UnitEconomicsCard({
         right={
           <div className="flex items-center gap-1.5">
             <StatusPill level={healthLevelLocal(result.health)}>{result.health}</StatusPill>
-            <PinButton kind="unit-economics" payload={result} />
           </div>
         }
       />
@@ -767,7 +676,6 @@ export function ScenarioCard({
       <AgentCard.Header
         icon={<GitBranch />}
         title="What-if scenarios"
-        right={<PinButton kind="scenario" payload={result} />}
       />
       <AgentCard.Body className="flex flex-col gap-3">
         <ScenarioSliders initialResult={result} baseMetrics={derivedBase} />
@@ -804,7 +712,6 @@ export function WeeklyDigestCard({
         badge={
           <Badge variant="secondary" className="text-[10px]">{result.period}</Badge>
         }
-        right={<PinButton kind="weekly-digest" payload={result} />}
       />
       <AgentCard.Body className="flex flex-col gap-3">
         <p className="text-[12px] font-medium leading-snug">{result.headline}</p>
@@ -935,7 +842,6 @@ export function InvestorUpdateCard({
               <Copy className="size-3" />
               {copied ? "Copied!" : "Copy email"}
             </button>
-            <PinButton kind="investor-update" payload={result} />
           </div>
         }
       />
@@ -1002,7 +908,6 @@ export function VarianceCard({
               {result.total_variance_pct > 0 ? "+" : ""}
               {result.total_variance_pct.toFixed(1)}%
             </StatusPill>
-            <PinButton kind="variance" payload={result} />
           </div>
         }
       />
@@ -1111,7 +1016,6 @@ export function BoardDeckCard({
             >
               <ArrowRight className="size-3" /> Open
             </button>
-            <PinButton kind="board-deck" payload={result} />
           </div>
         }
       />
@@ -1290,7 +1194,6 @@ export function RexQueryDatasetCard({
                 {result.chart.type}
               </Badge>
             )}
-            <PinButton kind="query-dataset" payload={{ result, datasetName, query }} />
           </div>
         }
       />
@@ -1346,7 +1249,6 @@ export function RexAnalyzeDatasetCard({
       <AgentCard.Header
         icon={<Sparkles />}
         title={datasetName ? `Analysis · ${datasetName}` : "Dataset analysis"}
-        right={<PinButton kind="analyze-dataset" payload={{ result, datasetName }} />}
       />
       <AgentCard.Body className="flex flex-col gap-4">
         {/* Summary */}

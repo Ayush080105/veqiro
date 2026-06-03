@@ -44,6 +44,10 @@ function isSameDay(a: Date, b: Date): boolean {
   )
 }
 
+function toLocalDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+}
+
 function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -185,7 +189,7 @@ export function CalendarView({ initialPrefill }: CalendarViewProps) {
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
     for (const ev of data?.events ?? []) {
-      const day = ev.start.slice(0, 10)
+      const day = toLocalDateKey(new Date(ev.start))
       if (!map.has(day)) map.set(day, [])
       map.get(day)!.push(ev)
     }
@@ -303,7 +307,7 @@ export function CalendarView({ initialPrefill }: CalendarViewProps) {
         {/* Week grid */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {weekDays.map((day) => {
-            const key = day.toISOString().slice(0, 10)
+            const key = toLocalDateKey(day)
             return (
               <DayColumn
                 key={key}

@@ -213,33 +213,41 @@ export default function DashboardPage() {
       {showSkeletons ? <ContentPipelineSkeleton /> : <ContentPipeline data={pipeline} />}
 
       {/* Daily briefing — compact footer */}
-      <Link
-        href="/workspace/briefing"
-        className="relative flex items-center gap-3.5 rounded-md border-[3px] border-foreground bg-card p-4 px-5 no-underline shadow-[5px_5px_0_var(--vq-green)]"
-      >
-        <div className="absolute -top-4 left-5">
+      <div className="relative pt-5">
+        <div className="absolute top-0 left-5 z-10">
           <Sticker rotate={-4} tone="green">
             daily brief
           </Sticker>
         </div>
-        <span
-          className="grid size-10 shrink-0 place-items-center rounded-md border-[2.5px] border-foreground bg-foreground text-primary-foreground"
-          style={{ transform: "rotate(-4deg)" }}
+        <Link
+          href="/workspace/briefing"
+          className="flex items-center gap-3.5 rounded-md border-[3px] border-foreground bg-card p-4 px-5 no-underline shadow-[5px_5px_0_var(--vq-green)]"
         >
-          <Bot className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="font-head text-[15px] tracking-tight text-foreground">
-            Today&apos;s briefing
+          <span
+            className="grid size-10 shrink-0 place-items-center rounded-md border-[2.5px] border-foreground bg-foreground text-primary-foreground"
+            style={{ transform: "rotate(-4deg)" }}
+          >
+            <Bot className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="font-head text-[15px] tracking-tight text-foreground">
+              Today&apos;s briefing
+            </div>
+            <p className="m-0 mt-0.5 line-clamp-2 font-body text-[13px] leading-snug text-muted-foreground">
+              {metrics && metrics.messagesWeek > 0
+                ? [
+                    `Your crew handled ${metrics.messagesWeek} conversation${metrics.messagesWeek !== 1 ? "s" : ""} this week`,
+                    metrics.contentPublishedWeek > 0
+                      ? ` and published ${metrics.contentPublishedWeek} post${metrics.contentPublishedWeek !== 1 ? "s" : ""}`
+                      : "",
+                    ". Open to see emails, calendar and agent activity →",
+                  ].join("")
+                : "No agent activity yet this week. Generate a briefing to see your inbox and calendar summary."}
+            </p>
           </div>
-          <p className="m-0 mt-0.5 line-clamp-2 font-body text-[13px] leading-snug text-muted-foreground">
-            {metrics && metrics.messagesWeek > 0
-              ? `Your crew handled ${metrics.messagesWeek} conversations and published ${metrics.contentPublishedWeek} posts this week. Read Vega's full rundown →`
-              : "Your crew hasn't clocked in yet this week. Vega will write up a briefing once there's activity."}
-          </p>
-        </div>
-        <Button variant="brand-dark" size="brand-sm">Read →</Button>
-      </Link>
+          <Button variant="brand-dark" size="brand-sm">Read →</Button>
+        </Link>
+      </div>
     </div>
   )
 }

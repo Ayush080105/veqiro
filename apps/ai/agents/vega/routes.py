@@ -1,3 +1,4 @@
+import asyncio
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -32,6 +33,7 @@ class ProcessInboxRequest(BaseModel):
     max_emails: int = 20
     auto_label: bool = True
     draft_replies: bool = True
+    skip_labeled: bool = False  # cron-only: skip emails that already have a Vega/* label
     custom_labels: list[str] = []
     metadata: dict = {}
 
@@ -289,6 +291,24 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
     token = request.metadata.get("google_access_token", "") or "mock-token"
     emails = await list_unread(token, max_results=request.max_emails)
 
+    # Cron-only: skip emails that already carry a Vega/* label
+    if request.skip_labeled and token and token != "mock-token":
+        try:
+            import asyncio as _asyncio
+            from googleapiclient.discovery import build as _build
+            from google.oauth2.credentials import Credentials as _Creds
+            def _vega_ids():
+                svc = _build("gmail", "v1", credentials=_Creds(token=token))
+                return {
+                    l["id"] for l in
+                    svc.users().labels().list(userId="me").execute().get("labels", [])
+                    if l["name"].startswith("Vega/")
+                }
+            vega_label_ids = await _asyncio.to_thread(_vega_ids)
+            emails = [e for e in emails if not any(lid in vega_label_ids for lid in e.get("labels", []))]
+        except Exception:
+            pass
+
     if settings.MOCK_MODE:
         processed = [
             ProcessedEmail(
@@ -488,13 +508,16 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
 async def calendar_summary(request: CalendarSummaryRequest) -> CalendarSummaryResponse:
     """Get a comprehensive calendar overview with conflict detection and free slots."""
     token = request.metadata.get("google_access_token", "") or "mock-token"
-    events = await list_events(token, days_ahead=request.days_ahead)
     now = datetime.now(timezone.utc)
     date_range = {
         "start": now.isoformat(),
         "end": (now + timedelta(days=request.days_ahead)).isoformat(),
     }
-    free_slots = await find_free_slots(token, date_range)
+    # Run both Google Calendar API calls in parallel — they're independent
+    events, free_slots = await asyncio.gather(
+        list_events(token, days_ahead=request.days_ahead),
+        find_free_slots(token, date_range),
+    )
 
     if settings.MOCK_MODE:
         return CalendarSummaryResponse(
@@ -658,13 +681,50 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
         )
 
     emails = []
+    email_by_label: dict = {}
     if request.include_email:
-        emails = await list_unread(token, max_results=10)
+        from email.utils import parsedate_to_datetime
+        from datetime import date as _date
+        import asyncio as _asyncio
+        all_unread = await list_unread(token, max_results=50)
+        today = _date.today().isoformat()
+        def _is_today(email_date: str) -> bool:
+            try:
+                return parsedate_to_datetime(email_date).date().isoformat() == today
+            except Exception:
+                return False
+        emails = [e for e in all_unread if _is_today(e.get("date", ""))]
+
+        # Build label breakdown from actual Gmail label names (Vega applies these via cron)
+        if emails and token and token != "mock-token":
+            try:
+                from googleapiclient.discovery import build
+                from google.oauth2.credentials import Credentials
+                def _fetch_label_names():
+                    svc = build("gmail", "v1", credentials=Credentials(token=token))
+                    return {l["id"]: l["name"] for l in svc.users().labels().list(userId="me").execute().get("labels", [])}
+                id_to_name = await _asyncio.to_thread(_fetch_label_names)
+                for email in emails:
+                    vega_cats = [
+                        id_to_name[lid][5:]
+                        for lid in email.get("labels", [])
+                        if id_to_name.get(lid, "").startswith("Vega/")
+                    ]
+                    # Prefer most specific label — skip "Other" if a better one exists
+                    primary = next(
+                        (c for c in vega_cats if c.lower() != "other"),
+                        vega_cats[0] if vega_cats else None,
+                    )
+                    if primary:
+                        email_by_label[primary] = email_by_label.get(primary, 0) + 1
+            except Exception:
+                pass
+
     events = []
     if request.include_calendar:
         events = await list_events(token, days_ahead=7)
 
-    # Best-effort Rex financial snapshot — included when available, silent on failure
+    # Best-effort Rex financial snapshot
     financial_snapshot = ""
     try:
         from agents.registry import get_agent
@@ -684,10 +744,16 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
     except Exception:
         pass
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id)
-    context = f"Unread emails: {json.dumps(emails[:5])}\n\nCalendar events: {json.dumps(events)}"
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    total_unread = len(emails)
+    context = (
+        f"Total unread emails today: {total_unread}\n"
+        f"Unread emails (up to 10): {json.dumps(emails[:10])}\n\n"
+        f"Calendar events: {json.dumps(events)}"
+    )
     if financial_snapshot:
         context += f"\n\nFinancial status (from Rex): {financial_snapshot}"
+
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -696,8 +762,8 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
             "Return ONLY a JSON object (no markdown fences) with keys: "
             "date, urgent_actions (list of {action, deadline, context, email_id?}), "
             "today_schedule (list of {time, event, location?, prep_needed}), "
-            "email_summary ({total_unread, urgent, high, medium, low}), "
-            "financial_status (string — the Rex snapshot, empty string if not available), "
+            "email_priorities (list of {id, priority: urgent|high|medium|low} — classify EACH email in the sample individually, one entry per email), "
+            "financial_status (string), "
             "focus_recommendation (string)"
         )}],
     )
@@ -706,6 +772,19 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
         data = safe_json_loads(raw)
     except Exception:
         data = {"briefing_text": raw}
+
+    # Compute email_summary from per-email classifications — consistent, not re-invented
+    from collections import Counter as _Counter
+    ep_list = data.pop("email_priorities", [])
+    p_counts = _Counter(ep.get("priority", "medium") for ep in ep_list if isinstance(ep, dict))
+    data["email_summary"] = {
+        "total_unread": total_unread,
+        "urgent": p_counts.get("urgent", 0),
+        "high": p_counts.get("high", 0),
+        "medium": p_counts.get("medium", 0) or max(0, total_unread - p_counts.get("urgent", 0) - p_counts.get("high", 0) - p_counts.get("low", 0)),
+        "low": p_counts.get("low", 0),
+    }
+    data["email_by_label"] = email_by_label
     data["generated_at"] = datetime.utcnow().isoformat()
     if financial_snapshot and "financial_status" not in data:
         data["financial_status"] = financial_snapshot

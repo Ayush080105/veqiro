@@ -10,7 +10,6 @@ import {
   Settings,
   FileText,
   Newspaper,
-  Users2,
   Mail,
   Calendar,
   ChevronDown,
@@ -59,8 +58,6 @@ const workspaceItems = [
   { href: "/workspace/briefing", label: "Briefing", icon: Newspaper },
   { href: "/workspace/inbox", label: "Inbox", icon: Mail },
   { href: "/workspace/calendar", label: "Calendar", icon: Calendar },
-  { href: "/workspace/content", label: "Content", icon: FileText },
-  { href: "/workspace/leads", label: "Leads", icon: Users2 },
 ]
 
 const navItems = [

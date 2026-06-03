@@ -213,7 +213,7 @@ class SageAgent(BaseAgent):
         organization_id: str = "",
     ) -> str:
         from agents.scout.scraper import serper_search, scrape_url
-        system = await self.build_system_prompt(user_id, organization_id)
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
 
         if name == "web_search":
             try:

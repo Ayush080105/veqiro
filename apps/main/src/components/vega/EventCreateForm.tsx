@@ -1,12 +1,50 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { createCalendarEvent } from "@/lib/api/vega-calendar"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { X, Plus, Trash2, Video } from "lucide-react"
 import { toast } from "sonner"
 import type { CalendarEvent } from "@/lib/api/vega-calendar"
+
+function toLocalDateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [hStr, mStr] = value.split(":")
+  const h = parseInt(hStr, 10)
+  const m = Math.round(parseInt(mStr, 10) / 5) * 5 % 60
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const sel: React.CSSProperties = {
+    appearance: "none",
+    padding: "5px 10px",
+    border: "1.5px solid #111",
+    borderRadius: 6,
+    fontSize: 13,
+    fontFamily: "var(--font-mono)",
+    fontWeight: 600,
+    background: "#fff",
+    outline: "none",
+    cursor: "pointer",
+    textAlign: "center",
+    minWidth: 48,
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <select value={h} onChange={(e) => onChange(`${pad(Number(e.target.value))}:${pad(m)}`)} style={sel}>
+        {Array.from({ length: 24 }, (_, i) => <option key={i} value={i}>{pad(i)}</option>)}
+      </select>
+      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 14, color: "#111" }}>:</span>
+      <select value={m} onChange={(e) => onChange(`${pad(h)}:${pad(Number(e.target.value))}`)} style={sel}>
+        {Array.from({ length: 12 }, (_, i) => <option key={i} value={i * 5}>{pad(i * 5)}</option>)}
+      </select>
+    </div>
+  )
+}
 
 interface EventCreateFormProps {
   onCreated: (event: CalendarEvent) => void
@@ -50,7 +88,7 @@ export function EventCreateForm({
 
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
-  const defaultDate = tomorrow.toISOString().slice(0, 10)
+  const defaultDate = toLocalDateKey(tomorrow)
 
   const [title, setTitle] = useState(prefill?.title ?? "")
   const [date, setDate] = useState(defaultDate)
@@ -120,32 +158,34 @@ export function EventCreateForm({
 
       <div className="flex flex-col gap-1">
         <label style={labelStyle}>Date</label>
-        <input
-          type="date"
-          style={inputStyle}
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <button style={{ ...inputStyle, cursor: "pointer", textAlign: "left", fontWeight: 600 }}>
+              {date
+                ? new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+                    weekday: "short", month: "short", day: "numeric", year: "numeric",
+                  })
+                : "Select date"}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="start" style={{ width: "auto", padding: 0, border: "2px solid #111", borderRadius: 8, boxShadow: "4px 4px 0 #111" }}>
+            <Calendar
+              mode="single"
+              selected={date ? new Date(date + "T00:00:00") : undefined}
+              onSelect={(d) => { if (d) setDate(toLocalDateKey(d)) }}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex flex-col gap-1 flex-1">
+      <div className="flex gap-3">
+        <div className="flex flex-col gap-1">
           <label style={labelStyle}>Start</label>
-          <input
-            type="time"
-            style={inputStyle}
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-          />
+          <TimeSelect value={startTime} onChange={setStartTime} />
         </div>
-        <div className="flex flex-col gap-1 flex-1">
+        <div className="flex flex-col gap-1">
           <label style={labelStyle}>End</label>
-          <input
-            type="time"
-            style={inputStyle}
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-          />
+          <TimeSelect value={endTime} onChange={setEndTime} />
         </div>
       </div>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#888" }}>

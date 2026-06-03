@@ -11,6 +11,7 @@ interface EmailCardProps {
   onSelect: (email: TriagedEmail) => void
   isChecked?: boolean
   onCheck?: (email: TriagedEmail, checked: boolean) => void
+  compact?: boolean
 }
 
 const categoryConfig = {
@@ -29,8 +30,34 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
-export function EmailCard({ email, isSelected, onSelect, isChecked, onCheck }: EmailCardProps) {
+export function EmailCard({ email, isSelected, onSelect, isChecked, onCheck, compact }: EmailCardProps) {
   const cfg = categoryConfig[email.uiCategory]
+
+  if (compact) {
+    return (
+      <Card
+        onClick={() => onSelect(email)}
+        style={{
+          border: isSelected ? "2px solid #111" : "1.5px solid #E5E5E5",
+          boxShadow: isSelected ? "2px 2px 0 #111" : "none",
+          cursor: "pointer",
+          transition: "all 0.1s",
+          background: isSelected ? "#FFF9ED" : "white",
+        }}
+      >
+        <CardContent className="p-2 flex flex-col gap-1">
+          <span
+            className="text-[10px] font-semibold truncate"
+            style={{ fontFamily: "var(--font-mono)", color: "#111" }}
+          >
+            {email.fromName || email.fromEmail}
+          </span>
+          <p className="text-[10px] text-muted-foreground truncate leading-tight">{email.subject}</p>
+          <span className="text-[9px] text-muted-foreground">{timeAgo(email.receivedAt)}</span>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card

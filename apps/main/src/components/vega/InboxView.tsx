@@ -10,7 +10,7 @@ import { EmailActionPanel } from "./EmailActionPanel"
 import { FollowUpList } from "./FollowUpList"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { AlertCircle, RefreshCw, Mail, CheckSquare } from "lucide-react"
+import { AlertCircle, RefreshCw, Mail, CheckSquare, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import type { TriagedEmail } from "@/lib/api/vega-inbox"
@@ -31,6 +31,7 @@ export function InboxView() {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [bulkPending, setBulkPending] = useState(false)
   const [activeLabel, setActiveLabel] = useState<string | null>(null)
+  const [canIgnoreOpen, setCanIgnoreOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const {
@@ -258,38 +259,118 @@ export function InboxView() {
             <div className="flex flex-col gap-4 p-3 overflow-y-auto flex-1">
               {emailsByCategory.map(({ cat, emails }) => {
                 if (!emails.length) return null
+                const isIgnore = cat === "can_ignore"
+                const isOpen = isIgnore ? canIgnoreOpen : true
                 return (
                   <div key={cat} className="flex flex-col gap-2">
-                    <div
-                      className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground px-1"
-                      style={{ fontFamily: "var(--font-mono)" }}
-                    >
-                      {CATEGORY_LABELS[cat]} ({emails.length})
-                    </div>
-                    {emails.map((email) => (
-                      <EmailCard
-                        key={email.emailId}
-                        email={email}
-                        isSelected={selectedEmail?.emailId === email.emailId}
-                        onSelect={selectMode ? (e) => {
-                          setCheckedIds((prev) => {
-                            const next = new Set(prev)
-                            if (next.has(e.emailId)) next.delete(e.emailId)
-                            else next.add(e.emailId)
-                            return next
-                          })
-                        } : setSelectedEmail}
-                        isChecked={selectMode ? checkedIds.has(email.emailId) : undefined}
-                        onCheck={selectMode ? (e, checked) => {
-                          setCheckedIds((prev) => {
-                            const next = new Set(prev)
-                            if (checked) next.add(e.emailId)
-                            else next.delete(e.emailId)
-                            return next
-                          })
-                        } : undefined}
-                      />
-                    ))}
+                    {isIgnore ? (
+                      <button
+                        onClick={() => setCanIgnoreOpen((v) => !v)}
+                        className="flex items-center gap-1 px-1 text-left w-full"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
+                        {isOpen
+                          ? <ChevronDown className="size-3 text-muted-foreground shrink-0" />
+                          : <ChevronRight className="size-3 text-muted-foreground shrink-0" />}
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {CATEGORY_LABELS[cat]} ({emails.length})
+                        </span>
+                      </button>
+                    ) : (
+                      <div
+                        className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground px-1"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
+                        {CATEGORY_LABELS[cat]} ({emails.length})
+                      </div>
+                    )}
+                    {isOpen && (
+                      isIgnore ? (
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(3, 1fr)",
+                            border: "1.5px solid #E5E5E5",
+                            borderRadius: 6,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {emails.map((email, i) => {
+                            const col = i % 3
+                            const isLastRow = i >= emails.length - (emails.length % 3 || 3)
+                            return (
+                              <button
+                                key={email.emailId}
+                                onClick={() => setSelectedEmail(email)}
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 3,
+                                  padding: "7px 8px",
+                                  borderRight: col < 2 ? "1px solid #E5E5E5" : "none",
+                                  borderBottom: !isLastRow ? "1px solid #E5E5E5" : "none",
+                                  background: selectedEmail?.emailId === email.emailId ? "#FFF9ED" : "transparent",
+                                  cursor: "pointer",
+                                  textAlign: "left",
+                                  minWidth: 0,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontFamily: "var(--font-mono)",
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: "#333",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {email.fromName || email.fromEmail}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 9,
+                                    color: "#999",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    fontFamily: "var(--font-mono)",
+                                  }}
+                                >
+                                  {email.subject}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        emails.map((email) => (
+                          <EmailCard
+                            key={email.emailId}
+                            email={email}
+                            isSelected={selectedEmail?.emailId === email.emailId}
+                            onSelect={selectMode ? (e) => {
+                              setCheckedIds((prev) => {
+                                const next = new Set(prev)
+                                if (next.has(e.emailId)) next.delete(e.emailId)
+                                else next.add(e.emailId)
+                                return next
+                              })
+                            } : setSelectedEmail}
+                            isChecked={selectMode ? checkedIds.has(email.emailId) : undefined}
+                            onCheck={selectMode ? (e, checked) => {
+                              setCheckedIds((prev) => {
+                                const next = new Set(prev)
+                                if (checked) next.add(e.emailId)
+                                else next.delete(e.emailId)
+                                return next
+                              })
+                            } : undefined}
+                          />
+                        ))
+                      )
+                    )}
                   </div>
                 )
               })}
@@ -310,7 +391,7 @@ export function InboxView() {
       </div>
 
       {/* Right: action panel */}
-      <div className="flex-1 min-w-0 overflow-y-auto p-6">
+      <div className="flex-1 min-w-0 overflow-y-auto p-4">
         {selectedEmail ? (
           <EmailActionPanel
             email={selectedEmail}

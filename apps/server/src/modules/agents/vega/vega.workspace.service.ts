@@ -4,6 +4,7 @@ import {
   getGoogleAccessToken,
   GoogleNotConnectedError,
 } from "../../../common/utils/googleAuth.js";
+import { findMessagesInWindow } from "../../dashboard/dashboard.repository.js";
 import {
   sendGmailReply,
   createCalendarEvent as createGoogleCalendarEvent,
@@ -282,6 +283,10 @@ export const getBriefingCache = async (
   };
 };
 
+const AGENT_SLUG: Record<string, string> = {
+  MAYA: "maya", REX: "rex", SCOUT: "scout", SAGE: "sage", LEX: "lex", VEGA: "vega",
+};
+
 export const generateAndCacheBriefing = async (
   userId: string,
   organizationId: string,
@@ -289,16 +294,44 @@ export const generateAndCacheBriefing = async (
 ): Promise<BriefingCacheEntry> => {
   const date = today();
   const token = await requireGoogleToken(userId);
-  const { data } = await aiService.post<ExecutiveBriefingResponse>(
-    "/ai/vega/executive-briefing",
-    {
+
+  // Run executive briefing and today's agent messages in parallel
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [{ data }, messages] = await Promise.all([
+    aiService.post<ExecutiveBriefingResponse>("/ai/vega/executive-briefing", {
       user_id: userId,
       organization_id: organizationId,
       include_email: input.includeEmail,
       include_calendar: input.includeCalendar,
       metadata: { google_access_token: token },
+    }),
+    findMessagesInWindow(organizationId, todayStart, new Date()),
+  ]);
+
+  // Group messages by agent slug
+  const conversations: Record<string, Array<{ role: string; content: string }>> = {};
+  for (const msg of messages) {
+    const slug = AGENT_SLUG[msg.agent] ?? msg.agent.toLowerCase();
+    if (!conversations[slug]) conversations[slug] = [];
+    conversations[slug].push({ role: msg.role, content: msg.content });
+  }
+
+  // Get per-agent activity summaries if any agent was used today
+  let agentSummaries: Record<string, unknown> = {};
+  if (Object.values(conversations).some((c) => c.length > 0)) {
+    try {
+      const { data: daily } = await aiService.post<{
+        agents_breakdown: Record<string, unknown>;
+      }>("/ai/briefing", { user_id: userId, date, conversations });
+      agentSummaries = daily.agents_breakdown ?? {};
+    } catch (err) {
+      console.error("[briefing] agent summary failed:", err);
     }
-  );
+  }
+
+  const combinedContent = { ...data.briefing, agent_summaries: agentSummaries };
 
   const record = await prisma.vegaBriefingCache.upsert({
     where: {
@@ -308,11 +341,11 @@ export const generateAndCacheBriefing = async (
         organizationId,
       },
     },
-    update: { content: data.briefing as object, generatedAt: new Date() },
+    update: { content: combinedContent as object, generatedAt: new Date() },
     create: {
       date,
       type: input.type,
-      content: data.briefing as object,
+      content: combinedContent as object,
       organizationId,
     },
   });
@@ -360,11 +393,20 @@ export interface MeetingPrepResult {
   suggestedAgenda: string[];
 }
 
+const calendarCache = new Map<string, { data: CalendarResponse; cachedAt: number }>();
+const CALENDAR_CACHE_TTL_MS = 5 * 60 * 1000;
+
 export const getCalendar = async (
   userId: string,
   organizationId: string,
   input: z.infer<typeof getCalendarSchema>
 ): Promise<CalendarResponse> => {
+  const cacheKey = `${organizationId}:${input.daysAhead}`;
+  const cached = calendarCache.get(cacheKey);
+  if (cached && Date.now() - cached.cachedAt < CALENDAR_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const token = await requireGoogleToken(userId);
   const { data } = await aiService.post<{
     events: Array<Record<string, unknown>>;
@@ -396,14 +438,20 @@ export const getCalendar = async (
     durationHours: Number(s.duration_hours ?? 0),
   }));
 
-  return { events, slots };
+  const result = { events, slots };
+  calendarCache.set(cacheKey, { data: result, cachedAt: Date.now() });
+  return result;
 };
 
 export const createCalendarEventWorkspace = async (
   userId: string,
-  _organizationId: string,
+  organizationId: string,
   input: z.infer<typeof createCalendarEventSchema>
 ): Promise<CalendarEvent> => {
+  // Invalidate calendar cache so the new event appears immediately
+  for (const key of calendarCache.keys()) {
+    if (key.startsWith(organizationId)) calendarCache.delete(key);
+  }
   const token = await requireGoogleToken(userId);
   const result = await createGoogleCalendarEvent({
     accessToken: token,

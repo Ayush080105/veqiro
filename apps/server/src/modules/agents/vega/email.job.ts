@@ -40,6 +40,7 @@ export async function runEmailPipeline(
       max_emails: 20,
       auto_label: true,
       draft_replies: false,
+      skip_labeled: true,
       custom_labels: customLabelNames,
       metadata: { google_access_token: token },
     }

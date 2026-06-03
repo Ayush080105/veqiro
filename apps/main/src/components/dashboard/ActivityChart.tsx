@@ -66,7 +66,7 @@ export function ActivityChart({ data }: { data: DashboardSummary["activityChart"
               color: "#555",
             }}
           >
-            [ activity · last 14 days ]
+            [ activity chart ]
           </div>
           <div
             style={{

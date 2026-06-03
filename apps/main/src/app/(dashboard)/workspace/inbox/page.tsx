@@ -6,7 +6,7 @@ export default function InboxPage() {
     <div className="flex flex-col h-full min-h-0 gap-4 pb-4">
       <PageHeader
         kicker="vega"
-        title="smart inbox"
+        title="smart inbox - unread emails"
         subtitle="AI-triaged email — reply, schedule, or follow up without leaving Veqiro."
         sticker={{ label: "inbox", rot: 3, color: "var(--vq-violet)" }}
       />
