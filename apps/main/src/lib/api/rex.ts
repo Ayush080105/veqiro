@@ -29,6 +29,7 @@ import type {
   RexQueryDatasetRequest,
   RexQueryDatasetResult,
   RexAnalyzeDatasetResult,
+  RexPinnedCard,
 } from "@/lib/types/agents"
 
 export const analyzeMetrics = (body: RexAnalyzeMetricsRequest) =>
@@ -104,6 +105,12 @@ export const patchSettings = (body: {
 
 export const listDatasets = () =>
   apiFetch<RexDatasetRecord[]>("/agents/rex/datasets")
+
+export const listPins = () =>
+  apiFetch<RexPinnedCard[]>("/agents/rex/pins")
+
+export const deletePin = (id: string) =>
+  apiFetch<{ ok: true }>(`/agents/rex/pins/${id}`, { method: "DELETE" })
 
 // ─── New endpoints ───────────────────────────────────────────────────────────
 

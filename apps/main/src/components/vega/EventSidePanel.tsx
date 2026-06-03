@@ -314,28 +314,26 @@ export function EventSidePanel({
             </div>
 
             <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  style={{
-                    width: "100%",
-                    padding: "6px 10px",
-                    border: "1.5px solid #111",
-                    borderRadius: 6,
-                    fontSize: 11,
-                    fontFamily: "var(--font-mono)",
-                    fontWeight: 600,
-                    background: "#fff",
-                    outline: "none",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  {rescheduleDate
-                    ? new Date(rescheduleDate + "T00:00:00").toLocaleDateString("en-US", {
-                        weekday: "short", month: "short", day: "numeric", year: "numeric",
-                      })
-                    : "Select date"}
-                </button>
+              <PopoverTrigger
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  border: "1.5px solid #111",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontFamily: "var(--font-mono)",
+                  fontWeight: 600,
+                  background: "#fff",
+                  outline: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                {rescheduleDate
+                  ? new Date(rescheduleDate + "T00:00:00").toLocaleDateString("en-US", {
+                      weekday: "short", month: "short", day: "numeric", year: "numeric",
+                    })
+                  : "Select date"}
               </PopoverTrigger>
               <PopoverContent side="bottom" align="start" style={{ width: "auto", padding: 0, border: "2px solid #111", borderRadius: 8, boxShadow: "4px 4px 0 #111" }}>
                 <Calendar

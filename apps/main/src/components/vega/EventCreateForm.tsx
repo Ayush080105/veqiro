@@ -159,14 +159,12 @@ export function EventCreateForm({
       <div className="flex flex-col gap-1">
         <label style={labelStyle}>Date</label>
         <Popover>
-          <PopoverTrigger asChild>
-            <button style={{ ...inputStyle, cursor: "pointer", textAlign: "left", fontWeight: 600 }}>
-              {date
-                ? new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-                    weekday: "short", month: "short", day: "numeric", year: "numeric",
-                  })
-                : "Select date"}
-            </button>
+          <PopoverTrigger style={{ ...inputStyle, cursor: "pointer", textAlign: "left", fontWeight: 600 }}>
+            {date
+              ? new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+                  weekday: "short", month: "short", day: "numeric", year: "numeric",
+                })
+              : "Select date"}
           </PopoverTrigger>
           <PopoverContent side="bottom" align="start" style={{ width: "auto", padding: 0, border: "2px solid #111", borderRadius: 8, boxShadow: "4px 4px 0 #111" }}>
             <Calendar
