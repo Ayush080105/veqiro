@@ -47,6 +47,7 @@ async function fetchSession(): Promise<RawSessionResponse | null> {
     });
     if (!res.ok) return null;
     const body = (await res.json()) as RawSessionResponse | null;
+    
     if (!body || !body.user) return null;
     return body;
   } catch {

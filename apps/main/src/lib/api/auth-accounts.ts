@@ -10,8 +10,7 @@ export interface LinkedAccount {
 function authUrl(): string {
   const version = process.env.NEXT_PUBLIC_API_VERSION || "v1"
   const base =
-    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_SERVER_URL ||
     "http://localhost:5000"
   return `${base}/api/${version}/auth`
 }

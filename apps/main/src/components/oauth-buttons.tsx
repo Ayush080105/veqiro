@@ -11,7 +11,7 @@ function resolveClientCallbackURL(callbackURL: string) {
 
   const clientOrigin =
     (typeof window !== "undefined" ? window.location.origin : "") ||
-    process.env.NEXT_PUBLIC_APP_URL;
+    process.env.NEXT_PUBLIC_CONSOLE_URL;
 
   return new URL(callbackURL, clientOrigin).toString();
 }
