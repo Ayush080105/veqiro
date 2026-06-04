@@ -38,19 +38,28 @@ async function fetchSession(): Promise<RawSessionResponse | null> {
   const ua = forwarded.get("user-agent") ?? "";
 
   try {
-    const res = await fetch(`${process.env.BACKEND_URL}/api/v1/auth/get-session`, {
+    const url = `${process.env.BACKEND_URL}/api/v1/auth/get-session`;
+    console.log("[session] fetching from:", url);
+    console.log("[session] cookie names:", cookieStore.getAll().map((c) => c.name).join(", "));
+    const res = await fetch(url, {
       headers: {
         cookie: cookieHeader,
         "user-agent": ua,
       },
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    console.log("[session] response status:", res.status);
+    if (!res.ok) {
+      const text = await res.text();
+      console.log("[session] error body:", text.slice(0, 200));
+      return null;
+    }
     const body = (await res.json()) as RawSessionResponse | null;
-    
+    console.log("[session] has user:", !!body?.user);
     if (!body || !body.user) return null;
     return body;
-  } catch {
+  } catch (e) {
+    console.error("[session] fetch threw:", e);
     return null;
   }
 }
