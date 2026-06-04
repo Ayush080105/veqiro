@@ -1,10 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { authClient, useSession } from "@/lib/auth-client"
-import { startTrial } from "@/lib/api/billing"
+import {
+  billingStatusQueryKey,
+  startTrial,
+  useBillingStatus,
+} from "@/lib/api/billing"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,36 +23,42 @@ import {
 // Better Auth + dodopaymentsClient augment the session with these fields.
 type AugmentedSession = {
   activeOrganization?: { id?: string; onboarded?: boolean } | null
-  subscription?: Record<string, unknown> | null
   memberships?: Array<{ id: string; role: string }> | null
 }
 
 export function TrialGateModal() {
   const { data: session, isPending } = useSession()
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const sessionActiveOrgId = (session as AugmentedSession | null | undefined)
+    ?.activeOrganization?.id
+  const activeOrgId = activeOrg?.id ?? sessionActiveOrgId
+  const { data: billing, isPending: isBillingPending } =
+    useBillingStatus(activeOrgId)
+  const {
+    data: activeMemberRole,
+    isPending: isRolePending,
+  } = authClient.useActiveMemberRole()
+  const queryClient = useQueryClient()
   const [isStarting, setIsStarting] = useState(false)
 
   // Wait for session to resolve before deciding whether to show the modal.
   if (isPending) return null
   if (!session) return null
 
-  const augmented = session as AugmentedSession & typeof session
+  if (!activeOrgId) return null
+  if (isBillingPending) return null
+  if (billing?.subscription != null) return null
+  if (isRolePending) return null
 
-  // If a subscription already exists (trial started or active), do not block.
-  if (augmented.subscription != null) return null
-
-  const activeOrgId = augmented.activeOrganization?.id
-  const memberships = augmented.memberships ?? []
-  const isOwner = memberships.some(
-    (m) => m.id === activeOrgId && m.role === "owner"
-  )
+  const isOwner = activeMemberRole?.role === "owner"
 
   async function handleStartTrial() {
     setIsStarting(true)
     try {
       await startTrial()
-      // Bypass the cookie cache so the refreshed session reflects the new
-      // subscription status immediately.
-      await authClient.getSession({ query: { disableCookieCache: true } })
+      await queryClient.invalidateQueries({
+        queryKey: billingStatusQueryKey(activeOrgId),
+      })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start trial")
     } finally {

@@ -15,14 +15,16 @@ import {
   handlePaymentFailed,
 } from "../modules/billing/billing.webhooks.js";
 
-const options = {
+export const auth = betterAuth({
+
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
   basePath: `/api/${process.env.API_VERSION! || "v1"}/auth`,
   trustedOrigins: [process.env.CLIENT_URL || "http://localhost:3001"],
   advanced: {
+    useSecureCookies: process.env.NODE_ENV === "production" ? true : false,
     crossSubDomainCookies: {
-      enabled: true,
-      domain: process.env.COOKIE_DOMAIN || undefined,
+      enabled: !!process.env.COOKIE_DOMAIN,
+      domain: process.env.COOKIE_DOMAIN ,
     },
   },
   database: prismaAdapter(prisma, {
@@ -100,67 +102,10 @@ const options = {
           onSubscriptionCancelled: handleSubscriptionCancelled as any,
           onSubscriptionExpired: handleSubscriptionExpired as any,
           onSubscriptionFailed: handleSubscriptionFailed as any,
-          onPaymentFailed: handlePaymentFailed  as any,
+          onPaymentFailed: handlePaymentFailed as any,
         }),
       ],
     }),
   ],
-} satisfies BetterAuthOptions;
-
-export const auth = betterAuth({
-  ...options,
-  plugins: [
-    ...options.plugins,
-    customSession(async ({ user, session }) => {
-      const activeOrganization = session.activeOrganizationId
-        ? await prisma.organization.findUnique({
-            where: { id: session.activeOrganizationId },
-            select: { id: true, name: true, slug: true, onboarded: true },
-          })
-        : null;
-
-      const memberRows = await prisma.member.findMany({
-        where: { userId: session.userId },
-        orderBy: { createdAt: "asc" },
-        include: {
-          organization: {
-            select: { id: true, name: true, slug: true, onboarded: true },
-          },
-        },
-      });
-
-      const memberships = memberRows.map((m) => ({
-        id: m.organization.id,
-        name: m.organization.name,
-        slug: m.organization.slug,
-        onboarded: m.organization.onboarded,
-        role: m.role,
-      }));
-
-      const sub = activeOrganization
-        ? await prisma.subscription.findUnique({ where: { organizationId: activeOrganization.id } })
-        : null;
-
-      const now = new Date();
-      const subscription = sub
-        ? {
-            status: sub.status,
-            plan: sub.plan,
-            dodoCustomerId: sub.dodoCustomerId,
-            trialEndsAt: sub.trialEndsAt,
-            currentPeriodEnd: sub.currentPeriodEnd,
-            cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-            daysRemaining: sub.trialEndsAt
-              ? Math.max(0, Math.ceil((sub.trialEndsAt.getTime() - now.getTime()) / 86400000))
-              : null,
-            isEntitled:
-              sub.status === "ACTIVE" ||
-              (sub.status === "TRIALING" && !!sub.trialEndsAt && sub.trialEndsAt > now) ||
-              (sub.status === "CANCELLED" && !!sub.currentPeriodEnd && sub.currentPeriodEnd > now),
-          }
-        : null;
-
-      return { user, session, activeOrganization, memberships, subscription };
-    }, options),
-  ],
-});
+}
+);

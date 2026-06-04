@@ -2,14 +2,20 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { useSession } from "@/lib/auth-client"
+import { authClient, useSession } from "@/lib/auth-client"
+import { useBillingStatus } from "@/lib/api/billing"
 import { X } from "lucide-react"
 
 const DISMISS_KEY = "billing.trialBanner.dismissed"
 
 export function TrialBanner() {
   const { data: session } = useSession()
-  const sub = (session as any)?.subscription
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const sessionActiveOrgId = (
+    session as { activeOrganization?: { id?: string } | null } | null | undefined
+  )?.activeOrganization?.id
+  const { data: billing } = useBillingStatus(activeOrg?.id ?? sessionActiveOrgId)
+  const sub = billing?.subscription
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {

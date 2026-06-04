@@ -38,7 +38,7 @@ export function LoginForm() {
         // to /dashboard, everyone else to /onboarding. Hardcoding /onboarding
         // here used to bounce already-onboarded users to the onboarding page
         // for a confusing flash before the layout guard caught up.
-        callbackURL: "/",
+        callbackURL: "/dashboard",
       })
       if (authErr) {
         toast.error(authErr.message || "Something went wrong")

@@ -77,18 +77,6 @@ const monoLabelStyle: React.CSSProperties = {
   textTransform: "uppercase",
 }
 
-type Membership = {
-  id: string
-  name: string
-  slug: string
-  onboarded: boolean
-  role: string
-}
-
-type SessionWithMemberships = {
-  memberships?: Membership[] | null
-}
-
 const LANDING_URL =
   process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3001"
 const POST_LOGOUT_URL = LANDING_URL
@@ -98,8 +86,8 @@ export function AppSidebar() {
   const pathname = usePathname()
   const { data: session } = authClient.useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const memberships =
-    (session as SessionWithMemberships | null | undefined)?.memberships ?? []
+  const { data: organizationList } = authClient.useListOrganizations()
+  const organizations = organizationList ?? []
   const [switchingId, setSwitchingId] = useState<string | null>(null)
 
   const isWorkspaceActive = pathname.startsWith("/workspace")
@@ -201,14 +189,14 @@ export function AppSidebar() {
                 align="start"
                 className="w-64 border-2 border-foreground bg-white p-1 shadow-[4px_4px_0_#111]"
               >
-                {memberships.map((membership) => {
-                  const isCurrent = membership.id === activeOrg.id
-                  const isSwitching = switchingId === membership.id
+                {organizations?.map((organization) => {
+                  const isCurrent = organization.id === activeOrg.id
+                  const isSwitching = switchingId === organization.id
                   return (
                     <DropdownMenuItem
-                      key={membership.id}
+                      key={organization.id}
                       disabled={isCurrent || !!switchingId}
-                      onClick={() => void switchOrg(membership.id)}
+                      onClick={() => void switchOrg(organization.id)}
                       className="flex-col items-start gap-1 rounded-md py-2"
                     >
                       <div className="flex w-full items-center justify-between gap-2">
@@ -220,7 +208,7 @@ export function AppSidebar() {
                             color: "#111",
                           }}
                         >
-                          {membership.name}
+                          {organization.name}
                         </span>
                         {isSwitching ? (
                           <Loader2 className="size-3.5 animate-spin text-foreground/70" />
@@ -236,8 +224,8 @@ export function AppSidebar() {
                           color: "#555",
                         }}
                       >
-                        {membership.slug} /{" "}
-                        {membership.onboarded ? "Onboarded" : "Setup needed"}
+                        {organization.slug} /{" "}
+                        {organization.onboarded ? "Onboarded" : "Setup needed"}
                       </span>
                     </DropdownMenuItem>
                   )

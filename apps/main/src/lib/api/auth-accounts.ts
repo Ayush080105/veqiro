@@ -9,12 +9,10 @@ export interface LinkedAccount {
 
 function authUrl(): string {
   const version = process.env.NEXT_PUBLIC_API_VERSION || "v1"
-  // In the browser always use the Next.js proxy so cookies are handled correctly
-  if (typeof window !== "undefined") {
-    return `/api/${version}/auth`
-  }
-  // SSR: call the backend directly
-  const base = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000"
+  const base =
+    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+    process.env.BACKEND_URL ||
+    "http://localhost:5000"
   return `${base}/api/${version}/auth`
 }
 

@@ -24,25 +24,6 @@ import { FONT } from "@/lib/fonts"
 const LANDING_URL =
   process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3001"
 
-type Membership = {
-  id: string
-  name: string
-  slug: string
-  onboarded: boolean
-  role: string
-}
-
-type SessionWithMemberships = {
-  user?: { name?: string | null; email?: string | null } | null
-  activeOrganization?: { id: string } | null
-  memberships?: Membership[] | null
-}
-
-function formatRole(role: string): string {
-  if (!role) return "Member"
-  return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
-}
-
 function WorkspaceSkeleton() {
   return (
     <div className="grid gap-3">
@@ -59,23 +40,20 @@ function WorkspaceSkeleton() {
 export default function WorkspacesPage() {
   const router = useRouter()
   const { data: session, isPending } = authClient.useSession()
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const { data: memberships, isPending: isOrgsLoading } =
+    authClient.useListOrganizations()
   const [pendingId, setPendingId] = useState<string | null>(null)
-
-  const typedSession = session as SessionWithMemberships | null
-  const memberships = typedSession?.memberships ?? []
-  const activeOrgId = typedSession?.activeOrganization?.id ?? null
-  const userEmail = typedSession?.user?.email ?? ""
+  const activeOrgId = activeOrg?.id ?? null
+  const userEmail = session?.user?.email ?? ""
 
   useEffect(() => {
     if (isPending) return
-    if (!typedSession?.user) {
+    if (!session?.user) {
       router.replace("/login")
       return
     }
-    if (memberships.length === 0) {
-      router.replace("/onboarding/step1")
-    }
-  }, [isPending, memberships.length, router, typedSession?.user])
+  }, [isPending, router, session?.user])
 
   const selectWorkspace = async (organizationId: string) => {
     if (pendingId) return
@@ -129,11 +107,11 @@ export default function WorkspacesPage() {
           </h1>
         </section>
 
-        {isPending ? (
+        {isPending || isOrgsLoading ? (
           <WorkspaceSkeleton />
         ) : (
           <div className="grid gap-3">
-            {memberships.map((membership) => {
+            {memberships?.map((membership) => {
               const isCurrent = membership.id === activeOrgId
               const isSwitching = pendingId === membership.id
               const disabled = !!pendingId || isSwitching
@@ -162,7 +140,6 @@ export default function WorkspacesPage() {
                         {membership.name}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                        <span>{formatRole(membership.role)}</span>
                         <span aria-hidden> / </span>
                         <span>{membership.slug}</span>
                       </span>
