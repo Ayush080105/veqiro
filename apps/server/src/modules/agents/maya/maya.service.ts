@@ -110,6 +110,27 @@ export const sendMessage = async (
     }
   }
 
+  // Build customInput for rich card rendering. For content actions inject the
+  // hosted image URL so the card renders the image without base64 in the DB.
+  let customInput: Record<string, unknown> | undefined;
+  if (responseData.action_id && responseData.action_result) {
+    const result = { ...responseData.action_result } as Record<string, unknown>;
+    // Override with R2 URL when available (replaces base64 from Python side)
+    if (
+      imageUrl &&
+      ["maya:draft-content", "maya:generate-ideas", "maya:generate-variants"].includes(
+        responseData.action_id
+      )
+    ) {
+      result.image = {
+        image_url: imageUrl,
+        content_type: responseData.image?.content_type ?? "image/png",
+        prompt_used: responseData.image?.prompt_used ?? "",
+      };
+    }
+    customInput = { actionId: responseData.action_id, input: {}, result };
+  }
+
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
@@ -117,12 +138,14 @@ export const sendMessage = async (
     imageUrl,
     tokensUsed: responseData.tokens_used,
     model: responseData.model_used,
+    customInput,
   });
 
   return {
     role: "assistant" as const,
     content: responseData.response,
     imageUrl,
+    customInput: customInput ?? null,
     createdAt: userMessage.createdAt,
   };
 };

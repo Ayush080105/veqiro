@@ -36,6 +36,8 @@ class ChatSyncResponse(BaseModel):
     model_used: str
     metadata: dict = {}
     image: "ImageResult | None" = None
+    action_id: str | None = None
+    action_result: dict | None = None
 
     model_config = ConfigDict(
         json_schema_extra={

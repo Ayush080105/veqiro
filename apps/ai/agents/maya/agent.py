@@ -1,8 +1,12 @@
+import json
+from datetime import datetime, timezone
+
 from agents.base import BaseAgent
 from core.llm import LLMClient
 from core.models import ChatRequest, ChatSyncResponse
 from core.rag import RAGService
 from core.tools import ToolDefinition, ToolParameter
+from core.utils import strip_json_fences
 
 # Platform constraints for prompt injection
 PLATFORM_RULES = {
@@ -43,6 +47,7 @@ class MayaAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
         extra_context: str | None = None,
+        use_brand_kit: bool = True,
     ) -> str:
         from core.brand_kit import load_brand_kit, get_site_context_block
         brand_kit = await load_brand_kit(organization_id)
@@ -109,11 +114,18 @@ class MayaAgent(BaseAgent):
             prompt += (
                 "\n## Image Generation Rules\n"
                 f"Brand assets — {has_logo} {has_mascot}\n\n"
-                "- use_logo defaults to FALSE. Set True ONLY if user explicitly says 'with logo', 'include logo', 'add our logo', etc.\n"
+                "- use_logo defaults to FALSE. Set True ONLY when user's message (anywhere in the conversation) "
+                "contains phrases like: 'with logo', 'use logo', 'use my logo', 'add logo', 'include logo', "
+                "'put logo', 'logo on it', 'logo in there', 'show logo', 'brand logo'.\n"
                 "- use_mascot defaults to FALSE. Set True ONLY if user explicitly mentions the mascot.\n"
                 "- 'Make a post' with no logo/mascot mention → both False.\n"
-                "- 'Add logo to the image' after an image was generated → call modify_image, NOT draft_content.\n"
-                "- 'Add mascot' after an image was generated → call modify_image (triggers re-generation with mascot).\n"
+                "- CRITICAL: If the user ALREADY asked for logo earlier in the conversation and you paused to "
+                "ask for a platform — when the user replies with a platform, you MUST still pass use_logo=True. "
+                "Do not lose logo/mascot intent from earlier messages.\n"
+                "- Any request to 'make it again', 'redo', 'regenerate' after an image was shown "
+                "→ use modify_image (keep same topic/platform, apply new logo/mascot flags). "
+                "Do NOT call draft_content for a redo — it produces duplicate content.\n"
+                "- 'Add logo to the image', 'put our logo on it', 'add mascot' → call modify_image, NOT draft_content.\n"
                 "- Never assume the user wants logo or mascot just because brand kit has them.\n"
             )
         if extra_context:
@@ -125,13 +137,19 @@ class MayaAgent(BaseAgent):
     def get_tool_instructions(self) -> str:
         return (
             "\n\n## Tool Rules\n"
+            "- If the user asks for a NEW post but does NOT specify a platform → ask once: "
+            "'Which platform — LinkedIn, Instagram, or Twitter/X?' "
+            "When you ask, also note any logo/mascot flags from the same message so you don't lose them.\n"
+            "- Do NOT ask for platform if the user is modifying/redoing an existing post — infer from context.\n"
             "- User asks for a post on a specific platform → call `draft_content` ONCE for that platform only.\n"
             "- Don't call `draft_content` for multiple platforms unless the user explicitly asks for all of them.\n"
             "- User asks for ideas or a content calendar → call `generate_ideas`.\n"
             "- User says 'adapt for X' or 'now make it for Instagram' → call `generate_variants`.\n"
             "- User gives feedback on existing content → call `revise_content`.\n"
-            "- User says 'add logo' or 'add mascot' after an image was shown → call `modify_image`.\n"
-            "After drafting, output the post text directly. Nothing else.\n\n"
+            "- User says 'make it again', 'redo', 'regenerate', 'add logo', 'add mascot', "
+            "'use my logo', 'put logo on it' after an image was shown → call `modify_image` with the "
+            "correct use_logo/use_mascot flags. Infer topic and platform from the previous draft in history.\n"
+            "After any tool call the card is rendered automatically — output NOTHING extra.\n\n"
             "## When to use ask_agent\n"
             "- User asks for trending topics, hot news, or what's popular right now → call `ask_agent` with scout FIRST "
             "(question: 'What are the top trending topics in [industry] right now?'), then use the result as input to `draft_content`.\n"
@@ -176,6 +194,9 @@ class MayaAgent(BaseAgent):
                 )
 
                 response.image = image_result
+                # Inject image into action_result at the top level (all card types use result.image)
+                if response.action_result:
+                    response.action_result["image"] = image_result.model_dump()
             except Exception as e:
                 response.metadata["image_error"] = str(e)
 
@@ -306,27 +327,33 @@ class MayaAgent(BaseAgent):
             topic_hint = arguments.get("topic_hint", "")
             count = arguments.get("count", 3)
             rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
+            now_iso = datetime.now(timezone.utc).isoformat()
             prompt = (
                 f"Generate {count} {platform} content ideas about: {topic_hint}\n\n"
                 f"Tone: {rules['tone']}. {rules['hashtag_count']} hashtags per post.\n\n"
-                f"Format each idea exactly like this (no JSON, no markdown headers):\n\n"
-                "**Idea 1 — [title]**\n"
-                "Hook: [opening line that stops the scroll]\n"
-                "Why it works: [1 sentence]\n"
-                "Format: [post type — single post, carousel, etc.]\n"
-                "Hashtags: [3-5 hashtags]\n\n"
-                "Repeat for each idea. Be specific to the topic — no generic filler."
+                "Return ONLY a JSON object (no markdown fences) with this exact structure:\n"
+                '{"ideas": [{"title": "...", "platform": "' + platform + '", '
+                '"hook": "opening line that stops the scroll", '
+                '"predicted_engagement": "high|medium|low", '
+                '"reasoning": "1 sentence why this works", '
+                '"suggested_hashtags": ["#tag1", "#tag2"], '
+                '"visual_description": "brief image concept", '
+                '"content_type": "single-post|carousel|thread"}], '
+                '"generated_at": "' + now_iso + '"}'
             )
-            return await self.llm.complete(
+            raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
             )
+            try:
+                return json.dumps(json.loads(strip_json_fences(raw)))
+            except Exception:
+                return json.dumps({"ideas": [], "generated_at": now_iso, "_raw": raw[:300]})
 
         elif name == "draft_content":
             topic = arguments.get("topic", "")
             platform = arguments.get("platform", "linkedin")
             tone = arguments.get("tone", "")
-            word_count = arguments.get("word_count", 200)
             from core.brand_kit import load_brand_kit, get_platform_tone
             brand_kit = await load_brand_kit(organization_id)
             tone = tone or get_platform_tone(brand_kit, platform)
@@ -342,50 +369,75 @@ class MayaAgent(BaseAgent):
             prompt = (
                 f"Write a {platform} post about this topic: {topic}\n\n"
                 f"Tone: {tone}\n"
-                f"Max {rules['max_chars']} chars. {rules['hashtag_count']} hashtags at the end.\n"
+                f"Max {rules['max_chars']} chars. {rules['hashtag_count']} hashtags.\n"
                 f"{website_cta}\n\n"
                 "STRICT RULES:\n"
                 f"- {platform_limits.get(platform, 'Keep it concise and platform-native.')}\n"
                 "- Start with a specific fact, number, or bold statement — NOT with 'As a founder' or any generic opener.\n"
-                "- Write about the BUSINESS VALUE and REAL IMPACT of the topic. Never mention mascots, characters, visuals, or image descriptions.\n"
-                "- Sound like the founder typed it themselves — direct, confident, no filler.\n"
-                "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
-                "- CTA at the end: a direct question or action, not a vague 'share your thoughts'.\n\n"
-                "Output ONLY the post. Nothing before it, nothing after it."
+                "- Write about the BUSINESS VALUE and REAL IMPACT. Never mention visuals or image descriptions.\n"
+                "- Sound like the founder typed it — direct, confident, no filler.\n"
+                "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating'.\n"
+                "- CTA at the end: a direct question or action.\n\n"
+                "Return ONLY a JSON object (no markdown fences):\n"
+                '{"draft": {"title": "short reference title", "body": "the full post body without hashtags", '
+                '"hashtags": ["tag1", "tag2"], "cta": "the call-to-action text", '
+                '"meta_description": "one sentence summary", '
+                f'"word_count": 0, "platform": "{platform}", "tone_used": "{tone}", '
+                '"meta_title": ""}}'
             )
-            return await self.llm.complete(
+            raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
             )
+            try:
+                parsed = json.loads(strip_json_fences(raw))
+                # Ensure word_count is computed if LLM left it 0
+                draft = parsed.get("draft", {})
+                if not draft.get("word_count"):
+                    draft["word_count"] = len(draft.get("body", "").split())
+                parsed["draft"] = draft
+                return json.dumps(parsed)
+            except Exception:
+                return json.dumps({"draft": {
+                    "title": topic[:50], "body": raw, "hashtags": [],
+                    "cta": "", "meta_description": "", "meta_title": "",
+                    "word_count": len(raw.split()), "platform": platform, "tone_used": tone,
+                }})
 
         elif name == "generate_variants":
-            import asyncio
             original = arguments.get("original_content", "")
             original_platform = arguments.get("original_platform", "linkedin")
             targets = arguments.get("target_platforms", [])
             from core.brand_kit import load_brand_kit
-            brand_kit = await load_brand_kit(organization_id)  # load once
+            brand_kit = await load_brand_kit(organization_id)
             website_cta = f"\nInclude this link where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
 
-            async def _adapt(platform: str) -> str:
+            async def _adapt(platform: str) -> dict:
                 rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
                 prompt = (
                     f"Adapt this {original_platform} content for {platform}:\n\n"
                     f"{original}\n\n"
                     f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
-                    f"tone: {rules['tone']}, format: {rules['format']}\n"
+                    f"tone: {rules['tone']}\n"
                     f"{website_cta}\n\n"
-                    "Return the adapted post as plain text, ready to copy-paste and publish. "
-                    "Preserve the core message but make it platform-native."
+                    "Return ONLY a JSON object (no markdown fences):\n"
+                    '{"platform": "' + platform + '", "body": "adapted post body without hashtags", '
+                    '"hashtags": ["tag1"], "char_count": 0, "title": ""}'
                 )
-                raw = await self.llm.complete(
+                inner_raw = await self.llm.complete(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return f"**{platform.upper()}:**\n{raw}"
+                try:
+                    obj = json.loads(strip_json_fences(inner_raw))
+                    obj["char_count"] = len(obj.get("body", ""))
+                    return obj
+                except Exception:
+                    return {"platform": platform, "body": inner_raw, "hashtags": [], "char_count": len(inner_raw), "title": ""}
 
-            results = await asyncio.gather(*[_adapt(p) for p in targets])
-            return "\n\n---\n\n".join(results)
+            import asyncio as _asyncio
+            variant_dicts = await _asyncio.gather(*[_adapt(p) for p in targets])
+            return json.dumps({"variants": list(variant_dicts)})
 
         elif name == "revise_content":
             original = arguments.get("original_content", "")
@@ -393,17 +445,27 @@ class MayaAgent(BaseAgent):
             platform = arguments.get("platform", "linkedin")
             rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
             prompt = (
-                f"Revise this {platform} post based on feedback:\n\n"
+                f"Revise this {platform} post based on feedback.\n\n"
                 f"Original:\n{original}\n\n"
                 f"Feedback: {feedback}\n\n"
                 f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n\n"
-                "Return the revised post as plain text, ready to publish. "
-                "Then on a new line write '---CHANGES---' followed by a bullet list of what you changed."
+                "Return ONLY a JSON object (no markdown fences):\n"
+                '{"revised": {"body": "revised post body without hashtags", '
+                '"hashtags": ["tag1"], "cta": "call to action", '
+                f'"platform": "{platform}", "title": ""}}, '
+                '"changes_made": ["change 1", "change 2"]}'
             )
-            return await self.llm.complete(
+            raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
             )
+            try:
+                return json.dumps(json.loads(strip_json_fences(raw)))
+            except Exception:
+                return json.dumps({
+                    "revised": {"body": raw, "hashtags": [], "cta": "", "platform": platform, "title": ""},
+                    "changes_made": [],
+                })
 
         elif name == "modify_image":
             return "Image modification applied. The updated image will appear in the response."

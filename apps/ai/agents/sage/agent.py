@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 
 from agents.base import BaseAgent
 from core.config import settings
@@ -33,6 +34,7 @@ class SageAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
         extra_context: str | None = None,
+        use_brand_kit: bool = True,
     ) -> str:
         from core.brand_kit import load_brand_kit, get_site_context_block
         brand_kit = await load_brand_kit(organization_id)
@@ -286,9 +288,10 @@ class SageAgent(BaseAgent):
                     f"Format: {output_format}\n"
                     f"{website_cta}\n\n"
                     "Requirements:\n"
+                    "- Start with: 'Meta Title: <title under 60 chars>' then 'Meta Description: <under 160 chars>'\n"
+                    "- Then the full blog post beginning with a H1 heading\n"
                     "- Include keyword in H1, first paragraph, and naturally throughout\n"
                     "- Use H2/H3 subheadings for structure\n"
-                    "- Include a meta title (under 60 chars) and meta description (under 160 chars)\n"
                     "- Structure for featured snippets (use definition blocks, numbered lists, tables)\n"
                     "- End with a strong CTA\n"
                     "- Apply E-E-A-T: include specific data points, examples, or expert framing\n"
@@ -300,15 +303,56 @@ class SageAgent(BaseAgent):
                     max_tokens=4096,
                 )
 
+                # Extract meta fields from first lines
+                meta_title = f"{keyword} | Guide"
+                meta_description = f"Complete guide to {keyword}."
+                content_lines = raw.splitlines()
+                body_start = 0
+                for i, line in enumerate(content_lines[:6]):
+                    stripped = line.strip()
+                    if stripped.lower().startswith("meta title:"):
+                        meta_title = stripped.split(":", 1)[1].strip()[:60]
+                        body_start = i + 1
+                    elif stripped.lower().startswith("meta description:"):
+                        meta_description = stripped.split(":", 1)[1].strip()[:160]
+                        body_start = i + 1
+
+                blog_content = "\n".join(content_lines[body_start:]).strip()
+                headings = re.findall(r"^#{1,3}\s+(.+)$", blog_content, re.MULTILINE)
+                h1 = headings[0] if headings else topic
+                slug = re.sub(r"[^a-z0-9-]", "", keyword.lower().replace(" ", "-"))
+
+                wp_format = None
+                wix_format = None
                 if output_format in ("wordpress", "wix"):
                     from agents.sage.wordpress import format_for_wordpress, format_for_wix
                     if output_format == "wordpress":
-                        wp = format_for_wordpress(topic, raw, tags=secondary)
-                        return f"{raw}\n\n---\n**WordPress Format:**\n{json.dumps(wp, indent=2)}"
+                        wp_format = format_for_wordpress(topic, blog_content, tags=secondary)
                     else:
-                        wix = format_for_wix(topic, raw, excerpt=f"Guide to {keyword}", tags=secondary)
-                        return f"{raw}\n\n---\n**Wix Format:**\n{json.dumps(wix, indent=2)}"
-                return raw
+                        wix_format = format_for_wix(topic, blog_content, excerpt=f"Guide to {keyword}", tags=secondary)
+
+                result = {
+                    "blog": {
+                        "title": h1,
+                        "meta_title": meta_title,
+                        "meta_description": meta_description,
+                        "slug": slug,
+                        "content": blog_content,
+                        "word_count": len(blog_content.split()),
+                        "headings": headings[:10],
+                        "target_keyword": keyword,
+                        "secondary_keywords": secondary or [],
+                        "wordpress_format": wp_format,
+                        "wix_format": wix_format,
+                    },
+                    "seo_score": 70,
+                    "seo_suggestions": [
+                        "Add more LSI keywords throughout",
+                        "Include a table of contents",
+                        "Add 2+ internal links to related posts",
+                    ],
+                }
+                return json.dumps(result)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -397,7 +441,12 @@ class SageAgent(BaseAgent):
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return strip_json_fences(raw)
+                try:
+                    raw_data = json.loads(strip_json_fences(raw))
+                    wrapped = raw_data if "brief" in raw_data else {"brief": raw_data}
+                    return json.dumps(wrapped)
+                except Exception:
+                    return strip_json_fences(raw)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 

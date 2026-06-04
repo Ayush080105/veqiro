@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uuid
 from abc import ABC
 from typing import AsyncGenerator
@@ -9,7 +10,53 @@ from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolCall, ToolResult
 
-MAX_TOOL_RESULT_CHARS = 3000
+MAX_TOOL_RESULT_CHARS = 10000
+
+# Maps AI tool names to frontend AgentActionId values for rich card rendering
+RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
+    "draft_content":            "maya:draft-content",
+    "generate_ideas":           "maya:generate-ideas",
+    "generate_variants":        "maya:generate-variants",
+    "revise_content":           "maya:revise",
+    "keyword_research":         "sage:keyword-research",
+    "generate_blog":            "sage:generate-blog",
+    "analyze_content":          "sage:analyze-content",
+    "content_brief":            "sage:content-brief",
+    "research_topic":           "scout:research-topic",
+    "research_company":         "scout:research-company",
+    "trending_topics":          "scout:trending-topics",
+    "discover_competitors":     "scout:discover-competitors",
+    "analyze_metrics":          "rex:analyze-metrics",
+    "forecast_metric":          "rex:forecast",
+    "financial_analysis":       "rex:financial-analysis",
+    "compile_briefing":         "rex:compile-briefing",
+    "calculate_runway":         "rex:runway",
+    "unit_economics":           "rex:unit-economics",
+    "scenario_model":           "rex:scenario",
+    "weekly_digest":            "rex:weekly-digest",
+    "generate_investor_update": "rex:investor-update",
+    "analyze_contract":         "lex:analyze-contract",
+    "explain_legal":            "lex:explain",
+    "draft_document":           "lex:draft-document",
+    "legal_research":           "lex:legal-research",
+    "compliance_check":         "lex:compliance-check",
+    # Vega
+    "process_inbox":            "vega:process-inbox",
+    "draft_reply":              "vega:draft-reply",
+    "calendar_summary":         "vega:calendar-summary",
+    "create_event":             "vega:create-event",
+    "executive_briefing":       "vega:executive-briefing",
+    "compose_email":            "vega:compose-email",
+}
+
+
+def _pick_rich_result(tool_calls: list[dict]) -> tuple[str | None, dict | None]:
+    """Return (action_id, result_dict) for the last rich tool call that produced a dict result."""
+    for tc in reversed(tool_calls):
+        mapped = RICH_TOOL_TO_ACTION_ID.get(tc.get("name", ""))
+        if mapped and isinstance(tc.get("result"), dict):
+            return mapped, tc["result"]
+    return None, None
 
 
 class BaseAgent(ABC):
@@ -205,9 +252,11 @@ class BaseAgent(ABC):
                 # LLM gave a final text answer
                 full_text = response.content or ""
                 tokens_used = self.llm.count_tokens(full_text)
-                metadata = {}
+                metadata: dict = {}
                 if all_tool_calls:
                     metadata["tool_calls"] = all_tool_calls
+                # Surface the last rich tool result as a card payload
+                action_id_out, action_result = _pick_rich_result(all_tool_calls)
                 return ChatSyncResponse(
                     response=full_text,
                     agent=self.slug,
@@ -215,14 +264,20 @@ class BaseAgent(ABC):
                     tokens_used=tokens_used,
                     model_used=self.default_model,
                     metadata=metadata,
+                    action_id=action_id_out,
+                    action_result=action_result,
                 )
 
-            # Execute tool calls — all concurrently, preserving order
+            # Execute tool calls — all concurrently, preserving order.
+            # Append stub entries first so indices are stable, then backfill
+            # the parsed result after gather.
+            stub_start = len(all_tool_calls)
             for tc in response.tool_calls:
                 all_tool_calls.append({
                     "id": tc.id,
                     "name": tc.name,
                     "arguments": tc.arguments,
+                    "result": None,
                 })
 
             async def _run_one(tc) -> str:
@@ -242,7 +297,7 @@ class BaseAgent(ABC):
             )
 
             tool_results: list[ToolResult] = []
-            for tc, raw in zip(response.tool_calls, raw_results):
+            for i, (tc, raw) in enumerate(zip(response.tool_calls, raw_results)):
                 if isinstance(raw, BaseException):
                     tool_results.append(ToolResult(
                         tool_call_id=tc.id,
@@ -251,6 +306,11 @@ class BaseAgent(ABC):
                         is_error=True,
                     ))
                 else:
+                    # Backfill parsed result for action card detection
+                    try:
+                        all_tool_calls[stub_start + i]["result"] = json.loads(raw)
+                    except Exception:
+                        all_tool_calls[stub_start + i]["result"] = raw
                     result_str = raw
                     if len(result_str) > MAX_TOOL_RESULT_CHARS:
                         result_str = result_str[:MAX_TOOL_RESULT_CHARS] + "\n...[truncated]"
@@ -278,6 +338,7 @@ class BaseAgent(ABC):
             system=system_prompt,
             messages=messages,
         )
+        action_id_out, action_result = _pick_rich_result(all_tool_calls)
         return ChatSyncResponse(
             response=final_text,
             agent=self.slug,
@@ -288,6 +349,8 @@ class BaseAgent(ABC):
                 "tool_calls": all_tool_calls,
                 "max_iterations_reached": True,
             },
+            action_id=action_id_out,
+            action_result=action_result,
         )
 
     # ── Cross-agent execution ───────────────────────────────────────────

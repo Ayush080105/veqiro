@@ -57,11 +57,6 @@ export function ResearchReportCard({
       <AgentCard.Header
         icon={<Binoculars />}
         title="Research report"
-        badge={
-          <Badge variant="secondary" className="text-[10px]">
-            {result.sources_scraped.length} sources
-          </Badge>
-        }
       />
       <AgentCard.Body className="flex flex-col gap-4">
 

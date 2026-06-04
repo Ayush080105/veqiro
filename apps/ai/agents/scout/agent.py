@@ -251,13 +251,14 @@ class ScoutAgent(BaseAgent):
 
         elif name == "research_topic":
             try:
+                from core.utils import safe_json_loads
                 topic = arguments.get("topic", "")
                 sources = arguments.get("sources_hint", []) or []
 
                 keywords, search_results, news_results = await asyncio.gather(
                     google_autocomplete(topic),
-                    serper_search(f"{topic} {year}"),
-                    serper_search(f"{topic} news {year}", search_type="news"),
+                    serper_search(f"{topic} market size trends {year}"),
+                    serper_search(f"{topic} news analysis {year}", search_type="news"),
                 )
 
                 async def _safe_scrape(url: str) -> str | None:
@@ -266,35 +267,46 @@ class ScoutAgent(BaseAgent):
                     except Exception:
                         return None
 
-                scraped_texts = [t for t in await asyncio.gather(*[_safe_scrape(u) for u in sources[:3]]) if t]
+                scraped_texts = [t for t in await asyncio.gather(*[_safe_scrape(u) for u in sources[:2]]) if t]
 
-                context = f"Topic: {topic}\nToday: {today}\nRelated keywords: {keywords[:10]}"
+                search_context = ""
                 if search_results:
-                    context += "\n\nWeb search results:\n" + "\n".join(
-                        f"- {r['title']}: {r['snippet']} ({r['link']})" for r in search_results[:8]
+                    search_context += "\n\nWeb results:\n" + "\n".join(
+                        f"- {r['title']}: {r['snippet']} ({r['link']})" for r in search_results[:6]
                     )
                 if news_results:
-                    context += "\n\nRecent news:\n" + "\n".join(
-                        f"- {r['title']}: {r['snippet']} ({r['link']})" for r in news_results[:6]
+                    search_context += "\n\nRecent news:\n" + "\n".join(
+                        f"- {r['title']}: {r['snippet']} ({r['link']})" for r in news_results[:5]
                     )
                 if scraped_texts:
-                    context += "\n\nScraped sources:\n" + "\n\n---\n\n".join(scraped_texts)
+                    search_context += "\n\nScraped sources:\n" + "\n---\n".join(scraped_texts)
+
+                source_urls = [r["link"] for r in (search_results + news_results)[:8] if r.get("link")]
 
                 raw = await self.llm.complete(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
-                        f"Today is {today}. Research and synthesize a comprehensive intelligence report on:\n{context}\n\n"
-                        "Structure: Key Findings, Market Size & Trends, Key Players, Strategic Opportunities, Risks. "
-                        "Identify specific implications for the founder. Use [FACT/INFERRED/ESTIMATED] labels."
+                        f"Today is {today}. Produce a market intelligence brief on: **{topic}**\n"
+                        f"Related keywords: {keywords[:10]}"
+                        f"{search_context}\n\n"
+                        "Return a single JSON object (no markdown fences) with EXACTLY these fields:\n"
+                        "bottom_line (2-3 sentence summary), "
+                        "market_overview (3-4 sentences), "
+                        "key_players (array of {name, role, note}), "
+                        "opportunities (array of strings), "
+                        "risks (array of strings), "
+                        "key_stats (array of {label, value}), "
+                        "emerging_trends (array of strings), "
+                        "target_customers (2-3 sentences), "
+                        "recommended_actions (array of strings). "
+                        "Label facts [FACT], inferences [INFERRED], estimates [ESTIMATED]."
                     )}],
                 )
-                return json.dumps({
-                    "findings": raw,
-                    "keywords_found": keywords[:10],
-                    "sources_scraped": sources[:3],
-                    "web_results_count": len(search_results),
-                }, default=str)
+                parsed = safe_json_loads(raw)
+                parsed["keywords_found"] = keywords[:10]
+                parsed["sources_scraped"] = source_urls[:8]
+                return json.dumps(parsed, default=str)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -328,43 +340,39 @@ class ScoutAgent(BaseAgent):
                     lines = "\n".join(f"- {r['title']}: {r['snippet']} ({r['link']})" for r in results[:n])
                     return f"\n\n### {label}\n{lines}"
 
+                from core.utils import safe_json_loads
                 raw = await self.llm.complete(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
-                        f"Today is {today}. Build the most comprehensive competitive intelligence profile possible for: **{company_name}**\n\n"
+                        f"Today is {today}. Build a competitive intelligence profile for: **{company_name}**\n\n"
                         f"Homepage content:\n{scraped_content[:3000]}"
                         f"{_fmt(results_features, 'Features & Pricing')}"
                         f"{_fmt(results_funding, 'Funding & Investors')}"
-                        f"{_fmt(results_news, 'Latest News & Announcements')}"
-                        f"{_fmt(results_reviews, 'Customer Reviews & Sentiment')}"
-                        f"{_fmt(results_jobs, 'Hiring & Team Growth Signals')}"
+                        f"{_fmt(results_news, 'Latest News')}"
+                        f"{_fmt(results_reviews, 'Customer Reviews')}"
+                        f"{_fmt(results_jobs, 'Hiring Signals')}"
                         f"{_fmt(results_vs, 'Competitor Positioning')}\n\n"
-                        "Produce a structured profile with these sections:\n"
-                        "1. **Overview** — what they do, founding year, HQ, team size [FACT/ESTIMATED]\n"
-                        "2. **Product & Features** — key capabilities, recent launches, roadmap signals\n"
-                        "3. **Pricing** — tiers, price points, free tier details [FACT/INFERRED]\n"
-                        "4. **Business Metrics** — ARR/MRR estimates, funding total, latest round, investors [FACT/ESTIMATED]\n"
-                        "5. **Target Market** — ICP, use cases, segments they own vs. ignore\n"
-                        "6. **Strengths** — what they do well [FACT/INFERRED]\n"
-                        "7. **Weaknesses & Gaps** — where they fall short, customer complaints [FACT/INFERRED]\n"
-                        "8. **Recent Moves** — last 90 days: product launches, hires, partnerships, PR\n"
-                        "9. **Customer Sentiment** — what users love, what frustrates them, notable reviews\n"
-                        "10. **So what?** — strategic implications for a competing founder: where to attack, what to avoid, how to position against them\n\n"
-                        "Label every claim [FACT], [INFERRED], or [ESTIMATED]. Cite source URLs inline."
+                        "Return a single JSON object (no markdown fences) with EXACTLY these fields:\n"
+                        "name (string), description (string), founded (string), team_size (string), "
+                        "funding (string), key_features (array of strings), "
+                        "pricing (object with tier names as keys and price strings as values), "
+                        "target_market (string), strengths (array of strings), "
+                        "weaknesses (array of strings), recent_news (array of strings). "
+                        "Label facts [FACT], inferences [INFERRED], estimates [ESTIMATED]."
                     )}],
                 )
-                all_sources = [url] + [r["link"] for r in (results_features + results_funding + results_news)[:6]]
+                parsed = safe_json_loads(raw)
                 return json.dumps({
-                    "company": company_name,
-                    "profile": raw,
-                    "sources": list(dict.fromkeys(all_sources)),
+                    "company": parsed,
+                    "scraped_at": today,
                 }, default=str)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
         elif name == "trending_topics":
             try:
+                from core.utils import safe_json_loads
                 industry = arguments.get("industry", "")
                 count = arguments.get("count", 5)
 
@@ -386,12 +394,18 @@ class ScoutAgent(BaseAgent):
                         f"Today is {today}. Identify {count} trending topics in {industry} based on real signals.\n"
                         f"Related keywords: {keywords[:10]}"
                         f"{news_context}\n\n"
-                        "For each topic: topic name, momentum (rising/stable/declining), "
-                        "relevance_score (0.0-1.0), content_angle, estimated search volume. "
-                        "Focus on what a founder can act on now."
+                        "Return ONLY a JSON object (no markdown fences): "
+                        '{"trends": [{"topic": "...", "momentum": "rising|declining|stable", '
+                        '"relevance_score": 0.9, "search_volume_estimate": "...", '
+                        '"why_trending": "...", "content_angle": "...", "content_hook": "...", '
+                        '"opportunity": "...", "time_horizon": "...", '
+                        '"next_steps": ["action 1", "action 2"]}]}'
                     )}],
                 )
-                return raw
+                parsed = safe_json_loads(raw)
+                if isinstance(parsed, list):
+                    parsed = {"trends": parsed}
+                return json.dumps(parsed, default=str)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -411,18 +425,23 @@ class ScoutAgent(BaseAgent):
                     f"- {r['title']}: {r['snippet']} ({r['link']})" for r in all_results
                 ) if all_results else ""
 
+                from core.utils import safe_json_loads
                 raw = await self.llm.complete(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
                         f"Today is {today}. Find {count} real competitors for: \"{description}\" in the {industry} space.\n"
                         f"{search_context}\n\n"
-                        f"Return a JSON array of {count} competitors. Each object: "
-                        "name (string), url (real URL), why_competitive (1 sentence), pricing_model (string). "
-                        "Only real, verifiable companies. Return ONLY the JSON array."
+                        f"Return ONLY a JSON object (no markdown fences): "
+                        '{"competitors": [{"name": "...", "url": "https://...", '
+                        '"why_competitive": "1 sentence", "pricing_model": "..."}]}. '
+                        "Only real, verifiable companies."
                     )}],
                 )
-                return json.dumps({"competitors": raw, "industry": industry}, default=str)
+                parsed = safe_json_loads(raw)
+                if isinstance(parsed, list):
+                    parsed = {"competitors": parsed}
+                return json.dumps(parsed, default=str)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 

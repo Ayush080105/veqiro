@@ -137,6 +137,12 @@ export const sendMessage = async (
     execResult = await executeNodeActions(googleAccessToken, nodeActions);
   }
 
+  const richInput =
+    responseData.action_id && responseData.action_result
+      ? { actionId: responseData.action_id, input: {}, result: responseData.action_result }
+      : undefined;
+  const customInput = richInput ?? (execResult ? { execResult } : undefined);
+
   await vegaRepository.createAssistantMessage({
     organizationId,
     userId,
@@ -144,13 +150,14 @@ export const sendMessage = async (
     imageUrl: responseData.image?.url,
     tokensUsed: responseData.tokens_used,
     model: responseData.model_used,
-    customInput: execResult ? { execResult } : undefined,
+    customInput,
   });
 
   return {
     role: "assistant" as const,
     content: responseData.response,
     imageUrl: responseData.image?.url,
+    customInput: customInput ?? null,
     nodeActionsExecuted: execResult?.executed ?? 0,
     nodeActionErrors: execResult?.errors ?? [],
     googleNotConnected: !googleAccessToken,

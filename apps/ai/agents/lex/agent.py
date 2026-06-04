@@ -228,7 +228,7 @@ class LexAgent(BaseAgent):
                     "overall_assessment": "Manual review recommended.",
                     "recommended_action": "legal_review_required",
                 }
-            return json.dumps(data, default=str)
+            return json.dumps({"analysis": data}, default=str)
 
         elif name == "draft_document":
             doc_type = arguments.get("document_type", "")

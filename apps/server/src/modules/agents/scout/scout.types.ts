@@ -17,9 +17,12 @@ export type DiscoverCompetitorsInput = z.infer<typeof discoverCompetitorsSchema>
 
 export interface AssistantMessagePayload {
   response: string;
-  image?: { url: string };
+  image?: { url?: string; image_base64?: string; content_type?: string; prompt_used?: string };
   tokens_used?: number;
   model_used?: string;
+  action_id?: string;
+  action_result?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 // Mirror AI-side response shapes (snake_case preserved — proxied verbatim)

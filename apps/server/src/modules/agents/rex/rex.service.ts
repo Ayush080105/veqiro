@@ -79,6 +79,11 @@ export const sendMessage = async (
     throw new BadRequestError("Failed to get response");
   }
 
+  const customInput =
+    responseData.action_id && responseData.action_result
+      ? { actionId: responseData.action_id, input: {}, result: responseData.action_result }
+      : undefined;
+
   const assistantMessage = await rexRepository.createAssistantMessage({
     organizationId,
     userId,
@@ -86,12 +91,14 @@ export const sendMessage = async (
     imageUrl: responseData.image?.url,
     tokensUsed: responseData.tokens_used,
     model: responseData.model_used,
+    customInput,
   });
 
   return {
     role: "assistant" as const,
     content: responseData.response,
     imageUrl: responseData.image?.url,
+    customInput: customInput ?? null,
     createdAt: assistantMessage.createdAt,
   };
 };

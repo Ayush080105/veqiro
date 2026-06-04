@@ -111,6 +111,13 @@ class VegaAgent(BaseAgent):
             response.metadata["node_actions"] = list(self._node_actions_buffer)
             self._node_actions_buffer = []
 
+        # Strip internal node_action key from action_result before it hits the DB
+        # (the card never needs it; node_actions are already in metadata above)
+        if response.action_result and "node_action" in response.action_result:
+            response.action_result = {
+                k: v for k, v in response.action_result.items() if k != "node_action"
+            }
+
         return response
 
     # ── Tool Definitions ─────────────────────────────────────────────────
@@ -234,12 +241,13 @@ class VegaAgent(BaseAgent):
                 processed.append({
                     "email_id": email.get("id", ""),
                     "subject": email.get("subject", ""),
-                    "from": email.get("from_name", email.get("from", "")),
+                    "from_name": email.get("from_name", email.get("from", "")),
                     "from_email": email.get("from_email", ""),
                     "priority": priority,
                     "summary": summary,
                     "suggested_action": suggested_action,
-                    "label": label,
+                    "label_applied": label,
+                    "draft_created": bool(suggested_reply),
                     "hidden_tasks": hidden_tasks,
                     "suggested_reply": suggested_reply,
                     "meeting_request": meeting_request,
@@ -250,9 +258,18 @@ class VegaAgent(BaseAgent):
                 "messages": label_messages,
             }
             self._node_actions_buffer.append(node_action)
+            stats = {
+                "total_processed": len(processed),
+                "urgent": sum(1 for e in processed if e["priority"] == "urgent"),
+                "high": sum(1 for e in processed if e["priority"] == "high"),
+                "medium": sum(1 for e in processed if e["priority"] == "medium"),
+                "low": sum(1 for e in processed if e["priority"] == "low"),
+                "drafts_created": sum(1 for e in processed if e["draft_created"]),
+                "labels_applied": len(processed),
+            }
             result = {
                 "processed": processed,
-                "total": len(processed),
+                "stats": stats,
                 "node_action": node_action,
             }
             return json.dumps(result, default=str)
@@ -285,9 +302,13 @@ class VegaAgent(BaseAgent):
             }
             self._node_actions_buffer.append(node_action)
             result = {
-                "to": email.get("from", ""),
-                "subject": f"RE: {email.get('subject', '')}",
-                "body": raw,
+                "draft": {
+                    "to": email.get("from", ""),
+                    "subject": f"RE: {email.get('subject', '')}",
+                    "body": raw,
+                    "saved": True,
+                },
+                "suggested_follow_up": None,
                 "node_action": node_action,
             }
             return json.dumps(result, default=str)
@@ -297,7 +318,7 @@ class VegaAgent(BaseAgent):
             events = await list_events(token, days_ahead=days)
             free_slots = await find_free_slots(token, {})
 
-            # Detect overlapping events
+            # Detect overlapping events — build card-compatible conflict objects
             conflicts = []
             sorted_events = sorted(events, key=lambda e: e.get("start", ""))
             for i in range(len(sorted_events) - 1):
@@ -306,17 +327,37 @@ class VegaAgent(BaseAgent):
                 e1_end = e1.get("end", "")
                 e2_start = e2.get("start", "")
                 if e1_end and e2_start and e1_end > e2_start:
+                    try:
+                        from datetime import datetime as _dt
+                        overlap_mins = int(
+                            (_dt.fromisoformat(e1_end.replace("Z", "+00:00")) -
+                             _dt.fromisoformat(e2_start.replace("Z", "+00:00"))).total_seconds() / 60
+                        )
+                    except Exception:
+                        overlap_mins = 0
                     conflicts.append({
-                        "event_1": e1.get("title", ""),
-                        "event_1_end": e1_end,
-                        "event_2": e2.get("title", ""),
-                        "event_2_start": e2_start,
+                        "event_a": e1.get("title", ""),
+                        "event_b": e2.get("title", ""),
+                        "overlap_minutes": max(0, overlap_mins),
                     })
+
+            # Build daily summary map (ISO datetime: "2025-01-15T14:30:00Z" → time at [11:16])
+            daily_summary: dict = {}
+            for event in events:
+                day = (event.get("start") or "")[:10]
+                if day:
+                    start_str = event.get("start") or ""
+                    time_part = start_str[11:16] if len(start_str) >= 16 else ""
+                    suffix = f" at {time_part}" if time_part else ""
+                    daily_summary[day] = daily_summary.get(day, "") + (
+                        f"{event.get('title', 'Event')}{suffix}. "
+                    )
 
             result = {
                 "events": events,
                 "conflicts": conflicts,
                 "free_slots": free_slots,
+                "daily_summary": daily_summary,
                 "total_events": len(events),
                 "total_conflicts": len(conflicts),
             }
@@ -369,7 +410,16 @@ class VegaAgent(BaseAgent):
             }
             self._node_actions_buffer.append(node_action)
             result = {
-                "event": event_data,
+                "created": True,
+                "event": {
+                    "id": event_data.get("id", "pending"),
+                    "title": event_data.get("title", ""),
+                    "start": event_data.get("start", ""),
+                    "end": event_data.get("end", ""),
+                    "attendees": event_data.get("attendees", []),
+                    "status": "proposed",
+                    "meet_link": None,
+                },
                 "conflicts": conflicts,
                 "node_action": node_action,
             }
@@ -390,24 +440,39 @@ class VegaAgent(BaseAgent):
                 f"Unread emails: {json.dumps(emails[:5], default=str)}\n\n"
                 f"Calendar events: {json.dumps(events, default=str)}"
             )
+            now_iso = datetime.now(timezone.utc).isoformat()
+            today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system,
                 messages=[{"role": "user", "content": (
-                    f"Generate a comprehensive executive briefing for today:\n{context}\n\n"
+                    f"Generate a comprehensive executive briefing for today ({today_date}):\n{context}\n\n"
                     "Return ONLY a JSON object (no markdown fences) with keys:\n"
-                    "date (string), urgent_actions (list of {action, deadline, context, email_id?}), "
-                    "today_schedule (list of {time, event, location?, prep_needed}), "
-                    "email_summary ({total_unread, urgent, high, medium, low}), "
-                    "focus_recommendation (string)"
+                    "good_morning (1 personalized greeting sentence), "
+                    "priority_score (integer 1-10 — overall urgency of today), "
+                    "urgent_actions (list of {action, deadline, context, email_id?}), "
+                    "today_schedule (list of {time, title, location?, prep_needed}), "
+                    "upcoming_this_week (list of {day, title}), "
+                    "email_summary (1-2 sentence string summary of email situation), "
+                    "focus_recommendation (string — single most important thing to do today), "
+                    "free_time_today (string estimate e.g. '2 hours')"
                 )}],
             )
             try:
                 data = safe_json_loads(raw)
             except Exception:
-                data = {"briefing_text": raw}
-            data["generated_at"] = datetime.utcnow().isoformat()
-            return json.dumps(data, default=str)
+                data = {
+                    "good_morning": "Good morning! Here's your briefing.",
+                    "priority_score": 5,
+                    "urgent_actions": [],
+                    "today_schedule": [],
+                    "upcoming_this_week": [],
+                    "email_summary": raw[:300],
+                    "focus_recommendation": "",
+                    "free_time_today": "",
+                }
+            data["generated_at"] = now_iso
+            return json.dumps({"briefing": data}, default=str)
 
         elif name == "compose_email":
             to = arguments.get("to", "")
@@ -437,9 +502,14 @@ class VegaAgent(BaseAgent):
             }
             self._node_actions_buffer.append(node_action)
             result = {
-                "to": to,
-                "subject": subject,
-                "body": raw,
+                "draft": {
+                    "to": to,
+                    "subject": subject,
+                    "body": raw,
+                    "draft_id": None,
+                },
+                "draft_id": None,
+                "errors": [],
                 "node_action": node_action,
             }
             return json.dumps(result, default=str)

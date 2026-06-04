@@ -46,6 +46,9 @@ export interface AssistantMessagePayload {
   };
   tokens_used?: number;
   model_used?: string;
+  action_id?: string;
+  action_result?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ContentIdea {

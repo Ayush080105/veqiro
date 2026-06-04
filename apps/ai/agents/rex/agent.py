@@ -28,23 +28,29 @@ class RexAgent(BaseAgent):
 
     def get_tool_instructions(self) -> str:
         return (
-            "\n\n## MANDATORY Tool Usage Rules\n"
-            "You MUST use tools for ANY financial, metrics, or forecasting question — "
-            "even if some data has been mentioned in conversation history.\n"
-            "- Any question about business health, metrics, or trends → call `analyze_metrics`\n"
-            "- Any question about forecasting revenue, growth, or churn → call `forecast_metric`\n"
-            "- Any request for full financial analysis or P&L → call `financial_analysis`\n"
-            "- Any request for an investor update → call `generate_investor_update`\n"
-            "- Any request for an executive briefing → call `compile_briefing`\n"
-            "- 'What's my runway?', 'How long is our cash?', 'When do we run out?' → call `calculate_runway`\n"
-            "- 'What's our CAC?', 'What's our LTV?', 'Are we acquiring customers profitably?' → call `unit_economics`\n"
-            "- 'What if I hire...', 'What happens if...', 'Model a scenario where...' → call `scenario_model`\n"
-            "- 'Weekly numbers', 'Monday digest', 'How did we do this week?', 'CFO report' → call `weekly_digest`\n"
-            "After using tools, synthesize results with specific numbers and 2-3 actionable next steps.\n\n"
+            "\n\n## CRITICAL: No Fabrication Rule\n"
+            "NEVER invent, assume, estimate, or hallucinate financial numbers. "
+            "If the user has not explicitly provided data in this conversation, you do NOT have their numbers. "
+            "Responding with made-up MRR, ARR, churn, or any metric is strictly forbidden — "
+            "it is worse than saying 'I don't have that data yet.'\n\n"
+            "## Tool Usage Rules\n"
+            "Only call tools when the user has provided the actual data values in this conversation.\n"
+            "- User provides revenue/MRR data as numbers or JSON → call `analyze_metrics` or `financial_analysis`\n"
+            "- User provides historical data series → call `forecast_metric`\n"
+            "- User provides cash + burn figures → call `calculate_runway`\n"
+            "- User provides marketing spend + customer data → call `unit_economics`\n"
+            "- User provides base metrics for modeling → call `scenario_model`\n"
+            "- User provides current metrics for a digest → call `weekly_digest`\n"
+            "- User asks for an investor update and provides metrics → call `generate_investor_update`\n"
+            "- User asks for an executive briefing → call `compile_briefing`\n\n"
+            "## When the user asks but provides NO data\n"
+            "Ask them to share the numbers directly in chat (e.g., 'What was your MRR last month?', "
+            "'Share your revenue data and I'll run the analysis.'). "
+            "Do not call any tool with made-up values.\n\n"
             "## When to use ask_agent\n"
-            "- User wants a social post or announcement written about financial results → call `ask_agent` with maya (include the key numbers).\n"
-            "- User needs an SEO article about their growth story or metrics → call `ask_agent` with sage.\n"
-            "- User asks about legal or compliance aspects of a financial document → call `ask_agent` with lex.\n"
+            "- User wants a social post about financial results → call `ask_agent` with maya (include the real numbers).\n"
+            "- User needs an SEO article about their growth story → call `ask_agent` with sage.\n"
+            "- User asks about compliance of a financial document → call `ask_agent` with lex.\n"
             "Note: `compile_briefing` already auto-fetches from maya and scout — use it for full executive briefings."
         )
 
@@ -84,12 +90,17 @@ class RexAgent(BaseAgent):
             "- Trend detection and anomaly identification\n"
             "- Revenue forecasting with confidence intervals\n"
             "- Weekly/monthly executive briefings\n\n"
-            "Analysis principles:\n"
-            "1. Lead with the headline number and trend direction\n"
-            "2. Always contextualize against benchmarks\n"
+            "Analysis principles (only apply when you have REAL data from the user):\n"
+            "1. Lead with the headline number and trend direction — ONLY when you have verified data\n"
+            "2. Contextualize against benchmarks\n"
             "3. Flag anomalies immediately with severity level\n"
             "4. End with 2-3 specific, actionable next steps\n"
-            "5. Use green/amber/red health indicators\n"
+            "5. Use green/amber/red health indicators\n\n"
+            "ABSOLUTE RULE: Never invent financial figures under any circumstances.\n"
+            "- If the user says hi, hello, or any greeting → respond warmly, introduce yourself briefly, "
+            "and ask how you can help. Do NOT ask for data unprompted.\n"
+            "- If the user asks a general question → answer conversationally.\n"
+            "- Only ask for data when the user asks a specific financial question and hasn't provided numbers yet.\n"
         )
         return base + client_ctx + rex_specific
 
@@ -124,7 +135,7 @@ class RexAgent(BaseAgent):
                 name="analyze_metrics",
                 description="Analyze business metrics with anomaly detection and health indicators. Provide metric data as JSON and get back trends, anomalies, and actionable insights.",
                 parameters=[
-                    ToolParameter(name="metrics_json", type="string", description="JSON string of metrics data, e.g. {\"revenue\": [{\"date\": \"2025-01-01\", \"value\": 42000}]}", required=True),
+                    ToolParameter(name="metrics_json", type="string", description='JSON string of metrics from the user, e.g. {"revenue": [{"date": "YYYY-MM-DD", "value": <user_value>}]}. ONLY use values the user has provided.', required=True),
                     ToolParameter(name="period", type="string", description="Analysis period (daily, weekly, monthly)", required=False, default="monthly"),
                 ],
             ),
@@ -133,7 +144,7 @@ class RexAgent(BaseAgent):
                 description="Forecast future values for a business metric using time-series analysis (Prophet or linear regression).",
                 parameters=[
                     ToolParameter(name="metric_name", type="string", description="Name of the metric to forecast (e.g., mrr, revenue, subscribers)", required=True),
-                    ToolParameter(name="historical_json", type="string", description="JSON array of historical data points [{\"date\": \"...\", \"value\": ...}]", required=True),
+                    ToolParameter(name="historical_json", type="string", description='JSON array of historical data points the user provided: [{"date": "YYYY-MM-DD", "value": <user_value>}]', required=True),
                     ToolParameter(name="horizon_days", type="integer", description="Number of days to forecast ahead", required=False, default=30),
                 ],
             ),
@@ -141,9 +152,9 @@ class RexAgent(BaseAgent):
                 name="financial_analysis",
                 description="Compute comprehensive financial health metrics (MRR, ARR, growth rate, churn, burn rate, runway) and generate narrative with recommendations.",
                 parameters=[
-                    ToolParameter(name="revenue_json", type="string", description="JSON array of revenue data points [{\"date\": \"...\", \"value\": ...}]", required=True),
-                    ToolParameter(name="expenses_json", type="string", description="JSON array of expense data points", required=False, default="[]"),
-                    ToolParameter(name="subscribers_json", type="string", description="JSON array of subscriber data points", required=False, default="[]"),
+                    ToolParameter(name="revenue_json", type="string", description='JSON array of revenue data points the user provided: [{"date": "YYYY-MM-DD", "value": <user_value>}]', required=True),
+                    ToolParameter(name="expenses_json", type="string", description='JSON array of expense data points the user provided', required=False, default="[]"),
+                    ToolParameter(name="subscribers_json", type="string", description='JSON array of subscriber data points the user provided', required=False, default="[]"),
                 ],
             ),
             ToolDefinition(
@@ -151,7 +162,7 @@ class RexAgent(BaseAgent):
                 description="Compile a cross-agent executive briefing combining financial, marketing, and operational summaries.",
                 parameters=[
                     ToolParameter(name="date", type="string", description="Date for the briefing (YYYY-MM-DD)", required=False),
-                    ToolParameter(name="metrics_json", type="string", description="JSON of key metrics", required=False, default="{}"),
+                    ToolParameter(name="metrics_json", type="string", description="JSON of key metrics the user has provided in this conversation", required=False, default="{}"),
                     ToolParameter(name="agent_summaries_json", type="string", description="JSON of summaries from other agents", required=False, default="{}"),
                 ],
             ),
@@ -160,7 +171,7 @@ class RexAgent(BaseAgent):
                 description="Generate a structured investor update email/report with MRR, ARR, growth metrics, key milestones, and forward-looking narrative. Used for monthly or quarterly investor communications.",
                 parameters=[
                     ToolParameter(name="period", type="string", description="Reporting period (e.g., 'March 2025', 'Q1 2025')", required=True),
-                    ToolParameter(name="metrics_json", type="string", description="JSON of current period metrics (mrr, arr, growth_rate, churn_rate, etc.)", required=False, default="{}"),
+                    ToolParameter(name="metrics_json", type="string", description="JSON of current period metrics the user has provided (mrr, arr, growth_rate, churn_rate, etc.)", required=False, default="{}"),
                     ToolParameter(name="highlights", type="array", description="Key wins and milestones to highlight", required=False, items_type="string"),
                     ToolParameter(name="asks", type="array", description="Specific asks or areas where investors can help", required=False, items_type="string"),
                 ],
@@ -169,36 +180,36 @@ class RexAgent(BaseAgent):
                 name="calculate_runway",
                 description="Calculate cash runway with base, optimistic, and pessimistic scenarios. Returns months remaining, date of zero cash, and a green/amber/red verdict. Use when the founder asks about runway, cash, or 'how long do we have'.",
                 parameters=[
-                    ToolParameter(name="cash_on_hand", type="number", description="Current cash balance in dollars", required=True),
-                    ToolParameter(name="monthly_burn", type="number", description="Total monthly cash outflows (expenses) in dollars", required=True),
-                    ToolParameter(name="monthly_revenue", type="number", description="Current MRR in dollars", required=False, default=0.0),
-                    ToolParameter(name="growth_rate_pct", type="number", description="Monthly revenue growth rate as a percentage (e.g. 10 for 10%)", required=False, default=0.0),
+                    ToolParameter(name="cash_on_hand", type="number", description="Current cash balance in dollars — must come from the user", required=True),
+                    ToolParameter(name="monthly_burn", type="number", description="Total monthly cash outflows in dollars — must come from the user", required=True),
+                    ToolParameter(name="monthly_revenue", type="number", description="Current MRR in dollars — must come from the user", required=False, default=0.0),
+                    ToolParameter(name="growth_rate_pct", type="number", description="Monthly revenue growth rate as a percentage — must come from the user", required=False, default=0.0),
                 ],
             ),
             ToolDefinition(
                 name="unit_economics",
                 description="Compute CAC, LTV, LTV:CAC ratio, and payback period from marketing spend and customer acquisition data. Benchmarks included: LTV:CAC >3x is green, payback <12 months is green. Use when founder asks about CAC, LTV, or customer acquisition profitability.",
                 parameters=[
-                    ToolParameter(name="marketing_spend_json", type="string", description='JSON array of monthly marketing spend: [{"date": "YYYY-MM-DD", "value": 12000}]', required=True),
-                    ToolParameter(name="new_customers_json", type="string", description='JSON array of monthly new customer counts: [{"date": "YYYY-MM-DD", "value": 35}]', required=True),
-                    ToolParameter(name="avg_monthly_revenue_per_customer", type="number", description="Average monthly revenue per customer (ARPU) in dollars", required=True),
-                    ToolParameter(name="avg_customer_lifetime_months", type="number", description="Expected customer lifetime in months (default 24)", required=False, default=24.0),
+                    ToolParameter(name="marketing_spend_json", type="string", description='JSON array of monthly marketing spend the user provided: [{"date": "YYYY-MM-DD", "value": <user_value>}]', required=True),
+                    ToolParameter(name="new_customers_json", type="string", description='JSON array of monthly new customer counts the user provided: [{"date": "YYYY-MM-DD", "value": <user_value>}]', required=True),
+                    ToolParameter(name="avg_monthly_revenue_per_customer", type="number", description="Average monthly revenue per customer (ARPU) in dollars — must come from the user", required=True),
+                    ToolParameter(name="avg_customer_lifetime_months", type="number", description="Expected customer lifetime in months — must come from the user", required=False, default=24.0),
                 ],
             ),
             ToolDefinition(
                 name="scenario_model",
                 description="Model what-if scenarios: hiring, cutting spend, changing growth rate. Each scenario shows runway, ARR at 12 months, and breakeven month vs the base case. Use when founder asks 'what if I hire', 'what if I cut X', or 'what happens if...'",
                 parameters=[
-                    ToolParameter(name="base_metrics_json", type="string", description='JSON dict with base metrics: {"mrr": 58000, "burn": 42000, "cash": 500000, "growth_rate": 0.08}', required=True),
-                    ToolParameter(name="scenarios_json", type="string", description='JSON array of scenarios: [{"name": "Hire 2 engineers", "changes": {"burn_delta": 15000}}]', required=True),
+                    ToolParameter(name="base_metrics_json", type="string", description='JSON dict of base metrics the user has provided: {"mrr": <user_value>, "burn": <user_value>, "cash": <user_value>, "growth_rate": <user_value>}', required=True),
+                    ToolParameter(name="scenarios_json", type="string", description='JSON array of scenarios to model: [{"name": "scenario name", "changes": {"burn_delta": <value>}}]', required=True),
                 ],
             ),
             ToolDefinition(
                 name="weekly_digest",
                 description="Generate a Monday morning CFO report with headline number, WoW changes, alerts, green flags, and 3 focus actions for the week. Use when founder asks for weekly numbers, how they did this week, or wants a digest.",
                 parameters=[
-                    ToolParameter(name="metrics_json", type="string", description='JSON dict of current metrics: {"mrr": 62000, "arr": 744000, "burn": 42000, "cash": 480000, "churn_rate": 0.021, "growth_rate": 0.068, "new_customers": 42, "cac": 340, "ltv": 4200}', required=True),
-                    ToolParameter(name="prev_week_json", type="string", description="JSON dict of same shape from the previous period for WoW comparison", required=False, default="{}"),
+                    ToolParameter(name="metrics_json", type="string", description='JSON dict of current metrics the user has provided: {"mrr": <user_value>, "arr": <user_value>, "burn": <user_value>, "cash": <user_value>, "churn_rate": <user_value>, "growth_rate": <user_value>}', required=True),
+                    ToolParameter(name="prev_week_json", type="string", description="JSON dict of same shape from the previous period — only if user provided it", required=False, default="{}"),
                 ],
             ),
         ]
@@ -263,14 +274,35 @@ class RexAgent(BaseAgent):
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system,
-                messages=[{"role": "user", "content": f"Analyze these {period} metrics and provide insights:\n{metrics_summary}"}],
+                messages=[{"role": "user", "content": (
+                    f"Analyze these {period} metrics and provide insights:\n{metrics_summary}\n\n"
+                    "Return ONLY a JSON object (no markdown fences) with keys:\n"
+                    "summary (2-3 sentence narrative), "
+                    "trend (up/down/flat — based on most recent data direction), "
+                    "insights (array of 3-5 specific insight strings), "
+                    f"health_indicator ({health}), "
+                    "anomalies (array of {{date, metric, direction, severity: low/medium/high, root_cause_hypothesis}})"
+                )}],
             )
+            try:
+                analysis = safe_json_loads(raw)
+                # Merge algorithm-detected anomalies with LLM insights
+                if all_anomalies and not analysis.get("anomalies"):
+                    analysis["anomalies"] = all_anomalies
+                analysis.setdefault("health_indicator", health)
+            except Exception:
+                analysis = {
+                    "summary": raw[:400],
+                    "trend": "flat",
+                    "insights": [],
+                    "health_indicator": health,
+                    "anomalies": all_anomalies,
+                }
             result = {
-                "analysis": raw,
-                "anomalies": all_anomalies,
-                "health_indicator": health,
+                "analysis": analysis,
                 "charts_data": charts,
-                "derived_health_inputs": health_inputs,
+                "data_points_analyzed": sum(len(v) for v in metrics_raw.values() if isinstance(v, list)),
+                "confidence_level": "medium",
             }
             return json.dumps(result, default=str)
 
@@ -367,11 +399,31 @@ class RexAgent(BaseAgent):
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system,
-                messages=[{"role": "user", "content": f"Compile an executive briefing:\n{context}"}],
+                messages=[{"role": "user", "content": (
+                    f"Compile an executive briefing for {date}:\n{context}\n\n"
+                    "Return ONLY a JSON object (no markdown fences) with keys:\n"
+                    "headline (1 sentence — the single most important thing the founder must know today), "
+                    "sections (object where each key is a section title and each value is a 2-4 sentence body string — "
+                    "include: Financial Health, Content & Growth, Competitive Intelligence, Priority Actions), "
+                    f"date ('{date}'), "
+                    "generated_at (ISO datetime string)"
+                )}],
             )
+            try:
+                parsed = safe_json_loads(raw)
+                parsed.setdefault("date", date)
+                from datetime import datetime as _dt
+                parsed.setdefault("generated_at", _dt.utcnow().isoformat())
+            except Exception:
+                from datetime import datetime as _dt
+                parsed = {
+                    "headline": "Executive briefing compiled.",
+                    "sections": {"Summary": raw[:600]},
+                    "date": date,
+                    "generated_at": _dt.utcnow().isoformat(),
+                }
             result = {
-                "briefing": raw,
-                "date": date,
+                "briefing": parsed,
                 "agent_summaries_used": list(summaries.keys()),
             }
             return json.dumps(result, default=str)
