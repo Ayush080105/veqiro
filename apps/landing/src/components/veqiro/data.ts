@@ -129,7 +129,7 @@ export const EMPLOYEES: Employee[] = [
       },
       {
         q: "Is my email data safe?",
-        a: "Yes. Veqiro uses OAuth to connect (no password sharing), encrypts all data in transit and at rest, and is SOC 2 Type II certified. Your emails are never used to train our models.",
+        a: "Yes. Veqiro uses OAuth to connect (no password sharing) and encrypts all data in transit and at rest. Your emails are never used to train our models.",
       },
     ],
     actions: [
@@ -439,12 +439,12 @@ export const EMPLOYEES: Employee[] = [
       { title: "Contract Analysis", description: "Full risk analysis: flags perpetual licenses, uncapped liability, one-sided indemnification, auto-renewal traps, and unusual IP assignments — with clause references in plain English." },
       { title: "Document Q&A", description: "Ask any question about an uploaded contract. \"Does this NDA cover my subcontractors?\" \"What's the notice period for termination?\" — Lex answers with the exact clause." },
       { title: "Document Drafting", description: "Generate NDAs, SaaS agreements, offer letters, independent contractor agreements, and other startup docs — with jurisdiction selection and custom clauses." },
-      { title: "Legal Research & Compliance Check", description: "Research legal topics by jurisdiction (US, UK, EU, and more). Run a compliance check against GDPR, CCPA, SOC 2, HIPAA, or PCI-DSS — returns a prioritized gap list." },
+      { title: "Legal Research & Compliance Check", description: "Research legal topics by jurisdiction (US, UK, EU, and more). Run a compliance check against GDPR, CCPA, HIPAA, or PCI-DSS — returns a prioritized gap list." },
     ],
     useCases: [
       "Founders reviewing their first enterprise contract",
       "Startups about to sign a vendor agreement",
-      "Teams preparing for a SOC2 or GDPR audit",
+      "Teams preparing for a GDPR or HIPAA audit",
       "Anyone who needs an NDA fast but can't wait for counsel",
     ],
     demoChat: [
@@ -483,7 +483,7 @@ export const EMPLOYEES: Employee[] = [
       },
       {
         title: "Compliance spot-checks",
-        body: "Evaluate your practices against GDPR, CCPA, SOC 2, HIPAA, and PCI-DSS with a prioritized gap list. Not a replacement for an audit — a cheat sheet before one.",
+        body: "Evaluate your practices against GDPR, CCPA, HIPAA, and PCI-DSS with a prioritized gap list. Not a replacement for an audit — a cheat sheet before one.",
       },
     ],
     faq: [

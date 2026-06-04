@@ -12,9 +12,9 @@ const PRICING_FAQ = [
   { q: 'Is there a free trial?', a: "Yes — 7 days, no credit card required. Full access to all six agents from day one." },
   { q: 'What does "billed annually" mean?', a: "You pay for 12 months upfront and save ~25% versus monthly. Cancel before renewal and we won't charge you again." },
   { q: 'Can I cancel anytime?', a: "On monthly billing: cancel before your next cycle. On annual: you keep access until the end of the paid period." },
-  { q: 'What integrations are included?', a: "Gmail, Google Calendar, LinkedIn, Twitter/X, Instagram, and Slack out of the box. More on the roadmap." },
+  { q: 'What integrations are included?', a: "Gmail, Google Calendar, LinkedIn, Twitter/X, and Instagram out of the box. More on the roadmap." },
   { q: 'Do agents share memory across tasks?', a: "Yes. Your Brain (company profile, brand voice, competitors) is read by all six agents so they stay consistent." },
-  { q: 'Is my data used to train your AI?', a: "Never. Your content is used only to perform the tasks you ask for. SOC 2 Type II certified." },
+  { q: 'Is my data used to train your AI?', a: "Never. Your content is used only to perform the tasks you ask for." },
 ];
 
 const AGENT_BLURBS: Record<string, string> = {
@@ -31,7 +31,7 @@ const FEATURES = [
   { title: 'Shared Brain', desc: 'One company profile. All agents read your brand voice, competitors, and goals.', color: '#6FCDE8' },
   { title: 'Custom Brand Voice', desc: '6 presets or fully custom — your agents write like you, not like a template.', color: '#F06464' },
   { title: 'Priority Processing', desc: "Your tasks don't wait in a queue. You get dedicated compute from day one.", color: '#1DBC87' },
-  { title: 'Integrations', desc: 'Gmail, Google Calendar, LinkedIn, Twitter/X, Instagram, Slack, and more.', color: '#F79FD4' },
+  { title: 'Integrations', desc: 'Gmail, Google Calendar, LinkedIn, Twitter/X, Instagram, and more.', color: '#F79FD4' },
   { title: 'Unlimited Tasks', desc: 'No credits. No per-task fees. Just assign the work and get results.', color: '#8A8AF0' },
 ];
 
@@ -84,7 +84,6 @@ export default function PricingPageContent() {
             {[
               { v: '7 days', k: 'free trial' },
               { v: 'No CC', k: 'to start' },
-              { v: 'SOC 2', k: 'Type II' },
               { v: 'Cancel', k: 'anytime' },
             ].map(s => (
               <div key={s.k} style={{ textAlign: 'center' }}>

@@ -5,50 +5,6 @@ import { FONT } from './shared';
 import { NavShared } from './nav-shared';
 import { consoleUrl } from '@/lib/site-config';
 
-// Drives a 0..1 progress value from how far the `ref`'d element has been scrolled
-// past its own height. Disabled (always 0) when `enabled` is false — used to skip
-// scroll math on mobile where the parallax layout is bypassed.
-function useScrollProgress(
-  ref: React.RefObject<HTMLElement | null>,
-  enabled: boolean,
-) {
-  const [progress, setProgress] = useState(0);
-  useEffect(() => {
-    if (!enabled) {
-      setProgress(0);
-      return;
-    }
-    let raf: number | null = null;
-    const update = () => {
-      raf = null;
-      const el = ref.current;
-      if (!el) return;
-      const { top, height } = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const total = height - vh;
-      if (total <= 0) {
-        setProgress(0);
-        return;
-      }
-      const p = Math.max(0, Math.min(1, -top / total));
-      setProgress(p);
-    };
-    const onScroll = () => {
-      if (raf !== null) return;
-      raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      if (raf !== null) cancelAnimationFrame(raf);
-    };
-  }, [ref, enabled]);
-  return progress;
-}
-
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
@@ -121,10 +77,8 @@ const STARS = [
 
 export function Hero() {
   const [count, setCount] = useState(0);
-  const stageRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const isDesktop = useIsDesktop();
-  const progress = useScrollProgress(stageRef, isDesktop);
 
   // Cursor-following spotlight: the scrim over the hero image is masked out
   // in a soft circle wherever the cursor is, revealing the full image there.
@@ -172,14 +126,9 @@ export function Hero() {
     };
   }, [isDesktop]);
 
-  // Image is full-bleed from the start, dimmed by a top-biased beige scrim so
-  // the hero text reads clearly. As the user scrolls the scrim thins in the
-  // middle/bottom only and the image zooms in slightly — giving the sense that
-  // the image is "filling" the hero more completely without washing out text.
-  const imageTransform = `scale(${1 + progress * 0.06})`;
   const topOpacity = 0.92;
-  const midOpacity = 0.82 - progress * 0.1;
-  const bottomOpacity = 0.55 - progress * 0.2;
+  const midOpacity = 0.82;
+  const bottomOpacity = 0.55;
 
   const foreground = (
     <>
@@ -272,23 +221,20 @@ export function Hero() {
 
   return (
     <section
-      ref={stageRef}
       style={{
         position: 'relative',
         background: '#EFE7D6',
-        height: isDesktop ? '200vh' : 'auto',
       }}
     >
       <div
         ref={stickyRef}
         style={{
-          position: isDesktop ? 'sticky' : 'relative',
-          top: 0,
+          position: 'relative',
           height: isDesktop ? '100vh' : 'auto',
           overflow: 'hidden',
         }}
       >
-        {/* Background image layer — desktop only. Scales slightly on scroll. */}
+        {/* Background image layer — desktop only. */}
         {isDesktop && (
           <div
             aria-hidden
@@ -296,9 +242,6 @@ export function Hero() {
               position: 'absolute',
               inset: 0,
               zIndex: 0,
-              transform: imageTransform,
-              transformOrigin: 'center',
-              willChange: 'transform',
               pointerEvents: 'none',
             }}
           >
