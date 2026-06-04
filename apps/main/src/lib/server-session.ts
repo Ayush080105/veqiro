@@ -38,7 +38,7 @@ async function fetchSession(): Promise<RawSessionResponse | null> {
   const ua = forwarded.get("user-agent") ?? "";
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/get-session`, {
+    const res = await fetch(`${process.env.BACKEND_URL}/api/v1/auth/get-session`, {
       headers: {
         cookie: cookieHeader,
         "user-agent": ua,
