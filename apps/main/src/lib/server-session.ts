@@ -36,7 +36,8 @@ async function fetchSession(): Promise<RawSessionResponse | null> {
   try {
     const url = `${process.env.BACKEND_URL}/api/v1/auth/get-session`;
     console.log("[session] fetching from:", url);
-    console.log("[session] raw cookie header:", rawCookieHeader.slice(0, 300));
+    console.log("[session] cookie names:", rawCookieHeader.split(";").map(c => c.trim().split("=")[0]).join(", "));
+    console.log("[session] raw cookie header:", rawCookieHeader.slice(0, 600));
     const res = await fetch(url, {
       headers: {
         cookie: rawCookieHeader,
