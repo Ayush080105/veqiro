@@ -30,7 +30,6 @@ export function organizationJsonLd(): object {
       social.twitter,
       social.linkedin,
       social.instagram,
-      social.github,
     ],
   };
 }

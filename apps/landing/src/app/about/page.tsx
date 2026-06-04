@@ -44,7 +44,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'Is Veqiro safe to use with my business data?',
-    a: "Yes. Veqiro is SOC 2 Type II certified, encrypts data at rest and in transit, connects to tools via OAuth (no password sharing), and never uses your data to train our models. Your content is used only to perform the tasks you ask for.",
+    a: "Yes. Veqiro encrypts data at rest and in transit, connects to tools via OAuth (no password sharing), and never uses your data to train our models. Your content is used only to perform the tasks you ask for.",
   },
   {
     q: 'How much does Veqiro cost?',

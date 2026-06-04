@@ -14,10 +14,9 @@ export const contact = {
 };
 
 export const social = {
-  twitter: 'https://twitter.com/veqiro',
+  twitter: 'https://x.com/veqiro?s=11',
   linkedin: 'https://www.linkedin.com/company/veqiro',
-  instagram: 'https://www.instagram.com/veqiro',
-  github: 'https://github.com/veqiro',
+  instagram: 'https://www.instagram.com/veqiro._?igsh=MWowNDA5MWhrY2w1NQ==',
 };
 
 export const nav: { href: string; label: string }[] = [
@@ -169,7 +168,7 @@ export const crewReplies: Record<string, string> = {
 export const crewFollows: Record<string, string> = {
   vega: "Done. Also blocked 2hrs tomorrow for deep work — you're welcome.",
   scout: "K. Company in Tallinn, 4 employees, shipping faster than Stripe did in 2012. Worth a call.",
-  maya: "Drafting now. I'll slack you 3 options in 6 minutes. Brace.",
+  maya: "Drafting now. I'll send you 3 options in 6 minutes. Brace.",
   sage: "Cool. Starting with the long-tails. First wins in ~10 days.",
   lex: "Redlined. Sending to counsel with a summary. Est read time: 3 min.",
   rex: "Paid CAC spiked 3x on Meta last Tuesday. Want the chart or just the fix?",
