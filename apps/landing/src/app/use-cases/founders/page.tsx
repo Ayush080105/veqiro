@@ -93,7 +93,7 @@ const content: UseCaseContent = {
     { q: 'Can a solo founder really use all six?', a: "Especially a solo founder. Solo founders face the same six-function workload as a team of ten — just with nobody to delegate to. Veqiro is that delegation layer." },
     { q: 'How fast is the setup?', a: "15 minutes to brief your crew. First output within the hour. Most founders are fully set up same-day and see real output within 24 hours." },
     { q: 'What if I only need one agent right now?', a: "You get all 6 — there's no per-agent pricing. Start with the one you need most (usually Vega for inbox or Maya for content), then let the others activate as you hit the work they're built for." },
-    { q: 'What tools does Veqiro need to connect to?', a: "Gmail, Google Calendar, and your ad/billing tools (Stripe, Meta, Google Ads) for full coverage. You can start with just Gmail — the rest layer in as you're ready." },
+    { q: 'What tools does Veqiro need to connect to?', a: "Gmail and Google Calendar for full coverage. You can start with just Gmail — more integrations layer in as you're ready." },
   ],
 };
 

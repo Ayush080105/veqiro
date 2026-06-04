@@ -5,6 +5,14 @@ import { FONT } from './shared';
 import { EMPLOYEES } from './data';
 import { consoleUrl, nav as navLinks, useCaseNavItems } from '@/lib/site-config';
 
+// Hash-only links (#crew, #faq, etc.) must always point to the home page,
+// otherwise they resolve relative to the current path on inner pages.
+function resolveNavHref(href: string): string {
+  if (href.startsWith('#')) return `/${href}`;
+  if (href.startsWith('/')) return href;
+  return `/${href}`;
+}
+
 type Variant = 'hero' | 'page';
 
 interface Props {
@@ -84,7 +92,7 @@ export function NavShared({ variant = 'page' }: Props) {
         {navLinks.map(({ href, label }) => (
           <Link
             key={href}
-            href={href.startsWith('#') || href.startsWith('/') ? href : `/${href}`}
+            href={resolveNavHref(href)}
             className="nav-pill-link"
           >
             {label}
@@ -222,7 +230,7 @@ export function NavShared({ variant = 'page' }: Props) {
               {navLinks.map(({ href, label }) => (
                 <Link
                   key={href}
-                  href={href.startsWith('#') || href.startsWith('/') ? href : `/${href}`}
+                  href={resolveNavHref(href)}
                   className="vq-drawer-link"
                   onClick={() => setOpen(false)}
                 >
