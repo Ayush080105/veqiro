@@ -28,22 +28,18 @@ interface RawSessionResponse {
 // Importing the server's `auth` directly doesn't work here — the server uses
 // Node ESM `.js` import extensions that Next's webpack cannot resolve.
 async function fetchSession(): Promise<RawSessionResponse | null> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
-
   const forwarded = await headers();
   const ua = forwarded.get("user-agent") ?? "";
+  // Use the raw Cookie header so nothing is lost in parse/re-serialize
+  const rawCookieHeader = forwarded.get("cookie") ?? "";
 
   try {
     const url = `${process.env.BACKEND_URL}/api/v1/auth/get-session`;
     console.log("[session] fetching from:", url);
-    console.log("[session] cookie names:", cookieStore.getAll().map((c) => c.name).join(", "));
+    console.log("[session] raw cookie header:", rawCookieHeader.slice(0, 300));
     const res = await fetch(url, {
       headers: {
-        cookie: cookieHeader,
+        cookie: rawCookieHeader,
         "user-agent": ua,
       },
       cache: "no-store",
