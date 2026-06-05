@@ -12,6 +12,7 @@
     "start": "node dist/src/server.js",
     "seed:dashboard": "tsx prisma/seed-dashboard.ts",
     "seed:brand-kit": "tsx prisma/seed-brand-kit.ts",
+    "seed:admin": "tsx prisma/seed-admin.ts",
     "test": "node --import tsx --test src/tests/unit/*.test.ts"
   },
   "dependencies": {
