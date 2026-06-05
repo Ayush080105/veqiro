@@ -252,7 +252,7 @@ export function ScoutTrendingTopicsForm({
           onChange={(e) => onChange({ count: Number(e.target.value) })}
         />
       </FormRow>
-      <FormRow label="Location" description="Optional — narrow to a region or leave blank for global">
+      <FormRow label="Location" hint="Optional — narrow to a region or leave blank for global">
         <Input
           value={value.location ?? ""}
           onChange={(e) => onChange({ location: e.target.value })}
