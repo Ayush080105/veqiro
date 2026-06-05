@@ -20,3 +20,10 @@ export function ResetPasswordEmail({ url, fullName }: ResetPasswordEmailProps) {
     </Html>
   );
 }
+
+ResetPasswordEmail.PreviewProps = {
+  fullName: "Jane from Acme",
+  url: "https://app.veqiro.com/reset-password?token=reset-the-shift",
+} satisfies ResetPasswordEmailProps;
+
+export default ResetPasswordEmail;
