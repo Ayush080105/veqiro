@@ -17,7 +17,7 @@ export function HealthChart({ data }: { data: HealthBucket[] }) {
         <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
           <XAxis dataKey="week" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)} />
           <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-          <Tooltip labelFormatter={(l: string) => `Week of ${l}`} />
+          <Tooltip labelFormatter={(l) => `Week of ${l as string}`} />
           <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
           <Bar dataKey="active" name="Active" stackId="a" fill="#22c55e" />
           <Bar dataKey="trialing" name="Trialing" stackId="a" fill="#3b82f6" />

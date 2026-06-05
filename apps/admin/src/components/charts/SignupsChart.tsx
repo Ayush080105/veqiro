@@ -10,8 +10,8 @@ export function SignupsChart({ data }: { data: Array<{ week: string; count: numb
           <XAxis dataKey="week" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)} />
           <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
           <Tooltip
-            formatter={(v: number) => [v, "orgs"]}
-            labelFormatter={(l: string) => `Week of ${l}`}
+            formatter={(v) => [v, "orgs"]}
+            labelFormatter={(l) => `Week of ${l as string}`}
           />
           <Bar dataKey="count" fill="var(--primary)" radius={[3, 3, 0, 0]} />
         </BarChart>
