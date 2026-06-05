@@ -302,9 +302,27 @@ class LLMClient:
                 system_instruction=system,
                 temperature=temperature,
                 max_output_tokens=max_tokens,
+                # gemini-2.5-* are thinking models: left unbounded, "thinking"
+                # tokens eat into max_output_tokens and can exhaust the whole
+                # budget (finish_reason=MAX_TOKENS), leaving response.text=None.
+                # These are plain text-generation calls — no reasoning needed —
+                # so disable thinking to give the full budget to the output.
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
-        return response.text
+        # response.text is None when the model produced no text part (e.g. it
+        # hit MAX_TOKENS, or output was safety-blocked). Returning None here
+        # crashes downstream (.strip(), count_tokens). Surface a clear error so
+        # the retry loop can react and logs explain why.
+        text = response.text
+        if text is None:
+            finish = None
+            try:
+                finish = response.candidates[0].finish_reason
+            except Exception:
+                pass
+            raise LLMError(f"Gemini returned no text (finish_reason={finish})")
+        return text
 
     async def _openai_complete(self, model, system, messages, temperature, max_tokens, response_format):
         import openai as _openai
