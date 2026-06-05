@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import * as repo from "./admin.repository.js";
 
+export const getUsage = async (_req: Request, res: Response) => {
+  const data = await repo.getUsageStats();
+  res.status(StatusCodes.OK).json(data);
+};
+
 export const overview = async (_req: Request, res: Response) => {
   const data = await repo.getOverviewStats();
   res.status(StatusCodes.OK).json(data);

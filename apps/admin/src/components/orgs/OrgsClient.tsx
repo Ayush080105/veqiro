@@ -82,7 +82,7 @@ export function OrgsClient() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by name or owner email…"
-            className="w-72 rounded border border-[var(--border)] bg-white py-1.5 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            className="w-72 rounded border border-[var(--border)] bg-[var(--card)] py-1.5 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]"
           />
         </div>
         <div className="flex gap-1">
@@ -94,7 +94,7 @@ export function OrgsClient() {
                 "rounded px-3 py-1 text-sm",
                 currentStatus === value
                   ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                  : "border border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
+                  : "border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
               )}
             >
               {label}
@@ -108,7 +108,7 @@ export function OrgsClient() {
       ) : error ? (
         <p className="text-sm text-red-500">Failed to load organizations.</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-white">
+        <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
@@ -163,7 +163,7 @@ export function OrgsClient() {
             <button
               disabled={currentPage <= 1}
               onClick={() => updateParams({ page: String(currentPage - 1) })}
-              className="rounded border border-[var(--border)] bg-white p-1.5 disabled:opacity-40"
+              className="rounded border border-[var(--border)] bg-[var(--card)] p-1.5 disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -173,7 +173,7 @@ export function OrgsClient() {
             <button
               disabled={currentPage >= totalPages}
               onClick={() => updateParams({ page: String(currentPage + 1) })}
-              className="rounded border border-[var(--border)] bg-white p-1.5 disabled:opacity-40"
+              className="rounded border border-[var(--border)] bg-[var(--card)] p-1.5 disabled:opacity-40"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

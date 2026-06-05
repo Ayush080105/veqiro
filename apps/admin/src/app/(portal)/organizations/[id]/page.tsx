@@ -6,11 +6,26 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ExtendTrialButton } from "@/components/orgs/ExtendTrialButton";
+import { OrgTokenChart } from "@/components/orgs/OrgTokenChart";
 
 type Member = {
   role: string;
   createdAt: string;
   user: { id: string; name: string; email: string };
+};
+
+type TokenUsage = {
+  totalAllTime: number;
+  total30d: number;
+  estimatedCost30d: number;
+  messages30d: number;
+  byAgent: Array<{
+    agent: string;
+    messages: number;
+    tokens: number;
+    estimatedCost: number;
+  }>;
+  weeklyTrend: Array<{ week: string; tokens: number; messages: number }>;
 };
 
 type OrgDetail = {
@@ -33,10 +48,17 @@ type OrgDetail = {
   members: Member[];
   agentActivity: Array<{ agent: string; messages: number }>;
   connectedPlatforms: string[];
+  tokenUsage: TokenUsage;
 };
 
 function fmt(d: string | null) {
   return d ? format(new Date(d), "MMM d, yyyy") : "—";
+}
+
+function fmtTokens(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
 }
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -44,6 +66,15 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
     <div>
       <p className="text-xs text-[var(--muted-foreground)]">{label}</p>
       <div className="mt-0.5 text-sm font-medium">{value}</div>
+    </div>
+  );
+}
+
+function TokenStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center">
+      <p className="font-mono text-xl font-bold">{value}</p>
+      <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{label}</p>
     </div>
   );
 }
@@ -90,7 +121,7 @@ export default async function OrgDetailPage({
       </div>
 
       {/* Subscription */}
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="mb-4 text-sm font-semibold">Subscription</h2>
         {org.subscription ? (
           <>
@@ -134,7 +165,7 @@ export default async function OrgDetailPage({
       </section>
 
       {/* Members */}
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="mb-4 text-sm font-semibold">Members ({org.members.length})</h2>
         <table className="w-full text-sm">
           <thead>
@@ -160,7 +191,7 @@ export default async function OrgDetailPage({
       </section>
 
       {/* Agent Activity */}
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="mb-4 text-sm font-semibold">Agent Activity (last 30 days)</h2>
         <table className="w-full text-sm">
           <thead>
@@ -181,7 +212,7 @@ export default async function OrgDetailPage({
       </section>
 
       {/* Integrations */}
-      <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="mb-4 text-sm font-semibold">Connected Integrations</h2>
         {org.connectedPlatforms.length === 0 ? (
           <p className="text-sm text-[var(--muted-foreground)]">None connected.</p>
@@ -197,6 +228,53 @@ export default async function OrgDetailPage({
             ))}
           </div>
         )}
+      </section>
+
+      {/* LLM Usage */}
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
+        <h2 className="mb-4 text-sm font-semibold">LLM Usage</h2>
+
+        {/* Summary stats row */}
+        <div className="mb-5 grid grid-cols-2 gap-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4 sm:grid-cols-4">
+          <TokenStat label="All-time tokens" value={fmtTokens(org.tokenUsage.totalAllTime)} />
+          <TokenStat label="Tokens (30d)" value={fmtTokens(org.tokenUsage.total30d)} />
+          <TokenStat label="Est. cost (30d)" value={`$${org.tokenUsage.estimatedCost30d.toFixed(2)}`} />
+          <TokenStat label="Messages (30d)" value={org.tokenUsage.messages30d.toLocaleString()} />
+        </div>
+
+        {/* 8-week trend chart */}
+        <div className="mb-5">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+            Token trend (8 weeks)
+          </p>
+          <OrgTokenChart data={org.tokenUsage.weeklyTrend} />
+        </div>
+
+        {/* Per-agent breakdown */}
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+          By agent (30d)
+        </p>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--border)]">
+              {["Agent", "Messages", "Tokens", "Est. Cost"].map((h) => (
+                <th key={h} className="pb-2 text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--border)]">
+            {org.tokenUsage.byAgent.map((row) => (
+              <tr key={row.agent}>
+                <td className="py-2 capitalize">{row.agent}</td>
+                <td className="py-2 font-mono">{row.messages.toLocaleString()}</td>
+                <td className="py-2 font-mono">{fmtTokens(row.tokens)}</td>
+                <td className="py-2 font-mono">${row.estimatedCost.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
     </div>
   );

@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { overview, listOrgs, getOrg, extendTrial } from "./admin.controller.js";
+import { overview, listOrgs, getOrg, extendTrial, getUsage } from "./admin.controller.js";
 
 const router = Router();
 
 router.get("/overview", overview);
+router.get("/usage", getUsage);
 router.get("/organizations", listOrgs);
 router.get("/organizations/:id", getOrg);
 router.patch("/organizations/:id/extend-trial", extendTrial);

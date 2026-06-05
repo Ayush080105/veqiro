@@ -2,24 +2,41 @@
 @import "tw-animate-css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
-  --ring: #18181b;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --destructive: #ef4444;
+  /* Veqiro palette */
+  --vq-bg: #EFE7D6;
+  --vq-ink: #111111;
+  --vq-cream: #FFF9ED;
+  --vq-red: #F06464;
+  --vq-yellow: #F5C518;
+  --vq-green: #1DBC87;
+  --vq-pink: #F79FD4;
+  --vq-violet: #8A8AF0;
+  --vq-blue: #6FCDE8;
+
+  /* Functional tokens */
+  --background: #EFE7D6;
+  --foreground: #111111;
+  --card: #FFF9ED;
+  --card-foreground: #111111;
+  --muted: #FFF9ED;
+  --muted-foreground: #555555;
+  --border: #111111;
+  --input: #111111;
+  --ring: #111111;
+  --primary: #111111;
+  --primary-foreground: #EFE7D6;
+  --destructive: #F06464;
 }
 
 @layer base {
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  * { box-sizing: border-box; }
+  html {
+    font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 14px;
     line-height: 1.5;
   }
-  * { box-sizing: border-box; }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 }

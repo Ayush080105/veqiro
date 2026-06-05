@@ -1,4 +1,5 @@
 export type WeekBucket = { week: string; count: number };
+export type TokenBucket = { week: string; tokens: number; messages: number };
 export type HealthBucket = {
   week: string;
   active: number;
@@ -33,6 +34,31 @@ export function buildSignupBuckets(
     const ws = weekStart(org.createdAt).getTime();
     const idx = Math.round((ws - firstBucketTime) / WEEK_MS);
     if (idx >= 0 && idx < weekCount) buckets[idx].count++;
+  }
+  return buckets;
+}
+
+export function buildTokenBuckets(
+  messages: Array<{ createdAt: Date; tokensUsed: number }>,
+  weekCount: number,
+  now: Date = new Date(),
+): TokenBucket[] {
+  const currentWeekStart = weekStart(now);
+  const firstBucketTime = currentWeekStart.getTime() - (weekCount - 1) * WEEK_MS;
+
+  const buckets: TokenBucket[] = Array.from({ length: weekCount }, (_, i) => ({
+    week: new Date(firstBucketTime + i * WEEK_MS).toISOString().slice(0, 10),
+    tokens: 0,
+    messages: 0,
+  }));
+
+  for (const msg of messages) {
+    const ws = weekStart(msg.createdAt).getTime();
+    const idx = Math.round((ws - firstBucketTime) / WEEK_MS);
+    if (idx >= 0 && idx < weekCount) {
+      buckets[idx].tokens += msg.tokensUsed;
+      buckets[idx].messages++;
+    }
   }
   return buckets;
 }

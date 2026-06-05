@@ -97,7 +97,7 @@ export function UsersClient() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by email…"
-            className="w-64 rounded border border-[var(--border)] bg-white py-1.5 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            className="w-64 rounded border border-[var(--border)] bg-[var(--card)] py-1.5 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]"
           />
         </div>
         <div className="flex gap-1">
@@ -112,7 +112,7 @@ export function UsersClient() {
                 "rounded px-3 py-1 text-sm",
                 showBanned === (tab === "Banned")
                   ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
-                  : "border border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
+                  : "border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]",
               )}
             >
               {tab}
@@ -126,7 +126,7 @@ export function UsersClient() {
       ) : fetchError ? (
         <p className="text-sm text-red-500">{fetchError}</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-white">
+        <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
@@ -199,7 +199,7 @@ export function UsersClient() {
             <button
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-              className="rounded border border-[var(--border)] bg-white p-1.5 disabled:opacity-40"
+              className="rounded border border-[var(--border)] bg-[var(--card)] p-1.5 disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -209,7 +209,7 @@ export function UsersClient() {
             <button
               disabled={offset + PAGE_SIZE >= total}
               onClick={() => setOffset(offset + PAGE_SIZE)}
-              className="rounded border border-[var(--border)] bg-white p-1.5 disabled:opacity-40"
+              className="rounded border border-[var(--border)] bg-[var(--card)] p-1.5 disabled:opacity-40"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

@@ -11,7 +11,7 @@ type HealthBucket = {
 
 export function HealthChart({ data }: { data: HealthBucket[] }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-white p-5">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
       <h3 className="mb-4 text-sm font-semibold">Subscription Health (by sign-up week)</h3>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>

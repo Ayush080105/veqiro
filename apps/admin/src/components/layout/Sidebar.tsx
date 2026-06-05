@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Building2, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Zap, Building2, Users, LogOut } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/overview", label: "Overview", Icon: LayoutDashboard },
+  { href: "/usage", label: "Usage", Icon: Zap },
   { href: "/organizations", label: "Organizations", Icon: Building2 },
   { href: "/users", label: "Users", Icon: Users },
 ] as const;
@@ -21,7 +22,7 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
   };
 
   return (
-    <aside className="flex h-full w-52 flex-col border-r border-[var(--border)] bg-white">
+    <aside className="flex h-full w-52 flex-col border-r border-[var(--border)] bg-[var(--card)]">
       <div className="border-b border-[var(--border)] px-4 py-4">
         <p className="text-sm font-semibold tracking-tight">Veqiro Admin</p>
       </div>

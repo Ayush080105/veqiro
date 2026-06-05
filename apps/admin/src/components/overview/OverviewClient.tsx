@@ -16,6 +16,9 @@ type OverviewData = {
     cancelledOrExpired: number;
     newOrgsThisWeek: number;
     totalUsers: number;
+    totalTokens30d: number;
+    estimatedCost30d: number;
+    activeOrgs30d: number;
   };
   charts: {
     signupsPerWeek: Array<{ week: string; count: number }>;
@@ -29,6 +32,23 @@ type OverviewData = {
     agentPopularity: Array<{ agent: string; messages: number }>;
   };
 };
+
+function fmtTokens(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
+}
+
+function UsageMiniCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
+      <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+        {label}
+      </p>
+      <p className="mt-2 font-mono text-3xl font-bold tabular-nums">{value}</p>
+    </div>
+  );
+}
 
 export function OverviewClient() {
   const { data, isLoading, error } = useQuery<OverviewData>({
@@ -64,6 +84,12 @@ export function OverviewClient() {
         />
         <StatCard label="Cancelled / Expired" value={stats.cancelledOrExpired} />
         <StatCard label="Total Users" value={stats.totalUsers} />
+        <StatCard label="Active Orgs (30d)" value={stats.activeOrgs30d} />
+        <UsageMiniCard label="Tokens (30d)" value={fmtTokens(stats.totalTokens30d)} />
+        <UsageMiniCard
+          label="Est. LLM Cost (30d)"
+          value={`$${stats.estimatedCost30d.toFixed(2)}`}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

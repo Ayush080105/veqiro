@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recha
 
 export function SignupsChart({ data }: { data: Array<{ week: string; count: number }> }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-white p-5">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
       <h3 className="mb-4 text-sm font-semibold">New Signups (12 weeks)</h3>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>

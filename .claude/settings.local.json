@@ -87,7 +87,8 @@
       "Bash(mkdir -p \"D:\\\\Projects\\\\veqiro\\\\apps\\\\server\\\\src\\\\tests\\\\unit\")",
       "Bash(node --import tsx --test src/tests/unit/admin-charts.test.ts)",
       "Bash(git commit *)",
-      "Bash(pnpm run *)"
+      "Bash(pnpm run *)",
+      "Bash(PowerShell *)"
     ]
   },
   "enableAllProjectMcpServers": true,
