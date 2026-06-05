@@ -315,28 +315,43 @@ class LexAgent(BaseAgent):
                 f"Research this legal question:\n{query}\n\n"
                 f"Jurisdiction: {jurisdiction}\n"
                 f"Legal areas: {', '.join(legal_areas) if legal_areas else 'general'}\n\n"
-                "Return ONLY a JSON object (no markdown fences) with keys:\n"
-                "summary (string), applicable_laws (list of strings), "
-                "key_requirements (list of strings), relevant_cases (list of strings), "
-                "practical_guidance (list of strings), jurisdiction_notes (string), "
-                "confidence_level (string — high/medium/low with brief explanation)"
+                "Return ONLY a JSON object (no markdown fences) with these keys — be concise:\n"
+                "summary (2-3 sentences), "
+                "applicable_laws (list of strings, max 6), "
+                "key_requirements (list of strings, max 6), "
+                "relevant_cases (list of strings, max 4), "
+                "practical_guidance (list of strings, max 5), "
+                "jurisdiction_notes (1 sentence), "
+                "confidence_level (exactly one word: high, medium, or low)"
             )
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
+                max_tokens=1200,
             )
             try:
                 data = safe_json_loads(raw)
+                # Guard: if summary itself looks like JSON (LLM nested the response), re-parse it
+                if isinstance(data.get("summary"), str) and data["summary"].strip().startswith("{"):
+                    try:
+                        inner = safe_json_loads(data["summary"])
+                        if isinstance(inner, dict) and "summary" in inner:
+                            data = inner
+                    except Exception:
+                        pass
             except Exception:
                 data = {
-                    "summary": raw[:500],
+                    "summary": "Legal research completed. See details below.",
                     "applicable_laws": [],
                     "key_requirements": [],
                     "relevant_cases": [],
-                    "practical_guidance": [],
+                    "practical_guidance": [raw[:400]] if raw else [],
                     "jurisdiction_notes": jurisdiction,
                     "confidence_level": "medium",
                 }
+            # Normalise confidence_level to a single word (LLM sometimes adds explanation)
+            cl = str(data.get("confidence_level", "medium")).lower().split()[0]
+            data["confidence_level"] = cl if cl in ("high", "medium", "low") else "medium"
             return json.dumps(data, default=str)
 
         elif name == "compliance_check":

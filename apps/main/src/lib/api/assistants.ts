@@ -188,6 +188,7 @@ export function useSendMessage(
   const queryClient = useQueryClient()
 
   return useMutation({
+    mutationKey: ["sendMessage", agentSlug, organizationId],
     mutationFn: (content: string) =>
       sendMessage(agentSlug, organizationId, content, conversationId),
 

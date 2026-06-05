@@ -4,7 +4,6 @@ import Link from "next/link"
 import { MessageSquare, Send } from "lucide-react"
 import { FONT } from "@/lib/fonts"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
-import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 import type { DashboardSummary } from "@/lib/api/dashboard"
 
 function relativeTime(iso: string): string {
@@ -85,7 +84,7 @@ export function RecentActivity({ items }: { items: DashboardSummary["recentActiv
                   }
                 })()
               : null
-            const Portrait = agent ? CHARACTER_COMPONENTS[agent.id] : null
+            const agentPhoto = agent ? `/agents/${agent.id}.jpeg` : null
             const bg = agent?.color ?? "#F5C518"
             const Icon = item.type === "post" ? Send : MessageSquare
 
@@ -115,8 +114,8 @@ export function RecentActivity({ items }: { items: DashboardSummary["recentActiv
                     placeItems: "center",
                   }}
                 >
-                  {Portrait ? (
-                    <Portrait size={32} />
+                  {agentPhoto ? (
+                    <img src={agentPhoto} alt={agent?.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
                     <Icon className="size-3.5" style={{ color: "#111" }} />
                   )}

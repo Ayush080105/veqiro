@@ -6,6 +6,23 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const AGENT_SLUGS = ["maya", "rex", "scout", "sage", "lex", "vega"] as const;
 
+// Realistic minutes a founder would spend doing each agent's typical output by
+// hand. Used to estimate "hours saved" — only the agent's replies count, not
+// the user's prompts. Conservative figures grounded in real task durations:
+//   Sage writes SEO content/briefs (~35m), Scout researches markets (~30m),
+//   Lex reviews legal docs (~30m), Rex builds financial analyses (~25m),
+//   Maya drafts social content (~20m), Vega handles email/calendar (~12m).
+const AGENT_MINUTES_SAVED: Record<AgentSlug, number> = {
+  sage: 35,
+  scout: 30,
+  lex: 30,
+  rex: 25,
+  maya: 20,
+  vega: 12,
+};
+// A published post is finished, ready-to-ship work — add publishing overhead.
+const PUBLISH_MINUTES_SAVED = 20;
+
 export type DashboardSummary = {
   metrics: {
     messagesWeek: number;
@@ -287,7 +304,16 @@ export async function getDashboardSummary(
     });
   }
 
-  const hoursSavedEstimate = Math.round((messagesCount * 3) / 60);
+  // Estimate hours saved by weighting each agent's OUTPUTS (assistant replies)
+  // by the real-world time the equivalent manual task would take, plus a bonus
+  // per published post. User prompts are excluded — they aren't "work saved".
+  let minutesSaved = 0;
+  for (const m of messagesInWindow) {
+    if (m.role !== "assistant") continue;
+    minutesSaved += AGENT_MINUTES_SAVED[repo.SLUG_BY_ENUM[m.agent]] ?? 15;
+  }
+  minutesSaved += contentPublishedCount * PUBLISH_MINUTES_SAVED;
+  const hoursSavedEstimate = Math.round(minutesSaved / 60);
 
   return {
     metrics: {

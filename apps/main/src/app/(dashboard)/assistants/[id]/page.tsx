@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient, useMutationState } from "@tanstack/react-query"
 import { Info, HelpCircle, MessageSquare, FolderOpen, Rocket } from "lucide-react"
 import { toast } from "sonner"
 
@@ -38,7 +38,11 @@ import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
-import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
+// Agent photos are served from /agents/{id}.jpeg (copied from landing/public)
+const AGENT_PHOTOS: Record<string, string> = {
+  maya: "/agents/maya.jpeg", rex: "/agents/rex.jpeg", sage: "/agents/sage.jpeg",
+  scout: "/agents/scout.jpeg", lex: "/agents/lex.jpeg", vega: "/agents/vega.jpeg",
+}
 
 import type {
   Message,
@@ -57,7 +61,7 @@ function ChatHeader({
   onInfoClick: () => void
   onHelpClick: () => void
 }) {
-  const Portrait = CHARACTER_COMPONENTS[agent.id]
+  const agentPhoto = AGENT_PHOTOS[agent.id]
   return (
     <div
       style={{
@@ -86,8 +90,8 @@ function ChatHeader({
         }}
         aria-label="Agent info"
       >
-        {Portrait ? (
-          <Portrait size={44} />
+        {agentPhoto ? (
+          <img src={agentPhoto} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div
             style={{
@@ -201,7 +205,7 @@ function EmptyState({
   agent: AgentConfig
   onPrompt: (prompt: string) => void
 }) {
-  const Portrait = CHARACTER_COMPONENTS[agent.id]
+  const agentPhoto2 = AGENT_PHOTOS[agent.id]
   return (
     <div
       style={{
@@ -238,8 +242,8 @@ function EmptyState({
             transform: "rotate(-2deg)",
           }}
         >
-          {Portrait ? (
-            <Portrait size={140} />
+          {agentPhoto2 ? (
+            <img src={agentPhoto2} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             <div
               style={{
@@ -388,7 +392,13 @@ export default function AssistantChatPage() {
   const scrollFrameRef = useRef<number | null>(null)
 
   const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current)
-  const isLoading = sendMutation.isPending
+
+  // useMutationState survives navigation (lives on QueryClient, not the component).
+  // This keeps the typing indicator visible when you switch agents and come back.
+  const pendingCount = useMutationState({
+    filters: { mutationKey: ["sendMessage", id, organizationId], status: "pending" },
+  }).length
+  const isLoading = pendingCount > 0 || sendMutation.isPending
   const isBusy = isLoading || actionSubmitting
   const historyLoaded = !messagesPending
 

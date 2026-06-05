@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -33,11 +33,11 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
   DropdownMenu,
@@ -89,8 +89,16 @@ export function AppSidebar() {
   const { data: organizationList } = authClient.useListOrganizations()
   const organizations = organizationList ?? []
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+  const { state: sidebarState, setOpen: setSidebarOpen } = useSidebar()
 
   const isWorkspaceActive = pathname.startsWith("/workspace")
+  const [workspaceOpen, setWorkspaceOpen] = useState(isWorkspaceActive)
+
+  // Keep the sub-menu open whenever we're on a workspace route, regardless of
+  // which page the sidebar first mounted on.
+  useEffect(() => {
+    if (isWorkspaceActive) setWorkspaceOpen(true)
+  }, [isWorkspaceActive])
 
   const switchOrg = async (organizationId: string) => {
     if (switchingId || organizationId === activeOrg?.id) return
@@ -297,19 +305,30 @@ export function AppSidebar() {
               ))}
 
               <SidebarMenuItem>
-                <Collapsible defaultOpen={isWorkspaceActive}>
-                  <CollapsibleTrigger
-                    render={
-                      <SidebarMenuButton
-                        isActive={isWorkspaceActive}
-                        style={monoLabelStyle}
-                      />
-                    }
+                <Collapsible open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
+                  <SidebarMenuButton
+                    isActive={isWorkspaceActive}
+                    style={monoLabelStyle}
+                    onClick={() => {
+                      if (sidebarState === "collapsed") {
+                        // Icon mode hides sub-menus — expand the sidebar first,
+                        // then open the workspace sub-menu so the items show.
+                        setSidebarOpen(true)
+                        setWorkspaceOpen(true)
+                      } else {
+                        setWorkspaceOpen((open) => !open)
+                      }
+                    }}
                   >
                     <FileText className="size-4" />
                     <span>Workspace</span>
-                    <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                  </CollapsibleTrigger>
+                    <ChevronDown
+                      className="ml-auto size-3 transition-transform duration-200"
+                      style={{
+                        transform: workspaceOpen ? "rotate(180deg)" : "none",
+                      }}
+                    />
+                  </SidebarMenuButton>
                   <CollapsibleContent>
                     <SidebarMenuSub>
                       {workspaceItems.map((item) => (

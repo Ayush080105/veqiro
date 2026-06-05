@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
-import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 import { FONT } from "@/lib/fonts"
 import type { DashboardSummary } from "@/lib/api/dashboard"
 
@@ -108,7 +107,7 @@ export function CrewLeaderboard({
               return AGENTS[0]
             }
           })()
-          const Portrait = CHARACTER_COMPONENTS[agent.id]
+          const agentPhoto = `/agents/${agent.id}.jpeg`
           const pct = (row.messagesWeek / max) * 100
           return (
             <Link
@@ -137,8 +136,8 @@ export function CrewLeaderboard({
                   background: agent.color,
                 }}
               >
-                {Portrait ? (
-                  <Portrait size={40} />
+                {agentPhoto ? (
+                  <img src={agentPhoto} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
                   <div
                     style={{

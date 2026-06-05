@@ -12,7 +12,6 @@ import {
   revokeApiKey,
 } from "@/lib/api/rex"
 import type { RexAlertRule } from "@/lib/types/agents"
-import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
 import { FONT } from "@/lib/fonts"
 import type { AgentConfig, BrandKit } from "@/lib/types"
 
@@ -616,7 +615,7 @@ export default function AgentInfoPanel({
 
   if (!open) return null
 
-  const Portrait = CHARACTER_COMPONENTS[agent.id]
+  const agentPhoto = `/agents/${agent.id}.jpeg`
 
   return (
     <>
@@ -677,7 +676,7 @@ export default function AgentInfoPanel({
             transform: "rotate(-1.5deg)",
           }}
         >
-          {Portrait ? <Portrait size="100%" /> : null}
+          <img src={agentPhoto} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         </div>
 
         <div>

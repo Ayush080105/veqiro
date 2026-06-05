@@ -845,20 +845,38 @@ async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse
             f"Research this legal question:\n{request.query}\n\n"
             f"Jurisdiction: {request.jurisdiction}\n"
             f"Legal areas: {', '.join(request.legal_areas) if request.legal_areas else 'general'}\n\n"
-            "Return ONLY a JSON object (no markdown fences) with keys: "
-            "summary, applicable_laws, key_requirements, relevant_cases, "
-            "practical_guidance, jurisdiction_notes, confidence_level"
+            "Return ONLY a JSON object (no markdown fences) — be concise:\n"
+            "summary (2-3 sentences), "
+            "applicable_laws (list of strings, max 6), "
+            "key_requirements (list of strings, max 6), "
+            "relevant_cases (list of strings, max 4), "
+            "practical_guidance (list of strings, max 5), "
+            "jurisdiction_notes (1 sentence), "
+            "confidence_level (exactly one word: high, medium, or low)"
         )}],
+        max_tokens=1200,
     )
     tokens_used = _llm.count_tokens(raw)
     try:
-        data = json.loads(strip_json_fences(raw))
-        return LegalResearchResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
+        data = safe_json_loads(strip_json_fences(raw))
+        # Guard: if summary looks like JSON (LLM nested the response), re-parse it
+        if isinstance(data.get("summary"), str) and data["summary"].strip().startswith("{"):
+            try:
+                inner = safe_json_loads(data["summary"])
+                if isinstance(inner, dict) and "summary" in inner:
+                    data = inner
+            except Exception:
+                pass
+        # Normalise confidence_level to a single word
+        cl = str(data.get("confidence_level", "medium")).lower().split()[0]
+        data["confidence_level"] = cl if cl in ("high", "medium", "low") else "medium"
+        return LegalResearchResponse(**{k: v for k, v in data.items() if k in LegalResearchResponse.model_fields}, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception:
         return LegalResearchResponse(
-            summary=raw[:500],
+            summary="Legal research completed. See guidance below.",
             applicable_laws=[], key_requirements=[], relevant_cases=[],
-            practical_guidance=[], jurisdiction_notes=request.jurisdiction,
+            practical_guidance=[raw[:400]] if raw else [],
+            jurisdiction_notes=request.jurisdiction,
             confidence_level="medium",
             tokens_used=tokens_used,
             model_used=_agent.default_model,

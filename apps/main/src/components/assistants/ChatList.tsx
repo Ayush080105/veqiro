@@ -4,17 +4,46 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Search } from "lucide-react"
+import { useMutationState } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth-client"
 import { AGENTS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
-import { CHARACTER_COMPONENTS } from "@/components/veqiro/characters"
+const AGENT_PHOTOS: Record<string, string> = {
+  maya:  "/agents/maya.jpeg",
+  rex:   "/agents/rex.jpeg",
+  sage:  "/agents/sage.jpeg",
+  scout: "/agents/scout.jpeg",
+  lex:   "/agents/lex.jpeg",
+  vega:  "/agents/vega.jpeg",
+}
 import { FONT } from "@/lib/fonts"
 import type {
   AgentStatusData,
   AgentConfig,
   LastMessage,
 } from "@/lib/types"
+
+function TypingDots() {
+  return (
+    <>
+      <style>{`
+        @keyframes vq-blink {
+          0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+          40% { opacity: 1; transform: translateY(-2px); }
+        }
+        .vq-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #333; margin: 0 1.5px; animation: vq-blink 1.2s infinite ease-in-out; }
+        .vq-dot:nth-child(2) { animation-delay: 0.2s; }
+        .vq-dot:nth-child(3) { animation-delay: 0.4s; }
+      `}</style>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
+        <span className="vq-dot" />
+        <span className="vq-dot" />
+        <span className="vq-dot" />
+      </span>
+    </>
+  )
+}
 
 const STATUS_DOT: Record<AgentStatusData["status"], string> = {
   working: "#F5C518",
@@ -56,16 +85,18 @@ function AgentRow({
   active,
   status,
   last,
+  isTyping,
 }: {
   agent: AgentConfig
   active: boolean
   status: AgentStatusData | undefined
   last: LastMessage | null
+  isTyping: boolean
 }) {
-  const Portrait = CHARACTER_COMPONENTS[agent.id]
-  const dot = STATUS_DOT[status?.status ?? "idle"]
+  const photo = AGENT_PHOTOS[agent.id]
+  const dot = isTyping ? "#F5C518" : STATUS_DOT[status?.status ?? "idle"]
   const preview = previewLine(last, status?.lastActivity)
-  const time = formatRelative(last?.createdAt)
+  const time = isTyping ? "now" : formatRelative(last?.createdAt)
 
   return (
     <Link
@@ -95,8 +126,12 @@ function AgentRow({
           transform: active ? "translate(-1px,-1px)" : "none",
         }}
       >
-        {Portrait ? (
-          <Portrait size={48} />
+        {photo ? (
+          <img
+            src={photo}
+            alt={agent.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
         ) : (
           <div
             style={{
@@ -191,7 +226,7 @@ function AgentRow({
               flex: 1,
             }}
           >
-            {preview}
+            {isTyping ? <TypingDots /> : preview}
           </span>
         </div>
       </div>
@@ -207,6 +242,18 @@ export default function ChatList() {
   const { data: statuses } = useAgentStatuses(organizationId)
   const { data: lastMap } = useLastMessages()
   const [query, setQuery] = useState("")
+
+  // Detect which agents have an in-flight sendMessage mutation.
+  // useMutationState lives on the QueryClient so it survives navigation.
+  const pendingMutations = useMutationState({
+    filters: { status: "pending" },
+    select: (m) => m.options.mutationKey,
+  })
+  const typingAgentIds = new Set(
+    pendingMutations
+      .filter((key): key is unknown[] => Array.isArray(key) && key[0] === "sendMessage")
+      .map((key) => key[1] as string)
+  )
 
   const filtered = AGENTS.filter((a) => {
     if (!query.trim()) return true
@@ -310,6 +357,7 @@ export default function ChatList() {
               active={active}
               status={statuses?.[agent.id]}
               last={lastMap?.[agent.id] ?? null}
+              isTyping={typingAgentIds.has(agent.id)}
             />
           )
         })}
