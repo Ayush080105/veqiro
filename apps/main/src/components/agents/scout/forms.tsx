@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Bookmark, Brain, Plus, X } from "lucide-react"
+import { Bookmark, Brain, MapPin, Plus, X } from "lucide-react"
 import { useFieldArray } from "react-hook-form"
 
 import { Input } from "@/components/ui/input"
@@ -252,6 +252,13 @@ export function ScoutTrendingTopicsForm({
           onChange={(e) => onChange({ count: Number(e.target.value) })}
         />
       </FormRow>
+      <FormRow label="Location" description="Optional — narrow to a region or leave blank for global">
+        <Input
+          value={value.location ?? ""}
+          onChange={(e) => onChange({ location: e.target.value })}
+          placeholder="e.g. India, Europe, Southeast Asia"
+        />
+      </FormRow>
     </>
   )
 }
@@ -271,6 +278,12 @@ export function ScoutDiscoverCompetitorsForm({
         <Brain className="size-3 shrink-0" />
         Using your product description and industry from Brain.
       </p>
+      {value.location && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <MapPin className="size-3 shrink-0" />
+          Searching in: {value.location}
+        </p>
+      )}
       <FormRow label="How many competitors?">
         <Input
           type="number"

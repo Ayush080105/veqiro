@@ -273,6 +273,7 @@ export interface ScoutResearchTopicRequest {
   topic: string
   depth?: "quick" | "standard" | "deep"
   sources_hint?: string[]
+  location?: string
 }
 
 export interface ScoutResearchTopicResult {
@@ -316,6 +317,7 @@ export interface ScoutResearchCompanyResult {
 export interface ScoutTrendingTopicsRequest {
   industry: string
   count?: number
+  location?: string
 }
 
 export interface ScoutTrendingTopicsResult {
@@ -343,6 +345,7 @@ export interface ScoutDiscoverCompetitorsRequest {
   description: string
   industry: string
   count?: number
+  location?: string
 }
 
 export interface ScoutDiscoverCompetitorsResult {

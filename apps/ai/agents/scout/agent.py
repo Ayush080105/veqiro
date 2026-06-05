@@ -74,8 +74,10 @@ class ScoutAgent(BaseAgent):
             prompt += (
                 f"**You are researching on behalf of: {brand_kit.company_name}**\n"
                 f"Industry: {brand_kit.industry}\n"
-                f"Target Audience: {brand_kit.target_audience}\n"
             )
+            if brand_kit.location:
+                prompt += f"Business Location: {brand_kit.location}\n"
+            prompt += f"Target Audience: {brand_kit.target_audience}\n"
             if brand_kit.value_proposition:
                 prompt += f"Value Proposition: {brand_kit.value_proposition}\n"
             prompt += f"Key Differentiators: {brand_kit.key_differentiators}\n"
@@ -245,6 +247,7 @@ class ScoutAgent(BaseAgent):
                     ToolParameter(name="description", type="string", description="Brief description of the product/business to find competitors for", required=True),
                     ToolParameter(name="industry", type="string", description="Industry or category (e.g. 'AI productivity SaaS', 'fintech', 'developer tools')", required=True),
                     ToolParameter(name="count", type="integer", description="Number of competitors to return (default 8)", required=False, default=8),
+                    ToolParameter(name="location", type="string", description="City, region, or country the business operates in (e.g. 'Pune, India'). Omit for global businesses.", required=False, default=""),
                 ],
             ),
         ]
@@ -440,10 +443,16 @@ class ScoutAgent(BaseAgent):
                 description = arguments.get("description", "")
                 industry = arguments.get("industry", "")
                 count = arguments.get("count", 8)
+                loc = (arguments.get("location") or "").strip()
+
+                if loc:
+                    q1, q2 = f"{industry} businesses {loc} {year}", f"{industry} services companies {loc}"
+                else:
+                    q1, q2 = f"{industry} companies competitors {year}", f"best {industry} businesses {year}"
 
                 results_alternatives, results_best = await asyncio.gather(
-                    serper_search(f"{industry} tools alternatives {year}"),
-                    serper_search(f"best {industry} software {year}"),
+                    serper_search(q1),
+                    serper_search(q2),
                 )
 
                 all_results = results_alternatives[:6] + results_best[:6]
@@ -451,16 +460,20 @@ class ScoutAgent(BaseAgent):
                     f"- {r['title']}: {r['snippet']} ({r['link']})" for r in all_results
                 ) if all_results else ""
 
+                loc_clause = f" operating in or targeting {loc}" if loc else ""
                 from core.utils import safe_json_loads
                 raw = await self.llm.complete(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
-                        f"Today is {today}. Find {count} real competitors for: \"{description}\" in the {industry} space.\n"
+                        f"Today is {today}. Find {count} real competitors for a business{loc_clause} "
+                        f"described as: \"{description}\" in the {industry} industry.\n"
                         f"{search_context}\n\n"
                         f"Return ONLY a JSON object (no markdown fences): "
                         '{"competitors": [{"name": "...", "url": "https://...", '
                         '"why_competitive": "1 sentence", "pricing_model": "..."}]}. '
+                        "Prioritise real competitors a customer in the same market would actually consider. "
+                        "Do NOT default to US SaaS if a local or regional competitor exists. "
                         "Only real, verifiable companies."
                     )}],
                 )

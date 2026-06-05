@@ -120,6 +120,7 @@ export const brainAutosaveSchema = z.object({
   }),
   competitors: z.array(z.object({ value: z.string() })),
   keyDifferentiators: z.string(),
+  location: z.string().max(200).optional().default(""),
   logoUrl: z.string().nullable(),
   logoKey: z.string().nullable(),
   mascotUrl: z.string().nullable(),

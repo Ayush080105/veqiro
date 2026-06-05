@@ -25,6 +25,7 @@ class BrandKit(BaseModel):
     competitors: list = []
     key_differentiators: str = ""
     website_url: str = ""
+    location: str = ""
     # Cleaned markdown summary from the Jina Reader crawl on the user's
     # website. Editable by the user. Injected verbatim into agent prompts.
     crawled_summary: str = ""
@@ -108,6 +109,7 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
                 competitors=data.get("competitors") or [],
                 key_differentiators=data.get("key_differentiators") or "",
                 website_url=data.get("website_url") or "",
+                location=data.get("location") or "",
                 crawled_summary=data.get("crawled_summary") or "",
                 crawled_content=data.get("crawled_content") or "",
             )

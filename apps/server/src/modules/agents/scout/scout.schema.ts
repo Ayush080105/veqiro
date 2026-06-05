@@ -10,6 +10,7 @@ export const researchTopicSchema = z.object({
   topic: z.string().min(1).max(300),
   depth: depthEnum.optional().default("standard"),
   sourcesHint: z.array(z.string().url()).max(10).optional().default([]),
+  location: z.string().max(200).optional().default(""),
 });
 
 export const researchCompanySchema = z.object({
@@ -20,6 +21,7 @@ export const researchCompanySchema = z.object({
 export const trendingTopicsSchema = z.object({
   industry: z.string().min(1).max(120),
   count: z.number().int().min(1).max(50).optional().default(10),
+  location: z.string().max(200).optional().default(""),
 });
 
 export const addCompetitorSchema = z.object({
@@ -31,4 +33,5 @@ export const discoverCompetitorsSchema = z.object({
   description: z.string().min(1).max(300),
   industry: z.string().min(1).max(120),
   count: z.number().int().min(1).max(20).optional().default(8),
+  location: z.string().max(200).optional().default(""),
 });

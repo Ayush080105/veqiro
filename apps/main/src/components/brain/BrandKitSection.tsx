@@ -356,6 +356,27 @@ export function BrandKitSection({
                   )}
                 />
               </Field>
+
+              <Field>
+                <VqFieldLabel>Location</VqFieldLabel>
+                <Controller
+                  name="location"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      onBlur={() => {
+                        field.onBlur()
+                        scheduleAutoSave()
+                      }}
+                      placeholder="e.g. Pune, India — leave blank if global / online"
+                    />
+                  )}
+                />
+                <p className="mt-1 font-body text-[11px] text-muted-foreground">
+                  Scout uses this to find local competitors instead of defaulting to US companies.
+                </p>
+              </Field>
             </FieldGroup>
           </VqSectionCard>
         </TabsContent>

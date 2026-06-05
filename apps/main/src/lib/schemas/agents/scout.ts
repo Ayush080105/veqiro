@@ -36,5 +36,6 @@ export type ScoutCompetitorScanValues = z.infer<typeof scoutCompetitorScanSchema
 export const scoutTrendingTopicsSchema = z.object({
   industry: z.string().min(2, "Industry is required"),
   count: z.number().int().min(1).max(50).optional(),
+  location: z.string().max(200).optional(),
 })
 export type ScoutTrendingTopicsValues = z.infer<typeof scoutTrendingTopicsSchema>

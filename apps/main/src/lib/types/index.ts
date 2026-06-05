@@ -95,6 +95,7 @@ export interface BrandKit {
   competitors: string[]
   keyDifferentiators: string
   websiteUrl: string
+  location: string
   crawledContent: string | null
   crawledSummary: string | null
   crawledAt: string | null
@@ -109,6 +110,7 @@ export interface BrainFormValues {
   valueProposition: string
   websiteUrl: string
   industry: string
+  location: string
   targetAudience: string
   brandVoice: string
   platformTones: { twitter: string; linkedin: string; instagram: string }

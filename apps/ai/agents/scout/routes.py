@@ -30,6 +30,7 @@ class ResearchTopicRequest(BaseModel):
     topic: str
     depth: str = "standard"  # "quick" | "standard" | "deep"
     sources_hint: list[str] = []
+    location: str = ""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -112,6 +113,7 @@ class TrendingTopicsRequest(BaseModel):
     organization_id: str = ""
     industry: str
     count: int = 10
+    location: str = ""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -442,7 +444,7 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
         + _fmt(results_vs, "Competitors & Alternatives search")
     )
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=True)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -516,19 +518,22 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
     try:
         today = datetime.now(timezone.utc).strftime("%B %d, %Y")
         year = datetime.now(timezone.utc).year
+        loc = (request.location or "").strip()
+        news_q = f"{request.industry} trends news {loc} {year}".strip() if loc else f"{request.industry} trends news {year}"
         keywords, news_results = await asyncio.gather(
             google_autocomplete(request.industry),
-            serper_search(f"{request.industry} trends news {year}", search_type="news"),
+            serper_search(news_q, search_type="news"),
         )
         news_context = ""
         if news_results:
             news_context = "\n\nRecent news:\n" + "\n".join(f"- {r['title']}: {r['snippet']}" for r in news_results[:6])
-        system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+        system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=True)
+        loc_clause = f" in {loc}" if loc else ""
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
             messages=[{"role": "user", "content": (
-                f"Today is {today}. Identify {request.count} trending topics in {request.industry}.\n"
+                f"Today is {today}. Identify {request.count} trending topics in {request.industry}{loc_clause}.\n"
                 f"Related keywords: {keywords[:10]}{news_context}\n\n"
                 "Return a JSON array. Each item is a full trend intelligence brief with these fields:\n"
                 "- topic: string — clear trend name\n"
@@ -590,6 +595,7 @@ class DiscoverCompetitorsRequest(BaseModel):
     description: str
     industry: str
     count: int = 8
+    location: str = ""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -623,33 +629,43 @@ async def discover_competitors(request: DiscoverCompetitorsRequest) -> DiscoverC
         ]
         return DiscoverCompetitorsResponse(competitors=mock_competitors[:request.count], generated_at=datetime.now(timezone.utc).isoformat())
 
-    import json
     from core.utils import safe_json_loads
     from agents.scout.scraper import serper_search
 
     today = datetime.now(timezone.utc).strftime("%B %d, %Y")
     year = datetime.now(timezone.utc).year
+    loc = (request.location or "").strip()
+    if loc:
+        q1 = f"{request.industry} businesses {loc} {year}"
+        q2 = f"{request.industry} services companies {loc}"
+    else:
+        q1 = f"{request.industry} companies competitors {year}"
+        q2 = f"best {request.industry} businesses {year}"
     results_alternatives, results_best = await asyncio.gather(
-        serper_search(f"{request.industry} tools alternatives {year}"),
-        serper_search(f"best {request.industry} software companies {year}"),
+        serper_search(q1),
+        serper_search(q2),
     )
     all_results = results_alternatives[:6] + results_best[:6]
     search_context = "\n\nSearch results:\n" + "\n".join(
         f"- {r['title']}: {r['snippet']} ({r['link']})" for r in all_results
     ) if all_results else ""
 
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=True)
+    loc_clause = f" operating in or targeting {loc}" if loc else ""
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
         messages=[{"role": "user", "content": (
-            f"Today is {today}. Find {request.count} real competitors for a business described as: \"{request.description}\" in the {request.industry} space.\n"
+            f"Today is {today}. Find {request.count} real competitors for a business{loc_clause} "
+            f"described as: \"{request.description}\" in the {request.industry} industry.\n"
             f"{search_context}\n\n"
             f"Return a JSON array of up to {request.count} competitors. Each object must have:\n"
             "- name: company name (string)\n"
             "- url: company website URL (string, must be a real, working URL)\n"
             "- why_competitive: 1 sentence explaining how they compete with the described business (string)\n"
             "- pricing_model: their pricing approach e.g. 'Freemium, $X/mo', 'Enterprise only', 'Usage-based' (string)\n\n"
+            "Prioritise real competitors a customer in the same market would actually consider. "
+            "Do NOT default to US SaaS if a local or regional competitor exists. "
             "Only include real, verifiable companies. Return ONLY the JSON array, no markdown fences."
         )}],
     )

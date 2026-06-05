@@ -666,7 +666,7 @@ export default function AssistantChatPage() {
 
   const discoverCompetitorsPrefill = useMemo(() =>
     brandKit
-      ? { description: brandKit.companyDescription || "", industry: brandKit.industry || "" }
+      ? { description: brandKit.companyDescription || "", industry: brandKit.industry || "", location: brandKit.location || "" }
       : undefined,
     [brandKit]
   )

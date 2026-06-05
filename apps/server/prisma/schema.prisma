@@ -167,6 +167,7 @@ model BrandKit {
   competitors         Json      @default("[]")
   key_differentiators String    @default("")
   website_url         String    @default("")
+  location            String    @default("")
   crawled_content     String?
   crawled_summary     String?
   crawled_at          DateTime?

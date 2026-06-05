@@ -62,6 +62,7 @@ export const partialBrandKitSchema = z
     competitors: z.array(z.string().min(1).max(500)).max(50).optional(),
     keyDifferentiators: z.string().max(2000).optional(),
     websiteUrl: optionalUrl,
+    location: z.string().max(200).optional(),
     crawledContent: z.string().max(20000).nullable().optional(),
     crawledSummary: z.string().max(4000).nullable().optional(),
     crawlSource: z.string().max(50).nullable().optional(),
@@ -120,6 +121,7 @@ export const finalizeBrandKitSchema = z
       )
       .max(2000),
     websiteUrl: optionalUrl,
+    location: z.string().max(200).optional(),
     // crawledContent / crawledSummary may be carried through finalize when the
     // user clicked Auto-fill in onboarding — both optional, both validated by
     // the partial schema's bounds (kept here loose since user can edit/clear).

@@ -94,6 +94,7 @@ export const researchTopic = async (
       topic: input.topic,
       depth: input.depth,
       sources_hint: input.sourcesHint,
+      location: input.location ?? "",
     }
   );
 
@@ -158,6 +159,7 @@ export const trendingTopics = async (
       organization_id: organizationId,
       industry: input.industry,
       count: input.count,
+      location: input.location ?? "",
     }
   );
 
@@ -212,6 +214,7 @@ export const discoverCompetitors = async (
       description: input.description,
       industry: input.industry,
       count: input.count,
+      location: input.location ?? "",
     }
   );
 

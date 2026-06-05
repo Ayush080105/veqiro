@@ -255,7 +255,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   },
 
   "scout:research-topic": {
-    defaultValue: { topic: "", depth: "standard", sources_hint: [] },
+    defaultValue: { topic: "", depth: "standard", sources_hint: [], location: "" },
     Form: ScoutResearchTopicForm,
     validate: (v) => (v.topic?.trim() ? null : "Topic is required."),
   },
@@ -265,12 +265,12 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     validate: (v) => (v.company_name?.trim() ? null : "Company name is required."),
   },
   "scout:trending-topics": {
-    defaultValue: { industry: "", count: 10 },
+    defaultValue: { industry: "", count: 10, location: "" },
     Form: ScoutTrendingTopicsForm,
     validate: (v) => (v.industry?.trim() ? null : "Industry is required."),
   },
   "scout:discover-competitors": {
-    defaultValue: { description: "", industry: "", count: 8 },
+    defaultValue: { description: "", industry: "", count: 8, location: "" },
     Form: ScoutDiscoverCompetitorsForm,
     validate: (v) =>
       !v.description?.trim()

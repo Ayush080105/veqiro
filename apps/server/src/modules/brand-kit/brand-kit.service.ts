@@ -49,6 +49,7 @@ export interface BrandKitDto {
   competitors: string[];
   keyDifferentiators: string;
   websiteUrl: string;
+  location: string;
   crawledContent: string | null;
   crawledSummary: string | null;
   crawledAt: Date | null;
@@ -75,6 +76,7 @@ export const serializeBrandKit = (row: BrandKitRow): BrandKitDto => ({
   competitors: (row.competitors as string[]) ?? [],
   keyDifferentiators: row.key_differentiators,
   websiteUrl: row.website_url,
+  location: row.location ?? "",
   crawledContent: row.crawled_content,
   crawledSummary: row.crawled_summary,
   crawledAt: row.crawled_at,
@@ -109,6 +111,7 @@ const toPrismaInput = (
   if (input.keyDifferentiators !== undefined)
     data.key_differentiators = input.keyDifferentiators;
   if (input.websiteUrl !== undefined) data.website_url = input.websiteUrl;
+  if (input.location !== undefined) data.location = input.location;
   if (input.crawledContent !== undefined)
     data.crawled_content = input.crawledContent;
   if (input.crawledSummary !== undefined)
