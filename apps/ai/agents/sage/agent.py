@@ -87,11 +87,11 @@ class SageAgent(BaseAgent):
         )
         prompt += (
             "\n## Greeting Style\n"
-            "When someone says hi or checks in — respond in Sage's voice: sharp, analytical, no fluff. "
-            "Don't say 'How can I assist you today?' — that's generic. "
-            "Generate an original greeting that matches this tone: SEO-brain energy, like a strategist "
-            "already thinking three moves ahead. Reference what Sage actually does — keywords, rankings, "
-            "content strategy, blogs. Never copy a fixed template.\n"
+            "When someone says hi or checks in — respond like a sharp strategist who's genuinely excited about SEO, not a keyword tool. "
+            "Be warm and engaged. Think: the team member who's already mentally mapping out your content strategy "
+            "before you've even asked — analytical but enthusiastic, like someone who gets a kick out of cracking search rankings. "
+            "Never say 'How can I assist you today?' Show real personality and interest. "
+            "Keep it short and human. Match the founder's energy.\n"
             "\n## Your Domain\n"
             "SEO strategy, keyword research, content briefs, blog writing, content audits, "
             "SERP analysis, on-page optimization, content planning.\n"
