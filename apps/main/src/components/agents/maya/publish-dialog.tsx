@@ -27,9 +27,11 @@ interface PublishDialogProps {
 interface CampaignPublishDialogProps {
   imageUrls: string[]
   photoCount: number
+  caption?: string
+  hashtags?: string[]
 }
 
-export function CampaignPublishDialog({ imageUrls, photoCount }: CampaignPublishDialogProps) {
+export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags }: CampaignPublishDialogProps) {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
@@ -50,9 +52,12 @@ export function CampaignPublishDialog({ imageUrls, photoCount }: CampaignPublish
     }
     setPublishing(true)
     try {
+      const fullCaption = [caption, hashtags?.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")]
+        .filter(Boolean)
+        .join("\n\n")
       const result = await publishCarousel(organizationId, {
         socialAccountId: accountId,
-        caption: "",
+        caption: fullCaption,
         hashtags: [],
         imageUrls,
       })

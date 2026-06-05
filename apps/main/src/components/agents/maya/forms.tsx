@@ -592,45 +592,6 @@ export function MayaImageRegenForm({
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="platform"
-        label="Platform"
-        required
-      >
-        {({ field }) => (
-          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
-        )}
-      </RhfField>
-
-      <div className="flex items-center gap-4">
-        <Controller
-          control={form.control}
-          name="use_logo"
-          render={({ field }) => (
-            <label className="flex items-center gap-2 text-xs">
-              <Switch
-                checked={field.value ?? false}
-                onCheckedChange={field.onChange}
-              />
-              Overlay logo
-            </label>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="use_mascot"
-          render={({ field }) => (
-            <label className="flex items-center gap-2 text-xs">
-              <Switch
-                checked={field.value ?? false}
-                onCheckedChange={field.onChange}
-              />
-              Add mascot
-            </label>
-          )}
-        />
-      </div>
     </FieldGroup>
   )
 }

@@ -34,6 +34,7 @@ import type {
   ImageResult,
   CampaignInput,
   CampaignResponse,
+  CampaignCaption,
   ExpandBriefInput,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
@@ -702,16 +703,42 @@ export const createCampaign = async (
     platform: input.platform,
   });
 
-  const hostedPhotos = await Promise.all(
-    data.photos.map(async (photo) => ({
-      ...photo,
-      image: (await hostImage(organizationId, photo.image)) ?? photo.image,
-    }))
-  );
+  const [hostedPhotos, caption] = await Promise.all([
+    Promise.all(
+      data.photos.map(async (photo) => ({
+        ...photo,
+        image: (await hostImage(organizationId, photo.image)) ?? photo.image,
+      }))
+    ),
+    (async (): Promise<CampaignCaption | null> => {
+      try {
+        const { data: d } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
+          user_id: userId,
+          organization_id: organizationId,
+          topic: input.campaignBrief,
+          platform: input.platform,
+          tone_override: null,
+          word_count_target: 200,
+          include_image: false,
+          use_logo: false,
+          use_mascot: false,
+          additional_context: null,
+          from_rex: false,
+          use_reference: false,
+          reference_images: [],
+          brand_images: [],
+        });
+        return { body: d.draft.body, hashtags: d.draft.hashtags, cta: d.draft.cta || undefined };
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
 
   const result: CampaignResponse = {
     ...data,
     photos: hostedPhotos,
+    caption,
   };
 
   await mayaRepository.createAssistantMessage({

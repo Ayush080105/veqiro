@@ -163,8 +163,15 @@ export interface CampaignPhoto {
   composition_role: string;
 }
 
+export interface CampaignCaption {
+  body: string;
+  hashtags: string[];
+  cta?: string;
+}
+
 export interface CampaignResponse {
   photos: CampaignPhoto[];
+  caption?: CampaignCaption | null;
   tokens_used: number;
   model_used: string;
 }

@@ -575,7 +575,13 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
 
 // ─── Image regen card ────────────────────────────────────────────────────────
 
-export function ImageRegenCard({ result }: { result: MayaImageRegenResult }) {
+export function ImageRegenCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: MayaImageRegenResult
+  onFollowUpAction?: FollowUpHandler
+}) {
   const src = imageSrc(result.image)
   return (
     <AgentCard size="sm">
@@ -597,9 +603,21 @@ export function ImageRegenCard({ result }: { result: MayaImageRegenResult }) {
       </AgentCard.Body>
       {src && (
         <AgentCard.Footer>
-          <ActionRow
-            download={{ href: src, name: "maya-image.png", label: "Download" }}
-          />
+          <ActionRow download={{ href: src, name: "maya-image.png", label: "Download" }}>
+            {onFollowUpAction && (
+              <Button
+                size="xs"
+                variant="outline"
+                className="gap-1"
+                onClick={() =>
+                  onFollowUpAction("maya:regenerate-image", { image_url: src, prompt: "" })
+                }
+              >
+                <ImageIcon className="size-3" />
+                Regenerate
+              </Button>
+            )}
+          </ActionRow>
         </AgentCard.Footer>
       )}
     </AgentCard>
@@ -767,6 +785,22 @@ export function CarouselDraftCard({
                   : undefined
               }
             >
+              {onFollowUpAction && rawSrcs[current] && (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() =>
+                    onFollowUpAction("maya:regenerate-image", {
+                      image_url: rawSrcs[current],
+                      prompt: "",
+                    })
+                  }
+                >
+                  <ImageIcon className="size-3" />
+                  Regenerate
+                </Button>
+              )}
               <PublishDialog
                 platform={result.platform}
                 caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
@@ -785,6 +819,7 @@ export function CarouselDraftCard({
 
 export function CampaignResultCard({
   result,
+  onFollowUpAction,
 }: {
   result: MayaCampaignResult
   onFollowUpAction?: FollowUpHandler
@@ -831,10 +866,31 @@ export function CampaignResultCard({
                     Generating…
                   </div>
                 )}
-                <div className="px-1.5 pb-1.5">
-                  <p className="text-[10px] text-muted-foreground leading-snug capitalize mb-1">
+                <div className="px-1.5 pb-1.5 flex items-center gap-1.5">
+                  <p className="flex-1 text-[10px] text-muted-foreground leading-snug capitalize">
                     {photo.composition_role.split("—")[0].trim()}
                   </p>
+                  {rawSrc && onFollowUpAction && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onFollowUpAction("maya:regenerate-image", {
+                              image_url: rawSrc,
+                              prompt: "",
+                            })
+                          }
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted transition-colors"
+                          style={{ border: "1px solid var(--border)" }}
+                        >
+                          <ImageIcon size={10} />
+                          Regen
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Regenerate photo {i + 1}</TooltipContent>
+                    </Tooltip>
+                  )}
                   {rawSrc && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -856,8 +912,41 @@ export function CampaignResultCard({
             )
           })}
         </div>
+        {result.caption && (
+          <div className="mx-2.5 mb-2 border border-border bg-muted/20 p-2.5 flex flex-col gap-1.5">
+            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{"// caption"}</p>
+            <p className="whitespace-pre-wrap text-[11px] leading-snug">{result.caption.body}</p>
+            {result.caption.cta && (
+              <p className="text-[10px] italic text-muted-foreground">{result.caption.cta}</p>
+            )}
+            {result.caption.hashtags.length > 0 && (
+              <p className="text-[10px] leading-relaxed text-primary/70">
+                {[...new Set(result.caption.hashtags)]
+                  .map((h) => (h.startsWith("#") ? h : `#${h}`))
+                  .join(" ")}
+              </p>
+            )}
+            <div className="pt-0.5">
+              <CopyButton
+                text={[
+                  result.caption.body,
+                  result.caption.cta,
+                  result.caption.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+                ]
+                  .filter(Boolean)
+                  .join("\n\n")}
+                label="Copy caption"
+              />
+            </div>
+          </div>
+        )}
         <div className="px-2.5 pb-2.5">
-          <CampaignPublishDialog imageUrls={publishableUrls} photoCount={photos.length} />
+          <CampaignPublishDialog
+            imageUrls={publishableUrls}
+            photoCount={photos.length}
+            caption={result.caption?.body}
+            hashtags={result.caption?.hashtags}
+          />
         </div>
       </AgentCard.Body>
     </AgentCard>

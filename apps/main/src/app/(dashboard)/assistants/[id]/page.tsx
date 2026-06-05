@@ -49,7 +49,7 @@ import type {
   AgentConfig,
   AgentSlug,
 } from "@/lib/types"
-import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, ImageResult } from "@/lib/types/agents"
+import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 
 function ChatHeader({
@@ -473,46 +473,86 @@ export default function AssistantChatPage() {
       const now = new Date().toISOString()
 
       // ── maya:regenerate-image ─────────────────────────────────────────────
-      // Patches the existing draft card in-place so its image updates live,
-      // then also appends a user trigger + result card so the regeneration is
-      // visible as a distinct chat thread entry.
+      // Patches the source message in-place so the image swaps where it lives.
+      // Matches by image_url across all card types. Falls back to appending a
+      // new card only if no source message is found (e.g. triggered from menu).
       if (ctx.actionId === "maya:regenerate-image") {
         const regenResult = ctx.result as MayaImageRegenResult
+        const inputImageUrl = (ctx.input as { image_url?: string }).image_url
+        let patched = false
+
         queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
           if (!prev) return prev
           const msgs = [...prev]
 
-          // Patch the original DraftCard so its image updates in place
           for (let i = msgs.length - 1; i >= 0; i--) {
-            const m = msgs[i]
-            if (m.customInput?.actionId === "maya:draft-content") {
-              const r = m.customInput.result as MayaDraftResult
-              msgs[i] = {
-                ...m,
-                customInput: {
-                  ...m.customInput,
-                  result: { ...r, _previousImage: r.image ?? null, image: regenResult.image },
-                },
+            const ci = msgs[i].customInput
+            if (!ci?.actionId || !ci.result) continue
+
+            if (ci.actionId === "maya:draft-content") {
+              const r = ci.result as MayaDraftResult
+              if (!r?.draft) continue
+              if (!inputImageUrl || r.image?.image_url === inputImageUrl) {
+                msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, _previousImage: r.image ?? null, image: regenResult.image } } }
+                patched = true
+                break
               }
-              break
+            }
+
+            if (ci.actionId === "maya:campaign") {
+              const r = ci.result as MayaCampaignResult
+              const idx = (r?.photos ?? []).findIndex((p) => p?.image?.image_url === inputImageUrl)
+              if (idx >= 0) {
+                const newPhotos = [...r.photos]
+                newPhotos[idx] = { ...newPhotos[idx], image: regenResult.image }
+                msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, photos: newPhotos } } }
+                patched = true
+                break
+              }
+            }
+
+            if (ci.actionId === "maya:draft-carousel") {
+              const r = ci.result as MayaCarouselDraftResult
+              const idx = (r?.slides ?? []).findIndex((s) => s?.image?.image_url === inputImageUrl)
+              if (idx >= 0) {
+                const newSlides = [...r.slides]
+                newSlides[idx] = { ...newSlides[idx], image: regenResult.image }
+                msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, slides: newSlides } } }
+                patched = true
+                break
+              }
+            }
+
+            if (ci.actionId === "maya:regenerate-image") {
+              const r = ci.result as MayaImageRegenResult
+              if (r?.image?.image_url === inputImageUrl) {
+                msgs[i] = { ...msgs[i], customInput: { ...ci, result: regenResult } }
+                patched = true
+                break
+              }
+            }
+
+            if (ci.actionId === "maya:generate-variants") {
+              const r = ci.result as MayaVariantResult
+              const idx = (r?.variants ?? []).findIndex((v) => v?.image?.image_url === inputImageUrl)
+              if (idx >= 0) {
+                const newVariants = [...r.variants]
+                newVariants[idx] = { ...newVariants[idx], image: regenResult.image }
+                msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, variants: newVariants } } }
+                patched = true
+                break
+              }
             }
           }
 
-          // Append user trigger + result card
-          const userMsg: Message = {
-            role: "user",
-            content: meta?.label ?? "Regenerate image",
-            imageUrl: null,
-            createdAt: now,
+          if (!patched) {
+            // Fallback: no source card found, append as a new result
+            const userMsg: Message = { role: "user", content: meta?.label ?? "Regenerate image", imageUrl: null, createdAt: now }
+            const assistantMsg: Message = { role: "assistant", content: "Image regenerated.", imageUrl: null, createdAt: now, customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult } }
+            return [...msgs, userMsg, assistantMsg]
           }
-          const assistantMsg: Message = {
-            role: "assistant",
-            content: "Image regenerated.",
-            imageUrl: null,
-            createdAt: now,
-            customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult },
-          }
-          return [...msgs, userMsg, assistantMsg]
+
+          return msgs
         })
         toast.success("Image regenerated.")
         return

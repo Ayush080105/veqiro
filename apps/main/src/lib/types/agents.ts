@@ -1054,8 +1054,15 @@ export interface MayaCampaignPhoto {
   composition_role: string
 }
 
+export interface MayaCampaignCaption {
+  body: string
+  hashtags: string[]
+  cta?: string
+}
+
 export interface MayaCampaignResult {
   photos: MayaCampaignPhoto[]
+  caption?: MayaCampaignCaption | null
   tokens_used?: number
   model_used?: string
 }

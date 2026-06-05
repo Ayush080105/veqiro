@@ -102,7 +102,7 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
     case "maya:revise":
       return <RevisionDiffCard result={r} />
     case "maya:regenerate-image":
-      return <ImageRegenCard result={r} />
+      return <ImageRegenCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:regenerate-content":
       return <ContentRegenCard result={r} />
     case "maya:campaign":
