@@ -1,22 +1,22 @@
 "use client"
 
-import { useSearchParams, useRouter } from "next/navigation"
 import { Suspense } from "react"
-import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 
 import { authClient } from "@/lib/auth-client"
-import Logo from "@/components/logo"
+import { AuthShell } from "@/components/auth-shell"
 import { AuthCard } from "@/components/ui/auth-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SubmitButton } from "@/components/ui/submit-button"
-import { Sticker } from "@/components/ui/sticker"
 import { RhfField } from "@/components/forms/RhfField"
 import { resetPasswordSchema, type ResetPasswordValues } from "@/lib/schemas/auth"
+import Link from "next/link"
+import { Sticker } from "@/components/ui/sticker"
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
@@ -44,11 +44,20 @@ function ResetPasswordContent() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div className="flex gap-4 min-h-screen flex-col items-center justify-center bg-background px-4">
+          <Link href="/" className="flex items-center gap-3 text-foreground">
+            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
+              <span className="font-display text-[23px] leading-none text-background">
+                v
+              </span>
+            </span>
+            <span className="font-display text-3xl leading-none tracking-normal">
+              veqiro
+            </span>
+          </Link>
         <AuthCard>
           <div className="flex flex-col items-center gap-3 text-center">
-            <Logo className="mx-auto h-14 w-14" />
-            <h1 className="m-0 font-display text-3xl leading-none tracking-tight text-foreground">
+          <h1 className="m-0 font-display text-3xl leading-none tracking-tight text-foreground">
               invalid link
             </h1>
             <p className="m-0 font-body text-sm leading-relaxed text-muted-foreground">
@@ -69,12 +78,16 @@ function ResetPasswordContent() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
-      <Link href="/" className="mb-8 flex items-center gap-3">
-        <Logo className="h-12 w-12" />
-        <span className="font-head text-xl tracking-tight text-foreground">
-          veqiro
-        </span>
-      </Link>
+      <Link href="/" className="flex items-center gap-3 text-foreground">
+            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
+              <span className="font-display text-[23px] leading-none text-background">
+                v
+              </span>
+            </span>
+            <span className="font-display text-3xl leading-none tracking-normal">
+              veqiro
+            </span>
+          </Link>
 
       <AuthCard sticker={<Sticker rotate={6} tone="green">new password</Sticker>}>
         <AuthCard.Header
@@ -98,7 +111,7 @@ function ResetPasswordContent() {
                 id={id}
                 type="password"
                 variant="brand"
-                placeholder="••••••••"
+                placeholder="New password"
                 autoComplete="new-password"
                 aria-invalid={invalid}
                 disabled={form.formState.isSubmitting}
@@ -118,7 +131,7 @@ function ResetPasswordContent() {
                 id={id}
                 type="password"
                 variant="brand"
-                placeholder="••••••••"
+                placeholder="Confirm new password"
                 autoComplete="new-password"
                 aria-invalid={invalid}
                 disabled={form.formState.isSubmitting}
@@ -138,7 +151,7 @@ function ResetPasswordContent() {
             </Button>
             <SubmitButton
               isLoading={form.formState.isSubmitting}
-              loadingText="Resetting…"
+              loadingText="Resetting..."
               className="flex-[1.3]"
             >
               Reset password

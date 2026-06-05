@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import Link from "next/link"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Field, FieldDescription, FieldError } from "@/components/ui/field"
 import { SubmitButton } from "@/components/ui/submit-button"
+import Link from "next/link"
 
 export function RegisterForm() {
   const router = useRouter()
@@ -41,7 +41,7 @@ export function RegisterForm() {
     // Better Auth deliberately returns a phantom-success for already-registered
     // emails (anti-enumeration) AND when email verification is required no
     // session is created on signup. In both cases `result.token` is null/absent.
-    // Don't push to /onboarding — the user has no session and would just bounce
+    // Do not push to /onboarding; the user has no session and would just bounce
     // to /login. Send them to /login with a "check your inbox" message instead.
     if (result?.token) {
       toast.success("Account created")
@@ -124,7 +124,7 @@ export function RegisterForm() {
                 value={field.value}
                 onChange={(e) => field.onChange(e.target.value)}
                 onBlur={field.onBlur}
-                placeholder="••••••••"
+                placeholder="Password"
                 autoComplete="new-password"
                 disabled={isSubmitting}
                 aria-invalid={!!fieldState.error}
@@ -147,7 +147,7 @@ export function RegisterForm() {
                 value={field.value}
                 onChange={(e) => field.onChange(e.target.value)}
                 onBlur={field.onBlur}
-                placeholder="••••••••"
+                placeholder="Confirm password"
                 autoComplete="new-password"
                 disabled={isSubmitting}
                 aria-invalid={!!fieldState.error}
@@ -157,7 +157,7 @@ export function RegisterForm() {
           )}
         />
 
-        <SubmitButton isLoading={isSubmitting} loadingText="Creating account…">
+        <SubmitButton isLoading={isSubmitting} loadingText="Creating account...">
           Create account
         </SubmitButton>
 

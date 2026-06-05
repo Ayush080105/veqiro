@@ -124,6 +124,31 @@
   to   { transform: scale(1);    opacity: 1; }
 }
 
+@keyframes auth-slide-out {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(28px) scale(0.985); }
+}
+
+@keyframes auth-slide-in {
+  from { opacity: 0; transform: translateX(-32px) scale(0.985); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
+  animation: auth-slide-out 180ms ease-in both;
+}
+
+[data-auth-pane="form"][data-auth-enter="login"] {
+  animation: auth-slide-in 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"],
+  [data-auth-pane="form"][data-auth-enter="login"] {
+    animation: none;
+  }
+}
+
 .noise-overlay {
   position: fixed;
   inset: 0;

@@ -12,7 +12,6 @@ import {
   Plus,
 } from "lucide-react"
 
-import Logo from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -85,8 +84,14 @@ export default function WorkspacesPage() {
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-3xl flex-col">
         <header className="mb-8 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 text-foreground">
-            <Logo className="size-10" />
-            <span className="font-head text-lg tracking-tight">veqiro</span>
+            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
+              <span className="font-display text-[23px] leading-none text-background">
+                v
+              </span>
+            </span>
+            <span className="font-display text-3xl leading-none tracking-normal">
+              veqiro
+            </span>
           </Link>
           <button
             type="button"

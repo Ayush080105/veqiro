@@ -2,21 +2,22 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { toast } from "sonner"
 import { CheckCircle2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 
 import { authClient } from "@/lib/auth-client"
-import Logo from "@/components/logo"
+import { AuthShell } from "@/components/auth-shell"
 import { AuthCard } from "@/components/ui/auth-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SubmitButton } from "@/components/ui/submit-button"
-import { Sticker } from "@/components/ui/sticker"
 import { RhfField } from "@/components/forms/RhfField"
 import { forgotPasswordSchema, type ForgotPasswordValues } from "@/lib/schemas/auth"
+import Link from "next/link"
+import Logo from "@/components/logo"
+import { Sticker } from "@/components/ui/sticker"
 
 export default function ForgotPassword() {
   const router = useRouter()
@@ -47,10 +48,14 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
-      <Link href="/" className="mb-8 flex items-center gap-3">
-        <Logo className="h-12 w-12" />
-        <span className="font-head text-xl tracking-tight text-foreground">
+    <div className="flex min-h-screen flex-col gap-4 items-center justify-center bg-background px-4 py-10">
+      <Link href="/" className="flex items-center gap-3 text-foreground">
+        <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
+          <span className="font-display text-[23px] leading-none text-background">
+            v
+          </span>
+        </span>
+        <span className="font-display text-3xl leading-none tracking-normal">
           veqiro
         </span>
       </Link>
@@ -68,8 +73,8 @@ export default function ForgotPassword() {
               check your email
             </h1>
             <p className="m-0 font-body text-sm leading-relaxed text-foreground/80">
-              We sent a reset link to <strong>{sentEmail}</strong>. Click the link to
-              choose a new password.
+              We sent a reset link to <strong>{sentEmail}</strong>. Click the
+              link to choose a new password.
             </p>
             <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
               {"// check spam if nothing shows"}
@@ -123,7 +128,7 @@ export default function ForgotPassword() {
                 </Button>
                 <SubmitButton
                   isLoading={form.formState.isSubmitting}
-                  loadingText="Sending…"
+                  loadingText="Sending..."
                   className="flex-[1.3]"
                 >
                   Send link

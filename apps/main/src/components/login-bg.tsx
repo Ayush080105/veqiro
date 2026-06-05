@@ -1,169 +1,214 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  Sparkles,
+  LayoutList,
+} from "lucide-react"
 
-const AGENTS = [
-  { name: "Lex", file: "/Lex.jpeg" },
-  { name: "Maya", file: "/Maya.jpeg" },
-  { name: "Rex", file: "/Rex.jpeg" },
-  { name: "Sage", file: "/Sage.jpeg" },
-  { name: "Scout", file: "/Scout.jpeg" },
-  { name: "Vega", file: "/Vega.jpeg" },
-]
+import { AGENT_PROOFS } from "@/lib/agent-proofs"
+import { cn } from "@/lib/utils"
 
-const INTERVAL = 4500
-const FLIP_MS = 700
+const ROTATE_MS = 3000
 
 const LoginBg = () => {
-  // `back` is the page already visible underneath
-  // `front` is the page currently folding away (null when idle)
-  const [back, setBack] = useState(0)
-  const [front, setFront] = useState<number | null>(null)
-  const [flipAngle, setFlipAngle] = useState(0)
-  const [shadowOpacity, setShadowOpacity] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [active, setActive] = useState(0)
+  const [rotationKey, setRotationKey] = useState(0)
+  const agent = AGENT_PROOFS[active]!
 
-  const navigate = useCallback(
-    (target: number) => {
-      if (busy) return
-      const idx = (target + AGENTS.length) % AGENTS.length
-      if (idx === back) return
-
-      setBusy(true)
-      setFront(back)      // old page goes on top and will flip away
-      setBack(idx)        // new page is immediately visible underneath
-      setFlipAngle(0)     // reset angle (page starts flat)
-      setShadowOpacity(0.55)
-
-      // kick off the flip on next paint so CSS transition fires
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          setFlipAngle(-180)   // flip the old page away (left spine stays, right edge folds left)
-          setShadowOpacity(0)
-        }),
-      )
-
-      setTimeout(() => {
-        setFront(null)
-        setBusy(false)
-      }, FLIP_MS + 50)
-    },
-    [back, busy],
-  )
-
-  const goNext = useCallback(() => navigate(back + 1), [back, navigate])
-  const goPrev = useCallback(() => navigate(back - 1), [back, navigate])
+  const goTo = (index: number) => {
+    setActive((index + AGENT_PROOFS.length) % AGENT_PROOFS.length)
+    setRotationKey((key) => key + 1)
+  }
 
   useEffect(() => {
-    timerRef.current = setTimeout(goNext, INTERVAL)
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [goNext])
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+    const id = window.setInterval(() => {
+      setActive((current) => (current + 1) % AGENT_PROOFS.length)
+    }, ROTATE_MS)
+
+    return () => window.clearInterval(id)
+  }, [rotationKey])
 
   return (
-    <div
-      className="relative h-full w-full overflow-hidden border-l-[3px] border-foreground bg-background"
-      style={{ perspective: "1600px", perspectiveOrigin: "center center" }}
+    <aside
+      className="relative hidden h-full w-full overflow-hidden bg-background text-foreground lg:block"
+      aria-label="Veqiro AI crew on shift"
     >
-      {/* ── BACK PAGE (incoming, revealed as front flips away) ── */}
-      <div className="absolute inset-0">
-        {/* blurred backdrop */}
-        <Image
-          src={AGENTS[back]!.file}
-          alt=""
-          fill
-          className="object-cover"
-          style={{ filter: "blur(20px) brightness(0.65)", transform: "scale(1.12)" }}
-          aria-hidden
-        />
-        {/* full image */}
-        <Image
-          src={AGENTS[back]!.file}
-          alt={AGENTS[back]!.name}
-          fill
-          className="object-contain"
-        />
-        {/* shadow cast by the flipping page on top — fades as flip completes */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: "linear-gradient(to right, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)",
-            opacity: shadowOpacity,
-            transition: `opacity ${FLIP_MS}ms ease-in`,
-          }}
-        />
-      </div>
+      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(90deg,rgba(17,17,17,.12)_1px,transparent_1px),linear-gradient(rgba(17,17,17,.1)_1px,transparent_1px)] [background-size:42px_42px]" />
+      <div
+        className="absolute right-12 top-16 h-60 w-60 rounded-full blur-3xl"
+        style={{ backgroundColor: agent.accent, opacity: 0.4 }}
+        aria-hidden
+      />
+      <div className="absolute bottom-12 left-16 h-56 w-56 rounded-full bg-card blur-3xl opacity-70" aria-hidden />
 
-      {/* ── FRONT PAGE (outgoing, flips away like a book page) ── */}
-      {front !== null && (
-        <div
-          className="absolute inset-0"
-          style={{
-            transformOrigin: "left center",
-            transform: `rotateY(${flipAngle}deg)`,
-            transition: `transform ${FLIP_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-            backfaceVisibility: "hidden",
-            willChange: "transform",
-          }}
-        >
-          {/* blurred backdrop */}
-          <Image
-            src={AGENTS[front]!.file}
-            alt=""
-            fill
-            className="object-cover"
-            style={{ filter: "blur(20px) brightness(0.65)", transform: "scale(1.12)" }}
-            aria-hidden
-          />
-          {/* full image */}
-          <Image
-            src={AGENTS[front]!.file}
-            alt=""
-            fill
-            className="object-contain"
-            aria-hidden
-          />
-          {/* right-edge shading — simulates page curl/depth */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: "linear-gradient(to left, rgba(0,0,0,0.25) 0%, transparent 40%)",
-            }}
-          />
+      <div className="relative z-10 grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] gap-4 p-6 xl:p-8">
+        <div className="flex items-start justify-between gap-5">
+          <div>
+            <div className="inline-flex rotate-[-2deg] items-center gap-2 border-[3px] border-foreground bg-accent px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] shadow-[4px_4px_0_var(--foreground)]">
+              <Sparkles className="size-3.5" aria-hidden />
+              Crew on shift
+            </div>
+            <h2 className="mt-4 max-w-xl font-display text-[44px] leading-none tracking-normal xl:text-[52px]">
+              Six AI employees clocked in.
+            </h2>
+          </div>
+
+          
         </div>
-      )}
 
-      {/* ── CONTROLS ── */}
-      <button
-        onClick={goPrev}
-        className="absolute left-3 top-1/2 z-30 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/40 bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
-        aria-label="Previous agent"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
+        <div className="grid min-h-0 items-center">
+          <div className="relative min-h-0">
+            <div
+              className="absolute -left-4 top-5 h-full w-full border-[3px] border-foreground opacity-95"
+              style={{ backgroundColor: agent.accent }}
+              aria-hidden
+            />
+            <div className="relative grid min-h-[420px] grid-cols-[minmax(190px,245px)_minmax(0,1fr)] gap-5 border-[3px] border-foreground bg-card p-5 shadow-[8px_8px_0_var(--foreground)] xl:min-h-[440px] xl:grid-cols-[265px_minmax(0,1fr)]">
+              <div className="grid min-h-0 content-between gap-4">
+                <div className="min-w-0">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Meet the crew
+                  </div>
+                  <h3 className="mt-2 font-display text-[42px] leading-none tracking-normal xl:text-[50px]">
+                    Meet {agent.name}
+                  </h3>
+                  <p className="mt-2 font-head text-sm uppercase leading-tight tracking-normal text-foreground/75">
+                    {agent.role}
+                  </p>
+                </div>
 
-      <button
-        onClick={goNext}
-        className="absolute right-3 top-1/2 z-30 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/40 bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
-        aria-label="Next agent"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
+                <div className="relative">
+                  <div
+                    className="absolute -right-3 top-4 h-full w-full border-[3px] border-foreground bg-background"
+                    aria-hidden
+                  />
+                  <div className="relative overflow-hidden border-[3px] border-foreground bg-background shadow-[5px_5px_0_var(--foreground)]">
+                    <div className="relative aspect-[4/5]">
+                      <Image
+                        key={agent.file}
+                        src={agent.file}
+                        alt={`${agent.name} portrait`}
+                        fill
+                        priority={active === 0}
+                        sizes="(min-width: 1280px) 285px, 36vw"
+                        className="object-cover object-center"
+                      />
+                    </div>
+                    <div
+                      className="absolute bottom-3 left-3 border-[3px] border-foreground px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[3px_3px_0_var(--foreground)]"
+                      style={{ backgroundColor: agent.accent }}
+                    >
+                      {agent.name}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-      <div className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 gap-2">
-        {AGENTS.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => navigate(i)}
-            className="h-2 w-2 rounded-full border border-white/60 transition-colors"
-            style={{ background: i === back ? "white" : "transparent" }}
-            aria-label={`Go to ${AGENTS[i]!.name}`}
-          />
-        ))}
+              <div className="grid min-h-0 content-between gap-4">
+                <div className="flex justify-end">
+                  <div
+                    className="rotate-2 border-[3px] border-foreground px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[3px_3px_0_var(--foreground)]"
+                    style={{ backgroundColor: agent.accent }}
+                  >
+                    active now
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  <div className="border-[3px] border-foreground bg-background px-4 py-3 shadow-[4px_4px_0_var(--foreground)]">
+                    <div className="mb-3 inline-flex border-2 border-foreground bg-card px-2.5 py-1 font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-foreground/75">
+                      What I handle
+                    </div>
+                    <p className="max-w-[30rem] text-balance font-body text-[19px] font-semibold leading-[1.18] tracking-normal text-foreground xl:text-[22px]">
+                      {agent.does}
+                    </p>
+                    <p className="mt-4 border-t-2 border-dashed border-foreground/25 pt-3 font-body text-[14px] leading-[1.45] text-foreground/70 xl:text-[15px]">
+                      {agent.saves}
+                    </p>
+                  </div>
+
+                  <div className="border-[3px] border-foreground bg-background px-4 py-3 shadow-[4px_4px_0_var(--foreground)]">
+                    <div className="mb-3 flex items-center gap-2 font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-muted-foreground">
+                      <LayoutList className="size-4" aria-hidden />
+                      My tasks
+                    </div>
+                    <ul className="grid gap-2">
+                      {agent.tasks.map((task, index) => (
+                        <li
+                          key={task}
+                          className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-2.5 font-body text-[14px] leading-[1.35] text-foreground/88"
+                        >
+                          <span className="relative mt-0.5 grid size-5 place-items-center">
+                            <CheckCircle2
+                              className="size-4"
+                              style={{ color: agent.accent }}
+                              aria-hidden
+                            />
+                            <span className="sr-only">Task {index + 1}</span>
+                          </span>
+                          <span className="max-w-[31rem]">{task}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div
+                    className="border-[3px] border-foreground p-3 shadow-[4px_4px_0_var(--foreground)]"
+                    style={{ backgroundColor: agent.accent }}
+                  >
+                    <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70">
+                      <Clock3 className="size-4" aria-hidden />
+                      Saves you
+                    </div>
+                    <strong className="mt-1 block font-head text-xl uppercase leading-none tracking-normal xl:text-2xl">
+                      {agent.timeSaved}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-[3px] border-foreground bg-card px-4 py-3 shadow-[4px_4px_0_var(--foreground)]">
+          <div className="grid grid-cols-6 gap-2">
+            {AGENT_PROOFS.map((item, index) => (
+              <button
+                key={item.name}
+                type="button"
+                onClick={() => goTo(index)}
+                className={cn(
+                  "group grid min-w-0 gap-1 border-2 border-foreground bg-background px-2 py-1 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                  index === active && "translate-y-[-4px] shadow-[3px_3px_0_var(--foreground)]"
+                )}
+                aria-label={`Show ${item.name}`}
+                aria-pressed={index === active}
+              >
+                <span
+                  className="grid size-6 place-items-center border-2 border-foreground font-head text-[10px] uppercase"
+                  style={{ backgroundColor: item.accent }}
+                  aria-hidden
+                >
+                  {item.name.slice(0, 1)}
+                </span>
+                <span className="truncate font-head text-xs uppercase leading-none tracking-normal">
+                  {item.name}
+                </span>
+              </button>
+            ))}
+          </div>
+          
+        </div>
       </div>
-    </div>
+    </aside>
   )
 }
 

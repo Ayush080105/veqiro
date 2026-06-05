@@ -1,24 +1,24 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CheckCircle2, Loader2, Mail, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
-import Logo from "@/components/logo"
+import { AuthShell } from "@/components/auth-shell"
 import { AuthCard } from "@/components/ui/auth-card"
 import { Button } from "@/components/ui/button"
-import { Sticker } from "@/components/ui/sticker"
 import { cn } from "@/lib/utils"
+import { Sticker } from "@/components/ui/sticker"
 
 type VerifyState = "check-inbox" | "verifying" | "success" | "error"
 
 interface IconTileProps {
   tone: "yellow" | "red" | "green" | "blue"
   rotate?: number
-  children: React.ReactNode
+  children: ReactNode
 }
 
 const TONE_BG = {
@@ -42,22 +42,20 @@ function IconTile({ tone, rotate = -4, children }: IconTileProps) {
   )
 }
 
-function Shell({
-  sticker,
-  children,
-}: {
-  sticker?: React.ReactNode
-  children: React.ReactNode
-}) {
+function StateCard({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
-      <Link href="/" className="mb-8 flex items-center gap-3">
-        <Logo className="h-12 w-12" />
-        <span className="font-head text-xl tracking-tight text-foreground">
-          veqiro
-        </span>
-      </Link>
-      <AuthCard sticker={sticker} className="text-center">
+    <div className="flex gap-4 min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
+      <Link href="/" className="flex items-center gap-3 text-foreground">
+            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
+              <span className="font-display text-[23px] leading-none text-background">
+                v
+              </span>
+            </span>
+            <span className="font-display text-3xl leading-none tracking-normal">
+              veqiro
+            </span>
+          </Link>
+      <AuthCard  className="text-center">
         {children}
       </AuthCard>
     </div>
@@ -93,9 +91,6 @@ function VerifyContent() {
         setState("success")
         toast.success("Email verified")
         setTimeout(() => {
-          // proxy.ts decides /onboarding vs /dashboard from the (now-fresh)
-          // session. Going through "/" avoids the bounce that would happen if
-          // a re-verified, already-onboarded user landed on /onboarding.
           if (!cancelled) router.replace("/")
         }, 900)
       } catch (err) {
@@ -114,25 +109,25 @@ function VerifyContent() {
 
   if (state === "verifying") {
     return (
-      <Shell>
+      <StateCard>
         <div className="flex flex-col items-center gap-5">
           <IconTile tone="blue">
             <Loader2 className="animate-spin" />
           </IconTile>
           <h1 className="m-0 font-display text-4xl leading-none tracking-tight text-foreground">
-            verifying…
+            verifying...
           </h1>
           <p className="m-0 font-body text-base text-foreground/80">
-            Hang tight — we&apos;re confirming your email.
+            Hang tight. We are confirming your email.
           </p>
         </div>
-      </Shell>
+      </StateCard>
     )
   }
 
   if (state === "success") {
     return (
-      <Shell sticker={<Sticker rotate={6} tone="green">verified</Sticker>}>
+      <StateCard>
         <div className="flex flex-col items-center gap-5">
           <IconTile tone="green">
             <CheckCircle2 />
@@ -141,16 +136,16 @@ function VerifyContent() {
             you&apos;re in
           </h1>
           <p className="m-0 font-body text-base text-foreground/80">
-            Redirecting you to onboarding…
+            Redirecting you to onboarding...
           </p>
         </div>
-      </Shell>
+      </StateCard>
     )
   }
 
   if (state === "error") {
     return (
-      <Shell sticker={<Sticker rotate={-6} tone="red">try again</Sticker>}>
+      <StateCard>
         <div className="flex flex-col items-center gap-4">
           <IconTile tone="red">
             <XCircle />
@@ -168,13 +163,12 @@ function VerifyContent() {
             <Link href="/login">Back to login</Link>
           </Button>
         </div>
-      </Shell>
+      </StateCard>
     )
   }
 
-  // Default: "check inbox" right after signup (no token).
   return (
-    <Shell sticker={<Sticker rotate={-6} tone="yellow">check inbox</Sticker>}>
+    <StateCard>
       <div className="flex flex-col items-center gap-4">
         <IconTile tone="yellow">
           <Mail />
@@ -193,7 +187,7 @@ function VerifyContent() {
           <Link href="/login">Back to login</Link>
         </Button>
       </div>
-    </Shell>
+    </StateCard>
   )
 }
 

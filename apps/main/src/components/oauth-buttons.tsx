@@ -1,82 +1,57 @@
-"use client";
+"use client"
 
-import { signIn } from "@/lib/auth-client";
-import Image from "next/image";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
-import { FONT } from "@/lib/fonts";
+import Image from "next/image"
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
+
+import { signIn } from "@/lib/auth-client"
+import { Button } from "@/components/ui/button"
 
 function resolveClientCallbackURL(callbackURL: string) {
-  if (/^https?:\/\//i.test(callbackURL)) return callbackURL;
+  if (/^https?:\/\//i.test(callbackURL)) return callbackURL
 
   const clientOrigin =
     (typeof window !== "undefined" ? window.location.origin : "") ||
-    process.env.NEXT_PUBLIC_CONSOLE_URL;
+    process.env.NEXT_PUBLIC_CONSOLE_URL
 
-  return new URL(callbackURL, clientOrigin).toString();
+  return new URL(callbackURL, clientOrigin).toString()
 }
 
 export default function OAuthButtons({
   callbackURL = "/dashboard",
 }: {
-  callbackURL?: string;
+  callbackURL?: string
 } = {}) {
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const handleClick = () => {
-    setGoogleLoading(true);
+    setGoogleLoading(true)
     signIn.social({
       provider: "google",
       callbackURL: resolveClientCallbackURL(callbackURL),
-    });
-  };
+    })
+  }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="brand-ghost"
+      size="brand"
       onClick={handleClick}
       disabled={googleLoading}
-      style={{
-        width: "100%",
-        padding: "12px 20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        background: "#FFF9ED",
-        color: "#111",
-        fontFamily: FONT.head,
-        fontSize: 13,
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        border: "3px solid #111",
-        borderRadius: 10,
-        cursor: googleLoading ? "not-allowed" : "pointer",
-        opacity: googleLoading ? 0.6 : 1,
-        boxShadow: "4px 4px 0 #111",
-        transition: "transform 120ms, box-shadow 120ms",
-      }}
-      onMouseDown={(e) => {
-        e.currentTarget.style.transform = "translate(2px,2px)";
-        e.currentTarget.style.boxShadow = "2px 2px 0 #111";
-      }}
-      onMouseUp={(e) => {
-        e.currentTarget.style.transform = "";
-        e.currentTarget.style.boxShadow = "4px 4px 0 #111";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "";
-        e.currentTarget.style.boxShadow = "4px 4px 0 #111";
-      }}
+      className="min-h-12 w-full whitespace-normal text-center leading-tight shadow-[5px_5px_0_var(--foreground)] active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--foreground)] sm:whitespace-nowrap"
     >
       {googleLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <>
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Connecting
+        </>
       ) : (
         <>
-          <Image src="/Google.svg" alt="Google" width={20} height={20} />
+          <Image src="/Google.svg" alt="" width={20} height={20} aria-hidden />
           <span>Continue with Google</span>
         </>
       )}
-    </button>
-  );
+    </Button>
+  )
 }

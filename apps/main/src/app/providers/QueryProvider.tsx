@@ -10,10 +10,14 @@ export default function QueryProvider({
   children: React.ReactNode
 }) {
   const queryClient = getQueryClient()
+  const showDevtools =
+    process.env.NODE_ENV === "development" &&
+    process.env.NEXT_PUBLIC_ENABLE_QUERY_DEVTOOLS === "true"
+
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {process.env.NODE_ENV === "development" && (
+      {showDevtools && (
         <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       )}
     </QueryClientProvider>
