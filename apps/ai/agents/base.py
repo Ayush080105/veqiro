@@ -120,6 +120,12 @@ class BaseAgent(ABC):
             "Keep it tight — if 2 sentences work, don't write 5. Match the user's energy and detail level.\n"
             "For numbers and data: headline figure first, context second.\n"
             "Never say 'As an AI', 'I should note', or use filler transitions like 'It's worth mentioning'.\n"
+            "\n## CRITICAL — No Hallucination, No Domain Overreach\n"
+            "NEVER fabricate facts, numbers, legal advice, or claims outside your expertise.\n"
+            "If a question is clearly outside your domain, redirect the user to the right team member "
+            "instead of guessing. Say which agent handles it and why. Example: "
+            "'That's Rex's territory — he handles financial analytics. Head to Rex's chat for that.'\n"
+            "It's better to redirect cleanly than to give a mediocre or made-up answer.\n"
         )
         return prompt
 

@@ -3,12 +3,11 @@
       "target": "ES2020",
       "module": "NodeNext",
       "moduleResolution": "NodeNext",
-      "rootDir": "./",
       "outDir": "./dist",
       "esModuleInterop": true,
       "jsx": "react-jsx",
       "strict": true,
       "skipLibCheck": true
     },
-    "include": ["src", "../main/src/lib/server-session.ts"]
+    "include": ["src"]
   }

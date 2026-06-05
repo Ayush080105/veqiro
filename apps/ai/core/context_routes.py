@@ -23,6 +23,7 @@ class BuildContextRequest(BaseModel):
     running_summary: str = ""
     org_summary: str = ""
     long_term_facts: list[str] = []
+    org_shared_context: str = ""   # goals, product, decisions from OrgMemory.sharedMemory
     org_id: str
     agent: str
 
@@ -59,7 +60,8 @@ class SummarizeResponse(BaseModel):
 @router.post("/build", response_model=BuildContextResponse, summary="Build conversation context")
 async def build_context(request: BuildContextRequest) -> BuildContextResponse:
     """Assemble hot history, semantic memories, and memory block for a conversation turn."""
-    hot = request.hot_history[-3:]
+    # Last 8 messages (history arrives in ASC order from server after the ordering fix)
+    hot = request.hot_history[-8:]
 
     semantic = await retrieve_relevant(
         request.org_id, request.agent, request.user_message, top_k=5
@@ -72,14 +74,19 @@ async def build_context(request: BuildContextRequest) -> BuildContextResponse:
         if r["content"] not in hot_contents
     ]
 
+    # Build a well-structured memory block the LLM can read clearly
     parts = []
     if request.running_summary:
-        parts.append(f"Agent memory: {request.running_summary}")
+        parts.append(f"## What I Remember About This Client\n{request.running_summary}")
     if request.org_summary:
-        parts.append(f"Organization context: {request.org_summary}")
+        parts.append(f"## Organization Context\n{request.org_summary}")
+    if request.org_shared_context:
+        parts.append(f"## Organization Goals & Decisions\n{request.org_shared_context}")
     if request.long_term_facts:
-        facts_lines = "\n".join(f"- {f}" for f in request.long_term_facts[:8])
-        parts.append(f"Key facts:\n{facts_lines}")
+        # Show the 12 most recent facts (tail of array = most recently added)
+        recent_facts = request.long_term_facts[-12:]
+        facts_lines = "\n".join(f"• {f}" for f in recent_facts)
+        parts.append(f"## Established Facts\n{facts_lines}")
     memory_block = "\n\n".join(parts)
 
     return BuildContextResponse(
@@ -111,10 +118,16 @@ async def summarize_conversation(request: SummarizeRequest) -> SummarizeResponse
         )
 
     system = (
-        "You are a conversation summarizer. Given an existing summary and recent messages, "
-        "produce: (1) updated_summary merging old + new context (max 400 words), "
-        "(2) extracted_facts: list of important new facts or decisions worth remembering long-term. "
-        'Output strict JSON only: {"updated_summary": "...", "extracted_facts": ["..."]}'
+        "You are a memory manager for an AI agent assistant. "
+        "Given an existing summary and recent conversation messages, produce:\n"
+        "1. updated_summary: rolling summary merging old + new context (max 400 words, present tense, "
+        "focus on what the client is building, their goals, and recent decisions).\n"
+        "2. extracted_facts: list of ONLY new, concrete, actionable facts worth keeping long-term. "
+        "Prefix each with a category tag: [DECISION], [METRIC], [PREFERENCE], [CONTEXT], or [GOAL]. "
+        "Examples: '[DECISION] Targeting LinkedIn over Twitter', '[METRIC] MRR is $12k as of Oct 2025', "
+        "'[PREFERENCE] Prefers short posts under 150 words', '[GOAL] Launch paid tier by Q1 2026'. "
+        "Skip vague observations. Max 5 facts per call. Only include genuinely new information not in existing_summary.\n"
+        'Output strict JSON only: {"updated_summary": "...", "extracted_facts": ["[TAG] fact..."]}'
     )
     user_prompt = (
         f"EXISTING_SUMMARY: {request.existing_summary or 'None'}\n"

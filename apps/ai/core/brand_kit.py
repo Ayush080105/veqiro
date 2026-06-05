@@ -35,7 +35,7 @@ class BrandKit(BaseModel):
 
 
 # ── In-memory cache (organization_id → (brand_kit, expires_at)) ─────────────
-_CACHE_TTL = 60  # seconds
+_CACHE_TTL = 300  # 5 minutes — brand kit rarely changes mid-session
 _cache: dict[str, tuple[BrandKit, float]] = {}
 
 
@@ -79,6 +79,9 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
     cached = _cache.get(organization_id)
     if cached and time.monotonic() < cached[1]:
         return cached[0]
+
+    # Keep stale value as fallback in case the fetch fails
+    stale_value = cached[0] if cached else None
 
     # Fetch from Express
     brand_kit = BrandKit()
@@ -133,9 +136,12 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
             )
     except Exception as e:
         logger.warning(
-            "brand_kit fetch error | org=%s error=%s — using defaults",
+            "brand_kit fetch error | org=%s error=%s — %s",
             organization_id, e,
+            "using stale cache" if stale_value else "using defaults",
         )
+        if stale_value:
+            return stale_value  # return last good value, don't overwrite cache
 
     _cache[organization_id] = (brand_kit, time.monotonic() + _CACHE_TTL)
     return brand_kit

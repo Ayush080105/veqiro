@@ -59,7 +59,14 @@ export const triggerSummarize = async (
       agent_role: agentRole,
     }
   )
-  const newFacts = ((mem?.longTermFacts as string[]) ?? []).concat(data.extracted_facts ?? [])
+  const existingFacts: string[] = (mem?.longTermFacts as string[]) ?? []
+  const incoming: string[] = data.extracted_facts ?? []
+  // Deduplicate: skip incoming facts whose first 60 chars match an existing fact
+  const trulyNew = incoming.filter(
+    f => !existingFacts.some(e => e.slice(0, 60) === f.slice(0, 60))
+  )
+  // Cap at 60 total — drop oldest (head) to make room for newest (tail)
+  const newFacts = [...existingFacts, ...trulyNew].slice(-60)
   await repo.upsertAgentMemory(organizationId, agent, {
     runningSummary: data.updated_summary,
     longTermFacts: newFacts,

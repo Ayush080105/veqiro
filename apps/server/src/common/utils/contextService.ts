@@ -30,15 +30,26 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
       contextRepo.findAgentMemory(organizationId, agentEnum),
       contextRepo.findOrgMemory(organizationId),
     ])
+    // Reverse DESC→ASC so FastAPI's hot[-8:] returns the 8 NEWEST messages
+    const ascHistory = [...rawHistory].reverse().slice(0, CONTEXT_HISTORY_LIMIT)
+
+    // Surface structured sharedMemory (goals, product, decisions) for all agents
+    const sharedMem = (orgMem?.sharedMemory as Record<string, unknown>) ?? {}
+    const sharedParts: string[] = []
+    if (sharedMem.goals) sharedParts.push(`Goals: ${(sharedMem.goals as string[]).join(", ")}`)
+    if (sharedMem.product) sharedParts.push(`Product: ${sharedMem.product as string}`)
+    if (sharedMem.decisions) sharedParts.push(`Decisions: ${(sharedMem.decisions as string[]).slice(-3).join("; ")}`)
+
     const { data } = await aiService.post<BuildContextResponse>("/ai/context/build", {
       user_message: userMessage,
-      hot_history: rawHistory.slice(-CONTEXT_HISTORY_LIMIT),
+      hot_history: ascHistory,
       running_summary: agentMem?.runningSummary ?? "",
       org_summary: orgMem?.runningSummary ?? "",
       long_term_facts: [
         ...((agentMem?.longTermFacts as string[]) ?? []),
         ...((orgMem?.longTermFacts as string[]) ?? []),
       ],
+      org_shared_context: sharedParts.join(" | "),
       org_id: organizationId,
       agent: agentEnum.toLowerCase(),
     })
@@ -50,7 +61,7 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
   // 2. Assemble history: hot + semantic (already deduped by FastAPI)
   const history = built
     ? [...built.hot_messages, ...built.semantic_messages]
-    : rawHistory
+    : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
   // 3. Call the agent
   const { data: response } = await aiService.post(agentApiPath, {
@@ -65,7 +76,16 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
     },
   })
 
-  // 4. Fire-and-forget: store turn + maybe summarize
+  // 4. If a rich action was completed, record it in OrgMemory so other agents know
+  const responseData = response as { response: string; action_id?: string }
+  if (responseData.action_id) {
+    void contextRepo.appendOrgFact(
+      organizationId,
+      `[CONTEXT] ${agentRole} completed ${responseData.action_id} on ${new Date().toISOString().slice(0, 10)}: ${responseData.response.slice(0, 120)}`
+    ).catch(() => {})
+  }
+
+  // 5. Fire-and-forget: store turn + maybe summarize
   void (async () => {
     try {
       await aiService.post("/ai/context/store-turn", {

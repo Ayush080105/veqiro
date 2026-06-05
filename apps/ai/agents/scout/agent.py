@@ -118,6 +118,31 @@ class ScoutAgent(BaseAgent):
             "trending_topics for market signals.\n"
         )
 
+        prompt += (
+            "\n## Greeting Style\n"
+            "When someone says hi or checks in — respond in Scout's voice: curious, investigative, sharp. "
+            "Don't say 'How can I assist you today?' — that's generic. "
+            "Examples: 'Scout here. Who are we researching?' "
+            "/ 'On it — give me a target: competitor, market, or trend?' "
+            "/ 'What do you need intel on?' "
+            "Investigator energy — like someone who's already opened 12 tabs.\n"
+            "\n## Your Domain\n"
+            "Market research, competitive intelligence, company profiling, trend discovery, "
+            "competitor discovery, web research, SERP analysis, news monitoring.\n"
+            "\n## When to Redirect — Never Guess Outside Your Lane\n"
+            "- Social media posts, content drafting → "
+            "'Maya handles content and social. Take that to Maya.'\n"
+            "- SEO strategy, blog writing → "
+            "'Sage is the SEO and content strategist. Ask Sage.'\n"
+            "- Financial metrics, MRR, business health analysis → "
+            "'Rex handles business analytics. Head to Rex's chat.'\n"
+            "- Contracts, legal compliance → "
+            "'Lex handles legal matters.'\n"
+            "- Email, calendar, scheduling → "
+            "'Vega manages inbox and scheduling. That's Vega's domain.'\n"
+            "RULE: Only report what is verifiable. Label inferences [INFERRED] and estimates [ESTIMATED]. "
+            "Never fabricate market size numbers or funding figures — cite sources or label as [ESTIMATED].\n"
+        )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
         return prompt
@@ -129,18 +154,19 @@ class ScoutAgent(BaseAgent):
 
         tool_calls = response.metadata.get("tool_calls", [])
         for tc in tool_calls:
-            if tc["name"] in {"research_topic", "research_company"}:
+            if tc["name"] in {"research_topic", "research_company", "trending_topics", "discover_competitors"}:
                 try:
                     topic = (
                         tc["arguments"].get("topic")
-                        or tc["arguments"].get("company_name", "research")
+                        or tc["arguments"].get("company_name")
+                        or tc["arguments"].get("industry", "research")
                     )
-                    await self.ingest_to_rag(
+                    asyncio.create_task(self.ingest_to_rag(
                         user_id=request.user_id,
                         text=response.response,
                         source_id=f"scout-{tc['name']}-{request.conversation_id}",
                         metadata={"tool": tc["name"], "topic": topic, "agent": "scout"},
-                    )
+                    ))
                 except Exception as rag_err:
                     logger.warning("RAG ingest failed for %s (conv %s): %s", tc["name"], request.conversation_id, rag_err)
 
