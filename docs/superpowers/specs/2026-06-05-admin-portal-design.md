@@ -18,7 +18,7 @@ Veqiro is a multi-tenant AI-agents SaaS (6 specialized agents per org: Maya, Rex
 - Chat history viewer (deferred)
 - Content moderation
 - Billing overrides beyond extending trials
-- Usage graphs or charts of any kind
+- Decorative charts (charts are included only where they provide genuine insight not readable from number cards alone)
 
 ---
 
@@ -56,6 +56,10 @@ apps/
       components/
         stat-card.tsx            ← reusable number card
         status-badge.tsx         ← subscription status badge
+        charts/
+          signups-chart.tsx      ← bar chart: new orgs per week
+          health-chart.tsx       ← stacked bar: subscription status trend
+          agent-chart.tsx        ← horizontal bar: agent message counts
 
 apps/server/src/modules/
   admin/
@@ -81,7 +85,7 @@ apps/server/src/modules/
 
 ### 1. Overview (`/overview`)
 
-8 number cards. No charts. No graphs. No sparklines.
+**Section A — Stat Cards (8 numbers)**
 
 | Card | Data source |
 |---|---|
@@ -94,7 +98,26 @@ apps/server/src/modules/
 | New orgs this week | `COUNT WHERE createdAt >= 7 days ago` |
 | Total users | `COUNT(User)` |
 
-**API endpoint:** `GET /api/v1/admin/overview`
+**Section B — Three Meaningful Charts**
+
+These three charts surface trends and patterns the number cards cannot show alone:
+
+**1. New Org Signups (bar chart, last 12 weeks)**
+- X: week label, Y: count of orgs created that week
+- Answers: Is growth accelerating, flat, or declining? Immediately actionable — a dip tells you something broke in acquisition/onboarding.
+- Data: `GROUP BY DATE_TRUNC('week', createdAt)` on `Organization`
+
+**2. Subscription Health Trend (stacked bar, last 12 weeks)**
+- Stacks: Active (green), Trialing (blue), Past-Due (amber), Cancelled/Expired (red)
+- Answers: Are trials converting to paid over time? Is churn growing? These two questions are the heartbeat of an early SaaS — numbers alone don't show the trend.
+- Data: `COUNT` grouped by `subscriptionStatus` per week (snapshotted from `Organization`)
+
+**3. Agent Popularity Across All Orgs (horizontal bar, 6 agents)**
+- X: total message count (all time or last 30 days), Y: agent name
+- Answers: Which features are users actually using? Which agents are neglected? Directly actionable for product prioritization — if Scout has 5x the messages of Lex, you know where to invest.
+- Data: `GROUP BY agent, COUNT(*)` on `Message`
+
+**API endpoint:** `GET /api/v1/admin/overview` (returns stat cards + chart data in one response)
 
 ---
 
@@ -125,7 +148,7 @@ Four sections:
 **Agent Activity section (last 30 days):**
 - Table: Agent name, message count
 - Rows: Maya, Rex, Scout, Sage, Lex, Vega (show 0 if no messages)
-- No charts — just numbers
+- Simple table only — the overview chart covers cross-org trends; this section is per-org context for support
 
 **Connected Integrations section:**
 - Which platforms have a linked `SocialAccount`: Twitter, LinkedIn, Instagram, Google
@@ -179,6 +202,7 @@ Distinct from `authMiddleware` (which requires `activeOrganizationId`). The admi
 
 1. **Auth gate**: Log in with a non-admin account → should redirect to `/login`. Log in with admin account → should reach `/overview`.
 2. **Overview counts**: Compare card numbers against direct DB queries (`SELECT COUNT(*) FROM "Organization" WHERE ...`).
+3. **Overview charts**: Verify signups bar chart week totals match `SELECT DATE_TRUNC('week', ...) GROUP BY` counts; verify agent chart totals match `SELECT agent, COUNT(*) FROM "Message" GROUP BY agent`.
 3. **Org table**: Search for a known org by name and by owner email — should filter correctly.
 4. **Org detail**: Open a specific org and verify subscription dates, member list, and agent message counts match DB records.
 5. **Extend trial**: Click "Extend Trial" on an expired org, confirm `entitlementExpiresAt` updates in DB.
