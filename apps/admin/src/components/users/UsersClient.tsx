@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 const PAGE_SIZE = 25;
 
@@ -28,6 +29,11 @@ export function UsersClient() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [banningId, setBanningId] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,6 +89,71 @@ export function UsersClient() {
     }
   };
 
+  const verifyEmail = async (u: BaUser) => {
+    setVerifyingId(u.id);
+    try {
+      await apiFetch(`/admin/users/${u.id}/verify-email`, { method: "POST" });
+      toast.success(`Email verified for ${u.email}`);
+      await load();
+    } catch {
+      toast.error("Failed to verify email");
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
+  const revokeSessions = async (u: BaUser) => {
+    if (!window.confirm(`Revoke all sessions for ${u.email}?`)) return;
+    setRevokingId(u.id);
+    try {
+      await apiFetch(`/admin/users/${u.id}/sessions`, { method: "DELETE" });
+      toast.success("Sessions revoked");
+      await load();
+    } catch {
+      toast.error("Failed to revoke sessions");
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const deleteUser = async (u: BaUser) => {
+    if (confirmDeleteId !== u.id) {
+      setConfirmDeleteId(u.id);
+      return;
+    }
+    setDeletingId(u.id);
+    setConfirmDeleteId(null);
+    try {
+      await apiFetch(`/admin/users/${u.id}`, { method: "DELETE" });
+      toast.success(`${u.email} deleted`);
+      await load();
+    } catch {
+      toast.error("Failed to delete user");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const BASE = `${process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:5000"}/api/${process.env.NEXT_PUBLIC_API_VERSION ?? "v1"}`;
+      const res = await fetch(`${BASE}/admin/users/export`, { credentials: "include" });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
@@ -119,6 +190,13 @@ export function UsersClient() {
             </button>
           ))}
         </div>
+        <button
+          onClick={exportCsv}
+          disabled={exporting}
+          className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm hover:bg-[var(--muted)] disabled:opacity-50"
+        >
+          {exporting ? "Exporting…" : "Export CSV"}
+        </button>
       </div>
 
       {loading ? (
@@ -167,18 +245,46 @@ export function UsersClient() {
                     )}
                   </td>
                   <td className="px-4 py-2.5">
-                    <button
-                      onClick={() => toggleBan(u)}
-                      disabled={banningId === u.id}
-                      className={cn(
-                        "rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50",
-                        u.banned
-                          ? "border border-green-300 text-green-700 hover:bg-green-50"
-                          : "border border-red-300 text-red-700 hover:bg-red-50",
-                      )}
-                    >
-                      {banningId === u.id ? "…" : u.banned ? "Unban" : "Ban"}
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => toggleBan(u)}
+                        disabled={banningId === u.id}
+                        className={cn(
+                          "rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50",
+                          u.banned
+                            ? "border border-green-300 text-green-700 hover:bg-green-50"
+                            : "border border-red-300 text-red-700 hover:bg-red-50",
+                        )}
+                      >
+                        {banningId === u.id ? "…" : u.banned ? "Unban" : "Ban"}
+                      </button>
+                      <button
+                        onClick={() => { setConfirmDeleteId(null); void verifyEmail(u); }}
+                        disabled={verifyingId === u.id || u.emailVerified === true}
+                        className="rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50 border border-blue-300 text-blue-700 hover:bg-blue-50"
+                      >
+                        {verifyingId === u.id ? "…" : "Verify Email"}
+                      </button>
+                      <button
+                        onClick={() => { setConfirmDeleteId(null); void revokeSessions(u); }}
+                        disabled={revokingId === u.id}
+                        className="rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50 border border-orange-300 text-orange-700 hover:bg-orange-50"
+                      >
+                        {revokingId === u.id ? "…" : "Revoke Sessions"}
+                      </button>
+                      <button
+                        onClick={() => deleteUser(u)}
+                        disabled={deletingId === u.id}
+                        className={cn(
+                          "rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50",
+                          confirmDeleteId === u.id
+                            ? "bg-red-600 text-white hover:bg-red-700"
+                            : "border border-red-300 text-red-700 hover:bg-red-50",
+                        )}
+                      >
+                        {deletingId === u.id ? "…" : confirmDeleteId === u.id ? "Confirm?" : "Delete"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

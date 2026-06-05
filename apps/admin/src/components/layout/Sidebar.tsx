@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Zap, Building2, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Zap, Building2, Globe, Bot, Users, LogOut } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,8 @@ const NAV = [
   { href: "/overview", label: "Overview", Icon: LayoutDashboard },
   { href: "/usage", label: "Usage", Icon: Zap },
   { href: "/organizations", label: "Organizations", Icon: Building2 },
+  { href: "/integrations", label: "Integrations", Icon: Globe },
+  { href: "/agents", label: "Agents", Icon: Bot },
   { href: "/users", label: "Users", Icon: Users },
 ] as const;
 

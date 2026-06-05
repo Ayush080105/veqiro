@@ -5,6 +5,10 @@ import { StatCard } from "@/components/StatCard";
 import { SignupsChart } from "@/components/charts/SignupsChart";
 import { HealthChart } from "@/components/charts/HealthChart";
 import { AgentChart } from "@/components/charts/AgentChart";
+import { cn } from "@/lib/utils";
+import { AttentionList } from "@/components/overview/AttentionList";
+import { ChurnRiskTable } from "@/components/overview/ChurnRiskTable";
+import { OnboardingFunnel } from "@/components/overview/OnboardingFunnel";
 
 type OverviewData = {
   stats: {
@@ -19,6 +23,7 @@ type OverviewData = {
     totalTokens30d: number;
     estimatedCost30d: number;
     activeOrgs30d: number;
+    platformHealthScore: number;
   };
   charts: {
     signupsPerWeek: Array<{ week: string; count: number }>;
@@ -30,6 +35,33 @@ type OverviewData = {
       cancelledExpired: number;
     }>;
     agentPopularity: Array<{ agent: string; messages: number }>;
+  };
+  attentionList: Array<{
+    id: string;
+    name: string;
+    subscriptionStatus: string | null;
+    plan: string | null;
+    urgencyReason: string;
+    urgencyScore: number;
+    action: "extend-trial" | "view";
+    entitlementExpiresAt: string | null;
+  }>;
+  churnRisk: Array<{
+    id: string;
+    name: string;
+    subscriptionStatus: string | null;
+    plan: string | null;
+    lastActive: string | null;
+    riskReason: string;
+    healthScore: number;
+    healthLabel: string;
+  }>;
+  onboardingFunnel: {
+    signedUp: number;
+    brandKitCreated: number;
+    firstMessage: number;
+    socialConnected: number;
+    publishedPost: number;
   };
 };
 
@@ -67,6 +99,13 @@ export function OverviewClient() {
     <div className="space-y-8">
       <h1 className="text-xl font-semibold">Overview</h1>
 
+      {/* Who Needs Attention — most prominent */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold">Who Needs Attention</h2>
+        <AttentionList items={data.attentionList} />
+      </section>
+
+      {/* Stat cards grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Total Orgs" value={stats.totalOrgs} />
         <StatCard label="Active" value={stats.activeSubscriptions} />
@@ -90,13 +129,46 @@ export function OverviewClient() {
           label="Est. LLM Cost (30d)"
           value={`$${stats.estimatedCost30d.toFixed(2)}`}
         />
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+            Platform Health
+          </p>
+          <p
+            className={cn(
+              "mt-2 font-mono text-3xl font-bold tabular-nums",
+              stats.platformHealthScore >= 70
+                ? "text-green-600"
+                : stats.platformHealthScore >= 40
+                  ? "text-yellow-600"
+                  : "text-red-600",
+            )}
+          >
+            {stats.platformHealthScore}
+            <span className="text-sm font-normal text-[var(--muted-foreground)]">
+              /100
+            </span>
+          </p>
+        </div>
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SignupsChart data={charts.signupsPerWeek} />
         <HealthChart data={charts.healthPerWeek} />
         <AgentChart data={charts.agentPopularity} />
       </div>
+
+      {/* Churn Risk */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold">Churn Risk</h2>
+        <ChurnRiskTable orgs={data.churnRisk} />
+      </section>
+
+      {/* Onboarding Funnel */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold">Onboarding Funnel</h2>
+        <OnboardingFunnel data={data.onboardingFunnel} />
+      </section>
     </div>
   );
 }

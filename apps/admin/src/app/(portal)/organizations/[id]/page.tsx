@@ -5,8 +5,9 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { ExtendTrialButton } from "@/components/orgs/ExtendTrialButton";
+import { TrialManagementButton } from "@/components/orgs/TrialManagementButton";
 import { OrgTokenChart } from "@/components/orgs/OrgTokenChart";
+import { cn } from "@/lib/utils";
 
 type Member = {
   role: string;
@@ -49,6 +50,29 @@ type OrgDetail = {
   agentActivity: Array<{ agent: string; messages: number }>;
   connectedPlatforms: string[];
   tokenUsage: TokenUsage;
+  vegaFollowUps: Array<{
+    id: string;
+    emailSubject: string;
+    senderEmail: string;
+    dueAt: string;
+    draftText: string;
+    status: string; // "PENDING" | "OVERDUE" | "SENT" | "CANCELLED"
+    createdAt: string;
+  }>;
+  contentStats: {
+    ideasTotal: number;
+    ideasPublished: number;
+    publishedPosts: number;
+    failedPosts: number;
+    pendingPosts: number;
+    postsByPlatform: Array<{ platform: string; count: number }>;
+  } | null;
+  recentFailedPosts: Array<{
+    id: string;
+    platform: string;
+    error: string | null;
+    createdAt: string;
+  }>;
 };
 
 function fmt(d: string | null) {
@@ -156,7 +180,7 @@ export default async function OrgDetailPage({
               />
             </div>
             <div className="mt-4 border-t border-[var(--border)] pt-4">
-              <ExtendTrialButton orgId={org.id} />
+              <TrialManagementButton orgId={org.id} currentStatus={org.subscriptionStatus} />
             </div>
           </>
         ) : (
@@ -210,6 +234,90 @@ export default async function OrgDetailPage({
           </tbody>
         </table>
       </section>
+
+      {/* Vega Tasks */}
+      {org.vegaFollowUps?.length > 0 && (
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
+          <h2 className="mb-4 text-sm font-semibold">Vega Tasks</h2>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)]">
+                {["Email Subject", "Due At", "Status", "Preview"].map((h) => (
+                  <th key={h} className="pb-2 text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {org.vegaFollowUps.map((f) => (
+                <tr key={f.id}>
+                  <td className="py-2 font-medium">{f.emailSubject}</td>
+                  <td className="py-2 text-[var(--muted-foreground)]">{fmt(f.dueAt)}</td>
+                  <td className="py-2">
+                    <span className={cn(
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                      f.status === "OVERDUE" ? "bg-red-100 text-red-800" :
+                      f.status === "PENDING" ? "bg-yellow-100 text-yellow-800" :
+                      f.status === "SENT" ? "bg-green-100 text-green-800" :
+                      "bg-gray-100 text-gray-800"
+                    )}>{f.status}</span>
+                  </td>
+                  <td className="py-2 text-xs text-[var(--muted-foreground)]">
+                    {f.draftText.slice(0, 80)}{f.draftText.length > 80 ? "…" : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {/* Content */}
+      {org.contentStats && (
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
+          <h2 className="mb-4 text-sm font-semibold">Content</h2>
+          <div className="grid grid-cols-3 gap-4 sm:grid-cols-5 mb-4">
+            <TokenStat label="Ideas Generated" value={String(org.contentStats.ideasTotal)} />
+            <TokenStat label="Ideas Published" value={String(org.contentStats.ideasPublished)} />
+            <TokenStat label="Publish Rate" value={org.contentStats.ideasTotal > 0 ? `${Math.round((org.contentStats.ideasPublished / org.contentStats.ideasTotal) * 100)}%` : "—"} />
+            <TokenStat label="Posts Published" value={String(org.contentStats.publishedPosts)} />
+            <TokenStat label="Posts Failed" value={String(org.contentStats.failedPosts)} />
+          </div>
+          {org.contentStats.postsByPlatform.length > 0 && (
+            <div className="flex gap-3">
+              {org.contentStats.postsByPlatform.map((p) => (
+                <span key={p.platform} className="rounded border border-[var(--border)] px-3 py-1 text-sm">
+                  {p.platform}: {p.count}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Recent Failed Posts */}
+      {org.recentFailedPosts?.length > 0 && (
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
+          <h2 className="mb-4 text-sm font-semibold">Recent Failed Posts (7 days)</h2>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)]">
+                {["Platform", "Error", "Created"].map((h) => (
+                  <th key={h} className="pb-2 text-left text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {org.recentFailedPosts.map((p) => (
+                <tr key={p.id}>
+                  <td className="py-2 capitalize">{p.platform.toLowerCase()}</td>
+                  <td className="py-2 text-[var(--muted-foreground)] text-xs">{p.error ?? "Unknown error"}</td>
+                  <td className="py-2 text-[var(--muted-foreground)]">{fmt(p.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {/* Integrations */}
       <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
