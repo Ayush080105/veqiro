@@ -75,11 +75,26 @@
       "Bash(node --import tsx --test --test-name-pattern=\"long-format\" src/tests/unit/rex-csv.test.ts)",
       "Bash(node --import tsx _dbg.mts)",
       "Bash(rm -f _dbg.mts)",
-      "Bash(./venv/Scripts/python.exe -c \"import pytest; print\\('pytest', pytest.__version__\\)\")"
+      "Bash(./venv/Scripts/python.exe -c \"import pytest; print\\('pytest', pytest.__version__\\)\")",
+      "Bash(Get-ChildItem -Path \"D:\\\\Projects\\\\veqiro\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Projects\\\\veqiro\\\\apps\\\\landing\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(ConvertTo-Json -Depth 50)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Projects\\\\veqiro\\\\apps\\\\landing\" -Depth 0 -Force | Where-Object { -not $_.PSIsContainer } | Select-Object Name)",
+      "Bash(mkdir -p \"D:\\\\Projects\\\\veqiro\\\\apps\\\\server\\\\src\\\\modules\\\\admin\")",
+      "Bash(mkdir -p \"D:\\\\Projects\\\\veqiro\\\\apps\\\\server\\\\src\\\\tests\\\\unit\")",
+      "Bash(node --import tsx --test src/tests/unit/admin-charts.test.ts)",
+      "Bash(git commit *)",
+      "Bash(pnpm run *)",
+      "Bash(PowerShell *)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7",
-    "shadcn"
+    "shadcn",
+    "chrome-devtools"
   ]
 }

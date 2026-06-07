@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  /* Veqiro palette */
+  --vq-bg: #EFE7D6;
+  --vq-ink: #111111;
+  --vq-cream: #FFF9ED;
+  --vq-red: #F06464;
+  --vq-yellow: #F5C518;
+  --vq-green: #1DBC87;
+  --vq-pink: #F79FD4;
+  --vq-violet: #8A8AF0;
+  --vq-blue: #6FCDE8;
+
+  /* Functional tokens */
+  --background: #EFE7D6;
+  --foreground: #111111;
+  --card: #FFF9ED;
+  --card-foreground: #111111;
+  --muted: #FFF9ED;
+  --muted-foreground: #555555;
+  --border: #111111;
+  --input: #111111;
+  --ring: #111111;
+  --primary: #111111;
+  --primary-foreground: #EFE7D6;
+  --destructive: #F06464;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  html {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}

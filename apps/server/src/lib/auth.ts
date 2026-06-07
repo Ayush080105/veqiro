@@ -19,7 +19,10 @@ export const auth = betterAuth({
 
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
   basePath: `/api/${process.env.API_VERSION! || "v1"}/auth`,
-  trustedOrigins: [process.env.CLIENT_URL || "http://localhost:3001"],
+  trustedOrigins: [
+    process.env.CLIENT_URL || "http://localhost:3001",
+    process.env.ADMIN_URL  || "http://localhost:3002",
+  ],
   advanced: {
     useSecureCookies: process.env.NODE_ENV === "production" ? true : false,
     crossSubDomainCookies: {
