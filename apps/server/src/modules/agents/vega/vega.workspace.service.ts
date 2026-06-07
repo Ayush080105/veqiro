@@ -78,7 +78,7 @@ export const getInbox = async (
 ): Promise<WorkspaceInboxResponse> => {
   // Serve from server-side cache if fresh (unless force=true)
   if (!force) {
-    const cached = await prisma.vegaInboxCache.findUnique({
+    const cached = await prisma.vegaInboxSnapshot.findUnique({
       where: { organizationId },
     });
     if (cached && Date.now() - cached.cachedAt.getTime() < INBOX_CACHE_TTL_MS) {
@@ -141,7 +141,7 @@ export const getInbox = async (
   const result: WorkspaceInboxResponse = { emails, stats: data.stats };
 
   // Upsert cache
-  await prisma.vegaInboxCache.upsert({
+  await prisma.vegaInboxSnapshot.upsert({
     where: { organizationId },
     update: { snapshot: result as object, cachedAt: new Date() },
     create: { organizationId, snapshot: result as object },

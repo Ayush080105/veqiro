@@ -980,6 +980,7 @@ const sourceDtoSchema = z.object({
   name: z.string(),
   type: z.string(),
   typeDetected: z.string().nullable(),
+  r2Key: z.string(),
   r2Url: z.string(),
   sizeBytes: z.number().int(),
   pageCount: z.number().int(),
@@ -1145,7 +1146,7 @@ const lexUploadSourcePost: ZodOpenApiOperationObject = {
   operationId: "lexUploadSource",
   summary: "Upload a legal document (PDF)",
   description:
-    "Uploads a PDF via multipart form data. The server stores the file in R2, calls Lex's RAG ingestion, and persists a Source row. Returns the Source DTO with `sourceId`, `r2Url`, summary, and key topics.",
+    "Uploads a PDF, stores only the R2 key, derives the public URL from that key for Lex's RAG ingestion, and persists a LexSource row. Returns the Source DTO with `sourceId`, `r2Key`, derived `r2Url`, summary, and key topics.",
   tags: ["Lex"],
   requestBody: {
     required: true,

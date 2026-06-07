@@ -44,6 +44,7 @@ export interface SourceDTO {
   name: string;
   type: string;
   typeDetected: string | null;
+  r2Key: string;
   r2Url: string;
   sizeBytes: number;
   pageCount: number;

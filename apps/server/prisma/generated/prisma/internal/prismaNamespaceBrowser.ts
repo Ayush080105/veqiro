@@ -56,6 +56,7 @@ export const ModelName = {
   Account: 'Account',
   Verification: 'Verification',
   Organization: 'Organization',
+  Subscription: 'Subscription',
   Member: 'Member',
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
@@ -65,19 +66,17 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
-  ContentIdea: 'ContentIdea',
-  CompetitorWatch: 'CompetitorWatch',
-  SavedKeyword: 'SavedKeyword',
-  Source: 'Source',
+  MayaContentIdea: 'MayaContentIdea',
+  SageSavedKeyword: 'SageSavedKeyword',
+  LexSource: 'LexSource',
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
-  Subscription: 'Subscription',
   VegaFollowUp: 'VegaFollowUp',
   VIPContact: 'VIPContact',
   VegaBriefingCache: 'VegaBriefingCache',
   VegaLabel: 'VegaLabel',
-  VegaInboxCache: 'VegaInboxCache'
+  VegaInboxSnapshot: 'VegaInboxSnapshot'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -175,6 +174,23 @@ export const OrganizationScalarFieldEnum = {
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
 
 
+export const SubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  dodoCustomerId: 'dodoCustomerId',
+  dodoSubscriptionId: 'dodoSubscriptionId',
+  status: 'status',
+  plan: 'plan',
+  trialEndsAt: 'trialEndsAt',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
 export const MemberScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -218,6 +234,7 @@ export const BrandKitScalarFieldEnum = {
   competitors: 'competitors',
   key_differentiators: 'key_differentiators',
   website_url: 'website_url',
+  location: 'location',
   crawled_content: 'crawled_content',
   crawled_summary: 'crawled_summary',
   crawled_at: 'crawled_at',
@@ -232,7 +249,6 @@ export type BrandKitScalarFieldEnum = (typeof BrandKitScalarFieldEnum)[keyof typ
 export const BrandImageScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
-  url: 'url',
   key: 'key',
   name: 'name',
   createdAt: 'createdAt',
@@ -324,7 +340,7 @@ export const PublishedPostScalarFieldEnum = {
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
-export const ContentIdeaScalarFieldEnum = {
+export const MayaContentIdeaScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   platform: 'platform',
@@ -335,23 +351,10 @@ export const ContentIdeaScalarFieldEnum = {
   isPublished: 'isPublished'
 } as const
 
-export type ContentIdeaScalarFieldEnum = (typeof ContentIdeaScalarFieldEnum)[keyof typeof ContentIdeaScalarFieldEnum]
+export type MayaContentIdeaScalarFieldEnum = (typeof MayaContentIdeaScalarFieldEnum)[keyof typeof MayaContentIdeaScalarFieldEnum]
 
 
-export const CompetitorWatchScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  name: 'name',
-  url: 'url',
-  latestHash: 'latestHash',
-  lastScannedAt: 'lastScannedAt',
-  createdAt: 'createdAt'
-} as const
-
-export type CompetitorWatchScalarFieldEnum = (typeof CompetitorWatchScalarFieldEnum)[keyof typeof CompetitorWatchScalarFieldEnum]
-
-
-export const SavedKeywordScalarFieldEnum = {
+export const SageSavedKeywordScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   keyword: 'keyword',
@@ -363,10 +366,10 @@ export const SavedKeywordScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SavedKeywordScalarFieldEnum = (typeof SavedKeywordScalarFieldEnum)[keyof typeof SavedKeywordScalarFieldEnum]
+export type SageSavedKeywordScalarFieldEnum = (typeof SageSavedKeywordScalarFieldEnum)[keyof typeof SageSavedKeywordScalarFieldEnum]
 
 
-export const SourceScalarFieldEnum = {
+export const LexSourceScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   userId: 'userId',
@@ -376,7 +379,6 @@ export const SourceScalarFieldEnum = {
   type: 'type',
   typeDetected: 'typeDetected',
   r2Key: 'r2Key',
-  r2Url: 'r2Url',
   sizeBytes: 'sizeBytes',
   pageCount: 'pageCount',
   chunksCreated: 'chunksCreated',
@@ -385,7 +387,7 @@ export const SourceScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SourceScalarFieldEnum = (typeof SourceScalarFieldEnum)[keyof typeof SourceScalarFieldEnum]
+export type LexSourceScalarFieldEnum = (typeof LexSourceScalarFieldEnum)[keyof typeof LexSourceScalarFieldEnum]
 
 
 export const RexDatasetScalarFieldEnum = {
@@ -434,23 +436,6 @@ export const RexSettingsScalarFieldEnum = {
 } as const
 
 export type RexSettingsScalarFieldEnum = (typeof RexSettingsScalarFieldEnum)[keyof typeof RexSettingsScalarFieldEnum]
-
-
-export const SubscriptionScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  dodoCustomerId: 'dodoCustomerId',
-  dodoSubscriptionId: 'dodoSubscriptionId',
-  status: 'status',
-  plan: 'plan',
-  trialEndsAt: 'trialEndsAt',
-  currentPeriodEnd: 'currentPeriodEnd',
-  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
 
 
 export const VegaFollowUpScalarFieldEnum = {
@@ -504,14 +489,14 @@ export const VegaLabelScalarFieldEnum = {
 export type VegaLabelScalarFieldEnum = (typeof VegaLabelScalarFieldEnum)[keyof typeof VegaLabelScalarFieldEnum]
 
 
-export const VegaInboxCacheScalarFieldEnum = {
+export const VegaInboxSnapshotScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   snapshot: 'snapshot',
   cachedAt: 'cachedAt'
 } as const
 
-export type VegaInboxCacheScalarFieldEnum = (typeof VegaInboxCacheScalarFieldEnum)[keyof typeof VegaInboxCacheScalarFieldEnum]
+export type VegaInboxSnapshotScalarFieldEnum = (typeof VegaInboxSnapshotScalarFieldEnum)[keyof typeof VegaInboxSnapshotScalarFieldEnum]
 
 
 export const SortOrder = {

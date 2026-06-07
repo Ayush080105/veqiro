@@ -64,11 +64,8 @@ export const findAllScoutMessages = (organizationId: string) =>
 
 // ── Competitor Watchlist ──────────────────────────────────────────────────────
 
-export const findCompetitorWatches = (organizationId: string) =>
-  prisma.competitorWatch.findMany({
-    where: { organizationId },
-    orderBy: { createdAt: "asc" },
-  });
+export const findCompetitorWatches = (_organizationId: string) =>
+  Promise.resolve([]);
 
 export const upsertCompetitorWatch = (data: {
   organizationId: string;
@@ -77,23 +74,16 @@ export const upsertCompetitorWatch = (data: {
   latestHash?: string | null;
   lastScannedAt?: Date | null;
 }) =>
-  prisma.competitorWatch.upsert({
-    where: { organizationId_url: { organizationId: data.organizationId, url: data.url } },
-    update: {
-      name: data.name,
-      ...(data.latestHash !== undefined && { latestHash: data.latestHash }),
-      ...(data.lastScannedAt !== undefined && { lastScannedAt: data.lastScannedAt }),
-    },
-    create: {
-      organizationId: data.organizationId,
-      name: data.name,
-      url: data.url,
-      latestHash: data.latestHash ?? null,
-      lastScannedAt: data.lastScannedAt ?? null,
-    },
+  Promise.resolve({
+    id: "",
+    organizationId: data.organizationId,
+    name: data.name,
+    url: data.url,
+    latestHash: data.latestHash ?? null,
+    lastScannedAt: data.lastScannedAt ?? null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
 export const deleteCompetitorWatch = (id: string, organizationId: string) =>
-  prisma.competitorWatch.deleteMany({
-    where: { id, organizationId },
-  });
+  Promise.resolve({ count: id && organizationId ? 0 : 0 });

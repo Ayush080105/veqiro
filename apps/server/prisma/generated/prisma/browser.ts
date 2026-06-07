@@ -19,136 +19,131 @@ export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
  * Model User
- * 
+ * Better Auth user plus admin flags.
  */
 export type User = Prisma.UserModel
 /**
  * Model Session
- * 
+ * Better Auth session.
  */
 export type Session = Prisma.SessionModel
 /**
  * Model Account
- * 
+ * Better Auth account/provider credentials.
  */
 export type Account = Prisma.AccountModel
 /**
  * Model Verification
- * 
+ * Better Auth verification token.
  */
 export type Verification = Prisma.VerificationModel
 /**
  * Model Organization
- * 
+ * Tenant organization and denormalized entitlement state.
  */
 export type Organization = Prisma.OrganizationModel
 /**
+ * Model Subscription
+ * Billing provider subscription record for one organization.
+ */
+export type Subscription = Prisma.SubscriptionModel
+/**
  * Model Member
- * 
+ * User membership in an organization.
  */
 export type Member = Prisma.MemberModel
 /**
  * Model Invitation
- * 
+ * Invitation to join an organization.
  */
 export type Invitation = Prisma.InvitationModel
 /**
  * Model BrandKit
- * 
+ * Organization brand profile used by all agents.
  */
 export type BrandKit = Prisma.BrandKitModel
 /**
  * Model BrandImage
- * 
+ * Extra brand images selected for Maya generation.
  */
 export type BrandImage = Prisma.BrandImageModel
 /**
  * Model Message
- * 
+ * Chat message history across agents.
  */
 export type Message = Prisma.MessageModel
 /**
  * Model AgentMemory
- * 
+ * Per-agent long-term memory summary.
  */
 export type AgentMemory = Prisma.AgentMemoryModel
 /**
  * Model OrgMemory
- * 
+ * Organization-wide shared memory.
  */
 export type OrgMemory = Prisma.OrgMemoryModel
 /**
  * Model SocialAccount
- * 
+ * Connected social account for publishing.
  */
 export type SocialAccount = Prisma.SocialAccountModel
 /**
  * Model PublishedPost
- * 
+ * Maya social post publication record.
  */
 export type PublishedPost = Prisma.PublishedPostModel
 /**
- * Model ContentIdea
- * 
+ * Model MayaContentIdea
+ * Maya-generated idea saved to avoid repeats.
  */
-export type ContentIdea = Prisma.ContentIdeaModel
+export type MayaContentIdea = Prisma.MayaContentIdeaModel
 /**
- * Model CompetitorWatch
- * 
+ * Model SageSavedKeyword
+ * Sage saved SEO keyword bookmark.
  */
-export type CompetitorWatch = Prisma.CompetitorWatchModel
+export type SageSavedKeyword = Prisma.SageSavedKeywordModel
 /**
- * Model SavedKeyword
- * 
+ * Model LexSource
+ * Lex uploaded source metadata; RAG chunks live in the AI service.
  */
-export type SavedKeyword = Prisma.SavedKeywordModel
-/**
- * Model Source
- * 
- */
-export type Source = Prisma.SourceModel
+export type LexSource = Prisma.LexSourceModel
 /**
  * Model RexDataset
- * 
+ * Rex metric dataset parsed from uploads or ingest API.
  */
 export type RexDataset = Prisma.RexDatasetModel
 /**
  * Model RexPinnedCard
- * 
+ * Rex result card pinned to the Today/dashboard surface.
  */
 export type RexPinnedCard = Prisma.RexPinnedCardModel
 /**
  * Model RexSettings
- * 
+ * Rex organization-level settings.
  */
 export type RexSettings = Prisma.RexSettingsModel
 /**
- * Model Subscription
- * 
- */
-export type Subscription = Prisma.SubscriptionModel
-/**
  * Model VegaFollowUp
- * 
+ * Vega email follow-up reminder.
  */
 export type VegaFollowUp = Prisma.VegaFollowUpModel
 /**
  * Model VIPContact
- * 
+ * Vega VIP contact used to prioritize inbox items.
  */
 export type VIPContact = Prisma.VIPContactModel
 /**
  * Model VegaBriefingCache
- * 
+ * Cached Vega briefing content for one day/type.
  */
 export type VegaBriefingCache = Prisma.VegaBriefingCacheModel
 /**
  * Model VegaLabel
- * 
+ * Vega custom inbox label.
  */
 export type VegaLabel = Prisma.VegaLabelModel
 /**
- * Model VegaInboxCache
- * 
+ * Model VegaInboxSnapshot
+ * Latest processed Vega inbox snapshot for one organization.
  */
-export type VegaInboxCache = Prisma.VegaInboxCacheModel
+export type VegaInboxSnapshot = Prisma.VegaInboxSnapshotModel

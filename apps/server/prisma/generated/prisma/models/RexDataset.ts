@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model RexDataset
- * 
+ * Rex metric dataset parsed from uploads or ingest API.
  */
 export type RexDatasetModel = runtime.Types.Result.DefaultSelection<Prisma.$RexDatasetPayload>
 
@@ -541,18 +541,57 @@ export type $RexDatasetPayload<ExtArgs extends runtime.Types.Extensions.Internal
   name: "RexDataset"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Dataset id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * User or integration owner id.
+     */
     userId: string
+    /**
+     * Optional external/source id.
+     */
     sourceId: string | null
+    /**
+     * Dataset display name.
+     */
     name: string
+    /**
+     * Canonical metric key, such as mrr.
+     */
     metricKey: string
+    /**
+     * Metric unit, such as USD or users.
+     */
     unit: string | null
+    /**
+     * Period granularity label.
+     */
     period: string
+    /**
+     * Dataset purpose, usually actual or forecast.
+     */
     purpose: string
+    /**
+     * Time-series points JSON.
+     */
     points: runtime.JsonValue
+    /**
+     * Parsed raw table and import metadata.
+     */
     meta: runtime.JsonValue | null
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["rexDataset"]>
   composites: {}

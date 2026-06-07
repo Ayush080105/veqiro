@@ -389,6 +389,7 @@ export const ModelName = {
   Account: 'Account',
   Verification: 'Verification',
   Organization: 'Organization',
+  Subscription: 'Subscription',
   Member: 'Member',
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
@@ -398,19 +399,17 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
-  ContentIdea: 'ContentIdea',
-  CompetitorWatch: 'CompetitorWatch',
-  SavedKeyword: 'SavedKeyword',
-  Source: 'Source',
+  MayaContentIdea: 'MayaContentIdea',
+  SageSavedKeyword: 'SageSavedKeyword',
+  LexSource: 'LexSource',
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
-  Subscription: 'Subscription',
   VegaFollowUp: 'VegaFollowUp',
   VIPContact: 'VIPContact',
   VegaBriefingCache: 'VegaBriefingCache',
   VegaLabel: 'VegaLabel',
-  VegaInboxCache: 'VegaInboxCache'
+  VegaInboxSnapshot: 'VegaInboxSnapshot'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +425,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "contentIdea" | "competitorWatch" | "savedKeyword" | "source" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "subscription" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxCache"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -797,6 +796,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.OrganizationCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.OrganizationCountAggregateOutputType> | number
+        }
+      }
+    }
+    Subscription: {
+      payload: Prisma.$SubscriptionPayload<ExtArgs>
+      fields: Prisma.SubscriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SubscriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SubscriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.SubscriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SubscriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
+        }
+        findMany: {
+          args: Prisma.SubscriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>[]
+        }
+        create: {
+          args: Prisma.SubscriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
+        }
+        createMany: {
+          args: Prisma.SubscriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SubscriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.SubscriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
+        }
+        update: {
+          args: Prisma.SubscriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.SubscriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SubscriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SubscriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.SubscriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.SubscriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSubscription>
+        }
+        groupBy: {
+          args: Prisma.SubscriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SubscriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SubscriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SubscriptionCountAggregateOutputType> | number
         }
       }
     }
@@ -1466,299 +1539,225 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    ContentIdea: {
-      payload: Prisma.$ContentIdeaPayload<ExtArgs>
-      fields: Prisma.ContentIdeaFieldRefs
+    MayaContentIdea: {
+      payload: Prisma.$MayaContentIdeaPayload<ExtArgs>
+      fields: Prisma.MayaContentIdeaFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.ContentIdeaFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload> | null
+          args: Prisma.MayaContentIdeaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.ContentIdeaFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+          args: Prisma.MayaContentIdeaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>
         }
         findFirst: {
-          args: Prisma.ContentIdeaFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload> | null
+          args: Prisma.MayaContentIdeaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.ContentIdeaFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+          args: Prisma.MayaContentIdeaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>
         }
         findMany: {
-          args: Prisma.ContentIdeaFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>[]
+          args: Prisma.MayaContentIdeaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>[]
         }
         create: {
-          args: Prisma.ContentIdeaCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+          args: Prisma.MayaContentIdeaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>
         }
         createMany: {
-          args: Prisma.ContentIdeaCreateManyArgs<ExtArgs>
+          args: Prisma.MayaContentIdeaCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.ContentIdeaCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>[]
+          args: Prisma.MayaContentIdeaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>[]
         }
         delete: {
-          args: Prisma.ContentIdeaDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+          args: Prisma.MayaContentIdeaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>
         }
         update: {
-          args: Prisma.ContentIdeaUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+          args: Prisma.MayaContentIdeaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>
         }
         deleteMany: {
-          args: Prisma.ContentIdeaDeleteManyArgs<ExtArgs>
+          args: Prisma.MayaContentIdeaDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.ContentIdeaUpdateManyArgs<ExtArgs>
+          args: Prisma.MayaContentIdeaUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.ContentIdeaUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>[]
+          args: Prisma.MayaContentIdeaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>[]
         }
         upsert: {
-          args: Prisma.ContentIdeaUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentIdeaPayload>
+          args: Prisma.MayaContentIdeaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentIdeaPayload>
         }
         aggregate: {
-          args: Prisma.ContentIdeaAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateContentIdea>
+          args: Prisma.MayaContentIdeaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMayaContentIdea>
         }
         groupBy: {
-          args: Prisma.ContentIdeaGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ContentIdeaGroupByOutputType>[]
+          args: Prisma.MayaContentIdeaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MayaContentIdeaGroupByOutputType>[]
         }
         count: {
-          args: Prisma.ContentIdeaCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ContentIdeaCountAggregateOutputType> | number
+          args: Prisma.MayaContentIdeaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MayaContentIdeaCountAggregateOutputType> | number
         }
       }
     }
-    CompetitorWatch: {
-      payload: Prisma.$CompetitorWatchPayload<ExtArgs>
-      fields: Prisma.CompetitorWatchFieldRefs
+    SageSavedKeyword: {
+      payload: Prisma.$SageSavedKeywordPayload<ExtArgs>
+      fields: Prisma.SageSavedKeywordFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.CompetitorWatchFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload> | null
+          args: Prisma.SageSavedKeywordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.CompetitorWatchFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+          args: Prisma.SageSavedKeywordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>
         }
         findFirst: {
-          args: Prisma.CompetitorWatchFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload> | null
+          args: Prisma.SageSavedKeywordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.CompetitorWatchFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+          args: Prisma.SageSavedKeywordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>
         }
         findMany: {
-          args: Prisma.CompetitorWatchFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+          args: Prisma.SageSavedKeywordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>[]
         }
         create: {
-          args: Prisma.CompetitorWatchCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+          args: Prisma.SageSavedKeywordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>
         }
         createMany: {
-          args: Prisma.CompetitorWatchCreateManyArgs<ExtArgs>
+          args: Prisma.SageSavedKeywordCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.CompetitorWatchCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+          args: Prisma.SageSavedKeywordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>[]
         }
         delete: {
-          args: Prisma.CompetitorWatchDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+          args: Prisma.SageSavedKeywordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>
         }
         update: {
-          args: Prisma.CompetitorWatchUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+          args: Prisma.SageSavedKeywordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>
         }
         deleteMany: {
-          args: Prisma.CompetitorWatchDeleteManyArgs<ExtArgs>
+          args: Prisma.SageSavedKeywordDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.CompetitorWatchUpdateManyArgs<ExtArgs>
+          args: Prisma.SageSavedKeywordUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.CompetitorWatchUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>[]
+          args: Prisma.SageSavedKeywordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>[]
         }
         upsert: {
-          args: Prisma.CompetitorWatchUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$CompetitorWatchPayload>
+          args: Prisma.SageSavedKeywordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SageSavedKeywordPayload>
         }
         aggregate: {
-          args: Prisma.CompetitorWatchAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateCompetitorWatch>
+          args: Prisma.SageSavedKeywordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSageSavedKeyword>
         }
         groupBy: {
-          args: Prisma.CompetitorWatchGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.CompetitorWatchGroupByOutputType>[]
+          args: Prisma.SageSavedKeywordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SageSavedKeywordGroupByOutputType>[]
         }
         count: {
-          args: Prisma.CompetitorWatchCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.CompetitorWatchCountAggregateOutputType> | number
+          args: Prisma.SageSavedKeywordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SageSavedKeywordCountAggregateOutputType> | number
         }
       }
     }
-    SavedKeyword: {
-      payload: Prisma.$SavedKeywordPayload<ExtArgs>
-      fields: Prisma.SavedKeywordFieldRefs
+    LexSource: {
+      payload: Prisma.$LexSourcePayload<ExtArgs>
+      fields: Prisma.LexSourceFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.SavedKeywordFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload> | null
+          args: Prisma.LexSourceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.SavedKeywordFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+          args: Prisma.LexSourceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>
         }
         findFirst: {
-          args: Prisma.SavedKeywordFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload> | null
+          args: Prisma.LexSourceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.SavedKeywordFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+          args: Prisma.LexSourceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>
         }
         findMany: {
-          args: Prisma.SavedKeywordFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+          args: Prisma.LexSourceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>[]
         }
         create: {
-          args: Prisma.SavedKeywordCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+          args: Prisma.LexSourceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>
         }
         createMany: {
-          args: Prisma.SavedKeywordCreateManyArgs<ExtArgs>
+          args: Prisma.LexSourceCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.SavedKeywordCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+          args: Prisma.LexSourceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>[]
         }
         delete: {
-          args: Prisma.SavedKeywordDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+          args: Prisma.LexSourceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>
         }
         update: {
-          args: Prisma.SavedKeywordUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+          args: Prisma.LexSourceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>
         }
         deleteMany: {
-          args: Prisma.SavedKeywordDeleteManyArgs<ExtArgs>
+          args: Prisma.LexSourceDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.SavedKeywordUpdateManyArgs<ExtArgs>
+          args: Prisma.LexSourceUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.SavedKeywordUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>[]
+          args: Prisma.LexSourceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>[]
         }
         upsert: {
-          args: Prisma.SavedKeywordUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SavedKeywordPayload>
+          args: Prisma.LexSourceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSourcePayload>
         }
         aggregate: {
-          args: Prisma.SavedKeywordAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSavedKeyword>
+          args: Prisma.LexSourceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLexSource>
         }
         groupBy: {
-          args: Prisma.SavedKeywordGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SavedKeywordGroupByOutputType>[]
+          args: Prisma.LexSourceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexSourceGroupByOutputType>[]
         }
         count: {
-          args: Prisma.SavedKeywordCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SavedKeywordCountAggregateOutputType> | number
-        }
-      }
-    }
-    Source: {
-      payload: Prisma.$SourcePayload<ExtArgs>
-      fields: Prisma.SourceFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.SourceFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.SourceFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>
-        }
-        findFirst: {
-          args: Prisma.SourceFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.SourceFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>
-        }
-        findMany: {
-          args: Prisma.SourceFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>[]
-        }
-        create: {
-          args: Prisma.SourceCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>
-        }
-        createMany: {
-          args: Prisma.SourceCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.SourceCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>[]
-        }
-        delete: {
-          args: Prisma.SourceDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>
-        }
-        update: {
-          args: Prisma.SourceUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>
-        }
-        deleteMany: {
-          args: Prisma.SourceDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.SourceUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SourceUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>[]
-        }
-        upsert: {
-          args: Prisma.SourceUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SourcePayload>
-        }
-        aggregate: {
-          args: Prisma.SourceAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSource>
-        }
-        groupBy: {
-          args: Prisma.SourceGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SourceGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.SourceCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SourceCountAggregateOutputType> | number
+          args: Prisma.LexSourceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexSourceCountAggregateOutputType> | number
         }
       }
     }
@@ -1981,80 +1980,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.RexSettingsCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.RexSettingsCountAggregateOutputType> | number
-        }
-      }
-    }
-    Subscription: {
-      payload: Prisma.$SubscriptionPayload<ExtArgs>
-      fields: Prisma.SubscriptionFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.SubscriptionFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.SubscriptionFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
-        }
-        findFirst: {
-          args: Prisma.SubscriptionFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.SubscriptionFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
-        }
-        findMany: {
-          args: Prisma.SubscriptionFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>[]
-        }
-        create: {
-          args: Prisma.SubscriptionCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
-        }
-        createMany: {
-          args: Prisma.SubscriptionCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.SubscriptionCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>[]
-        }
-        delete: {
-          args: Prisma.SubscriptionDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
-        }
-        update: {
-          args: Prisma.SubscriptionUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
-        }
-        deleteMany: {
-          args: Prisma.SubscriptionDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.SubscriptionUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SubscriptionUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>[]
-        }
-        upsert: {
-          args: Prisma.SubscriptionUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SubscriptionPayload>
-        }
-        aggregate: {
-          args: Prisma.SubscriptionAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSubscription>
-        }
-        groupBy: {
-          args: Prisma.SubscriptionGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SubscriptionGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.SubscriptionCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SubscriptionCountAggregateOutputType> | number
         }
       }
     }
@@ -2354,77 +2279,77 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    VegaInboxCache: {
-      payload: Prisma.$VegaInboxCachePayload<ExtArgs>
-      fields: Prisma.VegaInboxCacheFieldRefs
+    VegaInboxSnapshot: {
+      payload: Prisma.$VegaInboxSnapshotPayload<ExtArgs>
+      fields: Prisma.VegaInboxSnapshotFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.VegaInboxCacheFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload> | null
+          args: Prisma.VegaInboxSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.VegaInboxCacheFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+          args: Prisma.VegaInboxSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>
         }
         findFirst: {
-          args: Prisma.VegaInboxCacheFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload> | null
+          args: Prisma.VegaInboxSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.VegaInboxCacheFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+          args: Prisma.VegaInboxSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>
         }
         findMany: {
-          args: Prisma.VegaInboxCacheFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>[]
+          args: Prisma.VegaInboxSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>[]
         }
         create: {
-          args: Prisma.VegaInboxCacheCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+          args: Prisma.VegaInboxSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>
         }
         createMany: {
-          args: Prisma.VegaInboxCacheCreateManyArgs<ExtArgs>
+          args: Prisma.VegaInboxSnapshotCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.VegaInboxCacheCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>[]
+          args: Prisma.VegaInboxSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>[]
         }
         delete: {
-          args: Prisma.VegaInboxCacheDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+          args: Prisma.VegaInboxSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>
         }
         update: {
-          args: Prisma.VegaInboxCacheUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+          args: Prisma.VegaInboxSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>
         }
         deleteMany: {
-          args: Prisma.VegaInboxCacheDeleteManyArgs<ExtArgs>
+          args: Prisma.VegaInboxSnapshotDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.VegaInboxCacheUpdateManyArgs<ExtArgs>
+          args: Prisma.VegaInboxSnapshotUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.VegaInboxCacheUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>[]
+          args: Prisma.VegaInboxSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>[]
         }
         upsert: {
-          args: Prisma.VegaInboxCacheUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxCachePayload>
+          args: Prisma.VegaInboxSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VegaInboxSnapshotPayload>
         }
         aggregate: {
-          args: Prisma.VegaInboxCacheAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateVegaInboxCache>
+          args: Prisma.VegaInboxSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVegaInboxSnapshot>
         }
         groupBy: {
-          args: Prisma.VegaInboxCacheGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.VegaInboxCacheGroupByOutputType>[]
+          args: Prisma.VegaInboxSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaInboxSnapshotGroupByOutputType>[]
         }
         count: {
-          args: Prisma.VegaInboxCacheCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.VegaInboxCacheCountAggregateOutputType> | number
+          args: Prisma.VegaInboxSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VegaInboxSnapshotCountAggregateOutputType> | number
         }
       }
     }
@@ -2546,6 +2471,23 @@ export const OrganizationScalarFieldEnum = {
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
 
 
+export const SubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  dodoCustomerId: 'dodoCustomerId',
+  dodoSubscriptionId: 'dodoSubscriptionId',
+  status: 'status',
+  plan: 'plan',
+  trialEndsAt: 'trialEndsAt',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
 export const MemberScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -2589,6 +2531,7 @@ export const BrandKitScalarFieldEnum = {
   competitors: 'competitors',
   key_differentiators: 'key_differentiators',
   website_url: 'website_url',
+  location: 'location',
   crawled_content: 'crawled_content',
   crawled_summary: 'crawled_summary',
   crawled_at: 'crawled_at',
@@ -2603,7 +2546,6 @@ export type BrandKitScalarFieldEnum = (typeof BrandKitScalarFieldEnum)[keyof typ
 export const BrandImageScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
-  url: 'url',
   key: 'key',
   name: 'name',
   createdAt: 'createdAt',
@@ -2695,7 +2637,7 @@ export const PublishedPostScalarFieldEnum = {
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
-export const ContentIdeaScalarFieldEnum = {
+export const MayaContentIdeaScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   platform: 'platform',
@@ -2706,23 +2648,10 @@ export const ContentIdeaScalarFieldEnum = {
   isPublished: 'isPublished'
 } as const
 
-export type ContentIdeaScalarFieldEnum = (typeof ContentIdeaScalarFieldEnum)[keyof typeof ContentIdeaScalarFieldEnum]
+export type MayaContentIdeaScalarFieldEnum = (typeof MayaContentIdeaScalarFieldEnum)[keyof typeof MayaContentIdeaScalarFieldEnum]
 
 
-export const CompetitorWatchScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  name: 'name',
-  url: 'url',
-  latestHash: 'latestHash',
-  lastScannedAt: 'lastScannedAt',
-  createdAt: 'createdAt'
-} as const
-
-export type CompetitorWatchScalarFieldEnum = (typeof CompetitorWatchScalarFieldEnum)[keyof typeof CompetitorWatchScalarFieldEnum]
-
-
-export const SavedKeywordScalarFieldEnum = {
+export const SageSavedKeywordScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   keyword: 'keyword',
@@ -2734,10 +2663,10 @@ export const SavedKeywordScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SavedKeywordScalarFieldEnum = (typeof SavedKeywordScalarFieldEnum)[keyof typeof SavedKeywordScalarFieldEnum]
+export type SageSavedKeywordScalarFieldEnum = (typeof SageSavedKeywordScalarFieldEnum)[keyof typeof SageSavedKeywordScalarFieldEnum]
 
 
-export const SourceScalarFieldEnum = {
+export const LexSourceScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   userId: 'userId',
@@ -2747,7 +2676,6 @@ export const SourceScalarFieldEnum = {
   type: 'type',
   typeDetected: 'typeDetected',
   r2Key: 'r2Key',
-  r2Url: 'r2Url',
   sizeBytes: 'sizeBytes',
   pageCount: 'pageCount',
   chunksCreated: 'chunksCreated',
@@ -2756,7 +2684,7 @@ export const SourceScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SourceScalarFieldEnum = (typeof SourceScalarFieldEnum)[keyof typeof SourceScalarFieldEnum]
+export type LexSourceScalarFieldEnum = (typeof LexSourceScalarFieldEnum)[keyof typeof LexSourceScalarFieldEnum]
 
 
 export const RexDatasetScalarFieldEnum = {
@@ -2805,23 +2733,6 @@ export const RexSettingsScalarFieldEnum = {
 } as const
 
 export type RexSettingsScalarFieldEnum = (typeof RexSettingsScalarFieldEnum)[keyof typeof RexSettingsScalarFieldEnum]
-
-
-export const SubscriptionScalarFieldEnum = {
-  id: 'id',
-  organizationId: 'organizationId',
-  dodoCustomerId: 'dodoCustomerId',
-  dodoSubscriptionId: 'dodoSubscriptionId',
-  status: 'status',
-  plan: 'plan',
-  trialEndsAt: 'trialEndsAt',
-  currentPeriodEnd: 'currentPeriodEnd',
-  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
 
 
 export const VegaFollowUpScalarFieldEnum = {
@@ -2875,14 +2786,14 @@ export const VegaLabelScalarFieldEnum = {
 export type VegaLabelScalarFieldEnum = (typeof VegaLabelScalarFieldEnum)[keyof typeof VegaLabelScalarFieldEnum]
 
 
-export const VegaInboxCacheScalarFieldEnum = {
+export const VegaInboxSnapshotScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   snapshot: 'snapshot',
   cachedAt: 'cachedAt'
 } as const
 
-export type VegaInboxCacheScalarFieldEnum = (typeof VegaInboxCacheScalarFieldEnum)[keyof typeof VegaInboxCacheScalarFieldEnum]
+export type VegaInboxSnapshotScalarFieldEnum = (typeof VegaInboxSnapshotScalarFieldEnum)[keyof typeof VegaInboxSnapshotScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2989,6 +2900,20 @@ export type ListEnumSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'SubscriptionPlan'
+ */
+export type EnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionPlan'>
+    
+
+
+/**
+ * Reference to a field of type 'SubscriptionPlan[]'
+ */
+export type ListEnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionPlan[]'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -3055,20 +2980,6 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-    
-
-
-/**
- * Reference to a field of type 'SubscriptionPlan'
- */
-export type EnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionPlan'>
-    
-
-
-/**
- * Reference to a field of type 'SubscriptionPlan[]'
- */
-export type ListEnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionPlan[]'>
     
 
 
@@ -3199,6 +3110,7 @@ export type GlobalOmitConfig = {
   account?: Prisma.AccountOmit
   verification?: Prisma.VerificationOmit
   organization?: Prisma.OrganizationOmit
+  subscription?: Prisma.SubscriptionOmit
   member?: Prisma.MemberOmit
   invitation?: Prisma.InvitationOmit
   brandKit?: Prisma.BrandKitOmit
@@ -3208,19 +3120,17 @@ export type GlobalOmitConfig = {
   orgMemory?: Prisma.OrgMemoryOmit
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit
-  contentIdea?: Prisma.ContentIdeaOmit
-  competitorWatch?: Prisma.CompetitorWatchOmit
-  savedKeyword?: Prisma.SavedKeywordOmit
-  source?: Prisma.SourceOmit
+  mayaContentIdea?: Prisma.MayaContentIdeaOmit
+  sageSavedKeyword?: Prisma.SageSavedKeywordOmit
+  lexSource?: Prisma.LexSourceOmit
   rexDataset?: Prisma.RexDatasetOmit
   rexPinnedCard?: Prisma.RexPinnedCardOmit
   rexSettings?: Prisma.RexSettingsOmit
-  subscription?: Prisma.SubscriptionOmit
   vegaFollowUp?: Prisma.VegaFollowUpOmit
   vIPContact?: Prisma.VIPContactOmit
   vegaBriefingCache?: Prisma.VegaBriefingCacheOmit
   vegaLabel?: Prisma.VegaLabelOmit
-  vegaInboxCache?: Prisma.VegaInboxCacheOmit
+  vegaInboxSnapshot?: Prisma.VegaInboxSnapshotOmit
 }
 
 /* Types for Logging */

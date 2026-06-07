@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model OrgMemory
- * 
+ * Organization-wide shared memory.
  */
 export type OrgMemoryModel = runtime.Types.Result.DefaultSelection<Prisma.$OrgMemoryPayload>
 
@@ -457,14 +457,35 @@ export type OrgMemoryIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type $OrgMemoryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "OrgMemory"
   objects: {
+    /**
+     * Owning organization relation.
+     */
     organization: Prisma.$OrganizationPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Memory row id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Running organization summary.
+     */
     runningSummary: string
+    /**
+     * Durable organization-level facts.
+     */
     longTermFacts: runtime.JsonValue
+    /**
+     * Shared cross-agent memory payload.
+     */
     sharedMemory: runtime.JsonValue
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["orgMemory"]>
   composites: {}

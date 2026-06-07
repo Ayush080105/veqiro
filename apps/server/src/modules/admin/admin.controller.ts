@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import * as repo from "./admin.repository.js";
 
+const requireParam = (value: string | string[] | undefined): string => {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+};
+
 export const getUsage = async (_req: Request, res: Response) => {
   const data = await repo.getUsageStats();
   res.status(StatusCodes.OK).json(data);
@@ -23,19 +28,19 @@ export const listOrgs = async (req: Request, res: Response) => {
 };
 
 export const getOrg = async (req: Request, res: Response) => {
-  const data = await repo.getOrganizationById(req.params.id);
+  const data = await repo.getOrganizationById(requireParam(req.params.id));
   res.status(StatusCodes.OK).json(data);
 };
 
 export const extendTrial = async (req: Request, res: Response) => {
   const days = req.body?.days ? Number(req.body.days) : 7;
-  const data = await repo.extendTrial(req.params.id, days);
+  const data = await repo.extendTrial(requireParam(req.params.id), days);
   res.status(StatusCodes.OK).json(data);
 };
 
 export const setSubscriptionStatus = async (req: Request, res: Response) => {
   const { status } = req.body as { status: string };
-  const data = await repo.setSubscriptionStatus(req.params.id, status);
+  const data = await repo.setSubscriptionStatus(requireParam(req.params.id), status);
   res.status(StatusCodes.OK).json(data);
 };
 
@@ -70,17 +75,17 @@ export const exportUsers = async (_req: Request, res: Response) => {
 };
 
 export const verifyUserEmail = async (req: Request, res: Response) => {
-  const data = await repo.verifyUserEmail(req.params.id);
+  const data = await repo.verifyUserEmail(requireParam(req.params.id));
   res.status(StatusCodes.OK).json(data);
 };
 
 export const revokeUserSessions = async (req: Request, res: Response) => {
-  const data = await repo.revokeUserSessions(req.params.id);
+  const data = await repo.revokeUserSessions(requireParam(req.params.id));
   res.status(StatusCodes.OK).json(data);
 };
 
 export const deleteUser = async (req: Request, res: Response) => {
-  const data = await repo.deleteUser(req.params.id);
+  const data = await repo.deleteUser(requireParam(req.params.id));
   res.status(StatusCodes.OK).json(data);
 };
 

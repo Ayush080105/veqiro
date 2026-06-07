@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Message
- * 
+ * Chat message history across agents.
  */
 export type MessageModel = runtime.Types.Result.DefaultSelection<Prisma.$MessagePayload>
 
@@ -551,16 +551,49 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   name: "Message"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Message id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Message role, usually user or assistant.
+     */
     role: string
+    /**
+     * Message text content.
+     */
     content: string
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Optional generated or attached image URL.
+     */
     imageUrl: string | null
+    /**
+     * Agent that owns this message.
+     */
     agent: $Enums.Agent
+    /**
+     * Token usage reported by the AI service.
+     */
     tokensUsed: number
+    /**
+     * Model identifier reported by the AI service.
+     */
     model: string | null
+    /**
+     * User id that initiated the message.
+     */
     userId: string | null
+    /**
+     * Structured action input/result metadata for cards.
+     */
     customInput: runtime.JsonValue | null
   }, ExtArgs["result"]["message"]>
   composites: {}

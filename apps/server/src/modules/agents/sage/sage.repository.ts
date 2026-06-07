@@ -65,7 +65,7 @@ export const findAllSageMessages = (organizationId: string) =>
 // ── Saved Keywords ─────────────────────────────────────────────────────────────
 
 export const findSavedKeywords = (organizationId: string) =>
-  prisma.savedKeyword.findMany({
+  prisma.sageSavedKeyword.findMany({
     where: { organizationId },
     orderBy: { createdAt: "desc" },
   });
@@ -79,7 +79,7 @@ export const upsertSavedKeyword = (data: {
   searchVolumeEstimate?: string | null;
   suggestedContentType: string;
 }) =>
-  prisma.savedKeyword.upsert({
+  prisma.sageSavedKeyword.upsert({
     where: { organizationId_keyword: { organizationId: data.organizationId, keyword: data.keyword } },
     create: data,
     update: {
@@ -92,4 +92,4 @@ export const upsertSavedKeyword = (data: {
   });
 
 export const deleteSavedKeyword = (id: string, organizationId: string) =>
-  prisma.savedKeyword.deleteMany({ where: { id, organizationId } });
+  prisma.sageSavedKeyword.deleteMany({ where: { id, organizationId } });

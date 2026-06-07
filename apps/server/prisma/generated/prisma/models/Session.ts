@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Session
- * 
+ * Better Auth session.
  */
 export type SessionModel = runtime.Types.Result.DefaultSelection<Prisma.$SessionPayload>
 
@@ -654,18 +654,51 @@ export type SessionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 export type $SessionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Session"
   objects: {
+    /**
+     * Owning user relation.
+     */
     user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Better Auth session id.
+     */
     id: string
+    /**
+     * Session expiry timestamp.
+     */
     expiresAt: Date
+    /**
+     * Unique bearer session token.
+     */
     token: string
+    /**
+     * Session creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Session update timestamp.
+     */
     updatedAt: Date
+    /**
+     * Last known client IP.
+     */
     ipAddress: string | null
+    /**
+     * Last known user agent string.
+     */
     userAgent: string | null
+    /**
+     * Owning user id.
+     */
     userId: string
+    /**
+     * Admin impersonator id when impersonation is active.
+     */
     impersonatedBy: string | null
+    /**
+     * Organization currently selected in the UI.
+     */
     activeOrganizationId: string | null
   }, ExtArgs["result"]["session"]>
   composites: {}

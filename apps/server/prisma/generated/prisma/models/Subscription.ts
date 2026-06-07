@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Subscription
- * 
+ * Billing provider subscription record for one organization.
  */
 export type SubscriptionModel = runtime.Types.Result.DefaultSelection<Prisma.$SubscriptionPayload>
 
@@ -627,19 +627,55 @@ export type SubscriptionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types
 export type $SubscriptionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Subscription"
   objects: {
+    /**
+     * Owning organization relation.
+     */
     organization: Prisma.$OrganizationPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Local subscription id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Dodo customer id.
+     */
     dodoCustomerId: string
+    /**
+     * Dodo subscription id after checkout activation.
+     */
     dodoSubscriptionId: string | null
+    /**
+     * Current local billing status.
+     */
     status: $Enums.SubscriptionStatus
+    /**
+     * Current paid plan cadence.
+     */
     plan: $Enums.SubscriptionPlan | null
+    /**
+     * Trial end timestamp.
+     */
     trialEndsAt: Date | null
+    /**
+     * Current paid period end timestamp.
+     */
     currentPeriodEnd: Date | null
+    /**
+     * Whether cancellation is scheduled for period end.
+     */
     cancelAtPeriodEnd: boolean
+    /**
+     * Subscription creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Subscription update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["subscription"]>
   composites: {}

@@ -459,8 +459,8 @@ export async function getOrganizationById(id: string) {
       where: { organizationId: id, role: "assistant", createdAt: { gte: eightWeeksAgo } },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.contentIdea.count({ where: { organizationId: id } }),
-    prisma.contentIdea.count({ where: { organizationId: id, isPublished: true } }),
+    prisma.mayaContentIdea.count({ where: { organizationId: id } }),
+    prisma.mayaContentIdea.count({ where: { organizationId: id, isPublished: true } }),
     prisma.publishedPost.groupBy({
       by: ["status"],
       where: { organizationId: id },
@@ -993,18 +993,18 @@ export async function getAgentAdoptionStats() {
       _sum: { tokensUsed: true },
       where: { role: "assistant", createdAt: { gte: thirtyDaysAgo } },
     }),
-    prisma.contentIdea.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.contentIdea.count({ where: { isPublished: true, createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.mayaContentIdea.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.mayaContentIdea.count({ where: { isPublished: true, createdAt: { gte: thirtyDaysAgo } } }),
     prisma.publishedPost.groupBy({
       by: ["status"],
       _count: { _all: true },
       where: { createdAt: { gte: thirtyDaysAgo } },
     }),
-    prisma.savedKeyword.aggregate({
+    prisma.sageSavedKeyword.aggregate({
       _count: { _all: true },
       _avg: { estimatedDifficulty: true },
     }),
-    prisma.source.aggregate({
+    prisma.lexSource.aggregate({
       _count: { _all: true },
       _avg: { pageCount: true, chunksCreated: true },
       where: { agent: "LEX" },
@@ -1012,8 +1012,8 @@ export async function getAgentAdoptionStats() {
     prisma.rexDataset.count(),
     prisma.rexSettings.count({ where: { ingestApiKey: { not: null } } }),
     prisma.rexPinnedCard.count(),
-    prisma.competitorWatch.aggregate({ _count: { _all: true } }),
-    prisma.source.count({ where: { agent: "SCOUT" } }),
+    Promise.resolve({ _count: { _all: 0 } }),
+    Promise.resolve(0),
     prisma.vegaFollowUp.count(),
     prisma.vegaFollowUp.count({ where: { status: "SENT" } }),
     prisma.vegaFollowUp.count({ where: { status: "OVERDUE" } }),
@@ -1042,11 +1042,11 @@ export async function getAgentAdoptionStats() {
   });
 
   const [keywordOrgCount, easyKw, medKw, hardKw, scoutOrgCount, vegaOrgCount] = await Promise.all([
-    prisma.savedKeyword.groupBy({ by: ["organizationId"] }).then((r) => r.length),
-    prisma.savedKeyword.count({ where: { estimatedDifficulty: { lte: 33 } } }),
-    prisma.savedKeyword.count({ where: { estimatedDifficulty: { gt: 33, lte: 66 } } }),
-    prisma.savedKeyword.count({ where: { estimatedDifficulty: { gt: 66 } } }),
-    prisma.competitorWatch.groupBy({ by: ["organizationId"] }).then((r) => r.length),
+    prisma.sageSavedKeyword.groupBy({ by: ["organizationId"] }).then((r) => r.length),
+    prisma.sageSavedKeyword.count({ where: { estimatedDifficulty: { lte: 33 } } }),
+    prisma.sageSavedKeyword.count({ where: { estimatedDifficulty: { gt: 33, lte: 66 } } }),
+    prisma.sageSavedKeyword.count({ where: { estimatedDifficulty: { gt: 66 } } }),
+    Promise.resolve(0),
     prisma.vIPContact.groupBy({ by: ["organizationId"] }).then((r) => r.length),
   ]);
 

@@ -70,14 +70,13 @@ export const createSource = (data: {
   type: string;
   typeDetected?: string | null;
   r2Key: string;
-  r2Url: string;
   sizeBytes: number;
   pageCount: number;
   chunksCreated: number;
   summary: string;
   keyTopics: string[];
 }) =>
-  prisma.source.create({
+  prisma.lexSource.create({
     data: {
       organizationId: data.organizationId,
       userId: data.userId,
@@ -87,7 +86,6 @@ export const createSource = (data: {
       type: data.type,
       typeDetected: data.typeDetected ?? null,
       r2Key: data.r2Key,
-      r2Url: data.r2Url,
       sizeBytes: data.sizeBytes,
       pageCount: data.pageCount,
       chunksCreated: data.chunksCreated,
@@ -97,15 +95,15 @@ export const createSource = (data: {
   });
 
 export const findSourcesForUser = (userId: string, organizationId: string) =>
-  prisma.source.findMany({
+  prisma.lexSource.findMany({
     where: { userId, organizationId, agent: Agent.LEX },
     orderBy: { createdAt: "desc" },
   });
 
 export const findSourceById = (id: string, userId: string, organizationId: string) =>
-  prisma.source.findFirst({
+  prisma.lexSource.findFirst({
     where: { id, userId, organizationId, agent: Agent.LEX },
   });
 
 export const deleteSourceById = (id: string) =>
-  prisma.source.delete({ where: { id } });
+  prisma.lexSource.delete({ where: { id } });

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model VegaBriefingCache
- * 
+ * Cached Vega briefing content for one day/type.
  */
 export type VegaBriefingCacheModel = runtime.Types.Result.DefaultSelection<Prisma.$VegaBriefingCachePayload>
 
@@ -376,11 +376,29 @@ export type $VegaBriefingCachePayload<ExtArgs extends runtime.Types.Extensions.I
   name: "VegaBriefingCache"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Briefing id.
+     */
     id: string
+    /**
+     * Calendar date in YYYY-MM-DD format.
+     */
     date: string
+    /**
+     * Briefing cadence/type.
+     */
     type: $Enums.BriefingType
+    /**
+     * Full briefing payload JSON.
+     */
     content: runtime.JsonValue
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Last generation timestamp.
+     */
     generatedAt: Date
   }, ExtArgs["result"]["vegaBriefingCache"]>
   composites: {}

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model VegaLabel
- * 
+ * Vega custom inbox label.
  */
 export type VegaLabelModel = runtime.Types.Result.DefaultSelection<Prisma.$VegaLabelPayload>
 
@@ -377,11 +377,29 @@ export type $VegaLabelPayload<ExtArgs extends runtime.Types.Extensions.InternalA
   name: "VegaLabel"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Label id.
+     */
     id: string
+    /**
+     * Label display name.
+     */
     name: string
+    /**
+     * Hex color used in the UI.
+     */
     color: string
+    /**
+     * Whether Vega should auto-draft replies for this label.
+     */
     autoReply: boolean
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
   }, ExtArgs["result"]["vegaLabel"]>
   composites: {}

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Invitation
- * 
+ * Invitation to join an organization.
  */
 export type InvitationModel = runtime.Types.Result.DefaultSelection<Prisma.$InvitationPayload>
 
@@ -724,17 +724,47 @@ export type InvitationIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type $InvitationPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Invitation"
   objects: {
+    /**
+     * Target organization relation.
+     */
     organization: Prisma.$OrganizationPayload<ExtArgs>
+    /**
+     * Inviting user relation.
+     */
     user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Invitation row id.
+     */
     id: string
+    /**
+     * Target organization id.
+     */
     organizationId: string
+    /**
+     * Invitee email address.
+     */
     email: string
+    /**
+     * Invited role.
+     */
     role: string | null
+    /**
+     * Invitation status.
+     */
     status: string
+    /**
+     * Expiry timestamp.
+     */
     expiresAt: Date
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Inviting user id.
+     */
     inviterId: string
   }, ExtArgs["result"]["invitation"]>
   composites: {}

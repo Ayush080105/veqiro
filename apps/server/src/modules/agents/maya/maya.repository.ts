@@ -84,7 +84,7 @@ export const getRecentIdeas = (
   platform: SocialPlatform,
   limit = 100
 ) =>
-  prisma.contentIdea.findMany({
+  prisma.mayaContentIdea.findMany({
     where: { organizationId, platform },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -99,4 +99,4 @@ export const saveIdeas = (
     hook: string;
     contentType: string;
   }[]
-) => prisma.contentIdea.createMany({ data: ideas });
+) => prisma.mayaContentIdea.createMany({ data: ideas });

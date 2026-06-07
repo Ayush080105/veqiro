@@ -6,6 +6,7 @@ import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import {
   deleteObject,
+  getPublicUrl,
   headObject,
   isR2Configured,
   keyBelongsToOrg,
@@ -92,7 +93,7 @@ const toSourceDTO = (row: {
   name: string;
   type: string;
   typeDetected: string | null;
-  r2Url: string;
+  r2Key: string;
   sizeBytes: number;
   pageCount: number;
   chunksCreated: number;
@@ -105,7 +106,8 @@ const toSourceDTO = (row: {
   name: row.name,
   type: row.type,
   typeDetected: row.typeDetected,
-  r2Url: row.r2Url,
+  r2Key: row.r2Key,
+  r2Url: getPublicUrl(row.r2Key),
   sizeBytes: row.sizeBytes,
   pageCount: row.pageCount,
   chunksCreated: row.chunksCreated,
@@ -121,7 +123,6 @@ export const finalizeSource = async (
   organizationId: string,
   input: {
     key: string;
-    url: string;
     documentName: string;
     documentType: string;
   }
@@ -148,6 +149,8 @@ export const finalizeSource = async (
     throw new BadRequestError("PDF must be under 25MB.");
   }
 
+  const documentUrl = getPublicUrl(input.key);
+
   await lexRepository.createUserMessage({
     organizationId,
     userId,
@@ -158,7 +161,7 @@ export const finalizeSource = async (
         documentName: input.documentName,
         documentType: input.documentType,
         sizeBytes: head.size,
-        r2Url: input.url,
+        r2Key: input.key,
       },
     },
   });
@@ -170,7 +173,7 @@ export const finalizeSource = async (
       organization_id: organizationId,
       document_name: input.documentName,
       document_type: input.documentType,
-      document_url: input.url,
+      document_url: documentUrl,
     }
   );
 
@@ -182,7 +185,6 @@ export const finalizeSource = async (
     type: input.documentType,
     typeDetected: data.document_type_detected,
     r2Key: input.key,
-    r2Url: input.url,
     sizeBytes: head.size,
     pageCount: data.page_count,
     chunksCreated: data.chunks_created,

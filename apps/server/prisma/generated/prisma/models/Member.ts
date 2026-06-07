@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Member
- * 
+ * User membership in an organization.
  */
 export type MemberModel = runtime.Types.Result.DefaultSelection<Prisma.$MemberPayload>
 
@@ -607,14 +607,35 @@ export type MemberIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type $MemberPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Member"
   objects: {
+    /**
+     * Organization relation.
+     */
     organization: Prisma.$OrganizationPayload<ExtArgs>
+    /**
+     * User relation.
+     */
     user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Membership row id.
+     */
     id: string
+    /**
+     * Organization id.
+     */
     organizationId: string
+    /**
+     * User id.
+     */
     userId: string
+    /**
+     * Membership role such as owner or member.
+     */
     role: string
+    /**
+     * Membership creation timestamp.
+     */
     createdAt: Date
   }, ExtArgs["result"]["member"]>
   composites: {}

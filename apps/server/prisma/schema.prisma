@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "./generated/prisma"
@@ -12,6 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Product agents available in the workspace.
 enum Agent {
   MAYA
   SAGE
@@ -21,383 +17,14 @@ enum Agent {
   VEGA
 }
 
+/// Social publishing destinations supported by Maya.
 enum SocialPlatform {
   TWITTER
   LINKEDIN
   INSTAGRAM
 }
 
-model User {
-  id            String       @id
-  name          String
-  email         String
-  emailVerified Boolean      @default(false)
-  image         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  role          String?
-  banned        Boolean?     @default(false)
-  banReason     String?
-  banExpires    DateTime?
-  sessions      Session[]
-  accounts      Account[]
-  members       Member[]
-  invitations   Invitation[]
-
-  @@unique([email])
-  @@map("user")
-}
-
-model Session {
-  id                   String   @id
-  expiresAt            DateTime
-  token                String
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  ipAddress            String?
-  userAgent            String?
-  userId               String
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  impersonatedBy       String?
-  activeOrganizationId String?
-
-  @@unique([token])
-  @@index([userId])
-  @@map("session")
-}
-
-model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  @@index([userId])
-  @@map("account")
-}
-
-model Verification {
-  id         String   @id
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([identifier])
-  @@map("verification")
-}
-
-model Organization {
-  id          String       @id
-  name        String
-  slug        String
-  logo        String?
-  createdAt   DateTime
-  metadata    String?
-  onboarded   Boolean      @default(false)
-  members     Member[]
-  invitations Invitation[]
-  subscriptionStatus     SubscriptionStatus?
-  entitlementExpiresAt   DateTime?
-  subscription           Subscription?
-  agentMemory            AgentMemory[]
-  orgMemory              OrgMemory?
-
-  @@unique([slug])
-  @@map("organization")
-}
-
-model Member {
-  id             String       @id
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           String       @default("member")
-  createdAt      DateTime
-
-  @@index([organizationId])
-  @@index([userId])
-  @@map("member")
-}
-
-model Invitation {
-  id             String       @id
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  email          String
-  role           String?
-  status         String       @default("pending")
-  expiresAt      DateTime
-  createdAt      DateTime     @default(now())
-  inviterId      String
-  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@index([email])
-  @@map("invitation")
-}
-
-model BrandKit {
-  id                  String    @id @default(uuid())
-  organizationId      String    @unique
-  company_name        String    @default("")
-  company_description String    @default("")
-  value_proposition   String    @default("")
-  industry            String    @default("")
-  target_audience     String    @default("")
-  brand_voice         String    @default("")
-  logo_url            String?
-  logo_key            String?
-  mascot_url          String?
-  mascot_key          String?
-  brand_colors        Json      @default("{}")
-  platform_tones      Json      @default("{}")
-  competitors         Json      @default("[]")
-  key_differentiators String    @default("")
-  website_url         String    @default("")
-  location            String    @default("")
-  crawled_content     String?
-  crawled_summary     String?
-  crawled_at          DateTime?
-  crawl_source        String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  @@index([organizationId])
-  @@map("brand_kit")
-}
-
-model BrandImage {
-  id             String   @id @default(uuid())
-  organizationId String
-  url            String
-  key            String
-  name           String   @default("")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([organizationId])
-  @@map("brand_image")
-}
-
-model Message{
-  id     String @id @default(uuid())
-  organizationId  String
-  role String @default("user")
-  content String
-  createdAt DateTime @default(now())
-  imageUrl String?
-  agent Agent
-  tokensUsed Int @default(0)
-  model String?
-  userId String?
-  customInput Json?
-
-  @@index([agent,organizationId])
-  @@map("message")
-}
-
-model AgentMemory {
-  id               String    @id @default(uuid())
-  organizationId   String
-  agent            Agent
-  runningSummary   String    @default("") @db.Text
-  longTermFacts    Json      @default("[]")
-  messageCount     Int       @default(0)
-  lastSummarizedAt DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, agent])
-  @@index([organizationId])
-  @@map("agent_memory")
-}
-
-model OrgMemory {
-  id             String   @id @default(uuid())
-  organizationId String   @unique
-  runningSummary String   @default("") @db.Text
-  longTermFacts  Json     @default("[]")
-  sharedMemory   Json     @default("{}")
-  updatedAt      DateTime @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@map("org_memory")
-}
-
-model SocialAccount {
-  id                   String         @id @default(uuid())
-  organizationId       String
-  userId               String
-  platform             SocialPlatform
-  providerAccountId    String
-  accountName          String?
-  accessToken          String
-  refreshToken         String?
-  accessTokenExpiresAt DateTime?
-  scope                String?
-  metadata             Json?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-
-  publishedPosts PublishedPost[]
-
-  @@unique([organizationId, platform, providerAccountId])
-  @@index([organizationId])
-  @@map("social_account")
-}
-
-model PublishedPost {
-  id              String         @id @default(uuid())
-  organizationId  String
-  userId          String
-  socialAccountId String
-  socialAccount   SocialAccount  @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
-  platform        SocialPlatform
-  platformPostId  String?
-  caption         String
-  hashtags        String[]
-  imageUrl        String?
-  status          String         @default("pending")
-  error           String?
-  publishedAt     DateTime?
-  createdAt       DateTime       @default(now())
-
-  @@index([organizationId])
-  @@index([socialAccountId])
-  @@map("published_post")
-}
-
-model ContentIdea {
-  id             String         @id @default(uuid())
-  organizationId String
-  platform       SocialPlatform
-  title          String
-  hook           String
-  contentType    String
-  createdAt      DateTime       @default(now())
-  isPublished    Boolean        @default(false)
-
-  @@index([organizationId, platform])
-  @@map("content_idea")
-}
-
-model CompetitorWatch {
-  id             String    @id @default(uuid())
-  organizationId String
-  name           String
-  url            String
-  latestHash     String?
-  lastScannedAt  DateTime?
-  createdAt      DateTime  @default(now())
-
-  @@unique([organizationId, url])
-  @@index([organizationId])
-  @@map("competitor_watch")
-}
-
-model SavedKeyword {
-  id                   String   @id @default(uuid())
-  organizationId       String
-  keyword              String
-  searchIntent         String   @default("")
-  estimatedDifficulty  Int      @default(50)
-  relevanceScore       Float    @default(0.5)
-  searchVolumeEstimate String?
-  suggestedContentType String   @default("")
-  createdAt            DateTime @default(now())
-
-  @@unique([organizationId, keyword])
-  @@index([organizationId])
-  @@map("saved_keyword")
-}
-
-model Source {
-  id             String   @id @default(uuid())
-  organizationId String
-  userId         String
-  agent          Agent
-  sourceId       String
-  name           String
-  type           String   @default("")
-  typeDetected   String?
-  r2Key          String
-  r2Url          String
-  sizeBytes      Int      @default(0)
-  pageCount      Int      @default(0)
-  chunksCreated  Int      @default(0)
-  summary        String   @default("")
-  keyTopics      String[] @default([])
-  createdAt      DateTime @default(now())
-
-  @@unique([userId, sourceId])
-  @@index([organizationId, agent])
-  @@index([userId, agent])
-  @@map("source")
-}
-
-model RexDataset {
-  id             String   @id @default(cuid())
-  organizationId String
-  userId         String
-  sourceId       String?
-  name           String
-  metricKey      String
-  unit           String?
-  period         String
-  purpose        String   @default("actual")
-  points         Json
-  meta           Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([organizationId, metricKey])
-  @@index([organizationId, purpose])
-  @@map("rex_dataset")
-}
-
-model RexPinnedCard {
-  id             String   @id @default(cuid())
-  organizationId String
-  userId         String
-  kind           String
-  payload        Json
-  position       Int      @default(0)
-  isPublic       Boolean  @default(false)
-  shareToken     String?  @unique
-  createdAt      DateTime @default(now())
-
-  @@index([organizationId, position])
-  @@index([shareToken])
-  @@map("rex_pinned_card")
-}
-
-model RexSettings {
-  organizationId          String   @id
-  weeklyDigestEnabled     Boolean  @default(true)
-  weeklyDigestTimezone    String   @default("UTC")
-  weeklyDigestRecipients  String[]
-  alertRules              Json?
-  ingestApiKey            String?  @unique
-  columnMappingTemplates  Json?
-  updatedAt               DateTime @updatedAt
-
-  @@map("rex_settings")
-}
-
+/// Local entitlement state mirrored from the billing provider.
 enum SubscriptionStatus {
   TRIALING
   ACTIVE
@@ -406,32 +33,13 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+/// Paid subscription cadence.
 enum SubscriptionPlan {
   MONTHLY
   ANNUAL
 }
 
-model Subscription {
-  id                    String              @id @default(cuid())
-  organizationId        String              @unique
-  organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  dodoCustomerId        String              @unique
-  dodoSubscriptionId    String?             @unique
-
-  status                SubscriptionStatus  @default(TRIALING)
-  plan                  SubscriptionPlan?
-
-  trialEndsAt           DateTime?
-  currentPeriodEnd      DateTime?
-  cancelAtPeriodEnd     Boolean             @default(false)
-
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-
-  @@map("subscription")
-}
-
+/// Vega follow-up lifecycle.
 enum FollowUpStatus {
   PENDING
   SENT
@@ -439,47 +47,719 @@ enum FollowUpStatus {
   OVERDUE
 }
 
+/// Cached Vega briefing cadence.
 enum BriefingType {
   MORNING
   EVENING
   WEEKLY
 }
 
-model VegaFollowUp {
-  id             String         @id @default(cuid())
-  emailId        String
-  emailSubject   String
-  senderEmail    String
-  dueAt          DateTime
-  draftText      String         @db.Text
-  status         FollowUpStatus @default(PENDING)
+/// Better Auth user plus admin flags.
+model User {
+  /// Better Auth user id.
+  id            String       @id
+  /// Display name shown in the app.
+  name          String
+  /// Login email and unique user identifier.
+  email         String
+  /// Whether the email address has been verified.
+  emailVerified Boolean      @default(false)
+  /// Optional profile image URL from the auth provider.
+  image         String?
+  /// User creation timestamp.
+  createdAt     DateTime     @default(now())
+  /// User update timestamp maintained by Prisma.
+  updatedAt     DateTime     @updatedAt
+  /// Optional app/admin role.
+  role          String?
+  /// Better Auth ban flag.
+  banned        Boolean?     @default(false)
+  /// Optional ban reason visible to admins.
+  banReason     String?
+  /// Optional ban expiry timestamp.
+  banExpires    DateTime?
+  /// Auth sessions owned by this user.
+  sessions      Session[]
+  /// OAuth/password accounts linked to this user.
+  accounts      Account[]
+  /// Organization memberships for this user.
+  members       Member[]
+  /// Organization invitations sent by this user.
+  invitations   Invitation[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+/// Better Auth session.
+model Session {
+  /// Better Auth session id.
+  id                   String   @id
+  /// Session expiry timestamp.
+  expiresAt            DateTime
+  /// Unique bearer session token.
+  token                String
+  /// Session creation timestamp.
+  createdAt            DateTime @default(now())
+  /// Session update timestamp.
+  updatedAt            DateTime @updatedAt
+  /// Last known client IP.
+  ipAddress            String?
+  /// Last known user agent string.
+  userAgent            String?
+  /// Owning user id.
+  userId               String
+  /// Owning user relation.
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Admin impersonator id when impersonation is active.
+  impersonatedBy       String?
+  /// Organization currently selected in the UI.
+  activeOrganizationId String?
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+/// Better Auth account/provider credentials.
+model Account {
+  /// Better Auth account row id.
+  id                    String    @id
+  /// Provider account id, such as Google subject id.
+  accountId             String
+  /// Provider name, such as google.
+  providerId            String
+  /// Owning user id.
+  userId                String
+  /// Owning user relation.
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// OAuth access token used for provider APIs.
+  accessToken           String?
+  /// OAuth refresh token used to refresh access.
+  refreshToken          String?
+  /// OAuth/OIDC id token.
+  idToken               String?
+  /// Access token expiry timestamp.
+  accessTokenExpiresAt  DateTime?
+  /// Refresh token expiry timestamp.
+  refreshTokenExpiresAt DateTime?
+  /// OAuth scope string granted by the provider.
+  scope                 String?
+  /// Password hash for credential auth, when used.
+  password              String?
+  /// Account creation timestamp.
+  createdAt             DateTime  @default(now())
+  /// Account update timestamp.
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, providerId, updatedAt])
+  @@index([providerId, userId])
+  @@map("account")
+}
+
+/// Better Auth verification token.
+model Verification {
+  /// Verification row id.
+  id         String   @id
+  /// Verification target, usually email or token namespace.
+  identifier String
+  /// Verification secret/value.
+  value      String
+  /// Expiry timestamp.
+  expiresAt  DateTime
+  /// Creation timestamp.
+  createdAt  DateTime @default(now())
+  /// Update timestamp.
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+/// Tenant organization and denormalized entitlement state.
+model Organization {
+  /// Better Auth organization id.
+  id                   String              @id
+  /// Organization display name.
+  name                 String
+  /// Unique URL/workspace slug.
+  slug                 String
+  /// Optional organization logo URL.
+  logo                 String?
+  /// Organization creation timestamp.
+  createdAt            DateTime
+  /// Better Auth metadata blob stored as string.
+  metadata             String?
+  /// Whether onboarding/brand kit setup is complete.
+  onboarded            Boolean             @default(false)
+  /// Users belonging to this organization.
+  members              Member[]
+  /// Pending invitations for this organization.
+  invitations          Invitation[]
+  /// Fast entitlement status used by middleware.
+  subscriptionStatus   SubscriptionStatus?
+  /// Fast entitlement expiry used by middleware.
+  entitlementExpiresAt DateTime?
+  /// Source billing subscription row.
+  subscription         Subscription?
+  /// Per-agent memory summaries.
+  agentMemory          AgentMemory[]
+  /// Organization-wide memory summary.
+  orgMemory            OrgMemory?
+
+  @@unique([slug])
+  @@index([subscriptionStatus])
+  @@index([createdAt])
+  @@index([subscriptionStatus, entitlementExpiresAt])
+  @@map("organization")
+}
+
+/// Billing provider subscription record for one organization.
+model Subscription {
+  /// Local subscription id.
+  id                 String       @id @default(cuid())
+  /// Owning organization id.
+  organizationId     String       @unique
+  /// Owning organization relation.
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Dodo customer id.
+  dodoCustomerId     String       @unique
+  /// Dodo subscription id after checkout activation.
+  dodoSubscriptionId String?      @unique
+  /// Current local billing status.
+  status             SubscriptionStatus @default(TRIALING)
+  /// Current paid plan cadence.
+  plan               SubscriptionPlan?
+  /// Trial end timestamp.
+  trialEndsAt        DateTime?
+  /// Current paid period end timestamp.
+  currentPeriodEnd   DateTime?
+  /// Whether cancellation is scheduled for period end.
+  cancelAtPeriodEnd  Boolean      @default(false)
+  /// Subscription creation timestamp.
+  createdAt          DateTime     @default(now())
+  /// Subscription update timestamp.
+  updatedAt          DateTime     @updatedAt
+
+  @@map("subscription")
+}
+
+/// User membership in an organization.
+model Member {
+  /// Membership row id.
+  id             String       @id
+  /// Organization id.
   organizationId String
+  /// Organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// User id.
+  userId         String
+  /// User relation.
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Membership role such as owner or member.
+  role           String       @default("member")
+  /// Membership creation timestamp.
+  createdAt      DateTime
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([organizationId, userId, role])
+  @@index([organizationId, role])
+  @@map("member")
+}
+
+/// Invitation to join an organization.
+model Invitation {
+  /// Invitation row id.
+  id             String       @id
+  /// Target organization id.
+  organizationId String
+  /// Target organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Invitee email address.
+  email          String
+  /// Invited role.
+  role           String?
+  /// Invitation status.
+  status         String       @default("pending")
+  /// Expiry timestamp.
+  expiresAt      DateTime
+  /// Creation timestamp.
+  createdAt      DateTime     @default(now())
+  /// Inviting user id.
+  inviterId      String
+  /// Inviting user relation.
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
+}
+
+/// Organization brand profile used by all agents.
+model BrandKit {
+  /// Brand kit id.
+  id                  String    @id @default(uuid())
+  /// Owning organization id.
+  organizationId      String    @unique
+  /// Company display name.
+  company_name        String    @default("")
+  /// Short company description.
+  company_description String    @default("")
+  /// Primary value proposition.
+  value_proposition   String    @default("")
+  /// Industry or market category.
+  industry            String    @default("")
+  /// Target audience description.
+  target_audience     String    @default("")
+  /// Brand voice guidance.
+  brand_voice         String    @default("")
+  /// Legacy public logo URL retained for older rows/clients.
+  logo_url            String?
+  /// R2 key for the logo asset.
+  logo_key            String?
+  /// Legacy public mascot URL retained for older rows/clients.
+  mascot_url          String?
+  /// R2 key for the mascot asset.
+  mascot_key          String?
+  /// Brand color tokens.
+  brand_colors        Json      @default("{}")
+  /// Platform-specific tone guidance.
+  platform_tones      Json      @default("{}")
+  /// Known competitors from onboarding.
+  competitors         Json      @default("[]")
+  /// Differentiation notes.
+  key_differentiators String    @default("")
+  /// Company website URL.
+  website_url         String    @default("")
+  /// Optional business location.
+  location            String?
+  /// Raw crawled website text.
+  crawled_content     String?
+  /// AI or crawler summary of website content.
+  crawled_summary     String?
+  /// Last crawl timestamp.
+  crawled_at          DateTime?
+  /// URL/source used for the last crawl.
+  crawl_source        String?
+  /// Creation timestamp.
+  createdAt           DateTime  @default(now())
+  /// Update timestamp.
+  updatedAt           DateTime  @updatedAt
+
+  @@map("brand_kit")
+}
+
+/// Extra brand images selected for Maya generation.
+model BrandImage {
+  /// Brand image id.
+  id             String   @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// R2 object key; public URL is derived from this key.
+  key            String
+  /// User-facing image name.
+  name           String   @default("")
+  /// Creation timestamp.
+  createdAt      DateTime @default(now())
+  /// Update timestamp.
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, createdAt])
+  @@map("brand_image")
+}
+
+/// Chat message history across agents.
+model Message {
+  /// Message id.
+  id             String   @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// Message role, usually user or assistant.
+  role           String   @default("user")
+  /// Message text content.
+  content        String
+  /// Creation timestamp.
+  createdAt      DateTime @default(now())
+  /// Optional generated or attached image URL.
+  imageUrl       String?
+  /// Agent that owns this message.
+  agent          Agent
+  /// Token usage reported by the AI service.
+  tokensUsed     Int      @default(0)
+  /// Model identifier reported by the AI service.
+  model          String?
+  /// User id that initiated the message.
+  userId         String?
+  /// Structured action input/result metadata for cards.
+  customInput    Json?
+
+  @@index([agent, organizationId])
+  @@index([organizationId, agent, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, role, createdAt])
+  @@index([role, createdAt])
+  @@index([agent, role, createdAt])
+  @@map("message")
+}
+
+/// Per-agent long-term memory summary.
+model AgentMemory {
+  /// Memory row id.
+  id               String       @id @default(uuid())
+  /// Owning organization id.
+  organizationId   String
+  /// Agent this memory belongs to.
+  agent            Agent
+  /// Running conversation summary.
+  runningSummary   String       @default("") @db.Text
+  /// Durable facts extracted from conversations.
+  longTermFacts    Json         @default("[]")
+  /// Number of messages represented in the summary.
+  messageCount     Int          @default(0)
+  /// Last summarization timestamp.
+  lastSummarizedAt DateTime?
+  /// Creation timestamp.
+  createdAt        DateTime     @default(now())
+  /// Update timestamp.
+  updatedAt        DateTime     @updatedAt
+  /// Owning organization relation.
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, agent])
+  @@index([organizationId])
+  @@map("agent_memory")
+}
+
+/// Organization-wide shared memory.
+model OrgMemory {
+  /// Memory row id.
+  id             String       @id @default(uuid())
+  /// Owning organization id.
+  organizationId String       @unique
+  /// Running organization summary.
+  runningSummary String       @default("") @db.Text
+  /// Durable organization-level facts.
+  longTermFacts  Json         @default("[]")
+  /// Shared cross-agent memory payload.
+  sharedMemory   Json         @default("{}")
+  /// Update timestamp.
+  updatedAt      DateTime     @updatedAt
+  /// Owning organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("org_memory")
+}
+
+/// Connected social account for publishing.
+model SocialAccount {
+  /// Social account id.
+  id                   String         @id @default(uuid())
+  /// Owning organization id.
+  organizationId       String
+  /// User who connected the account.
+  userId               String
+  /// Social platform.
+  platform             SocialPlatform
+  /// Provider-side account id.
+  providerAccountId    String
+  /// Provider-side account display name.
+  accountName          String?
+  /// Provider access token.
+  accessToken          String
+  /// Provider refresh token.
+  refreshToken         String?
+  /// Provider access token expiry.
+  accessTokenExpiresAt DateTime?
+  /// Provider OAuth scopes.
+  scope                String?
+  /// Provider-specific metadata.
+  metadata             Json?
+  /// Creation timestamp.
+  createdAt            DateTime       @default(now())
+  /// Update timestamp.
+  updatedAt            DateTime       @updatedAt
+  /// Posts published through this account.
+  publishedPosts       PublishedPost[]
+
+  @@unique([organizationId, platform, providerAccountId])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, accessTokenExpiresAt])
+  @@map("social_account")
+}
+
+/// Maya social post publication record.
+model PublishedPost {
+  /// Published post id.
+  id              String         @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// User who initiated publish.
+  userId          String
+  /// Connected account used for publishing.
+  socialAccountId String?
+  /// Connected account relation.
+  socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  /// Target platform.
+  platform        SocialPlatform
+  /// Provider-side post id.
+  platformPostId  String?
+  /// Published caption/body.
+  caption         String
+  /// Hashtags included in the post.
+  hashtags        String[]
+  /// Optional image URL used in the post.
+  imageUrl        String?
+  /// Publish status such as pending, success, or failed.
+  status          String         @default("pending")
+  /// Publish error message when failed.
+  error           String?
+  /// Provider publish timestamp.
+  publishedAt     DateTime?
+  /// Local creation timestamp.
+  createdAt       DateTime       @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status, publishedAt])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, platform, createdAt])
+  @@index([socialAccountId])
+  @@map("published_post")
+}
+
+/// Maya-generated idea saved to avoid repeats.
+model MayaContentIdea {
+  /// Idea id.
+  id             String         @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// Platform this idea targets.
+  platform       SocialPlatform
+  /// Idea title.
+  title          String
+  /// Opening hook.
+  hook           String
+  /// Content format/type.
+  contentType    String
+  /// Creation timestamp.
   createdAt      DateTime       @default(now())
+  /// Whether this idea has been used/published.
+  isPublished    Boolean        @default(false)
+
+  @@index([organizationId, platform, createdAt])
+  @@index([organizationId, isPublished, createdAt])
+  @@index([createdAt])
+  @@map("maya_content_idea")
+}
+
+/// Sage saved SEO keyword bookmark.
+model SageSavedKeyword {
+  /// Saved keyword id.
+  id                   String   @id @default(uuid())
+  /// Owning organization id.
+  organizationId       String
+  /// Keyword phrase.
+  keyword              String
+  /// Search intent label.
+  searchIntent         String   @default("")
+  /// Estimated difficulty from 0 to 100.
+  estimatedDifficulty  Int      @default(50)
+  /// Relevance score from 0 to 1.
+  relevanceScore       Float    @default(0.5)
+  /// Human-readable search volume estimate.
+  searchVolumeEstimate String?
+  /// Suggested content format for the keyword.
+  suggestedContentType String   @default("")
+  /// Creation timestamp.
+  createdAt            DateTime @default(now())
+
+  @@unique([organizationId, keyword])
+  @@index([organizationId, createdAt])
+  @@index([estimatedDifficulty])
+  @@map("sage_saved_keyword")
+}
+
+/// Lex uploaded source metadata; RAG chunks live in the AI service.
+model LexSource {
+  /// Source row id.
+  id             String   @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// User who uploaded the source.
+  userId         String
+  /// Owning agent; currently always LEX.
+  agent          Agent
+  /// AI-service source id used for RAG queries.
+  sourceId       String
+  /// User-facing document name.
+  name           String
+  /// User-selected document type.
+  type           String   @default("")
+  /// AI-detected document type.
+  typeDetected   String?
+  /// R2 object key; public URL is derived from this key.
+  r2Key          String
+  /// Uploaded file size in bytes.
+  sizeBytes      Int      @default(0)
+  /// Parsed page count.
+  pageCount      Int      @default(0)
+  /// Number of RAG chunks created by the AI service.
+  chunksCreated  Int      @default(0)
+  /// AI-generated source summary.
+  summary        String   @default("")
+  /// AI-extracted key topics.
+  keyTopics      String[] @default([])
+  /// Creation timestamp.
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, sourceId])
+  @@index([userId, organizationId, agent, createdAt])
+  @@index([organizationId, agent, createdAt])
+  @@map("lex_source")
+}
+
+/// Rex metric dataset parsed from uploads or ingest API.
+model RexDataset {
+  /// Dataset id.
+  id             String   @id @default(cuid())
+  /// Owning organization id.
+  organizationId String
+  /// User or integration owner id.
+  userId         String
+  /// Optional external/source id.
+  sourceId       String?
+  /// Dataset display name.
+  name           String
+  /// Canonical metric key, such as mrr.
+  metricKey      String
+  /// Metric unit, such as USD or users.
+  unit           String?
+  /// Period granularity label.
+  period         String
+  /// Dataset purpose, usually actual or forecast.
+  purpose        String   @default("actual")
+  /// Time-series points JSON.
+  points         Json
+  /// Parsed raw table and import metadata.
+  meta           Json?
+  /// Creation timestamp.
+  createdAt      DateTime @default(now())
+  /// Update timestamp.
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, updatedAt])
+  @@index([organizationId, metricKey, purpose, updatedAt])
+  @@map("rex_dataset")
+}
+
+/// Rex result card pinned to the Today/dashboard surface.
+model RexPinnedCard {
+  /// Pin id.
+  id             String   @id @default(cuid())
+  /// Owning organization id.
+  organizationId String
+  /// User who pinned the card.
+  userId         String
+  /// Card kind/type.
+  kind           String
+  /// Full card payload JSON.
+  payload        Json
+  /// Sort position in the pinned list.
+  position       Int      @default(0)
+  /// Whether the card is publicly shareable.
+  isPublic       Boolean  @default(false)
+  /// Public share token when sharing is enabled.
+  shareToken     String?  @unique
+  /// Creation timestamp.
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, position])
+  @@map("rex_pinned_card")
+}
+
+/// Rex organization-level settings.
+model RexSettings {
+  /// Owning organization id and primary key.
+  organizationId         String   @id
+  /// Whether weekly digest cron should include this org.
+  weeklyDigestEnabled    Boolean  @default(true)
+  /// Preferred digest timezone.
+  weeklyDigestTimezone   String   @default("UTC")
+  /// Email recipients for digest delivery.
+  weeklyDigestRecipients String[]
+  /// JSON alert rule configuration.
+  alertRules             Json?
+  /// Optional API key for metrics ingestion.
+  ingestApiKey           String?  @unique
+  /// Saved column mapping templates for uploads.
+  columnMappingTemplates Json?
+  /// Update timestamp.
+  updatedAt              DateTime @updatedAt
+
+  @@index([weeklyDigestEnabled])
+  @@map("rex_settings")
+}
+
+/// Vega email follow-up reminder.
+model VegaFollowUp {
+  /// Follow-up id.
+  id             String         @id @default(cuid())
+  /// Gmail message id being followed up.
+  emailId        String
+  /// Email subject snapshot.
+  emailSubject   String
+  /// Sender email snapshot.
+  senderEmail    String
+  /// Due timestamp for the reminder.
+  dueAt          DateTime
+  /// Draft text to use when following up.
+  draftText      String         @db.Text
+  /// Follow-up lifecycle status.
+  status         FollowUpStatus @default(PENDING)
+  /// Owning organization id.
+  organizationId String
+  /// Creation timestamp.
+  createdAt      DateTime       @default(now())
+  /// Update timestamp.
   updatedAt      DateTime       @updatedAt
 
-  @@index([organizationId, status])
-  @@index([dueAt])
+  @@index([organizationId, status, dueAt])
+  @@index([status, dueAt])
   @@map("vega_follow_up")
 }
 
+/// Vega VIP contact used to prioritize inbox items.
 model VIPContact {
+  /// VIP contact id.
   id             String   @id @default(cuid())
+  /// VIP email address.
   email          String
+  /// Optional display name.
   name           String?
+  /// Owning organization id.
   organizationId String
+  /// Creation timestamp.
   createdAt      DateTime @default(now())
 
   @@unique([email, organizationId])
-  @@index([organizationId])
+  @@index([organizationId, createdAt])
   @@map("vip_contact")
 }
 
+/// Cached Vega briefing content for one day/type.
 model VegaBriefingCache {
+  /// Briefing id.
   id             String       @id @default(cuid())
+  /// Calendar date in YYYY-MM-DD format.
   date           String
+  /// Briefing cadence/type.
   type           BriefingType
+  /// Full briefing payload JSON.
   content        Json
+  /// Owning organization id.
   organizationId String
+  /// Last generation timestamp.
   generatedAt    DateTime     @default(now())
 
   @@unique([date, type, organizationId])
@@ -487,24 +767,36 @@ model VegaBriefingCache {
   @@map("vega_briefing_cache")
 }
 
+/// Vega custom inbox label.
 model VegaLabel {
+  /// Label id.
   id             String   @id @default(cuid())
+  /// Label display name.
   name           String
+  /// Hex color used in the UI.
   color          String   @default("#999999")
+  /// Whether Vega should auto-draft replies for this label.
   autoReply      Boolean  @default(false)
+  /// Owning organization id.
   organizationId String
+  /// Creation timestamp.
   createdAt      DateTime @default(now())
 
   @@unique([name, organizationId])
-  @@index([organizationId])
+  @@index([organizationId, createdAt])
   @@map("vega_label")
 }
 
-model VegaInboxCache {
+/// Latest processed Vega inbox snapshot for one organization.
+model VegaInboxSnapshot {
+  /// Snapshot id.
   id             String   @id @default(cuid())
+  /// Owning organization id.
   organizationId String   @unique
+  /// Processed inbox response cached for fast UI loads.
   snapshot       Json
+  /// Cache timestamp used for TTL checks.
   cachedAt       DateTime @default(now())
 
-  @@map("vega_inbox_cache")
+  @@map("vega_inbox_snapshot")
 }

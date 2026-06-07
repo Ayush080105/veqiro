@@ -179,19 +179,14 @@ export const listCompetitors = (organizationId: string): Promise<CompetitorWatch
   scoutRepository.findCompetitorWatches(organizationId) as unknown as Promise<CompetitorWatch[]>;
 
 export const addCompetitor = async (
-  organizationId: string,
-  input: AddCompetitorInput
+  _organizationId: string,
+  _input: AddCompetitorInput
 ): Promise<CompetitorWatch> => {
-  const record = await scoutRepository.upsertCompetitorWatch({
-    organizationId,
-    name: input.name,
-    url: input.url,
-  });
-  return record as unknown as CompetitorWatch;
+  throw new BadRequestError("Competitor watchlist storage has been removed. Use Scout discovery or research actions instead.");
 };
 
-export const removeCompetitor = async (id: string, organizationId: string): Promise<void> => {
-  await scoutRepository.deleteCompetitorWatch(id, organizationId);
+export const removeCompetitor = async (_id: string, _organizationId: string): Promise<void> => {
+  throw new BadRequestError("Competitor watchlist storage has been removed.");
 };
 
 export const discoverCompetitors = async (

@@ -2,6 +2,7 @@ import * as repo from "./brand-images.repository.js";
 import {
   isR2Configured,
   deleteObject,
+  getPublicUrl,
   headObject,
   keyBelongsToOrg,
 } from "../../common/utils/r2.js";
@@ -26,7 +27,7 @@ export interface BrandImageDto {
 const serialize = (row: BrandImageRow): BrandImageDto => ({
   id: row.id,
   organizationId: row.organizationId,
-  url: row.url,
+  url: getPublicUrl(row.key),
   key: row.key,
   name: row.name,
   createdAt: row.createdAt,
@@ -42,7 +43,7 @@ export const listBrandImages = async (
 
 export const finalizeBrandImageUpload = async (
   organizationId: string,
-  input: { key: string; url: string; name: string },
+  input: { key: string; name: string },
 ): Promise<BrandImageDto> => {
   if (!isR2Configured()) {
     throw new BadRequestError(
@@ -74,7 +75,10 @@ export const finalizeBrandImageUpload = async (
     throw new BadRequestError("Image must be under 10MB.");
   }
 
-  const row = await repo.create(organizationId, input);
+  const row = await repo.create(organizationId, {
+    key: input.key,
+    name: input.name,
+  });
   return serialize(row);
 };
 
@@ -119,5 +123,5 @@ export const getBrandImagesForGeneration = async (
   return ids
     .map((id) => all.find((img) => img.id === id))
     .filter((img): img is BrandImageRow => img !== undefined)
-    .map(({ id, url }) => ({ id, url }));
+    .map(({ id, key }) => ({ id, url: getPublicUrl(key) }));
 };

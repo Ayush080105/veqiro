@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model AgentMemory
- * 
+ * Per-agent long-term memory summary.
  */
 export type AgentMemoryModel = runtime.Types.Result.DefaultSelection<Prisma.$AgentMemoryPayload>
 
@@ -665,17 +665,47 @@ export type AgentMemoryIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.
 export type $AgentMemoryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AgentMemory"
   objects: {
+    /**
+     * Owning organization relation.
+     */
     organization: Prisma.$OrganizationPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Memory row id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Agent this memory belongs to.
+     */
     agent: $Enums.Agent
+    /**
+     * Running conversation summary.
+     */
     runningSummary: string
+    /**
+     * Durable facts extracted from conversations.
+     */
     longTermFacts: runtime.JsonValue
+    /**
+     * Number of messages represented in the summary.
+     */
     messageCount: number
+    /**
+     * Last summarization timestamp.
+     */
     lastSummarizedAt: Date | null
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["agentMemory"]>
   composites: {}

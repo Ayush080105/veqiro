@@ -16,7 +16,7 @@ export const countForOrg = (organizationId: string) =>
 
 export const create = (
   organizationId: string,
-  data: { url: string; key: string; name: string },
+  data: { key: string; name: string },
 ) => prisma.brandImage.create({ data: { organizationId, ...data } });
 
 export const updateMeta = (

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Verification
- * 
+ * Better Auth verification token.
  */
 export type VerificationModel = runtime.Types.Result.DefaultSelection<Prisma.$VerificationPayload>
 
@@ -371,11 +371,29 @@ export type $VerificationPayload<ExtArgs extends runtime.Types.Extensions.Intern
   name: "Verification"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Verification row id.
+     */
     id: string
+    /**
+     * Verification target, usually email or token namespace.
+     */
     identifier: string
+    /**
+     * Verification secret/value.
+     */
     value: string
+    /**
+     * Expiry timestamp.
+     */
     expiresAt: Date
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["verification"]>
   composites: {}

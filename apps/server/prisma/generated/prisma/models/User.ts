@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model User
- * 
+ * Better Auth user plus admin flags.
  */
 export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayload>
 
@@ -1019,22 +1019,67 @@ export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
+    /**
+     * Auth sessions owned by this user.
+     */
     sessions: Prisma.$SessionPayload<ExtArgs>[]
+    /**
+     * OAuth/password accounts linked to this user.
+     */
     accounts: Prisma.$AccountPayload<ExtArgs>[]
+    /**
+     * Organization memberships for this user.
+     */
     members: Prisma.$MemberPayload<ExtArgs>[]
+    /**
+     * Organization invitations sent by this user.
+     */
     invitations: Prisma.$InvitationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Better Auth user id.
+     */
     id: string
+    /**
+     * Display name shown in the app.
+     */
     name: string
+    /**
+     * Login email and unique user identifier.
+     */
     email: string
+    /**
+     * Whether the email address has been verified.
+     */
     emailVerified: boolean
+    /**
+     * Optional profile image URL from the auth provider.
+     */
     image: string | null
+    /**
+     * User creation timestamp.
+     */
     createdAt: Date
+    /**
+     * User update timestamp maintained by Prisma.
+     */
     updatedAt: Date
+    /**
+     * Optional app/admin role.
+     */
     role: string | null
+    /**
+     * Better Auth ban flag.
+     */
     banned: boolean | null
+    /**
+     * Optional ban reason visible to admins.
+     */
     banReason: string | null
+    /**
+     * Optional ban expiry timestamp.
+     */
     banExpires: Date | null
   }, ExtArgs["result"]["user"]>
   composites: {}

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model BrandImage
- * 
+ * Extra brand images selected for Maya generation.
  */
 export type BrandImageModel = runtime.Types.Result.DefaultSelection<Prisma.$BrandImagePayload>
 
@@ -27,7 +27,6 @@ export type AggregateBrandImage = {
 export type BrandImageMinAggregateOutputType = {
   id: string | null
   organizationId: string | null
-  url: string | null
   key: string | null
   name: string | null
   createdAt: Date | null
@@ -37,7 +36,6 @@ export type BrandImageMinAggregateOutputType = {
 export type BrandImageMaxAggregateOutputType = {
   id: string | null
   organizationId: string | null
-  url: string | null
   key: string | null
   name: string | null
   createdAt: Date | null
@@ -47,7 +45,6 @@ export type BrandImageMaxAggregateOutputType = {
 export type BrandImageCountAggregateOutputType = {
   id: number
   organizationId: number
-  url: number
   key: number
   name: number
   createdAt: number
@@ -59,7 +56,6 @@ export type BrandImageCountAggregateOutputType = {
 export type BrandImageMinAggregateInputType = {
   id?: true
   organizationId?: true
-  url?: true
   key?: true
   name?: true
   createdAt?: true
@@ -69,7 +65,6 @@ export type BrandImageMinAggregateInputType = {
 export type BrandImageMaxAggregateInputType = {
   id?: true
   organizationId?: true
-  url?: true
   key?: true
   name?: true
   createdAt?: true
@@ -79,7 +74,6 @@ export type BrandImageMaxAggregateInputType = {
 export type BrandImageCountAggregateInputType = {
   id?: true
   organizationId?: true
-  url?: true
   key?: true
   name?: true
   createdAt?: true
@@ -162,7 +156,6 @@ export type BrandImageGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 export type BrandImageGroupByOutputType = {
   id: string
   organizationId: string
-  url: string
   key: string
   name: string
   createdAt: Date
@@ -193,7 +186,6 @@ export type BrandImageWhereInput = {
   NOT?: Prisma.BrandImageWhereInput | Prisma.BrandImageWhereInput[]
   id?: Prisma.StringFilter<"BrandImage"> | string
   organizationId?: Prisma.StringFilter<"BrandImage"> | string
-  url?: Prisma.StringFilter<"BrandImage"> | string
   key?: Prisma.StringFilter<"BrandImage"> | string
   name?: Prisma.StringFilter<"BrandImage"> | string
   createdAt?: Prisma.DateTimeFilter<"BrandImage"> | Date | string
@@ -203,7 +195,6 @@ export type BrandImageWhereInput = {
 export type BrandImageOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
-  url?: Prisma.SortOrder
   key?: Prisma.SortOrder
   name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -216,7 +207,6 @@ export type BrandImageWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.BrandImageWhereInput[]
   NOT?: Prisma.BrandImageWhereInput | Prisma.BrandImageWhereInput[]
   organizationId?: Prisma.StringFilter<"BrandImage"> | string
-  url?: Prisma.StringFilter<"BrandImage"> | string
   key?: Prisma.StringFilter<"BrandImage"> | string
   name?: Prisma.StringFilter<"BrandImage"> | string
   createdAt?: Prisma.DateTimeFilter<"BrandImage"> | Date | string
@@ -226,7 +216,6 @@ export type BrandImageWhereUniqueInput = Prisma.AtLeast<{
 export type BrandImageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
-  url?: Prisma.SortOrder
   key?: Prisma.SortOrder
   name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -242,7 +231,6 @@ export type BrandImageScalarWhereWithAggregatesInput = {
   NOT?: Prisma.BrandImageScalarWhereWithAggregatesInput | Prisma.BrandImageScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"BrandImage"> | string
   organizationId?: Prisma.StringWithAggregatesFilter<"BrandImage"> | string
-  url?: Prisma.StringWithAggregatesFilter<"BrandImage"> | string
   key?: Prisma.StringWithAggregatesFilter<"BrandImage"> | string
   name?: Prisma.StringWithAggregatesFilter<"BrandImage"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BrandImage"> | Date | string
@@ -252,7 +240,6 @@ export type BrandImageScalarWhereWithAggregatesInput = {
 export type BrandImageCreateInput = {
   id?: string
   organizationId: string
-  url: string
   key: string
   name?: string
   createdAt?: Date | string
@@ -262,7 +249,6 @@ export type BrandImageCreateInput = {
 export type BrandImageUncheckedCreateInput = {
   id?: string
   organizationId: string
-  url: string
   key: string
   name?: string
   createdAt?: Date | string
@@ -272,7 +258,6 @@ export type BrandImageUncheckedCreateInput = {
 export type BrandImageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  url?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -282,7 +267,6 @@ export type BrandImageUpdateInput = {
 export type BrandImageUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  url?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -292,7 +276,6 @@ export type BrandImageUncheckedUpdateInput = {
 export type BrandImageCreateManyInput = {
   id?: string
   organizationId: string
-  url: string
   key: string
   name?: string
   createdAt?: Date | string
@@ -302,7 +285,6 @@ export type BrandImageCreateManyInput = {
 export type BrandImageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  url?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -312,7 +294,6 @@ export type BrandImageUpdateManyMutationInput = {
 export type BrandImageUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
-  url?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -322,7 +303,6 @@ export type BrandImageUncheckedUpdateManyInput = {
 export type BrandImageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
-  url?: Prisma.SortOrder
   key?: Prisma.SortOrder
   name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -332,7 +312,6 @@ export type BrandImageCountOrderByAggregateInput = {
 export type BrandImageMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
-  url?: Prisma.SortOrder
   key?: Prisma.SortOrder
   name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -342,7 +321,6 @@ export type BrandImageMaxOrderByAggregateInput = {
 export type BrandImageMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
-  url?: Prisma.SortOrder
   key?: Prisma.SortOrder
   name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -354,7 +332,6 @@ export type BrandImageMinOrderByAggregateInput = {
 export type BrandImageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
-  url?: boolean
   key?: boolean
   name?: boolean
   createdAt?: boolean
@@ -364,7 +341,6 @@ export type BrandImageSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
 export type BrandImageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
-  url?: boolean
   key?: boolean
   name?: boolean
   createdAt?: boolean
@@ -374,7 +350,6 @@ export type BrandImageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type BrandImageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   organizationId?: boolean
-  url?: boolean
   key?: boolean
   name?: boolean
   createdAt?: boolean
@@ -384,25 +359,41 @@ export type BrandImageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type BrandImageSelectScalar = {
   id?: boolean
   organizationId?: boolean
-  url?: boolean
   key?: boolean
   name?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BrandImageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "url" | "key" | "name" | "createdAt" | "updatedAt", ExtArgs["result"]["brandImage"]>
+export type BrandImageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "key" | "name" | "createdAt" | "updatedAt", ExtArgs["result"]["brandImage"]>
 
 export type $BrandImagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BrandImage"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Brand image id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
-    url: string
+    /**
+     * R2 object key; public URL is derived from this key.
+     */
     key: string
+    /**
+     * User-facing image name.
+     */
     name: string
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["brandImage"]>
   composites: {}
@@ -829,7 +820,6 @@ export interface Prisma__BrandImageClient<T, Null = never, ExtArgs extends runti
 export interface BrandImageFieldRefs {
   readonly id: Prisma.FieldRef<"BrandImage", 'String'>
   readonly organizationId: Prisma.FieldRef<"BrandImage", 'String'>
-  readonly url: Prisma.FieldRef<"BrandImage", 'String'>
   readonly key: Prisma.FieldRef<"BrandImage", 'String'>
   readonly name: Prisma.FieldRef<"BrandImage", 'String'>
   readonly createdAt: Prisma.FieldRef<"BrandImage", 'DateTime'>

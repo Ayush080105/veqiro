@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model VegaFollowUp
- * 
+ * Vega email follow-up reminder.
  */
 export type VegaFollowUpModel = runtime.Types.Result.DefaultSelection<Prisma.$VegaFollowUpPayload>
 
@@ -479,15 +479,45 @@ export type $VegaFollowUpPayload<ExtArgs extends runtime.Types.Extensions.Intern
   name: "VegaFollowUp"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Follow-up id.
+     */
     id: string
+    /**
+     * Gmail message id being followed up.
+     */
     emailId: string
+    /**
+     * Email subject snapshot.
+     */
     emailSubject: string
+    /**
+     * Sender email snapshot.
+     */
     senderEmail: string
+    /**
+     * Due timestamp for the reminder.
+     */
     dueAt: Date
+    /**
+     * Draft text to use when following up.
+     */
     draftText: string
+    /**
+     * Follow-up lifecycle status.
+     */
     status: $Enums.FollowUpStatus
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["vegaFollowUp"]>
   composites: {}

@@ -145,7 +145,7 @@ export async function runEmailPipeline(
     stats: data.stats,
   };
 
-  await prisma.vegaInboxCache.upsert({
+  await prisma.vegaInboxSnapshot.upsert({
     where: { organizationId },
     update: { snapshot: snapshot as object, cachedAt: new Date() },
     create: { organizationId, snapshot: snapshot as object },

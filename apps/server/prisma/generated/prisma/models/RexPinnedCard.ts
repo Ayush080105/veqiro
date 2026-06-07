@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model RexPinnedCard
- * 
+ * Rex result card pinned to the Today/dashboard surface.
  */
 export type RexPinnedCardModel = runtime.Types.Result.DefaultSelection<Prisma.$RexPinnedCardPayload>
 
@@ -487,14 +487,41 @@ export type $RexPinnedCardPayload<ExtArgs extends runtime.Types.Extensions.Inter
   name: "RexPinnedCard"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Pin id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * User who pinned the card.
+     */
     userId: string
+    /**
+     * Card kind/type.
+     */
     kind: string
+    /**
+     * Full card payload JSON.
+     */
     payload: runtime.JsonValue
+    /**
+     * Sort position in the pinned list.
+     */
     position: number
+    /**
+     * Whether the card is publicly shareable.
+     */
     isPublic: boolean
+    /**
+     * Public share token when sharing is enabled.
+     */
     shareToken: string | null
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
   }, ExtArgs["result"]["rexPinnedCard"]>
   composites: {}

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Account
- * 
+ * Better Auth account/provider credentials.
  */
 export type AccountModel = runtime.Types.Result.DefaultSelection<Prisma.$AccountPayload>
 
@@ -753,21 +753,63 @@ export type AccountIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 export type $AccountPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Account"
   objects: {
+    /**
+     * Owning user relation.
+     */
     user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Better Auth account row id.
+     */
     id: string
+    /**
+     * Provider account id, such as Google subject id.
+     */
     accountId: string
+    /**
+     * Provider name, such as google.
+     */
     providerId: string
+    /**
+     * Owning user id.
+     */
     userId: string
+    /**
+     * OAuth access token used for provider APIs.
+     */
     accessToken: string | null
+    /**
+     * OAuth refresh token used to refresh access.
+     */
     refreshToken: string | null
+    /**
+     * OAuth/OIDC id token.
+     */
     idToken: string | null
+    /**
+     * Access token expiry timestamp.
+     */
     accessTokenExpiresAt: Date | null
+    /**
+     * Refresh token expiry timestamp.
+     */
     refreshTokenExpiresAt: Date | null
+    /**
+     * OAuth scope string granted by the provider.
+     */
     scope: string | null
+    /**
+     * Password hash for credential auth, when used.
+     */
     password: string | null
+    /**
+     * Account creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Account update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["account"]>
   composites: {}

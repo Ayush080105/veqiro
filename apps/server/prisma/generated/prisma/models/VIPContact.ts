@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model VIPContact
- * 
+ * Vega VIP contact used to prioritize inbox items.
  */
 export type VIPContactModel = runtime.Types.Result.DefaultSelection<Prisma.$VIPContactPayload>
 
@@ -351,10 +351,25 @@ export type $VIPContactPayload<ExtArgs extends runtime.Types.Extensions.Internal
   name: "VIPContact"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * VIP contact id.
+     */
     id: string
+    /**
+     * VIP email address.
+     */
     email: string
+    /**
+     * Optional display name.
+     */
     name: string | null
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
   }, ExtArgs["result"]["vIPContact"]>
   composites: {}

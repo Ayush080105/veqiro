@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model RexSettings
- * 
+ * Rex organization-level settings.
  */
 export type RexSettingsModel = runtime.Types.Result.DefaultSelection<Prisma.$RexSettingsPayload>
 
@@ -414,13 +414,37 @@ export type $RexSettingsPayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "RexSettings"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Owning organization id and primary key.
+     */
     organizationId: string
+    /**
+     * Whether weekly digest cron should include this org.
+     */
     weeklyDigestEnabled: boolean
+    /**
+     * Preferred digest timezone.
+     */
     weeklyDigestTimezone: string
+    /**
+     * Email recipients for digest delivery.
+     */
     weeklyDigestRecipients: string[]
+    /**
+     * JSON alert rule configuration.
+     */
     alertRules: runtime.JsonValue | null
+    /**
+     * Optional API key for metrics ingestion.
+     */
     ingestApiKey: string | null
+    /**
+     * Saved column mapping templates for uploads.
+     */
     columnMappingTemplates: runtime.JsonValue | null
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["rexSettings"]>
   composites: {}

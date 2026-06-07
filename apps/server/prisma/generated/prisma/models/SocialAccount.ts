@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model SocialAccount
- * 
+ * Connected social account for publishing.
  */
 export type SocialAccountModel = runtime.Types.Result.DefaultSelection<Prisma.$SocialAccountPayload>
 
@@ -489,9 +489,9 @@ export type SocialAccountMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
-export type SocialAccountScalarRelationFilter = {
-  is?: Prisma.SocialAccountWhereInput
-  isNot?: Prisma.SocialAccountWhereInput
+export type SocialAccountNullableScalarRelationFilter = {
+  is?: Prisma.SocialAccountWhereInput | null
+  isNot?: Prisma.SocialAccountWhereInput | null
 }
 
 export type EnumSocialPlatformFieldUpdateOperationsInput = {
@@ -504,10 +504,12 @@ export type SocialAccountCreateNestedOneWithoutPublishedPostsInput = {
   connect?: Prisma.SocialAccountWhereUniqueInput
 }
 
-export type SocialAccountUpdateOneRequiredWithoutPublishedPostsNestedInput = {
+export type SocialAccountUpdateOneWithoutPublishedPostsNestedInput = {
   create?: Prisma.XOR<Prisma.SocialAccountCreateWithoutPublishedPostsInput, Prisma.SocialAccountUncheckedCreateWithoutPublishedPostsInput>
   connectOrCreate?: Prisma.SocialAccountCreateOrConnectWithoutPublishedPostsInput
   upsert?: Prisma.SocialAccountUpsertWithoutPublishedPostsInput
+  disconnect?: Prisma.SocialAccountWhereInput | boolean
+  delete?: Prisma.SocialAccountWhereInput | boolean
   connect?: Prisma.SocialAccountWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.SocialAccountUpdateToOneWithWhereWithoutPublishedPostsInput, Prisma.SocialAccountUpdateWithoutPublishedPostsInput>, Prisma.SocialAccountUncheckedUpdateWithoutPublishedPostsInput>
 }
@@ -700,21 +702,63 @@ export type SocialAccountIncludeUpdateManyAndReturn<ExtArgs extends runtime.Type
 export type $SocialAccountPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SocialAccount"
   objects: {
+    /**
+     * Posts published through this account.
+     */
     publishedPosts: Prisma.$PublishedPostPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Social account id.
+     */
     id: string
+    /**
+     * Owning organization id.
+     */
     organizationId: string
+    /**
+     * User who connected the account.
+     */
     userId: string
+    /**
+     * Social platform.
+     */
     platform: $Enums.SocialPlatform
+    /**
+     * Provider-side account id.
+     */
     providerAccountId: string
+    /**
+     * Provider-side account display name.
+     */
     accountName: string | null
+    /**
+     * Provider access token.
+     */
     accessToken: string
+    /**
+     * Provider refresh token.
+     */
     refreshToken: string | null
+    /**
+     * Provider access token expiry.
+     */
     accessTokenExpiresAt: Date | null
+    /**
+     * Provider OAuth scopes.
+     */
     scope: string | null
+    /**
+     * Provider-specific metadata.
+     */
     metadata: runtime.JsonValue | null
+    /**
+     * Creation timestamp.
+     */
     createdAt: Date
+    /**
+     * Update timestamp.
+     */
     updatedAt: Date
   }, ExtArgs["result"]["socialAccount"]>
   composites: {}

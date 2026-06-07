@@ -2,7 +2,6 @@ import { z } from "zod";
 
 export const finalizeBrandImageSchema = z.object({
   key: z.string().min(1).max(500),
-  url: z.string().min(1).max(1000),
   name: z.string().min(1).max(200),
 });
 
