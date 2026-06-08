@@ -204,6 +204,7 @@ class ScoutAgent(BaseAgent):
                     ToolParameter(name="topic", type="string", description="The topic or market to research in depth", required=True),
                     ToolParameter(name="depth", type="string", description="'quick' (overview), 'standard' (detailed), 'deep' (exhaustive)", required=False, default="standard", enum=["quick", "standard", "deep"]),
                     ToolParameter(name="sources_hint", type="array", description="Specific URLs to include as research sources", required=False, items_type="string"),
+                    ToolParameter(name="location", type="string", description="City, region, or country to focus the research on. Omit for global research.", required=False, default=""),
                 ],
             ),
             ToolDefinition(
@@ -282,12 +283,14 @@ class ScoutAgent(BaseAgent):
             try:
                 from core.utils import safe_json_loads
                 topic = arguments.get("topic", "")
+                loc = (arguments.get("location") or "").strip()
                 sources = arguments.get("sources_hint", []) or []
+                loc_clause = f" in {loc}" if loc else ""
 
                 keywords, search_results, news_results = await asyncio.gather(
                     google_autocomplete(topic),
-                    serper_search(f"{topic} market size trends {year}"),
-                    serper_search(f"{topic} news analysis {year}", search_type="news"),
+                    serper_search(f"{topic} market size trends {loc} {year}".strip()),
+                    serper_search(f"{topic} news analysis {loc} {year}".strip(), search_type="news"),
                 )
 
                 async def _safe_scrape(url: str) -> str | None:
@@ -316,7 +319,7 @@ class ScoutAgent(BaseAgent):
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
-                        f"Today is {today}. Produce a market intelligence brief on: **{topic}**\n"
+                        f"Today is {today}. Produce a market intelligence brief on: **{topic}**{loc_clause}\n"
                         f"Related keywords: {keywords[:10]}"
                         f"{search_context}\n\n"
                         "Return a single JSON object (no markdown fences) with EXACTLY these fields:\n"

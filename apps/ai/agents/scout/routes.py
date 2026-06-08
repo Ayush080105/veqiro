@@ -177,7 +177,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
     if settings.MOCK_MODE:
         keywords = await google_autocomplete(request.topic)
         return ResearchTopicResponse(
-            findings=(
+            market_overview=(
                 f"**Research Findings: {request.topic}**\n\n"
                 "**Market Size & Growth:**\n"
                 "The global AI productivity tools market is valued at $8.4B in 2025, projected to reach $23.8B by 2026 (31% CAGR). "
@@ -193,7 +193,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
                 "- Integration ecosystems (not standalone tools) winning in enterprise\n"
                 "- 78% of founders prefer tools that integrate with existing stack vs. new ecosystems"
             ),
-            synthesis=(
+            bottom_line=(
                 f"The opportunity in {request.topic} is significant and largely unclaimed at the 'founder-specific' vertical. "
                 "No dominant player owns this category with purpose-built AI agents tailored to founder workflows. "
                 "The key strategic insight: founders need AI that understands business context, not generic chat. "
@@ -201,6 +201,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             ),
             sources_scraped=["https://techcrunch.com", "https://crunchbase.com", "https://g2.com"],
             keywords_found=keywords[:8],
+            model_used="mock",
         )
 
     import logging as _log_rt

@@ -68,29 +68,3 @@ export const findAllScoutMessages = (organizationId: string) =>
       customInput: true,
     },
   });
-
-// ── Competitor Watchlist ──────────────────────────────────────────────────────
-
-export const findCompetitorWatches = (_organizationId: string) =>
-  Promise.resolve([]);
-
-export const upsertCompetitorWatch = (data: {
-  organizationId: string;
-  name: string;
-  url: string;
-  latestHash?: string | null;
-  lastScannedAt?: Date | null;
-}) =>
-  Promise.resolve({
-    id: "",
-    organizationId: data.organizationId,
-    name: data.name,
-    url: data.url,
-    latestHash: data.latestHash ?? null,
-    lastScannedAt: data.lastScannedAt ?? null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-
-export const deleteCompetitorWatch = (id: string, organizationId: string) =>
-  Promise.resolve({ count: id && organizationId ? 0 : 0 });

@@ -13,8 +13,6 @@ import type {
   ResearchCompanyResponse,
   TrendingTopicsInput,
   TrendingTopicsResponse,
-  AddCompetitorInput,
-  CompetitorWatch,
   DiscoverCompetitorsInput,
   DiscoverCompetitorsResponse,
 } from "./scout.types.js";
@@ -76,7 +74,7 @@ export const researchTopic = async (
   await scoutRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Research topic: ${input.topic}`,
+    content: `Research topic: ${input.topic} (depth: ${input.depth}, location: ${input.location ?? "global"})`,
     customInput: { actionId: "scout:research-topic", input },
   });
 
@@ -112,7 +110,7 @@ export const researchCompany = async (
   await scoutRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Research company: ${input.companyName}`,
+    content: `Research company: ${input.companyName} (${input.companyUrl??"" })`,
     customInput: { actionId: "scout:research-company", input },
   });
 
@@ -129,7 +127,7 @@ export const researchCompany = async (
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Company profile: ${input.companyName}`,
+    content: `Research complete: ${data.company.name} `,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "scout:research-company", input, result: data },
@@ -146,7 +144,7 @@ export const trendingTopics = async (
   await scoutRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Trends in ${input.industry}`,
+    content: `Trends in ${input.industry} ${input.location ? `in ${input.location}` : ""}, Count: ${input.count}`,
     customInput: { actionId: "scout:trending-topics", input },
   });
 
@@ -164,7 +162,7 @@ export const trendingTopics = async (
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `${data.trends.length} trends identified`,
+    content: `Trending topics identified: ${data.trends.length} trends in ${input.industry} ${input.location ? `in ${input.location}` : ""}`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "scout:trending-topics", input, result: data },
@@ -173,21 +171,6 @@ export const trendingTopics = async (
   return data;
 };
 
-// ── Competitor Watchlist ──────────────────────────────────────────────────────
-
-export const listCompetitors = (organizationId: string): Promise<CompetitorWatch[]> =>
-  scoutRepository.findCompetitorWatches(organizationId) as unknown as Promise<CompetitorWatch[]>;
-
-export const addCompetitor = async (
-  _organizationId: string,
-  _input: AddCompetitorInput
-): Promise<CompetitorWatch> => {
-  throw new BadRequestError("Competitor watchlist storage has been removed. Use Scout discovery or research actions instead.");
-};
-
-export const removeCompetitor = async (_id: string, _organizationId: string): Promise<void> => {
-  throw new BadRequestError("Competitor watchlist storage has been removed.");
-};
 
 export const discoverCompetitors = async (
   userId: string,
@@ -216,7 +199,7 @@ export const discoverCompetitors = async (
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Found ${data.competitors.length} competitor${data.competitors.length !== 1 ? "s" : ""} in ${input.industry}`,
+    content: `Competitor discovery complete: ${data.competitors.length} competitors found in ${input.industry} ${input.location ? `in ${input.location}` : ""}`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "scout:discover-competitors", input, result: data },

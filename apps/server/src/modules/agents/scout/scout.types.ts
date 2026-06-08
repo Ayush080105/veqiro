@@ -4,7 +4,6 @@ import {
   researchTopicSchema,
   researchCompanySchema,
   trendingTopicsSchema,
-  addCompetitorSchema,
   discoverCompetitorsSchema,
 } from "./scout.schema.js";
 
@@ -12,7 +11,6 @@ export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type ResearchTopicInput = z.infer<typeof researchTopicSchema>;
 export type ResearchCompanyInput = z.infer<typeof researchCompanySchema>;
 export type TrendingTopicsInput = z.infer<typeof trendingTopicsSchema>;
-export type AddCompetitorInput = z.infer<typeof addCompetitorSchema>;
 export type DiscoverCompetitorsInput = z.infer<typeof discoverCompetitorsSchema>;
 
 export interface AssistantMessagePayload {
@@ -26,9 +24,27 @@ export interface AssistantMessagePayload {
 }
 
 // Mirror AI-side response shapes (snake_case preserved — proxied verbatim)
+export interface TopicPlayerItem {
+  name: string;
+  role: string;
+  note: string;
+}
+
+export interface TopicStatItem {
+  label: string;
+  value: string;
+}
+
 export interface ResearchTopicResponse {
-  findings: string;
-  synthesis: string;
+  bottom_line: string;
+  market_overview: string;
+  key_players: TopicPlayerItem[];
+  opportunities: string[];
+  risks: string[];
+  key_stats: TopicStatItem[];
+  emerging_trends: string[];
+  target_customers: string;
+  recommended_actions: string[];
   sources_scraped: string[];
   keywords_found: string[];
   tokens_used?: number;
@@ -69,16 +85,6 @@ export interface TrendingTopicsResponse {
   generated_at: string;
   tokens_used?: number;
   model_used?: string;
-}
-
-export interface CompetitorWatch {
-  id: string;
-  organizationId: string;
-  name: string;
-  url: string;
-  latestHash: string | null;
-  lastScannedAt: string | null;
-  createdAt: string;
 }
 
 export interface DiscoveredCompetitor {

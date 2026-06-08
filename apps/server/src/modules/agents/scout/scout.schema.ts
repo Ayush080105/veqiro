@@ -25,11 +25,6 @@ export const trendingTopicsSchema = z.object({
   location: z.string().max(200).optional().default(""),
 });
 
-export const addCompetitorSchema = z.object({
-  name: z.string().min(1).max(120),
-  url: z.string().url(),
-});
-
 export const discoverCompetitorsSchema = z.object({
   description: z.string().min(1).max(300),
   industry: z.string().min(1).max(120),
