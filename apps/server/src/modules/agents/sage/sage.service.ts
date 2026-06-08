@@ -40,7 +40,7 @@ export const sendMessage = async (
     agentRole: "Sage: SEO and content strategy assistant",
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
   }) as AssistantMessagePayload;
@@ -53,7 +53,7 @@ export const sendMessage = async (
       ? { actionId: responseData.action_id, input: {}, result: responseData.action_result }
       : undefined;
 
-  await sageRepository.createAssistantMessage({
+  const assistantMessage = await sageRepository.createAssistantMessage({
     organizationId,
     userId,
     content: responseData.response,
@@ -63,13 +63,7 @@ export const sendMessage = async (
     customInput,
   });
 
-  return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl: responseData.image?.url,
-    customInput: customInput ?? null,
-    createdAt: userMessage.createdAt,
-  };
+  return assistantMessage;
 };
 
 export const listMessages = (organizationId: string) =>
@@ -103,6 +97,8 @@ export const keywordResearch = async (
     organizationId,
     userId,
     content: `${data.keywords.length} keywords in ${data.clusters.length} clusters`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "sage:keyword-research", input, result: data },
   });
 
@@ -141,6 +137,8 @@ export const generateBlog = async (
     organizationId,
     userId,
     content: `Generated ${data.blog.word_count}-word post (SEO score ${data.seo_score})`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "sage:generate-blog", input, result: data },
   });
 
@@ -174,6 +172,8 @@ export const analyzeContent = async (
     organizationId,
     userId,
     content: `SEO score ${data.score}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "sage:analyze-content", input, result: data },
   });
 
@@ -207,6 +207,8 @@ export const contentBrief = async (
     organizationId,
     userId,
     content: `Brief generated for "${input.targetKeyword}"`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "sage:content-brief", input, result: data },
   });
 
@@ -238,6 +240,8 @@ export const generateBlogIdeas = async (
     organizationId,
     userId,
     content: `Generated ${data.ideas.length} blog ideas`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "sage:generate-blog-ideas", input, result: data },
   });
 

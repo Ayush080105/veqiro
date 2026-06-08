@@ -10,10 +10,12 @@ import {
   removeCompetitor,
   discoverCompetitors,
 } from "./scout.controller.js";
+import { validate } from "../../../middlewares/validation.middleware.js";
+import { sendMessageSchema } from "./scout.schema.js";
 
 const router = Router();
 
-router.post("/chat", msgScout);
+router.post("/chat",validate(sendMessageSchema), msgScout);
 router.get("/chat", getScoutMessages);
 router.post("/research-topic", researchTopic);
 router.post("/research-company", researchCompany);

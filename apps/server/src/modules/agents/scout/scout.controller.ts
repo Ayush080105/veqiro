@@ -27,8 +27,7 @@ export const msgScout = async (req: Request, res: Response) => {
 };
 
 export const getScoutMessages = async (req: Request, res: Response) => {
-  const organizationId =
-    (req.query.organizationId as string) ?? req.organizationId;
+  const organizationId = req.organizationId;
   if (!organizationId) {
     throw new BadRequestError("Organization ID is required");
   }

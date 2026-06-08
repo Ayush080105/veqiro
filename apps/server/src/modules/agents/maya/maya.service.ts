@@ -90,7 +90,7 @@ export const sendMessage = async (
     agentRole: "Maya: Social media content creation assistant",
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
   }) as AssistantMessagePayload;
@@ -132,7 +132,7 @@ export const sendMessage = async (
     customInput = { actionId: responseData.action_id, input: {}, result };
   }
 
-  await mayaRepository.createAssistantMessage({
+  const assistantMessage = await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: responseData.response,
@@ -142,13 +142,7 @@ export const sendMessage = async (
     customInput,
   });
 
-  return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl,
-    customInput: customInput ?? null,
-    createdAt: userMessage.createdAt,
-  };
+  return assistantMessage;
 };
 
 export const listMessages = (organizationId: string) =>

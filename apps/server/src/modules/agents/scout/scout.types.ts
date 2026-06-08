@@ -31,6 +31,8 @@ export interface ResearchTopicResponse {
   synthesis: string;
   sources_scraped: string[];
   keywords_found: string[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface CompanyProfile {
@@ -50,6 +52,8 @@ export interface CompanyProfile {
 export interface ResearchCompanyResponse {
   company: CompanyProfile;
   scraped_at: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface TrendItem {
@@ -63,6 +67,8 @@ export interface TrendItem {
 export interface TrendingTopicsResponse {
   trends: TrendItem[];
   generated_at: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface CompetitorWatch {
@@ -85,4 +91,6 @@ export interface DiscoveredCompetitor {
 export interface DiscoverCompetitorsResponse {
   competitors: DiscoveredCompetitor[];
   generated_at: string;
+  tokens_used?: number;
+  model_used?: string;
 }

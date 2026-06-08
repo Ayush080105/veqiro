@@ -1,5 +1,6 @@
 import { prisma } from "../../../config/prisma.js";
 import { Agent, Prisma, SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
+import { recordDirectActionContextForAssistantMessage } from "../../../common/utils/contextService.js";
 
 export const createUserMessage = (data: {
   organizationId: string;
@@ -39,6 +40,12 @@ export const createAssistantMessage = (data: {
       model: data.model,
       customInput: data.customInput as Prisma.InputJsonValue | undefined,
     },
+  }).then((message) => {
+    const customInput = data.customInput as { actionId?: unknown } | undefined;
+    if (typeof customInput?.actionId === "string") {
+      void recordDirectActionContextForAssistantMessage(message.id);
+    }
+    return message;
   });
 
 export const findRecentMessages = (organizationId: string, limit: number) =>

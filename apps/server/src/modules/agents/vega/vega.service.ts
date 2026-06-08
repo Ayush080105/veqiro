@@ -122,7 +122,7 @@ export const sendMessage = async (
     agentRole: "Vega: Executive assistant for email and calendar management",
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
     ...(googleAccessToken ? { extraPayload: { google_access_token: googleAccessToken } } : {}),
@@ -143,7 +143,7 @@ export const sendMessage = async (
       : undefined;
   const customInput = richInput ?? (execResult ? { execResult } : undefined);
 
-  await vegaRepository.createAssistantMessage({
+  const assistantMessage = await vegaRepository.createAssistantMessage({
     organizationId,
     userId,
     content: responseData.response,
@@ -154,14 +154,10 @@ export const sendMessage = async (
   });
 
   return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl: responseData.image?.url,
-    customInput: customInput ?? null,
+    ...assistantMessage,
     nodeActionsExecuted: execResult?.executed ?? 0,
     nodeActionErrors: execResult?.errors ?? [],
     googleNotConnected: !googleAccessToken,
-    createdAt: userMessage.createdAt,
   };
 };
 
@@ -219,6 +215,8 @@ export const processInbox = async (
     organizationId,
     userId,
     content: `Processed ${data.stats.total_processed} emails — ${data.stats.urgent} urgent, ${data.stats.high} high (${exec.executed} node actions executed)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "vega:process-inbox", input, result },
   });
 
@@ -269,6 +267,8 @@ export const draftReply = async (
     content: draftId
       ? `Gmail draft created (id: ${draftId})`
       : `Reply drafted (not saved)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "vega:draft-reply", input, result },
   });
 
@@ -302,6 +302,8 @@ export const calendarSummary = async (
     organizationId,
     userId,
     content: `${data.events.length} events, ${data.conflicts.length} conflicts, ${data.free_slots.length} free slots`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "vega:calendar-summary", input, result: data },
   });
 
@@ -360,6 +362,8 @@ export const createEvent = async (
     content: googleEventId
       ? `Event created (${googleEventId})${meetLink ? ` — ${meetLink}` : ""}`
       : `Event parsed (not created)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "vega:create-event", input, result },
   });
 
@@ -394,6 +398,8 @@ export const executiveBriefing = async (
     organizationId,
     userId,
     content: "Briefing generated",
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "vega:executive-briefing", input, result: data },
   });
 
@@ -445,6 +451,8 @@ export const composeEmail = async (
     content: draftId
       ? `Gmail draft created (id: ${draftId})`
       : `Email drafted (not saved)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "vega:compose-email", input, result },
   });
 

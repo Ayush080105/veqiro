@@ -39,7 +39,7 @@ export const sendMessage = async (
     agentRole: "Scout: Competitive intelligence assistant",
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
   }) as AssistantMessagePayload;
@@ -52,7 +52,7 @@ export const sendMessage = async (
       ? { actionId: responseData.action_id, input: {}, result: responseData.action_result }
       : undefined;
 
-  await scoutRepository.createAssistantMessage({
+  const assistantMessage = await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
     content: responseData.response,
@@ -62,13 +62,7 @@ export const sendMessage = async (
     customInput,
   });
 
-  return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl: responseData.image?.url,
-    customInput: customInput ?? null,
-    createdAt: userMessage.createdAt,
-  };
+  return assistantMessage;
 };
 
 export const listMessages = (organizationId: string) =>
@@ -102,6 +96,8 @@ export const researchTopic = async (
     organizationId,
     userId,
     content: `Research complete: ${input.topic} (${data.sources_scraped?.length ?? 0} sources)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:research-topic", input, result: data },
   });
 
@@ -134,6 +130,8 @@ export const researchCompany = async (
     organizationId,
     userId,
     content: `Company profile: ${input.companyName}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:research-company", input, result: data },
   });
 
@@ -167,6 +165,8 @@ export const trendingTopics = async (
     organizationId,
     userId,
     content: `${data.trends.length} trends identified`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:trending-topics", input, result: data },
   });
 
@@ -217,6 +217,8 @@ export const discoverCompetitors = async (
     organizationId,
     userId,
     content: `Found ${data.competitors.length} competitor${data.competitors.length !== 1 ? "s" : ""} in ${input.industry}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:discover-competitors", input, result: data },
   });
 

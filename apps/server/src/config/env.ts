@@ -1,5 +1,5 @@
 // TODO: add Zod validation and fail-fast on missing vars
-export const env = {
+const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
   PORT: Number(process.env.PORT) || 5000,
   API_VERSION: process.env.API_VERSION ?? "v1",
@@ -13,3 +13,5 @@ export const env = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
 } as const;
+
+export default env

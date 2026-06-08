@@ -4,6 +4,8 @@ import { triggerSummarize } from "../../modules/context/context.service.js"
 import { Agent } from "../../../prisma/generated/prisma/client.js"
 import { CONTEXT_HISTORY_LIMIT, SUMMARIZE_THRESHOLD } from "../../config/constants.js"
 import type { BuildContextResponse } from "../../modules/context/context.types.js"
+import { z } from "zod"
+import { prisma } from "../../config/prisma.js"
 
 interface AgentCallOptions {
   agentApiPath: string            // e.g. "/ai/sage/chat"
@@ -17,7 +19,156 @@ interface AgentCallOptions {
   extraPayload?: Record<string, unknown>
 }
 
-export async function callAgentWithContext(opts: AgentCallOptions): Promise<unknown> {
+const chatResponseSchema = z.object({
+  response: z.string(),
+  agent: z.string(),
+  message_id: z.string(),
+  tokens_used: z.number().int().nonnegative().default(0),
+  model_used: z.string().default(""),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
+  image: z.unknown().nullable().optional(),
+  action_id: z.string().nullable().optional(),
+  action_result: z.record(z.string(), z.unknown()).nullable().optional(),
+})
+
+export type AgentChatResponse = z.infer<typeof chatResponseSchema>
+
+const agentRoles: Record<Agent, string> = {
+  [Agent.MAYA]: "Maya: Social media content creation assistant",
+  [Agent.SAGE]: "Sage: SEO and content strategy assistant",
+  [Agent.LEX]: "Lex: Legal and compliance assistant",
+  [Agent.REX]: "Rex: Data analytics and reporting assistant",
+  [Agent.SCOUT]: "Scout: Competitive intelligence assistant",
+  [Agent.VEGA]: "Vega: Executive assistant for email and calendar management",
+}
+
+const toAscHistory = (history: { role: string; content: string }[]) =>
+  [...history].reverse().slice(0, CONTEXT_HISTORY_LIMIT)
+
+const logContextFailure = (
+  stage: string,
+  data: { organizationId: string; agent: Agent; conversationId?: string },
+  err: unknown,
+) => {
+  const message = err instanceof Error ? err.message : String(err)
+  console.error("[context]", stage, {
+    organizationId: data.organizationId,
+    agent: data.agent,
+    conversationId: data.conversationId,
+    error: message,
+  })
+}
+
+export async function recordAgentTurnContext(opts: {
+  organizationId: string
+  agent: Agent
+  agentRole?: string
+  conversationId?: string
+  userContent: string
+  assistantContent: string
+  recentMessages: { role: string; content: string }[]
+  actionId?: string
+  actionSummary?: string
+}) {
+  const agentRole = opts.agentRole ?? agentRoles[opts.agent]
+  try {
+    await aiService.post("/ai/context/store-turn", {
+      org_id: opts.organizationId,
+      agent: opts.agent.toLowerCase(),
+      user_content: opts.userContent,
+      assistant_content: opts.assistantContent,
+    })
+
+    if (opts.actionId) {
+      await contextRepo.appendOrgFact(
+        opts.organizationId,
+        `[CONTEXT] ${agentRole} completed ${opts.actionId} on ${new Date().toISOString().slice(0, 10)}: ${opts.actionSummary ?? opts.assistantContent}`,
+      )
+    }
+
+    const count = await contextRepo.incrementMessageCount(opts.organizationId, opts.agent)
+    if (count >= SUMMARIZE_THRESHOLD) {
+      const currentTurn = [
+        { role: "user", content: opts.userContent },
+        { role: "assistant", content: opts.assistantContent },
+      ]
+      await triggerSummarize(
+        opts.organizationId,
+        opts.agent,
+        [...toAscHistory(opts.recentMessages), ...currentTurn],
+        agentRole,
+      )
+    }
+  } catch (err) {
+    logContextFailure("record-turn", opts, err)
+  }
+}
+
+export async function recordDirectActionContextForAssistantMessage(messageId: string) {
+  try {
+    const assistant = await prisma.message.findUnique({
+      where: { id: messageId },
+      select: {
+        id: true,
+        organizationId: true,
+        agent: true,
+        role: true,
+        content: true,
+        createdAt: true,
+        customInput: true,
+      },
+    })
+    if (!assistant || assistant.role !== "assistant") return
+
+    const assistantInput = assistant.customInput as Record<string, unknown> | null
+    const actionId = typeof assistantInput?.actionId === "string" ? assistantInput.actionId : null
+    if (!actionId) return
+
+    const userMessage = await prisma.message.findFirst({
+      where: {
+        organizationId: assistant.organizationId,
+        agent: assistant.agent,
+        role: "user",
+        createdAt: { lte: assistant.createdAt },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { content: true, customInput: true },
+    })
+
+    if (!userMessage) return
+
+    const userInput = userMessage.customInput as Record<string, unknown> | null
+    if (userInput?.actionId !== actionId) return
+
+    const recentMessages = await prisma.message.findMany({
+      where: {
+        organizationId: assistant.organizationId,
+        agent: assistant.agent,
+        createdAt: { lt: assistant.createdAt },
+      },
+      orderBy: { createdAt: "desc" },
+      take: CONTEXT_HISTORY_LIMIT,
+      select: { role: true, content: true },
+    })
+
+    await recordAgentTurnContext({
+      organizationId: assistant.organizationId,
+      agent: assistant.agent,
+      agentRole: agentRoles[assistant.agent],
+      conversationId: assistant.id,
+      userContent: userMessage.content,
+      assistantContent: assistant.content,
+      recentMessages,
+      actionId,
+      actionSummary: assistant.content,
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error("[context] direct-action-record", { messageId, error: message })
+  }
+}
+
+export async function callAgentWithContext(opts: AgentCallOptions): Promise<AgentChatResponse> {
   const {
     agentApiPath, agentEnum, agentRole, userId, organizationId,
     conversationId, userMessage, rawHistory, extraPayload = {},
@@ -31,7 +182,7 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
       contextRepo.findOrgMemory(organizationId),
     ])
     // Reverse DESC→ASC so FastAPI's hot[-8:] returns the 8 NEWEST messages
-    const ascHistory = [...rawHistory].reverse().slice(0, CONTEXT_HISTORY_LIMIT)
+    const ascHistory = toAscHistory(rawHistory)
 
     // Surface structured sharedMemory (goals, product, decisions) for all agents
     const sharedMem = (orgMem?.sharedMemory as Record<string, unknown>) ?? {}
@@ -77,31 +228,20 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
   })
 
   // 4. If a rich action was completed, record it in OrgMemory so other agents know
-  const responseData = response as { response: string; action_id?: string }
-  if (responseData.action_id) {
-    void contextRepo.appendOrgFact(
-      organizationId,
-      `[CONTEXT] ${agentRole} completed ${responseData.action_id} on ${new Date().toISOString().slice(0, 10)}: ${responseData.response.slice(0, 120)}`
-    ).catch(() => {})
-  }
+  const responseData = chatResponseSchema.parse(response)
 
-  // 5. Fire-and-forget: store turn + maybe summarize
-  void (async () => {
-    try {
-      await aiService.post("/ai/context/store-turn", {
-        org_id: organizationId,
-        agent: agentEnum.toLowerCase(),
-        user_content: userMessage,
-        assistant_content: (response as { response: string }).response,
-      })
-      const count = await contextRepo.incrementMessageCount(organizationId, agentEnum)
-      if (count >= SUMMARIZE_THRESHOLD) {
-        await triggerSummarize(organizationId, agentEnum, rawHistory, agentRole)
-      }
-    } catch {
-      // non-fatal
-    }
-  })()
+  // 5. Monitored async context write: non-blocking, but failures are visible.
+  void recordAgentTurnContext({
+    organizationId,
+    agent: agentEnum,
+    agentRole,
+    conversationId,
+    userContent: userMessage,
+    assistantContent: responseData.response,
+    recentMessages: rawHistory,
+    actionId: responseData.action_id ?? undefined,
+    actionSummary: responseData.response,
+  })
 
-  return response
+  return responseData
 }

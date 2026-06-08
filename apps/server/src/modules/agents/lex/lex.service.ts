@@ -52,7 +52,7 @@ export const sendMessage = async (
     agentRole: "Lex: Legal and compliance assistant",
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
   }) as AssistantMessagePayload;
@@ -65,7 +65,7 @@ export const sendMessage = async (
         ? { metadata: responseData.metadata }
         : undefined;
 
-  await lexRepository.createAssistantMessage({
+  const assistantMessage = await lexRepository.createAssistantMessage({
     organizationId,
     userId,
     content: responseData.response,
@@ -75,13 +75,7 @@ export const sendMessage = async (
     customInput,
   });
 
-  return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl: responseData.image?.url,
-    customInput: customInput ?? null,
-    createdAt: userMessage.createdAt,
-  };
+  return assistantMessage;
 };
 
 export const listMessages = (organizationId: string) =>
@@ -156,7 +150,7 @@ export const finalizeSource = async (
     userId,
     content: `Upload document: ${input.documentName}`,
     customInput: {
-      tool: "upload-source",
+      actionId: "lex:upload-source",
       input: {
         documentName: input.documentName,
         documentType: input.documentType,
@@ -196,6 +190,8 @@ export const finalizeSource = async (
     organizationId,
     userId,
     content: `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:upload-source", result: { ...data, sourceRowId: source.id } },
   });
 
@@ -324,6 +320,8 @@ export const analyzeContract = async (
     organizationId,
     userId,
     content: `Risk level: ${data.analysis.risk_level} — ${data.analysis.risks.length} risks identified`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: {
       actionId: "lex:analyze-contract",
       input: {
@@ -366,6 +364,8 @@ export const draftDocument = async (
     organizationId,
     userId,
     content: `Drafted ${input.documentType} (${data.document.length} chars)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:draft-document", input, result: data },
   });
 
@@ -395,6 +395,8 @@ export const explainLegalText = async (
     organizationId,
     userId,
     content: `Explanation ready (${data.practical_implications.length} implications, ${data.related_concepts.length} related concepts)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:explain", input, result: data },
   });
 
@@ -428,6 +430,8 @@ export const legalResearch = async (
     organizationId,
     userId,
     content: `${data.applicable_laws.length} laws, ${data.relevant_cases.length} cases found (${data.confidence_level})`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:legal-research", input, result: data },
   });
 
@@ -461,6 +465,8 @@ export const complianceCheck = async (
     organizationId,
     userId,
     content: `Status: ${data.overall_status} — ${data.critical_gaps.length} critical gaps, ${data.remediation_steps.length} remediation steps`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:compliance-check", input, result: data },
   });
 

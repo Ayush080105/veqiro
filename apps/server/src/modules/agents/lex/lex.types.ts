@@ -36,6 +36,8 @@ export interface IngestDocumentResponse {
   summary: string;
   key_topics: string[];
   document_type_detected: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface SourceDTO {
@@ -118,6 +120,8 @@ export interface AnalyzeContractResponse {
 export interface DraftDocumentResponse {
   document: string;
   review_notes: string[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ExplainResponse {
@@ -125,6 +129,8 @@ export interface ExplainResponse {
   key_terms: Record<string, string>;
   related_concepts: string[];
   practical_implications: string[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface LegalResearchResponse {
@@ -135,6 +141,8 @@ export interface LegalResearchResponse {
   practical_guidance: string[];
   jurisdiction_notes: string;
   confidence_level: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface FrameworkResult {
@@ -155,4 +163,6 @@ export interface ComplianceCheckResponse {
   critical_gaps: string[];
   remediation_steps: RemediationStep[];
   estimated_effort: string;
+  tokens_used?: number;
+  model_used?: string;
 }
