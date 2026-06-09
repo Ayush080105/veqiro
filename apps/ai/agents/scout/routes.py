@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.llm import LLMClient
 from core.rag import RAGService
@@ -31,6 +31,7 @@ class ResearchTopicRequest(BaseModel):
     depth: str = "standard"  # "quick" | "standard" | "deep"
     sources_hint: list[str] = []
     location: str = ""
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -69,25 +70,12 @@ class ResearchTopicResponse(BaseModel):
     tokens_used: int = 0
     model_used: str = ""
 
-    @model_validator(mode="before")
-    @classmethod
-    def migrate_legacy_fields(cls, data: object) -> object:
-        if not isinstance(data, dict):
-            return data
-        findings = data.pop("findings", None)
-        synthesis = data.pop("synthesis", None)
-        if findings and not data.get("market_overview"):
-            data["market_overview"] = str(findings)
-        if synthesis and not data.get("bottom_line"):
-            data["bottom_line"] = str(synthesis)
-        return data
-
-
 class ResearchCompanyRequest(BaseModel):
     user_id: str
     organization_id: str = ""
     company_name: str
     company_url: str | None = None
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -127,6 +115,7 @@ class TrendingTopicsRequest(BaseModel):
     industry: str
     count: int = 10
     location: str = ""
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -318,6 +307,9 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     try:
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
@@ -544,6 +536,9 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
         if news_results:
             news_context = "\n\nRecent news:\n" + "\n".join(f"- {r['title']}: {r['snippet']}" for r in news_results[:6])
         system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=True)
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system += f"\n\n## Memory Context\n{memory_context}"
         loc_clause = f" in {loc}" if loc else ""
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
@@ -612,6 +607,7 @@ class DiscoverCompetitorsRequest(BaseModel):
     industry: str
     count: int = 8
     location: str = ""
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={

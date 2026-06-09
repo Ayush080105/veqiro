@@ -2,7 +2,7 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { callAgentWithContext, storeActionTurn } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import {
   deleteObject,
@@ -144,6 +144,9 @@ export const finalizeSource = async (
   }
 
   const documentUrl = getPublicUrl(input.key);
+  const [history] = await Promise.all([
+    lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
 
   await lexRepository.createUserMessage({
     organizationId,
@@ -186,14 +189,24 @@ export const finalizeSource = async (
     keyTopics: data.key_topics,
   });
 
+  const assistantContent = `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`;
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`,
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "lex:upload-source", result: { ...data, sourceRowId: source.id } },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    organizationId,
+    userContent: `Upload document: ${input.documentName}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return toSourceDTO(source);
 };
@@ -240,18 +253,20 @@ export const queryDocument = async (
   organizationId: string,
   input: QueryDocumentInput
 ): Promise<QueryDocumentResponse> => {
-  const source = await lexRepository.findSourcesForUser(userId, organizationId);
+  const [source, history] = await Promise.all([
+    lexRepository.findSourcesForUser(userId, organizationId),
+    lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
   const owned = source.find((s) => s.sourceId === input.sourceId);
   if (!owned) {
     throw new NotFoundError("Document not found");
   }
 
+  const userContent = `Query "${owned.name}": ${input.query.slice(0, 120)}${input.query.length > 120 ? "..." : ""}`;
   await lexRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Query "${owned.name}": ${input.query.slice(0, 120)}${
-      input.query.length > 120 ? "..." : ""
-    }`,
+    content: userContent,
     customInput: {
       actionId: "lex:query-document",
       input: { sourceId: input.sourceId, query: input.query },
@@ -268,10 +283,11 @@ export const queryDocument = async (
     }
   );
 
+  const assistantContent = data.answer.slice(0, 500);
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.answer.slice(0, 500),
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: {
@@ -281,6 +297,15 @@ export const queryDocument = async (
     },
   });
 
+  void storeActionTurn({
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    organizationId,
+    userContent,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
+
   return data;
 };
 
@@ -289,12 +314,14 @@ export const analyzeContract = async (
   organizationId: string,
   input: AnalyzeContractInput
 ): Promise<AnalyzeContractResponse> => {
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userContent = input.sourceId
+    ? `Analyze ingested contract ${input.sourceId}`
+    : "Analyze contract text";
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
-    content: input.sourceId
-      ? `Analyze ingested contract ${input.sourceId}`
-      : "Analyze contract text",
+    content: userContent,
     customInput: {
       actionId: "lex:analyze-contract",
       input: {
@@ -305,16 +332,21 @@ export const analyzeContract = async (
     },
   });
 
-  const { data } = await aiService.post<AnalyzeContractResponse>(
-    "/ai/lex/analyze-contract",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<AnalyzeContractResponse>({
+    agentApiPath: "/ai/lex/analyze-contract",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: userContent,
+    rawHistory: history,
+    topLevelPayload: {
       source_id: input.sourceId,
       contract_text: input.contractText,
       analysis_focus: input.analysisFocus,
-    }
-  );
+    },
+  });
 
   await lexRepository.createAssistantMessage({
     organizationId,
@@ -341,24 +373,30 @@ export const draftDocument = async (
   organizationId: string,
   input: DraftDocumentInput
 ): Promise<DraftDocumentResponse> => {
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Draft ${input.documentType}`,
     customInput: { actionId: "lex:draft-document", input },
   });
 
-  const { data } = await aiService.post<DraftDocumentResponse>(
-    "/ai/lex/draft-document",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<DraftDocumentResponse>({
+    agentApiPath: "/ai/lex/draft-document",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Draft ${input.documentType}`,
+    rawHistory: history,
+    topLevelPayload: {
       document_type: input.documentType,
       requirements: input.requirements,
       jurisdiction: input.jurisdiction,
       additional_clauses: input.additionalClauses,
-    }
-  );
+    },
+  });
 
   await lexRepository.createAssistantMessage({
     organizationId,
@@ -377,18 +415,25 @@ export const explainLegalText = async (
   organizationId: string,
   input: ExplainInput
 ): Promise<ExplainResponse> => {
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userContent = `Explain: ${input.text.slice(0, 120)}${input.text.length > 120 ? "..." : ""}`;
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Explain: ${input.text.slice(0, 120)}${input.text.length > 120 ? "..." : ""}`,
+    content: userContent,
     customInput: { actionId: "lex:explain", input },
   });
 
-  const { data } = await aiService.post<ExplainResponse>("/ai/lex/explain", {
-    user_id: userId,
-    organization_id: organizationId,
-    text: input.text,
-    context: input.context,
+  const data = await callAgentWithContext<ExplainResponse>({
+    agentApiPath: "/ai/lex/explain",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: userContent,
+    rawHistory: history,
+    topLevelPayload: { text: input.text, context: input.context },
   });
 
   await lexRepository.createAssistantMessage({
@@ -408,23 +453,29 @@ export const legalResearch = async (
   organizationId: string,
   input: LegalResearchInput
 ): Promise<LegalResearchResponse> => {
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Legal research: ${input.query}`,
     customInput: { actionId: "lex:legal-research", input },
   });
 
-  const { data } = await aiService.post<LegalResearchResponse>(
-    "/ai/lex/legal-research",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<LegalResearchResponse>({
+    agentApiPath: "/ai/lex/legal-research",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Legal research: ${input.query}`,
+    rawHistory: history,
+    topLevelPayload: {
       query: input.query,
       jurisdiction: input.jurisdiction,
       legal_areas: input.legalAreas,
-    }
-  );
+    },
+  });
 
   await lexRepository.createAssistantMessage({
     organizationId,
@@ -443,23 +494,29 @@ export const complianceCheck = async (
   organizationId: string,
   input: ComplianceCheckInput
 ): Promise<ComplianceCheckResponse> => {
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Compliance check: ${input.frameworks.join(", ")}`,
     customInput: { actionId: "lex:compliance-check", input },
   });
 
-  const { data } = await aiService.post<ComplianceCheckResponse>(
-    "/ai/lex/compliance-check",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ComplianceCheckResponse>({
+    agentApiPath: "/ai/lex/compliance-check",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Compliance check: ${input.frameworks.join(", ")}`,
+    rawHistory: history,
+    topLevelPayload: {
       description: input.description,
       frameworks: input.frameworks,
       business_context: input.businessContext,
-    }
-  );
+    },
+  });
 
   await lexRepository.createAssistantMessage({
     organizationId,

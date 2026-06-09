@@ -353,6 +353,9 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
 
     label_list = ", ".join(request.custom_labels) if request.custom_labels else "Investors, Sales Leads, Newsletters, Team, Legal, Finance, Other"
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
 
     async def _analyze_email(email: dict) -> tuple[ProcessedEmail, int]:
         raw = await _llm.complete(
@@ -467,6 +470,9 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
 
     email = await get_message(token, request.email_id)
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -583,6 +589,9 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
     next_day = (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -737,6 +746,9 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
         pass
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     total_unread = len(emails)
     context = (
         f"Total unread emails today: {total_unread}\n"
@@ -807,6 +819,9 @@ async def compose_email(request: ComposeEmailRequest) -> ComposeEmailResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -874,6 +889,9 @@ async def meeting_prep(request: MeetingPrepRequest) -> MeetingPrepResponse:
             pass
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     context = (
         f"Event: {request.event_title}\n"
         f"Attendees: {', '.join(request.attendee_emails)}\n"
@@ -932,6 +950,9 @@ async def post_meeting_followup(request: PostMeetingFollowUpRequest) -> PostMeet
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     context = (
         f"Meeting: {request.event_title}\n"
         f"Attendees: {', '.join(request.attendee_emails)}\n"
@@ -992,6 +1013,9 @@ async def reschedule_draft(request: RescheduleDraftRequest) -> RescheduleDraftRe
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider,
         model=_agent.default_model,

@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.llm import LLMClient
 from core.rag import RAGService
@@ -31,6 +31,7 @@ class IngestDocumentRequest(BaseModel):
     document_type: str = "nda"
     document_url: str | None = None
     pdf_base64: str | None = None
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -59,6 +60,7 @@ class AnalyzeContractRequest(BaseModel):
     user_id: str
     organization_id: str = ""
     source_id: str
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -131,6 +133,7 @@ class QueryDocumentRequest(BaseModel):
     source_id: str
     query: str
     top_k: int = 5
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -164,6 +167,7 @@ class DraftDocumentRequest(BaseModel):
     requirements: str
     jurisdiction: str = "United States (Delaware)"
     additional_clauses: list[str] = []
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -190,6 +194,7 @@ class ExplainRequest(BaseModel):
     organization_id: str = ""
     text: str
     context: str | None = None
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -217,6 +222,7 @@ class LegalResearchRequest(BaseModel):
     query: str
     jurisdiction: str = "United States"
     legal_areas: list[str] = []
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -248,6 +254,7 @@ class ComplianceCheckRequest(BaseModel):
     description: str
     frameworks: list[str]
     business_context: str = ""
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -532,6 +539,9 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
     full_text = "\n\n".join(c.get("content", "") for c in chunks)
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider,
         model=_agent.default_model,
@@ -719,6 +729,9 @@ Date: ______________________           Date: ______________________
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -770,6 +783,9 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -838,6 +854,9 @@ async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
@@ -935,6 +954,9 @@ async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckRe
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,

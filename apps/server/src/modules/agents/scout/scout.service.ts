@@ -1,4 +1,3 @@
-import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
@@ -71,24 +70,30 @@ export const researchTopic = async (
   organizationId: string,
   input: ResearchTopicInput
 ) => {
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
     content: `Research topic: ${input.topic} (depth: ${input.depth}, location: ${input.location ?? "global"})`,
     customInput: { actionId: "scout:research-topic", input },
   });
 
-  const { data } = await aiService.post<ResearchTopicResponse>(
-    "/ai/scout/research-topic",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ResearchTopicResponse>({
+    agentApiPath: "/ai/scout/research-topic",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Research topic: ${input.topic}`,
+    rawHistory: history,
+    topLevelPayload: {
       topic: input.topic,
       depth: input.depth,
       sources_hint: input.sourcesHint,
       location: input.location ?? "",
-    }
-  );
+    },
+  });
 
   await scoutRepository.createAssistantMessage({
     organizationId,
@@ -107,22 +112,28 @@ export const researchCompany = async (
   organizationId: string,
   input: ResearchCompanyInput
 ) => {
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
     content: `Research company: ${input.companyName} (${input.companyUrl??"" })`,
     customInput: { actionId: "scout:research-company", input },
   });
 
-  const { data } = await aiService.post<ResearchCompanyResponse>(
-    "/ai/scout/research-company",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ResearchCompanyResponse>({
+    agentApiPath: "/ai/scout/research-company",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Research company: ${input.companyName}`,
+    rawHistory: history,
+    topLevelPayload: {
       company_name: input.companyName,
       company_url: input.companyUrl,
-    }
-  );
+    },
+  });
 
   await scoutRepository.createAssistantMessage({
     organizationId,
@@ -141,23 +152,29 @@ export const trendingTopics = async (
   organizationId: string,
   input: TrendingTopicsInput
 ) => {
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
     content: `Trends in ${input.industry} ${input.location ? `in ${input.location}` : ""}, Count: ${input.count}`,
     customInput: { actionId: "scout:trending-topics", input },
   });
 
-  const { data } = await aiService.post<TrendingTopicsResponse>(
-    "/ai/scout/trending-topics",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<TrendingTopicsResponse>({
+    agentApiPath: "/ai/scout/trending-topics",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Trends in ${input.industry}`,
+    rawHistory: history,
+    topLevelPayload: {
       industry: input.industry,
       count: input.count,
       location: input.location ?? "",
-    }
-  );
+    },
+  });
 
   await scoutRepository.createAssistantMessage({
     organizationId,
@@ -177,24 +194,30 @@ export const discoverCompetitors = async (
   organizationId: string,
   input: DiscoverCompetitorsInput
 ): Promise<DiscoverCompetitorsResponse> => {
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
     content: `Discover competitors: ${input.industry}`,
     customInput: { actionId: "scout:discover-competitors", input },
   });
 
-  const { data } = await aiService.post<DiscoverCompetitorsResponse>(
-    "/ai/scout/discover-competitors",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<DiscoverCompetitorsResponse>({
+    agentApiPath: "/ai/scout/discover-competitors",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Discover competitors: ${input.industry}`,
+    rawHistory: history,
+    topLevelPayload: {
       description: input.description,
       industry: input.industry,
       count: input.count,
       location: input.location ?? "",
-    }
-  );
+    },
+  });
 
   await scoutRepository.createAssistantMessage({
     organizationId,

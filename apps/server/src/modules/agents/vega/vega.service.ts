@@ -1,4 +1,3 @@
-import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
@@ -180,25 +179,34 @@ export const processInbox = async (
   organizationId: string,
   input: ProcessInboxInput
 ): Promise<ProcessInboxResponse & { executed?: number; errors?: string[] }> => {
-  const token = await requireGoogleToken(userId);
-  await vegaRepository.createUserMessage({
+  const [token, history] = await Promise.all([
+    requireGoogleToken(userId),
+    vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
+
+  const userMsg = await vegaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Process inbox (max ${input.maxEmails} emails)`,
     customInput: { actionId: "vega:process-inbox", input },
   });
 
-  const { data } = await aiService.post<ProcessInboxResponse>(
-    "/ai/vega/process-inbox",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ProcessInboxResponse>({
+    agentApiPath: "/ai/vega/process-inbox",
+    agentEnum: Agent.VEGA,
+    agentRole: "Vega: Executive assistant for email and calendar management",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Process inbox (max ${input.maxEmails} emails)`,
+    rawHistory: history,
+    topLevelPayload: {
       max_emails: input.maxEmails,
       auto_label: input.autoLabel,
       draft_replies: input.draftReplies,
-      metadata: { google_access_token: token },
-    }
-  );
+    },
+    extraPayload: { google_access_token: token },
+  });
 
   const exec = input.autoLabel
     ? await executeNodeActions(token, data.node_actions)
@@ -228,22 +236,34 @@ export const draftReply = async (
   organizationId: string,
   input: DraftReplyInput
 ): Promise<DraftReplyResponse & { draft_id?: string; errors?: string[] }> => {
-  const token = await requireGoogleToken(userId);
-  await vegaRepository.createUserMessage({
+  const [token, history] = await Promise.all([
+    requireGoogleToken(userId),
+    vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
+
+  const userMsg = await vegaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Draft reply to ${input.emailId}`,
     customInput: { actionId: "vega:draft-reply", input },
   });
 
-  const { data } = await aiService.post<DraftReplyResponse>("/ai/vega/draft-reply", {
-    user_id: userId,
-    organization_id: organizationId,
-    email_id: input.emailId,
-    reply_instructions: input.replyInstructions,
-    tone: input.tone,
-    save_as_draft: input.saveAsDraft,
-    metadata: { google_access_token: token },
+  const data = await callAgentWithContext<DraftReplyResponse>({
+    agentApiPath: "/ai/vega/draft-reply",
+    agentEnum: Agent.VEGA,
+    agentRole: "Vega: Executive assistant for email and calendar management",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Draft reply to ${input.emailId}`,
+    rawHistory: history,
+    topLevelPayload: {
+      email_id: input.emailId,
+      reply_instructions: input.replyInstructions,
+      tone: input.tone,
+      save_as_draft: input.saveAsDraft,
+    },
+    extraPayload: { google_access_token: token },
   });
 
   let draftId: string | undefined;
@@ -280,23 +300,30 @@ export const calendarSummary = async (
   organizationId: string,
   input: CalendarSummaryInput
 ): Promise<CalendarSummaryResponse> => {
-  const token = await requireGoogleToken(userId);
-  await vegaRepository.createUserMessage({
+  const [token, history] = await Promise.all([
+    requireGoogleToken(userId),
+    vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
+
+  const userMsg = await vegaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Calendar summary (${input.daysAhead} days ahead)`,
     customInput: { actionId: "vega:calendar-summary", input },
   });
 
-  const { data } = await aiService.post<CalendarSummaryResponse>(
-    "/ai/vega/calendar-summary",
-    {
-      user_id: userId,
-      organization_id: organizationId,
-      days_ahead: input.daysAhead,
-      metadata: { google_access_token: token },
-    }
-  );
+  const data = await callAgentWithContext<CalendarSummaryResponse>({
+    agentApiPath: "/ai/vega/calendar-summary",
+    agentEnum: Agent.VEGA,
+    agentRole: "Vega: Executive assistant for email and calendar management",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Calendar summary (${input.daysAhead} days ahead)`,
+    rawHistory: history,
+    topLevelPayload: { days_ahead: input.daysAhead },
+    extraPayload: { google_access_token: token },
+  });
 
   await vegaRepository.createAssistantMessage({
     organizationId,
@@ -315,20 +342,32 @@ export const createEvent = async (
   organizationId: string,
   input: CreateEventInput
 ): Promise<CreateEventResponse & { google_event_id?: string; errors?: string[] }> => {
-  const token = await requireGoogleToken(userId);
-  await vegaRepository.createUserMessage({
+  const [token, history] = await Promise.all([
+    requireGoogleToken(userId),
+    vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
+
+  const userMsg = await vegaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Create event: ${input.description.slice(0, 120)}`,
     customInput: { actionId: "vega:create-event", input },
   });
 
-  const { data } = await aiService.post<CreateEventResponse>("/ai/vega/create-event", {
-    user_id: userId,
-    organization_id: organizationId,
-    description: input.description,
-    check_conflicts: input.checkConflicts,
-    metadata: { google_access_token: token },
+  const data = await callAgentWithContext<CreateEventResponse>({
+    agentApiPath: "/ai/vega/create-event",
+    agentEnum: Agent.VEGA,
+    agentRole: "Vega: Executive assistant for email and calendar management",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Create event: ${input.description.slice(0, 120)}`,
+    rawHistory: history,
+    topLevelPayload: {
+      description: input.description,
+      check_conflicts: input.checkConflicts,
+    },
+    extraPayload: { google_access_token: token },
   });
 
   let googleEventId: string | undefined;
@@ -375,24 +414,33 @@ export const executiveBriefing = async (
   organizationId: string,
   input: ExecutiveBriefingInput
 ): Promise<ExecutiveBriefingResponse> => {
-  const token = await requireGoogleToken(userId);
-  await vegaRepository.createUserMessage({
+  const [token, history] = await Promise.all([
+    requireGoogleToken(userId),
+    vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
+
+  const userMsg = await vegaRepository.createUserMessage({
     organizationId,
     userId,
     content: "Executive briefing",
     customInput: { actionId: "vega:executive-briefing", input },
   });
 
-  const { data } = await aiService.post<ExecutiveBriefingResponse>(
-    "/ai/vega/executive-briefing",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ExecutiveBriefingResponse>({
+    agentApiPath: "/ai/vega/executive-briefing",
+    agentEnum: Agent.VEGA,
+    agentRole: "Vega: Executive assistant for email and calendar management",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: "Executive briefing",
+    rawHistory: history,
+    topLevelPayload: {
       include_email: input.includeEmail,
       include_calendar: input.includeCalendar,
-      metadata: { google_access_token: token },
-    }
-  );
+    },
+    extraPayload: { google_access_token: token },
+  });
 
   await vegaRepository.createAssistantMessage({
     organizationId,
@@ -411,23 +459,35 @@ export const composeEmail = async (
   organizationId: string,
   input: ComposeEmailInput
 ): Promise<ComposeEmailResponse & { draft_id?: string; errors?: string[] }> => {
-  const token = await requireGoogleToken(userId);
-  await vegaRepository.createUserMessage({
+  const [token, history] = await Promise.all([
+    requireGoogleToken(userId),
+    vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+  ]);
+
+  const userMsg = await vegaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Compose email to ${input.to}: ${input.subject}`,
     customInput: { actionId: "vega:compose-email", input },
   });
 
-  const { data } = await aiService.post<ComposeEmailResponse>("/ai/vega/compose-email", {
-    user_id: userId,
-    organization_id: organizationId,
-    to: input.to,
-    subject: input.subject,
-    instructions: input.instructions,
-    tone: input.tone,
-    include_cta: input.includeCta,
-    metadata: { google_access_token: token },
+  const data = await callAgentWithContext<ComposeEmailResponse>({
+    agentApiPath: "/ai/vega/compose-email",
+    agentEnum: Agent.VEGA,
+    agentRole: "Vega: Executive assistant for email and calendar management",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Compose email to ${input.to}: ${input.subject}`,
+    rawHistory: history,
+    topLevelPayload: {
+      to: input.to,
+      subject: input.subject,
+      instructions: input.instructions,
+      tone: input.tone,
+      include_cta: input.includeCta,
+    },
+    extraPayload: { google_access_token: token },
   });
 
   let draftId: string | undefined;

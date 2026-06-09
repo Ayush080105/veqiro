@@ -17,6 +17,8 @@ interface AgentCallOptions {
   userMessage: string
   rawHistory: { role: string; content: string }[]
   extraPayload?: Record<string, unknown>
+  /** Spread at root of request body — use for action endpoints that expect params at top level */
+  topLevelPayload?: Record<string, unknown>
 }
 
 const chatResponseSchema = z.object({
@@ -171,7 +173,7 @@ export async function recordDirectActionContextForAssistantMessage(messageId: st
 export async function callAgentWithContext(opts: AgentCallOptions): Promise<AgentChatResponse> {
   const {
     agentApiPath, agentEnum, agentRole, userId, organizationId,
-    conversationId, userMessage, rawHistory, extraPayload = {},
+    conversationId, userMessage, rawHistory, extraPayload = {}, topLevelPayload = {},
   } = opts
 
   // 1. Try to build optimized context — silently fall back on any error
@@ -215,12 +217,13 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<Agen
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
   // 3. Call the agent
-  const { data: response } = await aiService.post(agentApiPath, {
+  const { data: response } = await aiService.post<T>(agentApiPath, {
     user_id: userId,
     organization_id: organizationId,
     conversation_id: conversationId,
     message: userMessage,
     history,
+    ...topLevelPayload,
     metadata: {
       ...extraPayload,
       ...(built?.memory_block ? { memory_context: built.memory_block } : {}),

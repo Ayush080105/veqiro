@@ -1,4 +1,3 @@
-import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
@@ -74,24 +73,30 @@ export const keywordResearch = async (
   organizationId: string,
   input: KeywordResearchInput
 ) => {
-  await sageRepository.createUserMessage({
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
     content: `Keyword research: ${input.seedTopic}`,
     customInput: { actionId: "sage:keyword-research", input },
   });
 
-  const { data } = await aiService.post<KeywordResearchResponse>(
-    "/ai/sage/keyword-research",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<KeywordResearchResponse>({
+    agentApiPath: "/ai/sage/keyword-research",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Keyword research: ${input.seedTopic}`,
+    rawHistory: history,
+    topLevelPayload: {
       seed_topic: input.seedTopic,
       niche: input.niche,
       competitor_urls: input.competitorUrls,
       count: input.count,
-    }
-  );
+    },
+  });
 
   await sageRepository.createAssistantMessage({
     organizationId,
@@ -110,18 +115,24 @@ export const generateBlog = async (
   organizationId: string,
   input: GenerateBlogInput
 ) => {
-  await sageRepository.createUserMessage({
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
     content: `Blog: ${input.topic}`,
     customInput: { actionId: "sage:generate-blog", input },
   });
 
-  const { data } = await aiService.post<GenerateBlogResponse>(
-    "/ai/sage/generate-blog",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<GenerateBlogResponse>({
+    agentApiPath: "/ai/sage/generate-blog",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Blog: ${input.topic}`,
+    rawHistory: history,
+    topLevelPayload: {
       topic: input.topic,
       target_keyword: input.targetKeyword,
       secondary_keywords: input.secondaryKeywords,
@@ -130,8 +141,8 @@ export const generateBlog = async (
       include_meta: input.includeMeta,
       include_schema_markup: input.includeSchemaMarkup,
       tone_override: input.toneOverride,
-    }
-  );
+    },
+  });
 
   await sageRepository.createAssistantMessage({
     organizationId,
@@ -150,23 +161,29 @@ export const analyzeContent = async (
   organizationId: string,
   input: AnalyzeContentInput
 ) => {
-  await sageRepository.createUserMessage({
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
     content: `Content analysis: ${input.targetKeyword}`,
     customInput: { actionId: "sage:analyze-content", input },
   });
 
-  const { data } = await aiService.post<ContentAnalysisResponse>(
-    "/ai/sage/analyze-content",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ContentAnalysisResponse>({
+    agentApiPath: "/ai/sage/analyze-content",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Content analysis: ${input.targetKeyword}`,
+    rawHistory: history,
+    topLevelPayload: {
       content: input.content,
       target_keyword: input.targetKeyword,
       url: input.url,
-    }
-  );
+    },
+  });
 
   await sageRepository.createAssistantMessage({
     organizationId,
@@ -185,23 +202,29 @@ export const contentBrief = async (
   organizationId: string,
   input: ContentBriefInput
 ) => {
-  await sageRepository.createUserMessage({
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
     content: `Content brief: ${input.topic}`,
     customInput: { actionId: "sage:content-brief", input },
   });
 
-  const { data } = await aiService.post<ContentBriefResponse>(
-    "/ai/sage/content-brief",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ContentBriefResponse>({
+    agentApiPath: "/ai/sage/content-brief",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Content brief: ${input.topic}`,
+    rawHistory: history,
+    topLevelPayload: {
       topic: input.topic,
       target_keyword: input.targetKeyword,
       competitor_urls: input.competitorUrls,
-    }
-  );
+    },
+  });
 
   await sageRepository.createAssistantMessage({
     organizationId,
@@ -220,21 +243,25 @@ export const generateBlogIdeas = async (
   organizationId: string,
   input: GenerateBlogIdeasInput
 ) => {
-  await sageRepository.createUserMessage({
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
     content: `Blog ideas: ${input.count} ideas`,
     customInput: { actionId: "sage:generate-blog-ideas", input },
   });
 
-  const { data } = await aiService.post<GenerateBlogIdeasResponse>(
-    "/ai/sage/generate-blog-ideas",
-    {
-      user_id: userId,
-      organization_id: organizationId,
-      count: input.count,
-    }
-  );
+  const data = await callAgentWithContext<GenerateBlogIdeasResponse>({
+    agentApiPath: "/ai/sage/generate-blog-ideas",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Blog ideas: ${input.count} ideas`,
+    rawHistory: history,
+    topLevelPayload: { count: input.count },
+  });
 
   await sageRepository.createAssistantMessage({
     organizationId,
