@@ -80,6 +80,8 @@ export interface ProcessInboxResponse {
   processed: ProcessedEmail[];
   stats: InboxStats;
   node_actions?: NodeAction[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface DraftReplyResponse {
@@ -92,6 +94,8 @@ export interface DraftReplyResponse {
   };
   suggested_follow_up: string;
   node_actions?: NodeAction[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface CalendarSummaryResponse {
@@ -99,6 +103,8 @@ export interface CalendarSummaryResponse {
   conflicts: Array<Record<string, unknown>>;
   free_slots: Array<Record<string, unknown>>;
   daily_summary: Record<string, unknown>;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface CreateEventResponse {
@@ -107,15 +113,21 @@ export interface CreateEventResponse {
   google_event_id?: string;
   created: boolean;
   node_actions?: NodeAction[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ExecutiveBriefingResponse {
   briefing: Record<string, unknown>;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ComposeEmailResponse {
   draft: { to: string; subject: string; body: string; draft_id?: string };
   node_actions?: NodeAction[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export type UICategory = "reply_now" | "action_needed" | "fyi" | "can_ignore";

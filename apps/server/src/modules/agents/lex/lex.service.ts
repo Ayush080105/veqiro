@@ -2,7 +2,7 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext, buildMemoryBlock, storeActionTurn } from "../../../common/utils/contextService.js";
+import { callAgentWithContext, storeActionTurn } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import {
   deleteObject,
@@ -52,7 +52,7 @@ export const sendMessage = async (
     agentRole: "Lex: Legal and compliance assistant",
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
   }) as AssistantMessagePayload;
@@ -65,7 +65,7 @@ export const sendMessage = async (
         ? { metadata: responseData.metadata }
         : undefined;
 
-  await lexRepository.createAssistantMessage({
+  const assistantMessage = await lexRepository.createAssistantMessage({
     organizationId,
     userId,
     content: responseData.response,
@@ -75,13 +75,7 @@ export const sendMessage = async (
     customInput,
   });
 
-  return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl: responseData.image?.url,
-    customInput: customInput ?? null,
-    createdAt: userMessage.createdAt,
-  };
+  return assistantMessage;
 };
 
 export const listMessages = (organizationId: string) =>
@@ -159,7 +153,7 @@ export const finalizeSource = async (
     userId,
     content: `Upload document: ${input.documentName}`,
     customInput: {
-      tool: "upload-source",
+      actionId: "lex:upload-source",
       input: {
         documentName: input.documentName,
         documentType: input.documentType,
@@ -200,6 +194,8 @@ export const finalizeSource = async (
     organizationId,
     userId,
     content: assistantContent,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:upload-source", result: { ...data, sourceRowId: source.id } },
   });
 
@@ -318,15 +314,11 @@ export const analyzeContract = async (
   organizationId: string,
   input: AnalyzeContractInput
 ): Promise<AnalyzeContractResponse> => {
-  const [history, memBlock] = await Promise.all([
-    lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.LEX),
-  ]);
-
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
   const userContent = input.sourceId
     ? `Analyze ingested contract ${input.sourceId}`
     : "Analyze contract text";
-  await lexRepository.createUserMessage({
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: userContent,
@@ -340,23 +332,28 @@ export const analyzeContract = async (
     },
   });
 
-  const { data } = await aiService.post<AnalyzeContractResponse>(
-    "/ai/lex/analyze-contract",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<AnalyzeContractResponse>({
+    agentApiPath: "/ai/lex/analyze-contract",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: userContent,
+    rawHistory: history,
+    topLevelPayload: {
       source_id: input.sourceId,
       contract_text: input.contractText,
       analysis_focus: input.analysisFocus,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `Risk level: ${data.analysis.risk_level} — ${data.analysis.risks.length} risks identified`;
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Risk level: ${data.analysis.risk_level} — ${data.analysis.risks.length} risks identified`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: {
       actionId: "lex:analyze-contract",
       input: {
@@ -368,15 +365,6 @@ export const analyzeContract = async (
     },
   });
 
-  void storeActionTurn({
-    agentEnum: Agent.LEX,
-    agentRole: "Lex: Legal and compliance assistant",
-    organizationId,
-    userContent,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
-
   return data;
 };
 
@@ -385,47 +373,39 @@ export const draftDocument = async (
   organizationId: string,
   input: DraftDocumentInput
 ): Promise<DraftDocumentResponse> => {
-  const [history, memBlock] = await Promise.all([
-    lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.LEX),
-  ]);
-
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Draft ${input.documentType}`,
     customInput: { actionId: "lex:draft-document", input },
   });
 
-  const { data } = await aiService.post<DraftDocumentResponse>(
-    "/ai/lex/draft-document",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<DraftDocumentResponse>({
+    agentApiPath: "/ai/lex/draft-document",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Draft ${input.documentType}`,
+    rawHistory: history,
+    topLevelPayload: {
       document_type: input.documentType,
       requirements: input.requirements,
       jurisdiction: input.jurisdiction,
       additional_clauses: input.additionalClauses,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `Drafted ${input.documentType} (${data.document.length} chars)`;
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Drafted ${input.documentType} (${data.document.length} chars)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:draft-document", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.LEX,
-    agentRole: "Lex: Legal and compliance assistant",
-    organizationId,
-    userContent: `Draft ${input.documentType}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -435,43 +415,35 @@ export const explainLegalText = async (
   organizationId: string,
   input: ExplainInput
 ): Promise<ExplainResponse> => {
-  const [history, memBlock] = await Promise.all([
-    lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.LEX),
-  ]);
-
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
   const userContent = `Explain: ${input.text.slice(0, 120)}${input.text.length > 120 ? "..." : ""}`;
-  await lexRepository.createUserMessage({
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: userContent,
     customInput: { actionId: "lex:explain", input },
   });
 
-  const { data } = await aiService.post<ExplainResponse>("/ai/lex/explain", {
-    user_id: userId,
-    organization_id: organizationId,
-    text: input.text,
-    context: input.context,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<ExplainResponse>({
+    agentApiPath: "/ai/lex/explain",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: userContent,
+    rawHistory: history,
+    topLevelPayload: { text: input.text, context: input.context },
   });
 
-  const assistantContent = `Explanation ready (${data.practical_implications.length} implications, ${data.related_concepts.length} related concepts)`;
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Explanation ready (${data.practical_implications.length} implications, ${data.related_concepts.length} related concepts)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:explain", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.LEX,
-    agentRole: "Lex: Legal and compliance assistant",
-    organizationId,
-    userContent,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -481,46 +453,38 @@ export const legalResearch = async (
   organizationId: string,
   input: LegalResearchInput
 ): Promise<LegalResearchResponse> => {
-  const [history, memBlock] = await Promise.all([
-    lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.LEX),
-  ]);
-
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Legal research: ${input.query}`,
     customInput: { actionId: "lex:legal-research", input },
   });
 
-  const { data } = await aiService.post<LegalResearchResponse>(
-    "/ai/lex/legal-research",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<LegalResearchResponse>({
+    agentApiPath: "/ai/lex/legal-research",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Legal research: ${input.query}`,
+    rawHistory: history,
+    topLevelPayload: {
       query: input.query,
       jurisdiction: input.jurisdiction,
       legal_areas: input.legalAreas,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `${data.applicable_laws.length} laws, ${data.relevant_cases.length} cases found (${data.confidence_level})`;
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `${data.applicable_laws.length} laws, ${data.relevant_cases.length} cases found (${data.confidence_level})`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:legal-research", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.LEX,
-    agentRole: "Lex: Legal and compliance assistant",
-    organizationId,
-    userContent: `Legal research: ${input.query}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -530,46 +494,38 @@ export const complianceCheck = async (
   organizationId: string,
   input: ComplianceCheckInput
 ): Promise<ComplianceCheckResponse> => {
-  const [history, memBlock] = await Promise.all([
-    lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.LEX),
-  ]);
-
-  await lexRepository.createUserMessage({
+  const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Compliance check: ${input.frameworks.join(", ")}`,
     customInput: { actionId: "lex:compliance-check", input },
   });
 
-  const { data } = await aiService.post<ComplianceCheckResponse>(
-    "/ai/lex/compliance-check",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ComplianceCheckResponse>({
+    agentApiPath: "/ai/lex/compliance-check",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Compliance check: ${input.frameworks.join(", ")}`,
+    rawHistory: history,
+    topLevelPayload: {
       description: input.description,
       frameworks: input.frameworks,
       business_context: input.businessContext,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `Status: ${data.overall_status} — ${data.critical_gaps.length} critical gaps, ${data.remediation_steps.length} remediation steps`;
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Status: ${data.overall_status} — ${data.critical_gaps.length} critical gaps, ${data.remediation_steps.length} remediation steps`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "lex:compliance-check", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.LEX,
-    agentRole: "Lex: Legal and compliance assistant",
-    organizationId,
-    userContent: `Compliance check: ${input.frameworks.join(", ")}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };

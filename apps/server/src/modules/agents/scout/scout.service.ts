@@ -1,7 +1,6 @@
-import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext, buildMemoryBlock, storeActionTurn } from "../../../common/utils/contextService.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as scoutRepository from "./scout.repository.js";
 import type {
@@ -13,8 +12,6 @@ import type {
   ResearchCompanyResponse,
   TrendingTopicsInput,
   TrendingTopicsResponse,
-  AddCompetitorInput,
-  CompetitorWatch,
   DiscoverCompetitorsInput,
   DiscoverCompetitorsResponse,
 } from "./scout.types.js";
@@ -39,7 +36,7 @@ export const sendMessage = async (
     agentRole: "Scout: Competitive intelligence assistant",
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
   }) as AssistantMessagePayload;
@@ -52,7 +49,7 @@ export const sendMessage = async (
       ? { actionId: responseData.action_id, input: {}, result: responseData.action_result }
       : undefined;
 
-  await scoutRepository.createAssistantMessage({
+  const assistantMessage = await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
     content: responseData.response,
@@ -62,13 +59,7 @@ export const sendMessage = async (
     customInput,
   });
 
-  return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl: responseData.image?.url,
-    customInput: customInput ?? null,
-    createdAt: userMessage.createdAt,
-  };
+  return assistantMessage;
 };
 
 export const listMessages = (organizationId: string) =>
@@ -79,47 +70,39 @@ export const researchTopic = async (
   organizationId: string,
   input: ResearchTopicInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.SCOUT),
-  ]);
-
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Research topic: ${input.topic}`,
+    content: `Research topic: ${input.topic} (depth: ${input.depth}, location: ${input.location ?? "global"})`,
     customInput: { actionId: "scout:research-topic", input },
   });
 
-  const { data } = await aiService.post<ResearchTopicResponse>(
-    "/ai/scout/research-topic",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ResearchTopicResponse>({
+    agentApiPath: "/ai/scout/research-topic",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Research topic: ${input.topic}`,
+    rawHistory: history,
+    topLevelPayload: {
       topic: input.topic,
       depth: input.depth,
       sources_hint: input.sourcesHint,
       location: input.location ?? "",
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `Research complete: ${input.topic} (${data.sources_scraped?.length ?? 0} sources)`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Research complete: ${input.topic} (${data.sources_scraped?.length ?? 0} sources)`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:research-topic", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.SCOUT,
-    agentRole: "Scout: Competitive intelligence assistant",
-    organizationId,
-    userContent: `Research topic: ${input.topic}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -129,45 +112,37 @@ export const researchCompany = async (
   organizationId: string,
   input: ResearchCompanyInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.SCOUT),
-  ]);
-
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Research company: ${input.companyName}`,
+    content: `Research company: ${input.companyName} (${input.companyUrl??"" })`,
     customInput: { actionId: "scout:research-company", input },
   });
 
-  const { data } = await aiService.post<ResearchCompanyResponse>(
-    "/ai/scout/research-company",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<ResearchCompanyResponse>({
+    agentApiPath: "/ai/scout/research-company",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Research company: ${input.companyName}`,
+    rawHistory: history,
+    topLevelPayload: {
       company_name: input.companyName,
       company_url: input.companyUrl,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `Company profile: ${input.companyName}`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Research complete: ${data.company.name} `,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:research-company", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.SCOUT,
-    agentRole: "Scout: Competitive intelligence assistant",
-    organizationId,
-    userContent: `Research company: ${input.companyName}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -177,112 +152,81 @@ export const trendingTopics = async (
   organizationId: string,
   input: TrendingTopicsInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.SCOUT),
-  ]);
-
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Trends in ${input.industry}`,
+    content: `Trends in ${input.industry} ${input.location ? `in ${input.location}` : ""}, Count: ${input.count}`,
     customInput: { actionId: "scout:trending-topics", input },
   });
 
-  const { data } = await aiService.post<TrendingTopicsResponse>(
-    "/ai/scout/trending-topics",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<TrendingTopicsResponse>({
+    agentApiPath: "/ai/scout/trending-topics",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Trends in ${input.industry}`,
+    rawHistory: history,
+    topLevelPayload: {
       industry: input.industry,
       count: input.count,
       location: input.location ?? "",
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `${data.trends.length} trends identified`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Trending topics identified: ${data.trends.length} trends in ${input.industry} ${input.location ? `in ${input.location}` : ""}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:trending-topics", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.SCOUT,
-    agentRole: "Scout: Competitive intelligence assistant",
-    organizationId,
-    userContent: `Trends in ${input.industry}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
 
-// ── Competitor Watchlist ──────────────────────────────────────────────────────
-
-export const listCompetitors = (organizationId: string): Promise<CompetitorWatch[]> =>
-  scoutRepository.findCompetitorWatches(organizationId) as unknown as Promise<CompetitorWatch[]>;
-
-export const addCompetitor = async (
-  _organizationId: string,
-  _input: AddCompetitorInput
-): Promise<CompetitorWatch> => {
-  throw new BadRequestError("Competitor watchlist storage has been removed. Use Scout discovery or research actions instead.");
-};
-
-export const removeCompetitor = async (_id: string, _organizationId: string): Promise<void> => {
-  throw new BadRequestError("Competitor watchlist storage has been removed.");
-};
 
 export const discoverCompetitors = async (
   userId: string,
   organizationId: string,
   input: DiscoverCompetitorsInput
 ): Promise<DiscoverCompetitorsResponse> => {
-  const [history, memBlock] = await Promise.all([
-    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.SCOUT),
-  ]);
-
-  await scoutRepository.createUserMessage({
+  const history = await scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await scoutRepository.createUserMessage({
     organizationId,
     userId,
     content: `Discover competitors: ${input.industry}`,
     customInput: { actionId: "scout:discover-competitors", input },
   });
 
-  const { data } = await aiService.post<DiscoverCompetitorsResponse>(
-    "/ai/scout/discover-competitors",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<DiscoverCompetitorsResponse>({
+    agentApiPath: "/ai/scout/discover-competitors",
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Discover competitors: ${input.industry}`,
+    rawHistory: history,
+    topLevelPayload: {
       description: input.description,
       industry: input.industry,
       count: input.count,
       location: input.location ?? "",
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `Found ${data.competitors.length} competitor${data.competitors.length !== 1 ? "s" : ""} in ${input.industry}`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Competitor discovery complete: ${data.competitors.length} competitors found in ${input.industry} ${input.location ? `in ${input.location}` : ""}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
     customInput: { actionId: "scout:discover-competitors", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.SCOUT,
-    agentRole: "Scout: Competitive intelligence assistant",
-    organizationId,
-    userContent: `Discover competitors: ${input.industry}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };

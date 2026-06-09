@@ -27,7 +27,7 @@ register_agent(_agent)
 class ResearchTopicRequest(BaseModel):
     user_id: str
     organization_id: str = ""
-    topic: str
+    topic: str = Field(min_length=1)
     depth: str = "standard"  # "quick" | "standard" | "deep"
     sources_hint: list[str] = []
     location: str = ""
@@ -69,7 +69,6 @@ class ResearchTopicResponse(BaseModel):
     keywords_found: list[str] = []
     tokens_used: int = 0
     model_used: str = ""
-
 
 class ResearchCompanyRequest(BaseModel):
     user_id: str
@@ -180,7 +179,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
     if settings.MOCK_MODE:
         keywords = await google_autocomplete(request.topic)
         return ResearchTopicResponse(
-            findings=(
+            market_overview=(
                 f"**Research Findings: {request.topic}**\n\n"
                 "**Market Size & Growth:**\n"
                 "The global AI productivity tools market is valued at $8.4B in 2025, projected to reach $23.8B by 2026 (31% CAGR). "
@@ -196,7 +195,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
                 "- Integration ecosystems (not standalone tools) winning in enterprise\n"
                 "- 78% of founders prefer tools that integrate with existing stack vs. new ecosystems"
             ),
-            synthesis=(
+            bottom_line=(
                 f"The opportunity in {request.topic} is significant and largely unclaimed at the 'founder-specific' vertical. "
                 "No dominant player owns this category with purpose-built AI agents tailored to founder workflows. "
                 "The key strategic insight: founders need AI that understands business context, not generic chat. "
@@ -204,6 +203,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             ),
             sources_scraped=["https://techcrunch.com", "https://crunchbase.com", "https://g2.com"],
             keywords_found=keywords[:8],
+            model_used="mock",
         )
 
     import logging as _log_rt
@@ -214,12 +214,14 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
     year = datetime.now(timezone.utc).year
     topic = request.topic
     depth = request.depth  # "quick" | "standard" | "deep"
+    loc = (request.location or "").strip()
+    loc_clause = f" in {loc}" if loc else ""
 
     # Scale searches and scraping by depth
     if depth == "quick":
         search_tasks = [
             google_autocomplete(topic),
-            serper_search(f"{topic} market overview {year}"),
+            serper_search(f"{topic} market overview {loc} {year}".strip()),
         ]
         keywords, results_general = await asyncio.gather(*search_tasks)
         results_news, results_deep = [], []
@@ -227,16 +229,16 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
     elif depth == "deep":
         keywords, results_general, results_news, results_deep = await asyncio.gather(
             google_autocomplete(topic),
-            serper_search(f"{topic} market size trends {year}"),
-            serper_search(f"{topic} news analysis {year}", search_type="news"),
-            serper_search(f"{topic} opportunities challenges risks players"),
+            serper_search(f"{topic} market size trends {loc} {year}".strip()),
+            serper_search(f"{topic} news analysis {loc} {year}".strip(), search_type="news"),
+            serper_search(f"{topic} opportunities challenges risks players {loc}".strip()),
         )
         scrape_limit, search_snippet_limit = 3, 8
     else:  # standard
         keywords, results_general, results_news = await asyncio.gather(
             google_autocomplete(topic),
-            serper_search(f"{topic} market size trends {year}"),
-            serper_search(f"{topic} news analysis {year}", search_type="news"),
+            serper_search(f"{topic} market size trends {loc} {year}".strip()),
+            serper_search(f"{topic} news analysis {loc} {year}".strip(), search_type="news"),
         )
         results_deep = []
         scrape_limit, search_snippet_limit = 1, 6
@@ -313,7 +315,7 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
             messages=[{"role": "user", "content": (
-                f"Today is {today}. Produce a market intelligence brief on: **{topic}**\n"
+                f"Today is {today}. Produce a market intelligence brief on: **{topic}**{loc_clause}\n"
                 f"Depth: {depth.upper()}\n"
                 f"Related keywords: {keywords[:10]}"
                 f"{search_context}\n\n"

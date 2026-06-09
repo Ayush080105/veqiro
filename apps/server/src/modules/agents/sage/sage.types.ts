@@ -45,6 +45,8 @@ export interface KeywordCluster {
 export interface KeywordResearchResponse {
   keywords: KeywordItem[];
   clusters: KeywordCluster[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface BlogContent {
@@ -66,6 +68,8 @@ export interface GenerateBlogResponse {
   blog: BlogContent;
   seo_score: number;
   seo_suggestions: string[];
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ContentAnalysisResponse {
@@ -76,6 +80,8 @@ export interface ContentAnalysisResponse {
   readability_grade: string;
   word_count?: number;
   keyword_density?: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface ContentBriefData {
@@ -96,6 +102,8 @@ export interface ContentBriefData {
 
 export interface ContentBriefResponse {
   brief: ContentBriefData;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface BlogIdeaItem {
@@ -111,6 +119,8 @@ export interface BlogIdeaItem {
 export interface GenerateBlogIdeasResponse {
   ideas: BlogIdeaItem[];
   generated_at: string;
+  tokens_used?: number;
+  model_used?: string;
 }
 
 export interface SavedKeyword {

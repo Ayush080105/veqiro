@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const sendMessageSchema = z.object({
   content: z.string().min(1).max(1000),
+  conversationId: z.string().min(1).max(200).optional(),
 });
 
 const depthEnum = z.enum(["quick", "standard", "deep"]);
@@ -22,11 +23,6 @@ export const trendingTopicsSchema = z.object({
   industry: z.string().min(1).max(120),
   count: z.number().int().min(1).max(50).optional().default(10),
   location: z.string().max(200).optional().default(""),
-});
-
-export const addCompetitorSchema = z.object({
-  name: z.string().min(1).max(120),
-  url: z.string().url(),
 });
 
 export const discoverCompetitorsSchema = z.object({

@@ -5,7 +5,7 @@ import { prisma } from "../config/prisma.js";
 export async function entitlementMiddleware(req: Request, res: Response, next: NextFunction) {
   const orgId = req.organizationId;
   if (!orgId) {
-    return res.status(StatusCodes.FORBIDDEN).json({ error: "no-active-organization" });
+    return res.status(StatusCodes.FORBIDDEN).json({ error: "No active organization" });
   }
 
   const org = await prisma.organization.findUnique({
@@ -15,7 +15,7 @@ export async function entitlementMiddleware(req: Request, res: Response, next: N
 
   const status = org?.subscriptionStatus;
   if (!status) {
-    return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "trial-not-started" });
+    return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "Trial not started" });
   }
 
   if (status === "ACTIVE") return next();
@@ -23,13 +23,13 @@ export async function entitlementMiddleware(req: Request, res: Response, next: N
   if (status === "TRIALING" || status === "CANCELLED") {
     if (org!.entitlementExpiresAt && org!.entitlementExpiresAt > new Date()) return next();
     return res.status(StatusCodes.PAYMENT_REQUIRED).json({
-      error: status === "TRIALING" ? "trial-expired" : "subscription-expired",
+      error: status === "TRIALING" ? "Trial expired" : "Subscription expired",
     });
   }
 
   if (status === "PAST_DUE") {
-    return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "payment-failed" });
+    return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "Payment failed" });
   }
 
-  return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "subscription-expired" });
+  return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "Subscription expired" });
 }

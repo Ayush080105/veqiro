@@ -7,6 +7,7 @@ const dataPointSchema = z.object({
 
 export const sendMessageSchema = z.object({
   content: z.string().min(1).max(1000),
+  conversationId: z.string().min(1).max(200).optional(),
 });
 
 export const analyzeMetricsSchema = z.object({

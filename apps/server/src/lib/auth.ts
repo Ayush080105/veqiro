@@ -15,7 +15,7 @@ import {
   handlePaymentFailed,
 } from "../modules/billing/billing.webhooks.js";
 
-export const auth = betterAuth({
+const auth = betterAuth({
 
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
   basePath: `/api/${process.env.API_VERSION! || "v1"}/auth`,
@@ -112,3 +112,5 @@ export const auth = betterAuth({
   ],
 }
 );
+
+export default auth

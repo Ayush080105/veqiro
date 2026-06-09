@@ -1,7 +1,7 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext, buildMemoryBlock, storeActionTurn } from "../../../common/utils/contextService.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as rexRepository from "./rex.repository.js";
 import { parseUploaded } from "./rex.csv.js";
@@ -71,7 +71,7 @@ export const sendMessage = async (
     agentRole: `Rex: Data analytics and reporting assistant.${datasetContext}`,
     userId,
     organizationId,
-    conversationId: userMessage.id,
+    conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
   }) as AssistantMessagePayload;
@@ -94,13 +94,7 @@ export const sendMessage = async (
     customInput,
   });
 
-  return {
-    role: "assistant" as const,
-    content: responseData.response,
-    imageUrl: responseData.image?.url,
-    customInput: customInput ?? null,
-    createdAt: assistantMessage.createdAt,
-  };
+  return assistantMessage;
 };
 
 export const listMessages = (organizationId: string) =>
@@ -283,47 +277,34 @@ export const analyzeMetrics = async (
   organizationId: string,
   input: AnalyzeMetricsInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Analyze metrics: ${Object.keys(input.metrics).join(", ")}`,
     customInput: { actionId: "rex:analyze-metrics", input },
   });
 
-  const { data } = await aiService.post<AnalyzeMetricsResponse>(
-    "/ai/rex/analyze-metrics",
-    {
-      user_id: userId,
-      organization_id: organizationId,
-      metrics: input.metrics,
-      period: input.period,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+  const data = await callAgentWithContext<AnalyzeMetricsResponse>({
+    agentApiPath: "/ai/rex/analyze-metrics",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Analyze metrics: ${Object.keys(input.metrics).join(", ")}`,
+    rawHistory: history,
+    topLevelPayload: { metrics: input.metrics, period: input.period },
+  });
 
-  const assistantContent = data.analysis?.summary ?? "Metrics analyzed.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: data.analysis?.summary ?? "Metrics analyzed.",
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:analyze-metrics", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `Analyze metrics: ${Object.keys(input.metrics).join(", ")}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -333,45 +314,38 @@ export const forecast = async (
   organizationId: string,
   input: ForecastInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Forecast: ${input.metricName}`,
     customInput: { actionId: "rex:forecast", input },
   });
 
-  const { data } = await aiService.post<ForecastResponse>("/ai/rex/forecast", {
-    user_id: userId,
-    organization_id: organizationId,
-    metric_name: input.metricName,
-    historical_data: input.historicalData,
-    horizon_days: input.horizonDays,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<ForecastResponse>({
+    agentApiPath: "/ai/rex/forecast",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Forecast: ${input.metricName}`,
+    rawHistory: history,
+    topLevelPayload: {
+      metric_name: input.metricName,
+      historical_data: input.historicalData,
+      horizon_days: input.horizonDays,
+    },
   });
 
-  const assistantContent = data.summary ?? "Forecast generated.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: data.summary ?? "Forecast generated.",
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:forecast", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `Forecast: ${input.metricName}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -381,48 +355,38 @@ export const financialAnalysis = async (
   organizationId: string,
   input: FinancialAnalysisInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: "Financial analysis",
     customInput: { actionId: "rex:financial-analysis", input },
   });
 
-  const { data } = await aiService.post<FinancialAnalysisResponse>(
-    "/ai/rex/financial-analysis",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<FinancialAnalysisResponse>({
+    agentApiPath: "/ai/rex/financial-analysis",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: "Financial analysis",
+    rawHistory: history,
+    topLevelPayload: {
       revenue_data: input.revenueData,
       expenses_data: input.expensesData,
       subscribers_data: input.subscribersData,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = data.narrative ?? "Financial analysis complete.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: data.narrative ?? "Financial analysis complete.",
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:financial-analysis", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: "Financial analysis",
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -432,29 +396,29 @@ export const compileBriefing = async (
   organizationId: string,
   input: CompileBriefingInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Executive briefing for ${input.date || "today"}`,
     customInput: { actionId: "rex:compile-briefing", input },
   });
 
-  const { data } = await aiService.post<CompileBriefingResponse>(
-    "/ai/rex/compile-briefing",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<CompileBriefingResponse>({
+    agentApiPath: "/ai/rex/compile-briefing",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Executive briefing for ${input.date || "today"}`,
+    rawHistory: history,
+    topLevelPayload: {
       date: input.date,
       all_metrics: input.allMetrics,
       agent_summaries: input.agentSummaries,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
   await rexRepository.createAssistantMessage({
     organizationId,
@@ -465,15 +429,6 @@ export const compileBriefing = async (
     customInput: { actionId: "rex:compile-briefing", input, result: data },
   });
 
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `Executive briefing for ${input.date || "today"}`,
-    assistantContent: "Executive briefing compiled.",
-    rawHistory: history,
-  }).catch(() => {});
-
   return data;
 };
 
@@ -482,50 +437,43 @@ export const runway = async (
   organizationId: string,
   input: RunwayInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Runway analysis — $${input.cashOnHand.toLocaleString()} cash, $${input.monthlyBurn.toLocaleString()}/mo burn`,
     customInput: { actionId: "rex:runway", input },
   });
 
-  const { data } = await aiService.post<RunwayResponse>("/ai/rex/runway", {
-    user_id: userId,
-    organization_id: organizationId,
-    cash_on_hand: input.cashOnHand,
-    monthly_burn: input.monthlyBurn,
-    monthly_revenue: input.monthlyRevenue,
-    growth_rate_pct: input.growthRatePct,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<RunwayResponse>({
+    agentApiPath: "/ai/rex/runway",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Runway analysis — $${input.cashOnHand.toLocaleString()} cash, $${input.monthlyBurn.toLocaleString()}/mo burn`,
+    rawHistory: history,
+    topLevelPayload: {
+      cash_on_hand: input.cashOnHand,
+      monthly_burn: input.monthlyBurn,
+      monthly_revenue: input.monthlyRevenue,
+      growth_rate_pct: input.growthRatePct,
+    },
   });
 
   const monthsLabel =
     data.months_remaining != null
       ? `${data.months_remaining.toFixed(1)} months`
       : "profitable";
-  const assistantContent = `Runway: ${monthsLabel} (${data.verdict})`;
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Runway: ${monthsLabel} (${data.verdict})`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:runway", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `Runway analysis — $${input.cashOnHand.toLocaleString()} cash, $${input.monthlyBurn.toLocaleString()}/mo burn`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -535,49 +483,39 @@ export const unitEconomics = async (
   organizationId: string,
   input: UnitEconomicsInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: "Unit economics analysis",
     customInput: { actionId: "rex:unit-economics", input },
   });
 
-  const { data } = await aiService.post<UnitEconomicsResponse>(
-    "/ai/rex/unit-economics",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<UnitEconomicsResponse>({
+    agentApiPath: "/ai/rex/unit-economics",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: "Unit economics analysis",
+    rawHistory: history,
+    topLevelPayload: {
       marketing_spend: input.marketingSpend,
       new_customers: input.newCustomers,
       avg_monthly_revenue_per_customer: input.avgMonthlyRevenuePerCustomer,
       avg_customer_lifetime_months: input.avgCustomerLifetimeMonths,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = `CAC $${data.cac?.toFixed(0)}, LTV $${data.ltv?.toFixed(0)}, LTV:CAC ${data.ltv_cac_ratio?.toFixed(1)}x`;
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `CAC $${data.cac?.toFixed(0)}, LTV $${data.ltv?.toFixed(0)}, LTV:CAC ${data.ltv_cac_ratio?.toFixed(1)}x`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:unit-economics", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: "Unit economics analysis",
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -587,44 +525,37 @@ export const scenario = async (
   organizationId: string,
   input: ScenarioInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: `What-if scenarios: ${input.scenarios.map((s) => s.name).join(", ")}`,
     customInput: { actionId: "rex:scenario", input },
   });
 
-  const { data } = await aiService.post<ScenarioResponse>("/ai/rex/scenario", {
-    user_id: userId,
-    organization_id: organizationId,
-    base_metrics: input.baseMetrics,
-    scenarios: input.scenarios,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<ScenarioResponse>({
+    agentApiPath: "/ai/rex/scenario",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `What-if scenarios: ${input.scenarios.map((s) => s.name).join(", ")}`,
+    rawHistory: history,
+    topLevelPayload: {
+      base_metrics: input.baseMetrics,
+      scenarios: input.scenarios,
+    },
   });
 
-  const assistantContent = data.recommendation ?? "Scenarios modeled.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: data.recommendation ?? "Scenarios modeled.",
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:scenario", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `What-if scenarios: ${input.scenarios.map((s) => s.name).join(", ")}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -634,47 +565,34 @@ export const weeklyDigest = async (
   organizationId: string,
   input: WeeklyDigestInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: "Weekly CFO digest",
     customInput: { actionId: "rex:weekly-digest", input },
   });
 
-  const { data } = await aiService.post<WeeklyDigestResponse>(
-    "/ai/rex/weekly-digest",
-    {
-      user_id: userId,
-      organization_id: organizationId,
-      metrics: input.metrics,
-      prev_week: input.prevWeek,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+  const data = await callAgentWithContext<WeeklyDigestResponse>({
+    agentApiPath: "/ai/rex/weekly-digest",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: "Weekly CFO digest",
+    rawHistory: history,
+    topLevelPayload: { metrics: input.metrics, prev_week: input.prevWeek },
+  });
 
-  const assistantContent = data.headline ?? "Weekly digest generated.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: data.headline ?? "Weekly digest generated.",
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:weekly-digest", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: "Weekly CFO digest",
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -886,19 +804,11 @@ export const variance = async (
   organizationId: string,
   input: { metric: string; period?: string }
 ) => {
-  const [history, memBlock] = await Promise.all([
+  const [history, datasets] = await Promise.all([
     rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
+    rexRepository.findDatasets(organizationId),
   ]);
 
-  await rexRepository.createUserMessage({
-    organizationId,
-    userId,
-    content: `Variance analysis: ${input.metric}`,
-    customInput: { actionId: "rex:variance", input },
-  });
-
-  const datasets = await rexRepository.findDatasets(organizationId);
   const actual = datasets.find((d) => d.metricKey === input.metric && (d as unknown as { purpose?: string }).purpose !== "budget");
   const budget = datasets.find((d) => d.metricKey === input.metric && (d as unknown as { purpose?: string }).purpose === "budget");
 
@@ -908,34 +818,38 @@ export const variance = async (
     );
   }
 
-  const { data } = await aiService.post<Record<string, unknown>>("/ai/rex/variance", {
-    user_id: userId,
-    organization_id: organizationId,
-    metric: input.metric,
-    period: input.period ?? "monthly",
-    actual_data: actual.points,
-    budget_data: budget.points,
-    metadata: { memory_context: memBlock ?? "" },
+  const userMsg = await rexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Variance analysis: ${input.metric}`,
+    customInput: { actionId: "rex:variance", input },
   });
 
-  const assistantContent = (data.headline as string) ?? "Variance computed.";
+  const data = await callAgentWithContext<Record<string, unknown>>({
+    agentApiPath: "/ai/rex/variance",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Variance analysis: ${input.metric}`,
+    rawHistory: history,
+    topLevelPayload: {
+      metric: input.metric,
+      period: input.period ?? "monthly",
+      actual_data: actual.points,
+      budget_data: budget.points,
+    },
+  });
+
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: (data.headline as string) ?? "Variance computed.",
     tokensUsed: data.tokens_used as number | undefined,
     model: data.model_used as string | undefined,
     customInput: { actionId: "rex:variance", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `Variance analysis: ${input.metric}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -947,47 +861,40 @@ export const boardDeck = async (
   organizationId: string,
   input: { period: string; metrics?: Record<string, unknown>; highlights?: string[]; risks?: string[]; ask?: string }
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Board deck — ${input.period}`,
     customInput: { actionId: "rex:board-deck", input },
   });
 
-  const { data } = await aiService.post<Record<string, unknown>>("/ai/rex/board-deck", {
-    user_id: userId,
-    organization_id: organizationId,
-    period: input.period,
-    metrics: input.metrics ?? {},
-    highlights: input.highlights ?? [],
-    risks: input.risks ?? [],
-    ask: input.ask ?? "",
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<Record<string, unknown>>({
+    agentApiPath: "/ai/rex/board-deck",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Board deck — ${input.period}`,
+    rawHistory: history,
+    topLevelPayload: {
+      period: input.period,
+      metrics: input.metrics ?? {},
+      highlights: input.highlights ?? [],
+      risks: input.risks ?? [],
+      ask: input.ask ?? "",
+    },
   });
 
-  const assistantContent = (data.headline as string) ?? "Board deck drafted.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: (data.headline as string) ?? "Board deck drafted.",
     tokensUsed: data.tokens_used as number | undefined,
     model: data.model_used as string | undefined,
     customInput: { actionId: "rex:board-deck", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `Board deck — ${input.period}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -1021,49 +928,39 @@ export const investorUpdate = async (
   organizationId: string,
   input: InvestorUpdateInput
 ) => {
-  const [history, memBlock] = await Promise.all([
-    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.REX),
-  ]);
-
-  await rexRepository.createUserMessage({
+  const history = await rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await rexRepository.createUserMessage({
     organizationId,
     userId,
     content: `Investor update — ${input.period}`,
     customInput: { actionId: "rex:investor-update", input },
   });
 
-  const { data } = await aiService.post<InvestorUpdateResponse>(
-    "/ai/rex/investor-update",
-    {
-      user_id: userId,
-      organization_id: organizationId,
+  const data = await callAgentWithContext<InvestorUpdateResponse>({
+    agentApiPath: "/ai/rex/investor-update",
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Investor update — ${input.period}`,
+    rawHistory: history,
+    topLevelPayload: {
       period: input.period,
       metrics: input.metrics,
       highlights: input.highlights,
       asks: input.asks,
-      metadata: { memory_context: memBlock ?? "" },
-    }
-  );
+    },
+  });
 
-  const assistantContent = data.subject_line ?? "Investor update drafted.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: data.subject_line ?? "Investor update drafted.",
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:investor-update", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.REX,
-    agentRole: "Rex: Data analytics and reporting assistant",
-    organizationId,
-    userContent: `Investor update — ${input.period}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };

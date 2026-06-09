@@ -1,15 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../lib/auth.js";
+import  auth  from "../lib/auth.js";
 import { UnauthenticatedError } from "../common/errors/unauthenticated.js";
 import { BadRequestError } from "../common/errors/badRequest.js";
 
-const pickString = (value: unknown): string | undefined =>
-  typeof value === "string" && value.length > 0 ? value : undefined;
-
-const readFromRequest = (req: Request, key: string): string | undefined =>
-  pickString(req.body?.[key]) ??
-  pickString((req.query as Record<string, unknown> | undefined)?.[key]);
 
 const authMiddleware = async (
   req: Request,
@@ -26,8 +20,8 @@ const authMiddleware = async (
         throw new UnauthenticatedError("Unauthorized");
       }
 
-      const userId = readFromRequest(req, "userId");
-      const organizationId = readFromRequest(req, "organizationId");
+      const userId = req.body.userId ?? req.query.userId;
+      const organizationId = req.body.organizationId ?? req.query.organizationId;
       if (!userId || !organizationId) {
         throw new BadRequestError(
           "Internal requests must supply userId and organizationId in body or query"
