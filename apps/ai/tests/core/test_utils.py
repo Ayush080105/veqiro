@@ -1,8 +1,3 @@
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from core.utils import downsample_points, safe_json_loads
 
 
@@ -22,7 +17,6 @@ def test_downsample_caps_and_preserves_endpoints():
 def test_downsample_handles_tiny_cap():
     pts = [{"v": i} for i in range(50)]
     out = downsample_points(pts, 1)
-    # never crash; always keep at least the endpoints if cap >= 2 is requested
     assert len(out) >= 1
 
 
@@ -35,7 +29,7 @@ def test_safe_json_loads_with_markdown_fences():
 
 
 def test_safe_json_loads_recovers_from_surrounding_prose():
-    raw = 'Here is the result: {"a": 1, "b": [2, 3]} — hope that helps!'
+    raw = 'Here is the result: {"a": 1, "b": [2, 3]} - hope that helps!'
     assert safe_json_loads(raw) == {"a": 1, "b": [2, 3]}
 
 

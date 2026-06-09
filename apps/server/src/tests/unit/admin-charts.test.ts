@@ -1,5 +1,4 @@
-import { test, describe } from "node:test";
-import { strict as assert } from "node:assert";
+import { assert, describe, test } from "vitest";
 import { buildSignupBuckets, buildHealthBuckets } from "../../modules/admin/admin.charts.js";
 
 // Fixed Sunday anchor so week math is deterministic

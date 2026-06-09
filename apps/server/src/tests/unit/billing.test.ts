@@ -1,5 +1,4 @@
-import { test, describe } from "node:test";
-import { strict as assert } from "node:assert";
+import { assert, describe, test } from "vitest";
 import { deriveEntitlementFields, resolvePlan } from "../../modules/billing/billing.types.js";
 
 describe("deriveEntitlementFields", () => {
