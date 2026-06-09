@@ -3,7 +3,7 @@ import { getBrandImagesForGeneration } from "../../brand-images/brand-images.ser
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext, buildMemoryBlock, storeActionTurn } from "../../../common/utils/contextService.js";
+import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64 } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
@@ -160,31 +160,37 @@ export const generateIdeas = async (
   input: GenerateIdeasInput
 ): Promise<IdeationResponse> => {
   const platformEnum = platformToEnum[input.platform];
-  const [pastIdeas, history, memBlock] = await Promise.all([
+  const [pastIdeas, history] = await Promise.all([
     mayaRepository.getRecentIdeas(organizationId, platformEnum, 100),
     mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.MAYA),
   ]);
 
-  await mayaRepository.createUserMessage({
+  const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
     customInput: { actionId: "maya:generate-ideas", input },
   });
 
-  const { data } = await aiService.post<IdeationResponse>("/ai/maya/generate-ideas", {
-    user_id: userId,
-    organization_id: organizationId,
-    platform: input.platform,
-    topic_hint: input.topicHint,
-    count: input.count,
-    include_image: input.includeImage,
-    use_logo: input.useLogo,
-    use_mascot: input.useMascot,
-    use_brandkit: input.useBrandkit,
-    past_ideas: pastIdeas,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<IdeationResponse>({
+    agentApiPath: "/ai/maya/generate-ideas",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
+    rawHistory: history,
+    topLevelPayload: {
+      platform: input.platform,
+      topic_hint: input.topicHint,
+      count: input.count,
+      include_image: input.includeImage,
+      use_logo: input.useLogo,
+      use_mascot: input.useMascot,
+      use_brandkit: input.useBrandkit,
+      past_ideas: pastIdeas,
+    },
   });
 
   const hostedImage = await hostImage(organizationId, data.image);
@@ -200,25 +206,15 @@ export const generateIdeas = async (
     }))
   );
 
-  const assistantContent = `${data.ideas.length} ideas generated for ${input.platform}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `${data.ideas.length} ideas generated for ${input.platform}`,
     imageUrl: hostedImage?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:generate-ideas", input, result },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    organizationId,
-    userContent: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return result;
 };
@@ -228,13 +224,12 @@ export const draftContent = async (
   organizationId: string,
   input: DraftContentInput
 ): Promise<DraftResponse> => {
-  const [history, memBlock, brandImagesBase] = await Promise.all([
+  const [history, brandImagesBase] = await Promise.all([
     mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.MAYA),
     getBrandImagesForGeneration(organizationId, input.brandImageIds ?? []),
   ]);
 
-  await mayaRepository.createUserMessage({
+  const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Draft ${input.platform} post: ${input.topic}`,
@@ -246,46 +241,43 @@ export const draftContent = async (
     prompt: input.brandImagePrompts?.[img.id] ?? null,
   }));
 
-  const { data } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
-    user_id: userId,
-    organization_id: organizationId,
-    topic: input.topic,
-    platform: input.platform,
-    tone_override: input.toneOverride,
-    word_count_target: input.wordCountTarget,
-    include_image: input.includeImage,
-    use_logo: input.useLogo,
-    use_mascot: input.useMascot,
-    additional_context: input.additionalContext,
-    from_rex: input.fromRex ?? false,
-    use_reference: (input.inspirationImages?.length ?? 0) > 0,
-    reference_images: input.inspirationImages ?? [],
-    brand_images: brandImages,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<DraftResponse>({
+    agentApiPath: "/ai/maya/draft-content",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Draft ${input.platform} post: ${input.topic}`,
+    rawHistory: history,
+    topLevelPayload: {
+      topic: input.topic,
+      platform: input.platform,
+      tone_override: input.toneOverride,
+      word_count_target: input.wordCountTarget,
+      include_image: input.includeImage,
+      use_logo: input.useLogo,
+      use_mascot: input.useMascot,
+      additional_context: input.additionalContext,
+      from_rex: input.fromRex ?? false,
+      use_reference: (input.inspirationImages?.length ?? 0) > 0,
+      reference_images: input.inspirationImages ?? [],
+      brand_images: brandImages,
+    },
   });
 
   const hostedImage = await hostImage(organizationId, data.image);
   const result: DraftResponse = { ...data, image: hostedImage };
 
-  const assistantContent = `${data.draft.platform} draft (${data.draft.word_count} words): ${data.draft.title}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `${data.draft.platform} draft (${data.draft.word_count} words): ${data.draft.title}`,
     imageUrl: hostedImage?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:draft-content", input, result },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    organizationId,
-    userContent: `Draft ${input.platform} post: ${input.topic}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return result;
 };
@@ -295,26 +287,29 @@ export const generateVariants = async (
   organizationId: string,
   input: GenerateVariantsInput
 ): Promise<VariantResponse> => {
-  const [history, memBlock] = await Promise.all([
-    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.MAYA),
-  ]);
-
-  await mayaRepository.createUserMessage({
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
     customInput: { actionId: "maya:generate-variants", input },
   });
 
-  const { data } = await aiService.post<VariantResponse>("/ai/maya/generate-variants", {
-    user_id: userId,
-    organization_id: organizationId,
-    original_content: input.originalContent,
-    original_platform: input.originalPlatform,
-    target_platforms: input.targetPlatforms,
-    include_images: input.includeImages,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<VariantResponse>({
+    agentApiPath: "/ai/maya/generate-variants",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
+    rawHistory: history,
+    topLevelPayload: {
+      original_content: input.originalContent,
+      original_platform: input.originalPlatform,
+      target_platforms: input.targetPlatforms,
+      include_images: input.includeImages,
+    },
   });
 
   const hostedVariants = await Promise.all(
@@ -329,24 +324,14 @@ export const generateVariants = async (
     model_used: data.model_used,
   };
 
-  const assistantContent = `${data.variants.length} variants generated`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `${data.variants.length} variants generated`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:generate-variants", input, result },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    organizationId,
-    userContent: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return result;
 };
@@ -356,46 +341,39 @@ export const revise = async (
   organizationId: string,
   input: ReviseInput
 ): Promise<ReviseResponse> => {
-  const [history, memBlock] = await Promise.all([
-    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.MAYA),
-  ]);
-
-  await mayaRepository.createUserMessage({
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Revise ${input.platform} post`,
     customInput: { actionId: "maya:revise", input },
   });
 
-  const { data } = await aiService.post<ReviseResponse>("/ai/maya/revise", {
-    user_id: userId,
-    organization_id: organizationId,
-    original_content: input.originalContent,
-    platform: input.platform,
-    feedback: input.feedback,
-    specific_instructions: input.specificInstructions,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<ReviseResponse>({
+    agentApiPath: "/ai/maya/revise",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Revise ${input.platform} post`,
+    rawHistory: history,
+    topLevelPayload: {
+      original_content: input.originalContent,
+      platform: input.platform,
+      feedback: input.feedback,
+      specific_instructions: input.specificInstructions,
+    },
   });
 
-  const assistantContent = `Revision complete: ${data.changes_made.length} changes applied`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Revision complete: ${data.changes_made.length} changes applied`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:revise", input, result: data },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    organizationId,
-    userContent: `Revise ${input.platform} post`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return data;
 };
@@ -610,31 +588,34 @@ export const draftCarousel = async (
   organizationId: string,
   input: DraftCarouselInput
 ): Promise<CarouselDraftResponse> => {
-  const [history, memBlock] = await Promise.all([
-    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.MAYA),
-  ]);
-
-  await mayaRepository.createUserMessage({
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Carousel post (${input.carouselCount} slides) on ${input.platform}: ${input.topic}`,
     customInput: { actionId: "maya:draft-carousel", input },
   });
 
-  const { data } = await aiService.post<CarouselDraftResponse>("/ai/maya/draft-carousel", {
-    user_id: userId,
-    organization_id: organizationId,
-    topic: input.topic,
-    platform: input.platform,
-    carousel_count: input.carouselCount,
-    tone_override: input.toneOverride,
-    include_images: input.includeImages,
-    use_logo: input.useLogo,
-    use_mascot: input.useMascot,
-    additional_context: input.additionalContext,
-    image_aspect_ratio: input.imageAspectRatio,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<CarouselDraftResponse>({
+    agentApiPath: "/ai/maya/draft-carousel",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Carousel post (${input.carouselCount} slides) on ${input.platform}: ${input.topic}`,
+    rawHistory: history,
+    topLevelPayload: {
+      topic: input.topic,
+      platform: input.platform,
+      carousel_count: input.carouselCount,
+      tone_override: input.toneOverride,
+      include_images: input.includeImages,
+      use_logo: input.useLogo,
+      use_mascot: input.useMascot,
+      additional_context: input.additionalContext,
+      image_aspect_ratio: input.imageAspectRatio,
+    },
   });
 
   const hostedSlides: CarouselSlide[] = await Promise.all(
@@ -646,24 +627,14 @@ export const draftCarousel = async (
 
   const result: CarouselDraftResponse = { ...data, slides: hostedSlides };
 
-  const assistantContent = `Carousel: ${data.slides.length} slides for ${data.platform}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: assistantContent,
+    content: `Carousel: ${data.slides.length} slides for ${data.platform}`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:draft-carousel", input, result },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    organizationId,
-    userContent: `Carousel post (${input.carouselCount} slides) on ${input.platform}: ${input.topic}`,
-    assistantContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return result;
 };
@@ -761,28 +732,31 @@ export const createCampaign = async (
   organizationId: string,
   input: CampaignInput
 ): Promise<CampaignResponse> => {
-  const [history, memBlock] = await Promise.all([
-    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    buildMemoryBlock(organizationId, Agent.MAYA),
-  ]);
-
-  await mayaRepository.createUserMessage({
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
     content: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
     customInput: { actionId: "maya:campaign", input },
   });
 
-  const { data } = await aiService.post<CampaignResponse>("/ai/maya/campaign", {
-    user_id: userId,
-    organization_id: organizationId,
-    product_image_url: input.productImageUrl,
-    campaign_brief: input.campaignBrief,
-    photo_count: input.photoCount,
-    use_logo: input.useLogo,
-    use_mascot: input.useMascot,
-    platform: input.platform,
-    metadata: { memory_context: memBlock ?? "" },
+  const data = await callAgentWithContext<CampaignResponse>({
+    agentApiPath: "/ai/maya/campaign",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    rawHistory: history,
+    topLevelPayload: {
+      product_image_url: input.productImageUrl,
+      campaign_brief: input.campaignBrief,
+      photo_count: input.photoCount,
+      use_logo: input.useLogo,
+      use_mascot: input.useMascot,
+      platform: input.platform,
+    },
   });
 
   const [hostedPhotos, caption] = await Promise.all([
@@ -823,25 +797,15 @@ export const createCampaign = async (
     caption,
   };
 
-  const campaignContent = `Campaign generated: ${hostedPhotos.length} photos for ${input.platform}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: campaignContent,
+    content: `Campaign generated: ${hostedPhotos.length} photos for ${input.platform}`,
     imageUrl: hostedPhotos[0]?.image?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:campaign", input, result },
   });
-
-  void storeActionTurn({
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    organizationId,
-    userContent: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
-    assistantContent: campaignContent,
-    rawHistory: history,
-  }).catch(() => {});
 
   return result;
 };

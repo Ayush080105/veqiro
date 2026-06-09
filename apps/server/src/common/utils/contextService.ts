@@ -75,12 +75,14 @@ interface AgentCallOptions {
   userMessage: string
   rawHistory: { role: string; content: string }[]
   extraPayload?: Record<string, unknown>
+  /** Spread at root of request body — use for action endpoints that expect params at top level */
+  topLevelPayload?: Record<string, unknown>
 }
 
-export async function callAgentWithContext(opts: AgentCallOptions): Promise<unknown> {
+export async function callAgentWithContext<T = unknown>(opts: AgentCallOptions): Promise<T> {
   const {
     agentApiPath, agentEnum, agentRole, userId, organizationId,
-    conversationId, userMessage, rawHistory, extraPayload = {},
+    conversationId, userMessage, rawHistory, extraPayload = {}, topLevelPayload = {},
   } = opts
 
   // 1. Try to build optimized context — silently fall back on any error
@@ -124,12 +126,13 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
   // 3. Call the agent
-  const { data: response } = await aiService.post(agentApiPath, {
+  const { data: response } = await aiService.post<T>(agentApiPath, {
     user_id: userId,
     organization_id: organizationId,
     conversation_id: conversationId,
     message: userMessage,
     history,
+    ...topLevelPayload,
     metadata: {
       ...extraPayload,
       ...(built?.memory_block ? { memory_context: built.memory_block } : {}),
@@ -137,13 +140,16 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
   })
 
   // 4. If a rich action was completed, record it in OrgMemory so other agents know
-  const responseData = response as { response: string; action_id?: string }
+  const responseData = response as { response?: string; action_id?: string }
   if (responseData.action_id) {
     void contextRepo.appendOrgFact(
       organizationId,
-      `[CONTEXT] ${agentRole} completed ${responseData.action_id} on ${new Date().toISOString().slice(0, 10)}: ${responseData.response.slice(0, 120)}`
+      `[CONTEXT] ${agentRole} completed ${responseData.action_id} on ${new Date().toISOString().slice(0, 10)}: ${(responseData.response ?? "").slice(0, 120)}`
     ).catch(() => {})
   }
+
+  // For action endpoints the response has no .response string; fall back to a JSON summary
+  const assistantText = responseData.response ?? JSON.stringify(response).slice(0, 300)
 
   // 5. Fire-and-forget: store turn + maybe summarize
   void (async () => {
@@ -152,7 +158,7 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
         org_id: organizationId,
         agent: agentEnum.toLowerCase(),
         user_content: userMessage,
-        assistant_content: (response as { response: string }).response,
+        assistant_content: assistantText,
       })
       const count = await contextRepo.incrementMessageCount(organizationId, agentEnum)
       if (count >= SUMMARIZE_THRESHOLD) {
@@ -163,5 +169,5 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<unkn
     }
   })()
 
-  return response
+  return response as T
 }
