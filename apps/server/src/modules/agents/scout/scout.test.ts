@@ -212,7 +212,7 @@ describe("Scout service", () => {
       tokens_used: 9,
       model_used: "gpt-test",
     };
-    mocks.aiPost.mockResolvedValue({ data: response });
+    mocks.callAgentWithContext.mockResolvedValue(response);
 
     const data = await service.researchTopic(userId, organizationId, {
       topic: "AI CRMs",
@@ -222,14 +222,24 @@ describe("Scout service", () => {
     });
 
     assert.equal(data, response);
-    assert.equal(mocks.aiPost.mock.calls[0]![0], "/ai/scout/research-topic");
-    assert.deepEqual(mocks.aiPost.mock.calls[0]![1], {
-      user_id: userId,
-      organization_id: organizationId,
+    assert.deepEqual(mocks.callAgentWithContext.mock.calls[0]![0], {
+      agentApiPath: "/ai/scout/research-topic",
+      agentEnum: Agent.SCOUT,
+      agentRole: "Scout: Competitive intelligence assistant",
+      userId,
+      organizationId,
+      conversationId: "user-message-1",
+      userMessage: "Research topic: AI CRMs",
+      rawHistory: [
+        { role: "assistant", content: "Older answer" },
+        { role: "user", content: "Older question" },
+      ],
+      topLevelPayload: {
       topic: "AI CRMs",
       depth: "deep",
       sources_hint: ["https://source.example"],
       location: "India",
+      },
     });
     assert.deepEqual(
       (mocks.createAssistantMessage.mock.calls[0]![0] as Record<string, unknown>).customInput,
@@ -261,7 +271,7 @@ describe("Scout service", () => {
       tokens_used: 10,
       model_used: "gpt-test",
     };
-    mocks.aiPost.mockResolvedValue({ data: trendResponse });
+    mocks.callAgentWithContext.mockResolvedValue(trendResponse);
 
     await service.trendingTopics(userId, organizationId, {
       industry: "AI SaaS",
@@ -269,13 +279,23 @@ describe("Scout service", () => {
       location: "",
     });
 
-    assert.equal(mocks.aiPost.mock.calls[0]![0], "/ai/scout/trending-topics");
-    assert.deepEqual(mocks.aiPost.mock.calls[0]![1], {
-      user_id: userId,
-      organization_id: organizationId,
+    assert.deepEqual(mocks.callAgentWithContext.mock.calls[0]![0], {
+      agentApiPath: "/ai/scout/trending-topics",
+      agentEnum: Agent.SCOUT,
+      agentRole: "Scout: Competitive intelligence assistant",
+      userId,
+      organizationId,
+      conversationId: "user-message-1",
+      userMessage: "Trends in AI SaaS",
+      rawHistory: [
+        { role: "assistant", content: "Older answer" },
+        { role: "user", content: "Older question" },
+      ],
+      topLevelPayload: {
       industry: "AI SaaS",
       count: 3,
       location: "",
+      },
     });
     assert.equal(
       (mocks.createAssistantMessage.mock.calls[0]![0] as Record<string, unknown>).tokensUsed,
@@ -297,7 +317,7 @@ describe("Scout service", () => {
       tokens_used: 7,
       model_used: "gpt-test",
     };
-    mocks.aiPost.mockResolvedValue({ data: response });
+    mocks.callAgentWithContext.mockResolvedValue(response);
 
     const result = await service.discoverCompetitors(userId, organizationId, {
       description: "AI workspace for founders",
@@ -307,14 +327,24 @@ describe("Scout service", () => {
     });
 
     assert.equal(result, response);
-    assert.equal(mocks.aiPost.mock.calls[0]![0], "/ai/scout/discover-competitors");
-    assert.deepEqual(mocks.aiPost.mock.calls[0]![1], {
-      user_id: userId,
-      organization_id: organizationId,
+    assert.deepEqual(mocks.callAgentWithContext.mock.calls[0]![0], {
+      agentApiPath: "/ai/scout/discover-competitors",
+      agentEnum: Agent.SCOUT,
+      agentRole: "Scout: Competitive intelligence assistant",
+      userId,
+      organizationId,
+      conversationId: "user-message-1",
+      userMessage: "Discover competitors: AI productivity",
+      rawHistory: [
+        { role: "assistant", content: "Older answer" },
+        { role: "user", content: "Older question" },
+      ],
+      topLevelPayload: {
       description: "AI workspace for founders",
       industry: "AI productivity",
       count: 5,
       location: "Pune",
+      },
     });
   });
 });

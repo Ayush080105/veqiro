@@ -170,7 +170,9 @@ export async function recordDirectActionContextForAssistantMessage(messageId: st
   }
 }
 
-export async function callAgentWithContext(opts: AgentCallOptions): Promise<AgentChatResponse> {
+export async function callAgentWithContext<TResponse = AgentChatResponse>(
+  opts: AgentCallOptions,
+): Promise<TResponse> {
   const {
     agentApiPath, agentEnum, agentRole, userId, organizationId,
     conversationId, userMessage, rawHistory, extraPayload = {}, topLevelPayload = {},
@@ -217,7 +219,7 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<Agen
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
   // 3. Call the agent
-  const { data: response } = await aiService.post<T>(agentApiPath, {
+  const { data: response } = await aiService.post<TResponse>(agentApiPath, {
     user_id: userId,
     organization_id: organizationId,
     conversation_id: conversationId,
@@ -230,21 +232,22 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<Agen
     },
   })
 
-  // 4. If a rich action was completed, record it in OrgMemory so other agents know
-  const responseData = chatResponseSchema.parse(response)
+  // 4. Monitored async context write for chat-shaped responses. Direct action
+  // endpoints return action-specific schemas and are recorded by repositories.
+  const chatResponse = chatResponseSchema.safeParse(response)
+  if (chatResponse.success) {
+    void recordAgentTurnContext({
+      organizationId,
+      agent: agentEnum,
+      agentRole,
+      conversationId,
+      userContent: userMessage,
+      assistantContent: chatResponse.data.response,
+      recentMessages: rawHistory,
+      actionId: chatResponse.data.action_id ?? undefined,
+      actionSummary: chatResponse.data.response,
+    })
+  }
 
-  // 5. Monitored async context write: non-blocking, but failures are visible.
-  void recordAgentTurnContext({
-    organizationId,
-    agent: agentEnum,
-    agentRole,
-    conversationId,
-    userContent: userMessage,
-    assistantContent: responseData.response,
-    recentMessages: rawHistory,
-    actionId: responseData.action_id ?? undefined,
-    actionSummary: responseData.response,
-  })
-
-  return responseData
+  return (chatResponse.success ? chatResponse.data : response) as TResponse
 }
