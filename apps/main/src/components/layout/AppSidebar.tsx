@@ -18,6 +18,7 @@ import {
   Check,
   ArrowUpRight,
   Loader2,
+  MessageSquare,
 } from "lucide-react"
 import {
   Sidebar,
@@ -63,6 +64,7 @@ const workspaceItems = [
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/assistants", label: "Assistants", icon: Users },
+  { href: "/feedback", label: "Feedback", icon: MessageSquare },
 ]
 
 const bottomNavItems = [
