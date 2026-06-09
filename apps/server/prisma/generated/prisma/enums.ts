@@ -66,3 +66,27 @@ export const BriefingType = {
 } as const
 
 export type BriefingType = (typeof BriefingType)[keyof typeof BriefingType]
+
+
+export const FeedbackStatus = {
+  NEW: 'NEW',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  PLANNED: 'PLANNED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  LAUNCHED: 'LAUNCHED',
+  DECLINED: 'DECLINED'
+} as const
+
+export type FeedbackStatus = (typeof FeedbackStatus)[keyof typeof FeedbackStatus]
+
+
+export const FeedbackCategory = {
+  FEATURE_REQUEST: 'FEATURE_REQUEST',
+  BUG_REPORT: 'BUG_REPORT',
+  INTEGRATION: 'INTEGRATION',
+  NEW_AGENT: 'NEW_AGENT',
+  UX_IMPROVEMENT: 'UX_IMPROVEMENT',
+  GENERAL: 'GENERAL'
+} as const
+
+export type FeedbackCategory = (typeof FeedbackCategory)[keyof typeof FeedbackCategory]

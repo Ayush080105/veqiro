@@ -76,7 +76,12 @@ export const ModelName = {
   VIPContact: 'VIPContact',
   VegaBriefingCache: 'VegaBriefingCache',
   VegaLabel: 'VegaLabel',
-  VegaInboxSnapshot: 'VegaInboxSnapshot'
+  VegaInboxSnapshot: 'VegaInboxSnapshot',
+  FeedbackPost: 'FeedbackPost',
+  FeedbackVote: 'FeedbackVote',
+  FeedbackComment: 'FeedbackComment',
+  UpcomingAgent: 'UpcomingAgent',
+  UpcomingAgentVote: 'UpcomingAgentVote'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -497,6 +502,76 @@ export const VegaInboxSnapshotScalarFieldEnum = {
 } as const
 
 export type VegaInboxSnapshotScalarFieldEnum = (typeof VegaInboxSnapshotScalarFieldEnum)[keyof typeof VegaInboxSnapshotScalarFieldEnum]
+
+
+export const FeedbackPostScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  category: 'category',
+  agentSlug: 'agentSlug',
+  status: 'status',
+  voteCount: 'voteCount',
+  roadmapEta: 'roadmapEta',
+  adminReply: 'adminReply',
+  adminNote: 'adminNote',
+  isMerged: 'isMerged',
+  mergedIntoId: 'mergedIntoId',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FeedbackPostScalarFieldEnum = (typeof FeedbackPostScalarFieldEnum)[keyof typeof FeedbackPostScalarFieldEnum]
+
+
+export const FeedbackVoteScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  feedbackId: 'feedbackId',
+  createdAt: 'createdAt'
+} as const
+
+export type FeedbackVoteScalarFieldEnum = (typeof FeedbackVoteScalarFieldEnum)[keyof typeof FeedbackVoteScalarFieldEnum]
+
+
+export const FeedbackCommentScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  userId: 'userId',
+  feedbackId: 'feedbackId',
+  isAdminReply: 'isAdminReply',
+  createdAt: 'createdAt'
+} as const
+
+export type FeedbackCommentScalarFieldEnum = (typeof FeedbackCommentScalarFieldEnum)[keyof typeof FeedbackCommentScalarFieldEnum]
+
+
+export const UpcomingAgentScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  tagline: 'tagline',
+  description: 'description',
+  emoji: 'emoji',
+  color: 'color',
+  order: 'order',
+  isVisible: 'isVisible',
+  voteCount: 'voteCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UpcomingAgentScalarFieldEnum = (typeof UpcomingAgentScalarFieldEnum)[keyof typeof UpcomingAgentScalarFieldEnum]
+
+
+export const UpcomingAgentVoteScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  upcomingAgentId: 'upcomingAgentId',
+  createdAt: 'createdAt'
+} as const
+
+export type UpcomingAgentVoteScalarFieldEnum = (typeof UpcomingAgentVoteScalarFieldEnum)[keyof typeof UpcomingAgentVoteScalarFieldEnum]
 
 
 export const SortOrder = {
