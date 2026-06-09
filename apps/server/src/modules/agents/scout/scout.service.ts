@@ -1,7 +1,7 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { callAgentWithContext, buildMemoryBlock, storeActionTurn } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as scoutRepository from "./scout.repository.js";
 import type {
@@ -79,6 +79,11 @@ export const researchTopic = async (
   organizationId: string,
   input: ResearchTopicInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.SCOUT),
+  ]);
+
   await scoutRepository.createUserMessage({
     organizationId,
     userId,
@@ -95,15 +100,26 @@ export const researchTopic = async (
       depth: input.depth,
       sources_hint: input.sourcesHint,
       location: input.location ?? "",
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = `Research complete: ${input.topic} (${data.sources_scraped?.length ?? 0} sources)`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Research complete: ${input.topic} (${data.sources_scraped?.length ?? 0} sources)`,
+    content: assistantContent,
     customInput: { actionId: "scout:research-topic", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    organizationId,
+    userContent: `Research topic: ${input.topic}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -113,6 +129,11 @@ export const researchCompany = async (
   organizationId: string,
   input: ResearchCompanyInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.SCOUT),
+  ]);
+
   await scoutRepository.createUserMessage({
     organizationId,
     userId,
@@ -127,15 +148,26 @@ export const researchCompany = async (
       organization_id: organizationId,
       company_name: input.companyName,
       company_url: input.companyUrl,
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = `Company profile: ${input.companyName}`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Company profile: ${input.companyName}`,
+    content: assistantContent,
     customInput: { actionId: "scout:research-company", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    organizationId,
+    userContent: `Research company: ${input.companyName}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -145,6 +177,11 @@ export const trendingTopics = async (
   organizationId: string,
   input: TrendingTopicsInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.SCOUT),
+  ]);
+
   await scoutRepository.createUserMessage({
     organizationId,
     userId,
@@ -160,15 +197,26 @@ export const trendingTopics = async (
       industry: input.industry,
       count: input.count,
       location: input.location ?? "",
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = `${data.trends.length} trends identified`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `${data.trends.length} trends identified`,
+    content: assistantContent,
     customInput: { actionId: "scout:trending-topics", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    organizationId,
+    userContent: `Trends in ${input.industry}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -194,6 +242,11 @@ export const discoverCompetitors = async (
   organizationId: string,
   input: DiscoverCompetitorsInput
 ): Promise<DiscoverCompetitorsResponse> => {
+  const [history, memBlock] = await Promise.all([
+    scoutRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.SCOUT),
+  ]);
+
   await scoutRepository.createUserMessage({
     organizationId,
     userId,
@@ -210,15 +263,26 @@ export const discoverCompetitors = async (
       industry: input.industry,
       count: input.count,
       location: input.location ?? "",
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = `Found ${data.competitors.length} competitor${data.competitors.length !== 1 ? "s" : ""} in ${input.industry}`;
   await scoutRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Found ${data.competitors.length} competitor${data.competitors.length !== 1 ? "s" : ""} in ${input.industry}`,
+    content: assistantContent,
     customInput: { actionId: "scout:discover-competitors", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.SCOUT,
+    agentRole: "Scout: Competitive intelligence assistant",
+    organizationId,
+    userContent: `Discover competitors: ${input.industry}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };

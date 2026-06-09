@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.llm import LLMClient
 from core.rag import RAGService
@@ -37,6 +37,7 @@ class MetricsAnalysisRequest(BaseModel):
     organization_id: str = ""
     metrics: dict[str, list[DataPoint]]
     period: str = "monthly"
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -78,6 +79,7 @@ class ForecastRequest(BaseModel):
     metric_name: str
     historical_data: list[DataPoint]
     horizon_days: int = 30
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -110,6 +112,7 @@ class FinancialAnalysisRequest(BaseModel):
     revenue_data: list[DataPoint]
     expenses_data: list[DataPoint] = []
     subscribers_data: list[DataPoint] = []
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -147,6 +150,7 @@ class BriefingRequest(BaseModel):
     date: str = ""
     all_metrics: dict = {}
     agent_summaries: dict = {}
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -173,6 +177,7 @@ class InvestorUpdateRequest(BaseModel):
     metrics: dict = {}
     highlights: list[str] = []
     asks: list[str] = []
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -422,6 +427,9 @@ async def analyze_metrics(request: MetricsAnalysisRequest) -> MetricsAnalysisRes
     confidence_level = "high" if total_points >= 12 else "medium" if total_points >= 6 else "low"
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     metrics_summary = json.dumps({
         k: [
             {"date": d.date, "value": d.value}
@@ -544,6 +552,9 @@ async def financial_analysis(request: FinancialAnalysisRequest) -> FinancialAnal
     total_points = len(request.revenue_data) + len(request.expenses_data) + len(request.subscribers_data)
     confidence_level = "high" if total_points >= 12 else "medium" if total_points >= 4 else "low"
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
 
     prompt = (
         "You are Rex, a startup CFO. Provide a financial narrative and specific action items based on these computed metrics:\n"
@@ -616,6 +627,9 @@ async def compile_briefing(request: BriefingRequest) -> BriefingResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     context = f"Date: {request.date or datetime.utcnow().strftime('%Y-%m-%d')}\nMetrics: {json.dumps(request.all_metrics)}\nAgent summaries: {json.dumps(request.agent_summaries)}"
     prompt = (
         "Compile a concise executive briefing for a startup founder. Structure it clearly:\n"
@@ -697,6 +711,9 @@ async def investor_update(request: InvestorUpdateRequest) -> InvestorUpdateRespo
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     prompt = (
         f"Write a professional, direct investor update for {request.period}.\n\n"
         f"Metrics: {json.dumps(request.metrics)}\n"
@@ -932,6 +949,9 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
     confidence_level = "high" if metrics_count >= 6 and has_prev else "medium" if metrics_count >= 3 else "low"
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     period_str = datetime.utcnow().strftime("Week of %b %d %Y")
     prompt = (
         f"You are Rex, the CFO analyst. Generate a Monday morning digest for a startup founder.\n\n"
@@ -997,6 +1017,7 @@ class VarianceRequest(BaseModel):
     period: str = "monthly"
     actual_data: list[DataPoint]
     budget_data: list[DataPoint]
+    metadata: dict = Field(default_factory=dict)
 
 
 class VarianceRow(BaseModel):
@@ -1068,6 +1089,9 @@ async def variance_analysis(request: VarianceRequest) -> VarianceResponse:
     # Build an LLM narrative
     notable = [r for r in rows if abs(r.variance_pct) > 10]
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     prompt = (
         f"You are Rex, the CFO. Generate a budget variance narrative for {request.metric} ({request.period}).\n\n"
         f"Total actual: ${total_actual:,.2f}\n"
@@ -1111,6 +1135,7 @@ class BoardDeckRequest(BaseModel):
     highlights: list[str] = []
     risks: list[str] = []
     ask: str = ""
+    metadata: dict = Field(default_factory=dict)
 
 
 class BoardDeckSections(BaseModel):
@@ -1264,6 +1289,9 @@ async def board_deck(request: BoardDeckRequest) -> BoardDeckResponse:
         return BoardDeckResponse(period=request.period, headline=headline, sections=sections, html=html)
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     prompt = (
         f"Compose a structured board update for the period: {request.period}.\n\n"
         f"Metrics: {json.dumps(request.metrics, default=str)}\n"

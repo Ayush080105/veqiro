@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.llm import LLMClient
 from core.rag import RAGService
@@ -125,6 +125,7 @@ class KeywordResearchRequest(BaseModel):
     niche: str = ""
     competitor_urls: list[str] = []
     count: int = 20
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -193,6 +194,7 @@ class GenerateBlogRequest(BaseModel):
     include_meta: bool = True
     include_schema_markup: bool = False
     tone_override: str | None = None
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -237,6 +239,7 @@ class AnalyzeContentRequest(BaseModel):
     content: str
     target_keyword: str
     url: str | None = None
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -268,6 +271,7 @@ class ContentBriefRequest(BaseModel):
     topic: str
     target_keyword: str
     competitor_urls: list[str] = []
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -324,6 +328,7 @@ class GenerateBlogIdeasRequest(BaseModel):
     user_id: str
     organization_id: str = ""
     count: int = 5
+    metadata: dict = Field(default_factory=dict)
 
 
 class GenerateBlogIdeasResponse(BaseModel):
@@ -410,6 +415,9 @@ async def keyword_research(request: KeywordResearchRequest) -> KeywordResearchRe
             serp_context += f"\n\nGoogle autocomplete: {', '.join(autocomplete[:12])}"
 
         system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system += f"\n\n## Memory Context\n{memory_context}"
         prompt = (
             f"Generate {request.count} high-quality SEO keywords for: '{request.seed_topic}'"
             f"{f' in the {niche} niche' if niche else ''}.\n"
@@ -608,6 +616,9 @@ Ready to get started? [Try Veqiro AI free →](https://veqiro.com)
             competitor_context += f"\n\nLSI / related keywords to weave in: {', '.join(autocomplete_lsi[:10])}"
 
         system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system += f"\n\n## Memory Context\n{memory_context}"
         tone = request.tone_override or "educational, authoritative, direct"
 
         format_instruction = (
@@ -802,6 +813,9 @@ async def analyze_content(request: AnalyzeContentRequest) -> ContentAnalysisResp
         )
 
         system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system += f"\n\n## Memory Context\n{memory_context}"
         prompt = (
             f"Perform a detailed SEO audit on this content.\n"
             f"Target keyword: {request.target_keyword}\n"
@@ -941,6 +955,9 @@ async def content_brief(request: ContentBriefRequest) -> ContentBriefResponse:
             competitor_context += f"\n\nRelated searches: {', '.join(autocomplete_paa[:10])}"
 
         system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system += f"\n\n## Memory Context\n{memory_context}"
         prompt = (
             f"Create a comprehensive SEO content brief for a real content team.\n"
             f"Topic: {request.topic}\n"
@@ -1086,6 +1103,9 @@ async def generate_blog_ideas(request: GenerateBlogIdeasRequest) -> GenerateBlog
             serp_context += f"\n\nWhat people are searching for: {autocomplete_str}"
 
         system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            system += f"\n\n## Memory Context\n{memory_context}"
         prompt = (
             f"Generate {request.count} high-quality, trendy blog post IDEAS for this company.\n\n"
             f"Company context:\n{company_ctx}\n"

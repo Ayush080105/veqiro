@@ -5,6 +5,66 @@ import { Agent } from "../../../prisma/generated/prisma/client.js"
 import { CONTEXT_HISTORY_LIMIT, SUMMARIZE_THRESHOLD } from "../../config/constants.js"
 import type { BuildContextResponse } from "../../modules/context/context.types.js"
 
+// Build a memory block from DB without calling FastAPI — used to enrich action endpoints
+export async function buildMemoryBlock(
+  organizationId: string,
+  agentEnum: Agent
+): Promise<string | null> {
+  try {
+    const [agentMem, orgMem] = await Promise.all([
+      contextRepo.findAgentMemory(organizationId, agentEnum),
+      contextRepo.findOrgMemory(organizationId),
+    ])
+    const parts: string[] = []
+    if (agentMem?.runningSummary) {
+      parts.push(`## What I Remember About This Client\n${agentMem.runningSummary}`)
+    }
+    if (orgMem?.runningSummary) {
+      parts.push(`## Organisation Context\n${orgMem.runningSummary}`)
+    }
+    const sharedMem = (orgMem?.sharedMemory as Record<string, unknown>) ?? {}
+    const sharedParts: string[] = []
+    if (sharedMem.goals) sharedParts.push(`Goals: ${(sharedMem.goals as string[]).join(", ")}`)
+    if (sharedMem.product) sharedParts.push(`Product: ${sharedMem.product as string}`)
+    if (sharedMem.decisions) sharedParts.push(`Decisions: ${(sharedMem.decisions as string[]).slice(-3).join("; ")}`)
+    if (sharedParts.length) parts.push(`## Organisation Goals & Decisions\n${sharedParts.join(" | ")}`)
+    const facts = [
+      ...((agentMem?.longTermFacts as string[]) ?? []),
+      ...((orgMem?.longTermFacts as string[]) ?? []),
+    ]
+    if (facts.length) parts.push(`## Established Facts\n${facts.slice(-12).join("\n")}`)
+    return parts.length ? parts.join("\n\n") : null
+  } catch {
+    return null
+  }
+}
+
+// Store an action turn in the vector store and increment message count
+export async function storeActionTurn(opts: {
+  agentEnum: Agent
+  agentRole: string
+  organizationId: string
+  userContent: string
+  assistantContent: string
+  rawHistory: { role: string; content: string }[]
+}): Promise<void> {
+  const { agentEnum, agentRole, organizationId, userContent, assistantContent, rawHistory } = opts
+  try {
+    await aiService.post("/ai/context/store-turn", {
+      org_id: organizationId,
+      agent: agentEnum.toLowerCase(),
+      user_content: userContent,
+      assistant_content: assistantContent,
+    })
+    const count = await contextRepo.incrementMessageCount(organizationId, agentEnum)
+    if (count >= SUMMARIZE_THRESHOLD) {
+      await triggerSummarize(organizationId, agentEnum, rawHistory, agentRole)
+    }
+  } catch {
+    // non-fatal
+  }
+}
+
 interface AgentCallOptions {
   agentApiPath: string            // e.g. "/ai/sage/chat"
   agentEnum: Agent

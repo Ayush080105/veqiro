@@ -3,7 +3,7 @@ import { getBrandImagesForGeneration } from "../../brand-images/brand-images.ser
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { callAgentWithContext, buildMemoryBlock, storeActionTurn } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64 } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
@@ -160,7 +160,11 @@ export const generateIdeas = async (
   input: GenerateIdeasInput
 ): Promise<IdeationResponse> => {
   const platformEnum = platformToEnum[input.platform];
-  const pastIdeas = await mayaRepository.getRecentIdeas(organizationId, platformEnum, 100);
+  const [pastIdeas, history, memBlock] = await Promise.all([
+    mayaRepository.getRecentIdeas(organizationId, platformEnum, 100),
+    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.MAYA),
+  ]);
 
   await mayaRepository.createUserMessage({
     organizationId,
@@ -180,6 +184,7 @@ export const generateIdeas = async (
     use_mascot: input.useMascot,
     use_brandkit: input.useBrandkit,
     past_ideas: pastIdeas,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
   const hostedImage = await hostImage(organizationId, data.image);
@@ -195,15 +200,25 @@ export const generateIdeas = async (
     }))
   );
 
+  const assistantContent = `${data.ideas.length} ideas generated for ${input.platform}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `${data.ideas.length} ideas generated for ${input.platform}`,
+    content: assistantContent,
     imageUrl: hostedImage?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:generate-ideas", input, result },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    organizationId,
+    userContent: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return result;
 };
@@ -213,6 +228,12 @@ export const draftContent = async (
   organizationId: string,
   input: DraftContentInput
 ): Promise<DraftResponse> => {
+  const [history, memBlock, brandImagesBase] = await Promise.all([
+    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.MAYA),
+    getBrandImagesForGeneration(organizationId, input.brandImageIds ?? []),
+  ]);
+
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -220,10 +241,6 @@ export const draftContent = async (
     customInput: { actionId: "maya:draft-content", input },
   });
 
-  const brandImagesBase = await getBrandImagesForGeneration(
-    organizationId,
-    input.brandImageIds ?? [],
-  );
   const brandImages = brandImagesBase.map((img) => ({
     url: img.url,
     prompt: input.brandImagePrompts?.[img.id] ?? null,
@@ -244,20 +261,31 @@ export const draftContent = async (
     use_reference: (input.inspirationImages?.length ?? 0) > 0,
     reference_images: input.inspirationImages ?? [],
     brand_images: brandImages,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
   const hostedImage = await hostImage(organizationId, data.image);
   const result: DraftResponse = { ...data, image: hostedImage };
 
+  const assistantContent = `${data.draft.platform} draft (${data.draft.word_count} words): ${data.draft.title}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `${data.draft.platform} draft (${data.draft.word_count} words): ${data.draft.title}`,
+    content: assistantContent,
     imageUrl: hostedImage?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:draft-content", input, result },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    organizationId,
+    userContent: `Draft ${input.platform} post: ${input.topic}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return result;
 };
@@ -267,6 +295,11 @@ export const generateVariants = async (
   organizationId: string,
   input: GenerateVariantsInput
 ): Promise<VariantResponse> => {
+  const [history, memBlock] = await Promise.all([
+    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.MAYA),
+  ]);
+
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -281,6 +314,7 @@ export const generateVariants = async (
     original_platform: input.originalPlatform,
     target_platforms: input.targetPlatforms,
     include_images: input.includeImages,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
   const hostedVariants = await Promise.all(
@@ -295,14 +329,24 @@ export const generateVariants = async (
     model_used: data.model_used,
   };
 
+  const assistantContent = `${data.variants.length} variants generated`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `${data.variants.length} variants generated`,
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:generate-variants", input, result },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    organizationId,
+    userContent: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return result;
 };
@@ -312,6 +356,11 @@ export const revise = async (
   organizationId: string,
   input: ReviseInput
 ): Promise<ReviseResponse> => {
+  const [history, memBlock] = await Promise.all([
+    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.MAYA),
+  ]);
+
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -326,16 +375,27 @@ export const revise = async (
     platform: input.platform,
     feedback: input.feedback,
     specific_instructions: input.specificInstructions,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
+  const assistantContent = `Revision complete: ${data.changes_made.length} changes applied`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Revision complete: ${data.changes_made.length} changes applied`,
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:revise", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    organizationId,
+    userContent: `Revise ${input.platform} post`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -550,6 +610,11 @@ export const draftCarousel = async (
   organizationId: string,
   input: DraftCarouselInput
 ): Promise<CarouselDraftResponse> => {
+  const [history, memBlock] = await Promise.all([
+    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.MAYA),
+  ]);
+
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -569,6 +634,7 @@ export const draftCarousel = async (
     use_mascot: input.useMascot,
     additional_context: input.additionalContext,
     image_aspect_ratio: input.imageAspectRatio,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
   const hostedSlides: CarouselSlide[] = await Promise.all(
@@ -580,14 +646,24 @@ export const draftCarousel = async (
 
   const result: CarouselDraftResponse = { ...data, slides: hostedSlides };
 
+  const assistantContent = `Carousel: ${data.slides.length} slides for ${data.platform}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Carousel: ${data.slides.length} slides for ${data.platform}`,
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:draft-carousel", input, result },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    organizationId,
+    userContent: `Carousel post (${input.carouselCount} slides) on ${input.platform}: ${input.topic}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return result;
 };
@@ -685,6 +761,11 @@ export const createCampaign = async (
   organizationId: string,
   input: CampaignInput
 ): Promise<CampaignResponse> => {
+  const [history, memBlock] = await Promise.all([
+    mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.MAYA),
+  ]);
+
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -701,6 +782,7 @@ export const createCampaign = async (
     use_logo: input.useLogo,
     use_mascot: input.useMascot,
     platform: input.platform,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
   const [hostedPhotos, caption] = await Promise.all([
@@ -741,15 +823,25 @@ export const createCampaign = async (
     caption,
   };
 
+  const campaignContent = `Campaign generated: ${hostedPhotos.length} photos for ${input.platform}`;
   await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Campaign generated: ${hostedPhotos.length} photos for ${input.platform}`,
+    content: campaignContent,
     imageUrl: hostedPhotos[0]?.image?.image_url,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:campaign", input, result },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    organizationId,
+    userContent: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    assistantContent: campaignContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return result;
 };

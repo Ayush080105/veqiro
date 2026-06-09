@@ -47,6 +47,7 @@ class IdeationRequest(BaseModel):
     use_mascot: bool = False
     use_brandkit: bool = False
     past_ideas: list[PastIdea] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -103,6 +104,7 @@ class DraftRequest(BaseModel):
     use_reference: bool = False
     reference_images: list[str] = Field(default_factory=list, max_length=5)
     brand_images: list[BrandImageRef] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -191,6 +193,7 @@ class VariantRequest(BaseModel):
     original_platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
     target_platforms: list[str] = Field(["twitter", "instagram"], min_length=1, max_length=3)
     include_images: bool = False
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -227,6 +230,7 @@ class ReviseRequest(BaseModel):
     platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
     feedback: str = Field(..., min_length=1, max_length=1000)
     specific_instructions: str | None = Field(None, max_length=500)
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -270,6 +274,7 @@ class CarouselDraftRequest(BaseModel):
     use_mascot: bool = False
     additional_context: str | None = Field(None, max_length=1000)
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
+    metadata: dict = Field(default_factory=dict)
 
 
 class CarouselSlide(BaseModel):
@@ -434,6 +439,9 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
 
     if brand_kit:
@@ -544,6 +552,9 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome. Hashtags at the end.",
     }
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
 
     # When context comes from Rex (internal analytics), distill it into a clean marketing brief
     # so internal metrics like churn risk counts don't leak into the public post.
@@ -658,6 +669,9 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
     import asyncio
     brand_kit = await load_brand_kit(request.organization_id)
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     website_line = f"Include this link where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
 
     async def _adapt(platform: str) -> tuple[ContentVariant, int]:
@@ -728,6 +742,9 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
 
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     prompt = (
         f"Revise this {request.platform} content based on feedback:\n\nOriginal:\n{request.original_content}\n\n"
         f"Feedback: {request.feedback}\n"
@@ -782,6 +799,7 @@ class ContentRegenRequest(BaseModel):
     caption: str = Field(..., min_length=1, max_length=5000)
     prompt: str = Field(..., min_length=1, max_length=1000)
     platform: str = Field("linkedin", pattern="^(linkedin|twitter|instagram)$")
+    metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -842,6 +860,9 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
+    memory_context = request.metadata.get("memory_context", "")
+    if memory_context:
+        system += f"\n\n## Memory Context\n{memory_context}"
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     prompt = (
         f"Revise this {request.platform} caption based on the instruction:\n\n"
@@ -995,6 +1016,7 @@ class ExpandBriefRequest(BaseModel):
     organization_id: str = Field("", max_length=128)
     brief: str = Field(..., min_length=1, max_length=500)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    metadata: dict = Field(default_factory=dict)
 
 
 class ExpandBriefResponse(BaseModel):
@@ -1116,6 +1138,8 @@ class CampaignRequest(BaseModel):
     use_logo: bool = True
     use_mascot: bool = True
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    metadata: dict = Field(default_factory=dict)
+
 class CampaignPhoto(BaseModel):
     image: ImageResult
     composition_role: str

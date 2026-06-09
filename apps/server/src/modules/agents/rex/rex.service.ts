@@ -1,7 +1,7 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { callAgentWithContext, buildMemoryBlock, storeActionTurn } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as rexRepository from "./rex.repository.js";
 import { parseUploaded } from "./rex.csv.js";
@@ -283,6 +283,11 @@ export const analyzeMetrics = async (
   organizationId: string,
   input: AnalyzeMetricsInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -297,17 +302,28 @@ export const analyzeMetrics = async (
       organization_id: organizationId,
       metrics: input.metrics,
       period: input.period,
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = data.analysis?.summary ?? "Metrics analyzed.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.analysis?.summary ?? "Metrics analyzed.",
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:analyze-metrics", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `Analyze metrics: ${Object.keys(input.metrics).join(", ")}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -317,6 +333,11 @@ export const forecast = async (
   organizationId: string,
   input: ForecastInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -330,16 +351,27 @@ export const forecast = async (
     metric_name: input.metricName,
     historical_data: input.historicalData,
     horizon_days: input.horizonDays,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
+  const assistantContent = data.summary ?? "Forecast generated.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.summary ?? "Forecast generated.",
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:forecast", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `Forecast: ${input.metricName}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -349,6 +381,11 @@ export const financialAnalysis = async (
   organizationId: string,
   input: FinancialAnalysisInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -364,17 +401,28 @@ export const financialAnalysis = async (
       revenue_data: input.revenueData,
       expenses_data: input.expensesData,
       subscribers_data: input.subscribersData,
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = data.narrative ?? "Financial analysis complete.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.narrative ?? "Financial analysis complete.",
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:financial-analysis", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: "Financial analysis",
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -384,6 +432,11 @@ export const compileBriefing = async (
   organizationId: string,
   input: CompileBriefingInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -399,6 +452,7 @@ export const compileBriefing = async (
       date: input.date,
       all_metrics: input.allMetrics,
       agent_summaries: input.agentSummaries,
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
@@ -411,6 +465,15 @@ export const compileBriefing = async (
     customInput: { actionId: "rex:compile-briefing", input, result: data },
   });
 
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `Executive briefing for ${input.date || "today"}`,
+    assistantContent: "Executive briefing compiled.",
+    rawHistory: history,
+  }).catch(() => {});
+
   return data;
 };
 
@@ -419,6 +482,11 @@ export const runway = async (
   organizationId: string,
   input: RunwayInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -433,20 +501,31 @@ export const runway = async (
     monthly_burn: input.monthlyBurn,
     monthly_revenue: input.monthlyRevenue,
     growth_rate_pct: input.growthRatePct,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
   const monthsLabel =
     data.months_remaining != null
       ? `${data.months_remaining.toFixed(1)} months`
       : "profitable";
+  const assistantContent = `Runway: ${monthsLabel} (${data.verdict})`;
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Runway: ${monthsLabel} (${data.verdict})`,
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:runway", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `Runway analysis — $${input.cashOnHand.toLocaleString()} cash, $${input.monthlyBurn.toLocaleString()}/mo burn`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -456,6 +535,11 @@ export const unitEconomics = async (
   organizationId: string,
   input: UnitEconomicsInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -472,17 +556,28 @@ export const unitEconomics = async (
       new_customers: input.newCustomers,
       avg_monthly_revenue_per_customer: input.avgMonthlyRevenuePerCustomer,
       avg_customer_lifetime_months: input.avgCustomerLifetimeMonths,
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = `CAC $${data.cac?.toFixed(0)}, LTV $${data.ltv?.toFixed(0)}, LTV:CAC ${data.ltv_cac_ratio?.toFixed(1)}x`;
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `CAC $${data.cac?.toFixed(0)}, LTV $${data.ltv?.toFixed(0)}, LTV:CAC ${data.ltv_cac_ratio?.toFixed(1)}x`,
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:unit-economics", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: "Unit economics analysis",
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -492,6 +587,11 @@ export const scenario = async (
   organizationId: string,
   input: ScenarioInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -504,16 +604,27 @@ export const scenario = async (
     organization_id: organizationId,
     base_metrics: input.baseMetrics,
     scenarios: input.scenarios,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
+  const assistantContent = data.recommendation ?? "Scenarios modeled.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.recommendation ?? "Scenarios modeled.",
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:scenario", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `What-if scenarios: ${input.scenarios.map((s) => s.name).join(", ")}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -523,6 +634,11 @@ export const weeklyDigest = async (
   organizationId: string,
   input: WeeklyDigestInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -537,17 +653,28 @@ export const weeklyDigest = async (
       organization_id: organizationId,
       metrics: input.metrics,
       prev_week: input.prevWeek,
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = data.headline ?? "Weekly digest generated.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.headline ?? "Weekly digest generated.",
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:weekly-digest", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: "Weekly CFO digest",
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
@@ -759,6 +886,11 @@ export const variance = async (
   organizationId: string,
   input: { metric: string; period?: string }
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -783,16 +915,28 @@ export const variance = async (
     period: input.period ?? "monthly",
     actual_data: actual.points,
     budget_data: budget.points,
+    metadata: { memory_context: memBlock ?? "" },
   });
 
+  const assistantContent = (data.headline as string) ?? "Variance computed.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: (data.headline as string) ?? "Variance computed.",
+    content: assistantContent,
     tokensUsed: data.tokens_used as number | undefined,
     model: data.model_used as string | undefined,
     customInput: { actionId: "rex:variance", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `Variance analysis: ${input.metric}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
+
   return data;
 };
 
@@ -803,6 +947,11 @@ export const boardDeck = async (
   organizationId: string,
   input: { period: string; metrics?: Record<string, unknown>; highlights?: string[]; risks?: string[]; ask?: string }
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -818,16 +967,28 @@ export const boardDeck = async (
     highlights: input.highlights ?? [],
     risks: input.risks ?? [],
     ask: input.ask ?? "",
+    metadata: { memory_context: memBlock ?? "" },
   });
 
+  const assistantContent = (data.headline as string) ?? "Board deck drafted.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: (data.headline as string) ?? "Board deck drafted.",
+    content: assistantContent,
     tokensUsed: data.tokens_used as number | undefined,
     model: data.model_used as string | undefined,
     customInput: { actionId: "rex:board-deck", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `Board deck — ${input.period}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
+
   return data;
 };
 
@@ -860,6 +1021,11 @@ export const investorUpdate = async (
   organizationId: string,
   input: InvestorUpdateInput
 ) => {
+  const [history, memBlock] = await Promise.all([
+    rexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    buildMemoryBlock(organizationId, Agent.REX),
+  ]);
+
   await rexRepository.createUserMessage({
     organizationId,
     userId,
@@ -876,17 +1042,28 @@ export const investorUpdate = async (
       metrics: input.metrics,
       highlights: input.highlights,
       asks: input.asks,
+      metadata: { memory_context: memBlock ?? "" },
     }
   );
 
+  const assistantContent = data.subject_line ?? "Investor update drafted.";
   await rexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: data.subject_line ?? "Investor update drafted.",
+    content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "rex:investor-update", input, result: data },
   });
+
+  void storeActionTurn({
+    agentEnum: Agent.REX,
+    agentRole: "Rex: Data analytics and reporting assistant",
+    organizationId,
+    userContent: `Investor update — ${input.period}`,
+    assistantContent,
+    rawHistory: history,
+  }).catch(() => {});
 
   return data;
 };
