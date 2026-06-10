@@ -88,7 +88,99 @@ async def _fetch_asset(url: str) -> bytes | None:
         return None
 
 
-def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None) -> str:
+async def _elaborate_prompt_5component(
+    visual_description: str,
+    platform: str,
+    brand_kit,
+    tone: str = "",
+) -> dict | None:
+    """Elaborates a visual description into the 5-component Gemini prompt template.
+
+    Calls a fast Gemini text model to expand the description into Subject,
+    Setting, Style, Lighting, and Camera Angle — the structure that produces
+    the most specific, professional image outputs. Returns None on failure so
+    callers fall back gracefully to the plain description.
+    """
+    if settings.MOCK_MODE:
+        return None
+    try:
+        import json as _json
+        from google import genai
+        from google.genai import types
+
+        platform_context = {
+            "linkedin": "professional B2B corporate editorial, formal authority, sophisticated",
+            "instagram": "lifestyle consumer photography, vibrant energy, aspirational",
+            "twitter": "punchy bold graphic design, minimal, high-contrast, immediate impact",
+        }.get(platform.lower(), "professional social media")
+
+        brand_context_parts = []
+        if brand_kit:
+            if brand_kit.brand_voice:
+                brand_context_parts.append(f"brand voice: {brand_kit.brand_voice}")
+            if brand_kit.industry:
+                brand_context_parts.append(f"industry: {brand_kit.industry}")
+            if brand_kit.target_audience:
+                brand_context_parts.append(f"audience: {brand_kit.target_audience}")
+        brand_context = "; ".join(brand_context_parts)
+
+        system_prompt = (
+            "You are a professional AI image prompt engineer specializing in Google Gemini image generation.\n"
+            "Given a visual description and context, elaborate it into the 5-Component Prompt Template "
+            "that produces the highest quality, most specific Gemini image outputs.\n\n"
+            "Return ONLY a valid JSON object with exactly these 5 keys:\n"
+            '  "subject": The main focus — specific people, objects, or elements with precise visual details\n'
+            '  "setting": Environment, location, background, atmosphere, time of day\n'
+            '  "style": Visual aesthetic — photography or design style, art direction, color treatment, overall look\n'
+            '  "lighting": Type, quality, direction, and mood of the lighting\n'
+            '  "camera_angle": Perspective, framing, focal length, composition technique\n\n'
+            "Rules:\n"
+            "- Be specific and evocative — avoid vague generic descriptions\n"
+            "- Align each component to the platform aesthetic and brand context provided\n"
+            "- Do NOT invent brand names, logos, or specific brand details not provided\n"
+            "- Keep each component to 1-2 sentences\n"
+            "- Return ONLY the JSON — no markdown, no explanation, no code fences"
+        )
+
+        user_prompt = (
+            f"Visual description: {visual_description}\n"
+            f"Platform: {platform} ({platform_context})\n"
+            + (f"Brand context: {brand_context}\n" if brand_context else "")
+            + (f"Tone: {tone}\n" if tone else "")
+        )
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = await client.aio.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.4,
+                max_output_tokens=512,
+            ),
+        )
+        text = (response.text or "").strip()
+        if not text:
+            return None
+        # Strip code fences if the model added them despite instructions
+        if text.startswith("```"):
+            text = text.split("```", 2)[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.rstrip("```").strip()
+        components = _json.loads(text)
+        required = {"subject", "setting", "style", "lighting", "camera_angle"}
+        if not required.issubset(components.keys()):
+            logger.warning("5-component response missing keys: %s", components.keys())
+            return None
+        logger.info("5-component elaboration done | platform=%s", platform)
+        return components
+    except Exception as exc:
+        logger.warning("5-component elaboration failed (fallback to plain prompt): %s", exc)
+        return None
+
+
+def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None) -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
     # Colors — kept as hex for accuracy; framed as design values so the model never prints them as text
@@ -223,7 +315,20 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         + "=== END GUARDRAILS ==="
     )
 
+    # 5-component composition block — placed first so Gemini treats it as primary directive
+    composition_block = ""
+    if components:
+        composition_block = (
+            "## VISUAL COMPOSITION — follow each dimension precisely ##\n"
+            f"SUBJECT: {components.get('subject', '')}\n"
+            f"SETTING: {components.get('setting', '')}\n"
+            f"STYLE: {components.get('style', '')}\n"
+            f"LIGHTING: {components.get('lighting', '')}\n"
+            f"CAMERA ANGLE: {components.get('camera_angle', '')}\n\n"
+        )
+
     return (
+        f"{composition_block}"
         f"Design a premium {platform} social media graphic ({aspect_ratio}). "
         f"Main topic: \"{topic}\". "
         f"{composition_context}"
@@ -276,7 +381,12 @@ async def generate_social_image(
         brand_kit = await load_brand_kit(organization_id)
         logger.info("brand_kit auto-loaded | org=%s company=%s", organization_id, brand_kit.company_name)
 
-    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec)
+    # ── 5-Component prompt elaboration ───────────────────────────────────────
+    # Expands the visual description into Subject/Setting/Style/Lighting/Camera
+    # Angle before building the final prompt. Falls back silently on failure.
+    components = await _elaborate_prompt_5component(prompt, platform, brand_kit)
+
+    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components)
 
     logger.info(
         "image_gen start | user=%s platform=%s aspect=%s use_logo=%s use_mascot=%s brand=%s",
@@ -319,7 +429,8 @@ async def generate_social_image(
                 anchor_images.append(logo_bytes)
                 anchor_instructions.append(
                     f"Reference image {len(anchor_images)} is the brand logo. "
-                    f"Place it in the exact same position, size, and styling as in slide 1."
+                    f"Place it in the exact same position, size, and styling as in slide 1. "
+                    f"If the logo has a background colour, ignore it — composite only the logo mark itself, with no white box or rectangular border."
                 )
         full_prompt = base_prompt + "\n\n" + "\n".join(anchor_instructions)
         b64 = await llm.generate_image_with_image_bytes(full_prompt, anchor_images, aspect_ratio=aspect_ratio)
@@ -373,6 +484,7 @@ async def generate_social_image(
                             f"Reference image {idx} is the brand logo. "
                             f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
+                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
                             f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
                             f"occupying roughly 8-12% of the image width. Must not compete with the product hero."
                         )
@@ -410,6 +522,7 @@ async def generate_social_image(
                             f"Reference image {idx} is the brand logo. "
                             f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
+                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
                             f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
                             f"occupying roughly 8-12% of the image width. Crisp and exact."
                         )
@@ -484,8 +597,9 @@ async def generate_social_image(
                 f"Reference image {idx} is the brand logo. "
                 f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
                 f"Do NOT simplify, redraw, reinterpret, or approximate it. "
+                f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
                 f"Place it as a clean, sharp overlay in one corner of the image (top-right or bottom-right preferred), "
-                f"occupying roughly 8-12% of the image width. It must look crisp and exactly like the reference."
+                f"occupying roughly 8-12% of the image width. Crisp and exact."
             )
             logger.info("logo reference added | user=%s url=%s", user_id, brand_kit.logo_url)
         else:
@@ -520,8 +634,9 @@ async def generate_social_image(
         preamble = (
             "CRITICAL INSTRUCTION: Build a COMPLETELY NEW social media scene from scratch. "
             "Do NOT use the reference image as the scene background. "
-            "The reference is the brand logo — reproduce it with PIXEL-PERFECT fidelity (exact shapes, colors, proportions) "
-            "and place it as a clean, sharp corner overlay in the newly created scene. "
+            "The reference is the brand logo — reproduce it with PIXEL-PERFECT fidelity (exact shapes, colors, proportions). "
+            "If the logo has a background colour, ignore it and composite only the logo mark itself with no white box or rectangular border. "
+            "Place it as a clean, sharp corner overlay in the newly created scene. "
             "Do NOT simplify, redraw, or reinterpret the logo design.\n\n"
             if logo_only else ""
         )
