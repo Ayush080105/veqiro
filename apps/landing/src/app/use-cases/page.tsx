@@ -4,7 +4,7 @@ import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { Breadcrumbs } from '@/components/veqiro/breadcrumbs';
 import { FONT, Button } from '@/components/veqiro/shared';
-import { consoleUrl } from '@/lib/site-config';
+import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 
 export const metadata = buildPageMetadata({
   title: 'Use Cases — Who Veqiro Is For',
@@ -324,7 +324,7 @@ export default function UseCasesHubPage() {
             All six AI employees. One subscription. $39/mo or $29/mo billed annually. 7-day free trial, no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button variant="dark" href={`${consoleUrl}/signup`}>Start free →</Button>
+            <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>
             <Button variant="ghost" href="/pricing">View pricing</Button>
           </div>
         </div>

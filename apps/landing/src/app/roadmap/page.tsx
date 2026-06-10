@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { buildPageMetadata } from '@/lib/seo';
-import { consoleUrl } from '@/lib/site-config';
+import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT } from '@/components/veqiro/shared';
@@ -593,7 +593,7 @@ export default async function RoadmapPage() {
               }}
             >
               <a
-                href={`${consoleUrl}/signup`}
+                href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
                 style={{
                   background: '#F5C518',
                   color: '#111',
@@ -681,7 +681,7 @@ export default async function RoadmapPage() {
               Submit feedback →
             </Link>
             <a
-              href={`${consoleUrl}/signup`}
+              href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
               style={{
                 background: '#FFF9ED',
                 color: '#111',

@@ -1,5 +1,4 @@
 import { prisma } from "../../config/prisma.js";
-import { BadRequestError } from "../../common/errors/badRequest.js";
 
 export async function addToWaitlist(email: string): Promise<{ alreadyJoined: boolean }> {
   const existing = await prisma.waitlistEntry.findUnique({ where: { email } });

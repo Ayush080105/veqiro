@@ -25,16 +25,32 @@ function getCountdown(target: string): CountdownState {
 
 function CountdownBox({ value, label }: { value: number; label: string }) {
   return (
-    <div style={{ textAlign: 'center', minWidth: 64 }}>
+    <div style={{ textAlign: 'center' }}>
       <div style={{
-        fontFamily: FONT.mono, fontSize: 'clamp(36px, 8vw, 64px)', fontWeight: 700,
-        color: '#111', lineHeight: 1, border: '3px solid #111', borderRadius: 10,
-        padding: '12px 16px', background: '#FFF9ED', boxShadow: '4px 4px 0 #111',
-        minWidth: 72, display: 'inline-block', letterSpacing: -1,
+        fontFamily: FONT.mono,
+        fontSize: 'clamp(32px, 7vw, 56px)',
+        fontWeight: 700,
+        color: '#F5C518',
+        lineHeight: 1,
+        background: '#111',
+        border: '3px solid #111',
+        borderRadius: 10,
+        padding: '14px 18px',
+        boxShadow: '4px 4px 0 #F5C518',
+        minWidth: 68,
+        display: 'inline-block',
+        letterSpacing: -1,
       }}>
         {String(value).padStart(2, '0')}
       </div>
-      <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#888', marginTop: 8 }}>
+      <div style={{
+        fontFamily: FONT.mono,
+        fontSize: 10,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        color: '#888',
+        marginTop: 8,
+      }}>
         {label}
       </div>
     </div>
@@ -78,6 +94,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
   };
 
   const claimed = Math.min(count, max);
+  const pct = Math.round((claimed / max) * 100);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--vq-bg)', display: 'flex', flexDirection: 'column' }}>
@@ -85,26 +102,28 @@ export default function WaitlistPageContent({ count, max }: Props) {
         <NavShared variant="page" />
       </div>
 
-      {/* Main */}
       <main style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 'clamp(40px, 8vw, 80px) clamp(20px, 4vw, 32px)',
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 'clamp(32px, 6vw, 72px) clamp(20px, 4vw, 32px)',
       }}>
-        <div style={{ maxWidth: 680, width: '100%', textAlign: 'center' }}>
+        <div style={{ maxWidth: 640, width: '100%', textAlign: 'center' }}>
 
           {/* Badge */}
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 28 }}>
             <Sticker rot={-2} color="#F06464" style={{ color: '#111' }}>
-              {cd.launched ? '🎉 We\'re live!' : 'Launching soon'}
+              {cd.launched ? "we're live!" : 'launching soon'}
             </Sticker>
           </div>
 
           {/* Headline */}
           <h1 style={{
             fontFamily: FONT.display,
-            fontSize: 'clamp(52px, 10vw, 100px)',
+            fontSize: 'clamp(48px, 10vw, 96px)',
             lineHeight: 0.9,
-            margin: '0 0 24px',
+            margin: '0 0 20px',
             letterSpacing: -2,
             color: '#111',
           }}>
@@ -118,55 +137,72 @@ export default function WaitlistPageContent({ count, max }: Props) {
           {/* Subtext */}
           <p style={{
             fontFamily: FONT.body,
-            fontSize: 'clamp(16px, 2.5vw, 20px)',
+            fontSize: 'clamp(15px, 2.2vw, 18px)',
             color: '#444',
-            maxWidth: 520,
-            margin: '0 auto 48px',
-            lineHeight: 1.5,
+            maxWidth: 500,
+            margin: '0 auto 44px',
+            lineHeight: 1.55,
           }}>
             {cd.launched
               ? 'The doors are open. Go hire your crew.'
-              : 'The crew is getting ready. Founding members lock in 30% off — priced in, forever.'}
+              : <>
+                  The crew is getting ready. Founding members lock in{' '}
+                  <span style={{
+                    background: '#F5C518',
+                    color: '#111',
+                    fontFamily: FONT.head,
+                    fontWeight: 700,
+                    padding: '1px 7px',
+                    borderRadius: 4,
+                    fontSize: '1em',
+                    letterSpacing: 0.5,
+                    whiteSpace: 'nowrap',
+                  }}>30% off</span>
+                  {' '}— priced in, forever.
+                </>
+            }
           </p>
 
           {cd.launched ? (
-            /* Post-launch CTA */
             <a
               href={`${consoleUrl}/signup`}
               style={{
-                display: 'inline-block', background: '#111', color: '#F5C518',
-                padding: '18px 40px', border: '3px solid #111', borderRadius: 12,
-                fontFamily: FONT.head, fontSize: 16, textTransform: 'uppercase',
-                letterSpacing: 1, textDecoration: 'none', boxShadow: '6px 6px 0 #F5C518',
+                display: 'inline-block',
+                background: '#111',
+                color: '#F5C518',
+                padding: '18px 40px',
+                border: '3px solid #111',
+                borderRadius: 12,
+                fontFamily: FONT.head,
+                fontSize: 15,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                textDecoration: 'none',
+                boxShadow: '6px 6px 0 #F5C518',
               }}
             >
               Hire the crew →
             </a>
           ) : (
             <>
-              {/* Slot counter */}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 12,
-                border: '3px solid #111', borderRadius: 12, padding: '14px 24px',
-                background: '#FFF9ED', boxShadow: '5px 5px 0 #111',
-                marginBottom: 48, transform: 'rotate(-0.5deg)',
-              }}>
-                <span style={{ fontFamily: FONT.mono, fontSize: 'clamp(22px, 4vw, 32px)', fontWeight: 700, color: '#111' }}>
-                  {claimed}
-                </span>
-                <span style={{ fontFamily: FONT.mono, fontSize: 'clamp(18px, 3vw, 26px)', color: '#999' }}>/</span>
-                <span style={{ fontFamily: FONT.mono, fontSize: 'clamp(18px, 3vw, 26px)', color: '#555' }}>{max}</span>
-                <span style={{ fontFamily: FONT.body, fontSize: 14, color: '#555', marginLeft: 4 }}>
-                  founding spots claimed
-                </span>
-              </div>
-
               {/* Countdown */}
-              <div style={{ marginBottom: 52 }}>
-                <div style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: '#888', marginBottom: 20 }}>
+              <div style={{ marginBottom: 44 }}>
+                <div style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 10,
+                  letterSpacing: 3,
+                  textTransform: 'uppercase',
+                  color: '#888',
+                  marginBottom: 18,
+                }}>
                   dropping in
                 </div>
-                <div style={{ display: 'flex', gap: 'clamp(10px, 3vw, 20px)', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: 'clamp(8px, 2.5vw, 16px)',
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                }}>
                   <CountdownBox value={cd.days} label="days" />
                   <CountdownBox value={cd.hours} label="hours" />
                   <CountdownBox value={cd.minutes} label="min" />
@@ -177,49 +213,101 @@ export default function WaitlistPageContent({ count, max }: Props) {
               {/* Email form */}
               {status === 'success' ? (
                 <div style={{
-                  border: '3px solid #1DBC87', borderRadius: 14, padding: '28px 32px',
-                  background: '#FFF9ED', boxShadow: '5px 5px 0 #1DBC87',
+                  border: '3px solid #1DBC87',
+                  borderRadius: 14,
+                  padding: '28px 32px',
+                  background: '#FFF9ED',
+                  boxShadow: '5px 5px 0 #1DBC87',
                 }}>
-                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(28px, 5vw, 40px)', marginBottom: 8 }}>you&apos;re in. 🎉</div>
+                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(28px, 5vw, 40px)', marginBottom: 8 }}>
+                    you&apos;re in.
+                  </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
-                    We&apos;ll email you the moment we open the doors — along with your 30% off code.
+                    We&apos;ll email you the moment the doors open — along with your{' '}
+                    <span style={{ fontFamily: FONT.head, fontWeight: 700 }}>30% off code</span>.
                   </p>
                 </div>
               ) : status === 'already' ? (
                 <div style={{
-                  border: '3px solid #F5C518', borderRadius: 14, padding: '28px 32px',
-                  background: '#FFF9ED', boxShadow: '5px 5px 0 #F5C518',
+                  border: '3px solid #F5C518',
+                  borderRadius: 14,
+                  padding: '28px 32px',
+                  background: '#FFF9ED',
+                  boxShadow: '5px 5px 0 #F5C518',
                 }}>
-                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8 }}>already in line.</div>
+                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8 }}>
+                    already in line.
+                  </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
                     You&apos;re already on the list — we&apos;ve got you. Sit tight.
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 480, margin: '0 auto' }}>
-                  <VqInput
-                    type="email"
-                    value={email}
-                    onChange={setEmail}
-                    placeholder="your@email.com"
-                  />
-                  <Button
-                    type="submit"
-                    variant="dark"
-                    disabled={status === 'loading' || !email.trim()}
-                    style={{ width: '100%', boxShadow: '5px 5px 0 #F5C518' }}
+                <div style={{ maxWidth: 520, margin: '0 auto' }}>
+                  <form
+                    onSubmit={handleSubmit}
+                    style={{ display: 'flex', gap: 10, alignItems: 'stretch', flexWrap: 'wrap' }}
                   >
-                    {status === 'loading' ? 'Saving your spot…' : 'Save my spot →'}
-                  </Button>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <VqInput
+                        type="email"
+                        value={email}
+                        onChange={setEmail}
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      variant="dark"
+                      disabled={status === 'loading' || !email.trim()}
+                      style={{ boxShadow: '4px 4px 0 #F5C518', whiteSpace: 'nowrap' }}
+                    >
+                      {status === 'loading' ? 'Saving…' : 'Save my spot →'}
+                    </Button>
+                  </form>
+
                   {status === 'error' && (
-                    <p style={{ fontFamily: FONT.mono, fontSize: 12, color: '#F06464', margin: 0, textAlign: 'center' }}>
+                    <p style={{ fontFamily: FONT.mono, fontSize: 12, color: '#F06464', margin: '8px 0 0', textAlign: 'center' }}>
                       Something went wrong. Try again in a sec.
                     </p>
                   )}
-                  <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', margin: 0, textAlign: 'center', letterSpacing: 0.5 }}>
-                    No spam · Just the launch email + your 30% off code
-                  </p>
-                </form>
+
+                  {/* Spots counter + progress bar */}
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      marginBottom: 8,
+                    }}>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555', letterSpacing: 0.5 }}>
+                        <span style={{ fontFamily: FONT.head, fontWeight: 700, color: '#111', fontSize: 14 }}>{claimed}</span>
+                        {' '}/ {max} founding spots claimed
+                      </span>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888' }}>
+                        {max - claimed} left
+                      </span>
+                    </div>
+                    <div style={{
+                      height: 8,
+                      background: '#D9D0BF',
+                      borderRadius: 999,
+                      border: '2px solid #111',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${pct}%`,
+                        background: '#1DBC87',
+                        borderRadius: 999,
+                        transition: 'width 600ms ease',
+                      }} />
+                    </div>
+                    <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#999', margin: '10px 0 0', letterSpacing: 0.3 }}>
+                      No spam · Just the launch email + your 30% off code
+                    </p>
+                  </div>
+                </div>
               )}
             </>
           )}
