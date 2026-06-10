@@ -38,6 +38,10 @@ import {
   type SageContentBriefValues,
   sageGenerateBlogIdeasSchema,
   type SageGenerateBlogIdeasValues,
+  sagePageSeoAuditSchema,
+  type SagePageSeoAuditValues,
+  sageSiteAuditSchema,
+  type SageSiteAuditValues,
 } from "@/lib/schemas/agents/sage"
 
 // ─── Keyword research ───────────────────────────────────────────────────────
@@ -407,6 +411,218 @@ export function SageGenerateBlogIdeasForm({
           />
         )}
       </RhfField>
+    </FieldGroup>
+  )
+}
+
+// ─── Page SEO Audit ─────────────────────────────────────────────────────────
+
+export function SagePageSeoAuditForm({
+  value,
+  onChange,
+}: {
+  value: SagePageSeoAuditValues
+  onChange: (patch: Partial<SagePageSeoAuditValues>) => void
+}) {
+  const form = useAgentForm({
+    schema: sagePageSeoAuditSchema,
+    defaultValue: value,
+    onChange,
+  })
+
+  return (
+    <FieldGroup>
+      <RhfField
+        control={form.control}
+        name="url"
+        label="Page URL"
+        required
+        description="The full URL of the page you want to audit."
+      >
+        {({ field, invalid, id }) => (
+          <Input
+            {...field}
+            id={id}
+            type="url"
+            placeholder="https://yoursite.com/blog/post"
+            aria-invalid={invalid}
+          />
+        )}
+      </RhfField>
+      <RhfField
+        control={form.control}
+        name="target_keyword"
+        label="Target keyword"
+        required
+        description="The primary keyword this page should rank for."
+      >
+        {({ field, invalid, id }) => (
+          <Input
+            {...field}
+            id={id}
+            placeholder="e.g. AI tools for founders"
+            aria-invalid={invalid}
+          />
+        )}
+      </RhfField>
+    </FieldGroup>
+  )
+}
+
+// ─── Site Audit (two-step: discover → pick pages) ───────────────────────────
+
+export function SageSiteAuditForm({
+  value,
+  onChange,
+}: {
+  value: SageSiteAuditValues
+  onChange: (patch: Partial<SageSiteAuditValues>) => void
+}) {
+  const [step, setStep] = React.useState<"input" | "discovering" | "select">("input")
+  const [pages, setPages] = React.useState<Array<{ url: string; title: string; status_code: number }>>([])
+  const [error, setError] = React.useState<string | null>(null)
+  const [domain, setDomain] = React.useState(value.domain ?? "")
+  const [keyword, setKeyword] = React.useState(value.target_keyword ?? "")
+  const [selected, setSelected] = React.useState<Set<string>>(new Set(value.urls ?? []))
+
+  const handleDiscover = async () => {
+    if (!domain.trim()) return
+    setError(null)
+    setStep("discovering")
+    try {
+      const { discoverPages } = await import("@/lib/api/sage")
+      const result = await discoverPages(domain.trim())
+      setPages(result.pages)
+      setStep("select")
+    } catch {
+      setError("Could not fetch pages. Check the domain and try again.")
+      setStep("input")
+    }
+  }
+
+  const toggle = (url: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(url)) {
+        next.delete(url)
+      } else if (next.size < 5) {
+        next.add(url)
+      }
+      return next
+    })
+  }
+
+  // Sync selection up whenever it changes
+  React.useEffect(() => {
+    onChange({ domain, urls: Array.from(selected), target_keyword: keyword })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, keyword, domain])
+
+  if (step === "input" || step === "discovering") {
+    return (
+      <FieldGroup>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium">Domain <span className="text-destructive">*</span></label>
+          <Input
+            value={domain}
+            placeholder="yoursite.com"
+            onChange={(e) => {
+              let v = e.target.value
+              if (v.startsWith("https://")) v = v.slice(8)
+              if (v.startsWith("http://")) v = v.slice(7)
+              setDomain(v)
+            }}
+            onKeyDown={(e) => e.key === "Enter" && keyword.trim() && handleDiscover()}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium">Target keyword <span className="text-destructive">*</span></label>
+          <Input
+            value={keyword}
+            placeholder="e.g. AI tools for startups"
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+          <p className="text-[10px] text-muted-foreground">Applied to all pages in this audit.</p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!domain.trim() || !keyword.trim() || step === "discovering"}
+          onClick={handleDiscover}
+        >
+          {step === "discovering" ? "Discovering pages…" : "Find Pages →"}
+        </Button>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </FieldGroup>
+    )
+  }
+
+  // step === "select"
+  return (
+    <FieldGroup>
+      {/* Summary of what was entered */}
+      <div className="flex flex-wrap gap-1.5">
+        <Badge variant="outline" className="text-[9px]">{domain}</Badge>
+        <Badge variant="outline" className="text-[9px]">keyword: {keyword}</Badge>
+      </div>
+
+      {/* Page picker */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium">Select pages to audit <span className="text-destructive">*</span></label>
+          <span className="text-[10px] text-muted-foreground">{selected.size}/5 selected</span>
+        </div>
+        <div className="flex max-h-64 flex-col gap-0.5 overflow-y-auto rounded border border-border/60 p-1">
+          {pages.map((page) => {
+            const isSelected = selected.has(page.url)
+            const isDisabled = !isSelected && selected.size >= 5
+            const status = page.status_code
+            return (
+              <button
+                key={page.url}
+                type="button"
+                disabled={isDisabled}
+                onClick={() => toggle(page.url)}
+                className={cn(
+                  "flex items-start gap-2 rounded px-2 py-1.5 text-left transition-colors",
+                  isSelected ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted",
+                  isDisabled && "cursor-not-allowed opacity-40",
+                )}
+              >
+                <div className={cn(
+                  "mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded border",
+                  isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
+                )}>
+                  {isSelected && <span className="text-[8px] font-bold">✓</span>}
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-[11px] font-medium">
+                    {page.title || page.url.replace(/^https?:\/\//, "")}
+                  </span>
+                  <span className="truncate text-[9px] text-muted-foreground">{page.url}</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "shrink-0 text-[8px]",
+                    status === 200 ? "border-chart-2/40 text-chart-2" : "border-destructive/40 text-destructive",
+                  )}
+                >
+                  {status}
+                </Badge>
+              </button>
+            )
+          })}
+        </div>
+        {pages.length === 0 && (
+          <p className="text-[11px] text-muted-foreground">No pages found in sitemap.</p>
+        )}
+      </div>
+
+      <Button type="button" variant="ghost" size="xs" onClick={() => setStep("input")}>
+        ← Change domain
+      </Button>
     </FieldGroup>
   )
 }

@@ -2,7 +2,7 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext, storeActionTurn } from "../../../common/utils/contextService.js";
+import { callAgentWithContext, recordAgentTurnContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import {
   deleteObject,
@@ -199,13 +199,13 @@ export const finalizeSource = async (
     customInput: { actionId: "lex:upload-source", result: { ...data, sourceRowId: source.id } },
   });
 
-  void storeActionTurn({
-    agentEnum: Agent.LEX,
+  void recordAgentTurnContext({
+    agent: Agent.LEX,
     agentRole: "Lex: Legal and compliance assistant",
     organizationId,
     userContent: `Upload document: ${input.documentName}`,
     assistantContent,
-    rawHistory: history,
+    recentMessages: history,
   }).catch(() => {});
 
   return toSourceDTO(source);
@@ -297,13 +297,13 @@ export const queryDocument = async (
     },
   });
 
-  void storeActionTurn({
-    agentEnum: Agent.LEX,
+  void recordAgentTurnContext({
+    agent: Agent.LEX,
     agentRole: "Lex: Legal and compliance assistant",
     organizationId,
     userContent,
     assistantContent,
-    rawHistory: history,
+    recentMessages: history,
   }).catch(() => {});
 
   return data;

@@ -7,6 +7,12 @@ import {
   analyzeContent,
   contentBrief,
   generateBlogIdeas,
+  serpAnalysis,
+  topicalMap,
+  metaOptimizer,
+  pageSeoAudit,
+  discoverPages,
+  siteAudit,
   getSavedKeywords,
   addSavedKeyword,
   removeSavedKeyword,
@@ -21,6 +27,12 @@ router.post("/generate-blog", generateBlog);
 router.post("/analyze-content", analyzeContent);
 router.post("/content-brief", contentBrief);
 router.post("/generate-blog-ideas", generateBlogIdeas);
+router.post("/serp-analysis", serpAnalysis);
+router.post("/topical-map", topicalMap);
+router.post("/meta-optimizer", metaOptimizer);
+router.post("/page-audit", pageSeoAudit);
+router.post("/discover-pages", discoverPages);
+router.post("/site-audit", siteAudit);
 router.get("/keywords/saved", getSavedKeywords);
 router.post("/keywords/saved", addSavedKeyword);
 router.delete("/keywords/saved/:id", removeSavedKeyword);

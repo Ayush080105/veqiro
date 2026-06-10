@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { StatusCodes } from "http-status-codes";
 import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../../lib/auth.js";
+import auth from "../../lib/auth.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
 
 export async function adminMiddleware(

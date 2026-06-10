@@ -7,6 +7,12 @@ import {
   analyzeContentSchema,
   contentBriefSchema,
   generateBlogIdeasSchema,
+  serpAnalysisSchema,
+  topicalMapSchema,
+  metaOptimizerSchema,
+  pageSeoAuditSchema,
+  discoverPagesSchema,
+  siteAuditSchema,
   saveKeywordSchema,
 } from "./sage.schema.js";
 import * as sageService from "./sage.service.js";
@@ -69,6 +75,48 @@ export const generateBlogIdeas = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = generateBlogIdeasSchema.parse(req.body);
   const result = await sageService.generateBlogIdeas(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const serpAnalysis = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = serpAnalysisSchema.parse(req.body);
+  const result = await sageService.serpAnalysis(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const topicalMap = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = topicalMapSchema.parse(req.body);
+  const result = await sageService.topicalMap(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const metaOptimizer = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = metaOptimizerSchema.parse(req.body);
+  const result = await sageService.metaOptimizer(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const pageSeoAudit = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = pageSeoAuditSchema.parse(req.body);
+  const result = await sageService.pageSeoAudit(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const discoverPages = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = discoverPagesSchema.parse(req.body);
+  const result = await sageService.discoverPages(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const siteAudit = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = siteAuditSchema.parse(req.body);
+  const result = await sageService.siteAudit(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

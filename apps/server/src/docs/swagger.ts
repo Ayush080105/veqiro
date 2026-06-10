@@ -45,7 +45,7 @@ import {
   executiveBriefingSchema,
   composeEmailSchema,
 } from "../modules/agents/vega/vega.schema.js";
-import { env } from "../config/env.js";
+import env from "../config/env.js";
 
 // Internal-Bearer callers must supply userId + organizationId in the body.
 // Session callers don't — the middleware resolves them from the session.

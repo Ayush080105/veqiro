@@ -113,6 +113,127 @@ export interface SageContentBriefResult {
   }
 }
 
+// ─── Sage SEO Audit ──────────────────────────────────────────────────────────
+
+export interface SageUrlAnalysis {
+  url: string; is_https: boolean; keyword_in_slug: boolean;
+  url_length: number; url_depth: number; has_stop_words: boolean;
+  slug: string; score: number; issues: string[];
+}
+
+export interface SageTechnicalSeoAudit {
+  score: number; title: string; title_length: number; title_has_keyword: boolean; title_has_brand: boolean;
+  meta_description: string; meta_description_length: number; meta_description_has_keyword: boolean; meta_description_has_cta: boolean;
+  has_canonical: boolean; canonical_url: string | null; canonical_is_self: boolean;
+  is_indexable: boolean; is_followable: boolean;
+  h1_count: number; h1_text: string; h1_has_keyword: boolean;
+  h2_count: number; h3_count: number; keyword_in_h2: boolean;
+  heading_hierarchy_valid: boolean; heading_hierarchy_issues: string[];
+  has_schema_markup: boolean; schema_types: string[]; schema_issues: string[];
+  schema_eligible_rich_results: string[];
+  has_og_tags: boolean; og_title: string; og_description: string; og_image: string;
+  has_twitter_card: boolean; has_viewport: boolean; has_hreflang: boolean; has_preconnect_hints: boolean;
+  issues: string[];
+}
+
+export interface SageSpeedSignals {
+  score: number; render_blocking_scripts: number; render_blocking_stylesheets: number;
+  total_external_requests: number; images_lazy_loaded: number; images_not_lazy_loaded: number;
+  images_using_modern_format: number; images_total: number;
+  has_inline_critical_css: boolean; has_font_preloading: boolean; issues: string[];
+}
+
+export interface SageImageSeoAudit {
+  score: number; images_total: number; images_missing_alt: number;
+  images_with_descriptive_alt: number; images_with_generic_alt: number;
+  images_with_keyword_filename: number; images_with_dimensions: number; images_without_dimensions: number;
+  webp_avif_percentage: number; issues: string[];
+}
+
+export interface SageOnPageSeoAudit {
+  score: number; word_count: number; reading_time_minutes: number;
+  keyword_density: string; keyword_occurrences: number;
+  keyword_in_title: boolean; keyword_in_h1: boolean; keyword_in_meta: boolean;
+  keyword_in_first_100_words: boolean; keyword_in_h2s: boolean; keyword_in_last_paragraph: boolean;
+  lsi_keywords_found: string[]; lsi_keywords_missing: string[];
+  paa_answered: string[]; paa_unanswered: string[];
+  has_featured_snippet_structure: boolean; featured_snippet_type: string | null;
+  has_faq_section: boolean; content_freshness: string | null; last_modified: string | null;
+  readability_grade: string; content_depth_assessment: string;
+  anchor_text_generic_count: number; anchor_text_descriptive_count: number;
+  issues: string[]; improvements: string[];
+}
+
+export interface SageEeatAudit {
+  score: number; has_author_byline: boolean; has_author_bio: boolean;
+  has_publication_date: boolean; has_updated_date: boolean;
+  has_external_citations: boolean; citation_count: number; has_authoritative_citations: boolean;
+  has_trust_links: boolean; has_social_proof_schema: boolean;
+  credentials_signals: string[]; missing_signals: string[]; issues: string[];
+}
+
+export interface SageCompetitorSnapshot {
+  url: string; title: string; meta_description: string;
+  word_count_estimate: number; main_h2s: string[]; schema_types: string[]; main_topics: string[];
+}
+
+export interface SageCompetitiveSeoAudit {
+  score: number; serp_features_present: string[]; serp_features_missing: string[];
+  avg_competitor_word_count: number; your_word_count: number; word_count_gap: number;
+  word_count_verdict: string; top_competitors: SageCompetitorSnapshot[];
+  content_gaps: string[]; unique_angle_opportunity: string;
+  featured_snippet_holder: string | null; featured_snippet_format: string | null;
+  featured_snippet_tip: string; paa_questions: string[]; competitor_schema_types: string[];
+}
+
+export interface SagePageSeoAuditResult {
+  url: string; target_keyword: string; overall_score: number;
+  url_analysis: SageUrlAnalysis; technical: SageTechnicalSeoAudit;
+  speed_signals: SageSpeedSignals; image_seo: SageImageSeoAudit;
+  on_page: SageOnPageSeoAudit; eeat: SageEeatAudit; competitive: SageCompetitiveSeoAudit;
+  critical_issues: string[]; high_priority: string[]; medium_priority: string[]; quick_wins: string[];
+  mentor_summary: string; next_move: string;
+  action_plan_30d: string[]; action_plan_60d: string[]; action_plan_90d: string[];
+}
+
+// Discover pages (page-picker before batch audit)
+export interface SageDiscoveredPage {
+  url: string;
+  title: string;
+  status_code: number;
+}
+
+export interface SageDiscoverPagesResult {
+  domain: string;
+  pages: SageDiscoveredPage[];
+  total_found: number;
+  sitemap_found: boolean;
+}
+
+// Batch page audit (sage:site-audit action)
+export interface SageBatchAuditResult {
+  domain: string;
+  total_audited: number;
+  results: SagePageSeoAuditResult[];
+  tokens_used?: number;
+  model_used?: string;
+}
+
+// Keep legacy types for backward compat
+export interface SagePageSummary {
+  url: string; http_status: number; title: string; word_count: number; score: number;
+  has_meta_description: boolean; has_h1: boolean; has_schema: boolean;
+  is_indexable: boolean; redirect_target: string | null; issues: string[]; quick_wins: string[];
+}
+
+export interface SageSiteAuditResult {
+  domain: string;
+  total_audited: number;
+  results: SagePageSeoAuditResult[];
+  tokens_used?: number;
+  model_used?: string;
+}
+
 // ─── Maya ────────────────────────────────────────────────────────────────────
 
 export interface MayaIdeationRequest {
@@ -1076,6 +1197,8 @@ export type AgentActionId =
   | "sage:analyze-content"
   | "sage:content-brief"
   | "sage:generate-blog-ideas"
+  | "sage:page-seo-audit"
+  | "sage:site-audit"
   | "maya:generate-ideas"
   | "maya:draft-content"
   | "maya:draft-carousel"

@@ -59,6 +59,24 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       description: "Generate trending blog topics tailored to your company from the brandkit.",
       icon: "Sparkles",
     },
+    {
+      id: "sage:page-seo-audit",
+      agent: "sage",
+      endpoint: "page-audit",
+      label: "Page SEO Audit",
+      description: "Deep-dive audit of a single URL — technical, speed, image, on-page, E-E-A-T, and competitive analysis.",
+      icon: "Gauge",
+      example: "https://yoursite.com/blog/post",
+    },
+    {
+      id: "sage:site-audit",
+      agent: "sage",
+      endpoint: "site-audit",
+      label: "Site Audit",
+      description: "Full-site SEO health check — crawls sitemap, checks HTTP status, detects orphan pages and cannibalization.",
+      icon: "Globe",
+      example: "yoursite.com",
+    },
   ],
   maya: [
     {

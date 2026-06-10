@@ -170,7 +170,7 @@ export async function recordDirectActionContextForAssistantMessage(messageId: st
   }
 }
 
-export async function callAgentWithContext(opts: AgentCallOptions): Promise<AgentChatResponse> {
+export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCallOptions): Promise<T> {
   const {
     agentApiPath, agentEnum, agentRole, userId, organizationId,
     conversationId, userMessage, rawHistory, extraPayload = {}, topLevelPayload = {},
@@ -230,8 +230,10 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<Agen
     },
   })
 
-  // 4. If a rich action was completed, record it in OrgMemory so other agents know
-  const responseData = chatResponseSchema.parse(response)
+  // 4. Try to parse as a chat response for context recording.
+  //    Action endpoints (keyword-research, generate-blog, etc.) return a different
+  //    shape — fall back gracefully so they still get context recorded.
+  const chatParsed = chatResponseSchema.safeParse(response)
 
   // 5. Monitored async context write: non-blocking, but failures are visible.
   void recordAgentTurnContext({
@@ -240,11 +242,11 @@ export async function callAgentWithContext(opts: AgentCallOptions): Promise<Agen
     agentRole,
     conversationId,
     userContent: userMessage,
-    assistantContent: responseData.response,
+    assistantContent: chatParsed.success ? chatParsed.data.response : `Completed ${opts.agentApiPath}`,
     recentMessages: rawHistory,
-    actionId: responseData.action_id ?? undefined,
-    actionSummary: responseData.response,
+    actionId: chatParsed.success ? (chatParsed.data.action_id ?? undefined) : undefined,
+    actionSummary: chatParsed.success ? chatParsed.data.response : undefined,
   })
 
-  return responseData
+  return response as T
 }

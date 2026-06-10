@@ -1,6 +1,6 @@
 import type { Request } from "express";
 import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../../lib/auth.js";
+import auth from "../../lib/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { dodoClient } from "../../lib/dodo.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
