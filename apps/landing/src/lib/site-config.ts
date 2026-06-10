@@ -7,6 +7,19 @@ export const consoleUrl =
 export const landingUrl =
   process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
 
+export const serverUrl =
+  process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000/api/v1';
+
+export const isPreLaunch =
+  process.env.NEXT_PUBLIC_PRE_LAUNCH === 'true';
+
+export const launchDate =
+  process.env.NEXT_PUBLIC_LAUNCH_DATE || '2026-06-17T00:00:00Z';
+
+export const maxWaitlistSlots = 100;
+
+export const waitlistUrl = '/waitlist';
+
 export const contact = {
   email: 'info@veqiro.com',
   phone: '+1 (555) 010-0000',

@@ -975,3 +975,14 @@ model UpcomingAgentVote {
   @@index([upcomingAgentId])
   @@map("upcoming_agent_vote")
 }
+
+/// Pre-launch waitlist entry collected before product launch.
+model WaitlistEntry {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  coupon    String?
+  validTill DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("waitlist_entry")
+}

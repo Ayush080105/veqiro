@@ -24,8 +24,12 @@ import adminRouter from "./modules/admin/admin.routes.js";
 import { adminMiddleware } from "./modules/admin/admin.middleware.js";
 import feedbackRouter from "./modules/feedback/feedback.routes.js";
 import { getPublicRoadmap } from "./modules/feedback/feedback.controller.js";
+import waitlistRouter from "./modules/waitlist/waitlist.router.js";
 
 const router = Router();
+
+// Public waitlist routes — no auth required.
+router.use("/waitlist", waitlistRouter);
 
 // Public REX routes — webhook ingest (validated by API key in body) and public shared pins.
 // Mounted BEFORE the protected router so authMiddleware doesn't intercept them.
