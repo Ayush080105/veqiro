@@ -256,23 +256,59 @@ function isMostlyDates(values: CellLike[]): boolean {
   return ok >= Math.max(3, Math.floor(sample.length * 0.7));
 }
 
+// Strict numeric check: after stripping known decorators (currency, sign, %, k/m/b),
+// only digits and decimal/thousands separators (.,') should remain.
+// This rejects "10*10", "Q1/2025", "A400", "10/6/10" etc. that parseFloat
+// would partially consume — those are categorical/text values, not numbers.
+function looksNumeric(v: CellLike): boolean {
+  if (v == null) return false;
+  if (typeof v === "number") return isFinite(v) && !isNaN(v);
+  const s = String(v).trim();
+  if (s === "") return false;
+  const stripped = s
+    .replace(/^[$€£¥₹+\-\s]+/, "") // leading currency / sign
+    .replace(/[%\s]+$/, "")          // trailing % / whitespace
+    .replace(/[kmb]$/i, "");         // trailing magnitude suffix
+  return stripped.length > 0 && /^[\d,.']+$/.test(stripped);
+}
+
 function isMostlyNumeric(values: CellLike[]): boolean {
   const sample = cleanValues(values);
   if (sample.length < 2) return false;
-  const ok = sample.filter((v) => !isNaN(parseNumeric(v))).length;
+  const ok = sample.filter(
+    (v) => looksNumeric(v) && !isNaN(parseNumeric(v))
+  ).length;
   return ok >= Math.max(2, Math.floor(sample.length * 0.7));
 }
 
 function isCategoricalString(values: CellLike[]): boolean {
-  // Looks like discrete categories (e.g. metric names): non-empty strings,
-  // limited unique values, none parse as numeric or date.
   const sample = cleanValues(values).map((v) => String(v).trim());
   if (sample.length < 3) return false;
-  const numericFrac = sample.filter((v) => !isNaN(parseNumeric(v))).length / sample.length;
+  const numericFrac = sample.filter((v) => looksNumeric(v)).length / sample.length;
   const dateFrac = sample.filter((v) => parseDateCell(v) != null).length / sample.length;
   if (numericFrac > 0.3 || dateFrac > 0.3) return false;
   const uniq = new Set(sample.map((v) => v.toLowerCase()));
   return uniq.size >= 2 && uniq.size <= Math.max(20, sample.length / 2);
+}
+
+// Score how "header-like" a row is.
+// Header rows contain human-readable column names: mostly short text labels
+// with few/no numeric or date values.  Data rows contain a mix of text and
+// numbers/dates.  Returns 0 for completely empty rows.
+function headerRowScore(row: (string | number | null | undefined)[]): number {
+  const nonEmpty = row.filter((v) => v != null && String(v).trim() !== "");
+  if (nonEmpty.length === 0) return 0;
+  const labelCount = nonEmpty.filter((v) => {
+    if (typeof v === "number") return false;       // bare number → data cell
+    const s = String(v).trim();
+    if (looksNumeric(s)) return false;             // numeric string → data cell
+    if (parseDateCell(s) != null) return false;    // date string → data cell
+    return true;                                   // text label
+  }).length;
+  // Single-cell rows (title rows) get a low score even at 100% labels
+  if (nonEmpty.length === 1) return labelCount > 0 ? 0.5 : 0;
+  // Score = cell count × label purity (header rows are 100% labels)
+  return nonEmpty.length * (labelCount / nonEmpty.length);
 }
 
 // A slash/dash date like "05/06/2025" is ambiguous when both leading parts are
@@ -603,29 +639,48 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) continue;
 
-    // Files exported from Apple Numbers / LibreOffice often have leading blank
-    // rows (or sparse title rows) before the real header. sheet_to_json uses
-    // row 0 as the header by default, producing __EMPTY_* keys that get
-    // stripped, making the whole sheet appear empty.
+    // Detect the real header row robustly, handling:
+    //  • blank / sparse leading rows (Apple Numbers, LibreOffice exports)
+    //  • title rows ("Q2 Report | Company XYZ") above the real header
+    //  • two-row header blocks — pick the LAST header-like row before data
+    //  • data rows that have MORE non-empty cells than the header row
     //
-    // Strategy: scan the first 10 rows and pick the one with the most non-empty
-    // cells — that row is almost certainly the header. This handles:
-    //   • purely blank leading rows (Numbers export)
-    //   • sparse title rows like "Q2 Report | Company XYZ" (2 cells) sitting
-    //     above a proper header row (7 cells) — the header wins by cell count
+    // Strategy: score each of the first 20 rows by "header-likeness"
+    // (= non-empty count × fraction of cells that are text labels, not
+    // numbers/dates).  Then find the last row whose score is strictly
+    // higher than the next row's score — that is the final header row
+    // just before the data begins.
     const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
       header: 1,
       raw: false,
       defval: null,
     }) as (string | null)[][];
+
+    const scanLimit = Math.min(20, rawRows.length);
+    const scores = rawRows.slice(0, scanLimit).map((r) => headerRowScore(r ?? []));
+
+    // Find the last "peak": a row whose score is strictly greater than the
+    // immediately following row.  This is the final header row before data.
     let headerRowIdx = 0;
-    let bestCount = 0;
-    const scanLimit = Math.min(10, rawRows.length);
-    for (let i = 0; i < scanLimit; i++) {
-      const nonEmpty = (rawRows[i] ?? []).filter(
-        (v) => v != null && String(v).trim() !== ""
-      ).length;
-      if (nonEmpty > bestCount) { bestCount = nonEmpty; headerRowIdx = i; }
+    let bestPeakScore = -1;
+    for (let i = 0; i < scores.length - 1; i++) {
+      if (scores[i]! > 0 && scores[i]! > scores[i + 1]!) {
+        if (scores[i]! >= bestPeakScore) {
+          bestPeakScore = scores[i]!;
+          headerRowIdx = i;
+        }
+      }
+    }
+    // Fallback: no clear peak (e.g. all-text table with no numeric data rows
+    // visible in the scan window) — use the row with the highest score.
+    if (bestPeakScore < 0) {
+      let maxScore = -1;
+      for (let i = 0; i < scores.length; i++) {
+        if (scores[i]! > maxScore) {
+          maxScore = scores[i]!;
+          headerRowIdx = i;
+        }
+      }
     }
 
     const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
