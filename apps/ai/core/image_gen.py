@@ -404,7 +404,7 @@ def _asset_mandate(use_logo: bool, use_mascot: bool) -> str:
     if use_logo:
         parts.append(
             "MANDATORY LOGO: The brand logo reference image MUST be composited into the final image. "
-            "Place it as a sharp, high-fidelity corner overlay (bottom-right or top-right) — render with clean anti-aliased edges. "
+            "Place it where it fits naturally in the composition — a corner (bottom-right or top-right preferred), an edge, or integrated into the scene if that reads better — rendered with clean anti-aliased edges. "
             "Do NOT omit the logo. A final image without the logo is WRONG."
         )
     if use_mascot:
@@ -586,8 +586,8 @@ async def generate_social_image(
                             f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
                             f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
-                            f"Place it as a clean, sharp corner overlay (bottom-right preferred), "
-                            f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always visible."
+                            f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
+                            f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
                         )
                         logger.info("logo reference added (campaign mode) | user=%s", user_id)
 
@@ -630,7 +630,7 @@ async def generate_social_image(
                             f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
                             f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
-                            f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
+                            f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
                             f"occupying roughly 8-12% of the image width. Crisp and exact."
                         )
                         logger.info("logo reference added (ref mode) | user=%s", user_id)
@@ -711,7 +711,7 @@ async def generate_social_image(
                 f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                 f"Do NOT simplify, redraw, reinterpret, or approximate it. "
                 f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
-                f"Place it as a clean, sharp overlay in one corner of the image (bottom-right preferred), "
+                f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
                 f"occupying roughly 8-12% of the image width. Crisp and exact."
             )
             logger.info("logo reference added | user=%s url=%s", user_id, brand_kit.logo_url)
@@ -749,7 +749,7 @@ async def generate_social_image(
             "Do NOT use the reference image as the scene background. "
             "The reference is the brand logo — reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
             "If the logo has a background colour, ignore it and composite only the logo mark itself with no white box or rectangular border. "
-            "Place it as a clean, sharp corner overlay in the newly created scene. "
+            "Place it where it fits naturally in the scene — a corner, an edge, or integrated into the composition. "
             "Do NOT simplify, redraw, or reinterpret the logo design.\n\n"
             if logo_only else ""
         )
