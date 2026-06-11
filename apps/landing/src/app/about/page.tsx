@@ -3,7 +3,8 @@ import { Footer } from '@/components/veqiro/sections';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { FONT, Button } from '@/components/veqiro/shared';
 import { AboutCrewGrid } from '@/components/veqiro/about-crew-grid';
-import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
+import { ContactPageForm } from '@/components/veqiro/contact-page-form';
+import { consoleUrl, isPreLaunch, waitlistUrl, contact } from '@/lib/site-config';
 import { buildPageMetadata } from '@/lib/seo';
 import { JsonLd } from '@/components/veqiro/json-ld';
 import { organizationJsonLd, faqPageJsonLd } from '@/lib/jsonld';
@@ -401,6 +402,36 @@ export default function AboutPage() {
                 </div>
               </details>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CONTACT ── */}
+      <section id="contact" className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto' }}>
+          <div style={{ marginBottom: 40 }}>
+            <div style={{
+              fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+            }}>
+              [ GET IN TOUCH ]
+            </div>
+            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: '0 0 16px', lineHeight: 0.95 }}>
+              let&apos;s talk.
+            </h2>
+            <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#555', margin: 0, lineHeight: 1.65 }}>
+              Questions before signing up? Just want to say hi? We reply within one business day.
+            </p>
+            <div style={{ marginTop: 12, fontFamily: FONT.mono, fontSize: 12, color: '#888', letterSpacing: 1 }}>
+              {contact.email}
+            </div>
+          </div>
+          <div style={{
+            background: '#FFF9ED', border: '3px solid #111',
+            borderRadius: 16, padding: 'clamp(24px, 4vw, 40px)',
+            boxShadow: '6px 6px 0 #111',
+          }}>
+            <ContactPageForm />
           </div>
         </div>
       </section>

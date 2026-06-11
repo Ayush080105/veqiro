@@ -31,6 +31,7 @@ export function AboutCrewGrid() {
                 <div style={{
                   fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2,
                   textTransform: 'uppercase', color: '#888', marginTop: 5,
+                  whiteSpace: 'pre-line',
                 }}>
                   {emp.role}
                 </div>

@@ -338,7 +338,7 @@ export const EMPLOYEES: Employee[] = [
   {
     key: 'sage',
     name: 'Sage',
-    role: 'The SEO Specialist',
+    role: 'The SEO\nSpecialist',
     tag: 'Ranks pages in her sleep',
     color: '#F79FD4',
     ink: '#8E2A6A',

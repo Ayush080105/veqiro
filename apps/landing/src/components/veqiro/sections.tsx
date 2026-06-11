@@ -6,7 +6,6 @@ import {
   consoleUrl,
   isPreLaunch,
   waitlistUrl,
-  demoCtaHref,
   howItWorksSteps,
   pricingTiers,
   faqItems,
@@ -14,6 +13,7 @@ import {
   social,
   footerBottom,
 } from '@/lib/site-config';
+import { ContactModal } from './contact-modal';
 
 export function HowItWorks() {
   return (
@@ -194,6 +194,7 @@ export function FAQ() {
 }
 
 export function FinalCTA() {
+  const [isContactOpen, setIsContactOpen] = useState(false);
   return (
     <section id="hire" style={{ padding: 'clamp(72px, 11vw, 120px) clamp(20px, 4vw, 32px)', background: '#F5C518', borderTop: '3px solid #111', borderBottom: '3px solid #111', position: 'relative', overflow: 'hidden' }}>
       <div aria-hidden style={{
@@ -214,13 +215,14 @@ export function FinalCTA() {
             fontFamily: FONT.head, fontSize: 'clamp(14px, 2vw, 18px)', textTransform: 'uppercase', letterSpacing: 1,
             textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #EFE7D6',
           }}>{isPreLaunch ? 'Save my spot →' : 'Hire the crew →'}</a>
-          <a href={demoCtaHref} style={{
+          <button onClick={() => setIsContactOpen(true)} style={{
             background: 'transparent', color: '#111', padding: 'clamp(14px, 2.5vw, 20px) clamp(24px, 5vw, 40px)',
             fontFamily: FONT.head, fontSize: 'clamp(14px, 2vw, 18px)', textTransform: 'uppercase', letterSpacing: 1,
-            textDecoration: 'none', border: '3px solid #111', borderRadius: 12,
-          }}>Book a demo</a>
+            border: '3px solid #111', borderRadius: 12, cursor: 'pointer',
+          }}>Contact us</button>
         </div>
       </div>
+      <ContactModal open={isContactOpen} onClose={() => setIsContactOpen(false)} />
     </section>
   );
 }

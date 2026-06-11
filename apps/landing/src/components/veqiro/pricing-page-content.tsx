@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT, Button } from '@/components/veqiro/shared';
-import { pricingTiers, consoleUrl, isPreLaunch, waitlistUrl, demoCtaHref } from '@/lib/site-config';
+import { pricingTiers, consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 import { EMPLOYEES } from '@/components/veqiro/data';
 import { CHARACTER_COMPONENTS } from '@/components/veqiro/characters';
+import { ContactModal } from '@/components/veqiro/contact-modal';
 
 const PRICING_FAQ = [
   { q: 'Is there a free trial?', a: "Yes — 7 days, no credit card required. Full access to all six agents from day one." },
@@ -39,6 +40,7 @@ export default function PricingPageContent() {
   const tier = pricingTiers[0];
   const [yearly, setYearly] = useState(false);
   const price = yearly ? tier.yearly : tier.monthly;
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   return (
     <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
@@ -238,7 +240,7 @@ export default function PricingPageContent() {
                       (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
                     }}
                   >
-                    <div style={{ aspectRatio: '1/1', overflow: 'hidden', background: emp.color }}>
+                    <div style={{ overflow: 'hidden', background: emp.color }}>
                       <Comp size="100%" />
                     </div>
                     <div style={{ padding: '14px 16px' }}>
@@ -334,12 +336,13 @@ export default function PricingPageContent() {
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start 7-day free trial →'}</Button>
-            <Button variant="ghost" href={demoCtaHref}>Talk to a human first</Button>
+            <Button variant="ghost" onClick={() => setIsContactOpen(true)}>Talk to a human</Button>
           </div>
         </div>
       </section>
 
       <Footer />
+      <ContactModal open={isContactOpen} onClose={() => setIsContactOpen(false)} />
     </div>
   );
 }

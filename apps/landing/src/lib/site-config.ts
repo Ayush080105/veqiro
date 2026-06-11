@@ -53,8 +53,6 @@ export const useCaseNavItems: UseCaseNavItem[] = [
   { slug: 'growing-startups', persona: 'Growing Startups', tagline: 'Scale without hiring', color: '#1DBC87' },
 ];
 
-export const demoCtaHref = `mailto:${contact.email}?subject=Veqiro%20demo%20request`;
-
 export const marqueeItems = [
   ' zero sick days', ' works at 3am', ' no payroll', ' ships fast',
   ' zero drama', ' never sleeps', ' no small talk', ' always on',
@@ -226,6 +224,7 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: 'About', href: '/about' },
       { label: 'Blog', href: '/blog' },
+      { label: 'Contact', href: '/about#contact' },
       { label: 'Feedback', href: `${consoleUrl}/feedback` },
     ],
   },
@@ -249,7 +248,6 @@ export const siteConfig = {
   contact,
   social,
   nav,
-  demoCtaHref,
   marqueeItems,
   marqueeRedItems,
   howItWorksSteps,
