@@ -172,19 +172,19 @@ export const faqItems = [
 export const crewReplies: Record<string, string> = {
   vega: "Move the Thursday one — investor call takes priority.",
   scout: "Show me the weird one.",
-  maya: "Spicy. Always spicy.",
-  sage: "Do it. Coffee's on me.",
-  lex: "Redline it, send to counsel.",
-  rex: "Show me the weird thing.",
+  maya: "Deeper contrast on the hero. Logo bottom-right across all placements.",
+  sage: "Write the title tag, H1, and meta description.",
+  lex: "What does 'indirect damages' mean? And do we have GDPR exposure?",
+  rex: "What drove the April churn spike?",
 };
 
 export const crewFollows: Record<string, string> = {
   vega: "Done. Also blocked 2hrs tomorrow for deep work — you're welcome.",
   scout: "K. Company in Tallinn, 4 employees, shipping faster than Stripe did in 2012. Worth a call.",
-  maya: "Drafting now. I'll send you 3 options in 6 minutes. Brace.",
-  sage: "Cool. Starting with the long-tails. First wins in ~10 days.",
-  lex: "Redlined. Sending to counsel with a summary. Est read time: 3 min.",
-  rex: "Paid CAC spiked 3x on Meta last Tuesday. Want the chart or just the fix?",
+  maya: "All 4 updated — deeper contrast, logo anchored bottom-right on every placement. Launch campaign locked. Instagram square first?",
+  sage: "Title: 'AI Employees for Founders | Vega, Scout, Maya & More — Veqiro'. H1: 'Meet Your AI Employees — Built for the Work That Eats Your Day.' Meta and /ai-employees content brief also ready.",
+  lex: "Indirect damages = lost profits, reputational harm, business interruption — uncapped. GDPR: no DPA, no sub-processor list, three critical gaps. Compliance report ready.",
+  rex: "All 8 churned from the same January cohort — Starter plan, Product Hunt signups. Fit issue, not product. Churn breakdown, revenue concentration risk, and 3 recommendations in the report. DOCX ready.",
 };
 
 export interface FooterColumn {

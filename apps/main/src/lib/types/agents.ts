@@ -567,6 +567,7 @@ export interface RexAnalyzeDatasetResult {
   insights: string[]
   recommendations: string[]
   chart?: RexQueryDatasetChartSpec
+  charts?: RexQueryDatasetChartSpec[]
   tokens_used?: number
   model_used?: string
 }

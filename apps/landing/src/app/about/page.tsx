@@ -10,7 +10,7 @@ import { organizationJsonLd, faqPageJsonLd } from '@/lib/jsonld';
 
 export const metadata = buildPageMetadata({
   title: 'About Veqiro — Who We Are & What Veqiro Is',
-  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in Bengaluru. One subscription, six AI agents — all-in-one AI platform for startups.',
+  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in India. One subscription, six AI agents — all-in-one AI platform for startups.',
   path: '/about',
   keywords: [
     'who is veqiro',
@@ -32,7 +32,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'Who makes Veqiro?',
-    a: "Veqiro is built by Veqiro Labs, based in Bengaluru, India. The company was founded by operators who were tired of copy-pasting between ChatGPT tabs at midnight and decided to build the AI employees they wished existed.",
+    a: "Veqiro is built by Venturelab Technologies, based in India. The company was founded by operators who were tired of copy-pasting between ChatGPT tabs at midnight and decided to build the AI employees they wished existed.",
   },
   {
     q: 'Who is Veqiro for?',
@@ -204,7 +204,7 @@ export default function AboutPage() {
             {[
               { label: 'AI employees', value: '6', accent: '#F5C518' },
               { label: 'One subscription', value: '$39/mo', accent: '#F06464' },
-              { label: 'Built in', value: 'Bengaluru, IN', accent: '#1DBC87' },
+              { label: 'Built in', value: 'India', accent: '#1DBC87' },
               { label: 'Free trial', value: '7 days', accent: '#6FCDE8' },
             ].map((f) => (
               <div
@@ -313,7 +313,7 @@ export default function AboutPage() {
             lineHeight: 1.3,
             margin: 0,
           }}>
-            "Built in a small room, loud — Bengaluru, IN. Started because the founders were tired of copy-pasting into ChatGPT at midnight."
+            "Built in a small room, loud — India. Started because the founders were tired of copy-pasting into ChatGPT at midnight."
           </p>
           <div style={{
             marginTop: 28,

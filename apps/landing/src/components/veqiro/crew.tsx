@@ -250,7 +250,7 @@ export function DeskPanel({ active, onNavigate }: { active: string; onNavigate: 
                 <div style={{ fontFamily: FONT.head, fontSize: 15 }}>{emp.name} · {emp.role}</div>
                 <div style={{ fontFamily: FONT.mono, fontSize: 11, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1DBC87', boxShadow: '0 0 0 2px #fff', display: 'inline-block' }} />
-                  online · typing in 42 languages
+                  online · typing...
                 </div>
               </div>
             </div>
