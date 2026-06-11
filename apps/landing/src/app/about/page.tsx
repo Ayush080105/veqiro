@@ -36,7 +36,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'Who is Veqiro for?',
-    a: "Veqiro is built for founders, lean teams (2–10 people), marketing teams, agencies, and solopreneurs who need the output of a full specialist team without the headcount. If you can't justify hiring a dedicated EA, researcher, content lead, SEO specialist, legal reviewer, and financial analyst — Veqiro is the answer.",
+    a: "Veqiro is built for founders, lean teams (2–10 people), marketing teams, agencies, and growing startups who need the output of a full specialist team without the headcount. If you can't justify hiring a dedicated EA, researcher, content lead, SEO specialist, legal reviewer, and financial analyst — Veqiro is the answer.",
   },
   {
     q: 'How is Veqiro different from ChatGPT or other AI tools?',

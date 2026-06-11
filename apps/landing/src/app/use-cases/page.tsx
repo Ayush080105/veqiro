@@ -9,7 +9,7 @@ import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 export const metadata = buildPageMetadata({
   title: 'Use Cases — Who Veqiro Is For',
   description:
-    'See how founders, marketing teams, agencies, and solopreneurs use Veqiro to ship more without hiring more. Pick the playbook that fits you.',
+    'See how founders, marketing teams, agencies, and growing startups use Veqiro to automate operations without adding headcount. Pick the playbook that fits.',
   path: '/use-cases',
   keywords: [
     'ai use cases',
@@ -74,15 +74,15 @@ const USE_CASES: UseCase[] = [
     ink: '#2A2A7A',
   },
   {
-    slug: 'solopreneurs',
-    persona: 'For Solopreneurs',
-    headline: "You're a team of one. Act like a team of six.",
+    slug: 'growing-startups',
+    persona: 'For Growing Startups',
+    headline: 'Scale the output. Not the headcount.',
     blurb:
-      "Solopreneurs can't hire specialists. Veqiro gives you a CFO, EA, content lead, SEO, legal, and researcher in one subscription — cheaper than a single freelance retainer.",
+      "You've got revenue, a real team, and momentum — but you're still running lean on the operational layer. Veqiro gives your team six AI specialists so you stop hiring for execution and start competing on speed.",
     bullets: [
-      'All 6 agents from day one — no tier decisions',
-      'Daily briefings so nothing slips through the cracks',
-      'Setup in under 15 minutes, output within the hour',
+      'Board decks and investor updates from live data — not 3 days of slides',
+      'Content, SEO, and research at growth pace without a full team',
+      'Legal reviews, financial reports, and exec inbox — handled',
     ],
     accent: '#1DBC87',
     ink: '#0E5C3F',
@@ -149,7 +149,7 @@ export default function UseCasesHubPage() {
               margin: '0 0 12px',
             }}
           >
-            Whether you&apos;re a solo founder, a 3-person marketing team, a scrappy agency, or a solopreneur shipping on weekends — the crew works the same. Pick the playbook that fits how you run.
+            Whether you&apos;re a founder wearing six hats, a marketing team bottlenecked on output, an agency scaling client work, or a growth-stage startup systematizing fast — the crew works the same. Pick the playbook that fits how you run.
           </p>
         </div>
       </section>

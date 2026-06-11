@@ -50,7 +50,7 @@ export const useCaseNavItems: UseCaseNavItem[] = [
   { slug: 'founders',         persona: 'Founders',         tagline: '6 hires, no payroll',  color: '#F5C518' },
   { slug: 'marketing-teams',  persona: 'Marketing Teams',  tagline: 'Ship at 3x pace',       color: '#F06464' },
   { slug: 'agencies',         persona: 'Agencies',         tagline: 'Multi-client ready',    color: '#8A8AF0' },
-  { slug: 'solopreneurs',     persona: 'Solopreneurs',     tagline: 'Team of one → six',     color: '#1DBC87' },
+  { slug: 'growing-startups', persona: 'Growing Startups', tagline: 'Scale without hiring', color: '#1DBC87' },
 ];
 
 export const demoCtaHref = `mailto:${contact.email}?subject=Veqiro%20demo%20request`;
@@ -218,7 +218,7 @@ export const footerColumns: FooterColumn[] = [
       { label: 'For Founders', href: '/use-cases/founders' },
       { label: 'For Marketing Teams', href: '/use-cases/marketing-teams' },
       { label: 'For Agencies', href: '/use-cases/agencies' },
-      { label: 'For Solopreneurs', href: '/use-cases/solopreneurs' },
+      { label: 'For Growing Startups', href: '/use-cases/growing-startups' },
     ],
   },
   {

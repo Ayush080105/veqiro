@@ -42,6 +42,8 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai scheduling assistant',
       'ai calendar assistant',
       'virtual ai assistant for founders',
+      'ai email labels',
+      'ai vip inbox',
     ],
   },
   scout: {
@@ -67,18 +69,24 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai copywriter',
       'ai linkedin post generator',
       'brand voice ai',
+      'ai product campaign generator',
+      'ai carousel post generator',
     ],
   },
   sage: {
     seoTitleSuffix: 'AI SEO Specialist & Blog Writer | Veqiro',
     metaDescription:
-      'Sage does keyword research, writes SEO-optimized blog posts, and audits your existing content. An AI SEO tool that actually ranks.',
+      'Sage does keyword research, writes SEO-optimized blog posts, and audits pages and full sites for technical issues. An AI SEO tool that actually ranks.',
     keywords: [
       'ai seo tool',
       'ai seo assistant',
       'ai keyword research tool',
       'ai blog writer',
       'seo agent ai',
+      'ai seo audit',
+      'ai technical seo',
+      'ai page audit tool',
+      'ai site audit',
     ],
   },
   lex: {
@@ -91,6 +99,7 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai for contract analysis',
       'ai nda review',
       'legal ai for startups',
+      'ai legal document library',
     ],
   },
   rex: {
@@ -103,6 +112,9 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai revenue forecasting',
       'ai cfo',
       'mrr tracking ai',
+      'ai board deck generator',
+      'ai cfo digest',
+      'ai variance analysis',
     ],
   },
 };

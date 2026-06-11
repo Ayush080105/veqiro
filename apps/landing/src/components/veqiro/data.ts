@@ -54,7 +54,7 @@ export const EMPLOYEES: Employee[] = [
     tag: 'Your right hand, 24/7',
     color: '#6FCDE8',
     ink: '#0E5C74',
-    skills: ['Inbox triage', 'Calendar tetris', 'Meeting prep', 'Follow-ups'],
+    skills: ['Inbox triage', 'Calendar tetris', 'Smart labels', 'VIP routing', 'Follow-ups'],
     quote: "Sent you a calendar hold for Thursday. Also, Priya wants 15 min on Tuesday — added to your \"maybe\" pile.",
     stats: [{ k: 'Emails handled', v: '1.2M+' }, { k: 'Meetings booked', v: '340K' }, { k: 'Avg reply time', v: '47s' }],
     description: "Vega runs your inbox, books your calendar, and writes emails that actually sound like you — without you asking twice. She handles the scheduling chaos so your brain stays on the work that matters.",
@@ -64,6 +64,8 @@ export const EMPLOYEES: Employee[] = [
       { title: "Calendar Summary & Event Creation", description: "Get a 1–30 day look-ahead of your calendar, or describe a meeting in plain English and Vega creates the event, checks for conflicts, and invites attendees." },
       { title: "Executive Briefing", description: "One-tap morning briefing pulling from your inbox and calendar: what's urgent, what she handled, and what needs your eyes today." },
       { title: "Email Composition", description: "Compose a new email from scratch — give Vega a recipient, subject, and plain-English instructions and she writes it in your voice with your preferred tone." },
+      { title: "VIP Contacts & Priority Triage", description: "Add key people — investors, clients, board members, partners — as VIP contacts. Vega always surfaces their emails at the top of your inbox triage, ahead of everything else. Never miss a message from the people that actually matter, regardless of how busy the inbox gets." },
+      { title: "Smart Labels with Auto-Draft", description: "Create custom email labels with your own names and colors. Toggle auto-draft on any label — the moment a new email matching that label arrives, Vega writes a reply draft automatically. You open your inbox and the draft is already waiting. Review, tweak, send." },
     ],
     useCases: [
       "Founders drowning in 300+ emails a day",
@@ -77,7 +79,7 @@ export const EMPLOYEES: Employee[] = [
       { role: 'user', content: "Yes, keep it short. And block Friday afternoon.", delayMs: 3200 },
       { role: 'agent', content: "Done. Reply sent. Friday 1–5pm blocked as 'Focus — do not book'. I also bumped the investor call to 10am before your block.", delayMs: 4800 },
     ],
-    howItHelps: "Vega is an AI executive assistant built for founders and operators who lose two hours a day to inbox management and calendar tetris. She plugs into Gmail and Google Calendar, reads every thread, ranks what's urgent, drafts replies in your voice, and fills gaps in your schedule before someone else does. Think of her as an AI email assistant and AI scheduling assistant rolled into one — available at 3 AM when a client in another timezone pings you, and at 9 AM when you finally sit down with coffee.",
+    howItHelps: "Vega is an AI executive assistant built for founders and operators who lose two hours a day to inbox management and calendar tetris. She plugs into Gmail and Google Calendar, reads every thread, ranks what's urgent, drafts replies in your voice, and fills gaps in your schedule before someone else does. Think of her as an AI email assistant and AI scheduling assistant rolled into one — available at 3 AM when a client in another timezone pings you, and at 9 AM when you finally sit down with coffee. Set her up once: add VIPs so investor emails always reach the top, create smart labels with auto-draft so replies are waiting the moment an email arrives. She's the inbox system you always meant to build — already running.",
     workflow: [
       {
         title: "1. Connect your inbox and calendar",
@@ -85,7 +87,7 @@ export const EMPLOYEES: Employee[] = [
       },
       {
         title: "2. Set your rules",
-        body: "Tell her who gets a same-day reply, who waits, and what your non-negotiable focus blocks look like. She respects them forever — no retraining required.",
+        body: "Tell her who gets a same-day reply, who waits, and what your non-negotiable focus blocks look like. Add VIP contacts so their emails always surface first. Create smart labels with auto-draft enabled — she'll have a reply waiting before you open the thread. She respects these rules forever, no retraining required.",
       },
       {
         title: "3. Let her run mornings",
@@ -139,6 +141,8 @@ export const EMPLOYEES: Employee[] = [
       "Create a 1-hour meeting with [person] on Thursday at 2pm",
       "Send me an executive briefing for today",
       "Compose an email to [address] about [topic] with a clear CTA",
+      "Add [name] at [email] to my VIP contacts",
+      "Create a label 'Client Escalations' with auto-draft turned on",
     ],
   },
   {
@@ -154,9 +158,9 @@ export const EMPLOYEES: Employee[] = [
     description: "Scout digs into competitors, markets, and companies so you don't have to spend a Thursday in browser tabs. He gives you a memo, not a data dump — with the stuff that actually matters highlighted.",
     capabilities: [
       { title: "Topic Research", description: "Deep-dive any topic at quick, standard, or deep depth — Scout pulls from 20+ web sources, synthesizes, and writes a memo with citations and recommendations." },
-      { title: "Company Research", description: "Full company profile on any target: size, funding, tech stack, key contacts, recent news, and why now — in one structured report." },
+      { title: "Company Research", description: "Build a full profile on any company: founding date, team size, funding rounds, tech stack, key contacts, product features, pricing, target market, strengths, weaknesses, and recent news — pulled from live web sources." },
       { title: "Trending Topics", description: "Find the top N trending topics in your industry right now with momentum signals — so you jump on the wave before it's in someone's newsletter." },
-      { title: "Competitor Watchlist", description: "Maintain a live list of competitors. Add by name and URL, remove any time, and get recurring teardowns on their pricing, positioning, and recent moves." },
+      { title: "Competitor Watchlist", description: "Live watchlist of tracked competitors — automatically populated whenever Scout discovers new ones. Each entry shows name, URL, why they're competitive, and pricing model. Trigger a fresh deep-dive teardown on any competitor anytime." },
       { title: "Auto-Discover Competitors", description: "Describe your product and industry and Scout finds your real competitors — not the obvious ones, but the ones eating your lunch in adjacent segments." },
     ],
     useCases: [
@@ -242,16 +246,17 @@ export const EMPLOYEES: Employee[] = [
     tag: 'Writes like a human, ships like a machine',
     color: '#F06464',
     ink: '#7A1717',
-    skills: ['Blog posts', 'Ad copy', 'Brand voice', 'Campaign plans'],
+    skills: ['Blog posts', 'Ad copy', 'Brand voice', 'Product campaigns', 'Carousels'],
     quote: "Drafted 3 headlines, 1 is safe, 1 is spicy, 1 is cursed. I vote spicy. You pick.",
     stats: [{ k: 'Posts published', v: '210K' }, { k: 'Avg CTR lift', v: '+34%' }, { k: 'Brand voices', v: '900+' }],
     description: "Maya writes content that doesn't sound like it came from an AI — because she's trained on what actually gets engagement, not what sounds nice. Give her a topic and she'll have three versions ready before you finish your coffee.",
     capabilities: [
-      { title: "Content Ideation", description: "Generate 3–10 content ideas for LinkedIn, Twitter/X, or Instagram — with hooks, angles, and optional on-brand image prompts. Set a topic hint or let her riff." },
-      { title: "Full Content Drafting", description: "Draft a complete post for any platform with tone control, word count target, brand kit applied, and an auto-generated image — ready to approve in minutes." },
-      { title: "Cross-Platform Variants", description: "Write once, distribute everywhere. Give Maya a LinkedIn post and she rewrites it natively for Twitter/X and Instagram — correct length, tone, and format for each." },
-      { title: "Direct Publishing", description: "Maya posts directly to your connected social accounts. No copy-paste, no scheduling tool — approve, and it goes live." },
-      { title: "Revision & Image Regeneration", description: "Paste feedback and Maya revises the draft. Not happy with the image? Describe what you want and she regenerates it with your brand colors and logo." },
+      { title: "Content Ideation", description: "Generate 3–10 content ideas for LinkedIn, Twitter/X, or Instagram — each with a hook, engagement angle, image prompt, and hashtag suggestions." },
+      { title: "Full Content Drafting", description: "Complete post for any platform with tone control, word count target, and brand kit integration. Maya auto-generates a matching image — and can also create multi-slide carousel posts for LinkedIn or Instagram." },
+      { title: "Cross-Platform Variants", description: "Write once, rewrite for every platform natively — LinkedIn hooks, Twitter/X pacing, Instagram captions — while preserving your brand voice throughout." },
+      { title: "Direct Publishing", description: "Post directly to connected social accounts the moment you approve. No copy-paste, no scheduling tool in the middle." },
+      { title: "Revision & Image Regeneration", description: "Revise any draft based on plain-English feedback. Rewrite just the caption with a new prompt, or redraw the image with a new brief — brand colors and logo stay locked in." },
+      { title: "Product Campaign Creator", description: "Upload a single product photo and Maya generates a complete campaign set — multiple brand-consistent images each composed for a different placement (hero, square, story, ad) — plus a ready caption. One shot, full campaign." },
     ],
     useCases: [
       "Marketing teams producing content across 3+ platforms",
@@ -265,7 +270,7 @@ export const EMPLOYEES: Employee[] = [
       { role: 'user', content: "Go with the cheeky one.", delayMs: 3200 },
       { role: 'agent', content: "\"We just made onboarding so fast, our users are confused why it's already over. New: AI that sets you up in 4 minutes. No wizard. No 47-step checklist. Just done.\" — image generated with your brand colors. Post it?", delayMs: 5000 },
     ],
-    howItHelps: "Maya is an AI content generator and AI copywriter that actually respects brand voice. She reads your brand kit, your past posts, and your positioning — then writes LinkedIn posts, blogs, ad copy, and social threads that sound like you, not like the same generic AI content everyone's scrolling past. She's an AI social media post generator for the teams who've been burned by tools that ship robotic drafts and call it a week.",
+    howItHelps: "Maya is an AI content generator and AI copywriter that actually respects brand voice. She reads your brand kit, your past posts, and your positioning — then writes LinkedIn posts, blogs, ad copy, and social threads that sound like you, not like the same generic AI content everyone's scrolling past. She's an AI social media post generator for the teams who've been burned by tools that ship robotic drafts and call it a week — and now she also generates full product campaign photo sets and multi-slide carousels so your launch looks as good as the product.",
     workflow: [
       {
         title: "1. Upload the brand",
@@ -327,6 +332,8 @@ export const EMPLOYEES: Employee[] = [
       "Revise this draft — make it punchier and cut 30 words",
       "Publish this post to my LinkedIn account now",
       "Regenerate the image — I want something darker with our logo centered",
+      "Create a product campaign for our [product] — here's the product photo",
+      "Draft a 5-slide carousel post for LinkedIn about [topic]",
     ],
   },
   {
@@ -336,16 +343,18 @@ export const EMPLOYEES: Employee[] = [
     tag: 'Ranks pages in her sleep',
     color: '#F79FD4',
     ink: '#8E2A6A',
-    skills: ['Keyword research', 'On-page SEO', 'Backlink ops', 'SERP tracking'],
+    skills: ['Keyword research', 'On-page SEO', 'Technical SEO', 'Site audits', 'SERP tracking'],
     quote: "We're ranking #4 for \"best crm for tiny teams\". Give me a week and a coffee — we'll take #1.",
     stats: [{ k: 'Keywords ranked', v: '2.3M' }, { k: 'Avg position lift', v: '+11' }, { k: 'Traffic unlocked', v: '410M' }],
     description: "Sage knows how search actually works right now — not the theory from 2019. She does keyword research, writes SEO-optimized content, and audits what you already have so your pages actually show up.",
     capabilities: [
       { title: "Keyword Research", description: "Intent-classified keyword lists from a seed topic, your niche, and up to 20 competitor URLs. Returns difficulty scores, volume estimates, and a prioritized hit list." },
       { title: "Full Blog Generation", description: "Complete SEO-optimized articles (200–10,000 words) with H2/H3 structure, meta tags, FAQ schema, internal link suggestions — exported as Markdown, HTML, WordPress, or Wix." },
-      { title: "Content Analysis", description: "Score any existing page against a target keyword. Returns specific, prioritized fixes — not vague advice. Paste the content or give Sage a URL." },
+      { title: "Content Analysis & Page Scoring", description: "Score any existing page against a target keyword — readability grade, keyword density, heading structure, word count, missing topics, and E-E-A-T signals. Returns a specific prioritized fix list, not vague suggestions." },
       { title: "Content Briefs", description: "SERP analysis, competitor gap breakdown, questions to answer, target word count, and secondary keywords — everything a writer needs, in one brief." },
       { title: "Blog Ideas & Saved Keywords", description: "Generate fresh blog ideas from your saved keyword list, or build and track that list over time — with search intent, difficulty, and volume for each keyword." },
+      { title: "Page SEO Audit", description: "Deep-dive audit of any single URL: technical SEO issues, page speed signals, image optimization, on-page factors, E-E-A-T score, featured snippet opportunities, and a head-to-head against the top-ranking competitor. Returns a prioritized 30/60/90-day action plan." },
+      { title: "Site-Wide Audit", description: "Crawl your full sitemap: check HTTP status codes, find orphan pages, detect keyword cannibalization across your domain, and surface your biggest technical SEO drag. Returns a domain health overview with total pages audited and issue priorities — not a tool bill." },
     ],
     useCases: [
       "SaaS companies trying to rank for bottom-of-funnel keywords",
@@ -359,7 +368,7 @@ export const EMPLOYEES: Employee[] = [
       { role: 'user', content: "Write me a post targeting that keyword.", delayMs: 3600 },
       { role: 'agent', content: "Done — 1,400 words, H2 structure, FAQ schema, internal links to your pricing page. Ready in the content hub. Est. time to rank: 3–4 weeks if we get 3 backlinks.", delayMs: 5200 },
     ],
-    howItHelps: "Sage is an AI SEO tool and AI blog writer built around how search actually works today — not the playbook from 2019. She handles keyword research with intent classification, writes SEO-optimized articles with correct heading structure and schema, audits what you already have, and keeps track of what's ranking. Think of her as an AI SEO specialist and AI keyword research tool combined — cheaper than a solo SEO hire, faster than any retainer, and actually tuned for founder-led teams that need organic traffic to compound.",
+    howItHelps: "Sage is an AI SEO tool and AI blog writer built around how search actually works today — not the playbook from 2019. She handles keyword research with intent classification, writes SEO-optimized articles with correct heading structure and schema, audits what you already have, and keeps track of what's ranking. She also does deep single-page audits and full-site crawls — surfacing orphan pages, cannibalization conflicts, and E-E-A-T gaps that are quietly costing you rankings. Think of her as an AI SEO specialist, AI keyword research tool, and technical SEO auditor combined — cheaper than a solo SEO hire, faster than any retainer, and actually tuned for founder-led teams that need organic traffic to compound.",
     workflow: [
       {
         title: "1. Plug in your site and goals",
@@ -421,6 +430,8 @@ export const EMPLOYEES: Employee[] = [
       "Build a content brief for '[topic]' targeting '[keyword]'",
       "Generate 5 blog ideas from my saved keyword list",
       "Save this keyword to my list: '[keyword]'",
+      "Run a full page audit on [URL] — I want technical, speed, E-E-A-T, and competitor scores",
+      "Audit my entire site — sitemap is at [url]",
     ],
   },
   {
@@ -430,16 +441,16 @@ export const EMPLOYEES: Employee[] = [
     tag: "Reads the fine print so you don't",
     color: '#8A8AF0',
     ink: '#2A2A7A',
-    skills: ['NDA review', 'Contract drafting', 'Clause flagging', 'Policy audits'],
+    skills: ['NDA review', 'Contract drafting', 'Clause flagging', 'Policy audits', 'Document library'],
     quote: "Clause 7.3 is a trap. Redlined it. Also Clause 4 is fine but written by a poet — I cleaned it up.",
     stats: [{ k: 'Contracts reviewed', v: '180K' }, { k: 'Red flags caught', v: '41K' }, { k: 'Avg review time', v: '4 min' }],
     description: "Lex reads contracts, spots the traps, and explains what the clauses actually mean — in plain English, not legalese. He doesn't replace a lawyer, but she makes sure you don't go into a lawyer meeting blind.",
     capabilities: [
-      { title: "PDF Contract Upload & Ingestion", description: "Upload any PDF or Word contract directly. Lex reads the full document — NDAs, MSAs, vendor agreements, offer letters, contractor agreements — in under 5 minutes." },
+      { title: "Document Library & PDF Ingestion", description: "Upload any PDF contract (NDA, MSA, vendor agreement, offer letter). Lex stores it in your document library with metadata — type, page count, key topics extracted. Every uploaded document stays accessible for analysis, Q&A, or comparison anytime." },
       { title: "Contract Analysis", description: "Full risk analysis: flags perpetual licenses, uncapped liability, one-sided indemnification, auto-renewal traps, and unusual IP assignments — with clause references in plain English." },
-      { title: "Document Q&A", description: "Ask any question about an uploaded contract. \"Does this NDA cover my subcontractors?\" \"What's the notice period for termination?\" — Lex answers with the exact clause." },
+      { title: "Document Q&A & Plain-English Explanations", description: "Ask any question about an uploaded contract and get answers with exact clause references and relevance scores. Or paste any block of legal text and Lex translates it into plain English — with a key terms glossary, related concepts, and practical implications you can actually act on." },
       { title: "Document Drafting", description: "Generate NDAs, SaaS agreements, offer letters, independent contractor agreements, and other startup docs — with jurisdiction selection and custom clauses." },
-      { title: "Legal Research & Compliance Check", description: "Research legal topics by jurisdiction (US, UK, EU, and more). Run a compliance check against GDPR, CCPA, HIPAA, or PCI-DSS — returns a prioritized gap list." },
+      { title: "Legal Research & Compliance Check", description: "Research any legal question by jurisdiction (US, UK, EU): applicable laws, relevant cases, and practical guidance. Run a compliance check against GDPR, CCPA, SOC2, or HIPAA — returns framework-by-framework results, critical gaps, and a prioritized remediation list." },
     ],
     useCases: [
       "Founders reviewing their first enterprise contract",
@@ -483,7 +494,7 @@ export const EMPLOYEES: Employee[] = [
       },
       {
         title: "Compliance spot-checks",
-        body: "Evaluate your practices against GDPR, CCPA, HIPAA, and PCI-DSS with a prioritized gap list. Not a replacement for an audit — a cheat sheet before one.",
+        body: "Evaluate your practices against GDPR, CCPA, SOC2, and HIPAA with a prioritized gap list. Not a replacement for an audit — a cheat sheet before one.",
       },
     ],
     faq: [
@@ -515,6 +526,7 @@ export const EMPLOYEES: Employee[] = [
       "Draft a mutual NDA for a partnership in Delaware",
       "Research non-compete enforceability in California",
       "Check our data practices against GDPR and CCPA",
+      "Explain what this clause means in plain English: [paste clause]",
     ],
   },
   {
@@ -524,17 +536,17 @@ export const EMPLOYEES: Employee[] = [
     tag: 'Makes spreadsheets sing',
     color: '#1DBC87',
     ink: '#0E5C3F',
-    skills: ['Financial models', 'Dashboards', 'Forecasts', 'Anomaly detection'],
+    skills: ['Financial models', 'Dashboards', 'Forecasts', 'Anomaly detection', 'Board decks'],
     quote: "Revenue is up 12% MoM but your CAC is doing something weird. Want me to show you the weird thing?",
     stats: [{ k: 'Rows crunched', v: '8.9B' }, { k: 'Models built', v: '62K' }, { k: 'Anomalies flagged', v: '120K' }],
     description: "Rex turns your business numbers into a story you actually understand — and flags the weird stuff before it becomes a real problem. He looks at MRR, burn, CAC, and churn so you always know exactly where you stand.",
     capabilities: [
-      { title: "Financial Analysis", description: "Full P&L breakdown from revenue, expense, and subscriber data: MRR, ARR, growth rate, gross margin, burn rate — with RED/AMBER/GREEN health flags." },
+      { title: "Financial Analysis & Live KPI Dashboard", description: "Full P&L breakdown from your revenue, expense, and subscriber data — MRR, ARR, growth rate, gross margin, burn rate — each flagged RED/AMBER/GREEN. Rex keeps a live KPI strip always visible at the top of the screen so your key numbers are never more than a glance away." },
       { title: "Revenue Forecasting", description: "Project any metric forward up to 365 days using historical data, with confidence bands and seasonality. Works on MRR, churn, CAC, or any time-series dataset." },
       { title: "Runway & Unit Economics", description: "Enter cash, burn, and revenue — get exact runway with growth scenarios. Or calculate CAC by channel, LTV, and payback period from your marketing spend and customer data." },
       { title: "Scenario Modeling", description: "Model what happens under different assumptions: cut burn by 20%, double down on a channel, raise a bridge. Compare scenarios side-by-side before making the call." },
-      { title: "Investor Updates & Weekly Digest", description: "Auto-generate polished monthly investor updates from your live metrics. Or get a weekly digest: what moved, what's weird, and what to watch — delivered to your inbox." },
-      { title: "CSV Dataset Upload", description: "Upload any CSV — Stripe export, ad spend report, bank statement — and Rex parses, stores, and adds it to your metrics dashboard instantly." },
+      { title: "Investor Updates, Board Decks & Weekly Digest", description: "Auto-generate monthly investor updates with real metrics and narrative. Produce a full investor-ready board deck with charts, section headers, and print-friendly HTML. Run a variance analysis between your actual results and budget, month by month. Or get a Monday morning CFO digest: what moved week-over-week, what looks weird, 3 focus actions." },
+      { title: "Data Hub: Upload, Query & Report", description: "Upload any CSV or Excel file (Stripe export, ad spend, bank statement) and Rex stores it in your Data Hub. Ask questions in plain English, run a full AI analysis, or generate a comprehensive DOCX report with charts, narrative, and strategic takeaways — ready to share." },
     ],
     useCases: [
       "Founders preparing for a fundraise or board meeting",
@@ -611,6 +623,9 @@ export const EMPLOYEES: Employee[] = [
       "Model two scenarios: cut burn 25% vs raise a $500K bridge",
       "Generate my monthly investor update for [month]",
       "Parse and save this CSV from Stripe",
+      "Generate my board deck for [month] — pull from my latest dataset",
+      "Run a variance analysis: actual results vs budget for last quarter",
+      "Give me my Monday CFO digest — what moved and what looks weird",
     ],
   },
 ];
