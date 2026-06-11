@@ -140,7 +140,7 @@ export function Pricing() {
           }}>{isPreLaunch ? 'Join the waitlist →' : 'Start hiring — free 7 days →'}</a>
 
           <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
-            {isPreLaunch ? 'Free for early members · 30% off at launch' : 'No credit card needed · Cancel anytime'}
+            {isPreLaunch ? 'Free for early members · 30% off first month' : 'No credit card needed · Cancel anytime'}
           </p>
         </div>
       </div>

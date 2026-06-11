@@ -4,7 +4,6 @@ import {
   Container,
   Head,
   Heading,
-  Hr,
   Html,
   Img,
   Preview,
@@ -22,11 +21,9 @@ const colors = {
   cream: "#F6EFDF",
   card: "#FFF9EC",
   yellow: "#F5C518",
-  coral: "#F06464",
   blue: "#6FCDE8",
   green: "#1DBC87",
   muted: "#6F675B",
-  rule: "#D7CEBC",
 };
 
 const fontStack =
@@ -45,7 +42,7 @@ export function WaitlistConfirmEmail({
     <Html>
       <Head />
       <Preview>
-        You are officially on the Veqiro waitlist, with 30% off waiting for launch day.
+        You are officially on the Veqiro waitlist, with 30% off your first month waiting for launch day.
       </Preview>
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
@@ -73,9 +70,9 @@ export function WaitlistConfirmEmail({
 
             <Section style={discountBoxStyle}>
               <Text style={discountEyebrowStyle}>Early believer perk</Text>
-              <Text style={discountValueStyle}>30% off</Text>
+              <Text style={discountValueStyle}>30% off month one</Text>
               <Text style={discountTextStyle}>
-                When we open the doors, your Veqiro plan gets the early-access
+                When we open the doors, your first month gets the early-access
                 discount. No treasure map, no coupon archaeology.
               </Text>
             </Section>
@@ -92,13 +89,6 @@ export function WaitlistConfirmEmail({
               </Button>
             </Section>
 
-            <Hr style={hrStyle} />
-
-            <Text style={fallbackLabelStyle}>Button not behaving?</Text>
-            <Text style={fallbackTextStyle}>
-              Paste this into your browser:
-            </Text>
-            <Text style={linkStyle}>https://veqiro.com</Text>
           </Section>
 
           <Section style={footerStyle}>
@@ -238,39 +228,6 @@ const buttonStyle = {
   textDecoration: "none",
   textTransform: "uppercase" as const,
   boxShadow: `5px 5px 0 ${colors.ink}`,
-};
-
-const hrStyle = {
-  margin: "24px 0",
-  borderColor: colors.rule,
-  borderStyle: "dashed",
-};
-
-const fallbackLabelStyle = {
-  margin: "0 0 8px",
-  color: colors.coral,
-  fontFamily: monoStack,
-  fontSize: "11px",
-  fontWeight: "800",
-  letterSpacing: "1.4px",
-  lineHeight: "1.4",
-  textTransform: "uppercase" as const,
-};
-
-const fallbackTextStyle = {
-  margin: "0 0 8px",
-  color: colors.muted,
-  fontSize: "13px",
-  lineHeight: "1.45",
-};
-
-const linkStyle = {
-  margin: "0",
-  color: colors.ink,
-  fontFamily: monoStack,
-  fontSize: "12px",
-  lineHeight: "1.5",
-  overflowWrap: "break-word" as const,
 };
 
 const footerStyle = {

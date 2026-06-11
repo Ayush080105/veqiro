@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { remark } from 'remark';
+import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeSlug from 'rehype-slug';
 import rehypeStringify from 'rehype-stringify';
@@ -107,6 +108,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     if (meta.slug !== slug) continue;
 
     const processed = await remark()
+      .use(remarkGfm)
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeSlug)
       .use(rehypeStringify, { allowDangerousHtml: true })

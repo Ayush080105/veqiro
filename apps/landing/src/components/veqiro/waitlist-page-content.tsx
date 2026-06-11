@@ -159,7 +159,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                     letterSpacing: 0.5,
                     whiteSpace: 'nowrap',
                   }}>30% off</span>
-                  {' '}— priced in, forever.
+                  {' '}— first month only. Launch confetti included.
                 </>
             }
           </p>
@@ -225,7 +225,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                   </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
                     We&apos;ll email you the moment the doors open — along with your{' '}
-                    <span style={{ fontFamily: FONT.head, fontWeight: 700 }}>30% off code</span>.
+                    <span style={{ fontFamily: FONT.head, fontWeight: 700 }}>30% off your first month</span>.
                   </p>
                 </div>
               ) : status === 'already' ? (
@@ -305,7 +305,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                       }} />
                     </div>
                     <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#999', margin: '10px 0 0', letterSpacing: 0.3 }}>
-                      No spam · Just the launch email + your 30% off code
+                      No spam · Just the launch email + your first-month 30% off
                     </p>
                   </div>
                 </div>
