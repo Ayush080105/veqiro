@@ -693,11 +693,21 @@ export function MayaCampaignForm({
   const handleExpand = async () => {
     const brief = form.getValues("campaign_brief" as never) as unknown as string
     const platform = form.getValues("platform" as never) as unknown as string
+    const productImageFile = form.getValues("product_image" as never) as unknown as File | null
     const orgId = (value as Record<string, unknown>).organization_id as string
     if (!brief?.trim() || !orgId) return
     setExpanding(true)
     try {
-      const expanded = await expandCampaignBrief(orgId, brief, platform ?? "instagram")
+      let productImageBase64: string | undefined
+      if (productImageFile instanceof File) {
+        productImageBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve((reader.result as string).split(",")[1])
+          reader.onerror = reject
+          reader.readAsDataURL(productImageFile)
+        })
+      }
+      const expanded = await expandCampaignBrief(orgId, brief, platform ?? "instagram", productImageBase64)
       form.setValue("campaign_brief" as never, expanded as never)
       onChange({ campaign_brief: expanded } as never)
     } catch {

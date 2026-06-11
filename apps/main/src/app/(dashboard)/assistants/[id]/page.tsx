@@ -612,14 +612,16 @@ export default function AssistantChatPage() {
   )
 
   const handleRevertImage = useCallback(
-    (msgIndex: number) => {
+    (msgId: string) => {
       queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
-        if (!prev || msgIndex >= prev.length) return prev
+        if (!prev) return prev
+        const idx = prev.findIndex((m) => m.id === msgId)
+        if (idx < 0) return prev
         const msgs = [...prev]
-        const m = msgs[msgIndex]
+        const m = msgs[idx]
         const r = m.customInput?.result as MayaDraftResult | undefined
         if (!r?._previousImage) return prev
-        msgs[msgIndex] = {
+        msgs[idx] = {
           ...m,
           customInput: {
             ...m.customInput!,
@@ -720,6 +722,80 @@ export default function AssistantChatPage() {
   const isVega = agent.id === "vega"
   const hasMessages = messages.length > 0
   const agentSlug = agent.id as AgentSlug
+
+  // Merge each maya:regenerate-image message into its source card so that on
+  // refresh the image swap is preserved instead of rendering a separate card.
+  const displayMessages = useMemo(() => {
+    const merged = [...messages]
+    const toRemove = new Set<number>()
+
+    for (let i = 0; i < merged.length; i++) {
+      const ci = merged[i].customInput
+      if (ci?.actionId !== "maya:regenerate-image") continue
+      const regenResult = ci.result as MayaImageRegenResult | undefined
+      if (!regenResult?.image) continue
+      const inputImageUrl = (ci.input as { image_url?: string } | undefined)?.image_url
+
+      let patched = false
+      for (let j = i - 1; j >= 0; j--) {
+        const src = merged[j].customInput
+        if (!src?.actionId || !src.result) continue
+
+        if (src.actionId === "maya:draft-content") {
+          const r = src.result as MayaDraftResult
+          if (!inputImageUrl || r.image?.image_url === inputImageUrl) {
+            merged[j] = { ...merged[j], customInput: { ...src, result: { ...r, image: regenResult.image } } }
+            patched = true; break
+          }
+        }
+        if (src.actionId === "maya:draft-carousel") {
+          const r = src.result as MayaCarouselDraftResult
+          const idx = (r?.slides ?? []).findIndex((s) => s?.image?.image_url === inputImageUrl)
+          if (idx >= 0) {
+            const newSlides = [...r.slides]
+            newSlides[idx] = { ...newSlides[idx], image: regenResult.image }
+            merged[j] = { ...merged[j], customInput: { ...src, result: { ...r, slides: newSlides } } }
+            patched = true; break
+          }
+        }
+        if (src.actionId === "maya:campaign") {
+          const r = src.result as MayaCampaignResult
+          const idx = (r?.photos ?? []).findIndex((p) => p?.image?.image_url === inputImageUrl)
+          if (idx >= 0) {
+            const newPhotos = [...r.photos]
+            newPhotos[idx] = { ...newPhotos[idx], image: regenResult.image }
+            merged[j] = { ...merged[j], customInput: { ...src, result: { ...r, photos: newPhotos } } }
+            patched = true; break
+          }
+        }
+        if (src.actionId === "maya:generate-variants") {
+          const r = src.result as MayaVariantResult
+          const idx = (r?.variants ?? []).findIndex((v) => v?.image?.image_url === inputImageUrl)
+          if (idx >= 0) {
+            const newVariants = [...r.variants]
+            newVariants[idx] = { ...newVariants[idx], image: regenResult.image }
+            merged[j] = { ...merged[j], customInput: { ...src, result: { ...r, variants: newVariants } } }
+            patched = true; break
+          }
+        }
+        if (src.actionId === "maya:regenerate-image") {
+          const r = src.result as MayaImageRegenResult
+          if (r?.image?.image_url === inputImageUrl) {
+            merged[j] = { ...merged[j], customInput: { ...src, result: regenResult } }
+            patched = true; break
+          }
+        }
+      }
+
+      if (patched) {
+        // Also remove the preceding user message that triggered the regen
+        if (i > 0 && merged[i - 1].role === "user") toRemove.add(i - 1)
+        toRemove.add(i)
+      }
+    }
+
+    return merged.filter((_, i) => !toRemove.has(i))
+  }, [messages])
 
   return (
     <div
@@ -979,7 +1055,7 @@ export default function AssistantChatPage() {
             padding: "20px 24px",
           }}
         >
-          {messages.map((msg, i) => (
+          {displayMessages.map((msg, i) => (
             <ChatMessage
               key={msg.id ?? `msg-${i}`}
               message={msg}
@@ -988,7 +1064,7 @@ export default function AssistantChatPage() {
               agentColor={agentColor}
               isLex={isLex}
               onFollowUpAction={handleFollowUp}
-              onRevertImage={() => handleRevertImage(i)}
+              onRevertImage={msg.id ? () => handleRevertImage(msg.id!) : undefined}
             />
           ))}
           {isBusy && (
