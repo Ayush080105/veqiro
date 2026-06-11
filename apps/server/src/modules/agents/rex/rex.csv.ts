@@ -588,21 +588,28 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
     if (!sheet) continue;
 
     // Files exported from Apple Numbers / LibreOffice often have leading blank
-    // rows before the real header. sheet_to_json uses row 0 as the header by
-    // default, so blank leading rows produce __EMPTY_* keys that get stripped,
-    // making the whole sheet appear empty. Scan raw rows to find the first row
-    // with ≥ 2 non-empty cells and use that as the header row.
+    // rows (or sparse title rows) before the real header. sheet_to_json uses
+    // row 0 as the header by default, producing __EMPTY_* keys that get
+    // stripped, making the whole sheet appear empty.
+    //
+    // Strategy: scan the first 10 rows and pick the one with the most non-empty
+    // cells — that row is almost certainly the header. This handles:
+    //   • purely blank leading rows (Numbers export)
+    //   • sparse title rows like "Q2 Report | Company XYZ" (2 cells) sitting
+    //     above a proper header row (7 cells) — the header wins by cell count
     const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
       header: 1,
       raw: false,
       defval: null,
     }) as (string | null)[][];
     let headerRowIdx = 0;
-    for (let i = 0; i < rawRows.length; i++) {
+    let bestCount = 0;
+    const scanLimit = Math.min(10, rawRows.length);
+    for (let i = 0; i < scanLimit; i++) {
       const nonEmpty = (rawRows[i] ?? []).filter(
         (v) => v != null && String(v).trim() !== ""
       ).length;
-      if (nonEmpty >= 2) { headerRowIdx = i; break; }
+      if (nonEmpty > bestCount) { bestCount = nonEmpty; headerRowIdx = i; }
     }
 
     const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
