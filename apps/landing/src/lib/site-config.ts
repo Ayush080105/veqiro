@@ -172,7 +172,7 @@ export const faqItems = [
 export const crewReplies: Record<string, string> = {
   vega: "Move the Thursday one — investor call takes priority.",
   scout: "Show me the weird one.",
-  maya: "Spicy. Always spicy.",
+  maya: "Deeper contrast on the hero. Logo bottom-right across all placements.",
   sage: "Do it. Coffee's on me.",
   lex: "Redline it, send to counsel.",
   rex: "Show me the weird thing.",
@@ -181,7 +181,7 @@ export const crewReplies: Record<string, string> = {
 export const crewFollows: Record<string, string> = {
   vega: "Done. Also blocked 2hrs tomorrow for deep work — you're welcome.",
   scout: "K. Company in Tallinn, 4 employees, shipping faster than Stripe did in 2012. Worth a call.",
-  maya: "Drafting now. I'll send you 3 options in 6 minutes. Brace.",
+  maya: "All 4 updated — deeper contrast, logo anchored bottom-right on every placement. Launch campaign locked. Instagram square first?",
   sage: "Cool. Starting with the long-tails. First wins in ~10 days.",
   lex: "Redlined. Sending to counsel with a summary. Est read time: 3 min.",
   rex: "Paid CAC spiked 3x on Meta last Tuesday. Want the chart or just the fix?",
