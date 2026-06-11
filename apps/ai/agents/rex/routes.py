@@ -1533,6 +1533,7 @@ class AnalyzeDatasetResponse(BaseModel):
     insights: list[str] = []
     recommendations: list[str] = []
     chart: ChartSpec | None = None
+    charts: list[ChartSpec] = []
     tokens_used: int = 0
     model_used: str = ""
 
@@ -1612,26 +1613,37 @@ async def analyze_dataset(request: AnalyzeDatasetRequest) -> AnalyzeDatasetRespo
         if is_multi else ""
     )
 
-    prompt = f"""You are Rex, a world-class data analyst. Perform a comprehensive analysis of this dataset called "{request.dataset_name}".
+    prompt = f"""You are Rex, a world-class data analyst. Perform a deep, thorough analysis of this dataset called "{request.dataset_name}".
 {sheet_note}
 
 Total rows across all sheets: {total_rows}
 
 {all_sheets_text}
 
-Provide a thorough business analysis. Respond with a JSON object containing:
-- "summary": string — executive summary (3-4 sentences covering what the data is, key patterns, and overall health)
-- "key_findings": array of 4-6 strings — the most important specific findings with actual numbers (e.g. "Revenue peaked at $45K in March, 23% above average")
-- "insights": array of 3-5 strings — deeper patterns, correlations, or anomalies discovered
-- "recommendations": array of 3-5 strings — specific, actionable next steps based on the data
-- "chart": object or null — the single most impactful visualization for this data:
-  - "type": "bar" | "line" | "pie" | "scatter"
-  - "title": chart title
-  - "data": array of up to 15 data points
-  - "xKey": field name for x-axis
-  - "yKeys": array of {{"key": str, "label": str, "color": str}} (use colors: {CHART_COLORS[:4]})
+Respond with a JSON object containing:
 
-Be specific — reference actual column names and numbers from the statistics. Think like a senior data analyst presenting to a CEO."""
+- "summary": string — a rich, multi-paragraph executive narrative. Structure it as:
+  (1) Opening paragraph: what this dataset is, its time range or scope, total volume, and top-line headline number.
+  (2) Distribution paragraph: how values are distributed — top contributors, heaviest segments, spread (min/max/avg/median if derivable), and concentration (e.g. top 10% of parties account for X% of total).
+  (3) Trend or pattern paragraph: any time-based patterns, spikes, recurring behaviours, or categorical breakdowns worth highlighting.
+  (4) Health & risk paragraph: data quality notes, outliers, missing segments, or anything that should concern a decision-maker.
+  Aim for 6-10 sentences total. Reference actual column names and real numbers throughout.
+
+- "key_findings": array of 6-10 strings — the most important specific findings, each with actual numbers and clear business significance (e.g. "Top 3 parties account for 41% of total transaction value (₹494K of ₹1.2M)").
+
+- "insights": array of 4-6 strings — deeper patterns, correlations, or anomalies. Go beyond surface stats — explain what the pattern means and why it matters.
+
+- "recommendations": array of 3-5 strings — specific, actionable next steps a decision-maker should take based on this data.
+
+- "charts": array of 2-3 chart objects — the most impactful visualizations for this dataset. Each chart:
+  - "type": "bar" | "line" | "pie" | "scatter"
+  - "title": descriptive chart title
+  - "data": array of up to 15 data points (objects with the xKey and yKey fields)
+  - "xKey": field name for the x-axis / category label
+  - "yKeys": array of {{"key": str, "label": str, "color": str}} (use colors: {CHART_COLORS[:6]})
+  Choose charts that tell different stories: e.g. a bar for top parties by amount, a pie for category/type share, a line for time-based trends.
+
+Be specific — every number you write must come from the actual column statistics provided. Think like a senior CFO presenting to a board."""
 
     raw = await _llm.complete(
         provider=_agent.default_provider,
@@ -1644,43 +1656,59 @@ Be specific — reference actual column names and numbers from the statistics. T
 
     tokens_used = _llm.count_tokens(raw)
 
+    def _parse_chart_spec(chart_raw: dict, idx: int = 0) -> ChartSpec | None:
+        if not chart_raw or not isinstance(chart_raw, dict):
+            return None
+        y_keys_raw = chart_raw.get("yKeys", [])
+        y_keys = []
+        for i, yk in enumerate(y_keys_raw):
+            if isinstance(yk, dict):
+                y_keys.append(ChartYKey(
+                    key=yk.get("key", "value"),
+                    label=yk.get("label", yk.get("key", "value")),
+                    color=yk.get("color", CHART_COLORS[(idx + i) % len(CHART_COLORS)]),
+                ))
+        chart_data = chart_raw.get("data", [])
+        if not chart_data or not y_keys:
+            return None
+        fallback_x = next(
+            (k for k in chart_data[0].keys() if k not in {yk.key for yk in y_keys}),
+            list(chart_data[0].keys())[0] if chart_data[0] else "x",
+        )
+        return ChartSpec(
+            type=chart_raw.get("type", "bar"),
+            title=chart_raw.get("title", ""),
+            data=chart_data,
+            xKey=chart_raw.get("xKey") or fallback_x,
+            yKeys=y_keys,
+        )
+
     try:
         parsed = safe_json_loads(raw)
         summary = parsed.get("summary", "Analysis complete.")
         key_findings = parsed.get("key_findings", [])
         insights = parsed.get("insights", [])
         recommendations = parsed.get("recommendations", [])
-        chart_raw = parsed.get("chart")
-        chart = None
-        if chart_raw and isinstance(chart_raw, dict):
-            y_keys_raw = chart_raw.get("yKeys", [])
-            y_keys = []
-            for i, yk in enumerate(y_keys_raw):
-                if isinstance(yk, dict):
-                    y_keys.append(ChartYKey(
-                        key=yk.get("key", "value"),
-                        label=yk.get("label", yk.get("key", "value")),
-                        color=yk.get("color", CHART_COLORS[i % len(CHART_COLORS)]),
-                    ))
-            chart_data = chart_raw.get("data", [])
-            if chart_data and y_keys:
-                fallback_x = next(
-                    (k for k in chart_data[0].keys() if k not in {yk.key for yk in y_keys}),
-                    list(chart_data[0].keys())[0] if chart_data[0] else "x",
-                )
-                chart = ChartSpec(
-                    type=chart_raw.get("type", "bar"),
-                    title=chart_raw.get("title", ""),
-                    data=chart_data,
-                    xKey=chart_raw.get("xKey") or fallback_x,
-                    yKeys=y_keys,
-                )
+
+        # Support both "charts" array (new) and legacy "chart" single object
+        charts_raw = parsed.get("charts") or []
+        if not charts_raw and parsed.get("chart"):
+            charts_raw = [parsed.get("chart")]
+        charts: list[ChartSpec] = []
+        for ci, cr in enumerate(charts_raw):
+            spec = _parse_chart_spec(cr, ci * 2)
+            if spec:
+                charts.append(spec)
+
+        # Keep legacy single chart field pointing to first chart
+        chart = charts[0] if charts else None
     except Exception:
         summary = raw[:400] if raw else "Analysis failed."
         key_findings = []
         insights = []
         recommendations = []
         chart = None
+        charts = []
 
     return AnalyzeDatasetResponse(
         summary=summary,
@@ -1689,6 +1717,7 @@ Be specific — reference actual column names and numbers from the statistics. T
         insights=insights,
         recommendations=recommendations,
         chart=chart,
+        charts=charts,
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )

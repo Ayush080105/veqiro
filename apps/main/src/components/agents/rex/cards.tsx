@@ -1244,15 +1244,34 @@ export function RexAnalyzeDatasetCard({
   datasetName?: string
   onFollowUpAction?: FollowUp
 }) {
+  // Normalise: prefer `charts` array, fall back to single `chart`
+  const allCharts: RexQueryDatasetChartSpec[] = React.useMemo(() => {
+    if (result.charts && result.charts.length > 0) return result.charts
+    if (result.chart) return [result.chart]
+    return []
+  }, [result.charts, result.chart])
+
   return (
     <AgentCard size="sm">
       <AgentCard.Header
         icon={<Sparkles />}
         title={datasetName ? `Analysis · ${datasetName}` : "Dataset analysis"}
+        badge={
+          allCharts.length > 0 ? (
+            <Badge variant="secondary" className="text-[10px]">
+              <BarChart2 className="size-2.5 mr-0.5" />
+              {allCharts.length} chart{allCharts.length > 1 ? "s" : ""}
+            </Badge>
+          ) : undefined
+        }
       />
       <AgentCard.Body className="flex flex-col gap-4">
-        {/* Summary */}
-        <p className="text-[12px] leading-relaxed">{result.summary}</p>
+        {/* Summary — multi-paragraph */}
+        <div className="flex flex-col gap-2">
+          {result.summary.split(/\n+/).filter(Boolean).map((para, i) => (
+            <p key={i} className="text-[12px] leading-relaxed">{para}</p>
+          ))}
+        </div>
 
         {/* Key findings */}
         {result.key_findings?.length > 0 && (
@@ -1271,15 +1290,19 @@ export function RexAnalyzeDatasetCard({
           </div>
         )}
 
-        {/* Chart */}
-        {result.chart && (
-          <div className="flex flex-col gap-1.5">
-            {result.chart.title && (
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                {result.chart.title}
-              </p>
-            )}
-            <DynamicChart spec={result.chart} />
+        {/* Charts — render all */}
+        {allCharts.length > 0 && (
+          <div className={cn("grid gap-4", allCharts.length > 1 ? "sm:grid-cols-2" : "")}>
+            {allCharts.map((chart, ci) => (
+              <div key={ci} className="flex flex-col gap-1.5">
+                {chart.title && (
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {chart.title}
+                  </p>
+                )}
+                <DynamicChart spec={chart} />
+              </div>
+            ))}
           </div>
         )}
 
