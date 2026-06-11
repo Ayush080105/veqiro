@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { FONT } from './shared';
 import { EMPLOYEES } from './data';
 import { consoleUrl, isPreLaunch, waitlistUrl, nav as navLinks, useCaseNavItems } from '@/lib/site-config';
@@ -36,7 +37,7 @@ export function NavShared({ variant = 'page' }: Props) {
     };
   }, [open]);
 
-  const margin = variant === 'hero' ? '0 auto 64px' : '0 auto';
+  const margin = variant === 'hero' ? '0 auto 22px' : '0 auto';
   const padding = variant === 'hero' ? '0' : 'clamp(20px, 4vw, 32px)';
 
   return (
@@ -67,24 +68,20 @@ export function NavShared({ variant = 'page' }: Props) {
       {/* Logo */}
       <Link
         href="/"
-        style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit', flexShrink: 0 }}
+        style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0 }}
       >
-        <div
-          className="vq-nav-brand-mark"
+        <Image
+          src="/logo.png"
+          alt="Veqiro"
+          width={1285}
+          height={659}
+          priority={variant === 'hero'}
           style={{
-            width: 50, height: 50, background: '#111', borderRadius: 12,
-            display: 'grid', placeItems: 'center', transform: 'rotate(-6deg)',
-            boxShadow: '4px 4px 0 #F5C518', flexShrink: 0,
+            display: 'block',
+            width: 'clamp(150px, 20vw, 210px)',
+            height: 'auto',
           }}
-        >
-          <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 28 }}>v</span>
-        </div>
-        <div
-          className="vq-nav-brand-text"
-          style={{ fontFamily: FONT.display, fontSize: 36, lineHeight: 1, color: '#111' }}
-        >
-          veqiro
-        </div>
+        />
       </Link>
 
       {/* Desktop pill nav */}
@@ -211,7 +208,13 @@ export function NavShared({ variant = 'page' }: Props) {
             data-testid="nav-drawer"
           >
             <div className="vq-drawer-header">
-              <div style={{ fontFamily: FONT.display, fontSize: 28, color: '#111' }}>veqiro</div>
+              <Image
+                src="/logo.png"
+                alt="Veqiro"
+                width={1285}
+                height={659}
+                style={{ width: 168, height: 'auto', display: 'block' }}
+              />
               <button
                 type="button"
                 className="vq-drawer-close"

@@ -7,7 +7,13 @@ function CharImg({ src, alt, size = 300 }: { src: string; alt: string; size?: nu
   if (size === '100%') {
     return (
       <div style={{ position: 'relative', width: '100%', aspectRatio: '3 / 4', overflow: 'hidden' }}>
-        <Image src={src} alt={alt} fill style={{ objectFit: 'cover', objectPosition: 'top center' }} />
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(max-width: 768px) 100vw, 280px"
+          style={{ objectFit: 'cover', objectPosition: 'top center' }}
+        />
       </div>
     );
   }

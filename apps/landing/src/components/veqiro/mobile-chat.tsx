@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { FONT } from './shared';
 import type { Employee, DemoChatMessage } from './data';
 
@@ -69,15 +70,13 @@ export function MobileChatDemo({ employee }: Props) {
           background: '#EFE7D6',
         }}>
           <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)', fontWeight: 600 }}>9:41</span>
-          {/* Veqiro logo mark */}
-          <div style={{
-            width: 'clamp(20px, 5vw, 26px)', height: 'clamp(20px, 5vw, 26px)',
-            background: '#111', borderRadius: 6,
-            display: 'grid', placeItems: 'center', transform: 'rotate(-6deg)',
-            boxShadow: '2px 2px 0 #F5C518', flexShrink: 0,
-          }}>
-            <span style={{ color: '#EFE7D6', fontFamily: FONT.display, fontSize: 'clamp(12px, 3vw, 15px)', lineHeight: 1 }}>v</span>
-          </div>
+          <Image
+            src="/icon.png"
+            alt="Veqiro"
+            width={26}
+            height={26}
+            style={{ width: 'clamp(20px, 5vw, 26px)', height: 'auto', flexShrink: 0, display: 'block' }}
+          />
           <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)' }}>●●●</span>
         </div>
 

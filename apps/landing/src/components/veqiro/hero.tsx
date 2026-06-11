@@ -166,14 +166,14 @@ export function Hero() {
 
       {/* Content */}
       <div style={{ maxWidth: 1400, margin: '0 auto', position: 'relative' }}>
-        <div style={{ textAlign: 'center', position: 'relative', marginTop: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 20 }}>
+        <div style={{ textAlign: 'center', position: 'relative', marginTop: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 12 }}>
             <CursorEye size={54} />
             <CursorEye size={54} />
           </div>
           <h1 style={{
             fontFamily: FONT.display,
-            fontSize: 'clamp(52px, 12vw, 180px)',
+            fontSize: 'clamp(52px, 11vw, 160px)',
             lineHeight: 0.88, letterSpacing: -2, margin: 0, color: '#111',
             textShadow: '0 2px 0 rgba(239,231,214,0.9), 0 4px 12px rgba(239,231,214,0.5)',
           }}>
@@ -182,7 +182,7 @@ export function Hero() {
             {' '}
           </h1>
           <p style={{
-            maxWidth: 720, margin: '28px auto 0',
+            maxWidth: 720, margin: '20px auto 0',
             fontFamily: FONT.body,
             fontSize: 'clamp(16px, 2.2vw, 20px)',
             lineHeight: 1.5, color: '#2a2a2a',
@@ -193,7 +193,7 @@ export function Hero() {
             <span style={{ background: '#F5C518', padding: '0 6px' }}> We&apos;re cool with that.</span>
           </p>
 
-          <div style={{ display: 'flex', gap: 'clamp(10px, 2vw, 16px)', justifyContent: 'center', marginTop: 36, flexWrap: 'wrap', padding: '0 clamp(8px, 2vw, 16px)' }}>
+          <div style={{ display: 'flex', gap: 'clamp(10px, 2vw, 16px)', justifyContent: 'center', marginTop: 24, flexWrap: 'wrap', padding: '0 clamp(8px, 2vw, 16px)' }}>
             <a href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`} style={{
               background: '#F5C518', color: '#111', padding: 'clamp(14px, 2.5vw, 18px) clamp(20px, 4vw, 32px)',
               fontFamily: FONT.head, fontSize: 'clamp(13px, 1.8vw, 15px)', textTransform: 'uppercase', letterSpacing: 1,
@@ -207,7 +207,7 @@ export function Hero() {
             }}>Meet the crew ↓</a>
           </div>
           <div style={{
-            marginTop: 24, fontFamily: FONT.mono, fontSize: 13, color: '#111',
+            marginTop: 16, fontFamily: FONT.mono, fontSize: 13, color: '#111',
             textShadow: '0 1px 0 rgba(239,231,214,0.95), 0 0 6px rgba(239,231,214,0.85)',
           }}>
             <span style={{ color: '#1DBC87', marginRight: 8 }}>●</span>
@@ -282,7 +282,7 @@ export function Hero() {
           style={{
             position: 'relative',
             zIndex: 2,
-            padding: 'clamp(28px, 5vw, 48px) clamp(16px, 4vw, 32px) 0',
+            padding: 'clamp(16px, 3vw, 28px) clamp(16px, 4vw, 32px) 0',
           }}
         >
           {foreground}
