@@ -23,7 +23,7 @@ export function organizationJsonLd(): object {
     email: contact.email,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'Bengaluru',
+      addressLocality: 'India',
       addressCountry: 'IN',
     },
     sameAs: [
