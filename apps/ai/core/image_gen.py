@@ -14,9 +14,25 @@ _PLACEHOLDER_B64 = (
 )
 
 _PLATFORM_STYLE = {
-    "linkedin": "clean corporate editorial, bold typography, professional lighting, 1200x628 landscape",
-    "instagram": "vibrant lifestyle photography, high contrast, eye-catching composition, 1080x1080 square",
-    "twitter":  "punchy bold graphic, minimal, strong focal point, 1600x900 landscape",
+    "linkedin": (
+        "corporate editorial photography: neutral 5000K daylight lighting, controlled depth of field, "
+        "16:9 landscape orientation; typography uses a single sans-serif typeface at heavy weight with generous tracking; "
+        "color palette stays within 2 brand colors plus white or near-white; "
+        "composition favors left-aligned text block with visual subject in right two-thirds of frame"
+    ),
+    "instagram": (
+        "lifestyle photography with high color saturation (vibrance +20-30%), shallow depth of field f/1.8-f/2.8 feel, "
+        "natural or golden-hour lighting; square 1:1 composition with subject slightly off-center; "
+        "typography is minimal — headline only, large, lower-third or upper-third placement; "
+        "background must have visual texture or depth, not a flat solid fill"
+    ),
+    "twitter": (
+        "bold graphic design with hard-edge shapes and maximum contrast; "
+        "typography dominates at least 40% of the image area; "
+        "single hero color from brand palette pushed to maximum saturation; "
+        "16:9 landscape with strong left-to-right reading direction; "
+        "photographic elements (if any) are cropped tightly and treated with high-contrast duotone filter"
+    ),
 }
 
 _ASPECT_FOR_PLATFORM = {
@@ -110,10 +126,22 @@ async def _elaborate_prompt_5component(
         from google.genai import types
 
         platform_context = {
-            "linkedin": "professional B2B corporate editorial, formal authority, sophisticated",
-            "instagram": "lifestyle consumer photography, vibrant energy, aspirational",
-            "twitter": "punchy bold graphic design, minimal, high-contrast, immediate impact",
-        }.get(platform.lower(), "professional social media")
+            "linkedin": (
+                "B2B corporate editorial: controlled studio or office lighting, authoritative typography "
+                "using sans-serif at bold weight, restrained 2-color palette, subject positioned right-of-center "
+                "with text block anchored left, neutral 5000K color temperature"
+            ),
+            "instagram": (
+                "lifestyle photography: shallow focus f/1.8-2.8 feel, natural or golden-hour light, "
+                "vivid saturated palette with vibrance pushed +20-30%, subject slightly off-center at "
+                "a rule-of-thirds intersection, minimal headline text overlay"
+            ),
+            "twitter": (
+                "bold graphic design: maximum contrast, large typographic element occupying 35-45% of frame, "
+                "single dominant brand color at full saturation, strong diagonal or left-to-right visual flow, "
+                "16:9 landscape with immediate visual impact"
+            ),
+        }.get(platform.lower(), "professional social media editorial, clean neutral lighting, clear visual hierarchy")
 
         brand_context_parts = []
         if brand_kit:
@@ -296,9 +324,14 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     else:
         typography = (
             "TYPOGRAPHY: Include bold, well-designed text directly in the image. "
-            "Derive a SHORT punchy headline (3-6 words max) from the TOPIC ONLY — do NOT copy the topic text verbatim and do NOT lift phrases from the brand atmosphere or audience context sections. "
-            "You may add a very brief supporting line (5-8 words) relevant to the topic. "
-            "Text must be clean, modern, perfectly legible, and part of the design — not an afterthought. "
+            "Derive a SHORT headline (3-5 words max) from the TOPIC using this method: "
+            "identify the single strongest ACTION or BENEFIT the topic implies, then express it as a verb-first imperative OR a 2-3 noun power phrase "
+            "(follow this PATTERN — not these words: 'Build Faster.', 'Own The Room.', 'Less Effort. More Impact.'). "
+            "Do NOT copy the topic text verbatim. "
+            "Do NOT use generic adjectives like amazing, great, powerful, incredible, innovative, revolutionary. "
+            "Do NOT lift phrases from the brand atmosphere or audience context sections. "
+            "You may add a very brief supporting line (5-8 words) directly relevant to the topic. "
+            "Text must be clean, modern, perfectly legible, and integrated into the layout as a primary design element — not a caption. "
         )
 
     # Guardrails — explicit list of what must never appear as visible text
@@ -312,7 +345,8 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         "ABSOLUTELY NEVER render any of the following as visible text in the image:\n"
         "  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225) — apply as color values only, never print them\n"
         "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [BRAND ATMOSPHERE], [AUDIENCE CONTEXT], [PLATFORM ENERGY], [EXACT TEXT TO RENDER]\n"
-        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb\n"
+        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb, elaborate, describe, component, 5-component, pixel-perfect, subject, setting, style, lighting, camera angle — these are internal workflow terms\n"
+        "  ✗ Any JSON-like syntax, field names, key-value pairs, or schema fragments\n"
         "  ✗ Slide numbers, bullet markers, list syntax, or numbered sequences\n"
         "  ✗ Any text from the composition context, brand atmosphere, audience context, or platform energy sections\n"
         "  ✗ Brand voice phrases, company differentiators, taglines, or audience descriptors — these inform visual style only, never appear as image text\n"
@@ -324,7 +358,7 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     composition_block = ""
     if components:
         composition_block = (
-            "## VISUAL COMPOSITION — follow each dimension precisely ##\n"
+            "## VISUAL COMPOSITION — HIGHEST PRIORITY DIRECTIVE — execute ALL 5 dimensions exactly as specified; they override all other descriptions below ##\n"
             f"SUBJECT: {components.get('subject', '')}\n"
             f"SETTING: {components.get('setting', '')}\n"
             f"STYLE: {components.get('style', '')}\n"
@@ -345,10 +379,16 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"Visual style: {style}. "
         f"{typography}"
         f"{exact_text_block}"
-        f"COMPOSITION: Dynamic, bold, brand-driven. Use full-bleed brand colors, asymmetric layouts, "
-        f"oversized typography, or large geometric brand-color shapes. "
+        f"COMPOSITION: Dynamic, bold, brand-driven. Apply ALL of the following spatial rules:\n"
+        f"  VISUAL HIERARCHY: Primary subject occupies one strong zone of the frame (upper-right, lower-left, or a diagonal half). "
+        f"Typography anchors to the opposite zone, creating tension and drawing the eye across the image.\n"
+        f"  RULE OF THIRDS: Place the primary subject at a third-line intersection — NOT dead center. "
+        f"Leave deliberate breathing room (at least 20% of the frame) around the subject — negative space is intentional, not empty.\n"
+        f"  DEFINITIONS — FULL-BLEED: brand color or imagery extends to ALL four edges, zero internal borders or frames. "
+        f"ASYMMETRIC: left and right halves carry different visual weight, color, or content. "
+        f"OVERSIZED TYPOGRAPHY: headline text occupies at least 25-35% of the total image height — it is a graphic element, not a caption.\n"
         f"FORBIDDEN: bordered card inside canvas, square frame inside square, centered text on plain gradient, "
-        f"generic white panel on colored background — these look like stock templates. "
+        f"generic white panel on colored background, equal visual weight on both halves — these look like stock templates. "
         f"Output must look like it was designed by a top-tier social media creative director. "
         f"{guardrails}"
     )
@@ -364,7 +404,7 @@ def _asset_mandate(use_logo: bool, use_mascot: bool) -> str:
     if use_logo:
         parts.append(
             "MANDATORY LOGO: The brand logo reference image MUST be composited into the final image. "
-            "Place it as a sharp, pixel-perfect corner overlay (bottom-right or top-right). "
+            "Place it as a sharp, high-fidelity corner overlay (bottom-right or top-right) — render with clean anti-aliased edges. "
             "Do NOT omit the logo. A final image without the logo is WRONG."
         )
     if use_mascot:
@@ -514,7 +554,7 @@ async def generate_social_image(
                     f"Reference image {i + 1 + product_ref_offset}: This is the campaign subject — study it with extreme detail.\n"
                     f"  CATALOG: exact colours (every hue and gradient), surface materials and textures (glossy/matte/metallic/fabric), "
                     f"shape and silhouette (proportions, edges, curves), any logos/text/markings on the subject, distinctive features.\n"
-                    f"  REPRODUCE: Every one of these attributes must appear with pixel-perfect fidelity in the generated image. "
+                    f"  REPRODUCE: Every one of these attributes must appear with faithful accuracy — exact colors, correct proportions, all distinctive surface markings preserved. "
                     f"The subject must be immediately recognisable as the EXACT same subject from this reference. "
                     f"Create a completely original scene — new pose, new background, new angle — but the subject itself is unchanged.\n"
                     f"  DO NOT copy the reference image's background, framing, or pose — only the subject's identity."
@@ -543,7 +583,7 @@ async def generate_social_image(
                         extra_instructions.append(
                             f"MANDATORY: Reference image {idx} is the brand logo. "
                             f"You MUST include it in the final image — its absence is a failure. "
-                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
                             f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
                             f"Place it as a clean, sharp corner overlay (bottom-right preferred), "
@@ -587,7 +627,7 @@ async def generate_social_image(
                         extra_instructions.append(
                             f"MANDATORY: Reference image {idx} is the brand logo. "
                             f"You MUST include it in the final image — its absence is a failure. "
-                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
                             f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
                             f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
@@ -668,7 +708,7 @@ async def generate_social_image(
             ref_instructions.append(
                 f"MANDATORY: Reference image {idx} is the brand logo. "
                 f"You MUST include it in the final image — its absence is a failure. "
-                f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                 f"Do NOT simplify, redraw, reinterpret, or approximate it. "
                 f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
                 f"Place it as a clean, sharp overlay in one corner of the image (bottom-right preferred), "
@@ -707,7 +747,7 @@ async def generate_social_image(
         preamble = (
             "CRITICAL INSTRUCTION: Build a COMPLETELY NEW social media scene from scratch. "
             "Do NOT use the reference image as the scene background. "
-            "The reference is the brand logo — reproduce it with PIXEL-PERFECT fidelity (exact shapes, colors, proportions). "
+            "The reference is the brand logo — reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
             "If the logo has a background colour, ignore it and composite only the logo mark itself with no white box or rectangular border. "
             "Place it as a clean, sharp corner overlay in the newly created scene. "
             "Do NOT simplify, redraw, or reinterpret the logo design.\n\n"
