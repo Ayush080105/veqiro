@@ -81,7 +81,8 @@ export const ModelName = {
   FeedbackVote: 'FeedbackVote',
   FeedbackComment: 'FeedbackComment',
   UpcomingAgent: 'UpcomingAgent',
-  UpcomingAgentVote: 'UpcomingAgentVote'
+  UpcomingAgentVote: 'UpcomingAgentVote',
+  WaitlistEntry: 'WaitlistEntry'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -572,6 +573,17 @@ export const UpcomingAgentVoteScalarFieldEnum = {
 } as const
 
 export type UpcomingAgentVoteScalarFieldEnum = (typeof UpcomingAgentVoteScalarFieldEnum)[keyof typeof UpcomingAgentVoteScalarFieldEnum]
+
+
+export const WaitlistEntryScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  coupon: 'coupon',
+  validTill: 'validTill',
+  createdAt: 'createdAt'
+} as const
+
+export type WaitlistEntryScalarFieldEnum = (typeof WaitlistEntryScalarFieldEnum)[keyof typeof WaitlistEntryScalarFieldEnum]
 
 
 export const SortOrder = {

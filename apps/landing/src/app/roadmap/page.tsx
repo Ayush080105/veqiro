@@ -52,9 +52,9 @@ interface PublicRoadmapData {
 // ─── Data fetching ────────────────────────────────────────────────────────────
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_SERVER_URL ||
   process.env.API_INTERNAL_URL ||
-  'http://localhost:3002/api';
+  'http://localhost:5000/api/v1';
 
 async function getRoadmapData(): Promise<PublicRoadmapData> {
   try {

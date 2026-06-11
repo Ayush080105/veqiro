@@ -63,11 +63,12 @@ interface Props {
 }
 
 export default function WaitlistPageContent({ count, max }: Props) {
-  const [cd, setCd] = useState<CountdownState>(() => getCountdown(launchDate));
+  const [cd, setCd] = useState<CountdownState | null>(null);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'already' | 'error'>('idle');
 
   useEffect(() => {
+    setCd(getCountdown(launchDate));
     const id = setInterval(() => setCd(getCountdown(launchDate)), 1_000);
     return () => clearInterval(id);
   }, []);
@@ -114,7 +115,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
           {/* Badge */}
           <div style={{ marginBottom: 28 }}>
             <Sticker rot={-2} color="#F06464" style={{ color: '#111' }}>
-              {cd.launched ? "we're live!" : 'launching soon'}
+              {cd?.launched ? "we're live!" : 'launching soon'}
             </Sticker>
           </div>
 
@@ -127,7 +128,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
             letterSpacing: -2,
             color: '#111',
           }}>
-            {cd.launched ? (
+            {cd?.launched ? (
               <>your crew<br />is ready.</>
             ) : (
               <>almost open<br />for business.</>
@@ -143,7 +144,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
             margin: '0 auto 44px',
             lineHeight: 1.55,
           }}>
-            {cd.launched
+            {cd?.launched
               ? 'The doors are open. Go hire your crew.'
               : <>
                   The crew is getting ready. Founding members lock in{' '}
@@ -163,7 +164,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
             }
           </p>
 
-          {cd.launched ? (
+          {cd?.launched ? (
             <a
               href={`${consoleUrl}/signup`}
               style={{
@@ -203,10 +204,10 @@ export default function WaitlistPageContent({ count, max }: Props) {
                   justifyContent: 'center',
                   flexWrap: 'wrap',
                 }}>
-                  <CountdownBox value={cd.days} label="days" />
-                  <CountdownBox value={cd.hours} label="hours" />
-                  <CountdownBox value={cd.minutes} label="min" />
-                  <CountdownBox value={cd.seconds} label="sec" />
+                  <CountdownBox value={cd?.days ?? 0} label="days" />
+                  <CountdownBox value={cd?.hours ?? 0} label="hours" />
+                  <CountdownBox value={cd?.minutes ?? 0} label="min" />
+                  <CountdownBox value={cd?.seconds ?? 0} label="sec" />
                 </div>
               </div>
 

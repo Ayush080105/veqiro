@@ -196,3 +196,8 @@ export type UpcomingAgent = Prisma.UpcomingAgentModel
  * A single upvote by a user on an UpcomingAgent.
  */
 export type UpcomingAgentVote = Prisma.UpcomingAgentVoteModel
+/**
+ * Model WaitlistEntry
+ * Pre-launch waitlist entry collected before product launch.
+ */
+export type WaitlistEntry = Prisma.WaitlistEntryModel
