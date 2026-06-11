@@ -1016,6 +1016,7 @@ class ExpandBriefRequest(BaseModel):
     organization_id: str = Field("", max_length=128)
     brief: str = Field(..., min_length=1, max_length=500)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    product_image_base64: str | None = None
     metadata: dict = Field(default_factory=dict)
 
 
@@ -1059,27 +1060,80 @@ _EXPAND_USER_TMPL = (
     "photographer or AI model can execute immediately."
 )
 
+_EXPAND_VISION_PROMPT_TMPL = (
+    "You are a world-class creative director and brand photographer with 20 years of "
+    "experience shooting product campaigns for global brands. "
+    "You receive a product image and a rough campaign idea. "
+    "Study the product image carefully — its exact shape, color, texture, finish, materials, "
+    "size, and any distinctive visual features. Use these observed details to write a "
+    "comprehensive, professional creative brief that will be used directly to prompt an "
+    "AI image generation model. Never invent visual details — only describe what you see.\n\n"
+    'Platform: {platform}\n'
+    'Original campaign idea: "{brief}"\n\n'
+    "Based on the product image above and the campaign idea, write a comprehensive "
+    "campaign photography brief covering ALL of the following — be specific, visual, "
+    "and professional:\n\n"
+    "1. CAMPAIGN THEME & EMOTIONAL STORY: What feeling should every image evoke? "
+    "What narrative arc runs through the campaign?\n"
+    "2. TARGET AUDIENCE & MINDSET: Who is this for? What are they feeling/wanting?\n"
+    "3. VISUAL AESTHETIC & MOOD: Overall look — editorial, cinematic, raw, luxury, "
+    "playful, moody, etc. Reference the product's visual character.\n"
+    "4. LIGHTING: Type of light (golden hour, studio strobe, neon, natural diffused, "
+    "dramatic chiaroscuro, etc.), direction, intensity, color temperature.\n"
+    "5. COLOR PALETTE & GRADING: Pull dominant colors from the product itself. "
+    "Describe shadows, highlights, overall grade (warm, cool, desaturated, punchy, filmic).\n"
+    "6. CAMERA & LENS STYLE: Depth of field, focal length feel (wide/standard/telephoto), "
+    "shutter (crisp/motion blur), film grain or clean digital.\n"
+    "7. COMPOSITION & SHOT TYPES: What compositions showcase this specific product best "
+    "(hero shot, flat lay, lifestyle, macro, overhead, dynamic action, etc.).\n"
+    "8. SETTING & ENVIRONMENT: Where are we? Indoor/outdoor, specific location "
+    "details, time of day, props and styling elements that complement the product.\n"
+    "9. PRODUCT TREATMENT: Describe how the product should appear using its actual visual "
+    "traits (e.g., 'the matte black cylindrical bottle with a brushed-gold cap, label-side "
+    "facing camera') — hero-centered, integrated naturally, held/used, pristine studio, etc.\n\n"
+    "Write this as one flowing creative brief paragraph (200-250 words). "
+    "No numbered lists, no headers — dense, vivid, professional prose that a "
+    "photographer or AI model can execute immediately."
+)
+
 
 @router.post("/expand-brief", response_model=ExpandBriefResponse)
 async def expand_brief(request: ExpandBriefRequest):
+    import base64 as _b64
+
     if settings.MOCK_MODE:
         return ExpandBriefResponse(
             expanded=f"[MOCK] Expanded brief for: {request.brief}"
         )
-    prompt = _EXPAND_USER_TMPL.format(
-        platform=request.platform,
-        brief=request.brief,
-    )
-    expanded = await _llm.complete(
-        *("gemini", "gemini-2.5-flash"),
-        system=_EXPAND_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.85,
-        max_tokens=2048,
-    )
+
+    _BRIEF_CHAR_LIMIT = 4800
+
+    if request.product_image_base64:
+        image_bytes = _b64.b64decode(request.product_image_base64)
+        vision_prompt = _EXPAND_VISION_PROMPT_TMPL.format(
+            platform=request.platform,
+            brief=request.brief,
+        )
+        expanded = await _llm.complete_with_vision(
+            file_bytes=image_bytes,
+            prompt=vision_prompt,
+            mime_type="image/jpeg",
+        )
+    else:
+        prompt = _EXPAND_USER_TMPL.format(
+            platform=request.platform,
+            brief=request.brief,
+        )
+        expanded = await _llm.complete(
+            *("gemini", "gemini-2.5-flash"),
+            system=_EXPAND_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.85,
+            max_tokens=2048,
+        )
+
     result = expanded.strip()
     # Hard cap to stay under schema limits — trim at last sentence boundary if possible
-    _BRIEF_CHAR_LIMIT = 4800
     if len(result) > _BRIEF_CHAR_LIMIT:
         cutoff = result.rfind(".", 0, _BRIEF_CHAR_LIMIT)
         result = result[: cutoff + 1] if cutoff > 0 else result[:_BRIEF_CHAR_LIMIT]
@@ -1088,43 +1142,58 @@ async def expand_brief(request: ExpandBriefRequest):
 
 # ── Campaign Generator ────────────────────────────────────────────────────────
 
-_CAMPAIGN_SYSTEM_PROMPT = """You are a creative director shooting a multi-image campaign. You receive a reference showing the campaign subject (a character, mascot, or person) — your job is to place that subject into completely original scenes, NOT to reproduce or copy the reference image.
+_CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial art director creating a multi-image product campaign. You receive a reference image of the product — your job is to place that product inside completely original, campaign-appropriate scenes WITHOUT modifying it in any way.
 
-CRITICAL RULES FOR EVERY CAMPAIGN PHOTO:
-- The reference image is an IDENTITY REFERENCE only — it tells you what the subject looks like. Their face, costume, colors, and style must be recognizable. But the pose, angle, background, scene, and mood must be entirely your own creation.
-- Each photo in this series must be COMPOSITIONALLY UNIQUE — different camera angle, different pose, different scene, different depth of field, different environment. If one photo is a close-up portrait, the next must NOT be a close-up portrait.
-- Think like a photographer on a real shoot: same subject, but every frame is a fresh creative choice. Do NOT repeat yourself across frames.
-- Color palette and brand energy stay consistent. Everything else — angle, pose, environment, composition — changes per photo.
-- Avoid symmetrical frontal standing poses unless the role explicitly requires it. Default to dynamic, interesting angles.
+════════════════════════════════════════
+PRODUCT PRESERVATION — ABSOLUTE RULE #1
+════════════════════════════════════════
+The reference image IS the product. It is a FINISHED ASSET. You MUST NOT modify it.
 
-Output: One campaign photo per call. Commit fully to the assigned composition role."""
+- DO NOT add any new characters, figures, objects, or elements to the product.
+- DO NOT remove any characters, figures, objects, or elements from the product.
+- DO NOT change the count of any element (if the product shows 6 characters, every image must show exactly 6).
+- DO NOT change colors, shapes, styles, faces, clothing, or poses of anything inside the product.
+- DO NOT reinterpret or redraw the product in a different style.
+- The product content is LOCKED. Imagine it as a flat PNG sticker you are compositing into a scene — you control the scene, never the sticker.
+
+STEP 1 — STUDY THE REFERENCE:
+Memorize every attribute of the product as-is: its exact colors, count of elements, style (illustration/photo/3D), any text, logos, proportions.
+
+STEP 2 — COMPOSE THE SCENE AROUND THE PRODUCT:
+Design a background, environment, lighting, and framing that serves the composition role. The product appears in that scene UNCHANGED.
+
+STEP 3 — CAMPAIGN CONSISTENCY:
+- Same color grading, lighting mood, and realism level across every photo.
+- Each photo must have a compositionally UNIQUE angle, scene, and depth of field.
+
+Output: One campaign photo per call. Create the scene — preserve the product exactly."""
 
 _CAMPAIGN_ROLES: dict[int, list[str]] = {
     1: [
-        "HERO SHOT — Subject centered, bold studio lighting, confident direct gaze at camera, clean premium background. Classic power pose.",
+        "HERO SHOT — Product placed center-frame against a clean premium background with bold studio lighting. Full product visible, nothing cropped.",
     ],
     2: [
-        "HERO SHOT — Subject centered, bold studio lighting, confident direct gaze at camera, clean premium background. Classic power pose.",
-        "LIFESTYLE/EDITORIAL — Subject actively doing something in a real aspirational environment. Side angle or three-quarter view. Scene tells a story.",
+        "HERO SHOT — Product placed center-frame against a clean premium background with bold studio lighting. Full product visible, nothing cropped.",
+        "LIFESTYLE/EDITORIAL — Product placed in a real aspirational environment with an interesting side or three-quarter camera angle. The scene around the product tells a story.",
     ],
     3: [
-        "HERO SHOT — Subject centered, bold studio lighting, confident direct gaze at camera, clean premium background.",
-        "LIFESTYLE IN ENVIRONMENT — Subject in an aspirational real-world setting, NOT a studio. Three-quarter or side profile. They are engaged with their surroundings.",
-        "EXTREME CLOSE-UP / MACRO — Tight crop on the face, hands, or a key detail. Fill the entire frame. No full-body visible.",
+        "HERO SHOT — Product centered with bold studio lighting, clean premium background. Full product visible.",
+        "LIFESTYLE IN ENVIRONMENT — Product placed in a real-world aspirational setting, NOT a studio. Three-quarter camera angle. The surroundings add context and life.",
+        "DRAMATIC CLOSE FRAME — Camera moves in tight on the product so it fills most of the frame. The product is fully intact — no cropping of elements. Show its full detail at a larger scale.",
     ],
     4: [
-        "HERO SHOT — Subject centered in studio, direct camera gaze, bold lighting, clean background. Full or half body.",
-        "LIFESTYLE ENVIRONMENT — Subject naturally integrated in a real-world aspirational scene. Profile or three-quarter angle. They are in motion or interacting with something.",
-        "FLAT LAY / OVERHEAD — Pure top-down bird's-eye view. Subject and props arranged on a surface. Camera is directly above. No standing pose — this is an overhead composition.",
-        "EDITORIAL / ACTION — Subject in motion: running, jumping, gesturing dynamically, or shot from a dramatic low or high angle. Fast energy. Motion blur or dramatic perspective.",
+        "HERO SHOT — Product centered, bold studio lighting, clean background. Full product visible, premium feel.",
+        "LIFESTYLE ENVIRONMENT — Product naturally integrated in a real-world aspirational scene. Camera at a profile or three-quarter angle. Environment adds warmth and story.",
+        "FLAT LAY / OVERHEAD — Camera directly above, looking straight down. Product and complementary props arranged on a textured surface. Pure overhead composition.",
+        "EDITORIAL / WIDE — Product placed in a wide, dramatic environment. Interesting low or high camera angle. Scene has energy and motion blur or strong perspective.",
     ],
     6: [
-        "HERO SHOT — Subject centered in studio, direct camera gaze, bold lighting, clean background.",
-        "LIFESTYLE ENVIRONMENT — Subject in a real aspirational environment, three-quarter angle, engaged with surroundings.",
-        "EXTREME CLOSE-UP — Tight crop: face filling the frame, or hands/detail shot. Absolutely no full-body.",
-        "FLAT LAY / OVERHEAD — Pure top-down composition. Everything arranged on a surface viewed from directly above.",
-        "EDITORIAL / ACTION — Subject fully in motion or shot from a low dramatic angle. Energy, speed, dynamism.",
-        "WIDE ESTABLISHING — Subject small within a large, dramatic environment. Architecture, nature, or urban scene dominates. Subject is part of the world, not the center of the frame.",
+        "HERO SHOT — Product centered in studio, bold lighting, clean background. Full product visible.",
+        "LIFESTYLE ENVIRONMENT — Product in an aspirational real-world setting, three-quarter angle, surrounded by complementary scene elements.",
+        "DRAMATIC CLOSE FRAME — Camera close on the product so it fills the frame at a large scale, all elements intact. Show fine detail.",
+        "FLAT LAY / OVERHEAD — Pure top-down composition. Product and props on a surface, camera directly above.",
+        "EDITORIAL / MOTION — Product in a dynamic scene: strong camera perspective (low angle, bird's-eye, Dutch tilt). Energy, drama, bold.",
+        "WIDE ESTABLISHING — Product small within a large dramatic environment. Architecture, nature, or urban scene dominates. Product is part of the world.",
     ],
 }
 
@@ -1152,30 +1221,47 @@ class CampaignResponse(BaseModel):
 
 
 def _build_campaign_style_lock(campaign_brief: str, brand_kit, platform: str) -> str:
-    """Build a shared visual language spec from brand kit — injected into every photo's context
-    so all N photos share the same aesthetic without locking composition (unlike anchor_b64)."""
+    """Build a shared visual language spec — injected into every photo so all N shots
+    share the same aesthetic, lighting, and theme while only composition differs."""
     parts: list[str] = [
-        "CAMPAIGN VISUAL CONSISTENCY — all photos in this series must share this aesthetic:"
+        "=== CAMPAIGN STYLE LOCK — every photo MUST share ALL of the following ==="
     ]
+
+    # Derive visual theme keywords from the brief
+    brief_lower = campaign_brief.lower()
+    if any(w in brief_lower for w in ["luxury", "premium", "elite", "high-end", "exclusive"]):
+        parts.append("Visual theme: LUXURY — rich materials, deep shadows, moody low-key lighting, cinematic color grade.")
+    elif any(w in brief_lower for w in ["playful", "fun", "vibrant", "energetic", "bold", "kids"]):
+        parts.append("Visual theme: ENERGETIC — bright saturated colors, dynamic poses, high-key upbeat lighting.")
+    elif any(w in brief_lower for w in ["minimal", "clean", "simple", "modern", "sleek"]):
+        parts.append("Visual theme: MINIMAL — clean negative space, neutral palette, soft diffused lighting.")
+    elif any(w in brief_lower for w in ["natural", "organic", "eco", "outdoor", "nature", "earthy"]):
+        parts.append("Visual theme: NATURAL — warm golden tones, natural textures, soft outdoor light.")
+    elif any(w in brief_lower for w in ["tech", "ai", "digital", "future", "innovation", "smart"]):
+        parts.append("Visual theme: TECH/FUTURISTIC — cool blue-white tones, sharp geometric elements, crisp studio lighting.")
+    else:
+        parts.append(f"Visual theme derived from brief: '{campaign_brief[:120]}' — extract the dominant mood and apply it consistently.")
+
     if brand_kit:
         if brand_kit.brand_colors:
             c = brand_kit.brand_colors
-            parts.append(
-                f"Colour palette: primary {c.get('primary', '')}, "
-                f"secondary {c.get('secondary', '')}, accent {c.get('accent', '')}. "
-                f"These tones must dominate every photo's colour grading."
-            )
+            color_parts = [f"primary {c.get('primary', '')}", f"secondary {c.get('secondary', '')}", f"accent {c.get('accent', '')}"]
+            parts.append(f"Brand colour palette — must dominate every photo's colour grading: {', '.join(p for p in color_parts if p.split()[-1])}.")
         if brand_kit.brand_voice:
-            parts.append(f"Visual mood & energy: {brand_kit.brand_voice}.")
+            parts.append(f"Brand mood & energy: {brand_kit.brand_voice} — translate this into the visual atmosphere of every photo.")
         if brand_kit.target_audience:
-            parts.append(f"Audience aesthetic: designed to resonate with {brand_kit.target_audience}.")
+            parts.append(f"Target audience: {brand_kit.target_audience} — every photo should feel aspirational and relevant to them.")
+
     parts.append(
-        f"Campaign brief: {campaign_brief}. "
-        f"All photos must feel like they came from ONE professional shoot — "
-        f"same lighting style, same colour grading, same atmospheric energy. "
-        f"ONLY the composition and scene changes per photo."
+        "Lighting consistency: ALL photos must use the same lighting style (e.g. all warm golden-hour, "
+        "all cool studio strobe, all moody rim-light) — never mix lighting styles across the series."
     )
-    return " ".join(parts)
+    parts.append(
+        "Realism level: ALL photos must be the same level of realism — all photorealistic OR all illustrated. "
+        "Never mix styles within a campaign."
+    )
+    parts.append("=== END STYLE LOCK ===")
+    return "\n".join(parts)
 
 
 @router.post("/campaign", response_model=CampaignResponse)
@@ -1199,17 +1285,31 @@ async def create_campaign(request: CampaignRequest):
 
     total_photos = len(roles)
 
-    async def _gen_photo(role: str, photo_index: int) -> CampaignPhoto | None:
+    async def _gen_photo(role: str, photo_index: int, anchor_b64: str | None = None) -> CampaignPhoto | None:
+        anchor_note = (
+            "\nSTYLE ANCHOR: Reference image 1 (above) is Photo 1 of this campaign. "
+            "Match its exact lighting style, colour grade, background mood, and realism level. "
+            "The subject must look IDENTICAL to how it appears in Photo 1 — same colours, same textures, same proportions. "
+            "ONLY the composition and scene change.\n"
+        ) if anchor_b64 else ""
+
         hints = (
             f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
             f"{style_lock}\n\n"
-            f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n"
-            f"REQUIRED COMPOSITION FOR THIS PHOTO — commit fully to this, it must look NOTHING like the other photos:\n"
+            f"{anchor_note}"
+            f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n\n"
+            f"COMPOSITION ROLE — design the SCENE to match this (never modify the product itself):\n"
             f"{role}\n\n"
-            f"DISTINCTNESS RULE: This photo must be immediately recognizable as different from all others in the series. "
-            f"Different camera angle, different pose, different scene depth, different energy level. "
-            f"If in doubt, push the composition further — be bolder, not safer.\n\n"
-            f"CAMPAIGN BRIEF: {request.campaign_brief}"
+            f"══════════════════════════════════════════\n"
+            f"PRODUCT LOCK — REPEAT REMINDER:\n"
+            f"The reference image product is FIXED and UNMODIFIABLE.\n"
+            f"• Do NOT add any new elements, characters, or objects to it.\n"
+            f"• Do NOT remove any elements from it.\n"
+            f"• Do NOT change any colors, styles, faces, or shapes within it.\n"
+            f"• Reproduce it EXACTLY as seen — only the background scene changes.\n"
+            f"══════════════════════════════════════════\n\n"
+            f"SCENE DISTINCTNESS: The background, environment, and framing for this photo must look NOTHING like the other photos. Be bold and original with the scene.\n\n"
+            f"CAMPAIGN BRIEF (defines the mood, setting, and story of the scene): {request.campaign_brief}"
         )
         try:
             image = await generate_social_image(
@@ -1223,15 +1323,28 @@ async def create_campaign(request: CampaignRequest):
                 context_hints=hints,
                 reference_urls=[request.product_image_url],
                 campaign_mode=True,
+                campaign_anchor_b64=anchor_b64,
             )
             return CampaignPhoto(image=image, composition_role=role)
         except Exception as err:
             logger.error("campaign image_gen failed | role=%s error=%s", role, err)
             return None
 
-    results = await asyncio.gather(*[_gen_photo(role, i) for i, role in enumerate(roles)], return_exceptions=True)
+    # Generate photo 1 first — it defines the visual DNA (lighting, grade, subject rendering)
+    # for the entire campaign. Photos 2+ receive it as a style anchor.
+    photo_1 = await _gen_photo(roles[0], 0, anchor_b64=None)
+    anchor_b64 = photo_1.image.image_base64 if photo_1 else None
 
-    photos = [p for p in results if p is not None and not isinstance(p, Exception)]
+    if len(roles) > 1:
+        rest = await asyncio.gather(
+            *[_gen_photo(role, i + 1, anchor_b64=anchor_b64) for i, role in enumerate(roles[1:])],
+            return_exceptions=True,
+        )
+    else:
+        rest = []
+
+    all_results = ([photo_1] if photo_1 else []) + list(rest)
+    photos = [p for p in all_results if p is not None and not isinstance(p, Exception)]
 
     logger.info(
         "campaign done | user=%s platform=%s photos=%d",
