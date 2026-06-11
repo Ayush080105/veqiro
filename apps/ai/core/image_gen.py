@@ -126,26 +126,20 @@ async def _elaborate_prompt_5component(
         brand_context = "; ".join(brand_context_parts)
 
         system_prompt = (
-            "You are a professional AI image prompt engineer and copywriter specializing in Google Gemini image generation.\n"
-            "Given a visual description and context, elaborate it into a 6-Component Prompt Template "
+            "You are a professional AI image prompt engineer specializing in Google Gemini image generation.\n"
+            "Given a visual description and context, elaborate it into the 5-Component Prompt Template "
             "that produces the highest quality, most specific Gemini image outputs.\n\n"
-            "Return ONLY a valid JSON object with exactly these 6 keys:\n"
+            "Return ONLY a valid JSON object with exactly these 5 keys:\n"
             '  "subject": The main focus — specific people, objects, or elements with precise visual details\n'
             '  "setting": Environment, location, background, atmosphere, time of day\n'
             '  "style": Visual aesthetic — photography or design style, art direction, color treatment, overall look\n'
             '  "lighting": Type, quality, direction, and mood of the lighting\n'
-            '  "camera_angle": Perspective, framing, focal length, composition technique\n'
-            '  "text_overlay": An object with two keys:\n'
-            '      "headline": 2-5 words — punchy, campaign-specific. Pull real keywords from the description (brand name, product, core message). NEVER use generic words like Innovation/Excellence/Discover/Elevate/Transform.\n'
-            '      "subtext": 4-8 words — a supporting tagline, benefit, or CTA directly tied to the description.\n\n'
+            '  "camera_angle": Perspective, framing, focal length, composition technique\n\n'
             "Rules:\n"
             "- Be specific and evocative — avoid vague generic descriptions\n"
             "- Align each component to the platform aesthetic and brand context provided\n"
             "- Do NOT invent brand names or details not provided\n"
             "- Keep each component to 1-2 sentences\n"
-            "- text_overlay must use words/phrases from the actual description — not generic marketing filler\n"
-            "- text_overlay headline and subtext must be spelled perfectly — zero typos, zero made-up words, correct grammar, correct capitalisation\n"
-            "- Every word in text_overlay must be a real English word (or a proper brand/product name from the description) — no gibberish, no garbled text\n"
             "- Return ONLY the JSON — no markdown, no explanation, no code fences"
         )
 
@@ -182,9 +176,9 @@ async def _elaborate_prompt_5component(
         components = _json.loads(text)
         required = {"subject", "setting", "style", "lighting", "camera_angle"}
         if not required.issubset(components.keys()):
-            logger.warning("6-component response missing keys: %s", components.keys())
+            logger.warning("5-component response missing keys: %s", components.keys())
             return None
-        logger.info("6-component elaboration done | platform=%s has_text_overlay=%s", platform, bool(components.get("text_overlay")))
+        logger.info("5-component elaboration done | platform=%s", platform)
         return components
     except Exception as exc:
         logger.warning("6-component elaboration failed (fallback to plain prompt): %s", exc)
@@ -421,17 +415,10 @@ async def generate_social_image(
         brand_kit = await load_brand_kit(organization_id)
         logger.info("brand_kit auto-loaded | org=%s company=%s", organization_id, brand_kit.company_name)
 
-    # ── 6-Component prompt elaboration ───────────────────────────────────────
+    # ── 5-Component prompt elaboration ───────────────────────────────────────
     # Expands the visual description into Subject/Setting/Style/Lighting/Camera
-    # Angle + Text Overlay. context_hints carries composition role info so each
-    # campaign photo gets role-appropriate text. Falls back silently on failure.
+    # Angle before building the final prompt. Falls back silently on failure.
     components = await _elaborate_prompt_5component(prompt, platform, brand_kit, extra_context=context_hints)
-
-    # Use text_overlay from elaboration as text_spec when not explicitly provided
-    if text_spec is None and components and isinstance(components.get("text_overlay"), dict):
-        overlay = components["text_overlay"]
-        if overlay.get("headline"):
-            text_spec = overlay
 
     base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components)
 
