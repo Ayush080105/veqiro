@@ -144,15 +144,3 @@ export const deleteUpcomingAgent = async (req: Request, res: Response) => {
   res.status(StatusCodes.NO_CONTENT).send();
 };
 
-// ── Public roadmap (no auth required) ────────────────────────────────────────
-
-export const getPublicRoadmap = async (_req: Request, res: Response) => {
-  const [posts, upcoming] = await Promise.all([
-    feedbackRepository.listPosts({ sort: "votes" }),
-    feedbackRepository.listUpcomingAgents(),
-  ]);
-  const visiblePosts = posts.filter((p) =>
-    ["PLANNED", "IN_PROGRESS", "LAUNCHED"].includes(p.status),
-  );
-  res.status(StatusCodes.OK).json({ posts: visiblePosts, upcoming });
-};
