@@ -440,7 +440,7 @@ export const EMPLOYEES: Employee[] = [
     color: '#8A8AF0',
     ink: '#2A2A7A',
     skills: ['Contract analysis', 'Risk flagging', 'Doc drafting', 'Compliance checks', 'Document library'],
-    quote: "Clause 7.3 is a trap. Redlined it. Also Clause 4 is fine but written by a poet — I cleaned it up.",
+    quote: "Clause 9.2 lets them suspend your access with 24 hours notice for any reason — no cure period, no appeals. That's not standard, and it needs to go.",
     stats: [{ k: 'Contracts reviewed', v: '180K' }, { k: 'Red flags caught', v: '41K' }, { k: 'Avg review time', v: '4 min' }],
     description: "Lex reads contracts, spots the traps, and explains what the clauses actually mean — in plain English, not legalese. He doesn't replace a lawyer, but she makes sure you don't go into a lawyer meeting blind.",
     capabilities: [
@@ -457,10 +457,10 @@ export const EMPLOYEES: Employee[] = [
       "Anyone who needs an NDA fast but can't wait for counsel",
     ],
     demoChat: [
-      { role: 'user', content: "Lex, 40-page MSA just landed. Review it.", delayMs: 800 },
-      { role: 'agent', content: "Read it. 6 flags — 3 serious. Clause 12.4 gives them a perpetual license to your IP. Clause 18 has uncapped liability on your side. Indemnification is fully one-sided. Risk level: HIGH.", delayMs: 2400 },
-      { role: 'user', content: "Draft redlines for 12.4 and 18.", delayMs: 4000 },
-      { role: 'agent', content: "Redlines ready. 12.4: 'perpetual, irrevocable' replaced with 'limited, revocable license for the term.' IP ownership carve-out added. 18: liability capped at fees paid in the prior 12 months. Word doc ready.", delayMs: 5600 },
+      { role: 'user', content: "Lex, uploaded our new SaaS vendor agreement. Anything to know before signing?", delayMs: 800 },
+      { role: 'agent', content: "6 flags. Two dangerous: Clause 9.2 lets them suspend your access with 24-hour notice for any reason — no cure period, no appeals. Clause 14 has uncapped liability on your side for 'indirect damages'. Don't sign this as-is. Risk level: HIGH.", delayMs: 2200 },
+      { role: 'user', content: "What does 'indirect damages' actually mean? And do we have any GDPR exposure?", delayMs: 3800 },
+      { role: 'agent', content: "Indirect damages = lost profits, reputational harm, business interruption — uncapped, hard to predict. GDPR check: you're sharing customer data under Clause 6 with no DPA, no sub-processor list, no deletion obligations. Three critical gaps. Full compliance report ready.", delayMs: 5400 },
     ],
     howItHelps: "Lex is AI contract review for founders who'd rather not pay a lawyer $600 just to read an NDA. She's an AI legal assistant that reads any contract — NDA, MSA, vendor agreement, offer letter — in minutes, flags risky clauses in plain English, and suggests redline edits you can send back. She's not a replacement for counsel on the big deals. She's what makes sure you don't walk into your counsel meeting blind, and she covers every routine document without a $300/hour bill.",
     workflow: [

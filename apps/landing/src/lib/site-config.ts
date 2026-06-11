@@ -174,7 +174,7 @@ export const crewReplies: Record<string, string> = {
   scout: "Show me the weird one.",
   maya: "Deeper contrast on the hero. Logo bottom-right across all placements.",
   sage: "Write the title tag, H1, and meta description.",
-  lex: "Redline it, send to counsel.",
+  lex: "What does 'indirect damages' mean? And do we have GDPR exposure?",
   rex: "What drove the April churn spike?",
 };
 
@@ -183,7 +183,7 @@ export const crewFollows: Record<string, string> = {
   scout: "K. Company in Tallinn, 4 employees, shipping faster than Stripe did in 2012. Worth a call.",
   maya: "All 4 updated — deeper contrast, logo anchored bottom-right on every placement. Launch campaign locked. Instagram square first?",
   sage: "Title: 'AI Employees for Founders | Vega, Scout, Maya & More — Veqiro'. H1: 'Meet Your AI Employees — Built for the Work That Eats Your Day.' Meta and /ai-employees content brief also ready.",
-  lex: "Redlined. Sending to counsel with a summary. Est read time: 3 min.",
+  lex: "Indirect damages = lost profits, reputational harm, business interruption — uncapped. GDPR: no DPA, no sub-processor list, three critical gaps. Compliance report ready.",
   rex: "All 8 churned from the same January cohort — Starter plan, Product Hunt signups. Fit issue, not product. Churn breakdown, revenue concentration risk, and 3 recommendations in the report. DOCX ready.",
 };
 
