@@ -1234,17 +1234,48 @@ def _build_campaign_style_lock(campaign_brief: str, brand_kit, platform: str) ->
     # Derive visual theme keywords from the brief
     brief_lower = campaign_brief.lower()
     if any(w in brief_lower for w in ["luxury", "premium", "elite", "high-end", "exclusive"]):
-        parts.append("Visual theme: LUXURY — rich materials, deep shadows, moody low-key lighting, cinematic color grade.")
+        parts.append(
+            "Visual theme: LUXURY — "
+            "LIGHTING: Dramatic low-key Rembrandt or split lighting; single hard source with deep shadows filling 60-70% of the frame; practicals (candles, backlit glass) as accent. "
+            "COLOR TEMPERATURE: Warm tungsten 2700-3200K on highlights, cool shadow fill, producing a rich amber-to-charcoal gradient. "
+            "GRADING: Crushed blacks, lifted midtones for velvet feel, slight orange-teal split grade; film grain at 15-20%; references high-end watch and fragrance advertising."
+        )
     elif any(w in brief_lower for w in ["playful", "fun", "vibrant", "energetic", "bold", "kids"]):
-        parts.append("Visual theme: ENERGETIC — bright saturated colors, dynamic poses, high-key upbeat lighting.")
+        parts.append(
+            "Visual theme: ENERGETIC — "
+            "LIGHTING: High-key flat lighting with no harsh shadows; bright overcast or large softbox fill; specular highlights kept punchy. "
+            "COLOR TEMPERATURE: Daylight neutral 5500K; colors pushed to 80-90% saturation; no desaturation or film grade. "
+            "GRADING: Clean bright lifted shadows (no crushed blacks), vivid primaries, slight contrast boost in midtones only; references toy packaging and sports apparel campaigns."
+        )
     elif any(w in brief_lower for w in ["minimal", "clean", "simple", "modern", "sleek"]):
-        parts.append("Visual theme: MINIMAL — clean negative space, neutral palette, soft diffused lighting.")
+        parts.append(
+            "Visual theme: MINIMAL — "
+            "LIGHTING: Large area softbox or window light directly to one side; near-shadowless on background; subtle gradient from light to slightly darker edge. "
+            "COLOR TEMPERATURE: Cool-neutral 5000-5500K; palette limited to 2-3 colors maximum including white or off-white. "
+            "GRADING: Muted, slightly desaturated; highlights preserved but not blown; shadow lift to soft gray rather than black; references Apple product photography and Muji catalog."
+        )
     elif any(w in brief_lower for w in ["natural", "organic", "eco", "outdoor", "nature", "earthy"]):
-        parts.append("Visual theme: NATURAL — warm golden tones, natural textures, soft outdoor light.")
+        parts.append(
+            "Visual theme: NATURAL — "
+            "LIGHTING: Golden-hour sun at 15-30 degrees above horizon OR overcast diffused outdoor light; lens flare acceptable; dappled shadow from foliage welcome. "
+            "COLOR TEMPERATURE: Warm 3800-4500K; earth tones (terracotta, sage, sand, deep green) anchor the palette. "
+            "GRADING: Film-emulation grade with gentle fade in shadows, warm highlights, slight green push in midtones; references outdoor lifestyle and farm-to-table food brands."
+        )
     elif any(w in brief_lower for w in ["tech", "ai", "digital", "future", "innovation", "smart"]):
-        parts.append("Visual theme: TECH/FUTURISTIC — cool blue-white tones, sharp geometric elements, crisp studio lighting.")
+        parts.append(
+            "Visual theme: TECH/FUTURISTIC — "
+            "LIGHTING: Hard directional key light from above-left 45°; electric blue or cyan rim light on product edges; dark background with subtle gradient from near-black to deep navy. "
+            "COLOR TEMPERATURE: Cool 6500-7500K key; accent lights at electric blue or cyan; zero warm tones. "
+            "GRADING: High local contrast, deep crushed blacks, pushed highlights on product surfaces to near-white specular; slight chromatic aberration on edges acceptable; references semiconductor and EV campaign photography."
+        )
     else:
-        parts.append(f"Visual theme derived from brief: '{campaign_brief[:120]}' — extract the dominant mood and apply it consistently.")
+        parts.append(
+            "Visual theme: EDITORIAL PROFESSIONAL — "
+            "LIGHTING: Clean three-point studio lighting; soft key from 45° above-left, fill card on opposite side, subtle rim light separating subject from background. "
+            "COLOR TEMPERATURE: Neutral daylight 5000-5500K throughout; no strong warm or cool cast unless the product's own colors warrant it. "
+            "GRADING: Natural, true-to-life color reproduction; gentle S-curve contrast; no heavy stylistic grade — the product's own colors should read accurately. "
+            f"BRIEF CONTEXT: '{campaign_brief[:200]}' — use this to inform the environment, props, and subject mood only, not to override the lighting or grading above."
+        )
 
     if brand_kit:
         if brand_kit.brand_colors:
@@ -1309,7 +1340,12 @@ async def create_campaign(request: CampaignRequest):
             f"• Do NOT add or remove any characters, objects, or elements from the product.\n"
             f"• The camera angle, orientation, and framing of the product MUST follow the composition role above — this is what makes each photo different.\n\n"
             f"SCENE DISTINCTNESS: This photo's background and environment must be completely different from every other photo in the campaign.\n\n"
-            f"CAMPAIGN BRIEF (mood, setting, story): {request.campaign_brief}"
+            f"CAMPAIGN BRIEF — extract and apply ONLY the following from this brief:\n"
+            f"  • ENVIRONMENT: What physical location or space does this brief imply? Apply it to the background/scene.\n"
+            f"  • LIGHTING FEEL: What quality of light does the brief suggest (harsh sun, soft indoor, neon, dusk)? Align with the Style Lock above.\n"
+            f"  • COLOR STORY: What dominant hues or color relationships does this brief imply? Use them in the background and props, not the product.\n"
+            f"  • EMOTIONAL REGISTER: What emotion should the viewer feel? Encode it through the environment mood.\n"
+            f"  BRIEF TEXT: {request.campaign_brief}"
         )
         try:
             image = await generate_social_image(
