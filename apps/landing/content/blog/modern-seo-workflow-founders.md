@@ -14,6 +14,10 @@ keywords:
   - ai content briefs
   - seo agent ai
   - ai content audit
+  - ai seo audit tool
+  - ai technical seo
+  - ai page audit tool
+  - ai site audit
 readingTime: 9
 faq:
   - q: "Can AI actually handle SEO for a startup, or do you still need an agency?"
@@ -26,6 +30,8 @@ faq:
     a: "Ahrefs and Semrush are data tools — they give you numbers. Sage is an agent — she interprets those numbers, creates content briefs, writes the posts, and monitors your rankings. They're complementary: Sage can pull Ahrefs data and turn it into an action plan."
   - q: "What is a keyword cluster and why does it matter for SEO?"
     a: "A keyword cluster is a group of related search queries that share the same search intent and can be served by the same page. Instead of creating one page per keyword, you create one authoritative page per topic cluster. This is how modern SEO builds topical authority rather than thin, fragmented content."
+  - q: "What does an AI site audit actually check?"
+    a: "A comprehensive AI site audit checks HTTP status codes for broken pages, identifies orphan pages with no internal links, detects keyword cannibalization across multiple URLs, and surfaces technical SEO issues at scale — duplicate titles, missing schema, thin content patterns. It produces a domain health overview with prioritized fixes, not a 200-line data export you have to interpret yourself."
 ---
 
 Most startups treat SEO as a later problem. They're wrong, but the instinct is understandable: SEO feels slow, technical, and opaque — and when you have 40 other things on fire, it's easy to say "we'll get to it after the next milestone."
@@ -164,6 +170,38 @@ Once a quarter, Sage runs a full audit of your published content:
 - Which pages have high engagement but no internal links pointing to them?
 
 The audit produces a prioritised fix list. Updating and improving existing content is often higher ROI than publishing net-new content.
+
+## Going Deeper: Page Audits and Site-Wide Crawls
+
+The content audit cycle above focuses on existing content performance. Two additional audit types cover the technical and structural side — and both are things Sage can run on demand.
+
+### Page SEO Audit
+
+A page-level audit goes well beyond checking if your meta description exists. For any single URL, Sage returns:
+
+- **Technical SEO issues** — missing canonical, slow page load signals, render-blocking resources, crawl directives
+- **On-page factors** — keyword placement, heading hierarchy, internal link density
+- **Image SEO** — alt text gaps, file size flags, lazy-loading status
+- **E-E-A-T signals** — author attribution, expertise indicators, trust signals that influence how Google evaluates the page
+- **Featured snippet opportunities** — whether the content structure positions you to win a snippet for the target keyword
+- **Competitor comparison** — how the page stacks up against the #1 ranking result for the same keyword
+
+The output is a **prioritised 30/60/90-day action plan** — not a list of 47 vague recommendations. The 30-day items are the fixes with the highest rank-impact-to-effort ratio.
+
+Run a page audit whenever you want to understand why a specific page isn't moving, or before investing in a content refresh.
+
+### Site-Wide Audit
+
+A site-wide audit crawls your full sitemap and surfaces issues across the entire domain:
+
+- **HTTP status codes** — 4xx and 5xx pages that are wasting crawl budget
+- **Orphan pages** — pages with no internal links pointing to them (invisible to Google and users)
+- **Keyword cannibalization** — multiple pages targeting the same keyword, splitting authority and confusing the algorithm
+- **Technical drag** — patterns across the site pulling ranking potential down (duplicate title tags, thin content across a section, missing structured data at scale)
+
+The output is a **domain health overview**: total pages audited, count of critical issues, and a priority-ranked issue list. Running this once a quarter is standard practice for any site with 20+ indexed pages.
+
+To trigger either audit: ask Sage directly — "Run a full page audit on [URL]" or "Audit my entire site — sitemap is at [url]."
 
 ## The Results Timeline
 

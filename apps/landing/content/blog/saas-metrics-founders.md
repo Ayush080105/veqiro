@@ -14,6 +14,9 @@ keywords:
   - ai cfo
   - ai kpi dashboard
   - mrr tracking ai
+  - ai board deck generator
+  - ai cfo digest
+  - ai variance analysis
 readingTime: 9
 faq:
   - q: "What are the most important SaaS metrics for an early-stage startup?"
@@ -26,6 +29,8 @@ faq:
     a: "Yes, with integrations. Rex connects to Stripe (or Paddle/Chargebee), your bank feeds, and analytics platforms. It calculates key metrics daily, flags anomalies (MRR dropped 8% week-on-week), and generates a weekly financial brief. No spreadsheet maintenance required."
   - q: "What's the difference between MRR and ARR?"
     a: "MRR (Monthly Recurring Revenue) is your normalized monthly subscription revenue. ARR (Annual Recurring Revenue) is MRR × 12. ARR is useful for investor conversations and benchmarking. For operational decisions — burn rate, hiring, runway — use MRR. Don't confuse ARR with actual annual invoices, which may differ due to annual prepays."
+  - q: "Can AI generate a board deck automatically?"
+    a: "Yes. Rex connects to your financial data sources and generates a board-ready deck with MRR waterfall, burn trends, runway projections, unit economics, and narrative context — formatted for presentation. You review and refine rather than building from scratch. Most founders get their board package done in under an hour instead of a weekend."
 ---
 
 Most founders know the feeling: your board meeting is in 48 hours and someone asks for your LTV:CAC ratio. You open four spreadsheets, do some calculations that don't quite reconcile, and present a number you're not fully confident in.
@@ -228,6 +233,28 @@ The manual version of all of the above takes 4–6 hours per month. Rex does it 
 - **Ad-hoc:** Answer questions like "what's our LTV:CAC if we include only self-serve customers?" or "how has our CAC changed since we launched the PLG motion?"
 
 **The result:** Your board package takes 45 minutes instead of a weekend. Your metrics are always current, always correct, and you're never caught off guard.
+
+## From Metrics to Board-Ready Outputs
+
+Tracking metrics is half the job. The other half is communicating them — to your board, your investors, and your team. Rex handles this too.
+
+### Board Deck Generation
+
+Ask Rex to generate your board deck for a given month and it pulls from your live financial data — MRR waterfall, burn trend, runway curve, unit economics, and key operating metrics — and assembles them into a structured deck with section headers, chart descriptions, and narrative context. You review and refine; you don't build from a blank slide.
+
+The output is print-ready HTML, ready to export or drop into your preferred format.
+
+### Variance Analysis
+
+A variance analysis compares what actually happened against what you budgeted. Upload your budget dataset alongside your actual results and Rex runs the comparison month by month — flagging which lines are tracking ahead, behind, or off in a direction that needs explanation.
+
+This is the document your CFO or board chair is going to want before every quarterly review. Rex produces it in minutes rather than a spreadsheet afternoon.
+
+### Weekly CFO Digest
+
+Every Monday morning, Rex sends a digest: what moved week-over-week across your key metrics, what looks unusual (a CAC spike, a churn uptick, an expense line that jumped), and three focus actions for the week. It's the brief a good CFO would give you before you started your day — without the $200K salary.
+
+To generate any of these: "Generate my board deck for [month]", "Run a variance analysis: actual results vs budget for last quarter", or "Give me my Monday CFO digest."
 
 ---
 
