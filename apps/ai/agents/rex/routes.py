@@ -1635,13 +1635,22 @@ Respond with a JSON object containing:
 
 - "recommendations": array of 3-5 strings — specific, actionable next steps a decision-maker should take based on this data.
 
-- "charts": array of 2-3 chart objects — the most impactful visualizations for this dataset. Each chart:
+- "charts": array of 2-3 chart objects — the most impactful visualizations for this dataset.
+  CRITICAL RULES — violating these produces empty or broken charts:
+  1. Derive xKey and yKeys[].key directly from this dataset's actual column names.
+     Simplify them: lowercase, replace spaces with underscores, keep them short (≤20 chars).
+  2. Every object in "data" MUST use exactly those same simplified keys — the keys in "data"
+     objects, "xKey", and "yKeys[].key" must all match each other perfectly.
+  3. y-axis values MUST be plain numbers, never strings: 500000 not "500000" or "₹5,00,000".
+  4. xKey label values in data objects should be short and human-readable (truncate to 20 chars).
+  Each chart:
   - "type": "bar" | "line" | "pie" | "scatter"
   - "title": descriptive chart title
-  - "data": array of up to 15 data points (objects with the xKey and yKey fields)
-  - "xKey": field name for the x-axis / category label
+  - "data": array of up to 15 data points
+  - "xKey": the label/category field (derived from a categorical column in this dataset)
   - "yKeys": array of {{"key": str, "label": str, "color": str}} (use colors: {CHART_COLORS[:6]})
-  Choose charts that tell different stories: e.g. a bar for top parties by amount, a pie for category/type share, a line for time-based trends.
+  Choose chart types that suit the data: bar for rankings/comparisons, line for time trends,
+  pie for share/composition, scatter for correlations. Pick charts that tell different stories.
 
 Be specific — every number you write must come from the actual column statistics provided. Think like a senior CFO presenting to a board."""
 
@@ -1671,15 +1680,52 @@ Be specific — every number you write must come from the actual column statisti
         chart_data = chart_raw.get("data", [])
         if not chart_data or not y_keys:
             return None
-        fallback_x = next(
-            (k for k in chart_data[0].keys() if k not in {yk.key for yk in y_keys}),
-            list(chart_data[0].keys())[0] if chart_data[0] else "x",
-        )
+
+        y_key_set = {yk.key for yk in y_keys}
+        data_keys = list(chart_data[0].keys()) if chart_data else []
+
+        # Auto-detect x key: prefer the LLM's suggestion if it actually exists in the
+        # data, otherwise fall back to the first key that isn't a y-axis value.
+        provided_x = chart_raw.get("xKey") or ""
+        if provided_x and provided_x in data_keys:
+            x_key = provided_x
+        else:
+            x_key = next(
+                (k for k in data_keys if k not in y_key_set),
+                data_keys[0] if data_keys else "x",
+            )
+
+        # Normalize y-axis values: convert numeric strings ("500000", "₹5,00,000")
+        # to floats so recharts can render bars/lines (it ignores string values).
+        def _to_num(v: object) -> object:
+            if isinstance(v, (int, float)):
+                return v
+            if isinstance(v, str):
+                cleaned = v.replace(",", "").replace("₹", "").replace("$", "").replace("%", "").strip()
+                try:
+                    return float(cleaned)
+                except ValueError:
+                    pass
+            return v
+
+        normalized: list[dict] = []
+        for row in chart_data:
+            if not isinstance(row, dict):
+                continue
+            new_row = dict(row)
+            for yk in y_keys:
+                if yk.key in new_row:
+                    new_row[yk.key] = _to_num(new_row[yk.key])
+            normalized.append(new_row)
+
+        if not normalized:
+            return None
+
         return ChartSpec(
             type=chart_raw.get("type", "bar"),
             title=chart_raw.get("title", ""),
-            data=chart_data,
-            xKey=chart_raw.get("xKey") or fallback_x,
+            data=normalized,
+            xKey=x_key,
             yKeys=y_keys,
         )
 
