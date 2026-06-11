@@ -586,10 +586,30 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) continue;
+
+    // Files exported from Apple Numbers / LibreOffice often have leading blank
+    // rows before the real header. sheet_to_json uses row 0 as the header by
+    // default, so blank leading rows produce __EMPTY_* keys that get stripped,
+    // making the whole sheet appear empty. Scan raw rows to find the first row
+    // with ≥ 2 non-empty cells and use that as the header row.
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      raw: false,
+      defval: null,
+    }) as (string | null)[][];
+    let headerRowIdx = 0;
+    for (let i = 0; i < rawRows.length; i++) {
+      const nonEmpty = (rawRows[i] ?? []).filter(
+        (v) => v != null && String(v).trim() !== ""
+      ).length;
+      if (nonEmpty >= 2) { headerRowIdx = i; break; }
+    }
+
     const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
       defval: "",
       raw: false,
       blankrows: false,
+      range: headerRowIdx,
     });
     if (rows.length === 0) continue;
     const { result } = parseRows(rows);
