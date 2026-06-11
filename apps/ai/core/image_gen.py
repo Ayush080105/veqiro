@@ -144,6 +144,8 @@ async def _elaborate_prompt_5component(
             "- Do NOT invent brand names or details not provided\n"
             "- Keep each component to 1-2 sentences\n"
             "- text_overlay must use words/phrases from the actual description — not generic marketing filler\n"
+            "- text_overlay headline and subtext must be spelled perfectly — zero typos, zero made-up words, correct grammar, correct capitalisation\n"
+            "- Every word in text_overlay must be a real English word (or a proper brand/product name from the description) — no gibberish, no garbled text\n"
             "- Return ONLY the JSON — no markdown, no explanation, no code fences"
         )
 
