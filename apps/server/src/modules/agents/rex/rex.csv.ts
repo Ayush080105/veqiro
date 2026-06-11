@@ -453,11 +453,27 @@ export function parseRows(rows: Record<string, unknown>[]): {
     }
   }
 
-  // ── Wide-format default
-  const dateCol = dateCols[0]?.header ?? headers[0]!;
+  // ── No date column → this is a lookup/reference table, not time-series data.
+  // Saving as a single unified dataset avoids creating N nonsensical metric cards
+  // (e.g. "packing", "rate", "price_per_10" from a price list).
   if (!dateCols[0]) {
-    warnings.push(`No clear date column detected — falling back to '${dateCol}'`);
+    return {
+      result: {
+        candidate_mapping: { dateColumn: "", valueColumns: [] },
+        sample_rows: rows.slice(0, 5) as Record<string, string>[],
+        headers,
+        datasets: [{ metricKey: "table", points: [] }],
+        rawTable,
+        warnings: [
+          ...warnings,
+          "No date column found — saved as a unified table for Q&A, analysis, and reports",
+        ],
+      },
+    };
   }
+
+  // ── Wide-format default (date column present)
+  const dateCol = dateCols[0].header;
   if (hasAmbiguousDates(rows as Record<string, unknown>[], dateCol)) {
     warnings.push(`Ambiguous date format in '${dateCol}' (DD/MM vs MM/DD) — assuming US MM/DD. Use YYYY-MM-DD to be certain.`);
   }
