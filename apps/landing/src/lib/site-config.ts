@@ -173,18 +173,18 @@ export const crewReplies: Record<string, string> = {
   vega: "Move the Thursday one — investor call takes priority.",
   scout: "Show me the weird one.",
   maya: "Deeper contrast on the hero. Logo bottom-right across all placements.",
-  sage: "Do it. Coffee's on me.",
+  sage: "Write the title tag, H1, and meta description.",
   lex: "Redline it, send to counsel.",
-  rex: "Show me the weird thing.",
+  rex: "What drove the April churn spike?",
 };
 
 export const crewFollows: Record<string, string> = {
   vega: "Done. Also blocked 2hrs tomorrow for deep work — you're welcome.",
   scout: "K. Company in Tallinn, 4 employees, shipping faster than Stripe did in 2012. Worth a call.",
   maya: "All 4 updated — deeper contrast, logo anchored bottom-right on every placement. Launch campaign locked. Instagram square first?",
-  sage: "Cool. Starting with the long-tails. First wins in ~10 days.",
+  sage: "Title: 'AI Employees for Founders | Vega, Scout, Maya & More — Veqiro'. H1: 'Meet Your AI Employees — Built for the Work That Eats Your Day.' Meta and /ai-employees content brief also ready.",
   lex: "Redlined. Sending to counsel with a summary. Est read time: 3 min.",
-  rex: "Paid CAC spiked 3x on Meta last Tuesday. Want the chart or just the fix?",
+  rex: "All 8 churned from the same January cohort — Starter plan, Product Hunt signups. Fit issue, not product. Churn breakdown, revenue concentration risk, and 3 recommendations in the report. DOCX ready.",
 };
 
 export interface FooterColumn {

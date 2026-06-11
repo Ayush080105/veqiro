@@ -343,7 +343,7 @@ export const EMPLOYEES: Employee[] = [
     color: '#F79FD4',
     ink: '#8E2A6A',
     skills: ['Keyword research', 'Blog writing', 'Content audits', 'SEO briefs', 'Technical SEO', 'Site audits'],
-    quote: "That keyword has 2,400 searches a month and nobody's written a good article for it yet. We're writing it tonight.",
+    quote: "Audited veqiro.com for 'ai employees' — you're not in the top 100. Title tag misses the keyword. Two competitors above you have thinner content. Three fixes and you can outrank them.",
     stats: [{ k: 'Keywords ranked', v: '2.3M' }, { k: 'Avg position lift', v: '+11' }, { k: 'Traffic unlocked', v: '410M' }],
     description: "Sage knows how search actually works right now — not the theory from 2019. She does keyword research, writes SEO-optimized content, and audits what you already have so your pages actually show up.",
     capabilities: [
@@ -362,10 +362,10 @@ export const EMPLOYEES: Employee[] = [
       "Blogs that need consistent output without sacrificing quality",
     ],
     demoChat: [
-      { role: 'user', content: "Sage, what keyword should we target first?", delayMs: 800 },
-      { role: 'agent', content: "Best quick win: 'ai employee scheduling' — 2,400/month, difficulty 28, no strong article ranking for it. Your competitors aren't touching it. Two-week window to own position 1.", delayMs: 2000 },
-      { role: 'user', content: "Write the article.", delayMs: 3400 },
-      { role: 'agent', content: "Done — 1,500 words, H2/H3 structure, FAQ schema, meta title and description, internal links to your pricing page. Exported as Markdown. Estimated ranking: 3–4 weeks with 2–3 backlinks.", delayMs: 5000 },
+      { role: 'user', content: "Sage, audit veqiro.com for the keyword 'ai employees'.", delayMs: 800 },
+      { role: 'agent', content: "Done. You're not in the top 100 for 'ai employees' — 4,400 searches/month, difficulty 38. Title tag misses the keyword. H1 reads 'Your AI Crew' — close, but not what people search. Three quick wins before anything else: fix the title tag, add an 'ai employees' H2 on the homepage, and build a /ai-employees landing page. Two competitors ranking above you have thinner content than yours.", delayMs: 2200 },
+      { role: 'user', content: "Write the optimized title tag, H1, and meta description.", delayMs: 3800 },
+      { role: 'agent', content: "Title: 'AI Employees for Founders | Vega, Scout, Maya & More — Veqiro' (57 chars). H1: 'Meet Your AI Employees — Built for the Work That Eats Your Day.' Meta: 'Veqiro gives you a crew of AI employees — each with a specialty, a personality, and your brand voice. Inbox, SEO, finance, legal. One team.' Content brief for /ai-employees also ready.", delayMs: 5400 },
     ],
     howItHelps: "Sage is an AI SEO tool and AI blog writer built around how search actually works today — not the playbook from 2019. She handles keyword research with intent classification, writes SEO-optimized articles with correct heading structure and schema, audits what you already have, and keeps track of what's ranking. She also does deep single-page audits and full-site crawls — surfacing orphan pages, cannibalization conflicts, and E-E-A-T gaps that are quietly costing you rankings. Think of her as an AI SEO specialist, AI keyword research tool, and technical SEO auditor combined — cheaper than a solo SEO hire, faster than any retainer, and actually tuned for founder-led teams that need organic traffic to compound.",
     workflow: [
@@ -535,7 +535,7 @@ export const EMPLOYEES: Employee[] = [
     color: '#1DBC87',
     ink: '#0E5C3F',
     skills: ['Financial analysis', 'Forecasting', 'Runway calc', 'Anomaly detection', 'Board decks'],
-    quote: "Revenue is up 12% MoM but your CAC is doing something weird. Want me to show you the weird thing?",
+    quote: "Parsed your Stripe export. MRR up 22%, but 8 churns in 72 hours in April — same cohort, same plan. Want the full breakdown?",
     stats: [{ k: 'Rows crunched', v: '8.9B' }, { k: 'Models built', v: '62K' }, { k: 'Anomalies flagged', v: '120K' }],
     description: "Rex turns your business numbers into a story you actually understand — and flags the weird stuff before it becomes a real problem. He looks at MRR, burn, CAC, and churn so you always know exactly where you stand.",
     capabilities: [
@@ -553,10 +553,10 @@ export const EMPLOYEES: Employee[] = [
       "Anyone who's ever been surprised by their burn rate",
     ],
     demoChat: [
-      { role: 'user', content: "Rex, how are we doing this month?", delayMs: 800 },
-      { role: 'agent', content: "Revenue up 12% MoM — solid. One problem: Meta CAC spiked 3× last Tuesday. Something changed. Churn flat at 2.1%. Runway: 14 months at current burn.", delayMs: 1800 },
-      { role: 'user', content: "What happened with Meta?", delayMs: 3200 },
-      { role: 'agent', content: "Top ad set got flagged and paused at 2pm Tuesday — budget shifted to a weaker creative. CAC went $140 → $430 overnight. Want me to model pausing Meta and doubling down on organic?", delayMs: 4800 },
+      { role: 'user', content: "Rex, I uploaded our Stripe export for Q2. What's the story?", delayMs: 800 },
+      { role: 'agent', content: "Parsed 4,847 rows. MRR ended Q2 at $38,400 — up 22% from Q1. Three flags: churn spiked in April (8 cancellations in 72 hours, same cohort), top 3 customers are 41% of revenue, and annual plans are converting at 3× monthly. Want the full report?", delayMs: 1800 },
+      { role: 'user', content: "Yes — and what drove the April churn spike?", delayMs: 3200 },
+      { role: 'agent', content: "All 8 were Starter plan, signed up during your January Product Hunt launch. Same lifecycle stage, different company sizes — fit issue, not product issue. Report generated: churn cohort breakdown, revenue concentration risk, 3 recommendations. DOCX ready.", delayMs: 5000 },
     ],
     howItHelps: "Rex is an AI financial analyst for SaaS founders who need to know their MRR, burn, CAC, and runway without staring at a dashboard every morning. He plugs into Stripe, your bank, and your ad platforms, tracks every SaaS metric that matters, and flags anomalies before they become bad news in a board deck. Think of him as an AI CFO-on-call: he doesn't close your books, but he'll tell you exactly where you stand, what changed, and what to pay attention to this week.",
     workflow: [
