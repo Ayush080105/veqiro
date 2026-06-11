@@ -620,7 +620,14 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
     });
     if (rows.length === 0) continue;
     const { result } = parseRows(rows);
-    if (!firstResult) firstResult = result;
+    // Prefer the sheet with the most usable headers as the representative
+    // result. This handles workbooks where an "Export Summary" or metadata
+    // sheet appears first and produces 0 usable columns.
+    if (!firstResult || result.rawTable.headers.length > firstResult.rawTable.headers.length) {
+      firstResult = result;
+    }
+    // Skip sheets that produced no usable columns — they are metadata noise
+    if (result.rawTable.headers.length === 0) continue;
     // Store this sheet's rawTable so Q&A / analysis / reports can use it
     allSheets[sheetName] = result.rawTable;
     if (result.warnings.length > 0) {
