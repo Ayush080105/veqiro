@@ -45,3 +45,16 @@ export const sageGenerateBlogIdeasSchema = z.object({
   count: z.number().int().min(1).max(20).optional(),
 })
 export type SageGenerateBlogIdeasValues = z.infer<typeof sageGenerateBlogIdeasSchema>
+
+export const sagePageSeoAuditSchema = z.object({
+  url: z.string().url("Enter a valid URL including https://"),
+  target_keyword: z.string().min(1, "Target keyword is required"),
+})
+export type SagePageSeoAuditValues = z.infer<typeof sagePageSeoAuditSchema>
+
+export const sageSiteAuditSchema = z.object({
+  domain: z.string().min(3, "Domain is required").max(300),
+  urls: z.array(z.string()).min(1, "Select at least one page"),
+  target_keyword: z.string().min(1, "Target keyword is required"),
+})
+export type SageSiteAuditValues = z.infer<typeof sageSiteAuditSchema>

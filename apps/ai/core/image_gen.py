@@ -14,9 +14,25 @@ _PLACEHOLDER_B64 = (
 )
 
 _PLATFORM_STYLE = {
-    "linkedin": "clean corporate editorial, bold typography, professional lighting, 1200x628 landscape",
-    "instagram": "vibrant lifestyle photography, high contrast, eye-catching composition, 1080x1080 square",
-    "twitter":  "punchy bold graphic, minimal, strong focal point, 1600x900 landscape",
+    "linkedin": (
+        "corporate editorial photography: neutral 5000K daylight lighting, controlled depth of field, "
+        "16:9 landscape orientation; typography uses a single sans-serif typeface at heavy weight with generous tracking; "
+        "color palette stays within 2 brand colors plus white or near-white; "
+        "composition favors left-aligned text block with visual subject in right two-thirds of frame"
+    ),
+    "instagram": (
+        "lifestyle photography with high color saturation (vibrance +20-30%), shallow depth of field f/1.8-f/2.8 feel, "
+        "natural or golden-hour lighting; square 1:1 composition with subject slightly off-center; "
+        "typography is minimal — headline only, large, lower-third or upper-third placement; "
+        "background must have visual texture or depth, not a flat solid fill"
+    ),
+    "twitter": (
+        "bold graphic design with hard-edge shapes and maximum contrast; "
+        "typography dominates at least 40% of the image area; "
+        "single hero color from brand palette pushed to maximum saturation; "
+        "16:9 landscape with strong left-to-right reading direction; "
+        "photographic elements (if any) are cropped tightly and treated with high-contrast duotone filter"
+    ),
 }
 
 _ASPECT_FOR_PLATFORM = {
@@ -88,7 +104,116 @@ async def _fetch_asset(url: str) -> bytes | None:
         return None
 
 
-def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None) -> str:
+async def _elaborate_prompt_5component(
+    visual_description: str,
+    platform: str,
+    brand_kit,
+    tone: str = "",
+    extra_context: str = "",
+) -> dict | None:
+    """Elaborates a visual description into a 6-component Gemini prompt template.
+
+    Calls a fast Gemini text model to expand the description into Subject,
+    Setting, Style, Lighting, Camera Angle, and a Text Overlay spec — the
+    structure that produces the most specific, professional image outputs.
+    Returns None on failure so callers fall back gracefully.
+    """
+    if settings.MOCK_MODE:
+        return None
+    try:
+        import json as _json
+        from google import genai
+        from google.genai import types
+
+        platform_context = {
+            "linkedin": (
+                "B2B corporate editorial: controlled studio or office lighting, authoritative typography "
+                "using sans-serif at bold weight, restrained 2-color palette, subject positioned right-of-center "
+                "with text block anchored left, neutral 5000K color temperature"
+            ),
+            "instagram": (
+                "lifestyle photography: shallow focus f/1.8-2.8 feel, natural or golden-hour light, "
+                "vivid saturated palette with vibrance pushed +20-30%, subject slightly off-center at "
+                "a rule-of-thirds intersection, minimal headline text overlay"
+            ),
+            "twitter": (
+                "bold graphic design: maximum contrast, large typographic element occupying 35-45% of frame, "
+                "single dominant brand color at full saturation, strong diagonal or left-to-right visual flow, "
+                "16:9 landscape with immediate visual impact"
+            ),
+        }.get(platform.lower(), "professional social media editorial, clean neutral lighting, clear visual hierarchy")
+
+        brand_context_parts = []
+        if brand_kit:
+            if brand_kit.brand_voice:
+                brand_context_parts.append(f"brand voice: {brand_kit.brand_voice}")
+            if brand_kit.industry:
+                brand_context_parts.append(f"industry: {brand_kit.industry}")
+            if brand_kit.target_audience:
+                brand_context_parts.append(f"audience: {brand_kit.target_audience}")
+        brand_context = "; ".join(brand_context_parts)
+
+        system_prompt = (
+            "You are a professional AI image prompt engineer specializing in Google Gemini image generation.\n"
+            "Given a visual description and context, elaborate it into the 5-Component Prompt Template "
+            "that produces the highest quality, most specific Gemini image outputs.\n\n"
+            "Return ONLY a valid JSON object with exactly these 5 keys:\n"
+            '  "subject": The main focus — specific people, objects, or elements with precise visual details\n'
+            '  "setting": Environment, location, background, atmosphere, time of day\n'
+            '  "style": Visual aesthetic — photography or design style, art direction, color treatment, overall look\n'
+            '  "lighting": Type, quality, direction, and mood of the lighting\n'
+            '  "camera_angle": Perspective, framing, focal length, composition technique\n\n'
+            "Rules:\n"
+            "- Be specific and evocative — avoid vague generic descriptions\n"
+            "- Align each component to the platform aesthetic and brand context provided\n"
+            "- Do NOT invent brand names or details not provided\n"
+            "- Keep each component to 1-2 sentences\n"
+            "- Return ONLY the JSON — no markdown, no explanation, no code fences"
+        )
+
+        user_prompt = (
+            f"Visual description: {visual_description}\n"
+            f"Platform: {platform} ({platform_context})\n"
+            + (f"Brand context: {brand_context}\n" if brand_context else "")
+            + (f"Tone: {tone}\n" if tone else "")
+            + (f"Composition context (use to guide text_overlay tone): {extra_context[:400]}\n" if extra_context else "")
+        )
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = await client.aio.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.4,
+                max_output_tokens=1024,
+                # Disable thinking — pure JSON extraction needs no reasoning chain,
+                # and thinking tokens would consume the output budget before the JSON starts.
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
+        )
+        text = (response.text or "").strip()
+        if not text:
+            return None
+        # Strip code fences if the model added them despite instructions
+        if text.startswith("```"):
+            text = text.split("```", 2)[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.rstrip("```").strip()
+        components = _json.loads(text)
+        required = {"subject", "setting", "style", "lighting", "camera_angle"}
+        if not required.issubset(components.keys()):
+            logger.warning("5-component response missing keys: %s", components.keys())
+            return None
+        logger.info("5-component elaboration done | platform=%s", platform)
+        return components
+    except Exception as exc:
+        logger.warning("6-component elaboration failed (fallback to plain prompt): %s", exc)
+        return None
+
+
+def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None) -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
     # Colors — kept as hex for accuracy; framed as design values so the model never prints them as text
@@ -199,9 +324,14 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     else:
         typography = (
             "TYPOGRAPHY: Include bold, well-designed text directly in the image. "
-            "Derive a SHORT punchy headline (3-6 words max) from the TOPIC ONLY — do NOT copy the topic text verbatim and do NOT lift phrases from the brand atmosphere or audience context sections. "
-            "You may add a very brief supporting line (5-8 words) relevant to the topic. "
-            "Text must be clean, modern, perfectly legible, and part of the design — not an afterthought. "
+            "Derive a SHORT headline (3-5 words max) from the TOPIC using this method: "
+            "identify the single strongest ACTION or BENEFIT the topic implies, then express it as a verb-first imperative OR a 2-3 noun power phrase "
+            "(follow this PATTERN — not these words: 'Build Faster.', 'Own The Room.', 'Less Effort. More Impact.'). "
+            "Do NOT copy the topic text verbatim. "
+            "Do NOT use generic adjectives like amazing, great, powerful, incredible, innovative, revolutionary. "
+            "Do NOT lift phrases from the brand atmosphere or audience context sections. "
+            "You may add a very brief supporting line (5-8 words) directly relevant to the topic. "
+            "Text must be clean, modern, perfectly legible, and integrated into the layout as a primary design element — not a caption. "
         )
 
     # Guardrails — explicit list of what must never appear as visible text
@@ -215,7 +345,8 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         "ABSOLUTELY NEVER render any of the following as visible text in the image:\n"
         "  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225) — apply as color values only, never print them\n"
         "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [BRAND ATMOSPHERE], [AUDIENCE CONTEXT], [PLATFORM ENERGY], [EXACT TEXT TO RENDER]\n"
-        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb\n"
+        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb, elaborate, describe, component, 5-component, pixel-perfect, subject, setting, style, lighting, camera angle — these are internal workflow terms\n"
+        "  ✗ Any JSON-like syntax, field names, key-value pairs, or schema fragments\n"
         "  ✗ Slide numbers, bullet markers, list syntax, or numbered sequences\n"
         "  ✗ Any text from the composition context, brand atmosphere, audience context, or platform energy sections\n"
         "  ✗ Brand voice phrases, company differentiators, taglines, or audience descriptors — these inform visual style only, never appear as image text\n"
@@ -223,7 +354,20 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         + "=== END GUARDRAILS ==="
     )
 
+    # 5-component composition block — placed first so Gemini treats it as primary directive
+    composition_block = ""
+    if components:
+        composition_block = (
+            "## VISUAL COMPOSITION — HIGHEST PRIORITY DIRECTIVE — execute ALL 5 dimensions exactly as specified; they override all other descriptions below ##\n"
+            f"SUBJECT: {components.get('subject', '')}\n"
+            f"SETTING: {components.get('setting', '')}\n"
+            f"STYLE: {components.get('style', '')}\n"
+            f"LIGHTING: {components.get('lighting', '')}\n"
+            f"CAMERA ANGLE: {components.get('camera_angle', '')}\n\n"
+        )
+
     return (
+        f"{composition_block}"
         f"Design a premium {platform} social media graphic ({aspect_ratio}). "
         f"Main topic: \"{topic}\". "
         f"{composition_context}"
@@ -235,12 +379,46 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"Visual style: {style}. "
         f"{typography}"
         f"{exact_text_block}"
-        f"COMPOSITION: Dynamic, bold, brand-driven. Use full-bleed brand colors, asymmetric layouts, "
-        f"oversized typography, diagonal splits, or large geometric brand-color shapes. "
+        f"COMPOSITION: Dynamic, bold, brand-driven. Apply ALL of the following spatial rules:\n"
+        f"  VISUAL HIERARCHY: Primary subject occupies one strong zone of the frame (upper-right, lower-left, or a diagonal half). "
+        f"Typography anchors to the opposite zone, creating tension and drawing the eye across the image.\n"
+        f"  RULE OF THIRDS: Place the primary subject at a third-line intersection — NOT dead center. "
+        f"Leave deliberate breathing room (at least 20% of the frame) around the subject — negative space is intentional, not empty.\n"
+        f"  DEFINITIONS — FULL-BLEED: brand color or imagery extends to ALL four edges, zero internal borders or frames. "
+        f"ASYMMETRIC: left and right halves carry different visual weight, color, or content. "
+        f"OVERSIZED TYPOGRAPHY: headline text occupies at least 25-35% of the total image height — it is a graphic element, not a caption.\n"
         f"FORBIDDEN: bordered card inside canvas, square frame inside square, centered text on plain gradient, "
-        f"generic white panel on colored background — these look like stock templates. "
+        f"generic white panel on colored background, equal visual weight on both halves — these look like stock templates. "
         f"Output must look like it was designed by a top-tier social media creative director. "
         f"{guardrails}"
+    )
+
+
+def _asset_mandate(use_logo: bool, use_mascot: bool) -> str:
+    """Returns a high-priority preamble that forces the model to include logo/mascot.
+
+    Placed at the START of the final prompt so the model sees it before any
+    composition instructions. An empty string is returned when neither flag is set.
+    """
+    parts: list[str] = []
+    if use_logo:
+        parts.append(
+            "MANDATORY LOGO: The brand logo reference image MUST be composited into the final image. "
+            "Place it where it fits naturally in the composition — a corner (bottom-right or top-right preferred), an edge, or integrated into the scene if that reads better — rendered with clean anti-aliased edges. "
+            "Do NOT omit the logo. A final image without the logo is WRONG."
+        )
+    if use_mascot:
+        parts.append(
+            "MANDATORY MASCOT: The brand mascot reference image MUST appear in the final image. "
+            "Incorporate it naturally into the scene. "
+            "Do NOT omit the mascot. A final image without the mascot is WRONG."
+        )
+    if not parts:
+        return ""
+    return (
+        "=== NON-NEGOTIABLE ASSET REQUIREMENTS — HIGHEST PRIORITY ===\n"
+        + "\n".join(parts)
+        + "\n=== END ASSET REQUIREMENTS ===\n\n"
     )
 
 
@@ -258,6 +436,7 @@ async def generate_social_image(
     reference_urls: list[str] | None = None,
     carousel_anchor_b64: str | None = None,
     campaign_mode: bool = False,
+    campaign_anchor_b64: str | None = None,
     brand_images: list | None = None,
 ) -> ImageResult:
     """Generate a premium social media image.
@@ -276,7 +455,12 @@ async def generate_social_image(
         brand_kit = await load_brand_kit(organization_id)
         logger.info("brand_kit auto-loaded | org=%s company=%s", organization_id, brand_kit.company_name)
 
-    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec)
+    # ── 5-Component prompt elaboration ───────────────────────────────────────
+    # Expands the visual description into Subject/Setting/Style/Lighting/Camera
+    # Angle before building the final prompt. Falls back silently on failure.
+    components = await _elaborate_prompt_5component(prompt, platform, brand_kit, extra_context=context_hints)
+
+    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components)
 
     logger.info(
         "image_gen start | user=%s platform=%s aspect=%s use_logo=%s use_mascot=%s brand=%s",
@@ -318,10 +502,13 @@ async def generate_social_image(
             if logo_bytes:
                 anchor_images.append(logo_bytes)
                 anchor_instructions.append(
-                    f"Reference image {len(anchor_images)} is the brand logo. "
-                    f"Place it in the exact same position, size, and styling as in slide 1."
+                    f"MANDATORY: Reference image {len(anchor_images)} is the brand logo. "
+                    f"You MUST include it — its absence is a failure. "
+                    f"Place it in the exact same position, size, and styling as in slide 1. "
+                    f"If the logo has a background colour, ignore it — composite only the logo mark itself, with no white box or rectangular border."
                 )
-        full_prompt = base_prompt + "\n\n" + "\n".join(anchor_instructions)
+        mandate = _asset_mandate(use_logo and bool(brand_kit and brand_kit.logo_url), use_mascot and bool(brand_kit and brand_kit.mascot_url))
+        full_prompt = mandate + base_prompt + "\n\n" + "\n".join(anchor_instructions)
         b64 = await llm.generate_image_with_image_bytes(full_prompt, anchor_images, aspect_ratio=aspect_ratio)
         logger.info("image_gen carousel-anchor done | user=%s slide", user_id or "anon")
         return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
@@ -339,14 +526,38 @@ async def generate_social_image(
             extra_instructions: list[str] = []
 
             if campaign_mode:
-                # ── Campaign mode: subject identity reference, NOT pose/composition copy ──
-                product_instructions = "\n".join(
-                    f"Reference image {i+1} shows the campaign subject (character, product, or mascot). "
-                    f"Use it to understand WHAT they look like — their visual identity, appearance, style, and colours. "
-                    f"Then REINTERPRET them in a completely original scene that matches the composition role specified. "
-                    f"The reference tells you WHO they are, NOT how to pose them. "
-                    f"Every photo in this campaign must show the subject from a DIFFERENT angle, in a DIFFERENT pose, "
-                    f"in a DIFFERENT scene or environment. Do NOT copy the reference image's pose, framing, or background."
+                # ── Campaign mode: inject style anchor (photo 1) before product refs ──
+                if campaign_anchor_b64:
+                    import base64 as _base64
+                    from core.llm import _resize_for_reference
+                    anchor_raw = _base64.b64decode(campaign_anchor_b64)
+                    anchor_resized = _resize_for_reference(anchor_raw, max_side=512)
+                    # Insert anchor as image 1; product refs shift to 2+
+                    all_images = [anchor_resized] + all_images
+                    anchor_instr = (
+                        "Reference image 1 is Photo 1 of this campaign — the STYLE MASTER. "
+                        "You MUST match its exact: lighting quality and direction, colour grade and temperature, "
+                        "background mood and environment style, level of photorealism. "
+                        "The subject must look IDENTICAL to how it appears across all photos — same colours, same textures, same proportions. "
+                        "Only the composition role changes."
+                    )
+                    # Shift product instruction indices
+                    product_ref_offset = 1
+                else:
+                    anchor_instr = ""
+                    product_ref_offset = 0
+
+                # ── Product/subject identity capture ──
+                product_instructions = (
+                    (anchor_instr + "\n") if anchor_instr else ""
+                ) + "\n".join(
+                    f"Reference image {i + 1 + product_ref_offset}: This is the campaign subject — study it with extreme detail.\n"
+                    f"  CATALOG: exact colours (every hue and gradient), surface materials and textures (glossy/matte/metallic/fabric), "
+                    f"shape and silhouette (proportions, edges, curves), any logos/text/markings on the subject, distinctive features.\n"
+                    f"  REPRODUCE: Every one of these attributes must appear with faithful accuracy — exact colors, correct proportions, all distinctive surface markings preserved. "
+                    f"The subject must be immediately recognisable as the EXACT same subject from this reference. "
+                    f"Create a completely original scene — new pose, new background, new angle — but the subject itself is unchanged.\n"
+                    f"  DO NOT copy the reference image's background, framing, or pose — only the subject's identity."
                     for i in range(len(ref_images_ext))
                 )
 
@@ -370,15 +581,22 @@ async def generate_social_image(
                         all_images.append(logo_bytes)
                         idx = len(all_images)
                         extra_instructions.append(
-                            f"Reference image {idx} is the brand logo. "
-                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                            f"MANDATORY: Reference image {idx} is the brand logo. "
+                            f"You MUST include it in the final image — its absence is a failure. "
+                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
-                            f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
-                            f"occupying roughly 8-12% of the image width. Must not compete with the product hero."
+                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                            f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
+                            f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
                         )
                         logger.info("logo reference added (campaign mode) | user=%s", user_id)
 
+                mandate = _asset_mandate(
+                    use_logo and bool(brand_kit and brand_kit.logo_url),
+                    use_mascot and bool(brand_kit and brand_kit.mascot_url),
+                )
                 full_prompt = (
+                    f"{mandate}"
                     f"{base_prompt}\n\n"
                     f"PRODUCT CAMPAIGN PHOTOGRAPH: The uploaded product is the absolute hero of this image. "
                     f"Every compositional decision — lighting, angle, background, props — exists to showcase the product. "
@@ -407,10 +625,12 @@ async def generate_social_image(
                         all_images.append(logo_bytes)
                         idx = len(all_images)
                         extra_instructions.append(
-                            f"Reference image {idx} is the brand logo. "
-                            f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                            f"MANDATORY: Reference image {idx} is the brand logo. "
+                            f"You MUST include it in the final image — its absence is a failure. "
+                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                             f"Do NOT simplify, redraw, or reinterpret it. "
-                            f"Place it as a clean, sharp corner overlay (top-right or bottom-right), "
+                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                            f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
                             f"occupying roughly 8-12% of the image width. Crisp and exact."
                         )
                         logger.info("logo reference added (ref mode) | user=%s", user_id)
@@ -442,7 +662,12 @@ async def generate_social_image(
                     f"Reference image {i+1}: Study its overall theme, mood, and general visual direction. Use as loose inspiration only — do NOT copy layouts, text, or specific elements."
                     for i in range(len(ref_images_ext))
                 )
+                mandate = _asset_mandate(
+                    use_logo and bool(brand_kit and brand_kit.logo_url),
+                    use_mascot and bool(brand_kit and brand_kit.mascot_url),
+                )
                 full_prompt = (
+                    f"{mandate}"
                     f"{base_prompt}\n\n"
                     f"THEME INSPIRATION: The reference images are mood/theme guides — extract their general vibe, "
                     f"dominant energy, and overall feel. Create a completely original design that reflects the same "
@@ -481,11 +706,13 @@ async def generate_social_image(
             ref_images.append(logo_bytes)
             idx = len(ref_images)
             ref_instructions.append(
-                f"Reference image {idx} is the brand logo. "
-                f"Reproduce it with PIXEL-PERFECT fidelity — exact shapes, exact colors, exact proportions, every detail. "
+                f"MANDATORY: Reference image {idx} is the brand logo. "
+                f"You MUST include it in the final image — its absence is a failure. "
+                f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
                 f"Do NOT simplify, redraw, reinterpret, or approximate it. "
-                f"Place it as a clean, sharp overlay in one corner of the image (top-right or bottom-right preferred), "
-                f"occupying roughly 8-12% of the image width. It must look crisp and exactly like the reference."
+                f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
+                f"occupying roughly 8-12% of the image width. Crisp and exact."
             )
             logger.info("logo reference added | user=%s url=%s", user_id, brand_kit.logo_url)
         else:
@@ -520,12 +747,14 @@ async def generate_social_image(
         preamble = (
             "CRITICAL INSTRUCTION: Build a COMPLETELY NEW social media scene from scratch. "
             "Do NOT use the reference image as the scene background. "
-            "The reference is the brand logo — reproduce it with PIXEL-PERFECT fidelity (exact shapes, colors, proportions) "
-            "and place it as a clean, sharp corner overlay in the newly created scene. "
+            "The reference is the brand logo — reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
+            "If the logo has a background colour, ignore it and composite only the logo mark itself with no white box or rectangular border. "
+            "Place it where it fits naturally in the scene — a corner, an edge, or integrated into the composition. "
             "Do NOT simplify, redraw, or reinterpret the logo design.\n\n"
             if logo_only else ""
         )
-        full_prompt = base_prompt + "\n\n" + preamble + "\n".join(ref_instructions)
+        mandate = _asset_mandate(use_logo and bool(brand_kit and brand_kit.logo_url), use_mascot and bool(brand_kit and brand_kit.mascot_url))
+        full_prompt = mandate + base_prompt + "\n\n" + preamble + "\n".join(ref_instructions)
         b64 = await llm.generate_image_with_image_bytes(full_prompt, ref_images, aspect_ratio=aspect_ratio)
         logger.info("image generated with %d reference(s) logo_only=%s | user=%s", len(ref_images), logo_only, user_id)
     else:

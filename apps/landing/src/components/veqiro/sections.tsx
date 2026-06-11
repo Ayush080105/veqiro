@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { FONT } from './shared';
 import {
   consoleUrl,
+  isPreLaunch,
+  waitlistUrl,
   demoCtaHref,
   howItWorksSteps,
   pricingTiers,
@@ -130,15 +132,15 @@ export function Pricing() {
             ))}
           </ul>
 
-          <a href={`${consoleUrl}/signup`} style={{
+          <a href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`} style={{
             display: 'block', textAlign: 'center', textDecoration: 'none',
             background: '#111', color: '#EFE7D6', padding: '16px',
             border: '3px solid #111', borderRadius: 12, boxShadow: '5px 5px 0 #111',
             fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-          }}>Start hiring — free 7 days →</a>
+          }}>{isPreLaunch ? 'Join the waitlist →' : 'Start hiring — free 7 days →'}</a>
 
           <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
-            No credit card needed · Cancel anytime
+            {isPreLaunch ? 'Free for early members · 30% off at launch' : 'No credit card needed · Cancel anytime'}
           </p>
         </div>
       </div>
@@ -207,11 +209,11 @@ export function FinalCTA() {
           Seven days free. No credit card. No weird onboarding call. Just the work.
         </p>
         <div style={{ marginTop: 36, display: 'flex', gap: 'clamp(10px, 2vw, 16px)', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href={`${consoleUrl}/signup`} style={{
+          <a href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`} style={{
             background: '#111', color: '#F5C518', padding: 'clamp(14px, 2.5vw, 20px) clamp(24px, 5vw, 40px)',
             fontFamily: FONT.head, fontSize: 'clamp(14px, 2vw, 18px)', textTransform: 'uppercase', letterSpacing: 1,
             textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #EFE7D6',
-          }}>Hire the crew →</a>
+          }}>{isPreLaunch ? 'Save my spot →' : 'Hire the crew →'}</a>
           <a href={demoCtaHref} style={{
             background: 'transparent', color: '#111', padding: 'clamp(14px, 2.5vw, 20px) clamp(24px, 5vw, 40px)',
             fontFamily: FONT.head, fontSize: 'clamp(14px, 2vw, 18px)', textTransform: 'uppercase', letterSpacing: 1,

@@ -18,6 +18,8 @@ import {
   SageAnalyzeContentForm,
   SageContentBriefForm,
   SageGenerateBlogIdeasForm,
+  SagePageSeoAuditForm,
+  SageSiteAuditForm,
 } from "@/components/agents/sage/forms"
 // Maya forms
 import {
@@ -144,6 +146,30 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   "sage:generate-blog-ideas": {
     defaultValue: { count: 5 },
     Form: SageGenerateBlogIdeasForm,
+  },
+  "sage:page-seo-audit": {
+    defaultValue: { url: "", target_keyword: "" },
+    Form: SagePageSeoAuditForm,
+    validate: (v) =>
+      !v.url?.trim()
+        ? "Page URL is required."
+        : !v.target_keyword?.trim()
+          ? "Target keyword is required."
+          : null,
+    submitLabel: "Run Audit",
+  },
+  "sage:site-audit": {
+    defaultValue: { domain: "", urls: [], target_keyword: "" },
+    Form: SageSiteAuditForm,
+    validate: (v) =>
+      !v.domain?.trim()
+        ? "Enter a domain to get started."
+        : !v.target_keyword?.trim()
+          ? "Enter a target keyword before finding pages."
+          : !v.urls?.length
+            ? "Find pages, then select at least one to audit."
+            : null,
+    submitLabel: "Audit Pages",
   },
 
   "maya:campaign": {

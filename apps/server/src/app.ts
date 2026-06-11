@@ -18,7 +18,7 @@ export const app = express();
 
 app.use(
   cors({
-    origin: [env.CLIENT_URL, env.ADMIN_URL],
+    origin: [env.CLIENT_URL, env.ADMIN_URL, env.LANDING_URL],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })

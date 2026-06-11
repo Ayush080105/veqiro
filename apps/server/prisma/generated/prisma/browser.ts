@@ -147,3 +147,33 @@ export type VegaLabel = Prisma.VegaLabelModel
  * Latest processed Vega inbox snapshot for one organization.
  */
 export type VegaInboxSnapshot = Prisma.VegaInboxSnapshotModel
+/**
+ * Model FeedbackPost
+ * A feature request / bug report submitted by a user.
+ */
+export type FeedbackPost = Prisma.FeedbackPostModel
+/**
+ * Model FeedbackVote
+ * A single upvote by a user on a FeedbackPost.
+ */
+export type FeedbackVote = Prisma.FeedbackVoteModel
+/**
+ * Model FeedbackComment
+ * A comment left by a user (or admin) on a FeedbackPost.
+ */
+export type FeedbackComment = Prisma.FeedbackCommentModel
+/**
+ * Model UpcomingAgent
+ * A potential upcoming agent shown on the voting page.
+ */
+export type UpcomingAgent = Prisma.UpcomingAgentModel
+/**
+ * Model UpcomingAgentVote
+ * A single upvote by a user on an UpcomingAgent.
+ */
+export type UpcomingAgentVote = Prisma.UpcomingAgentVoteModel
+/**
+ * Model WaitlistEntry
+ * Pre-launch waitlist entry collected before product launch.
+ */
+export type WaitlistEntry = Prisma.WaitlistEntryModel

@@ -18,11 +18,12 @@ class SageAgent(BaseAgent):
     slug = "sage"
     name = "Sage"
     personality = (
-        "a sharp, enthusiastic SEO strategist who genuinely loves the craft of ranking content. "
-        "You get excited about keyword opportunities, celebrate every position gain, and bring infectious energy "
-        "to content strategy. You know exactly how search works — intent, E-E-A-T, SERP features, content gaps — "
-        "and you share that knowledge with warmth and enthusiasm, not dry technical lectures. "
-        "You make founders feel like winning in search is totally achievable, because with the right moves, it is."
+        "a senior SEO strategist and mentor who has ranked hundreds of websites and loves passing that knowledge on. "
+        "You don't just run tasks — you teach the *why* behind every move so founders build real SEO intuition. "
+        "After every action you give a concise '💡 What This Means' and a '➡️ Your Next Move' — making every interaction a learning moment. "
+        "You're direct, confident, and specific. You name real frameworks (E-E-A-T, Topic Clusters, Hub-and-Spoke, TOFU/MOFU/BOFU) "
+        "and explain them briefly when relevant. You treat founders as capable learners, not beginners. "
+        "You celebrate wins with genuine enthusiasm, flag risks honestly, and always leave them with one clear action to take next."
     )
     default_provider = "openai"
     default_model = settings.SAGE_MODEL
@@ -82,11 +83,35 @@ class SageAgent(BaseAgent):
             "Use tools proactively — never answer SEO questions from memory alone:\n"
             "- keyword_research: any question about what to rank for, keyword strategy, content ideas\n"
             "- generate_blog: writing a blog post, article, or long-form content\n"
-            "- analyze_content: auditing existing content, diagnosing why a page isn't ranking\n"
+            "- analyze_content: auditing PASTED text or existing content the user shares directly — NOT for URLs\n"
+            "- page_seo_audit: ANY request to audit, review, analyse, or check a specific URL (starts with http) — ALWAYS use this, NEVER write a text report\n"
+            "- site_audit: ONLY when user explicitly asks to audit their WHOLE SITE / ALL PAGES — never use for a single URL\n"
             "- content_brief: planning before writing, briefing a writer, content strategy\n"
             "- web_search: SERP research, competitor analysis, finding real examples and data\n"
+            "- serp_analysis: deep-dive a keyword's SERP features, PAA questions, and content format to beat\n"
+            "- topical_map: build a full hub-and-spoke content cluster strategy for a topic area\n"
+            "- meta_optimizer: write or rewrite meta title and description for maximum CTR\n"
         )
         prompt += (
+            "\n## Mentor Posture — Always Do This\n"
+            "After every tool result or analysis, include:\n"
+            "  💡 **What This Means:** 1-2 sentences translating data into plain business impact.\n"
+            "  ➡️ **Your Next Move:** the single highest-ROI action to take right now.\n"
+            "This is non-negotiable. Every response ends with a clear next step.\n"
+            "\n## SEO Frameworks to Use by Name\n"
+            "- **Topic Clusters / Hub-and-Spoke** — pillar page + cluster pages for topical authority\n"
+            "- **TOFU/MOFU/BOFU** — content mapped to top, middle, and bottom of funnel\n"
+            "- **E-E-A-T** — Experience, Expertise, Authoritativeness, Trustworthiness signals\n"
+            "- **Search Intent** — informational / navigational / commercial / transactional\n"
+            "- **Content Velocity** — how frequently and consistently to publish\n"
+            "- **Quick Wins vs Long-term Bets** — always flag which category a keyword falls into\n"
+            "\n## Honest Mentor Standards\n"
+            "- If a keyword is too competitive for their domain authority, say so directly and offer winnable alternatives.\n"
+            "- If content is thin or poorly structured, say so — then give the specific fix.\n"
+            "- Never hype a strategy that won't work at their stage. Calibrate advice to their actual domain authority level.\n"
+            "- After keyword research: name the 3 keywords to target first and explain WHY (difficulty + volume + business fit).\n"
+            "- After blog generation: give a 5-point pre-publish checklist.\n"
+            "- After content audit: give a 30/60/90 day priority fix plan.\n"
             "\n## Greeting Style\n"
             "When someone says hi or checks in — be warm, enthusiastic, and genuinely pumped to work on their SEO. "
             "You love rankings, you love content strategy, and you're excited every time there's a new challenge. "
@@ -116,9 +141,23 @@ class SageAgent(BaseAgent):
 
     def get_tool_instructions(self) -> str:
         return (
-            "\n\nUse your tools proactively. For keyword questions → `keyword_research`. "
-            "For writing a blog post → `generate_blog`. For auditing content → `analyze_content`. "
-            "For content strategy → `content_brief`. For SERP research → `web_search` first.\n\n"
+            "\n\nUse your tools proactively. NEVER write a raw text SEO report — always call the right tool and let the UI render it.\n\n"
+            "## Tool routing\n"
+            "- Keyword strategy → `keyword_research`\n"
+            "- SERP landscape for a specific keyword → `serp_analysis`\n"
+            "- Full topic cluster / content map → `topical_map`\n"
+            "- Writing a blog post → `generate_blog`\n"
+            "- Auditing pasted text → `analyze_content`\n"
+            "- Content planning / writer brief → `content_brief`\n"
+            "- Meta title / description → `meta_optimizer`\n"
+            "- Ad-hoc SERP research → `web_search`\n"
+            "- User gives a URL (http/https) and asks for audit/report/analysis → `page_seo_audit`\n"
+            "- User explicitly asks to audit their WHOLE SITE / ALL PAGES → `site_audit`\n\n"
+            "## CRITICAL rules for page_seo_audit\n"
+            "1. NEVER write a text SEO report. Any request containing a URL (http/https) + audit/report/review/analysis = call `page_seo_audit`. No exceptions.\n"
+            "2. `target_keyword` is REQUIRED. If the user does not provide one, ask: 'What keyword should this page rank for?' — then call the tool once they answer. Do not guess or skip it.\n"
+            "3. If the user provides a URL and a keyword in the same message, call `page_seo_audit` immediately — no clarifying question needed.\n"
+            "4. NEVER call `site_audit` for a single URL. `site_audit` is only for 'audit my whole site' requests.\n\n"
             "## When to use ask_agent\n"
             "- User wants social posts to promote the blog or content you wrote → call `ask_agent` with maya (include the content).\n"
             "- User wants competitive research or trending topics before writing → call `ask_agent` with scout first.\n"
@@ -228,6 +267,84 @@ class SageAgent(BaseAgent):
                     ToolParameter(name="competitor_urls", type="array", description="URLs of competitor pages to analyze for gap insights (optional)", required=False, items_type="string"),
                 ],
             ),
+            ToolDefinition(
+                name="serp_analysis",
+                description=(
+                    "Deep-dive a keyword's SERP landscape. Surfaces real SERP features (featured snippet, "
+                    "People Also Ask questions, image pack, video carousel), the content formats of the top "
+                    "10 results, and a clear recommendation on the content angle and format needed to rank.\n"
+                    "Use when: the founder asks if a keyword is winnable, what format to use, "
+                    "how to capture a featured snippet, or what PAA questions to answer. "
+                    "Returns: SERP features, PAA questions, recommended format, word-count range, featured snippet tip."
+                ),
+                parameters=[
+                    ToolParameter(name="keyword", type="string", description="The exact keyword to analyse", required=True),
+                ],
+            ),
+            ToolDefinition(
+                name="topical_map",
+                description=(
+                    "Build a complete hub-and-spoke topic cluster map. Given a pillar topic, generates the "
+                    "pillar page concept plus all cluster pages needed to build topical authority — each with "
+                    "a target keyword, content type, funnel stage (TOFU/MOFU/BOFU), and priority order.\n"
+                    "Use when: the founder wants a content strategy, asks what pages to build, wants to dominate "
+                    "a topic area, or asks about topical authority. "
+                    "Returns: pillar page, cluster pages with priorities, quick-win pick, estimated weeks to authority."
+                ),
+                parameters=[
+                    ToolParameter(name="main_topic", type="string", description="The pillar topic to map (e.g. 'email marketing for SaaS')", required=True),
+                    ToolParameter(name="site_stage", type="string", description="Domain stage: 'new', 'growing', or 'established' — adjusts keyword difficulty targets", required=False, default="new", enum=["new", "growing", "established"]),
+                    ToolParameter(name="cluster_count", type="integer", description="Number of cluster pages to generate (default 8)", required=False, default=8),
+                ],
+            ),
+            ToolDefinition(
+                name="page_seo_audit",
+                description=(
+                    "Run a comprehensive deep-dive SEO audit of a single web page. Covers 7 dimensions: "
+                    "URL analysis, technical SEO (title/meta/H1/schema), page speed signals from HTML, "
+                    "image SEO, on-page content (keyword placement, density, LSI, PAA), E-E-A-T signals, "
+                    "and competitive intelligence (competitor word counts, content gaps, SERP features). "
+                    "Returns a rich visual card with overall score, critical issues, quick wins, and a 30/60/90-day action plan.\n"
+                    "Use when: user asks for an SEO audit, report, review, analysis, or 'what's wrong' with any URL.\n"
+                    "IMPORTANT: You MUST have both url AND target_keyword before calling this tool. "
+                    "If target_keyword is missing, ask the user for it first — do not guess or skip it."
+                ),
+                parameters=[
+                    ToolParameter(name="url", type="string", description="Full URL of the page to audit (must include https://)", required=True),
+                    ToolParameter(name="target_keyword", type="string", description="The primary keyword this page should rank for in Google. REQUIRED — always ask the user if not provided.", required=True),
+                ],
+            ),
+            ToolDefinition(
+                name="site_audit",
+                description=(
+                    "Run a full-site SEO health check across ALL pages of a domain via sitemap crawl. "
+                    "Use ONLY when the user explicitly asks to audit their whole website / all pages / entire site. "
+                    "Do NOT use for a single URL — use page_seo_audit for that.\n"
+                    "Use when: user says 'audit my whole site', 'check all my pages', 'site-wide SEO check'."
+                ),
+                parameters=[
+                    ToolParameter(name="domain", type="string", description="Domain to audit, e.g. 'example.com' — no https:// needed", required=True),
+                    ToolParameter(name="max_pages", type="integer", description="Max pages to analyze (default 10, max 20)", required=False, default=10),
+                ],
+            ),
+            ToolDefinition(
+                name="meta_optimizer",
+                description=(
+                    "Optimise or generate a meta title (≤60 chars) and meta description (≤160 chars) "
+                    "for maximum click-through rate. Uses power words, matches search intent, and includes "
+                    "the target keyword naturally. Provides 2 alternative variations.\n"
+                    "Use when: the founder wants to improve CTR, has a page not getting clicks despite ranking, "
+                    "or needs meta tags for a new page. "
+                    "Returns: optimised title, description, character counts, 2 alternatives, and CTR tips."
+                ),
+                parameters=[
+                    ToolParameter(name="target_keyword", type="string", description="Primary keyword for the page", required=True),
+                    ToolParameter(name="page_topic", type="string", description="What the page is about", required=True),
+                    ToolParameter(name="existing_title", type="string", description="Current meta title to improve (optional)", required=False),
+                    ToolParameter(name="existing_description", type="string", description="Current meta description to improve (optional)", required=False),
+                    ToolParameter(name="brand_name", type="string", description="Brand name to append to title, e.g. '| BrandName' (optional)", required=False),
+                ],
+            ),
         ]
 
     # ── Tool Execution ──────────────────────────────────────────────────
@@ -239,7 +356,13 @@ class SageAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
     ) -> str:
-        from agents.scout.scraper import serper_search, scrape_url
+        from agents.scout.scraper import serper_search, scrape_url, serper_search_rich
+
+        # page_seo_audit and site_audit delegate to their own endpoints — skip
+        # the expensive brand-kit fetch for those. Other LLM-based tools need it.
+        if name in ("page_seo_audit", "site_audit"):
+            return await self._execute_audit_tool(name, arguments, user_id, organization_id)
+
         system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
 
         if name == "web_search":
@@ -475,4 +598,182 @@ class SageAgent(BaseAgent):
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
+        elif name == "serp_analysis":
+            try:
+                keyword = arguments.get("keyword", "")
+                rich = await serper_search_rich(keyword)
+                organic = rich.get("organic", [])
+                paa = rich.get("paa", [])
+                features = rich.get("serp_features", [])
+                related = rich.get("related_searches", [])
+                featured = rich.get("featured_snippet")
+
+                context = f"Keyword: {keyword}\n"
+                context += f"SERP features detected: {', '.join(features) if features else 'none'}\n"
+                if featured:
+                    context += f"Featured snippet box: {json.dumps(featured)[:300]}\n"
+                if paa:
+                    context += f"People Also Ask: {'; '.join(paa[:6])}\n"
+                if related:
+                    context += f"Related searches: {', '.join(related[:8])}\n"
+                if organic:
+                    context += "Top results:\n" + "\n".join(f"- {r['title']}: {r.get('snippet','')}" for r in organic[:8])
+
+                prompt = (
+                    f"{context}\n\n"
+                    "Based on this real SERP data, provide a JSON analysis with:\n"
+                    "- keyword: the keyword analysed\n"
+                    "- serp_features: list of detected features\n"
+                    "- paa_questions: People Also Ask questions (use the real ones above)\n"
+                    "- top_result_formats: content formats appearing in top results (e.g. 'listicle', 'ultimate guide', 'tool', 'comparison')\n"
+                    "- recommended_format: the exact format to use to compete\n"
+                    "- recommended_word_count_range: e.g. '2,000–3,500 words'\n"
+                    "- featured_snippet_opportunity: true/false\n"
+                    "- featured_snippet_tip: how to capture it if opportunity exists\n"
+                    "- competition_assessment: honest 1-sentence difficulty verdict\n"
+                    "- content_angle: a distinctive angle to differentiate from what's ranking\n"
+                    "Return ONLY JSON, no markdown fences."
+                )
+                raw = await self.llm.complete(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                )
+                return strip_json_fences(raw)
+            except Exception as e:
+                return json.dumps({"error": str(e), "tool": name})
+
+        elif name == "topical_map":
+            try:
+                main_topic = arguments.get("main_topic", "")
+                site_stage = arguments.get("site_stage", "new")
+                cluster_count = arguments.get("cluster_count", 8)
+
+                rich = await serper_search_rich(main_topic)
+                organic = rich.get("organic", [])
+                paa = rich.get("paa", [])
+                related = rich.get("related_searches", [])
+
+                difficulty_guidance = {
+                    "new": "max difficulty 35 — target low-competition, long-tail keywords",
+                    "growing": "difficulty up to 55 — mix of mid-competition keywords",
+                    "established": "difficulty up to 75 — can target competitive head terms",
+                }.get(site_stage, "max difficulty 35")
+
+                context = f"Main topic: {main_topic}\nSite stage: {site_stage} ({difficulty_guidance})\n"
+                if paa:
+                    context += f"Questions people ask: {'; '.join(paa[:6])}\n"
+                if related:
+                    context += f"Related searches: {', '.join(related[:8])}\n"
+                if organic:
+                    context += "What's currently ranking:\n" + "\n".join(f"- {r['title']}" for r in organic[:6])
+
+                prompt = (
+                    f"{context}\n\n"
+                    f"Create a hub-and-spoke topic cluster map with 1 pillar page and {cluster_count} cluster pages.\n"
+                    "Each page needs: title, target_keyword, content_type (e.g. 'How-to guide', 'Listicle', 'Comparison', 'Tool/Calculator', 'Case study'), "
+                    "funnel_stage (TOFU/MOFU/BOFU), search_intent (informational/commercial/transactional/navigational), "
+                    "estimated_difficulty (int 1-100 respecting the site stage guidance above), priority (int, 1=write first).\n\n"
+                    "Return JSON with:\n"
+                    "- pillar_topic: string\n"
+                    "- pillar_page: page object\n"
+                    "- cluster_pages: array of page objects\n"
+                    "- strategy_summary: 2-3 sentence explanation\n"
+                    "- estimated_weeks_to_authority: e.g. '12-16 weeks at 2 posts/week'\n"
+                    "- quick_win_page: the single cluster page to write first for fastest results (full page object)\n"
+                    "Return ONLY JSON, no markdown fences."
+                )
+                raw = await self.llm.complete(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                    max_tokens=3000,
+                )
+                return strip_json_fences(raw)
+            except Exception as e:
+                return json.dumps({"error": str(e), "tool": name})
+
+        elif name == "meta_optimizer":
+            try:
+                from core.brand_kit import load_brand_kit
+                brand_kit = await load_brand_kit(organization_id)
+
+                keyword = arguments.get("target_keyword", "")
+                page_topic = arguments.get("page_topic", "")
+                existing_title = arguments.get("existing_title", "")
+                existing_desc = arguments.get("existing_description", "")
+                brand_name = arguments.get("brand_name", "") or brand_kit.company_name or ""
+
+                existing_ctx = ""
+                if existing_title:
+                    existing_ctx += f"Current title ({len(existing_title)} chars): {existing_title}\n"
+                if existing_desc:
+                    existing_ctx += f"Current description ({len(existing_desc)} chars): {existing_desc}\n"
+
+                prompt = (
+                    f"Optimise meta tags for maximum CTR.\n"
+                    f"Target keyword: {keyword}\n"
+                    f"Page topic: {page_topic}\n"
+                    f"Brand name: {brand_name}\n"
+                    f"{existing_ctx}\n"
+                    "Rules:\n"
+                    "- Meta title: MUST be ≤60 characters. Include keyword naturally. Use a power word. Optionally append '| Brand' if it fits.\n"
+                    "- Meta description: MUST be ≤160 characters. Include keyword. State the clear benefit. End with a subtle CTA.\n"
+                    "- Provide 2 alternative title+description pairs.\n"
+                    "- Explain 3 specific reasons these will improve CTR.\n\n"
+                    "Return JSON with:\n"
+                    "- meta_title: string (≤60 chars)\n"
+                    "- meta_title_chars: int\n"
+                    "- meta_description: string (≤160 chars)\n"
+                    "- meta_description_chars: int\n"
+                    "- alternatives: array of 2 objects each with meta_title and meta_description\n"
+                    "- ctr_tips: array of 3 strings\n"
+                    "Return ONLY JSON, no markdown fences."
+                )
+                raw = await self.llm.complete(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                )
+                return strip_json_fences(raw)
+            except Exception as e:
+                return json.dumps({"error": str(e), "tool": name})
+
         raise ValueError(f"Unknown tool: {name}")
+
+    async def _execute_audit_tool(
+        self,
+        name: str,
+        arguments: dict,
+        user_id: str,
+        organization_id: str,
+    ) -> str:
+        try:
+            import httpx
+            from core.config import settings as _cfg
+            _hdrs = {"X-Internal-Api-Key": _cfg.INTERNAL_API_KEY}
+            if name == "page_seo_audit":
+                async with httpx.AsyncClient(timeout=90) as client:
+                    resp = await client.post(
+                        "http://127.0.0.1:8000/ai/sage/page-audit",
+                        headers=_hdrs,
+                        json={
+                            "url": arguments.get("url", ""),
+                            "target_keyword": arguments.get("target_keyword", ""),
+                            "user_id": user_id,
+                            "organization_id": organization_id,
+                        },
+                    )
+                    return json.dumps(resp.json(), default=str)
+            else:
+                async with httpx.AsyncClient(timeout=120) as client:
+                    resp = await client.post(
+                        "http://127.0.0.1:8000/ai/sage/site-audit",
+                        headers=_hdrs,
+                        json={
+                            "domain": arguments.get("domain", ""),
+                            "max_pages": arguments.get("max_pages", 10),
+                            "user_id": user_id,
+                            "organization_id": organization_id,
+                        },
+                    )
+                    return json.dumps(resp.json(), default=str)
+        except Exception as e:
+            return json.dumps({"error": str(e), "tool": name})

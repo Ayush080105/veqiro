@@ -83,9 +83,17 @@ model User {
   /// OAuth/password accounts linked to this user.
   accounts      Account[]
   /// Organization memberships for this user.
-  members       Member[]
+  members              Member[]
   /// Organization invitations sent by this user.
-  invitations   Invitation[]
+  invitations          Invitation[]
+  /// Feedback posts authored by this user.
+  feedbackPosts        FeedbackPost[]       @relation("FeedbackPostAuthor")
+  /// Upvotes cast by this user on feedback posts.
+  feedbackVotes        FeedbackVote[]       @relation("FeedbackVoteUser")
+  /// Comments left by this user on feedback posts.
+  feedbackComments     FeedbackComment[]    @relation("FeedbackCommentUser")
+  /// Upvotes cast by this user on upcoming agents.
+  upcomingAgentVotes   UpcomingAgentVote[]  @relation("UpcomingAgentVoteUser")
 
   @@unique([email])
   @@map("user")
@@ -799,4 +807,182 @@ model VegaInboxSnapshot {
   cachedAt       DateTime @default(now())
 
   @@map("vega_inbox_snapshot")
+}
+
+// ─── Feedback / Voting System ────────────────────────────────────────────────
+
+/// Status lifecycle of a user-submitted feedback post.
+enum FeedbackStatus {
+  NEW
+  UNDER_REVIEW
+  PLANNED
+  IN_PROGRESS
+  LAUNCHED
+  DECLINED
+}
+
+/// Categorisation tag on a feedback post.
+enum FeedbackCategory {
+  FEATURE_REQUEST
+  BUG_REPORT
+  INTEGRATION
+  NEW_AGENT
+  UX_IMPROVEMENT
+  GENERAL
+}
+
+/// A feature request / bug report submitted by a user.
+model FeedbackPost {
+  /// Row id.
+  id          String           @id @default(cuid())
+  /// Short title supplied by the submitter.
+  title       String
+  /// Longer description supplied by the submitter.
+  description String
+  /// Categorisation tag.
+  category    FeedbackCategory @default(GENERAL)
+  /// Optional agent this feedback relates to.
+  agentSlug   String?
+  /// Current lifecycle status.
+  status      FeedbackStatus   @default(NEW)
+  /// Cached vote tally (incremented/decremented atomically).
+  voteCount   Int              @default(0)
+  /// Optional public-facing ETA shown on the roadmap.
+  roadmapEta  String?
+  /// Optional public admin reply shown to voters.
+  adminReply  String?
+  /// Optional internal-only admin note.
+  adminNote   String?
+  /// Whether the post has been merged into another.
+  isMerged    Boolean          @default(false)
+  /// Target post id when this post was merged.
+  mergedIntoId String?
+  /// Submitting user id.
+  createdById String
+  /// Submitting user relation.
+  createdBy   User             @relation("FeedbackPostAuthor", fields: [createdById], references: [id], onDelete: Cascade)
+  /// Creation timestamp.
+  createdAt   DateTime         @default(now())
+  /// Last-updated timestamp.
+  updatedAt   DateTime         @updatedAt
+  /// Votes cast on this post.
+  votes       FeedbackVote[]
+  /// Comments on this post.
+  comments    FeedbackComment[]
+
+  @@index([status])
+  @@index([category])
+  @@index([agentSlug])
+  @@index([createdById])
+  @@index([voteCount])
+  @@index([createdAt])
+  @@map("feedback_post")
+}
+
+/// A single upvote by a user on a FeedbackPost.
+model FeedbackVote {
+  /// Row id.
+  id         String       @id @default(cuid())
+  /// Voting user id.
+  userId     String
+  /// Voting user relation.
+  user       User         @relation("FeedbackVoteUser", fields: [userId], references: [id], onDelete: Cascade)
+  /// Target post id.
+  feedbackId String
+  /// Target post relation.
+  feedback   FeedbackPost @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  /// Vote timestamp.
+  createdAt  DateTime     @default(now())
+
+  @@unique([userId, feedbackId])
+  @@index([userId])
+  @@index([feedbackId])
+  @@map("feedback_vote")
+}
+
+/// A comment left by a user (or admin) on a FeedbackPost.
+model FeedbackComment {
+  /// Row id.
+  id           String       @id @default(cuid())
+  /// Comment text.
+  content      String
+  /// Commenting user id.
+  userId       String
+  /// Commenting user relation.
+  user         User         @relation("FeedbackCommentUser", fields: [userId], references: [id], onDelete: Cascade)
+  /// Parent post id.
+  feedbackId   String
+  /// Parent post relation.
+  feedback     FeedbackPost @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  /// True when the comment was written by a platform admin.
+  isAdminReply Boolean      @default(false)
+  /// Creation timestamp.
+  createdAt    DateTime     @default(now())
+
+  @@index([feedbackId])
+  @@index([userId])
+  @@map("feedback_comment")
+}
+
+/// A potential upcoming agent shown on the voting page.
+model UpcomingAgent {
+  /// Row id.
+  id          String              @id @default(cuid())
+  /// Display name of the proposed agent.
+  name        String
+  /// One-line tagline shown in the card.
+  tagline     String
+  /// Optional longer description.
+  description String?
+  /// Optional emoji avatar.
+  emoji       String?
+  /// Optional brand colour (hex or Tailwind name).
+  color       String?
+  /// Sort order for display.
+  order       Int                 @default(0)
+  /// Whether the card is visible to users.
+  isVisible   Boolean             @default(true)
+  /// Cached vote tally.
+  voteCount   Int                 @default(0)
+  /// Creation timestamp.
+  createdAt   DateTime            @default(now())
+  /// Last-updated timestamp.
+  updatedAt   DateTime            @updatedAt
+  /// Votes cast on this agent.
+  votes       UpcomingAgentVote[]
+
+  @@index([isVisible, order])
+  @@map("upcoming_agent")
+}
+
+/// A single upvote by a user on an UpcomingAgent.
+model UpcomingAgentVote {
+  /// Row id.
+  id              String        @id @default(cuid())
+  /// Voting user id.
+  userId          String
+  /// Voting user relation.
+  user            User          @relation("UpcomingAgentVoteUser", fields: [userId], references: [id], onDelete: Cascade)
+  /// Target agent id.
+  upcomingAgentId String
+  /// Target agent relation.
+  upcomingAgent   UpcomingAgent @relation(fields: [upcomingAgentId], references: [id], onDelete: Cascade)
+  /// Vote timestamp.
+  createdAt       DateTime      @default(now())
+
+  @@unique([userId, upcomingAgentId])
+  @@index([userId])
+  @@index([upcomingAgentId])
+  @@map("upcoming_agent_vote")
+}
+
+/// Pre-launch waitlist entry collected before product launch.
+model WaitlistEntry {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  coupon    String?
+  validTill DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("waitlist_entry")
 }

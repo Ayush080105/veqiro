@@ -162,7 +162,7 @@ export const generateIdeas = async (
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
+    content: `Generate ${input.count} ${input.platform} ideas${input.topic_hint ? `: ${input.topic_hint}` : ""}`,
     customInput: { actionId: "maya:generate-ideas", input },
   });
 
@@ -173,16 +173,16 @@ export const generateIdeas = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Generate ${input.count} ${input.platform} ideas${input.topicHint ? `: ${input.topicHint}` : ""}`,
+    userMessage: `Generate ${input.count} ${input.platform} ideas${input.topic_hint ? `: ${input.topic_hint}` : ""}`,
     rawHistory: history,
     topLevelPayload: {
       platform: input.platform,
-      topic_hint: input.topicHint,
+      topic_hint: input.topic_hint,
       count: input.count,
-      include_image: input.includeImage,
-      use_logo: input.useLogo,
-      use_mascot: input.useMascot,
-      use_brandkit: input.useBrandkit,
+      include_image: input.include_image,
+      use_logo: input.use_logo,
+      use_mascot: input.use_mascot,
+      use_brandkit: input.use_brandkit,
       past_ideas: pastIdeas,
     },
   });
@@ -220,7 +220,7 @@ export const draftContent = async (
 ): Promise<DraftResponse> => {
   const [history, brandImagesBase] = await Promise.all([
     mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
-    getBrandImagesForGeneration(organizationId, input.brandImageIds ?? []),
+    getBrandImagesForGeneration(organizationId, input.brand_image_ids ?? []),
   ]);
 
   const userMsg = await mayaRepository.createUserMessage({
@@ -232,7 +232,7 @@ export const draftContent = async (
 
   const brandImages = brandImagesBase.map((img) => ({
     url: img.url,
-    prompt: input.brandImagePrompts?.[img.id] ?? null,
+    prompt: input.brand_image_prompts?.[img.id] ?? null,
   }));
 
   const data = await callAgentWithContext<DraftResponse>({
@@ -247,15 +247,15 @@ export const draftContent = async (
     topLevelPayload: {
       topic: input.topic,
       platform: input.platform,
-      tone_override: input.toneOverride,
-      word_count_target: input.wordCountTarget,
-      include_image: input.includeImage,
-      use_logo: input.useLogo,
-      use_mascot: input.useMascot,
-      additional_context: input.additionalContext,
-      from_rex: input.fromRex ?? false,
-      use_reference: (input.inspirationImages?.length ?? 0) > 0,
-      reference_images: input.inspirationImages ?? [],
+      tone_override: input.tone_override,
+      word_count_target: input.word_count_target,
+      include_image: input.include_image,
+      use_logo: input.use_logo,
+      use_mascot: input.use_mascot,
+      additional_context: input.additional_context,
+      from_rex: input.from_rex ?? false,
+      use_reference: (input.inspiration_images?.length ?? 0) > 0,
+      reference_images: input.inspiration_images ?? [],
       brand_images: brandImages,
     },
   });
@@ -285,7 +285,7 @@ export const generateVariants = async (
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
+    content: `Adapt ${input.original_platform} content for ${input.target_platforms.join(", ")}`,
     customInput: { actionId: "maya:generate-variants", input },
   });
 
@@ -296,13 +296,13 @@ export const generateVariants = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Adapt ${input.originalPlatform} content for ${input.targetPlatforms.join(", ")}`,
+    userMessage: `Adapt ${input.original_platform} content for ${input.target_platforms.join(", ")}`,
     rawHistory: history,
     topLevelPayload: {
-      original_content: input.originalContent,
-      original_platform: input.originalPlatform,
-      target_platforms: input.targetPlatforms,
-      include_images: input.includeImages,
+      original_content: input.original_content,
+      original_platform: input.original_platform,
+      target_platforms: input.target_platforms,
+      include_images: input.include_images,
     },
   });
 
@@ -353,10 +353,10 @@ export const revise = async (
     userMessage: `Revise ${input.platform} post`,
     rawHistory: history,
     topLevelPayload: {
-      original_content: input.originalContent,
+      original_content: input.original_content,
       platform: input.platform,
       feedback: input.feedback,
-      specific_instructions: input.specificInstructions,
+      specific_instructions: input.specific_instructions,
     },
   });
 
@@ -387,11 +387,10 @@ export const regenerateImage = async (
   const { data } = await aiService.post<ImageRegenResponse>("/ai/maya/regenerate-image", {
     user_id: userId,
     organization_id: organizationId,
-    image_url: input.imageUrl,
+    image_url: input.image_url,
     prompt: input.prompt,
-    platform: input.platform,
-    use_logo: input.useLogo,
-    use_mascot: input.useMascot,
+    use_logo: input.use_logo,
+    use_mascot: input.use_mascot,
   });
 
   const hosted = await hostImage(organizationId, data.image);
@@ -586,7 +585,7 @@ export const draftCarousel = async (
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Carousel post (${input.carouselCount} slides) on ${input.platform}: ${input.topic}`,
+    content: `Carousel post (${input.carousel_count} slides) on ${input.platform}: ${input.topic}`,
     customInput: { actionId: "maya:draft-carousel", input },
   });
 
@@ -597,18 +596,18 @@ export const draftCarousel = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Carousel post (${input.carouselCount} slides) on ${input.platform}: ${input.topic}`,
+    userMessage: `Carousel post (${input.carousel_count} slides) on ${input.platform}: ${input.topic}`,
     rawHistory: history,
     topLevelPayload: {
       topic: input.topic,
       platform: input.platform,
-      carousel_count: input.carouselCount,
-      tone_override: input.toneOverride,
-      include_images: input.includeImages,
-      use_logo: input.useLogo,
-      use_mascot: input.useMascot,
-      additional_context: input.additionalContext,
-      image_aspect_ratio: input.imageAspectRatio,
+      carousel_count: input.carousel_count,
+      tone_override: input.tone_override,
+      include_images: input.include_images,
+      use_logo: input.use_logo,
+      use_mascot: input.use_mascot,
+      additional_context: input.additional_context,
+      image_aspect_ratio: input.image_aspect_ratio,
     },
   });
 
@@ -647,6 +646,7 @@ export const expandBrief = async (
     organization_id: organizationId,
     brief: input.brief,
     platform: input.platform,
+    product_image_base64: input.product_image_base64,
   });
   return data;
 };
@@ -730,7 +730,7 @@ export const createCampaign = async (
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    content: `Product campaign (${input.photo_count} photos) on ${input.platform}: ${input.campaign_brief.slice(0, 120)}`,
     customInput: { actionId: "maya:campaign", input },
   });
 
@@ -741,14 +741,14 @@ export const createCampaign = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    userMessage: `Product campaign (${input.photo_count} photos) on ${input.platform}: ${input.campaign_brief.slice(0, 120)}`,
     rawHistory: history,
     topLevelPayload: {
-      product_image_url: input.productImageUrl,
-      campaign_brief: input.campaignBrief,
-      photo_count: input.photoCount,
-      use_logo: input.useLogo,
-      use_mascot: input.useMascot,
+      product_image_url: input.product_image_url,
+      campaign_brief: input.campaign_brief,
+      photo_count: input.photo_count,
+      use_logo: input.use_logo,
+      use_mascot: input.use_mascot,
       platform: input.platform,
     },
   });
@@ -765,14 +765,14 @@ export const createCampaign = async (
         const { data: d } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
           user_id: userId,
           organization_id: organizationId,
-          topic: input.campaignBrief,
+          topic: input.campaign_brief.slice(0, 490),
           platform: input.platform,
           tone_override: null,
           word_count_target: 200,
           include_image: false,
           use_logo: false,
           use_mascot: false,
-          additional_context: null,
+          additional_context: input.campaign_brief.length > 490 ? input.campaign_brief.slice(0, 1000) : null,
           from_rex: false,
           use_reference: false,
           reference_images: [],

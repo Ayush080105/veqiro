@@ -57,11 +57,12 @@ export async function runAgentAction<TInput, TResult>(
 export async function expandCampaignBrief(
   organizationId: string,
   brief: string,
-  platform: string
+  platform: string,
+  productImageBase64?: string
 ): Promise<string> {
   const result = await apiFetch<{ expanded: string }>("/agents/maya/expand-brief", {
     method: "POST",
-    body: { organizationId, brief, platform },
+    body: { organizationId, brief, platform, product_image_base64: productImageBase64 },
   })
   return result.expanded
 }

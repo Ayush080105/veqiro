@@ -3,14 +3,14 @@ import { Footer } from '@/components/veqiro/sections';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { FONT, Button } from '@/components/veqiro/shared';
 import { AboutCrewGrid } from '@/components/veqiro/about-crew-grid';
-import { consoleUrl } from '@/lib/site-config';
+import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 import { buildPageMetadata } from '@/lib/seo';
 import { JsonLd } from '@/components/veqiro/json-ld';
 import { organizationJsonLd, faqPageJsonLd } from '@/lib/jsonld';
 
 export const metadata = buildPageMetadata({
   title: 'About Veqiro — Who We Are & What Veqiro Is',
-  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in Bengaluru. One subscription, six AI agents — all-in-one AI platform for startups.',
+  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in India. One subscription, six AI agents — all-in-one AI platform for startups.',
   path: '/about',
   keywords: [
     'who is veqiro',
@@ -32,11 +32,11 @@ const ABOUT_FAQ = [
   },
   {
     q: 'Who makes Veqiro?',
-    a: "Veqiro is built by Veqiro Labs, based in Bengaluru, India. The company was founded by operators who were tired of copy-pasting between ChatGPT tabs at midnight and decided to build the AI employees they wished existed.",
+    a: "Veqiro is built by Venturelab Technologies, based in India. The company was founded by operators who were tired of copy-pasting between ChatGPT tabs at midnight and decided to build the AI employees they wished existed.",
   },
   {
     q: 'Who is Veqiro for?',
-    a: "Veqiro is built for founders, lean teams (2–10 people), marketing teams, agencies, and solopreneurs who need the output of a full specialist team without the headcount. If you can't justify hiring a dedicated EA, researcher, content lead, SEO specialist, legal reviewer, and financial analyst — Veqiro is the answer.",
+    a: "Veqiro is built for founders, lean teams (2–10 people), marketing teams, agencies, and growing startups who need the output of a full specialist team without the headcount. If you can't justify hiring a dedicated EA, researcher, content lead, SEO specialist, legal reviewer, and financial analyst — Veqiro is the answer.",
   },
   {
     q: 'How is Veqiro different from ChatGPT or other AI tools?',
@@ -204,7 +204,7 @@ export default function AboutPage() {
             {[
               { label: 'AI employees', value: '6', accent: '#F5C518' },
               { label: 'One subscription', value: '$39/mo', accent: '#F06464' },
-              { label: 'Built in', value: 'Bengaluru, IN', accent: '#1DBC87' },
+              { label: 'Built in', value: 'India', accent: '#1DBC87' },
               { label: 'Free trial', value: '7 days', accent: '#6FCDE8' },
             ].map((f) => (
               <div
@@ -313,7 +313,7 @@ export default function AboutPage() {
             lineHeight: 1.3,
             margin: 0,
           }}>
-            "Built in a small room, loud — Bengaluru, IN. Started because the founders were tired of copy-pasting into ChatGPT at midnight."
+            "Built in a small room, loud — India. Started because the founders were tired of copy-pasting into ChatGPT at midnight."
           </p>
           <div style={{
             marginTop: 28,
@@ -437,7 +437,7 @@ export default function AboutPage() {
             </span>
           </h2>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button variant="dark" href={`${consoleUrl}/signup`}>Start hiring →</Button>
+            <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start hiring →'}</Button>
             <Button variant="ghost" href="/">Back to home</Button>
           </div>
         </div>

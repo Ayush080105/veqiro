@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { User, Users, Plug, Bell, CreditCard } from "lucide-react"
+import { User, Users, Plug, Bell, CreditCard, MessageSquarePlus } from "lucide-react"
 import { FONT } from "@/lib/fonts"
 
 const SETTINGS_NAV = [
@@ -11,6 +11,7 @@ const SETTINGS_NAV = [
   { href: "/settings/integrations", label: "Integrations", icon: Plug, color: "var(--vq-yellow)" },
   { href: "/settings/notifications", label: "Notifications", icon: Bell, color: "var(--vq-pink)" },
   { href: "/settings/billing", label: "Billing", icon: CreditCard, color: "var(--vq-blue)" },
+  { href: "/settings/feedback", label: "Feedback", icon: MessageSquarePlus, color: "var(--vq-violet)" },
 ]
 
 export function SettingsNav() {

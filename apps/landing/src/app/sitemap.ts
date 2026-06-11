@@ -6,7 +6,7 @@ const SITE_URL =
 
 const AGENT_SLUGS = ['vega', 'scout', 'maya', 'sage', 'lex', 'rex'];
 
-const USE_CASE_SLUGS = ['founders', 'marketing-teams', 'agencies', 'solopreneurs'];
+const USE_CASE_SLUGS = ['founders', 'marketing-teams', 'agencies', 'growing-startups'];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const posts = await getAllPostMetas();

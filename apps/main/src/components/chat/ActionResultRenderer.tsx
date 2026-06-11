@@ -10,6 +10,8 @@ import {
   ContentAuditCard,
   ContentBriefCard,
   BlogIdeasCard,
+  PageSeoAuditCard,
+  SiteAuditCard,
 } from "@/components/agents/sage/cards"
 // Maya
 import {
@@ -90,6 +92,10 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
       return <ContentBriefCard result={r} onFollowUpAction={onFollowUpAction} />
     case "sage:generate-blog-ideas":
       return <BlogIdeasCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "sage:page-seo-audit":
+      return <PageSeoAuditCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "sage:site-audit":
+      return <SiteAuditCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "maya:generate-ideas":
       return <IdeasGridCard result={r} onFollowUpAction={onFollowUpAction} />

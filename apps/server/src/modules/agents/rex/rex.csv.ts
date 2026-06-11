@@ -586,14 +586,48 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) continue;
+
+    // Files exported from Apple Numbers / LibreOffice often have leading blank
+    // rows (or sparse title rows) before the real header. sheet_to_json uses
+    // row 0 as the header by default, producing __EMPTY_* keys that get
+    // stripped, making the whole sheet appear empty.
+    //
+    // Strategy: scan the first 10 rows and pick the one with the most non-empty
+    // cells — that row is almost certainly the header. This handles:
+    //   • purely blank leading rows (Numbers export)
+    //   • sparse title rows like "Q2 Report | Company XYZ" (2 cells) sitting
+    //     above a proper header row (7 cells) — the header wins by cell count
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      raw: false,
+      defval: null,
+    }) as (string | null)[][];
+    let headerRowIdx = 0;
+    let bestCount = 0;
+    const scanLimit = Math.min(10, rawRows.length);
+    for (let i = 0; i < scanLimit; i++) {
+      const nonEmpty = (rawRows[i] ?? []).filter(
+        (v) => v != null && String(v).trim() !== ""
+      ).length;
+      if (nonEmpty > bestCount) { bestCount = nonEmpty; headerRowIdx = i; }
+    }
+
     const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
       defval: "",
       raw: false,
       blankrows: false,
+      range: headerRowIdx,
     });
     if (rows.length === 0) continue;
     const { result } = parseRows(rows);
-    if (!firstResult) firstResult = result;
+    // Prefer the sheet with the most usable headers as the representative
+    // result. This handles workbooks where an "Export Summary" or metadata
+    // sheet appears first and produces 0 usable columns.
+    if (!firstResult || result.rawTable.headers.length > firstResult.rawTable.headers.length) {
+      firstResult = result;
+    }
+    // Skip sheets that produced no usable columns — they are metadata noise
+    if (result.rawTable.headers.length === 0) continue;
     // Store this sheet's rawTable so Q&A / analysis / reports can use it
     allSheets[sheetName] = result.rawTable;
     if (result.warnings.length > 0) {

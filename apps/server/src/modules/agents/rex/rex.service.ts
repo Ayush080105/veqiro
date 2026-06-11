@@ -184,10 +184,20 @@ export const analyzeDataset = async (
 
   let tableForAI: Record<string, unknown>;
   if (rawTable && rawTable.headers.length > 0) {
+    // Forward all sheets so the AI can analyse multi-sheet workbooks holistically
+    const sheetsForAI = rawTable.sheets
+      ? Object.fromEntries(
+          Object.entries(rawTable.sheets).map(([name, s]) => [
+            name,
+            { headers: s.headers, rows: s.rows.slice(0, 300), columnTypes: s.columnTypes },
+          ])
+        )
+      : undefined;
     tableForAI = {
       headers: rawTable.headers,
       rows: rawTable.rows.slice(0, 300),
       columnTypes: rawTable.columnTypes,
+      ...(sheetsForAI ? { sheets: sheetsForAI } : {}),
     };
   } else if (points.length > 0) {
     tableForAI = {

@@ -22,8 +22,14 @@ import uploadsRouter from "./modules/uploads/uploads.routes.js";
 import billingRouter from "./modules/billing/billing.routes.js";
 import adminRouter from "./modules/admin/admin.routes.js";
 import { adminMiddleware } from "./modules/admin/admin.middleware.js";
+import feedbackRouter from "./modules/feedback/feedback.routes.js";
+import { getPublicRoadmap } from "./modules/feedback/feedback.controller.js";
+import waitlistRouter from "./modules/waitlist/waitlist.router.js";
 
 const router = Router();
+
+// Public waitlist routes — no auth required.
+router.use("/waitlist", waitlistRouter);
 
 // Public REX routes — webhook ingest (validated by API key in body) and public shared pins.
 // Mounted BEFORE the protected router so authMiddleware doesn't intercept them.
@@ -52,6 +58,9 @@ router.post("/internal/cron/rex-daily-alerts", internalKeyMiddleware, (_req, res
 router.use("/uploads", authMiddleware, uploadsRouter);
 router.use("/billing", authMiddleware, billingRouter);
 router.use("/admin", adminMiddleware, adminRouter);
+// Public roadmap endpoint — must be mounted BEFORE the auth-protected feedback router
+router.get("/feedback/public-roadmap", getPublicRoadmap);
+router.use("/feedback", authMiddleware, feedbackRouter);
 
 // Public OAuth callbacks (state-verified) mounted BEFORE the protected router
 router.use("/integrations", integrationsPublicRouter);

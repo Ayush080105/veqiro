@@ -170,9 +170,7 @@ export async function recordDirectActionContextForAssistantMessage(messageId: st
   }
 }
 
-export async function callAgentWithContext<TResponse = AgentChatResponse>(
-  opts: AgentCallOptions,
-): Promise<TResponse> {
+export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCallOptions): Promise<T> {
   const {
     agentApiPath, agentEnum, agentRole, userId, organizationId,
     conversationId, userMessage, rawHistory, extraPayload = {}, topLevelPayload = {},
@@ -219,7 +217,7 @@ export async function callAgentWithContext<TResponse = AgentChatResponse>(
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
   // 3. Call the agent
-  const { data: response } = await aiService.post<TResponse>(agentApiPath, {
+  const { data: response } = await aiService.post<T>(agentApiPath, {
     user_id: userId,
     organization_id: organizationId,
     conversation_id: conversationId,
@@ -249,5 +247,5 @@ export async function callAgentWithContext<TResponse = AgentChatResponse>(
     })
   }
 
-  return (chatResponse.success ? chatResponse.data : response) as TResponse
+  return (chatResponse.success ? chatResponse.data : response) as T
 }

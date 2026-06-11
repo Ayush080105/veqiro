@@ -1,6 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/api/client"
-import type { SageSavedKeyword } from "@/lib/types/agents"
+import type { SageSavedKeyword, SageDiscoverPagesResult } from "@/lib/types/agents"
+
+/** Imperative fetch — call from form handlers, not hooks. */
+export async function discoverPages(domain: string): Promise<SageDiscoverPagesResult> {
+  return apiFetch<SageDiscoverPagesResult>("/agents/sage/discover-pages", {
+    method: "POST",
+    body: { domain },
+  })
+}
 
 const SAVED_KW_KEY = ["sage", "keywords", "saved"] as const
 

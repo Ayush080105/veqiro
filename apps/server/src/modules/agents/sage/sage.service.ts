@@ -1,6 +1,7 @@
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import { aiService } from "../../../common/utils/aiService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as sageRepository from "./sage.repository.js";
 import type {
@@ -16,6 +17,18 @@ import type {
   ContentBriefResponse,
   GenerateBlogIdeasInput,
   GenerateBlogIdeasResponse,
+  SerpAnalysisInput,
+  SerpAnalysisResponse,
+  TopicalMapInput,
+  TopicalMapResponse,
+  MetaOptimizerInput,
+  MetaOptimizerResponse,
+  PageSeoAuditInput,
+  PageSeoAuditResponse,
+  DiscoverPagesInput,
+  DiscoverPagesResponse,
+  SiteAuditInput,
+  SiteAuditResponse,
   SavedKeyword,
 } from "./sage.types.js";
 
@@ -77,7 +90,7 @@ export const keywordResearch = async (
   const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Keyword research: ${input.seedTopic}`,
+    content: `Keyword research: ${input.seed_topic}`,
     customInput: { actionId: "sage:keyword-research", input },
   });
 
@@ -88,12 +101,12 @@ export const keywordResearch = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Keyword research: ${input.seedTopic}`,
+    userMessage: `Keyword research: ${input.seed_topic}`,
     rawHistory: history,
     topLevelPayload: {
-      seed_topic: input.seedTopic,
+      seed_topic: input.seed_topic,
       niche: input.niche,
-      competitor_urls: input.competitorUrls,
+      competitor_urls: input.competitor_urls,
       count: input.count,
     },
   });
@@ -134,13 +147,13 @@ export const generateBlog = async (
     rawHistory: history,
     topLevelPayload: {
       topic: input.topic,
-      target_keyword: input.targetKeyword,
-      secondary_keywords: input.secondaryKeywords,
-      word_count: input.wordCount,
-      output_format: input.outputFormat,
-      include_meta: input.includeMeta,
-      include_schema_markup: input.includeSchemaMarkup,
-      tone_override: input.toneOverride,
+      target_keyword: input.target_keyword,
+      secondary_keywords: input.secondary_keywords,
+      word_count: input.word_count,
+      output_format: input.output_format,
+      include_meta: input.include_meta,
+      include_schema_markup: input.include_schema_markup,
+      tone_override: input.tone_override,
     },
   });
 
@@ -165,7 +178,7 @@ export const analyzeContent = async (
   const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Content analysis: ${input.targetKeyword}`,
+    content: `Content analysis: ${input.target_keyword}`,
     customInput: { actionId: "sage:analyze-content", input },
   });
 
@@ -176,11 +189,11 @@ export const analyzeContent = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Content analysis: ${input.targetKeyword}`,
+    userMessage: `Content analysis: ${input.target_keyword}`,
     rawHistory: history,
     topLevelPayload: {
       content: input.content,
-      target_keyword: input.targetKeyword,
+      target_keyword: input.target_keyword,
       url: input.url,
     },
   });
@@ -221,15 +234,15 @@ export const contentBrief = async (
     rawHistory: history,
     topLevelPayload: {
       topic: input.topic,
-      target_keyword: input.targetKeyword,
-      competitor_urls: input.competitorUrls,
+      target_keyword: input.target_keyword,
+      competitor_urls: input.competitor_urls,
     },
   });
 
   await sageRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Brief generated for "${input.targetKeyword}"`,
+    content: `Brief generated for "${input.target_keyword}"`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "sage:content-brief", input, result: data },
@@ -270,6 +283,221 @@ export const generateBlogIdeas = async (
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "sage:generate-blog-ideas", input, result: data },
+  });
+
+  return data;
+};
+
+export const serpAnalysis = async (
+  userId: string,
+  organizationId: string,
+  input: SerpAnalysisInput
+) => {
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `SERP analysis: ${input.keyword}`,
+    customInput: { actionId: "sage:serp-analysis", input },
+  });
+
+  const data = await callAgentWithContext<SerpAnalysisResponse>({
+    agentApiPath: "/ai/sage/serp-analysis",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `SERP analysis: ${input.keyword}`,
+    rawHistory: history,
+    topLevelPayload: { keyword: input.keyword },
+  });
+
+  await sageRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `SERP analysis for "${input.keyword}" — ${data.serp_features.length} features detected`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "sage:serp-analysis", input, result: data },
+  });
+
+  return data;
+};
+
+export const topicalMap = async (
+  userId: string,
+  organizationId: string,
+  input: TopicalMapInput
+) => {
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Topical map: ${input.mainTopic}`,
+    customInput: { actionId: "sage:topical-map", input },
+  });
+
+  const data = await callAgentWithContext<TopicalMapResponse>({
+    agentApiPath: "/ai/sage/topical-map",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Topical map: ${input.mainTopic}`,
+    rawHistory: history,
+    topLevelPayload: {
+      main_topic: input.mainTopic,
+      site_stage: input.siteStage,
+      cluster_count: input.clusterCount,
+    },
+  });
+
+  await sageRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Topical map for "${input.mainTopic}" — ${data.cluster_pages.length} cluster pages`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "sage:topical-map", input, result: data },
+  });
+
+  return data;
+};
+
+export const metaOptimizer = async (
+  userId: string,
+  organizationId: string,
+  input: MetaOptimizerInput
+) => {
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Meta optimizer: ${input.targetKeyword}`,
+    customInput: { actionId: "sage:meta-optimizer", input },
+  });
+
+  const data = await callAgentWithContext<MetaOptimizerResponse>({
+    agentApiPath: "/ai/sage/meta-optimizer",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Meta optimizer: ${input.targetKeyword}`,
+    rawHistory: history,
+    topLevelPayload: {
+      target_keyword: input.targetKeyword,
+      page_topic: input.pageTopic,
+      existing_title: input.existingTitle,
+      existing_description: input.existingDescription,
+      brand_name: input.brandName,
+    },
+  });
+
+  await sageRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Meta tags optimised for "${input.targetKeyword}"`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "sage:meta-optimizer", input, result: data },
+  });
+
+  return data;
+};
+
+export const pageSeoAudit = async (
+  userId: string,
+  organizationId: string,
+  input: PageSeoAuditInput
+) => {
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Page SEO audit: ${input.url}`,
+    customInput: { actionId: "sage:page-seo-audit", input },
+  });
+
+  const data = await callAgentWithContext<PageSeoAuditResponse>({
+    agentApiPath: "/ai/sage/page-audit",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Page SEO audit: ${input.url} — keyword: ${input.target_keyword}`,
+    rawHistory: history,
+    topLevelPayload: {
+      url: input.url,
+      target_keyword: input.target_keyword,
+    },
+  });
+
+  await sageRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Page SEO audit for "${input.url}" — overall score: ${data.overall_score}/100`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "sage:page-seo-audit", input, result: data },
+  });
+
+  return data;
+};
+
+export const discoverPages = async (
+  userId: string,
+  organizationId: string,
+  input: DiscoverPagesInput
+): Promise<DiscoverPagesResponse> => {
+  const { data } = await aiService.post<DiscoverPagesResponse>("/ai/sage/discover-pages", {
+    domain: input.domain,
+    user_id: userId,
+    organization_id: organizationId,
+  });
+  return data;
+};
+
+export const siteAudit = async (
+  userId: string,
+  organizationId: string,
+  input: SiteAuditInput
+) => {
+  const domain = new URL(input.urls[0]).hostname;
+  const history = await sageRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await sageRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Batch SEO audit: ${input.urls.length} pages on ${domain}`,
+    customInput: { actionId: "sage:site-audit", input },
+  });
+
+  const data = await callAgentWithContext<SiteAuditResponse>({
+    agentApiPath: "/ai/sage/batch-page-audit",
+    agentEnum: Agent.SAGE,
+    agentRole: "Sage: SEO and content strategy assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Batch SEO audit: ${input.urls.length} pages — keyword: ${input.target_keyword}`,
+    rawHistory: history,
+    topLevelPayload: {
+      urls: input.urls,
+      target_keyword: input.target_keyword,
+    },
+  });
+
+  await sageRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Batch SEO audit complete — ${data.total_audited} pages audited on ${data.domain}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "sage:site-audit", input, result: data },
   });
 
   return data;
