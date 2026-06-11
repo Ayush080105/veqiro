@@ -728,7 +728,7 @@ export function parseBuffer(buffer: Buffer, ext: string): ParseResult {
     };
   }
 
-  const multiSheet = Object.keys(allSheets).length > 1;
+  const multiSheet = workbook.SheetNames.length > 1;
   const rawTable: RawTable = {
     ...firstResult.rawTable,
     ...(multiSheet ? { sheets: allSheets } : {}),
