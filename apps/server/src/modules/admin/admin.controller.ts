@@ -97,3 +97,13 @@ export const listUsers = async (req: Request, res: Response) => {
   });
   res.status(StatusCodes.OK).json(data);
 };
+
+export const listWaitlistEntries = async (req: Request, res: Response) => {
+  const q = req.query as Record<string, string | undefined>;
+  const data = await repo.listWaitlistEntries({
+    cursor: q.cursor || undefined,
+    limit: q.limit ? Number(q.limit) : undefined,
+    search: q.search?.trim() || undefined,
+  });
+  res.status(StatusCodes.OK).json(data);
+};

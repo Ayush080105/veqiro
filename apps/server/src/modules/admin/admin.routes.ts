@@ -15,6 +15,7 @@ import {
   revokeUserSessions,
   deleteUser,
   listUsers,
+  listWaitlistEntries,
 } from "./admin.controller.js";
 
 const router = Router();
@@ -23,6 +24,7 @@ router.get("/overview", overview);
 router.get("/usage", getUsage);
 router.get("/integrations", getIntegrations);
 router.get("/agents", getAgents);
+router.get("/waitlist", listWaitlistEntries);
 
 // Static org routes before :id param routes
 router.get("/organizations/export", exportOrgs);

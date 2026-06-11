@@ -1569,7 +1569,10 @@ export function PageSeoAuditCard({
                     <Tooltip
                       cursor={{ fill: "var(--muted)", opacity: 0.3 }}
                       contentStyle={{ fontSize: 10, borderRadius: 4, border: "1px solid var(--border)", background: "var(--card)" }}
-                      formatter={(v: number) => [`${v.toLocaleString()} words`, ""]}
+                      formatter={(v) => {
+                        const words = typeof v === "number" ? v : Number(v ?? 0)
+                        return [`${words.toLocaleString()} words`, ""]
+                      }}
                     />
                     <Bar dataKey="words" radius={[0, 3, 3, 0]} barSize={10}>
                       {wcData.map((entry, i) => (

@@ -23,6 +23,8 @@ const colors = {
   card: "#FFF9EC",
   yellow: "#F5C518",
   coral: "#F06464",
+  blue: "#6FCDE8",
+  green: "#1DBC87",
   muted: "#6F675B",
   rule: "#D7CEBC",
 };
@@ -43,8 +45,7 @@ export function WaitlistConfirmEmail({
     <Html>
       <Head />
       <Preview>
-        Your spot's locked. 30% off, founding member status, and first access —
-        all yours.
+        You are officially on the Veqiro waitlist, with 30% off waiting for launch day.
       </Preview>
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
@@ -59,36 +60,41 @@ export function WaitlistConfirmEmail({
           </Section>
 
           <Section style={cardStyle}>
-            <Text style={kickerStyle}>// founding crew</Text>
+            <Text style={kickerStyle}>// waitlist confirmed</Text>
             <Heading as="h1" style={headingStyle}>
-              You're on the list.
+              You made the list.
             </Heading>
 
             <Text style={paragraphStyle}>
-              Your spot is locked in. You're among the first people to sign up
-              for Veqiro — and we won't forget that.
+              Your seat in the Veqiro queue is officially locked. The velvet
+              rope has moved, the clipboard has your name, and the tiny launch
+              machine is making dramatic beeping sounds.
             </Text>
 
-            <Text style={paragraphStyle}>
-              As a founding member, you'll get{" "}
-              <strong>30% off any plan, for life</strong> the moment we go live.
-              That's your reward for betting on us early.
-            </Text>
+            <Section style={discountBoxStyle}>
+              <Text style={discountEyebrowStyle}>Early believer perk</Text>
+              <Text style={discountValueStyle}>30% off</Text>
+              <Text style={discountTextStyle}>
+                When we open the doors, your Veqiro plan gets the early-access
+                discount. No treasure map, no coupon archaeology.
+              </Text>
+            </Section>
 
             <Text style={paragraphStyle}>
-              Lex, Maya, Rex, Sage, Scout, and Vega are getting their final
-              briefing. We're launching very soon — keep an eye on this inbox.
+              Maya is polishing hooks, Rex is counting beans, Sage is arranging
+              keywords alphabetically for sport, and Vega is keeping the inbox
+              civilized. We will email you as soon as your early access is ready.
             </Text>
 
             <Section style={ctaWrapStyle}>
               <Button href="https://veqiro.com" style={buttonStyle}>
-                Visit veqiro.com →
+                Visit veqiro.com
               </Button>
             </Section>
 
             <Hr style={hrStyle} />
 
-            <Text style={fallbackLabelStyle}>Link not working?</Text>
+            <Text style={fallbackLabelStyle}>Button not behaving?</Text>
             <Text style={fallbackTextStyle}>
               Paste this into your browser:
             </Text>
@@ -97,7 +103,7 @@ export function WaitlistConfirmEmail({
 
           <Section style={footerStyle}>
             <Text style={footerTextStyle}>
-              You're receiving this because you joined the Veqiro waitlist at
+              You are receiving this because you joined the Veqiro waitlist at
               veqiro.com.
             </Text>
           </Section>
@@ -176,6 +182,42 @@ const paragraphStyle = {
   color: colors.ink,
   fontSize: "16px",
   lineHeight: "1.6",
+};
+
+const discountBoxStyle = {
+  margin: "24px 0",
+  padding: "22px",
+  border: `3px solid ${colors.ink}`,
+  backgroundColor: colors.blue,
+  boxShadow: `6px 6px 0 ${colors.green}`,
+};
+
+const discountEyebrowStyle = {
+  margin: "0 0 8px",
+  color: colors.ink,
+  fontFamily: monoStack,
+  fontSize: "11px",
+  fontWeight: "800",
+  letterSpacing: "1.6px",
+  lineHeight: "1",
+  textTransform: "uppercase" as const,
+};
+
+const discountValueStyle = {
+  margin: "0 0 8px",
+  color: colors.ink,
+  fontFamily: displayStack,
+  fontSize: "46px",
+  fontWeight: "900",
+  letterSpacing: "0",
+  lineHeight: "1",
+};
+
+const discountTextStyle = {
+  margin: "0",
+  color: colors.ink,
+  fontSize: "15px",
+  lineHeight: "1.55",
 };
 
 const ctaWrapStyle = {

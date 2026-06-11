@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Zap, Building2, Globe, Bot, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Zap, Building2, Globe, Bot, Users, LogOut, ClipboardList } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/integrations", label: "Integrations", Icon: Globe },
   { href: "/agents", label: "Agents", Icon: Bot },
   { href: "/users", label: "Users", Icon: Users },
+  { href: "/waitlist", label: "Waitlist", Icon: ClipboardList },
 ] as const;
 
 export function Sidebar({ userEmail }: { userEmail: string }) {

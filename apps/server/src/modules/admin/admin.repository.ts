@@ -1214,6 +1214,46 @@ export async function listUsers(params: { page: number; search?: string }) {
   return { users, total, page, pageSize: PAGE_SIZE };
 }
 
+export async function listWaitlistEntries(params: {
+  cursor?: string;
+  limit?: number;
+  search?: string;
+}) {
+  const limit = Math.min(Math.max(params.limit ?? 25, 1), 100);
+  const where = params.search
+    ? { email: { contains: params.search, mode: "insensitive" as const } }
+    : {};
+
+  const [entries, total] = await Promise.all([
+    prisma.waitlistEntry.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        coupon: true,
+        validTill: true,
+        createdAt: true,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(params.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
+    }),
+    prisma.waitlistEntry.count({ where }),
+  ]);
+
+  const hasMore = entries.length > limit;
+  const pageEntries = hasMore ? entries.slice(0, limit) : entries;
+  const nextCursor = hasMore ? pageEntries.at(-1)?.id ?? null : null;
+
+  return {
+    entries: pageEntries,
+    nextCursor,
+    hasMore,
+    total,
+    pageSize: limit,
+  };
+}
+
 export async function exportOrganizationsCsv() {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

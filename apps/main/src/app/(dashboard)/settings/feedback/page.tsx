@@ -193,9 +193,11 @@ interface FeedbackRowProps {
 function FeedbackRow({ post, expanded, onToggleExpand }: FeedbackRowProps) {
   const updateStatus = useUpdateFeedbackStatus()
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: FeedbackStatus | null) => {
+    if (!newStatus) return
+
     try {
-      await updateStatus.mutateAsync({ id: post.id, status: newStatus as FeedbackStatus })
+      await updateStatus.mutateAsync({ id: post.id, status: newStatus })
       toast.success("Status updated")
     } catch {
       toast.error("Failed to update status")
