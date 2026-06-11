@@ -1142,58 +1142,62 @@ async def expand_brief(request: ExpandBriefRequest):
 
 # ── Campaign Generator ────────────────────────────────────────────────────────
 
-_CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial art director creating a multi-image product campaign. You receive a reference image of the product — your job is to place that product inside completely original, campaign-appropriate scenes WITHOUT modifying it in any way.
+_CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial art director creating a multi-image product campaign. You receive a reference image of the product — your job is to show that product from a DIFFERENT angle and scene in every photo.
 
 ════════════════════════════════════════
-PRODUCT PRESERVATION — ABSOLUTE RULE #1
+WHAT IS FIXED vs WHAT MUST CHANGE
 ════════════════════════════════════════
-The reference image IS the product. It is a FINISHED ASSET. You MUST NOT modify it.
 
-- DO NOT add any new characters, figures, objects, or elements to the product.
-- DO NOT remove any characters, figures, objects, or elements from the product.
-- DO NOT change the count of any element (if the product shows 6 characters, every image must show exactly 6).
-- DO NOT change colors, shapes, styles, faces, clothing, or poses of anything inside the product.
-- DO NOT reinterpret or redraw the product in a different style.
-- The product content is LOCKED. Imagine it as a flat PNG sticker you are compositing into a scene — you control the scene, never the sticker.
+FIXED — never change these:
+- The product's colors, color palette, and visual style
+- The count of elements (if the product shows 6 characters, every image shows exactly 6)
+- The product's overall design language, art style, and identity
+- Do NOT add or remove any characters, figures, or objects that are part of the product
+
+MUST CHANGE — every photo must differ in ALL of these:
+- Camera angle: each photo views the product from a completely different angle (front, side, above, below, three-quarter, close, wide)
+- Framing: how much of the product is in frame and how it is cropped
+- Scene and background: entirely different environment per photo
+- Pose / orientation: the product should be oriented differently to suit each composition role
 
 STEP 1 — STUDY THE REFERENCE:
-Memorize every attribute of the product as-is: its exact colors, count of elements, style (illustration/photo/3D), any text, logos, proportions.
+Memorize the product's colors, element count, art style, and visual identity.
 
-STEP 2 — COMPOSE THE SCENE AROUND THE PRODUCT:
-Design a background, environment, lighting, and framing that serves the composition role. The product appears in that scene UNCHANGED.
+STEP 2 — APPLY THE COMPOSITION ROLE:
+Each photo has an assigned role that specifies the camera angle and framing. Follow it exactly — this is what creates variety across the campaign.
 
 STEP 3 — CAMPAIGN CONSISTENCY:
 - Same color grading, lighting mood, and realism level across every photo.
-- Each photo must have a compositionally UNIQUE angle, scene, and depth of field.
+- Each photo must look like a completely different shot of the same product.
 
-Output: One campaign photo per call. Create the scene — preserve the product exactly."""
+Output: One campaign photo per call. Vary the angle aggressively — sameness across photos is a failure."""
 
 _CAMPAIGN_ROLES: dict[int, list[str]] = {
     1: [
-        "HERO SHOT — Product placed center-frame against a clean premium background with bold studio lighting. Full product visible, nothing cropped.",
+        "HERO SHOT — Camera directly in front of the product at eye level. Product centered, filling most of the frame, facing the lens straight-on. Clean premium studio background, bold lighting.",
     ],
     2: [
-        "HERO SHOT — Product placed center-frame against a clean premium background with bold studio lighting. Full product visible, nothing cropped.",
-        "LIFESTYLE/EDITORIAL — Product placed in a real aspirational environment with an interesting side or three-quarter camera angle. The scene around the product tells a story.",
+        "HERO SHOT — Camera directly in front of the product at eye level. Product centered, facing the lens straight-on. Clean premium background, bold studio lighting.",
+        "LIFESTYLE THREE-QUARTER — Camera positioned at a 45-degree angle to the product's side. Product is turned so its side profile and front are both visible. Real aspirational environment surrounds it.",
     ],
     3: [
-        "HERO SHOT — Product centered with bold studio lighting, clean premium background. Full product visible.",
-        "LIFESTYLE IN ENVIRONMENT — Product placed in a real-world aspirational setting, NOT a studio. Three-quarter camera angle. The surroundings add context and life.",
-        "DRAMATIC CLOSE FRAME — Camera moves in tight on the product so it fills most of the frame. The product is fully intact — no cropping of elements. Show its full detail at a larger scale.",
+        "HERO SHOT — Camera directly in front, eye-level. Product faces the lens straight-on, centered, full product in frame.",
+        "LIFESTYLE SIDE PROFILE — Camera positioned at the product's side, shooting in profile. The product faces away from or perpendicular to the lens. Real-world aspirational environment.",
+        "ELEVATED CLOSE FRAME — Camera directly above and slightly in front, looking down at the product from a high angle. Product fills the frame from this top-down-ish perspective.",
     ],
     4: [
-        "HERO SHOT — Product centered, bold studio lighting, clean background. Full product visible, premium feel.",
-        "LIFESTYLE ENVIRONMENT — Product naturally integrated in a real-world aspirational scene. Camera at a profile or three-quarter angle. Environment adds warmth and story.",
-        "FLAT LAY / OVERHEAD — Camera directly above, looking straight down. Product and complementary props arranged on a textured surface. Pure overhead composition.",
-        "EDITORIAL / WIDE — Product placed in a wide, dramatic environment. Interesting low or high camera angle. Scene has energy and motion blur or strong perspective.",
+        "HERO SHOT — Camera directly in front at eye level. Product faces the lens straight-on, centered, full product in frame, premium studio background.",
+        "LIFESTYLE THREE-QUARTER — Camera at a 45-degree side angle. Product turned so both its front and one side are visible. Real-world environment with depth.",
+        "TOP-DOWN OVERHEAD — Camera directly above, pointing straight down. Product and props arranged flat on a surface below. Pure bird's-eye view.",
+        "LOW ANGLE DRAMATIC — Camera at ground level pointing upward at the product. Product appears to tower over the viewer. Bold perspective, dramatic sky or environment behind it.",
     ],
     6: [
-        "HERO SHOT — Product centered in studio, bold lighting, clean background. Full product visible.",
-        "LIFESTYLE ENVIRONMENT — Product in an aspirational real-world setting, three-quarter angle, surrounded by complementary scene elements.",
-        "DRAMATIC CLOSE FRAME — Camera close on the product so it fills the frame at a large scale, all elements intact. Show fine detail.",
-        "FLAT LAY / OVERHEAD — Pure top-down composition. Product and props on a surface, camera directly above.",
-        "EDITORIAL / MOTION — Product in a dynamic scene: strong camera perspective (low angle, bird's-eye, Dutch tilt). Energy, drama, bold.",
-        "WIDE ESTABLISHING — Product small within a large dramatic environment. Architecture, nature, or urban scene dominates. Product is part of the world.",
+        "HERO SHOT — Camera directly in front at eye level. Product faces the lens straight-on, centered, clean premium background.",
+        "LIFESTYLE THREE-QUARTER — Camera at 45-degree angle to product's side. Product turned, front and side both visible. Aspirational real-world environment.",
+        "TOP-DOWN OVERHEAD — Camera directly above pointing straight down. Product flat on a textured surface with props. Pure bird's-eye.",
+        "LOW ANGLE — Camera at ground level looking upward. Product towers in frame. Dramatic perspective, bold environment.",
+        "TIGHT CLOSE-UP — Camera very close to the product, showing it large in frame. Product fills 80% of the image. Background blurred. Angle slightly elevated.",
+        "WIDE ESTABLISHING — Camera far back. Product appears small within a large dramatic environment. Architecture or nature dominates. Product is a small part of a big world.",
     ],
 }
 
@@ -1288,9 +1292,9 @@ async def create_campaign(request: CampaignRequest):
     async def _gen_photo(role: str, photo_index: int, anchor_b64: str | None = None) -> CampaignPhoto | None:
         anchor_note = (
             "\nSTYLE ANCHOR: Reference image 1 (above) is Photo 1 of this campaign. "
-            "Match its exact lighting style, colour grade, background mood, and realism level. "
-            "The subject must look IDENTICAL to how it appears in Photo 1 — same colours, same textures, same proportions. "
-            "ONLY the composition and scene change.\n"
+            "Match its lighting style, colour grade, and realism level. "
+            "The product's colors and visual identity must stay consistent with Photo 1 — "
+            "but the camera angle, framing, and scene for THIS photo are dictated by its own composition role below and will be completely different.\n"
         ) if anchor_b64 else ""
 
         hints = (
@@ -1298,18 +1302,14 @@ async def create_campaign(request: CampaignRequest):
             f"{style_lock}\n\n"
             f"{anchor_note}"
             f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n\n"
-            f"COMPOSITION ROLE — design the SCENE to match this (never modify the product itself):\n"
+            f"COMPOSITION ROLE — this defines the camera angle AND how the product is oriented/framed for this specific photo:\n"
             f"{role}\n\n"
-            f"══════════════════════════════════════════\n"
-            f"PRODUCT LOCK — REPEAT REMINDER:\n"
-            f"The reference image product is FIXED and UNMODIFIABLE.\n"
-            f"• Do NOT add any new elements, characters, or objects to it.\n"
-            f"• Do NOT remove any elements from it.\n"
-            f"• Do NOT change any colors, styles, faces, or shapes within it.\n"
-            f"• Reproduce it EXACTLY as seen — only the background scene changes.\n"
-            f"══════════════════════════════════════════\n\n"
-            f"SCENE DISTINCTNESS: The background, environment, and framing for this photo must look NOTHING like the other photos. Be bold and original with the scene.\n\n"
-            f"CAMPAIGN BRIEF (defines the mood, setting, and story of the scene): {request.campaign_brief}"
+            f"PRODUCT IDENTITY LOCK:\n"
+            f"• Keep the product's colors, design style, and element count exactly the same as the reference.\n"
+            f"• Do NOT add or remove any characters, objects, or elements from the product.\n"
+            f"• The camera angle, orientation, and framing of the product MUST follow the composition role above — this is what makes each photo different.\n\n"
+            f"SCENE DISTINCTNESS: This photo's background and environment must be completely different from every other photo in the campaign.\n\n"
+            f"CAMPAIGN BRIEF (mood, setting, story): {request.campaign_brief}"
         )
         try:
             image = await generate_social_image(
