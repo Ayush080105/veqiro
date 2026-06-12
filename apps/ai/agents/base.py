@@ -12,6 +12,14 @@ from core.tools import ToolDefinition, ToolCall, ToolResult
 
 MAX_TOOL_RESULT_CHARS = 10000
 
+_INTENT_SYSTEM = (
+    "You are a one-word classifier. Reply with exactly one word.\n"
+    "Reply 'task' if the message is requesting information, research, analysis, "
+    "drafting, creation, or any action that needs tools.\n"
+    "Reply 'chat' if the message is a greeting, thanks, acknowledgment, "
+    "reaction, or casual small talk with no task intent."
+)
+
 # Maps AI tool names to frontend AgentActionId values for rich card rendering
 RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
     "draft_content":            "maya:draft-content",
@@ -216,6 +224,23 @@ class BaseAgent(ABC):
         # If no tools defined (shouldn't happen, but safety), fall back
         if len(tools) <= 1:  # only ask_agent
             return await self._chat_sync_no_tools(request)
+
+        # Intent gate: only classify short messages (≤8 words) where ambiguity
+        # actually exists. Longer messages are almost always tasks — skip the
+        # extra LLM call entirely so real requests pay no latency penalty.
+        if len(request.message.split()) <= 8:
+            try:
+                intent = await self.llm.complete(
+                    provider=self.default_provider,
+                    model=self.default_model,
+                    system=_INTENT_SYSTEM,
+                    messages=[{"role": "user", "content": request.message}],
+                    max_tokens=3,
+                )
+                if intent.strip().lower().startswith("chat"):
+                    return await self._chat_sync_no_tools(request)
+            except Exception:
+                pass  # classification failure → proceed with tool loop as normal
 
         # Build system prompt with RAG (skip brand kit for internal cross-agent calls)
         is_cross_agent = request.metadata.get("_cross_agent_call", False)

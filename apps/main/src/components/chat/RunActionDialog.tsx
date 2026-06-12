@@ -440,10 +440,10 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
         : "Pick a document or paste contract text.",
   },
   "lex:query-document": {
-    defaultValue: { sourceId: "", query: "" },
+    defaultValue: { source_id: "", query: "" },
     Form: LexQueryDocumentForm,
     validate: (v) =>
-      !v.sourceId?.trim()
+      !v.source_id?.trim()
         ? "Pick a document."
         : !v.query?.trim()
           ? "Enter a question."

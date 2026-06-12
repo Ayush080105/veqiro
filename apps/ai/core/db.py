@@ -6,21 +6,25 @@ _engine = None  # shared SQLAlchemy engine — created once, not per-request
 
 
 async def get_pool():
-    """Return a shared asyncpg connection pool, creating it on first call."""
+    """Return a shared asyncpg connection pool, creating it on first call.
+
+    Pool budget: PgBouncer session-mode cap is 15 total clients shared across
+    ALL services (AI workers + Prisma/Node). Keep asyncpg at max_size=2 so
+    N uvicorn workers + Prisma stay comfortably under that limit.
+    Use the Supabase transaction-mode pooler URL (port 6543) in production to
+    raise effective concurrency without increasing real connection count.
+    """
     global _pool
     if _pool is None:
         import asyncpg
         dsn = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
-        # Keep pool small — Supabase session mode caps total clients at 15.
-        # Prisma (Express) uses its own connections, so leave room for them.
         _pool = await asyncpg.create_pool(
             dsn,
-            min_size=1,
-            max_size=4,
-            max_inactive_connection_lifetime=30,  # recycle idle connections quickly
-            # Required for PgBouncer transaction mode (Supabase port 6543):
-            # prepared statements can't be used across connections in transaction mode
-            statement_cache_size=0,
+            min_size=0,                  # lazy — don't open a connection until first use
+            max_size=2,
+            max_inactive_connection_lifetime=20,
+            command_timeout=15,          # fail fast instead of stacking waiters
+            statement_cache_size=0,      # required for PgBouncer transaction mode
         )
     return _pool
 
@@ -33,8 +37,10 @@ def _get_engine():
         _engine = create_async_engine(
             settings.DATABASE_URL,
             echo=False,
-            pool_size=2,
-            max_overflow=1,
+            pool_size=1,
+            max_overflow=0,
+            pool_timeout=15,
+            pool_recycle=300,
         )
     return _engine
 

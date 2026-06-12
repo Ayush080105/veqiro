@@ -90,7 +90,7 @@ export const keywordResearch = async (
   const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Keyword research: ${input.seed_topic}`,
+    content: `Keyword research: ${input.seedTopic}`,
     customInput: { actionId: "sage:keyword-research", input },
   });
 
@@ -101,12 +101,12 @@ export const keywordResearch = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Keyword research: ${input.seed_topic}`,
+    userMessage: `Keyword research: ${input.seedTopic}`,
     rawHistory: history,
     topLevelPayload: {
-      seed_topic: input.seed_topic,
+      seed_topic: input.seedTopic,
       niche: input.niche,
-      competitor_urls: input.competitor_urls,
+      competitor_urls: input.competitorUrls,
       count: input.count,
     },
   });
@@ -147,13 +147,13 @@ export const generateBlog = async (
     rawHistory: history,
     topLevelPayload: {
       topic: input.topic,
-      target_keyword: input.target_keyword,
-      secondary_keywords: input.secondary_keywords,
-      word_count: input.word_count,
-      output_format: input.output_format,
-      include_meta: input.include_meta,
-      include_schema_markup: input.include_schema_markup,
-      tone_override: input.tone_override,
+      target_keyword: input.targetKeyword,
+      secondary_keywords: input.secondaryKeywords,
+      word_count: input.wordCount,
+      output_format: input.outputFormat,
+      include_meta: input.includeMeta,
+      include_schema_markup: input.includeSchemaMarkup,
+      tone_override: input.toneOverride,
     },
   });
 
@@ -178,7 +178,7 @@ export const analyzeContent = async (
   const userMsg = await sageRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Content analysis: ${input.target_keyword}`,
+    content: `Content analysis: ${input.targetKeyword}`,
     customInput: { actionId: "sage:analyze-content", input },
   });
 
@@ -189,11 +189,11 @@ export const analyzeContent = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Content analysis: ${input.target_keyword}`,
+    userMessage: `Content analysis: ${input.targetKeyword}`,
     rawHistory: history,
     topLevelPayload: {
       content: input.content,
-      target_keyword: input.target_keyword,
+      target_keyword: input.targetKeyword,
       url: input.url,
     },
   });
@@ -234,15 +234,15 @@ export const contentBrief = async (
     rawHistory: history,
     topLevelPayload: {
       topic: input.topic,
-      target_keyword: input.target_keyword,
-      competitor_urls: input.competitor_urls,
+      target_keyword: input.targetKeyword,
+      competitor_urls: input.competitorUrls,
     },
   });
 
   await sageRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Brief generated for "${input.target_keyword}"`,
+    content: `Brief generated for "${input.targetKeyword}"`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "sage:content-brief", input, result: data },
@@ -429,11 +429,11 @@ export const pageSeoAudit = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Page SEO audit: ${input.url} — keyword: ${input.target_keyword}`,
+    userMessage: `Page SEO audit: ${input.url} — keyword: ${input.targetKeyword}`,
     rawHistory: history,
     topLevelPayload: {
       url: input.url,
-      target_keyword: input.target_keyword,
+      target_keyword: input.targetKeyword,
     },
   });
 
@@ -483,11 +483,11 @@ export const siteAudit = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Batch SEO audit: ${input.urls.length} pages — keyword: ${input.target_keyword}`,
+    userMessage: `Batch SEO audit: ${input.urls.length} pages — keyword: ${input.targetKeyword}`,
     rawHistory: history,
     topLevelPayload: {
       urls: input.urls,
-      target_keyword: input.target_keyword,
+      target_keyword: input.targetKeyword,
     },
   });
 

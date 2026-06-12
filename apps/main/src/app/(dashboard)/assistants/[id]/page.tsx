@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
@@ -74,6 +74,7 @@ function ChatHeader({
       }}
     >
       <button
+        suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
         style={{
@@ -109,6 +110,7 @@ function ChatHeader({
         )}
       </button>
       <button
+        suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
         style={{
@@ -161,6 +163,7 @@ function ChatHeader({
         </div>
       </button>
       <button
+        suppressHydrationWarning
         type="button"
         onClick={onHelpClick}
         aria-label="Help"
@@ -178,6 +181,7 @@ function ChatHeader({
         <HelpCircle className="size-4" />
       </button>
       <button
+        suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
         aria-label="Agent info"
@@ -308,6 +312,7 @@ function EmptyState({
         >
           {agent.quickPrompts.map((prompt) => (
             <button
+              suppressHydrationWarning
               key={prompt}
               onClick={() => onPrompt(prompt)}
               style={{
@@ -826,6 +831,7 @@ export default function AssistantChatPage() {
           }}
         >
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("chat")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -835,6 +841,7 @@ export default function AssistantChatPage() {
             <MessageSquare className="size-3" /> Chat
           </button>
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("documents")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -860,6 +867,7 @@ export default function AssistantChatPage() {
           }}
         >
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setScoutTab("chat")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -869,6 +877,7 @@ export default function AssistantChatPage() {
             <MessageSquare className="size-3" /> Chat
           </button>
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setScoutTab("watchlist")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -894,6 +903,7 @@ export default function AssistantChatPage() {
           }}
         >
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("chat")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -903,6 +913,7 @@ export default function AssistantChatPage() {
             <MessageSquare className="size-3" /> Chat
           </button>
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("favourites")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -929,6 +940,7 @@ export default function AssistantChatPage() {
             }}
           >
             <button
+              suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("chat")}
               className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -938,6 +950,7 @@ export default function AssistantChatPage() {
               <MessageSquare className="size-3" /> Chat
             </button>
             <button
+              suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("data")}
               className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -975,6 +988,7 @@ export default function AssistantChatPage() {
           }}
         >
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("chat")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
@@ -984,6 +998,7 @@ export default function AssistantChatPage() {
             <MessageSquare className="size-3" /> Chat
           </button>
           <button
+            suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("published")}
             className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${

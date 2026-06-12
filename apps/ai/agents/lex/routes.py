@@ -77,6 +77,34 @@ class ClauseRisk(BaseModel):
     risk: str
     severity: str        # low / medium / high / critical
     recommendation: str
+    confidence: str | None = None   # high / medium / low
+    basis: str | None = None        # one-sentence legal justification
+
+
+class ScoreBreakdown(BaseModel):
+    critical: int = 0
+    high: int = 0
+    medium: int = 0
+    low: int = 0
+
+
+class ObligationItem(BaseModel):
+    action: str
+    deadline: str | None = None
+    condition: str | None = None
+    consequence: str | None = None
+
+
+class PartyObligations(BaseModel):
+    party: str
+    items: list[ObligationItem]
+
+
+class AmbiguousClause(BaseModel):
+    clause: str
+    section: str | None = None
+    issue: str
+    interpretation: str
 
 
 class NegotiationPoint(BaseModel):
@@ -119,6 +147,11 @@ class ContractAnalysis(BaseModel):
     # Verdict
     overall_assessment: str
     recommended_action: str  # sign / negotiate / reject / legal_review_required
+
+    # Enhanced fields (optional — absent on older cached results)
+    score_breakdown: ScoreBreakdown | None = None
+    obligations_structured: list[PartyObligations] | None = None
+    ambiguous_clauses: list[AmbiguousClause] | None = None
 
 
 class AnalyzeContractResponse(BaseModel):
@@ -433,24 +466,32 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
                         risk="Overly broad — includes all verbal communications with no follow-up written confirmation requirement, making scope unmanageable.",
                         severity="medium",
                         recommendation="Add a requirement that verbal disclosures be confirmed in writing within 10 business days to be considered Confidential Information.",
+                        confidence="high",
+                        basis="Courts require written confirmation of verbal disclosures to be enforceable under the Uniform Trade Secrets Act § 1(4)(i).",
                     ),
                     ClauseRisk(
                         clause="Residuals Clause (Section 7)",
                         risk="Allows the receiving party to use residual knowledge retained in unaided memory — creates IP leakage risk for your product roadmap and technical architecture.",
                         severity="high",
                         recommendation="Remove entirely or limit to generic industry knowledge, explicitly excluding product roadmap, source code, and customer data.",
+                        confidence="high",
+                        basis="Delaware courts have repeatedly invalidated residuals clauses lacking explicit scope limitations as incompatible with DTSA protections.",
                     ),
                     ClauseRisk(
                         clause="Duration (Section 5)",
                         risk="5-year term is 2× the industry standard of 2–3 years for startup-stage NDAs.",
                         severity="low",
                         recommendation="Renegotiate to 2–3 years with a survival clause limited to 1 year post-termination for specific categories.",
+                        confidence="medium",
+                        basis="Typical NDA enforceability period in Delaware startup practice is 2–3 years per consistent market precedent.",
                     ),
                     ClauseRisk(
                         clause="Unilateral Termination (Section 9)",
                         risk="Disclosing party can terminate with 30 days notice, but confidentiality obligations survive indefinitely — your obligations continue even after termination.",
                         severity="medium",
                         recommendation="Cap survival of obligations to 2 years post-termination and require mutual consent for early termination.",
+                        confidence="high",
+                        basis="Indefinite post-termination survival clauses have been found commercially unreasonable in multiple Delaware chancery court rulings.",
                     ),
                 ],
                 unusual_clauses=[
@@ -528,6 +569,39 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
                     "Do not sign as-is."
                 ),
                 recommended_action="negotiate",
+                score_breakdown=ScoreBreakdown(critical=0, high=1, medium=2, low=1),
+                obligations_structured=[
+                    PartyObligations(
+                        party="Acme Corp",
+                        items=[
+                            ObligationItem(action="Hold Beta's Confidential Information in strict confidence", deadline=None, condition=None, consequence="Injunctive relief and damages"),
+                            ObligationItem(action="Limit access to employees with need-to-know", deadline=None, condition=None, consequence=None),
+                            ObligationItem(action="Use information solely for the Purpose", deadline=None, condition=None, consequence="Termination of agreement"),
+                            ObligationItem(action="Notify Beta immediately of any unauthorized disclosure", deadline="Immediately upon discovery", condition="Unauthorized disclosure occurs", consequence="Breach of agreement if not notified"),
+                        ],
+                    ),
+                    PartyObligations(
+                        party="Beta Inc",
+                        items=[
+                            ObligationItem(action="Hold Acme's Confidential Information in strict confidence", deadline=None, condition=None, consequence="Injunctive relief and damages"),
+                            ObligationItem(action="Return or destroy all Confidential Information upon request", deadline="10 business days after written request", condition="Either party terminates or requests return", consequence="Material breach if not complied"),
+                        ],
+                    ),
+                ],
+                ambiguous_clauses=[
+                    AmbiguousClause(
+                        clause="reasonable efforts",
+                        section="Section 3",
+                        issue="'Reasonable efforts' is legally undefined and courts apply it inconsistently — some treat it as equivalent to 'best efforts' requiring maximum exertion; others treat it as a lower standard.",
+                        interpretation="Delaware courts generally treat 'reasonable efforts' as less demanding than 'best efforts' but require demonstrable good-faith steps toward the obligation's objective.",
+                    ),
+                    AmbiguousClause(
+                        clause="promptly",
+                        section="Section 8",
+                        issue="'Promptly' has no defined timeframe in this agreement, creating ambiguity for notice and cure obligations.",
+                        interpretation="Without a defined period, Delaware courts apply a reasonableness standard — typically interpreted as within 3–5 business days for notice obligations in commercial contracts.",
+                    ),
+                ],
             ),
         )
 
@@ -562,11 +636,14 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             "whether it is founder-friendly or lopsided),\n"
             "risk_level (string — one of: low/medium/high/critical),\n"
             "risk_score (integer 1–10 where 1=essentially no risk, 10=do not sign),\n"
+            "score_breakdown (object — count of risks at each severity level, fields: critical (int), high (int), medium (int), low (int) — must sum to the total number of risks),\n"
             "risks (list of objects — identify ALL material risks, minimum 3, with fields: "
             "clause (exact section name/number), "
             "risk (specific problem and its practical business impact — at least 2 sentences), "
             "severity (low/medium/high/critical), "
-            "recommendation (specific actionable fix — proposed language change or deletion)),\n"
+            "recommendation (specific actionable fix — proposed language change or deletion), "
+            "confidence (high/medium/low — how certain you are this is a real enforceable risk based on case law or statute), "
+            "basis (string — one sentence citing the specific legal authority or market precedent that supports this risk rating)),\n"
             "unusual_clauses (list of strings — clauses that deviate from market standard; for each, "
             "name the section and explain what is unusual and why it matters),\n"
             "missing_protections (list of strings — standard protections absent from this agreement; "
@@ -580,6 +657,20 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             "minimum 5 entries),\n"
             "obligations (dict — party_name -> list of specific obligation strings; be exhaustive, "
             "list every obligation each party takes on),\n"
+            "obligations_structured (list of objects — same obligations in structured form, each: "
+            "party (string — exact party name matching the parties list), "
+            "items (list of objects, each with: "
+            "action (string — what the party must do), "
+            "deadline (string or null — human-readable deadline e.g. '30 days after termination', null if none), "
+            "condition (string or null — condition that triggers this obligation, null if unconditional), "
+            "consequence (string or null — consequence of non-performance, null if unspecified))),\n"
+            "ambiguous_clauses (list of objects — flag any legally vague or undefined terms that could create disputes; "
+            "focus on phrases like 'reasonable efforts', 'material adverse change', 'promptly', 'good faith', "
+            "'commercially reasonable', or any capitalized Defined Term that is used but not defined in this agreement; "
+            "fields: clause (string — the exact vague phrase or undefined term), "
+            "section (string or null — section number/name where it appears, null if it appears in multiple places), "
+            "issue (string — why this language creates legal uncertainty), "
+            "interpretation (string — how courts in the governing jurisdiction typically interpret this language)),\n"
             "negotiation_points (list of objects — prioritized redline targets, minimum 3, fields: "
             "priority (high/medium/low), clause (section name/number), "
             "issue (what is wrong and why it must change), "
@@ -588,14 +679,30 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
             "favors, what would change your recommendation, and whether to sign as-is),\n"
             "recommended_action (string — one of: sign/negotiate/reject/legal_review_required)"
         )}],
-        max_tokens=8000,
+        max_tokens=10000,
     )
     tokens_used = _llm.count_tokens(raw)
     try:
         data = json.loads(strip_json_fences(raw))
         risks = [ClauseRisk(**r) for r in data.pop("risks", [])]
         negotiation_points = [NegotiationPoint(**n) for n in data.pop("negotiation_points", [])]
-        analysis = ContractAnalysis(**data, risks=risks, negotiation_points=negotiation_points)
+        raw_obligations_structured = data.pop("obligations_structured", [])
+        obligations_structured = [
+            PartyObligations(party=p["party"], items=[ObligationItem(**item) for item in p.get("items", [])])
+            for p in raw_obligations_structured
+        ] if raw_obligations_structured else None
+        raw_ambiguous = data.pop("ambiguous_clauses", [])
+        ambiguous_clauses = [AmbiguousClause(**c) for c in raw_ambiguous] if raw_ambiguous else None
+        raw_breakdown = data.pop("score_breakdown", None)
+        score_breakdown = ScoreBreakdown(**raw_breakdown) if raw_breakdown else None
+        analysis = ContractAnalysis(
+            **data,
+            risks=risks,
+            negotiation_points=negotiation_points,
+            obligations_structured=obligations_structured,
+            ambiguous_clauses=ambiguous_clauses,
+            score_breakdown=score_breakdown,
+        )
     except Exception:
         analysis = ContractAnalysis(
             document_type="Unknown",

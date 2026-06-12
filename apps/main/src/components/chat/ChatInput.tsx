@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import { HelpCircle, Paperclip, Plus, Send } from "lucide-react"
@@ -37,6 +37,7 @@ function IconButton({
 }) {
   return (
     <button
+      suppressHydrationWarning
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}

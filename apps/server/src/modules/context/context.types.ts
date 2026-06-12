@@ -8,5 +8,5 @@ export interface SharedMemoryShape {
   goals: string[]
   product: string
   decisions: string[]
-  user_preferences: string[]
+  userPreferences: string[]
 }
