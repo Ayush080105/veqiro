@@ -27,9 +27,9 @@ export const contact = {
 };
 
 export const social = {
-  twitter: 'https://x.com/veqiro?s=11',
+  twitter: 'https://x.com/veqiro_',
   linkedin: 'https://www.linkedin.com/company/veqiro',
-  instagram: 'https://www.instagram.com/veqiro._?igsh=MWowNDA5MWhrY2w1NQ==',
+  instagram: 'https://www.instagram.com/veqiro_',
 };
 
 export const nav: { href: string; label: string }[] = [
