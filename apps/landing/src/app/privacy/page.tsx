@@ -8,7 +8,6 @@ export const metadata = buildPageMetadata({
   title: 'Privacy Policy',
   description: 'How Veqiro collects, uses, and protects your data. GDPR and CCPA compliant.',
   path: '/privacy',
-  noindex: true,
 });
 
 function Section({ n, title, id, children }: { n: string; title: string; id?: string; children: React.ReactNode }) {
