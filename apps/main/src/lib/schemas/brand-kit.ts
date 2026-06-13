@@ -4,10 +4,10 @@ import { z } from "zod"
 // If you change a minimum here, change it server-side too. Server is authoritative.
 export const BRAND_KIT_MINS = {
   companyName: 3,
-  companyDescription: 120,
-  valueProposition: 60,
-  targetAudience: 100,
-  keyDifferentiators: 80,
+  companyDescription: 80,
+  valueProposition: 40,
+  targetAudience: 60,
+  keyDifferentiators: 50,
 } as const
 
 export const ALLOWED_ASSET_TYPES = [

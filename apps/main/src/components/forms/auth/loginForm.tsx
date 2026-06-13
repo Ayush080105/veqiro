@@ -161,13 +161,29 @@ export function LoginForm() {
           control={form.control}
           render={({ field }) => (
             <label className="flex min-h-10 cursor-pointer items-center gap-3 font-mono text-xs uppercase tracking-wider text-foreground">
-              <input
-                type="checkbox"
-                checked={Boolean(field.value)}
-                onChange={(e) => field.onChange(e.target.checked)}
-                disabled={loading}
-                className="size-5 cursor-pointer appearance-none border-2 border-foreground bg-card transition-colors checked:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+              <div className="relative size-5 shrink-0">
+                <input
+                  type="checkbox"
+                  checked={Boolean(field.value)}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  disabled={loading}
+                  className="peer size-5 cursor-pointer appearance-none border-2 border-foreground bg-card transition-colors checked:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <svg
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity peer-checked:opacity-100"
+                >
+                  <path
+                    d="M2 6l3 3 5-5"
+                    stroke="white"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
               Remember me
             </label>
           )}

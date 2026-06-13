@@ -40,7 +40,7 @@ export const STEPS: StepConfig[] = [
   {
     slug: "step2",
     index: 2,
-    emoji: "①",
+    emoji: "②",
     title: "Who's hiring us?",
     subtitle: "The basics. So your crew knows which company's voice to speak in.",
     fields: [
@@ -53,7 +53,7 @@ export const STEPS: StepConfig[] = [
   {
     slug: "step3",
     index: 3,
-    emoji: "②",
+    emoji: "③",
     title: "What industry are we in?",
     subtitle:
       "Pick one. The crew uses this to source benchmarks and avoid saying wild things.",
@@ -62,7 +62,7 @@ export const STEPS: StepConfig[] = [
   {
     slug: "step4",
     index: 4,
-    emoji: "③",
+    emoji: "④",
     title: "How do you sound?",
     subtitle: "Pick a voice. We'll calibrate Maya and the rest. You can refine later.",
     fields: ["brandVoice"],
@@ -70,7 +70,7 @@ export const STEPS: StepConfig[] = [
   {
     slug: "step5",
     index: 5,
-    emoji: "④",
+    emoji: "⑤",
     title: "Visual identity",
     subtitle: "Upload your logo and (optionally) a mascot. Pick a palette.",
     fields: ["logoUrl"], // logo required; mascot + palette optional
@@ -78,7 +78,7 @@ export const STEPS: StepConfig[] = [
   {
     slug: "step6",
     index: 6,
-    emoji: "⑤",
+    emoji: "⑥",
     title: "The landscape",
     subtitle:
       "Who's in your arena, and why are you different? Scout & Maya will use this daily.",

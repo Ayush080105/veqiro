@@ -6,10 +6,10 @@ import { z } from "zod";
 // substantive sentences.
 export const BRAND_KIT_MINS = {
   companyName: 3,
-  companyDescription: 120,
-  valueProposition: 60,
-  targetAudience: 100,
-  keyDifferentiators: 80,
+  companyDescription: 80,
+  valueProposition: 40,
+  targetAudience: 60,
+  keyDifferentiators: 50,
 } as const;
 
 const hexColor = z
