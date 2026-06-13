@@ -74,6 +74,34 @@ export interface ContractRisk {
   risk: string;
   severity: "low" | "medium" | "high" | "critical";
   recommendation: string;
+  confidence?: "high" | "medium" | "low";
+  basis?: string;
+}
+
+export interface ScoreBreakdown {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface ObligationItem {
+  action: string;
+  deadline?: string | null;
+  condition?: string | null;
+  consequence?: string | null;
+}
+
+export interface PartyObligations {
+  party: string;
+  items: ObligationItem[];
+}
+
+export interface AmbiguousClause {
+  clause: string;
+  section?: string | null;
+  issue: string;
+  interpretation: string;
 }
 
 export interface ClauseBreakdown {
@@ -109,6 +137,9 @@ export interface ContractAnalysis {
   negotiation_points: NegotiationPoint[];
   overall_assessment: string;
   recommended_action: string;
+  score_breakdown?: ScoreBreakdown;
+  obligations_structured?: PartyObligations[];
+  ambiguous_clauses?: AmbiguousClause[];
 }
 
 export interface AnalyzeContractResponse {
@@ -133,12 +164,17 @@ export interface ExplainResponse {
   model_used?: string;
 }
 
+export interface LegalResearchSection {
+  title: string;
+  type: "ordered" | "bullets" | "narrative";
+  items: string[];
+}
+
 export interface LegalResearchResponse {
-  summary: string;
-  applicable_laws: string[];
-  key_requirements: string[];
+  answer: string;
+  sections: LegalResearchSection[];
+  references: string[];
   relevant_cases: string[];
-  practical_guidance: string[];
   jurisdiction_notes: string;
   confidence_level: string;
   tokens_used?: number;

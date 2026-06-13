@@ -926,6 +926,34 @@ export interface LexContractRisk {
   risk: string
   severity: "low" | "medium" | "high" | "critical"
   recommendation: string
+  confidence?: "high" | "medium" | "low"
+  basis?: string
+}
+
+export interface LexScoreBreakdown {
+  critical: number
+  high: number
+  medium: number
+  low: number
+}
+
+export interface LexObligationItem {
+  action: string
+  deadline?: string | null
+  condition?: string | null
+  consequence?: string | null
+}
+
+export interface LexPartyObligations {
+  party: string
+  items: LexObligationItem[]
+}
+
+export interface LexAmbiguousClause {
+  clause: string
+  section?: string | null
+  issue: string
+  interpretation: string
 }
 
 export interface LexClauseBreakdown {
@@ -962,6 +990,9 @@ export interface LexAnalyzeContractResult {
     negotiation_points: LexNegotiationPoint[]
     overall_assessment: string
     recommended_action: string
+    score_breakdown?: LexScoreBreakdown
+    obligations_structured?: LexPartyObligations[]
+    ambiguous_clauses?: LexAmbiguousClause[]
   }
 }
 
@@ -995,12 +1026,17 @@ export interface LexLegalResearchRequest {
   legal_areas?: string[]
 }
 
+export interface LexLegalResearchSection {
+  title: string
+  type: "ordered" | "bullets" | "narrative"
+  items: string[]
+}
+
 export interface LexLegalResearchResult {
-  summary: string
-  applicable_laws: string[]
-  key_requirements: string[]
+  answer: string
+  sections: LexLegalResearchSection[]
+  references: string[]
   relevant_cases: string[]
-  practical_guidance: string[]
   jurisdiction_notes: string
   confidence_level: string
 }

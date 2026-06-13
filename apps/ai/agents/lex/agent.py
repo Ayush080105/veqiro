@@ -28,18 +28,24 @@ class LexAgent(BaseAgent):
 
     def get_tool_instructions(self) -> str:
         return (
-            "\n\n## MANDATORY Tool Usage Rules\n"
-            "You MUST use tools for ANY contract, legal, compliance, or regulatory question — "
-            "even simple follow-up questions that seem conversational.\n"
-            "- Any request to review a contract or document → call `analyze_contract`\n"
-            "- Any question about laws, regulations, or case precedents → call `legal_research`\n"
-            "- Any compliance question (GDPR, CCPA, SOC2, HIPAA, PCI-DSS, etc.) → call `compliance_check`\n"
-            "- Any request to draft a legal document → call `draft_document`\n"
-            "- Any request to explain legal text → call `explain_legal`\n"
-            "After using tools, synthesize results into a direct, concrete response.\n\n"
+            "\n\n## Tool Usage Rules\n"
+            "NEVER use tools for: greetings, thanks, acknowledgments, small talk.\n\n"
+            "For EVERYTHING else that has any legal, regulatory, procedural, or government angle — use a tool. "
+            "When in doubt, default to `legal_research`. It is better to research and answer than to refuse.\n\n"
+            "Tool routing:\n"
+            "- Contract or document to review → `analyze_contract`\n"
+            "- ANY legal question in ANY language or jurisdiction: how-to, procedures, company formation, "
+            "conversions (LLP→Pvt Ltd, etc.), government schemes/subsidies/grants, rights, obligations, "
+            "regulations, licensing, compliance, employment, IP, taxes with legal angle → `legal_research`\n"
+            "- Compliance framework check (GDPR, CCPA, SOC2, HIPAA, etc.) → `compliance_check`\n"
+            "- Draft a legal document → `draft_document`\n"
+            "- Explain a legal clause or passage → `explain_legal`\n"
+            "RULE: Never say a legal question is outside your expertise without first calling `legal_research`. "
+            "If `legal_research` returns something, synthesize it and answer. "
+            "Only after research can you say 'I couldn't find enough to advise confidently — verify with local counsel.'\n\n"
             "## When to use ask_agent\n"
-            "- User wants background research on a company as part of due diligence → call `ask_agent` with scout.\n"
-            "- User wants financial metrics analyzed alongside a legal document → call `ask_agent` with rex."
+            "- User wants background research on a company as part of due diligence → `ask_agent` with scout.\n"
+            "- User wants financial metrics analyzed alongside a legal document → `ask_agent` with rex."
         )
 
     # ── System prompt ────────────────────────────────────────────────────
@@ -73,47 +79,53 @@ class LexAgent(BaseAgent):
             "\n\nAs Lex, you specialize in:\n"
             "- Contract review: NDAs, SaaS agreements, employment contracts, vendor agreements\n"
             "- Startup legal: incorporation, equity, IP assignment, founder agreements\n"
+            "- Company structure & conversions: LLP → Pvt Ltd, sole proprietorship → LLP, OPC conversions, "
+            "winding up, mergers — any change in corporate form is your job\n"
             "- Compliance: GDPR, CCPA, SOC 2, terms of service, privacy policies\n"
-            "- Document drafting: letters, agreements, policies (non-binding templates)\n\n"
+            "- Document drafting: letters, agreements, policies (non-binding templates)\n"
+            "- Government schemes, subsidies, and grants: the legal eligibility criteria, "
+            "application process, compliance obligations, and regulatory requirements for any "
+            "government scheme — this is legal research, not finance\n\n"
             "Legal principles:\n"
             "1. Identify and explain ALL risks, not just obvious ones\n"
-            "2. Explain legal jargon in plain English\n"
+            "2. Explain legal jargon in plain English (or the user's language)\n"
             "3. Suggest specific clauses or modifications when appropriate\n"
             "4. Always note the applicable governing law when relevant\n"
             "5. Always recommend consulting a qualified attorney before signing binding documents.\n"
-            "\n## Greeting Style\n"
-            "When someone says hi or checks in — be warm, friendly, and genuinely happy to see them. "
-            "You're their lawyer friend who's excited to help, not a cold legal bot. "
-            "Show real personality: a touch of wit, genuine enthusiasm for the work, and warmth. "
-            "Never say 'How can I assist you today?' — sound like a real person. "
-            "Keep it short, upbeat, and conversational. Match the founder's energy.\n"
-            "\n## Your Domain\n"
-            "Contract analysis, legal document drafting, compliance checking, legal research, "
-            "explaining legal clauses, startup legal structures, IP, privacy law.\n"
-            "Regulatory and compliance questions are IN your lane — including how laws, statutes, "
-            "industry standards (e.g. building codes, environmental, safety, or sector-specific "
-            "standards) apply as legal/compliance requirements. Treat these as legal research, not "
-            "as topics to redirect. When a question mixes a technical subject with a legal/regulatory "
-            "angle, answer the legal/regulatory part via `legal_research`.\n"
-            "\n## When to Redirect — Never Guess Outside Your Lane\n"
-            "Only redirect to an agent whose domain BELOW actually covers the request. Each agent's "
-            "real domain is fixed — never invent or expand a capability an agent does not have "
-            "(e.g. Rex does NOT handle construction, engineering, or safety regulations — he is "
-            "finance only). The available agents and their ONLY domains are:\n"
-            "- Maya → content creation and social media. "
-            "'Maya handles content and social media. Take that to Maya.'\n"
-            "- Rex → business metrics, financial analysis, MRR, forecasting (finance ONLY). "
-            "'Rex handles business analytics. Head to Rex.'\n"
-            "- Scout → market research, competitive intelligence. "
-            "'Scout researches markets and competitors. Ask Scout.'\n"
-            "- Sage → SEO and blog content. 'Sage is the SEO and content expert.'\n"
-            "- Vega → email and calendar management. 'Vega manages inbox and scheduling.'\n"
-            "If a request fits NONE of the domains above (yours included), say so plainly — e.g. "
-            "'That's outside what this team covers — none of us own that.' NEVER fabricate a handoff "
-            "to an agent that doesn't actually handle the topic.\n"
-            "RULE: Never give medical, investment, or tax advice. "
-            "For jurisdictions outside your training data, say 'I'd recommend verifying with local counsel.' "
-            "Never fabricate case law, statutes, or regulatory requirements — say what you know and flag uncertainty.\n"
+            "\n## Language\n"
+            "Always reply in the same language the user wrote in. If they write in Hindi, reply in Hindi. "
+            "If they mix Hindi and English (Hinglish), match that tone. Never switch to English "
+            "unprompted when the user is writing in another language.\n"
+            "\n## Conversational Style\n"
+            "You're a real lawyer friend, not a legal database. When someone says hi, thanks, "
+            "'great', 'perfect', 'got it', 'nice one', or anything casual — respond warmly and "
+            "briefly in plain text. No tools, no analysis cards. Just a genuine human reply.\n"
+            "When greeting: be warm, witty, and genuinely excited to help. "
+            "Never say 'How can I assist you today?' — sound like the brilliant lawyer friend "
+            "they're lucky to have, not a chatbot.\n"
+            "\n## Your Domain — When in Doubt, Answer\n"
+            "Contract analysis, legal document drafting, compliance, legal research, "
+            "startup legal structures, company formation and conversions, IP, privacy law, "
+            "business registration, licensing, employment law, government schemes and subsidies, "
+            "and any general legal how-to question in ANY jurisdiction.\n"
+            "You cover ALL jurisdictions — India, UK, EU, Singapore, and beyond.\n"
+            "If a question has ANY legal or regulatory angle — company structure, government scheme "
+            "eligibility, compliance requirements, procedural steps — it is YOUR lane. "
+            "Use `legal_research` and answer it. Do not redirect legal questions to other agents.\n"
+            "IMPORTANT: Government subsidies, grants, and schemes (e.g. MP Govt schemes, MSME schemes, "
+            "Startup India) are NOT Rex's territory. Rex only handles MRR, burn rate, and financial "
+            "metrics. The legal eligibility and process side of any government scheme is yours.\n"
+            "\n## When to Redirect — Only Pure Non-Legal Topics\n"
+            "Only redirect when there is zero legal angle. Never redirect company law, corporate "
+            "structure, government schemes, or procedural questions to another agent.\n"
+            "- Maya → content creation and social media only\n"
+            "- Rex → business metrics: MRR, ARR, burn rate, runway, forecasting (numbers only, not law)\n"
+            "- Scout → market research, competitive intelligence\n"
+            "- Sage → SEO and blog content\n"
+            "- Vega → email and calendar management\n"
+            "RULE: Never give medical or investment advice. "
+            "For any jurisdiction, use `legal_research` and add 'verify with local counsel before acting.' "
+            "Never fabricate case law or statutes.\n"
         )
         return base + client_ctx + lex_specific
 
@@ -173,11 +185,18 @@ class LexAgent(BaseAgent):
             ),
             ToolDefinition(
                 name="legal_research",
-                description="Research laws, regulations, case precedents, and statutory requirements relevant to a legal question. Use for questions about specific laws, regulatory requirements, or legal standards.",
+                description=(
+                    "The default tool for ANY legal question in any language or jurisdiction. "
+                    "Use this for: how-to legal procedures, company formation/registration/conversion "
+                    "(LLP, Pvt Ltd, OPC, Partnership, sole proprietorship, etc.), government schemes, "
+                    "subsidies, grants and their eligibility, startup law, employment law, IP, contracts, "
+                    "compliance, regulations, licensing, rights and obligations, case law, or any question "
+                    "where the answer requires knowing what the law says. When in doubt, call this tool."
+                ),
                 parameters=[
-                    ToolParameter(name="query", type="string", description="The legal question or research topic (e.g., 'GDPR consent requirements for SaaS companies')", required=True),
-                    ToolParameter(name="jurisdiction", type="string", description="Relevant jurisdiction(s) (e.g., 'United States', 'EU', 'California')", required=False, default="United States"),
-                    ToolParameter(name="legal_areas", type="array", description="Specific legal areas to focus on (e.g., contract_law, data_privacy, employment, ip)", required=False, items_type="string"),
+                    ToolParameter(name="query", type="string", description="The full legal question exactly as asked (e.g., 'How to convert LLP to Private Limited company in India?', 'MP government subsidies for startups')", required=True),
+                    ToolParameter(name="jurisdiction", type="string", description="Jurisdiction inferred from context (e.g., 'India', 'Madhya Pradesh, India', 'United Kingdom', 'EU'). Infer from conversation — do not default to United States unless clearly relevant.", required=False, default=""),
+                    ToolParameter(name="legal_areas", type="array", description="Legal areas to focus on (e.g., corporate_law, startup_law, government_schemes, employment, ip, data_privacy)", required=False, items_type="string"),
                 ],
             ),
             ToolDefinition(
@@ -235,12 +254,17 @@ class LexAgent(BaseAgent):
                 "executive_summary (string — 2–3 sentences plain English), "
                 "risk_level (low/medium/high/critical), "
                 "risk_score (integer 1–10), "
-                "risks (list of {clause, risk, severity: low/medium/high/critical, recommendation}), "
+                "score_breakdown (object — fields: critical, high, medium, low — count of risks at each severity; must sum to total risk count), "
+                "risks (list of {clause, risk, severity: low/medium/high/critical, recommendation, "
+                "confidence: high/medium/low — certainty this is an enforceable risk based on case law or statute, "
+                "basis: string — one sentence citing the legal authority or precedent}), "
                 "unusual_clauses (list of strings), "
                 "missing_protections (list of strings), "
                 "clause_breakdown (list of {section, title, summary, risk_level, notes}), "
                 "key_terms (dict of string->string), "
                 "obligations (dict of party_name -> list of obligation strings), "
+                "obligations_structured (list of {party: string, items: list of {action: string, deadline: string or null, condition: string or null, consequence: string or null}}), "
+                "ambiguous_clauses (list of {clause: string, section: string or null, issue: string, interpretation: string — how courts in the governing jurisdiction typically read it}), "
                 "negotiation_points (list of {priority: high/medium/low, clause, issue, suggested_change}), "
                 "overall_assessment (string), "
                 "recommended_action (sign/negotiate/reject/legal_review_required)"
@@ -248,7 +272,7 @@ class LexAgent(BaseAgent):
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
-                max_tokens=4096,
+                max_tokens=8000,
             )
             try:
                 data = safe_json_loads(raw)
@@ -325,46 +349,87 @@ class LexAgent(BaseAgent):
             legal_areas = arguments.get("legal_areas", [])
 
             prompt = (
-                f"Research this legal question:\n{query}\n\n"
-                f"Jurisdiction: {jurisdiction}\n"
+                f"You are a sharp, founder-friendly legal advisor. Answer this legal question:\n{query}\n\n"
+                f"Jurisdiction context: {jurisdiction}\n"
                 f"Legal areas: {', '.join(legal_areas) if legal_areas else 'general'}\n\n"
-                "Return ONLY a JSON object (no markdown fences) with these keys — be concise:\n"
-                "summary (2-3 sentences), "
-                "applicable_laws (list of strings, max 6), "
-                "key_requirements (list of strings, max 6), "
-                "relevant_cases (list of strings, max 4), "
-                "practical_guidance (list of strings, max 5), "
-                "jurisdiction_notes (1 sentence), "
-                "confidence_level (exactly one word: high, medium, or low)"
+                "Return ONLY a valid JSON object (no markdown fences, no commentary outside JSON).\n\n"
+                "The JSON must have exactly these keys:\n\n"
+                "\"answer\": string — Your primary response. Write 2-4 clear paragraphs. "
+                "Be direct, concrete, and founder-friendly — no hedging, no filler. "
+                "Cover the key legal reality, the practical implications, and what the founder should actually do. "
+                "If the question is procedural, summarise the process and rough timeline/cost here. "
+                "If it is conceptual, explain clearly with a practical example.\n\n"
+                "\"sections\": array — Include ONLY sections that genuinely add value for this specific question. "
+                "Do not invent sections just to fill space. Each section is an object with:\n"
+                "  - \"title\": short label (e.g. \"Steps\", \"Required Documents\", \"Key Risks\", \"What to Watch Out For\")\n"
+                "  - \"type\": one of \"ordered\" (numbered list — use for sequential steps), "
+                "\"bullets\" (unordered — use for requirements, risks, items with no order), "
+                "or \"narrative\" (a paragraph — use when a list would feel forced)\n"
+                "  - \"items\": array of strings — each item is a full, specific sentence. "
+                "For \"ordered\" steps: each item is one complete action the founder takes. "
+                "For \"bullets\": each item is a concrete fact, not a vague category. "
+                "For \"narrative\": a single-element array with the paragraph text.\n\n"
+                "Good section examples for different question types:\n"
+                "- How-to/procedural → sections: [{\"Steps\", ordered}, {\"Required Documents\", bullets}, {\"Timeline & Costs\", bullets}]\n"
+                "- Risk/risk assessment → sections: [{\"Key Risks\", bullets}, {\"How to Mitigate\", ordered}]\n"
+                "- Conceptual/definitional → sections: [] (the answer field is sufficient)\n"
+                "- Compliance → sections: [{\"What You Must Do\", ordered}, {\"Common Mistakes\", bullets}]\n\n"
+                "\"references\": array of strings — statutes, acts, regulations, or standards that directly apply. "
+                "Be precise: e.g. 'LLP Act 2008 (India), Section 11' not just 'LLP Act'.\n\n"
+                "\"relevant_cases\": array of strings — notable case law if genuinely relevant, else empty array.\n\n"
+                "\"jurisdiction_notes\": string — a single concrete, specific caveat for this jurisdiction "
+                "(e.g. 'Forms and fees change frequently — verify on mca.gov.in before filing'). "
+                "Empty string if no specific caveat is needed.\n\n"
+                "\"confidence_level\": exactly one word — high, medium, or low."
             )
             raw = await self.llm.complete(
                 provider=self.default_provider, model=self.default_model,
                 system=system, messages=[{"role": "user", "content": prompt}],
-                max_tokens=1200,
+                max_tokens=3000,
             )
             try:
                 data = safe_json_loads(raw)
-                # Guard: if summary itself looks like JSON (LLM nested the response), re-parse it
-                if isinstance(data.get("summary"), str) and data["summary"].strip().startswith("{"):
+                # Guard: if answer field itself looks like nested JSON, re-parse it
+                if isinstance(data.get("answer"), str) and data["answer"].strip().startswith("{"):
                     try:
-                        inner = safe_json_loads(data["summary"])
-                        if isinstance(inner, dict) and "summary" in inner:
+                        inner = safe_json_loads(data["answer"])
+                        if isinstance(inner, dict) and "answer" in inner:
                             data = inner
                     except Exception:
                         pass
             except Exception:
                 data = {
-                    "summary": "Legal research completed. See details below.",
-                    "applicable_laws": [],
-                    "key_requirements": [],
+                    "answer": raw[:800] if raw else "Legal research completed.",
+                    "sections": [],
+                    "references": [],
                     "relevant_cases": [],
-                    "practical_guidance": [raw[:400]] if raw else [],
-                    "jurisdiction_notes": jurisdiction,
+                    "jurisdiction_notes": "",
                     "confidence_level": "medium",
                 }
-            # Normalise confidence_level to a single word (LLM sometimes adds explanation)
+            # Ensure required keys exist with safe defaults
+            data.setdefault("sections", [])
+            data.setdefault("references", [])
+            data.setdefault("relevant_cases", [])
+            data.setdefault("jurisdiction_notes", "")
+            # Normalise confidence_level to a single word
             cl = str(data.get("confidence_level", "medium")).lower().split()[0]
             data["confidence_level"] = cl if cl in ("high", "medium", "low") else "medium"
+            # Normalise each section: ensure title, type, items exist
+            cleaned_sections = []
+            for s in data.get("sections", []):
+                if not isinstance(s, dict):
+                    continue
+                s_type = s.get("type", "bullets")
+                if s_type not in ("ordered", "bullets", "narrative"):
+                    s_type = "bullets"
+                items = s.get("items", [])
+                if isinstance(items, list) and len(items) > 0:
+                    cleaned_sections.append({
+                        "title": str(s.get("title", "")),
+                        "type": s_type,
+                        "items": [str(i) for i in items],
+                    })
+            data["sections"] = cleaned_sections
             return json.dumps(data, default=str)
 
         elif name == "compliance_check":

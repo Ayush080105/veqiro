@@ -480,7 +480,7 @@ export const legalResearch = async (
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `${data.applicable_laws.length} laws, ${data.relevant_cases.length} cases found (${data.confidence_level})`,
+    content: `${data.sections?.length ?? 0} sections, ${data.references?.length ?? 0} references (${data.confidence_level})`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "lex:legal-research", input, result: data },

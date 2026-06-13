@@ -260,7 +260,7 @@ export function LexQueryDocumentForm({
     <FieldGroup>
       <RhfField
         control={form.control}
-        name="sourceId"
+        name="source_id"
         label="Document"
         required
       >

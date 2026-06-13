@@ -19,8 +19,23 @@ from core.context_routes import router as context_router
 
 @asynccontextmanager
 async def lifespan(app):
-    await initialize_tables()
+    try:
+        await initialize_tables()
+    except Exception as e:
+        # Non-fatal — tables likely already exist. Log and continue so the
+        # app starts even when PgBouncer session slots are temporarily full.
+        import logging
+        logging.getLogger(__name__).warning("initialize_tables skipped: %s", e)
     yield
+    # Close the asyncpg pool on shutdown so uvicorn reloads don't leave
+    # stale connections open against PgBouncer's session-mode slot limit.
+    from core import db as _db
+    if _db._pool is not None:
+        await _db._pool.close()
+        _db._pool = None
+    if _db._engine is not None:
+        await _db._engine.dispose()
+        _db._engine = None
 
 app = create_app(lifespan=lifespan)
 

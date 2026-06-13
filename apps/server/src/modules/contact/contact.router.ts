@@ -8,7 +8,7 @@ const router = Router();
 const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
-  keyGenerator: ipKeyGenerator,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? "unknown"),
   standardHeaders: true,
   legacyHeaders: false,
 });

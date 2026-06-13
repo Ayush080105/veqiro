@@ -103,7 +103,7 @@ export function DocumentIngestCard({ result }: { result: LexUploadSourceResult }
           <Kicker prefix="//">summary</Kicker>
           <p className="text-[11px] leading-relaxed">{result.summary}</p>
         </div>
-        {result.keyTopics.length > 0 && (
+        {result.keyTopics?.length > 0 && (
           <div className="flex flex-col gap-1.5">
             <Kicker prefix="//">key topics</Kicker>
             <div className="flex flex-wrap gap-1">
@@ -192,19 +192,50 @@ export function ContractAnalysisCard({
         )}
 
         {/* Risk overview */}
-        <div className="flex items-center justify-between gap-2 rounded border border-border bg-muted/20 p-2">
-          <div className="flex flex-col gap-0.5">
-            <Kicker prefix="//">risk level</Kicker>
-            <p className="text-xs font-semibold capitalize">{a.risk_level}</p>
+        <div className="flex flex-col gap-1.5 rounded border border-border bg-muted/20 p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-0.5">
+              <Kicker prefix="//">risk level</Kicker>
+              <p className="text-xs font-semibold capitalize">{a.risk_level}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {typeof a.risk_score === "number" && (
+                <Badge variant="outline" className="text-[10px]">
+                  score {a.risk_score}/10
+                </Badge>
+              )}
+              <StatusPill level={riskLevel}>{a.risk_level}</StatusPill>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {typeof a.risk_score === "number" && (
-              <Badge variant="outline" className="text-[10px]">
-                score {a.risk_score}/10
-              </Badge>
-            )}
-            <StatusPill level={riskLevel}>{a.risk_level}</StatusPill>
-          </div>
+          {a.score_breakdown && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-border pt-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">breakdown</span>
+              {a.score_breakdown.critical > 0 && (
+                <span className="text-[10px]">
+                  <span className="font-semibold text-destructive">{a.score_breakdown.critical}</span>
+                  <span className="text-muted-foreground"> critical</span>
+                </span>
+              )}
+              {a.score_breakdown.high > 0 && (
+                <span className="text-[10px]">
+                  <span className="font-semibold">{a.score_breakdown.high}</span>
+                  <span className="text-muted-foreground"> high</span>
+                </span>
+              )}
+              {a.score_breakdown.medium > 0 && (
+                <span className="text-[10px]">
+                  <span className="font-semibold">{a.score_breakdown.medium}</span>
+                  <span className="text-muted-foreground"> medium</span>
+                </span>
+              )}
+              {a.score_breakdown.low > 0 && (
+                <span className="text-[10px]">
+                  <span className="font-semibold">{a.score_breakdown.low}</span>
+                  <span className="text-muted-foreground"> low</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Executive summary */}
@@ -232,6 +263,19 @@ export function ContractAnalysisCard({
                       <span className="font-medium">Fix: </span>
                       {r.recommendation}
                     </p>
+                  )}
+                  {(r.confidence || r.basis) && (
+                    <div className="flex flex-col gap-0.5 border-t border-border pt-1.5">
+                      {r.confidence && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">confidence</span>
+                          <Badge variant="outline" className="text-[10px] capitalize">{r.confidence}</Badge>
+                        </div>
+                      )}
+                      {r.basis && (
+                        <p className="text-[10px] italic leading-relaxed text-muted-foreground">{r.basis}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -302,15 +346,74 @@ export function ContractAnalysisCard({
         )}
 
         {/* Obligations */}
-        {a.obligations && Object.keys(a.obligations).length > 0 && (
+        {(a.obligations_structured?.length || (a.obligations && Object.keys(a.obligations).length > 0)) && (
           <CollapsibleSection title="obligations by party">
             <div className="flex flex-col gap-2">
-              {Object.entries(a.obligations).map(([party, items]) => (
-                <div key={party} className="flex flex-col gap-1">
-                  <Kicker prefix="//">{party}</Kicker>
-                  <ul className="list-disc pl-4 text-[11px] leading-relaxed">
-                    {items.map((item, i) => <li key={i}>{item}</li>)}
-                  </ul>
+              {a.obligations_structured?.length
+                ? a.obligations_structured.map((party) => (
+                    <div key={party.party} className="flex flex-col gap-1.5">
+                      <Kicker prefix="//">{party.party}</Kicker>
+                      <div className="flex flex-col gap-1">
+                        {party.items.map((item, i) => (
+                          <div key={i} className="flex flex-col gap-0.5 border border-border bg-muted/20 p-2">
+                            <p className="text-[11px] font-medium">{item.action}</p>
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                              {item.deadline && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  <span className="font-medium">By:</span> {item.deadline}
+                                </span>
+                              )}
+                              {item.condition && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  <span className="font-medium">If:</span> {item.condition}
+                                </span>
+                              )}
+                              {item.consequence && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  <span className="font-medium">Consequence:</span> {item.consequence}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                : Object.entries(a.obligations).map(([party, items]) => (
+                    <div key={party} className="flex flex-col gap-1">
+                      <Kicker prefix="//">{party}</Kicker>
+                      <ul className="list-disc pl-4 text-[11px] leading-relaxed">
+                        {items.map((item, i) => <li key={i}>{item}</li>)}
+                      </ul>
+                    </div>
+                  ))
+              }
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* Ambiguous clauses */}
+        {a.ambiguous_clauses && a.ambiguous_clauses.length > 0 && (
+          <CollapsibleSection
+            title={`ambiguous language (${a.ambiguous_clauses.length})`}
+            badge={
+              <Badge variant="outline" className="text-[10px]">may cause disputes</Badge>
+            }
+          >
+            <div className="flex flex-col gap-1.5">
+              {a.ambiguous_clauses.map((ac, i) => (
+                <div key={i} className="flex flex-col gap-1 border border-border bg-muted/20 p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="flex-1 font-mono text-[11px] font-semibold">&ldquo;{ac.clause}&rdquo;</p>
+                    {ac.section && (
+                      <span className="font-mono text-[10px] text-muted-foreground">§{ac.section}</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">{ac.issue}</p>
+                  <p className="border-t border-border pt-1.5 text-[10px] italic leading-relaxed">
+                    <span className="font-medium not-italic">Courts: </span>
+                    {ac.interpretation}
+                  </p>
                 </div>
               ))}
             </div>
@@ -457,6 +560,8 @@ export function ExplainerCard({ result }: { result: LexExplainResult }) {
 // ─── Legal research card ─────────────────────────────────────────────────────
 
 export function LegalResearchCard({ result }: { result: LexLegalResearchResult }) {
+  const hasRefs = (result.references?.length ?? 0) + (result.relevant_cases?.length ?? 0) > 0
+
   return (
     <AgentCard size="sm">
       <AgentCard.Header
@@ -469,26 +574,32 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-[11px] leading-relaxed">{result.summary}</p>
+        <p className="text-[12px] leading-relaxed">{result.answer}</p>
 
-        {result.applicable_laws.length > 0 && (
-          <InfoSection label="applicable laws" bullets={result.applicable_laws} />
-        )}
-        {result.key_requirements.length > 0 && (
-          <InfoSection label="key requirements" bullets={result.key_requirements} />
-        )}
-        {result.practical_guidance.length > 0 && (
-          <InfoSection label="practical guidance" bullets={result.practical_guidance} />
-        )}
+        {result.sections?.map((section, i) => {
+          if (!section.items?.length) return null
+          if (section.type === "ordered") {
+            return <InfoSection key={i} label={section.title} ordered={section.items} />
+          }
+          if (section.type === "narrative") {
+            return (
+              <div key={i} className="flex flex-col gap-1.5">
+                <Kicker prefix="//">{section.title}</Kicker>
+                <p className="text-[11px] leading-relaxed">{section.items[0]}</p>
+              </div>
+            )
+          }
+          return <InfoSection key={i} label={section.title} bullets={section.items} />
+        })}
 
-        {result.relevant_cases.length > 0 && (
+        {hasRefs && (
           <Collapsible>
             <CollapsibleTrigger className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
-              Show relevant cases ({result.relevant_cases.length})
+              References & cases
             </CollapsibleTrigger>
             <CollapsibleContent>
               <ul className="mt-1 list-disc pl-4 text-[11px] leading-relaxed">
-                {result.relevant_cases.map((c, i) => (
+                {[...(result.references ?? []), ...(result.relevant_cases ?? [])].map((c, i) => (
                   <li key={i}>{c}</li>
                 ))}
               </ul>
@@ -497,9 +608,7 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
         )}
 
         {result.jurisdiction_notes && (
-          <p className="rounded border border-border bg-muted/30 px-2 py-1 text-[11px] italic">
-            Jurisdiction: {result.jurisdiction_notes}
-          </p>
+          <p className="text-[10px] italic text-muted-foreground">{result.jurisdiction_notes}</p>
         )}
       </AgentCard.Body>
     </AgentCard>

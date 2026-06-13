@@ -27,17 +27,17 @@ export const patchOrgMemory = async (
     goals?: string[]
     product?: string
     decisions?: string[]
-    user_preferences?: string[]
-    running_summary?: string
+    userPreferences?: string[]
+    runningSummary?: string
   }
 ) => {
-  const { running_summary, ...memPatch } = patch
+  const { runningSummary, ...memPatch } = patch
   const existing = await repo.findOrgMemory(organizationId)
   const mergedSharedMemory = Object.keys(memPatch).length > 0
     ? { ...((existing?.sharedMemory as object) ?? {}), ...memPatch }
     : undefined
   return repo.upsertOrgMemory(organizationId, {
-    ...(running_summary !== undefined && { runningSummary: running_summary }),
+    ...(runningSummary !== undefined && { runningSummary }),
     ...(mergedSharedMemory !== undefined && { sharedMemory: mergedSharedMemory }),
   })
 }

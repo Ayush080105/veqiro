@@ -11,6 +11,6 @@ export const patchOrgMemorySchema = z.object({
   goals: z.array(z.string()).optional(),
   product: z.string().optional(),
   decisions: z.array(z.string()).optional(),
-  user_preferences: z.array(z.string()).optional(),
-  running_summary: z.string().optional(),
+  userPreferences: z.array(z.string()).optional(),
+  runningSummary: z.string().optional(),
 })
