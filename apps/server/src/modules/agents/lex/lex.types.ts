@@ -4,6 +4,7 @@ import {
   finalizeSourceSchema,
   analyzeContractSchema,
   draftDocumentSchema,
+  exportDocumentSchema,
   explainSchema,
   legalResearchSchema,
   complianceCheckSchema,
@@ -14,6 +15,7 @@ export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type FinalizeSourceInput = z.infer<typeof finalizeSourceSchema>;
 export type AnalyzeContractInput = z.infer<typeof analyzeContractSchema>;
 export type DraftDocumentInput = z.infer<typeof draftDocumentSchema>;
+export type ExportDocumentInput = z.infer<typeof exportDocumentSchema>;
 export type ExplainInput = z.infer<typeof explainSchema>;
 export type LegalResearchInput = z.infer<typeof legalResearchSchema>;
 export type ComplianceCheckInput = z.infer<typeof complianceCheckSchema>;
@@ -153,6 +155,12 @@ export interface DraftDocumentResponse {
   review_notes: string[];
   tokens_used?: number;
   model_used?: string;
+}
+
+export interface ExportDocumentResponse {
+  file_b64: string;
+  mime_type: string;
+  filename: string;
 }
 
 export interface ExplainResponse {

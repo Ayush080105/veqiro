@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   Mail,
   PenLine,
+  Loader2,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,7 @@ import { InfoSection } from "@/components/ui/info-section"
 import { Kicker } from "@/components/ui/kicker"
 import { StatusPill } from "@/components/ui/status-pill"
 import { cn } from "@/lib/utils"
+import { exportLexDocument } from "@/lib/api/lex"
 import type {
   LexUploadSourceResult,
   LexAnalyzeContractResult,
@@ -481,30 +483,78 @@ export function ContractAnalysisCard({
 // ─── Draft document card ─────────────────────────────────────────────────────
 
 export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }) {
-  const download = () => {
-    const blob = new Blob([result.document], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "lex-draft.md"
-    a.click()
-    URL.revokeObjectURL(url)
+  const [downloading, setDownloading] = React.useState<"docx" | "pdf" | null>(null)
+
+  const docTitle =
+    result.document
+      .split("\n")
+      .find((line) => line.trim().length > 0)
+      ?.trim() ?? "Legal Document"
+
+  const handleExport = async (format: "docx" | "pdf") => {
+    setDownloading(format)
+    try {
+      const data = await exportLexDocument({ document: result.document, format, documentType: docTitle })
+      const binary = atob(data.file_b64)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const blob = new Blob([bytes], { type: data.mime_type })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = data.filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error("Export failed. Please try again.")
+    } finally {
+      setDownloading(null)
+    }
   }
+
   return (
     <AgentCard size="sm">
       <AgentCard.Header icon={<FilePlus />} title="Drafted document" />
       <AgentCard.Body className="flex flex-col gap-3">
-        <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap border border-border bg-muted/20 p-2 font-mono text-[11px] leading-relaxed">
-          {result.document}
-        </pre>
+        <div className="max-h-96 overflow-y-auto rounded border border-border bg-white dark:bg-card px-5 py-4 shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)]">
+          <div
+            className="whitespace-pre-wrap text-[11.5px] leading-relaxed text-foreground"
+            style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}
+          >
+            {result.document}
+          </div>
+        </div>
         {result.review_notes.length > 0 && (
           <InfoSection label="review notes" bullets={result.review_notes} />
         )}
       </AgentCard.Body>
       <AgentCard.Footer>
         <CopyButton text={result.document} />
-        <Button variant="outline" size="xs" onClick={download}>
-          <Download data-icon="inline-start" /> Download
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={() => handleExport("docx")}
+          disabled={downloading !== null}
+        >
+          {downloading === "docx" ? (
+            <Loader2 className="animate-spin" data-icon="inline-start" />
+          ) : (
+            <Download data-icon="inline-start" />
+          )}
+          DOCX
+        </Button>
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={() => handleExport("pdf")}
+          disabled={downloading !== null}
+        >
+          {downloading === "pdf" ? (
+            <Loader2 className="animate-spin" data-icon="inline-start" />
+          ) : (
+            <Download data-icon="inline-start" />
+          )}
+          PDF
         </Button>
       </AgentCard.Footer>
     </AgentCard>

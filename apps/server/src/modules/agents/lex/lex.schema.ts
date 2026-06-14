@@ -36,6 +36,12 @@ export const draftDocumentSchema = z.object({
   additionalClauses: z.array(z.string()).max(20).optional().default([]),
 });
 
+export const exportDocumentSchema = z.object({
+  document: z.string().min(1).max(200000),
+  format: z.enum(["docx", "pdf"]),
+  documentType: z.string().max(100).optional().default("Legal Document"),
+});
+
 export const explainSchema = z.object({
   text: z.string().min(1).max(10000),
   context: z.string().max(2000).nullable().optional(),

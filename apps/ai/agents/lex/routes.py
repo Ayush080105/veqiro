@@ -1,6 +1,10 @@
+import io
+import re
+import base64
 import json
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
@@ -780,6 +784,316 @@ async def query_document(request: QueryDocumentRequest) -> QueryDocumentResponse
     return QueryDocumentResponse(answer=answer, sources=sources, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
+# ── Draft document helpers ────────────────────────────────────────────────────
+
+def _get_draft_review_notes(document_type: str, jurisdiction: str, additional_clauses: list[str]) -> list[str]:
+    doc_lower = document_type.lower()
+    notes: list[str] = []
+
+    # ── Binding legal documents ────────────────────────────────────────────────
+    is_binding = any(k in doc_lower for k in (
+        "agreement", "contract", "nda", "non-disclosure", "confidentiality",
+        "saas", "service agreement", "shareholder", "founder", "vendor",
+        "supplier", "license", "lease", "terms of service", "terms and conditions",
+        "mou", "memorandum", "deed", "settlement", "indemnity",
+    ))
+    if is_binding:
+        notes.append("TEMPLATE ONLY — consult a qualified attorney before signing or distributing")
+
+    # ── Letters ───────────────────────────────────────────────────────────────
+    if any(k in doc_lower for k in ("resignation", "resign")):
+        notes += [
+            "Fill in the employee's full last name and any remaining [BRACKET] fields",
+            "Confirm the exact last working day — check your employment contract's required notice period",
+            "Review the reason stated — consider whether to keep, soften, or omit specific reasons before sending",
+            "Verify whether HR requires a separate clearance or handover checklist",
+            "Keep a signed or sent copy for your personal records",
+        ]
+    elif any(k in doc_lower for k in ("offer letter", "job offer")):
+        notes += [
+            "Confirm all compensation figures (salary, bonus) are accurate before sending",
+            "Verify the start date, role title, and reporting line",
+            "Reference your equity/option plan document if applicable",
+            "Have HR or legal review before sending to the candidate",
+        ]
+    elif any(k in doc_lower for k in ("demand letter", "legal notice", "cease and desist")):
+        notes += [
+            "Verify the recipient's full legal name and mailing address",
+            "Confirm all factual claims are accurate and can be documented",
+            "Set a realistic response deadline (typically 10–30 days)",
+            "Send via certified mail and retain proof of delivery",
+            "Have an attorney review before sending — a poorly worded demand can undermine your position",
+        ]
+    elif "cover letter" in doc_lower:
+        notes += [
+            "Personalise the opening paragraph to reference the specific role and company",
+            "Ensure your contact details and the hiring manager's name are correct",
+            "Tailor the skills highlighted to match the job description",
+        ]
+    elif any(k in doc_lower for k in ("recommendation letter", "reference letter")):
+        notes += [
+            "Confirm the subject's name, role, and dates of association are correct",
+            "Add specific examples or achievements to make the letter more credible",
+            "Include your title and contact details so the recipient can verify",
+        ]
+
+    # ── Contracts & agreements ────────────────────────────────────────────────
+    elif any(k in doc_lower for k in ("nda", "non-disclosure", "confidentiality")):
+        notes += [
+            "Fill in full legal names and entity types (LLC, Inc., Ltd.) for both parties",
+            "Specify the exact confidentiality period — standard range is 2–5 years",
+            "Define the scope of 'Confidential Information' to match what you'll actually share",
+            "Add a DPA clause if sharing personal data (GDPR/CCPA may apply)",
+            "Confirm the governing law matches where your business is registered",
+        ]
+    elif any(k in doc_lower for k in ("employment contract", "employment agreement")):
+        notes += [
+            "Confirm compensation, start date, and role title are accurate",
+            "Verify IP assignment clause compliance with your state's law",
+            "Review non-compete scope — many US states (CA, MN, ND) restrict or ban them",
+            "Confirm at-will / probation language matches your local employment law",
+            "Add equity or bonus details referencing a separate option plan if applicable",
+        ]
+    elif any(k in doc_lower for k in ("saas", "software", "service agreement", "subscription")):
+        notes += [
+            "Confirm SLA uptime percentage and credit/remedy structure",
+            "Check liability cap — typically tied to fees paid in the prior 12 months",
+            "Add a DPA if you handle EU/UK personal data",
+            "Verify auto-renewal window and the required cancellation notice period",
+        ]
+    elif any(k in doc_lower for k in ("founder", "co-founder", "shareholder")):
+        notes += [
+            "Confirm equity split percentages and vesting schedule (common: 4-year with 1-year cliff)",
+            "Review IP assignment — all pre-existing relevant IP must be assigned to the company",
+            "Verify drag-along and tag-along rights align with your cap table intentions",
+            "Each party should have this reviewed by independent counsel before signing",
+        ]
+    elif any(k in doc_lower for k in ("vendor", "supplier", "procurement", "purchase order")):
+        notes += [
+            "Confirm payment terms (Net 30/60) and any late payment penalty rate",
+            "Review indemnification — ensure it is mutual and proportionate",
+            "Add acceptance testing criteria for software or physical deliverables",
+            "Confirm warranty period and remedy for defective deliverables",
+        ]
+
+    # ── Notices, memos, policies ──────────────────────────────────────────────
+    elif any(k in doc_lower for k in ("notice", "memo", "memorandum", "circular")):
+        notes += [
+            "Verify the To / From / Date fields are filled in correctly",
+            "Confirm the subject line accurately describes the purpose",
+            "Review the action items or deadlines stated and ensure they are achievable",
+        ]
+    elif any(k in doc_lower for k in ("privacy policy", "terms of service", "cookie policy", "refund policy")):
+        notes += [
+            "Have a lawyer review before publishing — policy documents can create legal obligations",
+            "Confirm data types collected and retention periods are accurately described",
+            "Verify compliance with applicable regulations (GDPR, CCPA, etc.) for your user base",
+            "Keep a version history and update the 'last updated' date whenever you change the policy",
+        ]
+
+    # ── Generic fallback ──────────────────────────────────────────────────────
+    else:
+        notes += [
+            "Fill in all [BRACKET] placeholders before using or sending this document",
+            "Review all names, dates, and factual details for accuracy",
+            "Adjust the tone or any specific language to fit your exact situation",
+        ]
+        if is_binding:
+            notes += [
+                "Verify the governing law and jurisdiction clause match your intended forum",
+                "Review any liability, indemnification, or penalty clauses carefully",
+            ]
+
+    if additional_clauses:
+        notes.append(
+            f"Requested elements ({', '.join(additional_clauses[:3])}) have been included — verify they fit your situation"
+        )
+
+    if is_binding:
+        if "india" in jurisdiction.lower():
+            notes.append("Indian law document — confirm stamp duty requirements for your state before execution")
+        elif "uk" in jurisdiction.lower() or "england" in jurisdiction.lower():
+            notes.append("UK law document — confirm post-Brexit cross-border implications if any EU parties are involved")
+        elif "eu" in jurisdiction.lower() or "europe" in jurisdiction.lower():
+            notes.append("EU-governed document — GDPR Article 28 DPA is likely required; verify with your DPO")
+
+    return notes
+
+
+def _parse_document_sections(text: str) -> list[dict]:
+    """Classify each line of a legal document for structured rendering."""
+    lines = text.split("\n")
+    sections: list[dict] = []
+    in_signature = False
+    found_title = False
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            sections.append({"type": "blank", "text": ""})
+            continue
+
+        if re.match(r"^(IN WITNESS WHEREOF|SIGNED BY|SIGNATURE PAGE|EXECUTED AS OF)", stripped, re.IGNORECASE):
+            in_signature = True
+
+        if in_signature:
+            sections.append({"type": "signature", "text": stripped})
+            continue
+
+        if re.match(r"^\d+(\.\d+)*\.?\s+[A-Z]", stripped):
+            sections.append({"type": "heading", "text": stripped})
+            continue
+
+        is_upper = stripped == stripped.upper() and re.search(r"[A-Z]", stripped) and len(stripped) > 3
+        if is_upper and not found_title:
+            sections.append({"type": "title", "text": stripped})
+            found_title = True
+            continue
+        if is_upper and len(stripped.split()) <= 10:
+            sections.append({"type": "heading", "text": stripped})
+            continue
+
+        if re.match(r"^\([a-z]\)\s", stripped):
+            sections.append({"type": "subitem", "text": stripped})
+            continue
+
+        sections.append({"type": "body", "text": stripped})
+
+    return sections
+
+
+def _generate_docx(document_text: str, document_type: str) -> bytes:
+    from docx import Document as DocxDocument
+    from docx.shared import Inches, Pt
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = DocxDocument()
+    for section in doc.sections:
+        section.left_margin = Inches(1.25)
+        section.right_margin = Inches(1.25)
+        section.top_margin = Inches(1.0)
+        section.bottom_margin = Inches(1.0)
+
+    normal = doc.styles["Normal"]
+    normal.font.name = "Times New Roman"
+    normal.font.size = Pt(12)
+
+    parsed = _parse_document_sections(document_text)
+    sig_lines: list[str] = []
+
+    for s in parsed:
+        if s["type"] == "blank":
+            continue
+        elif s["type"] == "title":
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(s["text"])
+            run.bold = True
+            run.font.size = Pt(14)
+            run.font.name = "Times New Roman"
+            p.paragraph_format.space_after = Pt(6)
+        elif s["type"] == "heading":
+            p = doc.add_paragraph()
+            run = p.add_run(s["text"])
+            run.bold = True
+            run.font.name = "Times New Roman"
+            run.font.size = Pt(12)
+            p.paragraph_format.space_before = Pt(10)
+            p.paragraph_format.space_after = Pt(4)
+        elif s["type"] == "subitem":
+            p = doc.add_paragraph(s["text"])
+            p.paragraph_format.left_indent = Inches(0.3)
+            p.runs[0].font.name = "Times New Roman"
+        elif s["type"] == "signature":
+            sig_lines.append(s["text"])
+        else:
+            p = doc.add_paragraph(s["text"])
+            p.paragraph_format.space_after = Pt(4)
+            if p.runs:
+                p.runs[0].font.name = "Times New Roman"
+
+    if sig_lines:
+        doc.add_paragraph()
+        for line in sig_lines:
+            p = doc.add_paragraph(line)
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(2)
+            if p.runs:
+                p.runs[0].font.name = "Times New Roman"
+
+    footer_para = doc.sections[0].footer.paragraphs[0]
+    footer_para.text = "CONFIDENTIAL — TEMPLATE ONLY — Consult a qualified attorney before use"
+    footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def _generate_pdf(document_text: str, document_type: str) -> bytes:
+    from reportlab.lib.pagesizes import LETTER
+    from reportlab.lib.units import inch
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+
+    def _esc(t: str) -> str:
+        return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    buf = io.BytesIO()
+    doc_template = SimpleDocTemplate(
+        buf, pagesize=LETTER,
+        leftMargin=1.25 * inch, rightMargin=1.25 * inch,
+        topMargin=1.0 * inch, bottomMargin=0.9 * inch,
+    )
+
+    base = getSampleStyleSheet()["Normal"]
+    title_style = ParagraphStyle("LexTitle", parent=base, fontName="Times-Bold",
+                                  fontSize=14, alignment=TA_CENTER, spaceAfter=10)
+    heading_style = ParagraphStyle("LexHeading", parent=base, fontName="Times-Bold",
+                                    fontSize=12, alignment=TA_LEFT, spaceBefore=12, spaceAfter=5)
+    body_style = ParagraphStyle("LexBody", parent=base, fontName="Times-Roman",
+                                 fontSize=12, alignment=TA_JUSTIFY, spaceAfter=5, leading=17)
+    sub_style = ParagraphStyle("LexSub", parent=base, fontName="Times-Roman",
+                                fontSize=12, alignment=TA_LEFT, leftIndent=18, spaceAfter=4, leading=17)
+
+    parsed = _parse_document_sections(document_text)
+    story = []
+    sig_lines: list[str] = []
+
+    for s in parsed:
+        if s["type"] == "blank":
+            story.append(Spacer(1, 5))
+        elif s["type"] == "title":
+            story.append(Paragraph(_esc(s["text"]), title_style))
+        elif s["type"] == "heading":
+            story.append(Paragraph(_esc(s["text"]), heading_style))
+        elif s["type"] == "subitem":
+            story.append(Paragraph(_esc(s["text"]), sub_style))
+        elif s["type"] == "signature":
+            sig_lines.append(s["text"])
+        else:
+            story.append(Paragraph(_esc(s["text"]), body_style))
+
+    if sig_lines:
+        story.append(Spacer(1, 20))
+        for line in sig_lines:
+            story.append(Paragraph(_esc(line), body_style))
+
+    def _footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Times-Italic", 8)
+        canvas.drawCentredString(
+            LETTER[0] / 2, 0.5 * inch,
+            "CONFIDENTIAL — TEMPLATE ONLY — Consult a qualified attorney before use",
+        )
+        canvas.drawRightString(LETTER[0] - 1.25 * inch, 0.5 * inch, f"Page {doc.page}")
+        canvas.restoreState()
+
+    doc_template.build(story, onFirstPage=_footer, onLaterPages=_footer)
+    return buf.getvalue()
+
+
 @router.post("/draft-document", response_model=DraftDocumentResponse, summary="Draft legal document")
 async def draft_document(request: DraftDocumentRequest) -> DraftDocumentResponse:
     """Draft a legal document template based on requirements."""
@@ -839,19 +1153,80 @@ Date: ______________________           Date: ______________________
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
+    doc_prompt = (
+        f"Draft a complete, professional {request.document_type}.\n\n"
+        f"REQUIREMENTS:\n{request.requirements}\n\n"
+        f"JURISDICTION: {request.jurisdiction}\n"
+        f"ADDITIONAL ELEMENTS: {', '.join(request.additional_clauses) if request.additional_clauses else 'None'}\n\n"
+        "CRITICAL RULE: Use the format that is natural and standard for this specific document type.\n"
+        "Do NOT impose a legal contract structure on every document. Match the format to what the document actually is:\n\n"
+        "• Letter (resignation, offer, demand, cover, recommendation):\n"
+        "  - Standard letter format: sender info, date, recipient info, subject line, greeting, body paragraphs, closing, signature\n"
+        "  - Do NOT use numbered clauses. Do NOT write 'by and between' preambles. Write naturally like a real letter.\n\n"
+        "• Legal agreement or contract (NDA, employment contract, SaaS agreement, shareholder agreement, vendor contract):\n"
+        "  - Title in ALL CAPS, 'by and between' party preamble, numbered sections with ALL-CAPS headings\n"
+        "  - Full two-party signature block at the end\n\n"
+        "• Policy document (privacy policy, terms of service, code of conduct, refund policy):\n"
+        "  - Numbered or headed sections, formal but readable prose, no bilateral party preamble\n\n"
+        "• Notice or memo (termination notice, eviction notice, board resolution, HR memo):\n"
+        "  - Appropriate header (To / From / Date / Re:), concise factual body, single-signature block if needed\n\n"
+        "• Any other document: use whatever format professionals in that field actually use.\n\n"
+        "ALWAYS:\n"
+        "- Write complete, substantive content — not stubs or one-liners\n"
+        "- Use [BRACKETS] only for specific details the user must fill in (names, dates, amounts)\n"
+        "- Output ONLY the document itself — no intro line, no closing comment, no markdown fences"
+    )
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
         system=system,
-        messages=[{"role": "user", "content": f"Draft a {request.document_type} with these requirements:\n{request.requirements}\nJurisdiction: {request.jurisdiction}\nAdditional clauses needed: {request.additional_clauses}"}],
+        messages=[{"role": "user", "content": doc_prompt}],
         max_tokens=4096,
     )
-    tokens_used = _llm.count_tokens(raw)
+    document_text = raw.strip()
+    tokens_used = _llm.count_tokens(document_text)
     return DraftDocumentResponse(
-        document=raw,
-        review_notes=["TEMPLATE ONLY — requires customization before use"],
+        document=document_text,
+        review_notes=_get_draft_review_notes(
+            request.document_type, request.jurisdiction, request.additional_clauses
+        ),
         tokens_used=tokens_used,
         model_used=_agent.default_model,
     )
+
+
+# ── Export document ───────────────────────────────────────────────────────────
+
+class ExportDocumentRequest(BaseModel):
+    document: str
+    format: Literal["docx", "pdf"]
+    document_type: str = "Legal Document"
+
+
+class ExportDocumentResponse(BaseModel):
+    file_b64: str
+    mime_type: str
+    filename: str
+
+
+@router.post("/export-document", response_model=ExportDocumentResponse, summary="Export document as DOCX or PDF")
+async def export_document(request: ExportDocumentRequest) -> ExportDocumentResponse:
+    """Convert a drafted legal document to a formatted DOCX or PDF binary."""
+    safe_name = re.sub(r"[^\w\s-]", "", request.document_type).strip().replace(" ", "_").lower() or "legal_document"
+
+    if request.format == "docx":
+        binary = _generate_docx(request.document, request.document_type)
+        return ExportDocumentResponse(
+            file_b64=base64.b64encode(binary).decode(),
+            mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=f"lex_{safe_name}.docx",
+        )
+    else:
+        binary = _generate_pdf(request.document, request.document_type)
+        return ExportDocumentResponse(
+            file_b64=base64.b64encode(binary).decode(),
+            mime_type="application/pdf",
+            filename=f"lex_{safe_name}.pdf",
+        )
 
 
 @router.post("/explain", response_model=ExplainResponse, summary="Explain legal text")

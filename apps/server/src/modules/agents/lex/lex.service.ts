@@ -20,6 +20,8 @@ import type {
   AnalyzeContractResponse,
   DraftDocumentInput,
   DraftDocumentResponse,
+  ExportDocumentInput,
+  ExportDocumentResponse,
   ExplainInput,
   ExplainResponse,
   LegalResearchInput,
@@ -407,6 +409,20 @@ export const draftDocument = async (
     customInput: { actionId: "lex:draft-document", input, result: data },
   });
 
+  return data;
+};
+
+export const exportDocument = async (
+  input: ExportDocumentInput
+): Promise<ExportDocumentResponse> => {
+  const { data } = await aiService.post<ExportDocumentResponse>(
+    "/ai/lex/export-document",
+    {
+      document: input.document,
+      format: input.format,
+      document_type: input.documentType,
+    }
+  );
   return data;
 };
 

@@ -7,6 +7,7 @@ import {
   deleteSource,
   analyzeContract,
   draftDocument,
+  exportDocument,
   explain,
   legalResearch,
   complianceCheck,
@@ -26,6 +27,7 @@ router.delete("/sources/:id", deleteSource);
 router.post("/analyze-contract", analyzeContract);
 router.post("/query-document", queryDocument);
 router.post("/draft-document", draftDocument);
+router.post("/export-document", exportDocument);
 router.post("/explain", explain);
 router.post("/legal-research", legalResearch);
 router.post("/compliance-check", complianceCheck);

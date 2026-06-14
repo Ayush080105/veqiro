@@ -33,6 +33,7 @@ tiktoken
 PyPDF2
 pillow
 python-docx
+reportlab
 
 # ── Google APIs (Vega agent) ──────────────────────────────────────────────────
 google-api-python-client

@@ -5,6 +5,7 @@ import {
   finalizeSourceSchema,
   analyzeContractSchema,
   draftDocumentSchema,
+  exportDocumentSchema,
   explainSchema,
   legalResearchSchema,
   complianceCheckSchema,
@@ -77,6 +78,13 @@ export const draftDocument = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = draftDocumentSchema.parse(req.body);
   const result = await lexService.draftDocument(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const exportDocument = async (req: Request, res: Response) => {
+  requireAuthContext(req);
+  const input = exportDocumentSchema.parse(req.body);
+  const result = await lexService.exportDocument(input);
   res.status(StatusCodes.OK).json(result);
 };
 

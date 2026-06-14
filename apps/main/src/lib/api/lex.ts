@@ -92,3 +92,18 @@ export function useDeleteLexSource() {
     },
   })
 }
+
+export async function exportLexDocument(input: {
+  document: string
+  format: "docx" | "pdf"
+  documentType?: string
+}): Promise<{ file_b64: string; mime_type: string; filename: string }> {
+  return apiFetch("/agents/lex/export-document", {
+    method: "POST",
+    body: {
+      document: input.document,
+      format: input.format,
+      documentType: input.documentType ?? "Legal Document",
+    },
+  })
+}
