@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Search } from "lucide-react"
@@ -80,18 +80,58 @@ function previewLine(
   return fallback ?? "No messages yet"
 }
 
+function useUnreadTracker(
+  lastMap: Record<string, LastMessage | null> | undefined,
+  pathname: string,
+): Set<string> {
+  const [unreadSet, setUnreadSet] = useState<Set<string>>(new Set())
+
+  // Mark current agent as read when pathname changes to /assistants/[id]
+  useEffect(() => {
+    const match = pathname.match(/^\/assistants\/(\w+)$/)
+    if (!match) return
+    const id = match[1]
+    try {
+      localStorage.setItem(`vq.lastRead.${id}`, String(Date.now()))
+    } catch {}
+    setUnreadSet((prev) => {
+      const s = new Set(prev)
+      s.delete(id)
+      return s
+    })
+  }, [pathname])
+
+  // Recompute unread set whenever lastMap updates
+  useEffect(() => {
+    if (!lastMap) return
+    const unread = new Set<string>()
+    for (const [id, msg] of Object.entries(lastMap)) {
+      if (!msg || msg.role !== "assistant") continue
+      try {
+        const lastRead = Number(localStorage.getItem(`vq.lastRead.${id}`) ?? 0)
+        if (new Date(msg.createdAt).getTime() > lastRead) unread.add(id)
+      } catch {}
+    }
+    setUnreadSet(unread)
+  }, [lastMap])
+
+  return unreadSet
+}
+
 function AgentRow({
   agent,
   active,
   status,
   last,
   isTyping,
+  unread,
 }: {
   agent: AgentConfig
   active: boolean
   status: AgentStatusData | undefined
   last: LastMessage | null
   isTyping: boolean
+  unread: boolean
 }) {
   const photo = AGENT_PHOTOS[agent.id]
   const dot = isTyping ? "#F5C518" : STATUS_DOT[status?.status ?? "idle"]
@@ -106,24 +146,23 @@ function AgentRow({
         alignItems: "center",
         gap: 12,
         padding: "12px 14px",
-        background: active ? "#FFF9ED" : "transparent",
-        borderTop: "2px solid #111",
+        background: active ? "#EEF6F1" : "transparent",
+        borderBottom: "1px solid #E5DCC8",
         textDecoration: "none",
         color: "#111",
         position: "relative",
+        transition: "background 120ms",
       }}
     >
       <div
         style={{
-          width: 48,
-          height: 48,
+          width: 46,
+          height: 46,
           borderRadius: "50%",
           overflow: "hidden",
-          border: "2.5px solid #111",
+          border: "none",
           background: agent.color,
           flexShrink: 0,
-          boxShadow: active ? "3px 3px 0 #111" : "2px 2px 0 #111",
-          transform: active ? "translate(-1px,-1px)" : "none",
         }}
       >
         {photo ? (
@@ -174,7 +213,7 @@ function AgentRow({
               style={{
                 fontFamily: FONT.mono,
                 fontSize: 10,
-                letterSpacing: 1,
+                letterSpacing: "0.3px",
                 color: "#666",
                 flexShrink: 0,
               }}
@@ -187,7 +226,7 @@ function AgentRow({
           style={{
             fontFamily: FONT.mono,
             fontSize: 10,
-            letterSpacing: 1.5,
+            letterSpacing: "1px",
             textTransform: "uppercase",
             color: "#666",
             marginTop: 1,
@@ -228,6 +267,27 @@ function AgentRow({
           >
             {isTyping ? <TypingDots /> : preview}
           </span>
+          {unread && !active && (
+            <span
+              style={{
+                flexShrink: 0,
+                minWidth: 18,
+                height: 18,
+                borderRadius: 999,
+                background: "#1DBC87",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                display: "grid",
+                placeItems: "center",
+                fontFamily: FONT.mono,
+                fontSize: 9,
+                fontWeight: 700,
+                color: "#fff",
+                paddingInline: 4,
+              }}
+            >
+              1
+            </span>
+          )}
         </div>
       </div>
     </Link>
@@ -242,6 +302,7 @@ export default function ChatList() {
   const { data: statuses } = useAgentStatuses(organizationId)
   const { data: lastMap } = useLastMessages()
   const [query, setQuery] = useState("")
+  const unreadSet = useUnreadTracker(lastMap, pathname)
 
   // Detect which agents have an in-flight sendMessage mutation.
   // useMutationState lives on the QueryClient so it survives navigation.
@@ -267,53 +328,42 @@ export default function ChatList() {
   return (
     <aside
       style={{
-        width: 340,
-        flexShrink: 0,
-        borderRight: "3px solid #111",
-        background: "#EFE7D6",
+        background: "#FFF9ED",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        width: "100%",
+        height: "100%",
       }}
     >
       <div
         style={{
-          padding: "18px 16px 12px",
-          borderBottom: "2px solid #111",
-          background: "#F5C518",
+          padding: "16px 16px 12px",
+          borderBottom: "1px solid #D4C9B0",
+          background: "#FFF9ED",
         }}
       >
         <h2
           style={{
-            fontFamily: FONT.display,
-            fontSize: 28,
+            fontFamily: FONT.head,
+            fontSize: 20,
             margin: 0,
-            letterSpacing: -1,
+            fontWeight: 700,
             color: "#111",
             lineHeight: 1,
           }}
         >
-          assistants
+          Assistants
         </h2>
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#111",
-            opacity: 0.7,
-            marginTop: 4,
-          }}
-        >
+        <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>
           your crew of six
         </div>
       </div>
 
       <div
         style={{
-          padding: "10px 12px",
-          borderBottom: "2px solid #111",
+          padding: "8px 12px",
+          borderBottom: "1px solid #D4C9B0",
           background: "#FFF9ED",
         }}
       >
@@ -322,14 +372,13 @@ export default function ChatList() {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: "#fff",
-            border: "2px solid #111",
+            background: "#EFE7D6",
+            border: "1px solid #D4C9B0",
             borderRadius: 999,
-            padding: "8px 14px",
-            boxShadow: "2px 2px 0 #111",
+            padding: "7px 14px",
           }}
         >
-          <Search className="size-4" style={{ color: "#666" }} />
+          <Search className="size-4" style={{ color: "#999" }} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -358,6 +407,7 @@ export default function ChatList() {
               status={statuses?.[agent.id]}
               last={lastMap?.[agent.id] ?? null}
               isTyping={typingAgentIds.has(agent.id)}
+              unread={unreadSet.has(agent.id)}
             />
           )
         })}

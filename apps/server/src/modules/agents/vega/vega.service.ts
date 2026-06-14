@@ -160,8 +160,10 @@ export const sendMessage = async (
   };
 };
 
-export const listMessages = (organizationId: string) =>
-  vegaRepository.findAllVegaMessages(organizationId);
+export const listMessages = (
+  organizationId: string,
+  opts: { before?: string; limit?: number } = {}
+) => vegaRepository.findAllVegaMessages(organizationId, opts);
 
 const requireGoogleToken = async (userId: string): Promise<string> => {
   try {

@@ -23,7 +23,7 @@ export function CopyButton({
   label = "Copy",
   successLabel = "Copied!",
   iconOnly = false,
-  variant = "outline",
+  variant,
   size,
   className,
   ...rest
@@ -48,11 +48,14 @@ export function CopyButton({
     }
   }, [text, successLabel])
 
+  const resolvedVariant = variant ?? (iconOnly ? "ghost" : "chat-utility")
+  const resolvedSize = size ?? (iconOnly ? "icon-xs" : undefined)
+
   return (
     <Button
       type="button"
-      variant={variant}
-      size={size ?? (iconOnly ? "icon-sm" : "xs")}
+      variant={resolvedVariant}
+      size={resolvedSize}
       onClick={onCopy}
       aria-label={copied ? successLabel : label}
       className={cn(className)}

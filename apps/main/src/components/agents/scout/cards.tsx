@@ -63,7 +63,7 @@ export function ResearchReportCard({
         {/* Bottom line */}
         {result.bottom_line && (
           <div className="border-l-2 border-primary pl-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Bottom line</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground mb-1">Bottom line</p>
             <p className="text-[11px] leading-relaxed text-foreground">{result.bottom_line}</p>
           </div>
         )}
@@ -85,14 +85,14 @@ export function ResearchReportCard({
         {/* Market overview */}
         {result.market_overview && (
           <ResearchSection label="market overview">
-            <p className="text-muted-foreground">{result.market_overview}</p>
+            <p className="text-foreground">{result.market_overview}</p>
           </ResearchSection>
         )}
 
         {/* Target customers */}
         {result.target_customers && (
           <ResearchSection label="target customers">
-            <p className="text-muted-foreground">{result.target_customers}</p>
+            <p className="text-foreground">{result.target_customers}</p>
           </ResearchSection>
         )}
 
@@ -120,7 +120,7 @@ export function ResearchReportCard({
               <ResearchSection label="opportunities">
                 <ul className="flex flex-col gap-1.5">
                   {result.opportunities.map((o, i) => (
-                    <li key={i} className="flex gap-1.5 text-muted-foreground">
+                    <li key={i} className="flex gap-1.5 text-foreground">
                       <span className="mt-1 size-1.5 shrink-0 rounded-full bg-chart-2" />
                       {o}
                     </li>
@@ -132,7 +132,7 @@ export function ResearchReportCard({
               <ResearchSection label="risks & challenges">
                 <ul className="flex flex-col gap-1.5">
                   {result.risks.map((r, i) => (
-                    <li key={i} className="flex gap-1.5 text-muted-foreground">
+                    <li key={i} className="flex gap-1.5 text-foreground">
                       <span className="mt-1 size-1.5 shrink-0 rounded-full bg-destructive/70" />
                       {r}
                     </li>
@@ -161,7 +161,7 @@ export function ResearchReportCard({
           <ResearchSection label="recommended actions">
             <ol className="flex flex-col gap-1.5">
               {result.recommended_actions.map((a, i) => (
-                <li key={i} className="flex gap-2 text-muted-foreground">
+                <li key={i} className="flex gap-2 text-foreground">
                   <span className="shrink-0 font-bold text-primary">{i + 1}.</span>
                   {a}
                 </li>
@@ -184,8 +184,7 @@ export function ResearchReportCard({
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             <Button
-              variant="outline"
-              size="xs"
+              variant="chat-action"
               onClick={() => onFollowUpAction("maya:draft-content", {
                 topic: result.bottom_line?.slice(0, 500) ?? result.market_overview?.slice(0, 200) ?? "",
                 platform: "linkedin",
@@ -195,8 +194,7 @@ export function ResearchReportCard({
               <PenLine data-icon="inline-start" /> Draft post · Maya
             </Button>
             <Button
-              variant="outline"
-              size="xs"
+              variant="chat-action"
               onClick={() => onFollowUpAction("sage:content-brief", {
                 topic: result.bottom_line?.slice(0, 300) ?? "",
                 target_keyword: result.keywords_found?.[0] ?? "",
@@ -205,8 +203,7 @@ export function ResearchReportCard({
               <Sparkles data-icon="inline-start" /> Write blog brief · Sage
             </Button>
             <Button
-              variant="outline"
-              size="xs"
+              variant="chat-action"
               onClick={() => onFollowUpAction("sage:keyword-research", {
                 seed_topic: result.market_overview?.slice(0, 200) ?? result.bottom_line?.slice(0, 200) ?? "",
               })}
@@ -285,8 +282,7 @@ export function CompanyProfileCard({
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             <Button
-              variant="outline"
-              size="xs"
+              variant="chat-action"
               onClick={() => onFollowUpAction("maya:draft-content", {
                 topic: `Why we're different from ${c.name}`,
                 platform: "linkedin",
@@ -305,10 +301,10 @@ export function CompanyProfileCard({
 function FactCell({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
         {label}
       </p>
-      <p>{value}</p>
+      <p className="text-xs text-foreground">{value}</p>
     </div>
   )
 }
@@ -381,7 +377,7 @@ export function DiscoverCompetitorsCard({ result }: { result: ScoutDiscoverCompe
 function TrendSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">{label}</p>
       <div className="text-[11px] leading-relaxed text-foreground">{children}</div>
     </div>
   )
@@ -497,7 +493,7 @@ export function TrendsBoardCard({
                   )}
                   {t.content_hook && (
                     <div className="rounded border border-dashed border-border bg-background px-2.5 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Hook idea</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground mb-1">Hook idea</p>
                       <p className="text-[11px] italic text-foreground">&ldquo;{t.content_hook}&rdquo;</p>
                     </div>
                   )}
@@ -517,24 +513,22 @@ export function TrendsBoardCard({
                   {onFollowUpAction && (
                     <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-2">
                       <Button
-                        variant="outline"
-                        size="xs"
+                        variant="chat-action"
                         onClick={() => onFollowUpAction("maya:draft-content", {
                           topic: t.topic,
                           platform: "linkedin",
                           additional_context: [t.content_hook, t.why_trending, t.opportunity].filter(Boolean).join("\n"),
                         })}
                       >
-                        <PenLine data-icon="inline-start" /> Draft post · Maya
+                        <PenLine className="size-3" /> Draft post · Maya
                       </Button>
                       <Button
-                        variant="outline"
-                        size="xs"
+                        variant="chat-action"
                         onClick={() => onFollowUpAction("maya:generate-ideas", {
                           topic_hint: t.topic,
                         })}
                       >
-                        <Sparkles data-icon="inline-start" /> Generate ideas · Maya
+                        <Sparkles className="size-3" /> Generate ideas · Maya
                       </Button>
                     </div>
                   )}

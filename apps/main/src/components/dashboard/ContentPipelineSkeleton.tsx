@@ -6,13 +6,13 @@ export function ContentPipelineSkeleton() {
   return (
     <div
       style={{
-        background: "#FFF9ED",
+        background: "#D5CCBA",
         border: "3px solid #111",
         borderRadius: 16,
         boxShadow: "6px 6px 0 #111",
         padding: 20,
         display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))",
         gap: 24,
       }}
     >

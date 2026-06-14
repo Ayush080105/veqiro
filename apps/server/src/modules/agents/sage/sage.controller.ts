@@ -39,7 +39,9 @@ export const getSageMessages = async (req: Request, res: Response) => {
   if (!organizationId) {
     throw new BadRequestError("Organization ID is required");
   }
-  const messages = await sageService.listMessages(organizationId);
+  const before = req.query.before as string | undefined;
+  const limit = Math.min(Number(req.query.limit) || 20, 50);
+  const messages = await sageService.listMessages(organizationId, { before, limit });
   res.status(StatusCodes.OK).json(messages);
 };
 

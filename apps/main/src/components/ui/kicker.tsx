@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 // Mono uppercase tag used as section/eyebrow labels: "// crew status".
 // Decorative — when used as a heading, set `as="h2"`/`as="h3"` and add `aria-label` if needed.
 const kickerVariants = cva(
-  "inline-flex items-center gap-1 font-mono uppercase leading-none",
+  "inline-flex items-center gap-1 font-mono font-bold uppercase leading-none",
   {
     variants: {
       tone: {
@@ -21,7 +21,7 @@ const kickerVariants = cva(
       },
     },
     defaultVariants: {
-      tone: "default",
+      tone: "ink",
       size: "md",
     },
   }
@@ -48,7 +48,7 @@ export function Kicker({
   return (
     <Component className={cn(kickerVariants({ tone, size }), className)} {...rest}>
       {prefix !== null && (
-        <span aria-hidden className="opacity-60">
+        <span aria-hidden className="opacity-40">
           {prefix}
         </span>
       )}

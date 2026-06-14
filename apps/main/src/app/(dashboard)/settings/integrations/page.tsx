@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { CheckCircle2, XCircle, ExternalLink } from "lucide-react"
+import { CheckCircle2, XCircle, ExternalLink, UserCircle2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -105,6 +105,7 @@ function IntegrationCard({
   integration,
   account,
   connectedOverride,
+  connectedEmail,
 }: {
   integration: IntegrationDef
   account?: SocialAccount
@@ -112,11 +113,16 @@ function IntegrationCard({
    * Better Auth's `account` table, not the `social_account` table that
    * `account` here points at. The parent computes that and passes it in. */
   connectedOverride?: boolean
+  /** Email/name to display for Better Auth integrations (e.g. Google). */
+  connectedEmail?: string
 }) {
   const disconnect = useDisconnectIntegration()
   const connected = connectedOverride ?? Boolean(account)
   const isWired = Boolean(integration.platformSlug) || Boolean(integration.useBetterAuth)
   const loading = disconnect.isPending
+
+  // The display name shown in the "connected as" row
+  const accountDisplay = account?.accountName ?? account?.providerAccountId ?? connectedEmail ?? null
 
   async function handleToggle() {
     if (!isWired) {
@@ -125,10 +131,6 @@ function IntegrationCard({
     }
     try {
       if (integration.useBetterAuth) {
-        // Use an absolute URL so Better Auth doesn't resolve this against its
-        // own baseURL (the server origin) and bounce the user to port 5000.
-        // window.location.origin is the dashboard's own origin since this
-        // click can only happen here.
         await authClient.signIn.social({
           provider: "google",
           callbackURL: `${window.location.origin}/settings/integrations?connected=google`,
@@ -166,6 +168,19 @@ function IntegrationCard({
           )}
         </div>
       </CardHeader>
+
+      {/* Connected account info */}
+      {connected && accountDisplay && (
+        <div className="px-6 pb-3">
+          <div className="flex items-center gap-2 rounded-md border border-chart-2/20 bg-chart-2/8 px-2.5 py-1.5">
+            <UserCircle2 className="size-3.5 shrink-0 text-chart-2" />
+            <span className="truncate text-[11px] font-medium text-foreground">
+              {accountDisplay}
+            </span>
+          </div>
+        </div>
+      )}
+
       <CardContent className="flex items-center justify-between gap-4">
         <div className="flex flex-wrap gap-1">
           {integration.requiredBy.map((agent) => (
@@ -174,22 +189,15 @@ function IntegrationCard({
             </Badge>
           ))}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {connected && account?.accountName && (
-            <Badge variant="secondary" className="text-[10px]">
-              {account.accountName}
-            </Badge>
-          )}
-          <Button
-            variant={connected ? "outline" : "default"}
-            size="sm"
-            onClick={handleToggle}
-            disabled={loading || !isWired}
-            title={!isWired ? "Coming soon" : undefined}
-          >
-            {loading ? "…" : connected ? "Disconnect" : isWired ? "Connect" : "Coming soon"}
-          </Button>
-        </div>
+        <Button
+          variant={connected ? "outline" : "default"}
+          size="sm"
+          onClick={handleToggle}
+          disabled={loading || !isWired}
+          title={!isWired ? "Coming soon" : undefined}
+        >
+          {loading ? "…" : connected ? "Disconnect" : isWired ? "Connect" : "Coming soon"}
+        </Button>
       </CardContent>
     </Card>
   )
@@ -203,6 +211,7 @@ export default function IntegrationsPage() {
   const queryClient = useQueryClient()
   const { data: accounts = [] } = useIntegrations()
   const [linkedProviders, setLinkedProviders] = useState<Set<string>>(new Set())
+  const [googleEmail, setGoogleEmail] = useState<string | undefined>(undefined)
 
   // Better Auth's listAccounts returns the user's linked OAuth providers
   // (e.g. "google"). Polled on mount and after every connect/disconnect
@@ -212,15 +221,23 @@ export default function IntegrationsPage() {
     let cancelled = false
     void (async () => {
       try {
-        const result = await authClient.listAccounts()
-        const list = (result?.data ?? []) as Array<{
+        const [accountsResult, sessionResult] = await Promise.all([
+          authClient.listAccounts(),
+          authClient.getSession(),
+        ])
+        const list = (accountsResult?.data ?? []) as Array<{
           providerId?: string
           provider?: string
         }>
         const ids = new Set(
           list.map((a) => a.providerId ?? a.provider ?? "").filter(Boolean)
         )
-        if (!cancelled) setLinkedProviders(ids)
+        if (!cancelled) {
+          setLinkedProviders(ids)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const email = (sessionResult?.data as any)?.user?.email as string | undefined
+          if (email) setGoogleEmail(email)
+        }
       } catch {
         // Treat as not-linked; user can still click Connect.
       }
@@ -295,6 +312,7 @@ export default function IntegrationsPage() {
               integration={integration}
               account={account}
               connectedOverride={connectedOverride}
+              connectedEmail={integration.useBetterAuth ? googleEmail : undefined}
             />
           )
         })}

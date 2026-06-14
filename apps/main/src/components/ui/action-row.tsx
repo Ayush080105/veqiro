@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Download } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { CopyButton } from "@/components/ui/copy-button"
 import { cn } from "@/lib/utils"
 
@@ -38,14 +39,11 @@ export function ActionRow({
     >
       {copy && <CopyButton text={copy.text} label={copy.label} />}
       {download && (
-        <a
-          href={download.href}
-          download={download.name}
-          className="inline-flex h-6 items-center gap-1 border border-border px-2 text-xs hover:bg-muted"
-        >
-          <Download className="size-3" />
-          {download.label ?? "Download"}
-        </a>
+        <Button variant="chat-utility" asChild>
+          <a href={download.href} download={download.name}>
+            <Download /> {download.label ?? "Download"}
+          </a>
+        </Button>
       )}
       {children}
     </div>

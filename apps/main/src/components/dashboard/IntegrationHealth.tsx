@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 
-import { FONT } from "@/lib/fonts"
+import { Button } from "@/components/ui/button"
 import { useIntegrations } from "@/lib/api/integrations"
 import { useGoogleConnected } from "@/lib/api/auth-accounts"
 import type { SocialAccount } from "@/lib/api/integrations"
@@ -40,6 +40,16 @@ function platformRow(
   return { id, label, state: "connected", meta: hit.accountName ?? undefined }
 }
 
+const stateClasses: Record<
+  Row["state"],
+  { row: string; metaColor: string }
+> = {
+  connected:     { row: "bg-[#DDF5E8] border-[#1DBC87]", metaColor: "#0E5C3F" },
+  disconnected:  { row: "bg-white border-foreground",    metaColor: "#555555" },
+  expiring:      { row: "bg-[#FFEFC4] border-[#B98700]", metaColor: "#7A5A00" },
+  "coming-soon": { row: "bg-background border-foreground", metaColor: "#777777" },
+}
+
 export function IntegrationHealth() {
   const { data: accounts = [] } = useIntegrations()
   const { data: googleConnected } = useGoogleConnected()
@@ -53,131 +63,44 @@ export function IntegrationHealth() {
     platformRow("twitter", "Twitter", "TWITTER", accounts),
     platformRow("linkedin", "LinkedIn", "LINKEDIN", accounts),
     platformRow("instagram", "Instagram", "INSTAGRAM", accounts),
-    { id: "slack", label: "Slack", state: "coming-soon" },
-    { id: "notion", label: "Notion", state: "coming-soon" },
   ]
 
-  const stateStyles: Record<
-    Row["state"],
-    { bg: string; border: string; icon: React.ReactNode; text: string }
-  > = {
-    connected: {
-      bg: "#DDF5E8",
-      border: "#1DBC87",
-      icon: <CheckCircle2 className="size-3.5" style={{ color: "#0E5C3F" }} />,
-      text: "#0E5C3F",
-    },
-    disconnected: {
-      bg: "#fff",
-      border: "#111",
-      icon: <XCircle className="size-3.5" style={{ color: "#555" }} />,
-      text: "#555",
-    },
-    expiring: {
-      bg: "#FFEFC4",
-      border: "#B98700",
-      icon: <AlertTriangle className="size-3.5" style={{ color: "#7A5A00" }} />,
-      text: "#7A5A00",
-    },
-    "coming-soon": {
-      bg: "#EFE7D6",
-      border: "#111",
-      icon: null,
-      text: "#777",
-    },
-  }
-
   return (
-    <div
-      style={{
-        background: "#FFF9ED",
-        border: "3px solid #111",
-        borderRadius: 16,
-        boxShadow: "6px 6px 0 #111",
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          letterSpacing: 3,
-          textTransform: "uppercase",
-          color: "#555",
-        }}
-      >
+    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         [ integrations ]
       </div>
-      <div
-        style={{
-          fontFamily: FONT.display,
-          fontSize: 26,
-          letterSpacing: -0.5,
-          color: "#111",
-          marginTop: 2,
-          marginBottom: 12,
-        }}
-      >
+      <div className="font-display text-[26px] tracking-tight text-foreground mt-0.5 mb-3">
         plugged in?
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-        }}
-      >
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {rows.map((r) => {
-          const s = stateStyles[r.state]
+          const cls = stateClasses[r.state]
           return (
             <div
               key={r.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 10px",
-                background: s.bg,
-                border: `2px solid ${s.border}`,
-                borderRadius: 8,
-              }}
+              className={`flex items-center gap-2 px-2.5 py-2 border-2 rounded-lg ${cls.row}`}
             >
-              {s.icon}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 11,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                    color: "#111",
-                  }}
-                >
+              {r.state === "connected"    && <CheckCircle2 className="size-3.5 shrink-0" style={{ color: "#0E5C3F" }} />}
+              {r.state === "disconnected" && <XCircle className="size-3.5 shrink-0 text-muted-foreground" />}
+              {r.state === "expiring"     && <AlertTriangle className="size-3.5 shrink-0" style={{ color: "#7A5A00" }} />}
+              <div className="flex-1 min-w-0">
+                <div className="font-mono text-[11px] uppercase tracking-[0.15em] text-foreground">
                   {r.label}
                 </div>
                 {r.meta && (
                   <div
-                    style={{
-                      fontFamily: FONT.mono,
-                      fontSize: 9,
-                      color: s.text,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
+                    className="font-mono text-[9px] truncate"
+                    style={{ color: cls.metaColor }}
                   >
                     {r.meta}
                   </div>
                 )}
                 {r.state === "coming-soon" && (
                   <div
-                    style={{
-                      fontFamily: FONT.mono,
-                      fontSize: 9,
-                      color: s.text,
-                      letterSpacing: 1,
-                    }}
+                    className="font-mono text-[9px] tracking-[0.1em]"
+                    style={{ color: cls.metaColor }}
                   >
                     coming soon
                   </div>
@@ -188,26 +111,10 @@ export function IntegrationHealth() {
         })}
       </div>
 
-      <div style={{ marginTop: 14 }}>
-        <Link
-          href="/settings/integrations"
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
-            color: "#111",
-            textDecoration: "none",
-            padding: "8px 12px",
-            background: "#fff",
-            border: "2px solid #111",
-            borderRadius: 999,
-            boxShadow: "2px 2px 0 #111",
-            display: "inline-block",
-          }}
-        >
-          manage →
-        </Link>
+      <div className="mt-4 pt-3.5 border-t-2 border-foreground/10 flex justify-end">
+        <Button asChild variant="brand-ghost" size="brand-sm">
+          <Link href="/settings/integrations">manage →</Link>
+        </Button>
       </div>
     </div>
   )

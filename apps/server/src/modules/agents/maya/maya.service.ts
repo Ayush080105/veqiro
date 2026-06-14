@@ -145,8 +145,10 @@ export const sendMessage = async (
   return assistantMessage;
 };
 
-export const listMessages = (organizationId: string) =>
-  mayaRepository.findAllMayaMessages(organizationId);
+export const listMessages = (
+  organizationId: string,
+  opts: { before?: string; limit?: number } = {}
+) => mayaRepository.findAllMayaMessages(organizationId, opts);
 
 export const generateIdeas = async (
   userId: string,

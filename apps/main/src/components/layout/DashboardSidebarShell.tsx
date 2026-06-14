@@ -10,6 +10,7 @@ import {
 import { AppSidebar } from "@/components/layout/AppSidebar"
 import { AutoBreadcrumb } from "@/components/layout/AutoBreadcrumb"
 import { Separator } from "@/components/ui/separator"
+import { TrialBanner } from "@/components/billing/TrialBanner"
 
 const isAssistantsPath = (p: string) => p.startsWith("/assistants")
 
@@ -38,6 +39,7 @@ export default function DashboardSidebarShell({
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-4" />
           <AutoBreadcrumb />
+          <TrialBanner />
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 overflow-auto">
           {children}

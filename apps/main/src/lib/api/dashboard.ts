@@ -46,32 +46,12 @@ export type Range =
 export type DashboardFilters = {
   range: Range
   // `agents` is the list of slugs explicitly selected. An empty array means
-  // "no agents selected" — zero data. `undefined` / all-six-selected both
+  // "no agents selected" - zero data. `undefined` / all-six-selected both
   // mean "no agent filter".
   agents: AgentSlug[]
 }
 
 const ALL_SLUGS: AgentSlug[] = ["maya", "rex", "scout", "sage", "lex", "vega"]
-
-const EMPTY_SUMMARY: DashboardSummary = {
-  metrics: {
-    messagesWeek: 0,
-    messagesPrevWeek: 0,
-    messagesSparkline: Array(7).fill(0),
-    contentPublishedWeek: 0,
-    contentPublishedPrevWeek: 0,
-    tokensMonth: 0,
-    hoursSavedEstimate: 0,
-  },
-  activityChart: [],
-  leaderboard: [],
-  contentPipeline: {
-    byPlatform: { twitter: 0, linkedin: 0, instagram: 0 },
-    byStatus: { draft: 0, scheduled: 0, published: 0, failed: 0 },
-  },
-  recentActivity: [],
-  attention: [],
-}
 
 function formatDateOnly(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`
@@ -106,11 +86,7 @@ function cacheKey(filters: DashboardFilters): readonly unknown[] {
 export async function getDashboardSummary(
   filters: DashboardFilters,
 ): Promise<DashboardSummary> {
-  try {
-    return await apiFetch<DashboardSummary>(`/dashboard/summary?${buildQuery(filters)}`)
-  } catch {
-    return EMPTY_SUMMARY
-  }
+  return await apiFetch<DashboardSummary>(`/dashboard/summary?${buildQuery(filters)}`)
 }
 
 export function useDashboardSummary(filters: DashboardFilters) {

@@ -97,8 +97,10 @@ export const sendMessage = async (
   return assistantMessage;
 };
 
-export const listMessages = (organizationId: string) =>
-  rexRepository.findAllRexMessages(organizationId);
+export const listMessages = (
+  organizationId: string,
+  opts: { before?: string; limit?: number } = {}
+) => rexRepository.findAllRexMessages(organizationId, opts);
 
 // ── Query dataset: natural language Q&A on any uploaded CSV/Excel ─────────────
 

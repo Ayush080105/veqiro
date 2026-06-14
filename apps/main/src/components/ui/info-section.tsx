@@ -36,7 +36,7 @@ export function InfoSection({
   children,
   ...rest
 }: InfoSectionProps) {
-  const kickerTone = tone === "danger" ? "ink" : "default"
+  const kickerTone = tone === "danger" ? "ink" : "ink"
   return (
     <section className={cn("flex flex-col gap-1.5", className)} {...rest}>
       <Kicker
@@ -47,19 +47,19 @@ export function InfoSection({
         {label}
       </Kicker>
       {markdown && (
-        <p className="whitespace-pre-wrap font-body text-[12px] leading-relaxed text-foreground/90">
+        <p className="whitespace-pre-wrap font-body text-sm leading-relaxed text-foreground">
           {markdown}
         </p>
       )}
       {bullets && bullets.length > 0 && (
-        <ul className="m-0 list-disc pl-4 text-[11px] leading-relaxed">
+        <ul className="m-0 list-disc pl-4 text-xs leading-relaxed">
           {bullets.map((b, i) => (
             <li key={i}>{b}</li>
           ))}
         </ul>
       )}
       {ordered && ordered.length > 0 && (
-        <ol className="m-0 list-decimal pl-4 text-[11px] leading-relaxed">
+        <ol className="m-0 list-decimal pl-4 text-xs leading-relaxed">
           {ordered.map((b, i) => (
             <li key={i}>{b}</li>
           ))}
@@ -70,7 +70,7 @@ export function InfoSection({
           {items.map((item, i) => (
             <li
               key={i}
-              className="flex items-start gap-2 border-l-2 border-foreground/30 pl-2 text-[12px] leading-snug"
+              className="flex items-start gap-2 border-l-2 border-foreground/20 pl-2 text-sm leading-snug"
             >
               <div className="flex flex-1 flex-col gap-0.5">
                 <span className="font-medium text-foreground">{item.title}</span>
@@ -81,7 +81,7 @@ export function InfoSection({
                 )}
               </div>
               {item.meta && (
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   {item.meta}
                 </span>
               )}

@@ -80,8 +80,8 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} disabled={!imageUrls.length}>
-        <Images data-icon="inline-start" /> Publish as Carousel
+      <Button variant="chat-action" onClick={() => setOpen(true)} disabled={!imageUrls.length}>
+        <Images className="size-3" /> Publish as Carousel
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -116,7 +116,7 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
                   key={a.id}
                   onClick={() => handlePublish(a.id)}
                   disabled={publishing}
-                  className="flex items-center justify-between border border-border px-3 py-2 text-left text-xs hover:bg-muted disabled:opacity-60"
+                  className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
                 >
                   <span className="font-medium">{a.accountName ?? a.providerAccountId}</span>
                   <span className="text-muted-foreground">
@@ -128,7 +128,7 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
           )}
 
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+            <Button variant="chat-utility" onClick={() => setOpen(false)}>
               Cancel
             </Button>
           </DialogFooter>
@@ -198,8 +198,8 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
 
   return (
     <>
-      <Button variant="outline" size="xs" onClick={() => setOpen(true)}>
-        <Send data-icon="inline-start" /> Publish
+      <Button variant="chat-action" onClick={() => setOpen(true)}>
+        <Send className="size-3" /> Publish
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -235,7 +235,7 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
                 key={a.id}
                 onClick={() => handlePublish(a.id)}
                 disabled={publishing}
-                className="flex items-center justify-between border border-border px-3 py-2 text-left text-xs hover:bg-muted disabled:opacity-60"
+                className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
               >
                 <span className="font-medium">{a.accountName ?? a.providerAccountId}</span>
                 <span className="text-muted-foreground">
@@ -247,7 +247,7 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
         )}
 
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+            <Button variant="chat-utility" onClick={() => setOpen(false)}>
               Cancel
             </Button>
           </DialogFooter>

@@ -9,7 +9,7 @@ import {
 import { findAction } from "@/lib/agents/actions"
 import { runAgentAction } from "@/lib/api/assistants"
 import { uploadToR2 } from "@/lib/api/uploads"
-import type { AgentActionId } from "@/lib/types/agents"
+import type { AgentActionId, ContentPlatform } from "@/lib/types/agents"
 
 // Sage forms
 import {
@@ -90,7 +90,7 @@ interface ActionSpec {
   Form: FormComponent
   validate?: (v: any) => string | null
   /** Override the default JSON `runAgentAction` submit, e.g. for file uploads. */
-  customSubmit?: (value: any, organizationId: string) => Promise<unknown>
+  customSubmit?: (value: any, organizationId: string, conversationId?: string) => Promise<unknown>
   /** Dynamically resolve action ID from current form value (e.g. carousel routing). */
   resolveActionId?: (v: any) => AgentActionId
   /** Override the footer submit button label. */
@@ -210,7 +210,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   "maya:draft-content": {
     defaultValue: {
       topic: "",
-      platform: "linkedin",
+      platforms: ["linkedin"],
       word_count_target: 200,
       include_image: true,
       use_logo: false,
@@ -219,13 +219,28 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       carousel_count: 3,
     },
     Form: MayaDraftForm,
-    validate: (v) => (v.topic?.trim() ? null : "Topic is required."),
-    resolveActionId: (v) => (v.make_carousel ? "maya:draft-carousel" : "maya:draft-content"),
+    validate: (v) => (!v.topic?.trim() ? "Topic is required." : !v.platforms?.length ? "Pick at least one platform." : null),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customSubmit: async (v: any, organizationId: string, conversationId?: string) => {
+      const platforms: ContentPlatform[] = v.platforms?.length ? v.platforms : ["linkedin"]
+      if (v.make_carousel) {
+        return runAgentAction("maya:draft-carousel", organizationId, { ...v, platform: platforms[0] }, conversationId)
+      }
+      if (platforms.length === 1) {
+        return runAgentAction("maya:draft-content", organizationId, { ...v, platform: platforms[0] }, conversationId)
+      }
+      const results = await Promise.all(
+        platforms.map((p: ContentPlatform) =>
+          runAgentAction("maya:draft-content", organizationId, { ...v, platform: p }, conversationId)
+        )
+      )
+      return { drafts: results }
+    },
   },
   "maya:draft-carousel": {
     defaultValue: {
       topic: "",
-      platform: "linkedin",
+      platforms: ["linkedin"],
       include_image: true,
       use_logo: false,
       use_mascot: false,
@@ -234,7 +249,11 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     },
     Form: MayaDraftForm,
     validate: (v) => (v.topic?.trim() ? null : "Topic is required."),
-    resolveActionId: () => "maya:draft-carousel",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customSubmit: async (v: any, organizationId: string, conversationId?: string) => {
+      const platforms: ContentPlatform[] = v.platforms?.length ? v.platforms : ["linkedin"]
+      return runAgentAction("maya:draft-carousel", organizationId, { ...v, platform: platforms[0] }, conversationId)
+    },
   },
   "maya:generate-variants": {
     defaultValue: {

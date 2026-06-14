@@ -9,121 +9,102 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import type { DashboardSummary } from "@/lib/api/dashboard"
+import type { DashboardSummary, Range } from "@/lib/api/dashboard"
 import { AGENTS } from "@/lib/config/agents"
-import { FONT } from "@/lib/fonts"
 import type { AgentSlug } from "@/lib/types"
 
 const SLUGS: AgentSlug[] = ["vega", "lex", "sage", "scout", "rex", "maya"]
 
-const COLORS: Record<AgentSlug, string> = {
-  maya: "#F06464",
-  rex: "#1DBC87",
-  scout: "#F5C518",
-  sage: "#F79FD4",
-  lex: "#8A8AF0",
-  vega: "#6FCDE8",
+// Derive chart hex colors from AGENTS config — single source of truth.
+// SVG stroke/fill require resolved hex values, not CSS var references.
+const CHART_HEX: Record<string, string> = {
+  "var(--vq-red)":    "#F06464",
+  "var(--vq-green)":  "#1DBC87",
+  "var(--vq-yellow)": "#F5C518",
+  "var(--vq-pink)":   "#F79FD4",
+  "var(--vq-violet)": "#8A8AF0",
+  "var(--vq-blue)":   "#6FCDE8",
 }
+
+const COLORS = Object.fromEntries(
+  AGENTS.map((a) => [a.id, CHART_HEX[a.color] ?? a.color]),
+) as Record<AgentSlug, string>
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
-export function ActivityChart({ data }: { data: DashboardSummary["activityChart"] }) {
-  const hasData = data.some((row) =>
-    SLUGS.some((s) => (row[s] ?? 0) > 0),
-  )
+function formatHour(iso: string): string {
+  const d = new Date(iso)
+  const h = d.getHours()
+  if (h === 0) return "12 AM"
+  if (h === 12) return "12 PM"
+  return h < 12 ? `${h} AM` : `${h - 12} PM`
+}
+
+function rangeTitle(range: Range): string {
+  switch (range.kind) {
+    case "24h":    return "your crew today"
+    case "7d":     return "your crew this week"
+    case "30d":    return "your crew this month"
+    case "custom": return "your crew in range"
+  }
+}
+
+export function ActivityChart({
+  data,
+  range = { kind: "7d" },
+}: {
+  data: DashboardSummary["activityChart"]
+  range?: Range
+}) {
+  const hasData = data.some((row) => SLUGS.some((s) => (row[s] ?? 0) > 0))
+  const title = rangeTitle(range)
+  const is24h = range.kind === "24h"
+  const tickFormatter = is24h ? formatHour : formatDate
+  const labelFormatter = (v: unknown) =>
+    typeof v === "string" ? (is24h ? formatHour(v) : formatDate(v)) : ""
 
   return (
-    <div
-      style={{
-        background: "#FFF9ED",
-        border: "3px solid #111",
-        borderRadius: 16,
-        boxShadow: "6px 6px 0 #111",
-        padding: 20,
-        position: "relative",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          marginBottom: 12,
-          gap: 10,
-          flexWrap: "wrap",
-        }}
-      >
+    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5 relative">
+      <div className="flex flex-wrap items-baseline justify-between gap-2.5 mb-3">
         <div>
-          <div
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              letterSpacing: 3,
-              textTransform: "uppercase",
-              color: "#555",
-            }}
-          >
+          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             [ activity chart ]
           </div>
-          <div
-            style={{
-              fontFamily: FONT.display,
-              fontSize: 28,
-              letterSpacing: -0.5,
-              color: "#111",
-              marginTop: 2,
-            }}
-          >
-            your crew this week
+          <div className="font-display text-[28px] tracking-tight text-foreground mt-0.5">
+            {title}
           </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div className="flex flex-wrap gap-2 max-w-[680px]">
           {AGENTS.map((a) => (
             <span
               key={a.id}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "4px 10px",
-                border: "2px solid #111",
-                borderRadius: 999,
-                background: "#fff",
-                fontFamily: FONT.mono,
-                fontSize: 10,
-                letterSpacing: 1,
-                textTransform: "uppercase",
-                color: "#111",
-              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 border-2 border-foreground rounded-full bg-white font-mono text-[10px] uppercase tracking-[0.1em] text-foreground"
             >
               <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: "50%",
-                  background: COLORS[a.id],
-                  border: "1.5px solid #111",
-                }}
+                className="size-2.5 rounded-full border border-foreground shrink-0"
+                style={{ background: COLORS[a.id as AgentSlug] }}
               />
               {a.name}
             </span>
           ))}
         </div>
       </div>
+
       {hasData ? (
-        <div style={{ width: "100%", height: 260 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full min-w-0 h-[280px] overflow-hidden">
+          <ResponsiveContainer width="100%" height={280} minWidth={240}>
             <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
               <CartesianGrid stroke="#11111118" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="date"
-                tickFormatter={formatDate}
+                tickFormatter={tickFormatter}
                 tick={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "#555" }}
                 tickLine={false}
                 axisLine={{ stroke: "#111", strokeWidth: 1.5 }}
+                interval={is24h ? 3 : "preserveStartEnd"}
               />
               <YAxis
                 allowDecimals={false}
@@ -141,7 +122,7 @@ export function ActivityChart({ data }: { data: DashboardSummary["activityChart"
                   fontFamily: "var(--font-mono)",
                   fontSize: 12,
                 }}
-                labelFormatter={(v) => (typeof v === "string" ? formatDate(v) : "")}
+                labelFormatter={labelFormatter}
               />
               {SLUGS.map((slug) => (
                 <Area
@@ -160,21 +141,8 @@ export function ActivityChart({ data }: { data: DashboardSummary["activityChart"
           </ResponsiveContainer>
         </div>
       ) : (
-        <div
-          style={{
-            height: 180,
-            display: "grid",
-            placeItems: "center",
-            background: "#fff",
-            border: "2px dashed #111",
-            borderRadius: 10,
-            fontFamily: FONT.mono,
-            fontSize: 12,
-            color: "#555",
-            letterSpacing: 1,
-          }}
-        >
-          {"// no activity yet — start chatting with your crew"}
+        <div className="h-[180px] grid place-items-center bg-white border-2 border-dashed border-foreground rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
+          {"// no activity yet - start chatting with your crew"}
         </div>
       )}
     </div>

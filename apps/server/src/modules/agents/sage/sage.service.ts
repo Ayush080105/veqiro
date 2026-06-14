@@ -78,8 +78,10 @@ export const sendMessage = async (
   return assistantMessage;
 };
 
-export const listMessages = (organizationId: string) =>
-  sageRepository.findAllSageMessages(organizationId);
+export const listMessages = (
+  organizationId: string,
+  opts: { before?: string; limit?: number } = {}
+) => sageRepository.findAllSageMessages(organizationId, opts);
 
 export const keywordResearch = async (
   userId: string,

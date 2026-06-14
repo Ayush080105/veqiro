@@ -62,8 +62,10 @@ export const sendMessage = async (
   return assistantMessage;
 };
 
-export const listMessages = (organizationId: string) =>
-  scoutRepository.findAllScoutMessages(organizationId);
+export const listMessages = (
+  organizationId: string,
+  opts: { before?: string; limit?: number } = {}
+) => scoutRepository.findAllScoutMessages(organizationId, opts);
 
 export const researchTopic = async (
   userId: string,

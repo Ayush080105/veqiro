@@ -6,7 +6,7 @@ import { authClient } from "@/lib/auth-client"
 import { AGENTS } from "@/lib/config/agents"
 import { useAgentStatuses } from "@/lib/api/assistants"
 import { FONT } from "@/lib/fonts"
-import type { AgentSlug, AgentStatus } from "@/lib/types"
+import type { AgentSlug, AgentStatus, AgentStatusData } from "@/lib/types"
 
 function statusDotColor(status: AgentStatus): string {
   if (status === "working") return "#1DBC87"
@@ -20,23 +20,34 @@ function statusLabel(status: AgentStatus): string {
   return "idle"
 }
 
-export function StatusRow() {
+type StatusRowProps = {
+  statuses?: Record<AgentSlug, AgentStatusData>
+  isPending?: boolean
+}
+
+export function StatusRow({
+  statuses: providedStatuses,
+  isPending: providedIsPending,
+}: StatusRowProps = {}) {
   const { data: activeOrg } = authClient.useActiveOrganization()
-  const organizationId = activeOrg?.id ?? ""
-  const { data: statuses, isPending } = useAgentStatuses(organizationId)
+  const organizationId = providedStatuses ? "" : activeOrg?.id ?? ""
+  const { data: fetchedStatuses, isPending: fetchedIsPending } =
+    useAgentStatuses(organizationId)
+  const statuses = providedStatuses ?? fetchedStatuses
+  const isPending = providedIsPending ?? (!providedStatuses && fetchedIsPending)
 
   if (isPending) {
     return (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[54px] w-[150px] rounded-xl" />
+          <Skeleton key={i} className="h-[58px] rounded-md border-2 border-foreground" />
         ))}
       </div>
     )
   }
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-3">
       {AGENTS.map((agent) => {
         const agentStatus = statuses?.[agent.id as AgentSlug]
         const status: AgentStatus = agentStatus?.status ?? "idle"
@@ -45,79 +56,51 @@ export function StatusRow() {
           <Link
             key={agent.id}
             href={`/assistants/${agent.id}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 14px 8px 8px",
-              background: "#FFF9ED",
-              border: "2.5px solid #111",
-              borderRadius: 12,
-              boxShadow: "3px 3px 0 #111",
-              textDecoration: "none",
-              color: "#111",
-              transition: "transform 120ms ease, box-shadow 120ms ease",
-            }}
+            className="group flex min-h-[58px] min-w-0 items-center gap-2.5 rounded-md border-[2.5px] border-foreground bg-card p-2 pr-3 text-foreground no-underline shadow-[3px_3px_0_var(--foreground)] transition-[transform,box-shadow,background-color] duration-150 hover:bg-[#FFF9ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onMouseDown={(e) => {
               e.currentTarget.style.transform = "translate(2px,2px)"
-              e.currentTarget.style.boxShadow = "1px 1px 0 #111"
+              e.currentTarget.style.boxShadow = "1px 1px 0 var(--foreground)"
             }}
             onMouseUp={(e) => {
               e.currentTarget.style.transform = "translate(0,0)"
-              e.currentTarget.style.boxShadow = "3px 3px 0 #111"
+              e.currentTarget.style.boxShadow = "3px 3px 0 var(--foreground)"
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translate(0,0)"
-              e.currentTarget.style.boxShadow = "3px 3px 0 #111"
+              e.currentTarget.style.boxShadow = "3px 3px 0 var(--foreground)"
             }}
           >
             <span
+              className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-foreground text-foreground"
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
                 background: agent.color,
-                border: "2px solid #111",
-                display: "grid",
-                placeItems: "center",
                 fontFamily: FONT.head,
                 fontSize: 11,
-                color: "#111",
-                flexShrink: 0,
               }}
             >
               {agent.initials}
             </span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <span
+                className="truncate text-foreground"
                 style={{
                   fontFamily: FONT.head,
                   fontSize: 12,
-                  color: "#111",
                   lineHeight: 1,
                 }}
               >
                 {agent.name}
               </span>
               <span
+                className="inline-flex items-center gap-1.5 truncate font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground"
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
                   fontFamily: FONT.mono,
-                  fontSize: 10,
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  color: "#555",
                 }}
               >
                 <span
+                  className="size-2 shrink-0 rounded-full"
                   style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
                     background: statusDotColor(status),
-                    flexShrink: 0,
                   }}
                 />
                 {statusLabel(status)}

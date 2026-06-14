@@ -99,10 +99,27 @@ function FollowUpBtn({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] hover:bg-muted"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 14px",
+        borderRadius: 999,
+        background: "#111",
+        color: "#FFF9ED",
+        fontSize: 11,
+        fontWeight: 500,
+        letterSpacing: "0.01em",
+        border: "none",
+        cursor: "pointer",
+        transition: "opacity 150ms",
+        whiteSpace: "nowrap",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8" }}
+      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1" }}
     >
-      <Icon className="size-2.5" />
       {label}
+      <Icon size={11} />
     </button>
   )
 }
@@ -221,7 +238,7 @@ export function MetricsAnalysisCard({
           <div className="grid gap-2 sm:grid-cols-2">
             {Object.entries(charts_data).map(([name, data]) => (
               <div key={name} className="border border-border bg-muted/20 p-2">
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                   {name}
                 </p>
                 <Sparkline data={data} />
@@ -238,7 +255,7 @@ export function MetricsAnalysisCard({
           )} tone="danger" />
         )}
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             {firstMetricKey && (
               <FollowUpBtn
                 label="Forecast this metric"
@@ -302,7 +319,7 @@ export function ForecastCard({
         </div>
         <p className="text-[11px] leading-relaxed">{result.summary}</p>
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Model a scenario"
               icon={GitBranch}
@@ -377,7 +394,7 @@ export function FinancialHealthCard({
           <InfoSection label="recommendations" bullets={result.recommendations} />
         )}
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Share growth update · Maya"
               icon={ArrowRight}
@@ -453,7 +470,7 @@ export function BriefingCard({
             return (
               <div key={title} className="border-l-2 border-border pl-2">
                 <div className="mb-0.5 flex items-center gap-1.5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                     {title}
                   </p>
                   {sectionObj?.status && (
@@ -480,7 +497,7 @@ export function BriefingCard({
           })}
         </div>
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Generate investor update"
               icon={Mail}
@@ -557,7 +574,7 @@ export function RunwayCard({
         )}
         <p className="text-[11px] leading-relaxed">{result.recommendation}</p>
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Model a scenario"
               icon={GitBranch}
@@ -635,7 +652,7 @@ export function UnitEconomicsCard({
           <InfoSection label="recommendations" bullets={result.recommendations} />
         )}
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Run financial analysis"
               icon={Wallet}
@@ -680,7 +697,7 @@ export function ScenarioCard({
       <AgentCard.Body className="flex flex-col gap-3">
         <ScenarioSliders initialResult={result} baseMetrics={derivedBase} />
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Model another scenario"
               onClick={() => onFollowUpAction("rex:scenario", {})}
@@ -746,7 +763,7 @@ export function WeeklyDigestCard({
 
         {result.alerts?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Alerts</p>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Alerts</p>
             {result.alerts.map((a, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <XCircle className={cn("mt-0.5 size-3 shrink-0", severityColor(a.severity))} />
@@ -758,7 +775,7 @@ export function WeeklyDigestCard({
 
         {result.green_flags?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Green flags</p>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Green flags</p>
             {result.green_flags.map((f, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <CheckCircle className="mt-0.5 size-3 shrink-0 text-chart-2" />
@@ -772,7 +789,7 @@ export function WeeklyDigestCard({
           <InfoSection label="Focus this week" bullets={result.focus_this_week} />
         )}
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Generate investor update"
               icon={Mail}
@@ -846,7 +863,7 @@ export function InvestorUpdateCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
           {result.subject_line}
         </p>
         <p className="text-[11px] leading-relaxed">{result.executive_summary}</p>
@@ -870,7 +887,7 @@ export function InvestorUpdateCard({
           </pre>
         </details>
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Send via Vega"
               icon={Send}
@@ -954,7 +971,7 @@ export function VarianceCard({
         )}
         <p className="text-[11px] leading-relaxed">{result.narrative}</p>
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Run financial analysis"
               icon={Wallet}
@@ -1024,7 +1041,7 @@ export function BoardDeckCard({
         <div className="flex flex-col gap-2">
           {Object.entries(result.sections).map(([key, body]) => (
             <div key={key} className="border-l-2 border-border pl-2">
-              <p className="mb-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="mb-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                 {key.replace(/_/g, " ")}
               </p>
               <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body || "—"}</p>
@@ -1032,7 +1049,7 @@ export function BoardDeckCard({
           ))}
         </div>
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
               label="Generate investor update"
               icon={Mail}
@@ -1207,7 +1224,7 @@ export function RexQueryDatasetCard({
         {result.chart && (
           <div className="flex flex-col gap-1.5">
             {result.chart.title && (
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                 {result.chart.title}
               </p>
             )}
@@ -1215,7 +1232,7 @@ export function RexQueryDatasetCard({
           </div>
         )}
         {onFollowUpAction && result.answer && (
-          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+          <div className="flex flex-wrap justify-end gap-1.5 border-t border-border/50 pt-3">
             <FollowUpBtn
               label="Turn into a post · Maya"
               icon={ArrowRight}
@@ -1276,7 +1293,7 @@ export function RexAnalyzeDatasetCard({
         {/* Key findings */}
         {result.key_findings?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
               <TrendUp className="size-3" /> Key findings
             </p>
             <ul className="flex flex-col gap-1">
@@ -1296,7 +1313,7 @@ export function RexAnalyzeDatasetCard({
             {allCharts.map((chart, ci) => (
               <div key={ci} className="flex flex-col gap-1.5">
                 {chart.title && (
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                     {chart.title}
                   </p>
                 )}
@@ -1309,7 +1326,7 @@ export function RexAnalyzeDatasetCard({
         {/* Insights */}
         {result.insights?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
               <Lightbulb className="size-3" /> Insights
             </p>
             <ul className="flex flex-col gap-1">
@@ -1326,7 +1343,7 @@ export function RexAnalyzeDatasetCard({
         {/* Recommendations */}
         {result.recommendations?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
               <CheckCircle2 className="size-3" /> Recommendations
             </p>
             <ul className="flex flex-col gap-1">
@@ -1342,7 +1359,7 @@ export function RexAnalyzeDatasetCard({
 
         {/* Handoffs */}
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+          <div className="flex flex-wrap justify-end gap-1.5 border-t border-border/50 pt-3">
             <FollowUpBtn
               label="Share insights · Maya"
               icon={ArrowRight}

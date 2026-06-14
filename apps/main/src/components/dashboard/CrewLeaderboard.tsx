@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
-import { FONT } from "@/lib/fonts"
-import type { DashboardSummary } from "@/lib/api/dashboard"
+import type { DashboardSummary, Range } from "@/lib/api/dashboard"
 
 function TinySparkline({ values, color }: { values: number[]; color: string }) {
   if (!values.length) return null
@@ -20,7 +19,13 @@ function TinySparkline({ values, color }: { values: number[]; color: string }) {
     .join(" L ")
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} style={{ display: "block" }}>
-      <path d={`M ${points}`} fill="none" stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
+      <path
+        d={`M ${points}`}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -37,68 +42,43 @@ function relativeTime(iso: string | null): string {
   return `${day}d ago`
 }
 
+function rangeLabel(range: Range): { kicker: string; title: string } {
+  switch (range.kind) {
+    case "24h":    return { kicker: "leaderboard - 24h",    title: "busiest today" }
+    case "7d":     return { kicker: "leaderboard - 7d",     title: "busiest this week" }
+    case "30d":    return { kicker: "leaderboard - 30d",    title: "busiest this month" }
+    case "custom": return { kicker: "leaderboard - custom", title: "busiest in range" }
+  }
+}
+
 export function CrewLeaderboard({
   data,
+  range = { kind: "7d" },
 }: {
   data: DashboardSummary["leaderboard"]
+  range?: Range
 }) {
   const sorted = [...data].sort((a, b) => b.messagesWeek - a.messagesWeek)
   const max = Math.max(1, ...sorted.map((r) => r.messagesWeek))
   const hasAny = sorted.some((r) => r.messagesWeek > 0)
+  const { kicker, title } = rangeLabel(range)
 
   return (
-    <div
-      style={{
-        background: "#FFF9ED",
-        border: "3px solid #111",
-        borderRadius: 16,
-        boxShadow: "6px 6px 0 #111",
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          letterSpacing: 3,
-          textTransform: "uppercase",
-          color: "#555",
-        }}
-      >
-        [ leaderboard · 7d ]
+    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        [ {kicker} ]
       </div>
-      <div
-        style={{
-          fontFamily: FONT.display,
-          fontSize: 28,
-          letterSpacing: -0.5,
-          color: "#111",
-          marginTop: 2,
-          marginBottom: 14,
-        }}
-      >
-        busiest this week
+      <div className="font-display text-[28px] tracking-tight text-foreground mt-0.5 mb-3.5">
+        {title}
       </div>
 
       {!hasAny && (
-        <div
-          style={{
-            padding: "14px 16px",
-            background: "#fff",
-            border: "2px dashed #111",
-            borderRadius: 10,
-            fontFamily: FONT.mono,
-            fontSize: 12,
-            color: "#555",
-            letterSpacing: 1,
-            marginBottom: 12,
-          }}
-        >
-          {"// nobody's clocked in yet — start a chat"}
+        <div className="px-4 py-3.5 bg-white border-2 border-dashed border-foreground rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em] mb-3">
+          {"// nobody's clocked in yet - start a chat"}
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="flex flex-col gap-2.5">
         {sorted.map((row) => {
           const agent = (() => {
             try {
@@ -113,83 +93,40 @@ export function CrewLeaderboard({
             <Link
               key={row.slug}
               href={`/assistants/${row.slug}`}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "44px 120px 1fr auto auto",
-                alignItems: "center",
-                gap: 14,
-                padding: "10px 12px",
-                background: "#fff",
-                border: "2.5px solid #111",
-                borderRadius: 12,
-                textDecoration: "none",
-                color: "#111",
-              }}
+              className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 p-3 no-underline bg-white border-[2.5px] border-foreground rounded-xl text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[44px_120px_minmax(80px,1fr)_auto_80px]"
             >
+              {/* Avatar: colored base + initials behind + photo on top */}
               <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "50%",
-                  overflow: "hidden",
-                  border: "2.5px solid #111",
-                  background: agent.color,
-                }}
+                className="relative size-10 rounded-full overflow-hidden border-[2.5px] border-foreground shrink-0"
+                style={{ background: agent.color }}
               >
-                {agentPhoto ? (
-                  <img src={agentPhoto} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      display: "grid",
-                      placeItems: "center",
-                      fontFamily: FONT.head,
-                      fontSize: 12,
-                    }}
-                  >
-                    {agent.initials}
-                  </div>
-                )}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: FONT.head,
-                    fontSize: 14,
-                    letterSpacing: -0.2,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
+                <span
+                  className="absolute inset-0 grid place-items-center font-mono text-[10px] font-bold text-white select-none"
+                  aria-hidden
                 >
+                  {agent.initials}
+                </span>
+                <img
+                  src={agentPhoto}
+                  alt={agent.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                  }}
+                />
+              </div>
+
+              <div className="min-w-0">
+                <div className="font-head text-[14px] tracking-tight truncate">
                   {agent.name}
                 </div>
-                <div
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                    color: "#666",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground truncate">
                   {relativeTime(row.lastActivity)}
                 </div>
               </div>
+
               <div
-                style={{
-                  position: "relative",
-                  height: 18,
-                  background: "#EFE7D6",
-                  border: "2px solid #111",
-                  borderRadius: 999,
-                  overflow: "hidden",
-                }}
+                className="col-span-2 sm:col-span-1 relative h-[18px] bg-background border-2 border-foreground rounded-full overflow-hidden"
               >
                 <div
                   style={{
@@ -200,18 +137,14 @@ export function CrewLeaderboard({
                   }}
                 />
               </div>
-              <div
-                style={{
-                  fontFamily: FONT.head,
-                  fontSize: 16,
-                  color: "#111",
-                  minWidth: 32,
-                  textAlign: "right",
-                }}
-              >
+
+              <div className="col-start-3 row-start-1 sm:col-auto sm:row-auto font-head text-base text-foreground min-w-8 text-right">
                 {row.messagesWeek}
               </div>
-              <TinySparkline values={row.sparkline} color={agent.color} />
+
+              <div className="hidden sm:block">
+                <TinySparkline values={row.sparkline} color={agent.color} />
+              </div>
             </Link>
           )
         })}

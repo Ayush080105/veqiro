@@ -3,7 +3,7 @@
 import { useState } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Bot, AlertTriangle } from "lucide-react"
+import { AlertTriangle, Newspaper, RefreshCw } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 import { useDashboardSummary, ALL_SLUGS, type Range } from "@/lib/api/dashboard"
@@ -17,10 +17,13 @@ import { MetricCardSkeleton } from "@/components/dashboard/MetricCardSkeleton"
 import { ActivityChartSkeleton } from "@/components/dashboard/ActivityChartSkeleton"
 import { CrewLeaderboardSkeleton } from "@/components/dashboard/CrewLeaderboardSkeleton"
 import { ContentPipelineSkeleton } from "@/components/dashboard/ContentPipelineSkeleton"
+import { Button } from "@/components/ui/button"
+import { KpiTile } from "@/components/ui/kpi-tile"
+import { PageHeader } from "@/components/ui/page-header"
+import type { AgentSlug } from "@/lib/types"
 
-// Recharts is ~100KB. Defer it until the dashboard actually renders so it
-// doesn't block initial bundle parse — the skeleton fills the same spot in
-// the meantime so layout doesn't shift.
+// Recharts is sizeable. Defer it until the dashboard renders; the skeleton
+// occupies the same region so the page does not jump.
 const ActivityChart = dynamic(
   () =>
     import("@/components/dashboard/ActivityChart").then((m) => ({
@@ -28,11 +31,6 @@ const ActivityChart = dynamic(
     })),
   { loading: () => <ActivityChartSkeleton />, ssr: false },
 )
-import { Button } from "@/components/ui/button"
-import { KpiTile } from "@/components/ui/kpi-tile"
-import { PageHeader } from "@/components/ui/page-header"
-import { Sticker } from "@/components/ui/sticker"
-import type { AgentSlug } from "@/lib/types"
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -75,7 +73,13 @@ export default function DashboardPage() {
   const { data: session } = authClient.useSession()
   const [range, setRange] = useState<Range>({ kind: "7d" })
   const [agents, setAgents] = useState<AgentSlug[]>([...ALL_SLUGS])
-  const { data: summary, isPending, isFetching } = useDashboardSummary({ range, agents })
+  const {
+    data: summary,
+    isPending,
+    isFetching,
+    isError,
+    refetch,
+  } = useDashboardSummary({ range, agents })
   const showSkeletons = isPending && !summary
   const showProgressBar = isFetching && !isPending
   const name = session?.user?.name?.split(" ")[0] ?? "there"
@@ -91,15 +95,14 @@ export default function DashboardPage() {
   const attention = summary?.attention ?? []
 
   return (
-    <div className="flex flex-col gap-8 pb-10">
+    <div className="flex min-w-0 flex-col gap-8 pb-10">
       <DashboardProgressBar active={showProgressBar} />
 
-      {/* Hero */}
       <PageHeader
         kicker={formatDate(today)}
         title={`${getGreeting().toLowerCase()}, ${name.toLowerCase()}.`}
         subtitle="Here's what your team is working on."
-        sticker={<Sticker rotate={6} tone="yellow">your day</Sticker>}
+        
         right={
           <DashboardFilters
             range={range}
@@ -110,7 +113,32 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Needs attention banner (conditional) */}
+      {isError && (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-md border-[3px] border-foreground bg-card p-4 shadow-[6px_6px_0_var(--destructive)] sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0">
+            <div className="font-mono text-[11px] uppercase tracking-widest text-destructive">
+              dashboard data unavailable
+            </div>
+            <p className="m-0 mt-1 font-body text-sm leading-snug text-muted-foreground">
+              We could not refresh your dashboard summary. Your workspace is still available.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="brand-dark"
+            size="brand-sm"
+            onClick={() => refetch()}
+            className="self-start sm:self-auto"
+          >
+            <RefreshCw className="size-3.5" />
+            Retry
+          </Button>
+        </div>
+      )}
+
       {attention.length > 0 && (
         <div className="flex flex-wrap items-center gap-3.5 rounded-md border-[3px] border-foreground bg-foreground p-4 text-primary-foreground shadow-[6px_6px_0_var(--destructive)]">
           <div className="flex items-center gap-2.5">
@@ -124,7 +152,7 @@ export default function DashboardPage() {
               <Link
                 key={i}
                 href={a.href}
-                className={`rounded-full border-2 border-background px-3 py-1.5 font-mono text-xs text-foreground no-underline ${
+                className={`inline-flex min-h-10 items-center rounded-full border-2 border-background px-3 py-1.5 font-mono text-xs text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background ${
                   a.severity === "critical" ? "bg-destructive" : "bg-accent"
                 }`}
               >
@@ -135,7 +163,43 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Metrics strip */}
+      {showSkeletons ? (
+        <div className="h-[72px] rounded-md border-[3px] border-foreground bg-[#D5CCBA] shadow-[5px_5px_0_var(--vq-green)] animate-pulse" />
+      ) : (
+        <div className="relative">
+          <Link
+            href="/workspace/briefing"
+            className="flex items-center gap-3.5 rounded-md border-[3px] border-foreground bg-card p-4 px-5 no-underline shadow-[5px_5px_0_var(--vq-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:flex-col max-sm:items-start"
+          >
+            <span
+              className="grid size-10 shrink-0 place-items-center rounded-md border-[2.5px] border-foreground bg-foreground text-primary-foreground"
+              style={{ transform: "rotate(-4deg)" }}
+            >
+              <Newspaper className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="font-head text-[15px] tracking-tight text-foreground">
+                Today&apos;s briefing
+              </div>
+              <p className="m-0 mt-0.5 line-clamp-2 font-body text-[13px] leading-snug text-muted-foreground max-sm:line-clamp-none">
+                {metrics && metrics.messagesWeek > 0
+                  ? [
+                      `Your crew handled ${metrics.messagesWeek} conversation${metrics.messagesWeek !== 1 ? "s" : ""} this week`,
+                      metrics.contentPublishedWeek > 0
+                        ? ` and published ${metrics.contentPublishedWeek} post${metrics.contentPublishedWeek !== 1 ? "s" : ""}`
+                        : "",
+                      ". Open to see emails, calendar and agent activity ->",
+                    ].join("")
+                  : "No agent activity yet this week. Generate a briefing to see your inbox and calendar summary."}
+              </p>
+            </div>
+            <Button variant="brand-dark" size="brand-sm">
+              {"Read ->"}
+            </Button>
+          </Link>
+        </div>
+      )}
+
       <section className="flex flex-col gap-3">
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           [ at a glance ]
@@ -152,7 +216,7 @@ export default function DashboardPage() {
               <KpiTile
                 shape="brand"
                 label="Messages"
-                value={metrics ? formatNumber(metrics.messagesWeek) : "—"}
+                value={metrics ? formatNumber(metrics.messagesWeek) : "-"}
                 sparkline={metrics?.messagesSparkline}
                 delta={
                   metrics
@@ -166,17 +230,17 @@ export default function DashboardPage() {
               <KpiTile
                 shape="brand"
                 label="Posts published"
-                value={metrics ? formatNumber(metrics.contentPublishedWeek) : "—"}
+                value={metrics ? formatNumber(metrics.contentPublishedWeek) : "-"}
                 delta={
                   metrics
                     ? {
                         value: formatDelta(
                           metrics.contentPublishedWeek,
-                          metrics.contentPublishedPrevWeek
+                          metrics.contentPublishedPrevWeek,
                         ),
                         trend: trendFromDelta(
                           metrics.contentPublishedWeek,
-                          metrics.contentPublishedPrevWeek
+                          metrics.contentPublishedPrevWeek,
                         ),
                       }
                     : undefined
@@ -184,8 +248,8 @@ export default function DashboardPage() {
               />
               <KpiTile
                 shape="brand"
-                label="Hours saved · est."
-                value={metrics ? `${metrics.hoursSavedEstimate}h` : "—"}
+                label="Hours saved - est."
+                value={metrics ? `${metrics.hoursSavedEstimate}h` : "-"}
                 delta={
                   metrics && metrics.hoursSavedEstimate > 0
                     ? { value: "this window", trend: "up" }
@@ -197,57 +261,18 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Activity chart */}
-      {showSkeletons ? <ActivityChartSkeleton /> : <ActivityChart data={activity} />}
+      {showSkeletons ? <ActivityChartSkeleton /> : <ActivityChart data={activity} range={range} />}
 
-      {/* Crew leaderboard + workspace snapshot */}
-      <div className="grid gap-4 [grid-template-columns:minmax(0,1.2fr)_minmax(0,1fr)]">
-        {showSkeletons ? <CrewLeaderboardSkeleton /> : <CrewLeaderboard data={leaderboard} />}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        {showSkeletons ? <CrewLeaderboardSkeleton /> : <CrewLeaderboard data={leaderboard} range={range} />}
         <div className="flex min-w-0 flex-col gap-4">
           <IntegrationHealth />
           <BrandSnapshot />
         </div>
       </div>
 
-      {/* Content pipeline */}
       {showSkeletons ? <ContentPipelineSkeleton /> : <ContentPipeline data={pipeline} />}
 
-      {/* Daily briefing — compact footer */}
-      <div className="relative pt-5">
-        <div className="absolute top-0 left-5 z-10">
-          <Sticker rotate={-4} tone="green">
-            daily brief
-          </Sticker>
-        </div>
-        <Link
-          href="/workspace/briefing"
-          className="flex items-center gap-3.5 rounded-md border-[3px] border-foreground bg-card p-4 px-5 no-underline shadow-[5px_5px_0_var(--vq-green)]"
-        >
-          <span
-            className="grid size-10 shrink-0 place-items-center rounded-md border-[2.5px] border-foreground bg-foreground text-primary-foreground"
-            style={{ transform: "rotate(-4deg)" }}
-          >
-            <Bot className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="font-head text-[15px] tracking-tight text-foreground">
-              Today&apos;s briefing
-            </div>
-            <p className="m-0 mt-0.5 line-clamp-2 font-body text-[13px] leading-snug text-muted-foreground">
-              {metrics && metrics.messagesWeek > 0
-                ? [
-                    `Your crew handled ${metrics.messagesWeek} conversation${metrics.messagesWeek !== 1 ? "s" : ""} this week`,
-                    metrics.contentPublishedWeek > 0
-                      ? ` and published ${metrics.contentPublishedWeek} post${metrics.contentPublishedWeek !== 1 ? "s" : ""}`
-                      : "",
-                    ". Open to see emails, calendar and agent activity →",
-                  ].join("")
-                : "No agent activity yet this week. Generate a briefing to see your inbox and calendar summary."}
-            </p>
-          </div>
-          <Button variant="brand-dark" size="brand-sm">Read →</Button>
-        </Link>
-      </div>
     </div>
   )
 }

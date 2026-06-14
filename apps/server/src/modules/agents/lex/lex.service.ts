@@ -82,8 +82,10 @@ export const sendMessage = async (
   return assistantMessage;
 };
 
-export const listMessages = (organizationId: string) =>
-  lexRepository.findAllLexMessages(organizationId);
+export const listMessages = (
+  organizationId: string,
+  opts: { before?: string; limit?: number } = {}
+) => lexRepository.findAllLexMessages(organizationId, opts);
 
 const toSourceDTO = (row: {
   id: string;

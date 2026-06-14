@@ -55,7 +55,7 @@ export interface ActionDialogProps<TInput, TResult> {
   /** Called when the API request settles, successfully or with an error. */
   onSettled?: (ctx: ActionStartContext<TInput>) => void
   /** Override the default JSON `runAgentAction` submit (e.g. for multipart uploads). */
-  customSubmit?: (value: TInput, organizationId: string) => Promise<TResult>
+  customSubmit?: (value: TInput, organizationId: string, conversationId?: string) => Promise<TResult>
   submitLabel?: string
   /** Optionally resolve a different actionId based on current form value (e.g. carousel routing). */
   resolveActionId?: (value: TInput) => AgentActionId
@@ -120,7 +120,7 @@ export function ActionDialog<TInput, TResult>({
     
     try {
       const result = customSubmit
-        ? await customSubmit(submittedValue, organizationId)
+        ? await customSubmit(submittedValue, organizationId, conversationId)
         : await runAgentAction<TInput, TResult>(
             effectiveActionId,
             organizationId,

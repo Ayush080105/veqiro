@@ -127,15 +127,14 @@ export function InboxTriageCard({
                       />
                       {onFollowUpAction && (e.priority === "urgent" || e.priority === "high") && (
                         <Button
-                          variant="outline"
-                          size="xs"
+                          variant="chat-action"
                           onClick={() => onFollowUpAction("maya:draft-content", {
                             topic: e.subject,
                             platform: "linkedin",
                             additional_context: [e.summary, e.suggested_action].filter(Boolean).join("\n"),
                           })}
                         >
-                          <PenLine data-icon="inline-start" /> Draft post · Maya
+                          <PenLine className="size-3" /> Draft post · Maya
                         </Button>
                       )}
                     </div>

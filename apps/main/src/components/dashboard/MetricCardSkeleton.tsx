@@ -6,7 +6,7 @@ export function MetricCardSkeleton() {
   return (
     <div
       style={{
-        background: "#FFF9ED",
+        background: "#D5CCBA",
         border: "3px solid #111",
         borderRadius: 14,
         boxShadow: "4px 4px 0 #111",

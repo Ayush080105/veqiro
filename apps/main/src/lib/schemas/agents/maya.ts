@@ -13,7 +13,7 @@ export type MayaIdeationValues = z.infer<typeof mayaIdeationSchema>
 
 export const mayaDraftSchema = z.object({
   topic: z.string().min(3, "Topic is required"),
-  platform: platformSchema,
+  platforms: z.array(platformSchema).min(1).max(3),
   tone_override: z.string().optional(),
   word_count_target: z.number().int().min(20).max(2000).optional(),
   include_image: z.boolean().optional(),

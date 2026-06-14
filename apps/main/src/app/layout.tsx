@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import QueryProvider from "@/app/providers/QueryProvider";
+import { Agentation } from "agentation";
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 const bagelFatOne = Bagel_Fat_One({ weight: "400", subsets: ["latin"], variable: "--font-bagel" });
@@ -39,6 +40,7 @@ export default function RootLayout({
           </TooltipProvider>
         </QueryProvider>
         <Toaster />
+        {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
-import { HelpCircle, Paperclip, Plus, Send } from "lucide-react"
+import { Paperclip, Plus, Send } from "lucide-react"
 
 import { FONT } from "@/lib/fonts"
 import { CHAT_MESSAGE_MAX } from "@/lib/schemas/chat"
@@ -11,11 +11,8 @@ export interface ChatInputProps {
   onChange: (v: string) => void
   onSend: () => void
   onPlusClick: () => void
-  onHelpClick: () => void
   onAttachClick?: () => void
-  /** Optional icon rendered inside the attach button (defaults to Paperclip). */
   attachIcon?: React.ReactNode
-  /** Tooltip text for the attach button (defaults to "Attach PDF"). */
   attachTitle?: string
   placeholder?: string
   disabled?: boolean
@@ -49,23 +46,19 @@ function IconButton({
         flexShrink: 0,
         display: "grid",
         placeItems: "center",
-        background: "#FFF9ED",
-        border: "2.5px solid #111",
+        background: "transparent",
+        border: "none",
         borderRadius: "50%",
-        boxShadow: "2px 2px 0 #111",
         cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        color: "#111",
-        transition: "transform 120ms ease",
+        opacity: disabled ? 0.4 : 1,
+        color: "#666",
+        transition: "background 120ms ease",
       }}
-      onMouseDown={(e) => {
-        if (!disabled) e.currentTarget.style.transform = "translate(2px,2px)"
-      }}
-      onMouseUp={(e) => {
-        e.currentTarget.style.transform = "translate(0,0)"
+      onMouseEnter={(e) => {
+        if (!disabled) e.currentTarget.style.background = "rgba(0,0,0,0.06)"
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translate(0,0)"
+        e.currentTarget.style.background = "transparent"
       }}
     >
       {children}
@@ -78,7 +71,6 @@ export function ChatInput({
   onChange,
   onSend,
   onPlusClick,
-  onHelpClick,
   onAttachClick,
   attachIcon,
   attachTitle = "Attach PDF",
@@ -88,6 +80,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const charCount = value.length
   const canSend = value.trim().length > 0 && charCount <= max && !disabled
+  const nearLimit = charCount > max - 200
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -107,18 +100,18 @@ export function ChatInput({
         if (canSend) onSend()
       }}
       style={{
-        background: "#EFE7D6",
-        borderTop: "3px solid #111",
-        padding: "14px 16px 10px",
+        background: "#FFF9ED",
+        borderTop: "1px solid #E5E5E5",
+        padding: "10px 12px 14px",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <IconButton
           onClick={onPlusClick}
           ariaLabel="Open actions menu"
           title="Actions (Ctrl/Cmd+K)"
         >
-          <Plus className="size-4" />
+          <Plus className="size-5" />
         </IconButton>
 
         {onAttachClick && (
@@ -127,7 +120,7 @@ export function ChatInput({
             ariaLabel={attachTitle}
             title={attachTitle}
           >
-            {attachIcon ?? <Paperclip className="size-4" />}
+            {attachIcon ?? <Paperclip className="size-5" />}
           </IconButton>
         )}
 
@@ -142,87 +135,68 @@ export function ChatInput({
             style={{
               width: "100%",
               resize: "none",
-              minHeight: 44,
+              minHeight: 42,
               maxHeight: 160,
-              padding: "11px 18px",
-              background: "#fff",
-              border: "2.5px solid #111",
+              padding: "10px 16px",
+              background: "#EFE7D6",
+              border: "1.5px solid #D4C9B0",
               borderRadius: 999,
-              boxShadow: "2px 2px 0 #111",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
               fontFamily: FONT.body,
               fontSize: 14,
               lineHeight: 1.4,
               color: "#111",
               outline: "none",
+              transition: "border-color 150ms",
             }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#9A8F7A" }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "#D4C9B0" }}
           />
         </div>
-
-        <IconButton
-          onClick={onHelpClick}
-          ariaLabel="What can this agent do?"
-          title="Capabilities"
-        >
-          <HelpCircle className="size-4" />
-        </IconButton>
 
         <button
           type="submit"
           disabled={!canSend}
           aria-label="Send"
           style={{
+            width: 40,
             height: 40,
-            padding: "0 18px",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: "#111",
-            color: "#EFE7D6",
-            border: "2.5px solid #111",
-            borderRadius: 999,
-            boxShadow: canSend ? "3px 3px 0 var(--vq-red)" : "3px 3px 0 #555",
-            fontFamily: FONT.head,
-            fontSize: 12,
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
+            flexShrink: 0,
+            display: "grid",
+            placeItems: "center",
+            background: canSend ? "#111" : "#D0D0D0",
+            color: "#fff",
+            border: "none",
+            borderRadius: "50%",
+            boxShadow: canSend ? "0 2px 6px rgba(0,0,0,0.25)" : "none",
             cursor: canSend ? "pointer" : "not-allowed",
-            opacity: canSend ? 1 : 0.6,
-            transition: "transform 120ms ease",
-          }}
-          onMouseDown={(e) => {
-            if (canSend) e.currentTarget.style.transform = "translate(2px,2px)"
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.transform = "translate(0,0)"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "translate(0,0)"
+            transition: "background 150ms, box-shadow 150ms",
           }}
         >
-          Send <Send className="size-4" />
+          <Send className="size-4" />
         </button>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: 6,
-          paddingRight: 8,
-        }}
-      >
-        <span
+      {nearLimit && (
+        <div
           style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
-            color: charCount > max ? "#7A1717" : "#555",
+            display: "flex",
+            justifyContent: "flex-end",
+            marginTop: 4,
+            paddingRight: 4,
           }}
         >
-          {charCount}/{max}
-        </span>
-      </div>
+          <span
+            style={{
+              fontFamily: FONT.mono,
+              fontSize: 10,
+              color: charCount > max ? "#CC3333" : "#999",
+            }}
+          >
+            {charCount}/{max}
+          </span>
+        </div>
+      )}
     </form>
   )
 }

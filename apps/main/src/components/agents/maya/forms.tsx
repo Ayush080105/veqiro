@@ -137,7 +137,7 @@ export function MayaDraftForm({
     onChange,
   })
 
-  const platform = form.watch("platform")
+  const platforms = form.watch("platforms") as ContentPlatform[]
   const includeImage = form.watch("include_image") ?? true
   const makeCarousel = form.watch("make_carousel") ?? false
 
@@ -190,13 +190,17 @@ export function MayaDraftForm({
 
       <RhfField
         control={form.control}
-        name="platform"
+        name="platforms"
         label="Platform"
         required
-        description={limitHint[platform]}
+        description={platforms?.length === 1 ? limitHint[platforms[0]] : undefined}
       >
         {({ field }) => (
-          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
+          <PlatformMultiPicker
+            value={(field.value as ContentPlatform[]) ?? []}
+            onChange={field.onChange}
+            showAll
+          />
         )}
       </RhfField>
 

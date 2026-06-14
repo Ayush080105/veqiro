@@ -94,7 +94,7 @@ export function PageHeader({
         )}
       </div>
       {(sticker || right) && (
-        <div className="flex shrink-0 items-start gap-3">
+        <div className="flex w-full shrink-0 flex-wrap items-start gap-3 sm:w-auto">
           {renderSticker(sticker)}
           {right}
         </div>

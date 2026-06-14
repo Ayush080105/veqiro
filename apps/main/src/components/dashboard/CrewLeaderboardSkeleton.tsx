@@ -6,7 +6,7 @@ export function CrewLeaderboardSkeleton() {
   return (
     <div
       style={{
-        background: "#FFF9ED",
+        background: "#D5CCBA",
         border: "3px solid #111",
         borderRadius: 16,
         boxShadow: "6px 6px 0 #111",

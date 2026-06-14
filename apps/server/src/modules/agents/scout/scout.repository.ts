@@ -56,15 +56,28 @@ export const findRecentMessages = (organizationId: string, limit: number) =>
     select: { role: true, content: true },
   });
 
-export const findAllScoutMessages = (organizationId: string) =>
-  prisma.message.findMany({
-    where: { organizationId, agent: Agent.SCOUT },
-    orderBy: { createdAt: "asc" },
-    select: {
-      role: true,
-      content: true,
-      imageUrl: true,
-      createdAt: true,
-      customInput: true,
-    },
-  });
+export const findAllScoutMessages = (
+  organizationId: string,
+  opts: { before?: string; limit?: number } = {}
+) => {
+  const { before, limit = 20 } = opts;
+  return prisma.message
+    .findMany({
+      where: {
+        organizationId,
+        agent: Agent.SCOUT,
+        ...(before ? { createdAt: { lt: new Date(before) } } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        role: true,
+        content: true,
+        imageUrl: true,
+        createdAt: true,
+        customInput: true,
+      },
+    })
+    .then((rows) => rows.reverse());
+};

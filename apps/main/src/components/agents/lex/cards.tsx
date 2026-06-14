@@ -200,7 +200,7 @@ export function ContractAnalysisCard({
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col gap-0.5">
               <Kicker prefix="//">risk level</Kicker>
-              <p className="text-xs font-semibold capitalize">{a.risk_level}</p>
+              <p className="text-xs font-medium capitalize">{a.risk_level}</p>
             </div>
             <div className="flex items-center gap-2">
               {typeof a.risk_score === "number" && (
@@ -213,7 +213,7 @@ export function ContractAnalysisCard({
           </div>
           {a.score_breakdown && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-border pt-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">breakdown</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">breakdown</span>
               {a.score_breakdown.critical > 0 && (
                 <span className="text-[10px]">
                   <span className="font-semibold text-destructive">{a.score_breakdown.critical}</span>
@@ -272,7 +272,7 @@ export function ContractAnalysisCard({
                     <div className="flex flex-col gap-0.5 border-t border-border pt-1.5">
                       {r.confidence && (
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">confidence</span>
+                          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">confidence</span>
                           <Badge variant="outline" className="text-[10px] capitalize">{r.confidence}</Badge>
                         </div>
                       )}
@@ -427,7 +427,7 @@ export function ContractAnalysisCard({
         {/* Key terms */}
         {Object.keys(a.key_terms ?? {}).length > 0 && (
           <Collapsible>
-            <CollapsibleTrigger className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
+            <CollapsibleTrigger className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground hover:text-foreground">
               Show key terms ({Object.keys(a.key_terms).length})
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -456,8 +456,7 @@ export function ContractAnalysisCard({
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             <Button
-              variant="outline"
-              size="xs"
+              variant="chat-action"
               onClick={() => {
                 const highRisks = a.risks
                   ?.filter((r) => r.severity === "high" || r.severity === "critical")
@@ -472,7 +471,7 @@ export function ContractAnalysisCard({
                 })
               }}
             >
-              <Mail data-icon="inline-start" /> Email team about risks · Vega
+              <Mail className="size-3" /> Email team about risks · Vega
             </Button>
           </div>
         )}
@@ -526,7 +525,7 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
       <AgentCard.Body className="flex flex-col gap-3">
         <div className="max-h-96 overflow-y-auto rounded border border-border bg-white dark:bg-card px-5 py-4 shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)]">
           <div
-            className="whitespace-pre-wrap text-[11.5px] leading-relaxed text-foreground"
+            className="whitespace-pre-wrap text-sm leading-relaxed text-foreground"
             style={{ fontFamily: "'Times New Roman', Times, Georgia, serif" }}
           >
             {result.document}
@@ -548,8 +547,7 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
         </label>
         <CopyButton text={result.document} />
         <Button
-          variant="outline"
-          size="xs"
+          variant="chat-utility"
           onClick={() => handleExport("docx")}
           disabled={downloading !== null}
         >
@@ -561,8 +559,7 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
           DOCX
         </Button>
         <Button
-          variant="outline"
-          size="xs"
+          variant="chat-utility"
           onClick={() => handleExport("pdf")}
           disabled={downloading !== null}
         >
@@ -585,7 +582,7 @@ export function ExplainerCard({ result }: { result: LexExplainResult }) {
     <AgentCard size="sm">
       <AgentCard.Header icon={<BookOpen />} title="Plain-English explanation" />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="whitespace-pre-wrap text-[11px] leading-relaxed">
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">
           {result.explanation}
         </p>
         {Object.keys(result.key_terms).length > 0 && (
@@ -641,7 +638,7 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-[12px] leading-relaxed">{result.answer}</p>
+        <p className="text-[11px] leading-relaxed">{result.answer}</p>
 
         {result.sections?.map((section, i) => {
           if (!section.items?.length) return null
@@ -661,7 +658,7 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
 
         {hasRefs && (
           <Collapsible>
-            <CollapsibleTrigger className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
+            <CollapsibleTrigger className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground hover:text-foreground">
               References & cases
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -775,8 +772,7 @@ export function ComplianceCheckCard({
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             <Button
-              variant="outline"
-              size="xs"
+              variant="chat-action"
               onClick={() => {
                 const topFramework = result.framework_results[0]?.framework ?? "compliance"
                 onFollowUpAction("maya:draft-content", {
@@ -786,7 +782,7 @@ export function ComplianceCheckCard({
                 })
               }}
             >
-              <PenLine data-icon="inline-start" /> Draft awareness post · Maya
+              <PenLine className="size-3" /> Draft awareness post · Maya
             </Button>
           </div>
         )}
@@ -822,7 +818,7 @@ export function StampLetterheadCard({ result }: { result: LexStampLetterheadResu
         </p>
       </AgentCard.Body>
       <AgentCard.Footer>
-        <Button variant="outline" size="xs" onClick={handleDownload}>
+        <Button variant="chat-utility" onClick={handleDownload}>
           <Download data-icon="inline-start" />
           Download
         </Button>

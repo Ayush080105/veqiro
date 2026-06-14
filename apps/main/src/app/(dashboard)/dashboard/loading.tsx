@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function DashboardLoading() {
   return (
     <div className="flex flex-col gap-8 pb-10">
-      {/* Hero skeleton — kicker, title, subtitle */}
+      {/* Hero skeleton - kicker, title, subtitle */}
       <div className="flex flex-col gap-3">
         <Skeleton className="h-3.5 w-48 rounded-md" />
         <Skeleton className="h-10 w-[60%] max-w-md rounded-md" />
@@ -17,6 +17,7 @@ export default function DashboardLoading() {
           <Skeleton className="h-28 rounded-lg" />
           <Skeleton className="h-28 rounded-lg" />
           <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
         </div>
       </section>
 
@@ -24,7 +25,7 @@ export default function DashboardLoading() {
       <Skeleton className="h-72 rounded-lg" />
 
       {/* Crew leaderboard + workspace snapshot */}
-      <div className="grid gap-4 [grid-template-columns:minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <Skeleton className="h-72 rounded-lg" />
         <div className="flex min-w-0 flex-col gap-4">
           <Skeleton className="h-32 rounded-lg" />

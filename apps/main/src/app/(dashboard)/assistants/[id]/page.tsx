@@ -1,25 +1,26 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react"
+import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { useQuery, useQueryClient, useMutationState } from "@tanstack/react-query"
-import { Info, HelpCircle, MessageSquare, FolderOpen, Rocket } from "lucide-react"
+import { useQuery, useMutationState } from "@tanstack/react-query"
+import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
 import { apiFetch, ApiError } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
 import {
-  useMessages,
+  getMessages,
   useSendMessage,
   AgentNotAvailableError,
 } from "@/lib/api/assistants"
 import { useBrandKit } from "@/lib/api/brain"
 import { useGoogleConnected } from "@/lib/api/auth-accounts"
-import { qk } from "@/lib/query-keys"
 
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
+import { MediaViewerProvider } from "@/components/chat/MediaViewer"
 import { PlusMenu } from "@/components/chat/PlusMenu"
 import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
@@ -28,7 +29,7 @@ import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
 import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
 import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
-import { KpiStrip } from "@/components/agents/rex/KpiStrip"
+
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
@@ -65,27 +66,46 @@ function ChatHeader({
   return (
     <div
       style={{
-        background: agent.color,
-        borderBottom: "3px solid #111",
-        padding: "12px 20px",
+        background: "#FFF9ED",
+        borderBottom: "1px solid #E5E5E5",
+        borderLeft: `4px solid ${agent.color}`,
+        padding: "10px 16px",
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: 10,
       }}
     >
+      {/* Mobile-only back button */}
+      <Link
+        href="/assistants"
+        className="md:hidden flex items-center justify-center shrink-0"
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          background: "rgba(0,0,0,0.06)",
+          color: "#555",
+          textDecoration: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        aria-label="Back to assistants"
+      >
+        <ArrowLeft style={{ width: 16, height: 16 }} />
+      </Link>
       <button
         suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
         style={{
-          width: 44,
-          height: 44,
+          width: 40,
+          height: 40,
           borderRadius: "50%",
           overflow: "hidden",
-          border: "2.5px solid #111",
-          background: "#FFF9ED",
+          border: "1.5px solid rgba(0,0,0,0.1)",
+          background: agent.color,
           flexShrink: 0,
-          boxShadow: "3px 3px 0 #111",
           cursor: "pointer",
           padding: 0,
         }}
@@ -102,7 +122,7 @@ function ChatHeader({
               placeItems: "center",
               fontFamily: FONT.head,
               fontSize: 14,
-              color: "#111",
+              color: "#fff",
             }}
           >
             {agent.initials}
@@ -124,42 +144,12 @@ function ChatHeader({
         }}
         aria-label="Agent info"
       >
-        <div
-          style={{
-            fontFamily: FONT.head,
-            fontSize: 16,
-            color: "#111",
-            letterSpacing: -0.3,
-          }}
-        >
-          {agent.name}{" "}
-          <span style={{ opacity: 0.6 }}>·</span> {agent.role}
+        <div style={{ fontFamily: FONT.head, fontSize: 15, color: "#111", letterSpacing: -0.2 }}>
+          {agent.name}
         </div>
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
-            color: "#111",
-            opacity: 0.75,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginTop: 2,
-          }}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#1DBC87",
-              boxShadow: "0 0 0 2px #111",
-              display: "inline-block",
-            }}
-          />
-          online · ready to work
+        <div style={{ fontSize: 12, color: "#888", display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1DBC87", display: "inline-block" }} />
+          online
         </div>
       </button>
       <button
@@ -167,16 +157,9 @@ function ChatHeader({
         type="button"
         onClick={onHelpClick}
         aria-label="Help"
-        style={{
-          background: "#FFF9ED",
-          border: "2px solid #111",
-          borderRadius: 999,
-          padding: 8,
-          cursor: "pointer",
-          boxShadow: "2px 2px 0 #111",
-          display: "grid",
-          placeItems: "center",
-        }}
+        style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
       >
         <HelpCircle className="size-4" />
       </button>
@@ -185,16 +168,9 @@ function ChatHeader({
         type="button"
         onClick={onInfoClick}
         aria-label="Agent info"
-        style={{
-          background: "#FFF9ED",
-          border: "2px solid #111",
-          borderRadius: 999,
-          padding: 8,
-          cursor: "pointer",
-          boxShadow: "2px 2px 0 #111",
-          display: "grid",
-          placeItems: "center",
-        }}
+        style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
       >
         <Info className="size-4" />
       </button>
@@ -218,6 +194,7 @@ function EmptyState({
         alignItems: "center",
         justifyContent: "center",
         padding: "40px 24px",
+        background: "#EFE7D6",
       }}
     >
       <div
@@ -240,8 +217,8 @@ function EmptyState({
             margin: "0 auto",
             borderRadius: 20,
             overflow: "hidden",
-            border: "3px solid #111",
-            boxShadow: "8px 8px 0 #111",
+            border: "none",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
             background: agent.color,
             transform: "rotate(-2deg)",
           }}
@@ -320,18 +297,18 @@ function EmptyState({
                 fontSize: 13,
                 padding: "10px 14px",
                 background: "#FFF9ED",
-                border: "2.5px solid #111",
+                border: "1.5px solid #D4C9B0",
                 borderRadius: 999,
-                boxShadow: "3px 3px 0 #111",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                 cursor: "pointer",
                 color: "#111",
-                transition: "transform 120ms ease",
+                transition: "background 120ms ease",
               }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = "translate(2px,2px)"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#EFE7D6"
               }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = "translate(0,0)"
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#FFF9ED"
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translate(0,0)"
@@ -357,16 +334,82 @@ export default function AssistantChatPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const queryClient = useQueryClient()
   const agent = getAgent(id)
 
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
-  const { data: messages = [], isPending: messagesPending, isError: messagesError, error: messagesErrorObj } = useMessages(
-    id,
-    organizationId,
-  )
+  const WINDOW = 20
+  const [msgWindow, setMsgWindow] = useState<Message[]>([])
+  const [hasPreviousPage, setHasPreviousPage] = useState(false)
+  const [isLoadingPrev, setIsLoadingPrev] = useState(false)
+  const [initialLoaded, setInitialLoaded] = useState(false)
+  const [fetchError, setFetchError] = useState<ApiError | null>(null)
+  const [isAtBottom, setIsAtBottom] = useState(true)
+
+  const chatCacheKey = (orgId: string, agentId: string) => `vq.chat.${orgId}.${agentId}`
+
+  useEffect(() => {
+    if (!id || !organizationId) return
+    setFetchError(null)
+
+    // Paint instantly from localStorage cache (stale-while-revalidate)
+    try {
+      const raw = localStorage.getItem(chatCacheKey(organizationId, id))
+      if (raw) {
+        const cached: Message[] = JSON.parse(raw)
+        scrollIntentRef.current = "instant"
+        setMsgWindow(cached)
+        setHasPreviousPage(cached.length === WINDOW)
+        setInitialLoaded(true)
+      } else {
+        setInitialLoaded(false)
+        setMsgWindow([])
+      }
+    } catch {
+      setInitialLoaded(false)
+      setMsgWindow([])
+    }
+
+    // Refresh from server in background
+    getMessages(id, organizationId)
+      .then((msgs) => {
+        scrollIntentRef.current = "instant"
+        setMsgWindow(msgs)
+        setHasPreviousPage(msgs.length === WINDOW)
+        setInitialLoaded(true)
+        try {
+          localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
+        } catch {}
+      })
+      .catch((err) => {
+        if (err instanceof ApiError) setFetchError(err)
+        setInitialLoaded(true)
+      })
+  }, [id, organizationId])
+
+  // Persist window to localStorage after every settled update
+  useEffect(() => {
+    if (!initialLoaded || !id || !organizationId || msgWindow.length === 0) return
+    try {
+      localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgWindow))
+    } catch {}
+  }, [msgWindow, initialLoaded, id, organizationId])
+
+  const loadPreviousPage = useCallback(async () => {
+    if (!hasPreviousPage || isLoadingPrev) return
+    setIsLoadingPrev(true)
+    try {
+      const oldest = msgWindow[0]?.createdAt
+      const older = await getMessages(id, organizationId, oldest)
+      // Capture scrollHeight before the state update so useLayoutEffect can restore position
+      scrollAnchorRef.current = chatScrollRef.current?.scrollHeight ?? 0
+      setMsgWindow((prev) => [...older, ...prev])
+      setHasPreviousPage(older.length === WINDOW)
+    } finally {
+      setIsLoadingPrev(false)
+    }
+  }, [hasPreviousPage, isLoadingPrev, msgWindow, id, organizationId])
   const { data: brandKit = null } = useBrandKit(organizationId)
   const { data: googleLinked } = useGoogleConnected(agent?.id === "vega")
   const { data: rexDatasetCount = 0 } = useQuery({
@@ -394,9 +437,26 @@ export default function AssistantChatPage() {
 
   const conversationIdRef = useRef<string>(genConversationId())
   const chatScrollRef = useRef<HTMLDivElement>(null)
-  const scrollFrameRef = useRef<number | null>(null)
+  const scrollAnchorRef = useRef<number | null>(null)
+  const scrollIntentRef = useRef<"instant" | "smooth" | null>("instant")
 
-  const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current)
+  const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current, {
+    onOptimistic: (optimistic) => {
+      scrollIntentRef.current = "smooth"
+      setMsgWindow((prev) => [...prev, optimistic].slice(-WINDOW))
+      setHasPreviousPage(true)
+    },
+    onSuccess: (serverMsg) => {
+      scrollIntentRef.current = "smooth"
+      setMsgWindow((prev) => {
+        const withoutOptimistic = prev.slice(0, -1)
+        return [...withoutOptimistic, serverMsg].slice(-WINDOW)
+      })
+    },
+    onError: () => {
+      setMsgWindow((prev) => prev.slice(0, -1))
+    },
+  })
 
   // useMutationState survives navigation (lives on QueryClient, not the component).
   // This keeps the typing indicator visible when you switch agents and come back.
@@ -405,28 +465,34 @@ export default function AssistantChatPage() {
   }).length
   const isLoading = pendingCount > 0 || sendMutation.isPending
   const isBusy = isLoading || actionSubmitting
-  const historyLoaded = !messagesPending
+  const historyLoaded = initialLoaded
 
   useEffect(() => {
     if (!agent) router.push("/assistants")
   }, [agent, router])
 
-  useEffect(() => {
-    if (scrollFrameRef.current != null) {
-      cancelAnimationFrame(scrollFrameRef.current)
+  useLayoutEffect(() => {
+    const el = chatScrollRef.current
+    if (!el) return
+
+    // Priority 1: restore position after prepending older messages
+    if (scrollAnchorRef.current !== null) {
+      el.scrollTop = el.scrollHeight - scrollAnchorRef.current
+      scrollAnchorRef.current = null
+      return
     }
-    scrollFrameRef.current = requestAnimationFrame(() => {
-      const el = chatScrollRef.current
-      if (!el) return
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
-    })
-    return () => {
-      if (scrollFrameRef.current != null) {
-        cancelAnimationFrame(scrollFrameRef.current)
-        scrollFrameRef.current = null
+
+    // Priority 2: scroll to bottom with the requested intent
+    const intent = scrollIntentRef.current
+    if (intent) {
+      scrollIntentRef.current = null
+      if (intent === "smooth") {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+      } else {
+        el.scrollTop = el.scrollHeight
       }
     }
-  }, [messages.length, isBusy])
+  }, [msgWindow, isBusy])
 
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
@@ -464,12 +530,9 @@ export default function AssistantChatPage() {
         imageUrl: null,
         createdAt: new Date().toISOString(),
       }
-      queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
-        ...(prev ?? []),
-        userMsg,
-      ])
+      setMsgWindow((prev) => [...prev, userMsg].slice(-WINDOW))
     },
-    [queryClient, id, organizationId],
+    [id, organizationId],
   )
 
   const handleActionComplete = useCallback(
@@ -484,11 +547,10 @@ export default function AssistantChatPage() {
       if (ctx.actionId === "maya:regenerate-image") {
         const regenResult = ctx.result as MayaImageRegenResult
         const inputImageUrl = (ctx.input as { image_url?: string }).image_url
-        let patched = false
 
-        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
-          if (!prev) return prev
+        setMsgWindow((prev) => {
           const msgs = [...prev]
+          let patched = false
 
           for (let i = msgs.length - 1; i >= 0; i--) {
             const ci = msgs[i].customInput
@@ -499,11 +561,9 @@ export default function AssistantChatPage() {
               if (!r?.draft) continue
               if (!inputImageUrl || r.image?.image_url === inputImageUrl) {
                 msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, _previousImage: r.image ?? null, image: regenResult.image } } }
-                patched = true
-                break
+                patched = true; break
               }
             }
-
             if (ci.actionId === "maya:campaign") {
               const r = ci.result as MayaCampaignResult
               const idx = (r?.photos ?? []).findIndex((p) => p?.image?.image_url === inputImageUrl)
@@ -511,11 +571,9 @@ export default function AssistantChatPage() {
                 const newPhotos = [...r.photos]
                 newPhotos[idx] = { ...newPhotos[idx], image: regenResult.image }
                 msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, photos: newPhotos } } }
-                patched = true
-                break
+                patched = true; break
               }
             }
-
             if (ci.actionId === "maya:draft-carousel") {
               const r = ci.result as MayaCarouselDraftResult
               const idx = (r?.slides ?? []).findIndex((s) => s?.image?.image_url === inputImageUrl)
@@ -523,20 +581,16 @@ export default function AssistantChatPage() {
                 const newSlides = [...r.slides]
                 newSlides[idx] = { ...newSlides[idx], image: regenResult.image }
                 msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, slides: newSlides } } }
-                patched = true
-                break
+                patched = true; break
               }
             }
-
             if (ci.actionId === "maya:regenerate-image") {
               const r = ci.result as MayaImageRegenResult
               if (r?.image?.image_url === inputImageUrl) {
                 msgs[i] = { ...msgs[i], customInput: { ...ci, result: regenResult } }
-                patched = true
-                break
+                patched = true; break
               }
             }
-
             if (ci.actionId === "maya:generate-variants") {
               const r = ci.result as MayaVariantResult
               const idx = (r?.variants ?? []).findIndex((v) => v?.image?.image_url === inputImageUrl)
@@ -544,19 +598,16 @@ export default function AssistantChatPage() {
                 const newVariants = [...r.variants]
                 newVariants[idx] = { ...newVariants[idx], image: regenResult.image }
                 msgs[i] = { ...msgs[i], customInput: { ...ci, result: { ...r, variants: newVariants } } }
-                patched = true
-                break
+                patched = true; break
               }
             }
           }
 
           if (!patched) {
-            // Fallback: no source card found, append as a new result
             const userMsg: Message = { role: "user", content: meta?.label ?? "Regenerate image", imageUrl: null, createdAt: now }
             const assistantMsg: Message = { role: "assistant", content: "Image regenerated.", imageUrl: null, createdAt: now, customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult } }
-            return [...msgs, userMsg, assistantMsg]
+            return [...msgs, userMsg, assistantMsg].slice(-WINDOW)
           }
-
           return msgs
         })
         toast.success("Image regenerated.")
@@ -570,10 +621,9 @@ export default function AssistantChatPage() {
       if (ctx.actionId === "maya:generate-variants") {
         const serverResult = ctx.result as MayaVariantResult
         let originalImage: ImageResult | null = null
-        const msgs = queryClient.getQueryData<Message[]>(qk.chat(id, organizationId)) ?? []
-        for (let i = msgs.length - 1; i >= 0; i--) {
-          if (msgs[i].customInput?.actionId === "maya:draft-content") {
-            originalImage = (msgs[i].customInput!.result as MayaDraftResult)?.image ?? null
+        for (let i = msgWindow.length - 1; i >= 0; i--) {
+          if (msgWindow[i].customInput?.actionId === "maya:draft-content") {
+            originalImage = (msgWindow[i].customInput!.result as MayaDraftResult)?.image ?? null
             break
           }
         }
@@ -585,10 +635,7 @@ export default function AssistantChatPage() {
           createdAt: now,
           customInput: { actionId: ctx.actionId, input: ctx.input, result: enrichedResult },
         }
-        queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => [
-          ...(prev ?? []),
-          assistantMsg,
-        ])
+        setMsgWindow((prev) => [...prev, assistantMsg].slice(-WINDOW))
         toast.success(meta ? `${meta.label} complete.` : "Action complete.")
         return
       }
@@ -607,19 +654,15 @@ export default function AssistantChatPage() {
           result: ctx.result,
         },
       }
-      queryClient.setQueryData<Message[]>(
-        qk.chat(id, organizationId),
-        (prev) => [...(prev ?? []), assistantMsg],
-      )
+      setMsgWindow((prev) => [...prev, assistantMsg].slice(-WINDOW))
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
     },
-    [queryClient, id, organizationId],
+    [id, organizationId, msgWindow],
   )
 
   const handleRevertImage = useCallback(
     (msgId: string) => {
-      queryClient.setQueryData<Message[]>(qk.chat(id, organizationId), (prev) => {
-        if (!prev) return prev
+      setMsgWindow((prev) => {
         const idx = prev.findIndex((m) => m.id === msgId)
         if (idx < 0) return prev
         const msgs = [...prev]
@@ -636,7 +679,7 @@ export default function AssistantChatPage() {
         return msgs
       })
     },
-    [queryClient, id, organizationId],
+    [],
   )
 
   const openAction = useCallback((actionId: AgentActionId, prefill?: Record<string, unknown>) => {
@@ -707,31 +750,13 @@ export default function AssistantChatPage() {
   }, [openAction])
 
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
-
-  if (!agent) return null
-
-  // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402
-  const upgradeError =
-    (messagesError && messagesErrorObj instanceof ApiError && messagesErrorObj.status === 402
-      ? messagesErrorObj
-      : null) ?? sendError
-  if (upgradeError) {
-    return <UpgradeRequiredCard reason={upgradeError.code} />
-  }
-
-  const isLex = agent.id === "lex"
-  const isScout = agent.id === "scout"
-  const isSage = agent.id === "sage"
-  const isRex = agent.id === "rex"
-  const isMaya = agent.id === "maya"
-  const isVega = agent.id === "vega"
-  const hasMessages = messages.length > 0
-  const agentSlug = agent.id as AgentSlug
+  const agentPhotoUrl = AGENT_PHOTOS[agent?.id ?? ""] ?? undefined
 
   // Merge each maya:regenerate-image message into its source card so that on
   // refresh the image swap is preserved instead of rendering a separate card.
+  // NOTE: must stay above all early returns to satisfy the Rules of Hooks.
   const displayMessages = useMemo(() => {
-    const merged = [...messages]
+    const merged = [...msgWindow]
     const toRemove = new Set<number>()
 
     for (let i = 0; i < merged.length; i++) {
@@ -800,9 +825,28 @@ export default function AssistantChatPage() {
     }
 
     return merged.filter((_, i) => !toRemove.has(i))
-  }, [messages])
+  }, [msgWindow])
+
+  if (!agent) return null
+
+  // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402
+  const upgradeError =
+    (fetchError?.status === 402 ? fetchError : null) ?? sendError
+  if (upgradeError) {
+    return <UpgradeRequiredCard reason={upgradeError.code} />
+  }
+
+  const isLex = agent.id === "lex"
+  const isScout = agent.id === "scout"
+  const isSage = agent.id === "sage"
+  const isRex = agent.id === "rex"
+  const isMaya = agent.id === "maya"
+  const isVega = agent.id === "vega"
+  const hasMessages = msgWindow.length > 0
+  const agentSlug = agent.id as AgentSlug
 
   return (
+    <MediaViewerProvider>
     <div
       style={{
         flex: 1,
@@ -826,7 +870,7 @@ export default function AssistantChatPage() {
             alignItems: "center",
             gap: 8,
             padding: "8px 16px",
-            borderBottom: "2px solid #111",
+            borderBottom: "1px solid #E5E5E5",
             background: "#FFF9ED",
           }}
         >
@@ -834,8 +878,8 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("chat")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
-              lexTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              lexTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
             }`}
           >
             <MessageSquare className="size-3" /> Chat
@@ -844,7 +888,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("documents")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               lexTab === "documents"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -862,7 +906,7 @@ export default function AssistantChatPage() {
             alignItems: "center",
             gap: 8,
             padding: "8px 16px",
-            borderBottom: "2px solid #111",
+            borderBottom: "1px solid #E5E5E5",
             background: "#FFF9ED",
           }}
         >
@@ -870,8 +914,8 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setScoutTab("chat")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
-              scoutTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              scoutTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
             }`}
           >
             <MessageSquare className="size-3" /> Chat
@@ -880,7 +924,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setScoutTab("watchlist")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               scoutTab === "watchlist"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -898,7 +942,7 @@ export default function AssistantChatPage() {
             alignItems: "center",
             gap: 8,
             padding: "8px 16px",
-            borderBottom: "2px solid #111",
+            borderBottom: "1px solid #E5E5E5",
             background: "#FFF9ED",
           }}
         >
@@ -906,8 +950,8 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("chat")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
-              sageTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              sageTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
             }`}
           >
             <MessageSquare className="size-3" /> Chat
@@ -916,7 +960,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("favourites")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               sageTab === "favourites"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -943,8 +987,8 @@ export default function AssistantChatPage() {
               suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("chat")}
-              className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
-                rexTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                rexTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
               }`}
             >
               <MessageSquare className="size-3" /> Chat
@@ -953,8 +997,8 @@ export default function AssistantChatPage() {
               suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("data")}
-              className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
-                rexTab === "data" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                rexTab === "data" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
               }`}
             >
               <FolderOpen className="size-3" /> Data
@@ -971,7 +1015,6 @@ export default function AssistantChatPage() {
               )}
             </button>
           </div>
-          <KpiStrip onOpenDataTab={() => setRexTab("data")} />
           <MagicNumbers organizationId={organizationId} />
         </>
       )}
@@ -983,7 +1026,7 @@ export default function AssistantChatPage() {
             alignItems: "center",
             gap: 8,
             padding: "8px 16px",
-            borderBottom: "2px solid #111",
+            borderBottom: "1px solid #E5E5E5",
             background: "#FFF9ED",
           }}
         >
@@ -991,8 +1034,8 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("chat")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
-              mayaTab === "chat" ? "bg-[#111] text-white" : "bg-transparent text-[#111]"
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              mayaTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
             }`}
           >
             <MessageSquare className="size-3" /> Chat
@@ -1001,7 +1044,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("published")}
-            className={`flex items-center gap-1.5 border-2 border-[#111] px-3 py-1 text-xs ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               mayaTab === "published"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -1060,34 +1103,100 @@ export default function AssistantChatPage() {
       ) : historyLoaded && !hasMessages && !isBusy ? (
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
-        <div
-          ref={chatScrollRef}
-          className="flex-1 min-h-0 overflow-y-auto"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            padding: "20px 24px",
-          }}
-        >
-          {displayMessages.map((msg, i) => (
-            <ChatMessage
-              key={msg.id ?? `msg-${i}`}
-              message={msg}
-              agentName={agent.name}
-              agentInitials={agent.initials}
-              agentColor={agentColor}
-              isLex={isLex}
-              onFollowUpAction={handleFollowUp}
-              onRevertImage={msg.id ? () => handleRevertImage(msg.id!) : undefined}
-            />
-          ))}
-          {isBusy && (
-            <TypingIndicator
-              agentInitials={agent.initials}
-              agentColor={agentColor}
-            />
-          )}
+        <div className="relative flex-1 min-h-0">
+          <div
+            ref={chatScrollRef}
+            className="h-full overflow-y-auto"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 0,
+              padding: "16px 20px",
+              background: "#EFE7D6",
+            }}
+            onScroll={(e) => {
+              const el = e.currentTarget
+              setIsAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 50)
+              if (el.scrollTop < 80 && hasPreviousPage && !isLoadingPrev) {
+                void loadPreviousPage()
+              }
+            }}
+          >
+            {hasPreviousPage && (
+              <div style={{ display: "flex", justifyContent: "center", paddingBottom: 4 }}>
+                <button
+                  onClick={() => void loadPreviousPage()}
+                  disabled={isLoadingPrev}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "#888",
+                    background: "rgba(239,231,214,0.85)",
+                    border: "1px solid #E0E0E0",
+                    borderRadius: 999,
+                    padding: "5px 14px",
+                    cursor: isLoadingPrev ? "default" : "pointer",
+                    opacity: isLoadingPrev ? 0.6 : 1,
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                  }}
+                >
+                  {isLoadingPrev ? "loading…" : "↑ load older messages"}
+                </button>
+              </div>
+            )}
+            {displayMessages.map((msg, i) => (
+              <ChatMessage
+                key={msg.id ?? `msg-${i}`}
+                message={msg}
+                agentName={agent.name}
+                agentInitials={agent.initials}
+                agentColor={agentColor}
+                agentPhoto={agentPhotoUrl}
+                isLex={isLex}
+                showAvatar={msg.role !== "assistant" || i === 0 || displayMessages[i - 1]?.role !== "assistant"}
+                marginTop={i === 0 ? 0 : displayMessages[i - 1]?.role === msg.role ? 4 : 12}
+                onFollowUpAction={handleFollowUp}
+                onRevertImage={msg.id ? () => handleRevertImage(msg.id!) : undefined}
+              />
+            ))}
+            {isBusy && (
+              <TypingIndicator
+                agentInitials={agent.initials}
+                agentColor={agentColor}
+                agentPhoto={agentPhotoUrl}
+              />
+            )}
+          </div>
+          {/* Scroll to latest button */}
+          <button
+            type="button"
+            onClick={() => chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" })}
+            aria-label="Scroll to latest"
+            style={{
+              position: "absolute",
+              bottom: 16,
+              right: 16,
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#111",
+              color: "#fff",
+              border: "none",
+              display: "grid",
+              placeItems: "center",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.22)",
+              transition: "opacity 200ms, transform 200ms",
+              opacity: isAtBottom ? 0 : 1,
+              transform: isAtBottom ? "translateY(8px)" : "translateY(0)",
+              pointerEvents: isAtBottom ? "none" : "auto",
+              zIndex: 10,
+            }}
+          >
+            <ChevronDown size={18} />
+          </button>
         </div>
       )}
 
@@ -1099,8 +1208,8 @@ export default function AssistantChatPage() {
               alignItems: "center",
               justifyContent: "space-between",
               gap: 12,
-              background: "#FFF9ED",
-              borderTop: "3px solid #111",
+              background: "#FFFBEB",
+              borderTop: "1px solid #E5E5E5",
               padding: "10px 20px",
             }}
           >
@@ -1140,10 +1249,7 @@ export default function AssistantChatPage() {
             onChange={setContent}
             onSend={handleSend}
             onPlusClick={() => setPlusOpen(true)}
-            onHelpClick={() => setHelpOpen(true)}
-            onAttachClick={isLex ? openUploadAction : isMaya ? openCampaignAction : undefined}
-            attachIcon={isMaya ? <Rocket className="size-4" /> : undefined}
-            attachTitle={isMaya ? "Create Product Campaign" : undefined}
+            onAttachClick={isLex ? openUploadAction : undefined}
             placeholder={`Message ${agent.name.toLowerCase()}…`}
             disabled={isLoading}
           />
@@ -1183,5 +1289,6 @@ export default function AssistantChatPage() {
         onSubmittingChange={setActionSubmitting}
       />
     </div>
+    </MediaViewerProvider>
   )
 }

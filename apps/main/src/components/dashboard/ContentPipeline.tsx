@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts"
-import { FONT } from "@/lib/fonts"
+import { Button } from "@/components/ui/button"
 import type { DashboardSummary } from "@/lib/api/dashboard"
 
 const PLATFORM_COLORS: Record<"twitter" | "linkedin" | "instagram", string> = {
@@ -27,27 +27,10 @@ const STATUS_COLORS: Record<"draft" | "scheduled" | "published" | "failed", stri
 function sectionHeader(title: string, kicker: string) {
   return (
     <>
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          letterSpacing: 3,
-          textTransform: "uppercase",
-          color: "#555",
-        }}
-      >
+      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         [ {kicker} ]
       </div>
-      <div
-        style={{
-          fontFamily: FONT.display,
-          fontSize: 24,
-          letterSpacing: -0.5,
-          color: "#111",
-          marginTop: 2,
-          marginBottom: 12,
-        }}
-      >
+      <div className="font-display text-2xl tracking-tight text-foreground mt-0.5 mb-3">
         {title}
       </div>
     </>
@@ -69,41 +52,16 @@ export function ContentPipeline({
   const maxStatus = Math.max(1, ...statuses.map((s) => s.count))
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 16,
-      }}
-    >
-      {/* Donut: by platform */}
-      <div
-        style={{
-          background: "#FFF9ED",
-          border: "3px solid #111",
-          borderRadius: 16,
-          boxShadow: "6px 6px 0 #111",
-          padding: 20,
-        }}
-      >
-        {sectionHeader("by platform", "content · published")}
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {/* Card 1: By Platform */}
+      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+        {sectionHeader("posts published", "by platform")}
         {total === 0 ? (
-          <div
-            style={{
-              padding: "28px 16px",
-              border: "2px dashed #111",
-              borderRadius: 10,
-              background: "#fff",
-              fontFamily: FONT.mono,
-              fontSize: 12,
-              color: "#555",
-              textAlign: "center",
-            }}
-          >
+          <div className="px-4 py-7 border-2 border-dashed border-foreground rounded-xl bg-white font-mono text-xs text-muted-foreground text-center">
             {"// no posts yet"}
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div className="flex flex-col items-center gap-4 sm:flex-row">
             <div style={{ width: 140, height: 140, position: "relative" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -132,70 +90,31 @@ export function ContentPipeline({
                   />
                 </PieChart>
               </ResponsiveContainer>
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "grid",
-                  placeItems: "center",
-                  pointerEvents: "none",
-                }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontFamily: FONT.display, fontSize: 28, lineHeight: 1, color: "#111" }}>
+              <div className="absolute inset-0 grid place-items-center pointer-events-none">
+                <div className="text-center">
+                  <div className="font-display text-[28px] leading-none text-foreground">
                     {total}
                   </div>
-                  <div
-                    style={{
-                      fontFamily: FONT.mono,
-                      fontSize: 9,
-                      letterSpacing: 1.5,
-                      textTransform: "uppercase",
-                      color: "#555",
-                      marginTop: 2,
-                    }}
-                  >
+                  <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">
                     posts
                   </div>
                 </div>
               </div>
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="flex flex-col gap-1.5 flex-1 w-full">
               {platforms.map((p) => (
                 <div
                   key={p.name}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "4px 8px",
-                    border: "2px solid #111",
-                    borderRadius: 8,
-                    background: "#fff",
-                  }}
+                  className="flex items-center gap-2 px-2 py-1 border-2 border-foreground rounded-lg bg-white"
                 >
                   <span
-                    style={{
-                      width: 12,
-                      height: 12,
-                      background: p.color,
-                      border: "1.5px solid #111",
-                      borderRadius: 3,
-                    }}
+                    className="size-3 border-[1.5px] border-foreground rounded-[3px] shrink-0"
+                    style={{ background: p.color }}
                   />
-                  <span
-                    style={{
-                      fontFamily: FONT.mono,
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                      textTransform: "uppercase",
-                      color: "#111",
-                      flex: 1,
-                    }}
-                  >
+                  <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-foreground flex-1">
                     {p.name}
                   </span>
-                  <span style={{ fontFamily: FONT.head, fontSize: 14 }}>{p.value}</span>
+                  <span className="font-head text-[14px]">{p.value}</span>
                 </div>
               ))}
             </div>
@@ -203,42 +122,23 @@ export function ContentPipeline({
         )}
       </div>
 
-      {/* Funnel bars: by status */}
-      <div
-        style={{
-          background: "#FFF9ED",
-          border: "3px solid #111",
-          borderRadius: 16,
-          boxShadow: "6px 6px 0 #111",
-          padding: 20,
-        }}
-      >
-        {sectionHeader("pipeline status", "content · all time")}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Card 2: Pipeline Status */}
+      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+        {sectionHeader("pipeline status", "pipeline")}
+        <div className="flex flex-col gap-2.5">
           {statuses.map((s) => (
-            <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  color: "#111",
-                }}
-              >
+            <div key={s.key} className="flex flex-col gap-1">
+              <div className="flex justify-between font-mono text-[11px] uppercase tracking-[0.15em] text-foreground">
                 <span>{s.key}</span>
-                <span style={{ fontFamily: FONT.head }}>{s.count}</span>
+                <span className="font-head">{s.count}</span>
               </div>
               <div
-                style={{
-                  height: 18,
-                  background: "#fff",
-                  border: "2.5px solid #111",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                }}
+                className="h-[18px] bg-white border-[2.5px] border-foreground rounded-md overflow-hidden"
+                role="progressbar"
+                aria-label={`${s.key} content count`}
+                aria-valuemin={0}
+                aria-valuemax={maxStatus}
+                aria-valuenow={s.count}
               >
                 <div
                   style={{
@@ -253,26 +153,9 @@ export function ContentPipeline({
           ))}
         </div>
         {data.byStatus.failed > 0 && (
-          <Link
-            href="/workspace/content"
-            style={{
-              display: "inline-block",
-              marginTop: 14,
-              padding: "8px 12px",
-              background: "#F06464",
-              color: "#111",
-              border: "2px solid #111",
-              borderRadius: 999,
-              boxShadow: "2px 2px 0 #111",
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              letterSpacing: 1.5,
-              textTransform: "uppercase",
-              textDecoration: "none",
-            }}
-          >
-            retry failed →
-          </Link>
+          <Button asChild variant="brand" size="brand-sm" className="mt-3.5">
+            <Link href="/workspace/content">retry failed -&gt;</Link>
+          </Button>
         )}
       </div>
     </div>

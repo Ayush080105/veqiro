@@ -5,6 +5,13 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 
+/** Provides agent brand color to all AgentCard descendants without prop drilling. */
+export const AgentColorContext = React.createContext<string | undefined>(undefined)
+
+export function AgentColorProvider({ color, children }: { color?: string; children: React.ReactNode }) {
+  return <AgentColorContext.Provider value={color}>{children}</AgentColorContext.Provider>
+}
+
 interface AgentCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** "brand" = chunky cream + 3px ink + hard shadow. "default" = compact shadcn card. */
   variant?: "default" | "brand"
@@ -30,14 +37,26 @@ function AgentCardRoot({
   variant = "default",
   size = "default",
   className,
+  style,
   children,
   ...rest
 }: AgentCardProps) {
+  const agentColor = React.useContext(AgentColorContext)
+  const tintStyle: React.CSSProperties =
+    variant === "default" && agentColor
+      ? { background: `color-mix(in srgb, ${agentColor} 28%, #FFF9ED)` }
+      : {}
+
   return (
     <Card
       variant={variant}
       size={size}
-      className={cn(variant === "brand" && "px-4", className)}
+      className={cn(
+        variant === "default" && "rounded-xl shadow-sm border border-border/40 bg-white ring-0",
+        variant === "brand" && "px-4",
+        className
+      )}
+      style={{ ...tintStyle, ...style }}
       {...rest}
     >
       {children}
@@ -67,7 +86,7 @@ function AgentCardHeader({
         <span className="shrink-0 text-muted-foreground [&_svg]:size-3.5">{icon}</span>
       )}
       {kicker && (
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           {kicker}
         </span>
       )}

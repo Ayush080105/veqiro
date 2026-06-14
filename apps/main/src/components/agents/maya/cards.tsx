@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AgentCard } from "@/components/ui/agent-card"
+import { ChatImage } from "@/components/chat/ChatImage"
 import { ActionRow } from "@/components/ui/action-row"
 import { CopyButton } from "@/components/ui/copy-button"
 import {
@@ -221,9 +222,8 @@ function ContentIdeaCard({
       {onFollowUpAction && (
         <div className="pt-0.5">
           <Button
-            size="xs"
-            variant="outline"
-            className="w-full gap-1"
+            variant="chat-action"
+            className="w-full"
             onClick={() =>
               onFollowUpAction("maya:draft-content", {
                 topic: idea.title,
@@ -300,7 +300,7 @@ export function DraftPreview({
 }) {
   const src = imageSrc(image)
   const limit = PLATFORM_LIMITS[platform]
-  const headerBtnCls = "flex size-6 cursor-pointer items-center justify-center border border-foreground bg-background text-foreground shadow-[1px_1px_0_var(--foreground)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_var(--foreground)] active:translate-x-0 active:translate-y-0 active:shadow-none"
+  const headerBtnCls = "flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-black/[0.06] hover:text-foreground transition-colors"
   const fullText = `${body}${cta ? `\n\n${cta}` : ""}${
     hashtags.length
       ? `\n\n${hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`
@@ -309,9 +309,9 @@ export function DraftPreview({
   const captionWithCta = `${body}${cta ? `\n\n${cta}` : ""}`
   const len = fullText.length
   return (
-    <div className="mx-auto flex w-full max-w-[320px] flex-col border border-border bg-background">
+    <div className="flex w-full flex-col overflow-hidden">
       {/* post header */}
-      <div className="flex items-center justify-between px-2.5 py-1.5">
+      <div className="flex items-center justify-between px-3 py-2">
         <PlatformIcon platform={platform} />
         <div className="flex items-center gap-1">
           {previousImage && onRevertImage && (
@@ -395,29 +395,43 @@ export function DraftPreview({
 
       {/* image */}
       {src && (
-        <div className="w-full">
-          <img
-            src={src}
-            alt="generated"
-            className="w-full object-contain"
-            onError={(e) => {
-              ;(e.target as HTMLImageElement).style.display = "none"
-            }}
-          />
+        <div className="group relative w-full overflow-hidden bg-[#E8E8E8]">
+          <ChatImage src={src} alt="generated" borderRadius={0} maxWidth={1200} />
+          {/* hover actions */}
+          <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+            {onFollowUpAction && (
+              <button
+                type="button"
+                onClick={() => onFollowUpAction("maya:regenerate-image", { image_url: src, prompt: "", platform })}
+                className="flex items-center justify-center"
+                style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "#fff", border: "none", cursor: "pointer" }}
+              >
+                <ImageIcon size={11} />
+              </button>
+            )}
+            <a
+              href={src}
+              download={`maya-${platform}.png`}
+              className="flex items-center justify-center"
+              style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "#fff", textDecoration: "none" }}
+            >
+              <Download size={11} />
+            </a>
+          </div>
         </div>
       )}
 
       {/* caption */}
-      <div className="flex flex-col gap-1 px-2.5 py-2">
+      <div className="flex flex-col gap-2 p-3">
         {title && (
-          <p className="text-[11px] font-semibold leading-tight">{title}</p>
+          <p className="text-sm font-semibold leading-snug">{title}</p>
         )}
-        <p className="whitespace-pre-wrap text-[11px] leading-snug">{body}</p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{body}</p>
         {cta && (
-          <p className="text-[10px] italic text-muted-foreground">{cta}</p>
+          <p className="text-xs italic text-muted-foreground">{cta}</p>
         )}
         {hashtags.length > 0 && (
-          <p className="text-[10px] leading-relaxed text-primary/70">
+          <p className="text-xs leading-relaxed text-primary/80">
             {[...new Set(hashtags)]
               .map((h) => (h.startsWith("#") ? h : `#${h}`))
               .join(" ")}
@@ -426,7 +440,7 @@ export function DraftPreview({
       </div>
 
       {/* actions */}
-      <div className="border-t border-border px-2.5 py-1.5">
+      <div className="border-t border-border/50 px-3 py-2">
         <ActionRow
           copy={{ text: fullText, label: "Copy post" }}
           download={src ? { href: src, name: `maya-${platform}.png`, label: "Image" } : undefined}
@@ -468,7 +482,7 @@ export function DraftCard({
           ) : undefined
         }
       />
-      <AgentCard.Body>
+      <AgentCard.Body className="!px-0 pb-0">
         <DraftPreview
           platform={d.platform}
           body={d.body}
@@ -500,7 +514,7 @@ export function VariantsTabsCard({
         icon={<Shuffle />}
         title={`Adapted for ${result.variants.length} platforms`}
       />
-      <AgentCard.Body>
+      <AgentCard.Body className="!px-0 pb-0">
         <div className="flex flex-col gap-4">
           {result.variants.map((v) => (
             <DraftPreview
@@ -549,7 +563,7 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
         )}
         {result.changes_made.length > 0 && (
           <div>
-            <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
               {"// changes"}
             </p>
             <ul className="list-disc pl-4 text-[11px] leading-relaxed">
@@ -587,37 +601,29 @@ export function ImageRegenCard({
     <AgentCard size="sm">
       <AgentCard.Header icon={<ImageIcon />} title="Regenerated image" />
       <AgentCard.Body className="flex flex-col gap-2">
-        {src && (
-          <img
-            src={src}
-            alt="regenerated"
-            className="w-full rounded-none"
-            onError={(e) => {
-              ;(e.target as HTMLImageElement).style.display = "none"
-            }}
-          />
-        )}
+        {src && <ChatImage src={src} alt="regenerated" borderRadius={8} maxWidth={9999} />}
         <p className="text-[10px] italic text-muted-foreground">
           Prompt: {result.image?.prompt_used ?? "—"}
         </p>
       </AgentCard.Body>
       {src && (
         <AgentCard.Footer>
-          <ActionRow download={{ href: src, name: "maya-image.png", label: "Download" }}>
-            {onFollowUpAction && (
-              <Button
-                size="xs"
-                variant="outline"
-                className="gap-1"
-                onClick={() =>
-                  onFollowUpAction("maya:regenerate-image", { image_url: src, prompt: "" })
-                }
-              >
-                <ImageIcon className="size-3" />
-                Regenerate
-              </Button>
-            )}
-          </ActionRow>
+          <Button variant="chat-utility" asChild>
+            <a href={src} download="maya-image.png">
+              <Download className="size-3" /> Download
+            </a>
+          </Button>
+          {onFollowUpAction && (
+            <Button
+              variant="chat-action"
+              onClick={() =>
+                onFollowUpAction("maya:regenerate-image", { image_url: src, prompt: "" })
+              }
+            >
+              <ImageIcon className="size-3" />
+              Regenerate
+            </Button>
+          )}
         </AgentCard.Footer>
       )}
     </AgentCard>
@@ -708,14 +714,7 @@ export function CarouselDraftCard({
           {/* Image strip with navigation */}
           <div className="relative w-full">
             {currentSrc && (
-              <img
-                src={currentSrc}
-                alt={`Slide ${current + 1}`}
-                className="w-full object-contain"
-                onError={(e) => {
-                  ;(e.target as HTMLImageElement).style.display = "none"
-                }}
-              />
+              <ChatImage src={currentSrc} alt={`Slide ${current + 1}`} borderRadius={0} maxWidth={1200} />
             )}
             {/* Overlay nav arrows */}
             {total > 1 && (
@@ -787,9 +786,7 @@ export function CarouselDraftCard({
             >
               {onFollowUpAction && rawSrcs[current] && (
                 <Button
-                  size="xs"
-                  variant="outline"
-                  className="gap-1"
+                  variant="chat-action"
                   onClick={() =>
                     onFollowUpAction("maya:regenerate-image", {
                       image_url: rawSrcs[current],
@@ -832,101 +829,125 @@ export function CampaignResultCard({
 
   const publishableUrls = rawSrcs.filter((src): src is string => !!src)
 
+  // WhatsApp-style grouping: show max 4 cells, "+N" overlay on last if overflow
+  const MAX_VISIBLE = 4
+  const visiblePhotos = photos.slice(0, MAX_VISIBLE)
+  const overflow = photos.length > MAX_VISIBLE ? photos.length - MAX_VISIBLE : 0
+  const count = visiblePhotos.length
+
+  // Determine which cells span full width (2 columns)
+  const fullWidthIndices = new Set<number>()
+  if (count === 3 || count === 5) fullWidthIndices.add(0) // first spans full width
+  if (count === 5) {
+    // index 0 spans full width, indices 1-4 are 2x2
+  }
+
   return (
     <AgentCard>
       <AgentCard.Header icon={<Rocket size={14} />} title="Product Campaign">
         <span className="text-xs text-muted-foreground">{photos.length} photos</span>
       </AgentCard.Header>
-      <AgentCard.Body>
-        <div
-          className="grid gap-2 p-2.5"
-          style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-        >
-          {photos.map((photo, i) => {
-            const src = blobUrls[i] ?? rawSrcs[i]
-            const rawSrc = rawSrcs[i]
-            return (
-              <div
-                key={i}
-                className="flex flex-col gap-1"
-                style={{ border: "2px solid var(--border)", borderRadius: 6, overflow: "hidden" }}
-              >
-                {src ? (
-                  <img
-                    src={src}
-                    alt={`Campaign photo ${i + 1}`}
-                    className="w-full object-cover"
-                    style={{ aspectRatio: "1/1" }}
-                  />
-                ) : (
-                  <div
-                    className="w-full flex items-center justify-center text-xs text-muted-foreground bg-muted"
-                    style={{ aspectRatio: "1/1" }}
-                  >
-                    Generating…
-                  </div>
-                )}
-                <div className="px-1.5 pb-1.5 flex items-center gap-1.5">
-                  <p className="flex-1 text-[10px] text-muted-foreground leading-snug capitalize">
-                    {photo.composition_role.split("—")[0].trim()}
-                  </p>
-                  {rawSrc && onFollowUpAction && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onFollowUpAction("maya:regenerate-image", {
-                              image_url: rawSrc,
-                              prompt: "",
-                            })
-                          }
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted transition-colors"
-                          style={{ border: "1px solid var(--border)" }}
-                        >
-                          <ImageIcon size={10} />
-                          Regen
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Regenerate photo {i + 1}</TooltipContent>
-                    </Tooltip>
+      <AgentCard.Body className="pb-2">
+        <div className="w-full">
+          <div
+            className="grid gap-0.5"
+            style={{ gridTemplateColumns: count === 1 ? "1fr" : "1fr 1fr" }}
+          >
+            {visiblePhotos.map((photo, i) => {
+              const src = blobUrls[i] ?? rawSrcs[i]
+              const rawSrc = rawSrcs[i]
+              const label = photo.composition_role.split("—")[0].trim()
+              const isLast = i === MAX_VISIBLE - 1 && overflow > 0
+              const spansFullWidth = fullWidthIndices.has(i)
+
+              return (
+                <div
+                  key={i}
+                  className="group relative overflow-hidden bg-[#E8E8E8]"
+                  style={{
+                    gridColumn: spansFullWidth ? "1 / -1" : undefined,
+                    borderRadius: count === 1 ? 10 : (
+                      i === 0 ? "10px 0 0 0" :
+                      count === 2 ? (i === 1 ? "0 10px 10px 0" : "10px 0 0 10px") :
+                      count === 4 ? (
+                        i === 0 ? "10px 0 0 0" :
+                        i === 1 ? "0 10px 0 0" :
+                        i === 2 ? "0 0 0 10px" :
+                        "0 0 10px 0"
+                      ) : undefined
+                    ),
+                  }}
+                >
+                  {src ? (
+                    <ChatImage src={src} alt={`Campaign photo ${i + 1}`} borderRadius={0} maxWidth={1200} />
+                  ) : (
+                    <div className="aspect-square w-full animate-pulse bg-[#D8D8D8] flex items-center justify-center text-[11px] text-muted-foreground">
+                      Generating…
+                    </div>
                   )}
-                  {rawSrc && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <a
-                          href={src ?? rawSrc}
-                          download={`campaign-photo-${i + 1}.png`}
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted transition-colors"
-                          style={{ border: "1px solid var(--border)" }}
-                        >
-                          <Download size={10} />
-                          Download
-                        </a>
-                      </TooltipTrigger>
-                      <TooltipContent>Download photo {i + 1}</TooltipContent>
-                    </Tooltip>
+
+                  {/* overflow scrim on last cell */}
+                  {isLast && (
+                    <div className="absolute inset-0 flex items-center justify-center text-white text-lg font-semibold"
+                         style={{ background: "rgba(0,0,0,0.45)" }}>
+                      +{overflow}
+                    </div>
+                  )}
+
+                  {/* Label badge — bottom-left */}
+                  {label && (
+                    <span
+                      className="absolute bottom-1.5 left-1.5 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-white leading-none"
+                      style={{ background: "rgba(0,0,0,0.55)" }}
+                    >
+                      {label}
+                    </span>
+                  )}
+
+                  {/* Action icons — bottom-right, revealed on hover */}
+                  {!isLast && (
+                    <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      {rawSrc && onFollowUpAction && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => onFollowUpAction("maya:regenerate-image", { image_url: rawSrc, prompt: "" })}
+                              className="flex items-center justify-center"
+                              style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "#fff", border: "none", cursor: "pointer" }}
+                            >
+                              <ImageIcon size={10} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Regenerate</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {rawSrc && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a
+                              href={src ?? rawSrc}
+                              download={`campaign-photo-${i + 1}.png`}
+                              className="flex items-center justify-center"
+                              style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "#fff", textDecoration: "none" }}
+                            >
+                              <Download size={10} />
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>Download</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
         {result.caption && (
-          <div className="mx-2.5 mb-2 border border-border bg-muted/20 p-2.5 flex flex-col gap-1.5">
-            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{"// caption"}</p>
-            <p className="whitespace-pre-wrap text-[11px] leading-snug">{result.caption.body}</p>
-            {result.caption.cta && (
-              <p className="text-[10px] italic text-muted-foreground">{result.caption.cta}</p>
-            )}
-            {result.caption.hashtags.length > 0 && (
-              <p className="text-[10px] leading-relaxed text-primary/70">
-                {[...new Set(result.caption.hashtags)]
-                  .map((h) => (h.startsWith("#") ? h : `#${h}`))
-                  .join(" ")}
-              </p>
-            )}
-            <div className="pt-0.5">
+          <div className="mt-2 mb-2 rounded-none border-t border-border/50 p-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Caption</p>
               <CopyButton
                 text={[
                   result.caption.body,
@@ -938,9 +959,20 @@ export function CampaignResultCard({
                 label="Copy caption"
               />
             </div>
+            <p className="text-sm leading-relaxed text-foreground">{result.caption.body}</p>
+            {result.caption.cta && (
+              <p className="text-xs italic text-muted-foreground">{result.caption.cta}</p>
+            )}
+            {result.caption.hashtags.length > 0 && (
+              <p className="text-xs leading-relaxed text-primary/80">
+                {[...new Set(result.caption.hashtags)]
+                  .map((h) => (h.startsWith("#") ? h : `#${h}`))
+                  .join(" ")}
+              </p>
+            )}
           </div>
         )}
-        <div className="px-2.5 pb-2.5">
+        <div className="flex justify-end px-3 pb-3 pt-2">
           <CampaignPublishDialog
             imageUrls={publishableUrls}
             photoCount={photos.length}

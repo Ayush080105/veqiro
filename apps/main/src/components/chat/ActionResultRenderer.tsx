@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import type { AgentActionId } from "@/lib/types/agents"
+import type { AgentActionId, MayaDraftResult } from "@/lib/types/agents"
+import { AgentColorProvider } from "@/components/ui/agent-card"
 
 // Sage
 import {
@@ -71,6 +72,7 @@ import {
 export interface ActionResultRendererProps {
   actionId: AgentActionId
   result: unknown
+  agentColor?: string
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
   onRevertImage?: () => void
 }
@@ -78,11 +80,11 @@ export interface ActionResultRendererProps {
 /** Dispatches an action result to its matching card. Results are untyped at
  * the boundary (they come back from JSON); each card validates shape at runtime
  * by reading the fields it expects. */
-export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRevertImage }: ActionResultRendererProps) {
+export function ActionResultRenderer({ actionId, result, agentColor, onFollowUpAction, onRevertImage }: ActionResultRendererProps) {
   // Use any-cast into typed cards - each card declares the precise type.
   const r = result as never
 
-  switch (actionId) {
+  const card = (() => { switch (actionId) {
     case "sage:keyword-research":
       return <KeywordClusterCard result={r} onFollowUpAction={onFollowUpAction} />
     case "sage:generate-blog":
@@ -101,6 +103,15 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
     case "maya:generate-ideas":
       return <IdeasGridCard result={r} onFollowUpAction={onFollowUpAction} />
     case "maya:draft-content":
+      if ((r as { drafts?: MayaDraftResult[] }).drafts) {
+        return (
+          <div className="flex flex-col gap-3">
+            {(r as { drafts: MayaDraftResult[] }).drafts.map((d, i) => (
+              <DraftCard key={i} result={d} onFollowUpAction={onFollowUpAction} onRevertImage={onRevertImage} />
+            ))}
+          </div>
+        )
+      }
       return <DraftCard result={r} onFollowUpAction={onFollowUpAction} onRevertImage={onRevertImage} />
     case "maya:draft-carousel":
       return <CarouselDraftCard result={r} onFollowUpAction={onFollowUpAction} />
@@ -191,5 +202,7 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
           {JSON.stringify(result, null, 2)}
         </pre>
       )
-  }
+  } })()
+
+  return <AgentColorProvider color={agentColor}>{card}</AgentColorProvider>
 }

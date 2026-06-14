@@ -32,6 +32,12 @@ const buttonVariants = cva(
           "rounded-md border-[3px] border-foreground bg-accent text-foreground font-head uppercase tracking-wider shadow-[5px_5px_0_var(--foreground)] hover:bg-accent/90 active:not-aria-[haspopup]:translate-x-0.5 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--foreground)] disabled:opacity-45",
         "brand-ghost":
           "rounded-md border-[3px] border-foreground bg-transparent text-foreground font-head uppercase tracking-wider hover:bg-foreground/5 active:not-aria-[haspopup]:translate-y-0.5 disabled:opacity-45",
+        // ── Chat action button: dark pill CTA used inside agent result cards ──
+        "chat-action":
+          "h-auto rounded-full bg-[#111] px-3.5 py-1.5 text-[11px] font-medium text-[#FFF9ED] hover:opacity-80 gap-1.5 [&_svg:not([class*='size-'])]:size-3",
+        // ── Chat utility button: warm cream pill for copy/export/secondary actions ──
+        "chat-utility":
+          "h-auto rounded-full bg-[#FFF9ED] border border-[#D4C9B0] text-[#111] px-3 py-1.5 text-[11px] font-medium hover:bg-[#EFE7D6] gap-1.5 [&_svg:not([class*='size-'])]:size-3",
       },
       size: {
         default:
@@ -77,6 +83,7 @@ function Button({
         data-slot="button"
         className={classes}
         render={children as React.ReactElement<Record<string, unknown>>}
+        nativeButton={false}
         {...props}
       />
     )

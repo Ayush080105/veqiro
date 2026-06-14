@@ -47,7 +47,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import Logo from "@/components/logo"
+import Image from "next/image"
 import { FONT } from "@/lib/fonts"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -118,24 +118,30 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="gap-3 px-4 py-3">
+      <SidebarHeader className="gap-1.5 px-3 pt-1 pb-2">
         <a
           href={LANDING_URL}
-          className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center"
+          className="flex items-center group-data-[collapsible=icon]:justify-center"
           title="Back to veqiro.com"
         >
-          <Logo className="w-8 h-8 shrink-0" />
-          <span
-            className="group-data-[collapsible=icon]:hidden"
-            style={{
-              fontFamily: FONT.head,
-              fontSize: 18,
-              letterSpacing: -0.5,
-              color: "#111",
-            }}
-          >
-            veqiro
-          </span>
+          {/* Full logo when sidebar is expanded */}
+          <Image
+            src="/logo.png"
+            alt="Veqiro"
+            width={110}
+            height={28}
+            className="group-data-[collapsible=icon]:hidden object-contain"
+            priority
+          />
+          {/* Icon-only mark when sidebar is collapsed */}
+          <Image
+            src="/icon.png"
+            alt="Veqiro"
+            width={32}
+            height={32}
+            className="hidden shrink-0 rounded-lg group-data-[collapsible=icon]:block"
+            priority
+          />
         </a>
         {activeOrg && (
           <div className="group-data-[collapsible=icon]:hidden">
@@ -295,6 +301,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     render={<Link href={item.href} style={monoLabelStyle} />}
+                    tooltip={item.label}
                     isActive={
                       pathname === item.href ||
                       pathname.startsWith(item.href + "/")
@@ -310,6 +317,7 @@ export function AppSidebar() {
                 <Collapsible open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
                   <SidebarMenuButton
                     isActive={isWorkspaceActive}
+                    tooltip="Workspace"
                     style={monoLabelStyle}
                     onClick={() => {
                       if (sidebarState === "collapsed") {
@@ -364,6 +372,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     render={<Link href={item.href} style={monoLabelStyle} />}
+                    tooltip={item.label}
                     isActive={
                       pathname === item.href ||
                       pathname.startsWith(item.href + "/")

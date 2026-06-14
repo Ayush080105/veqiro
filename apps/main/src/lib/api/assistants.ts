@@ -22,11 +22,14 @@ export async function sendMessage(
 
 export async function getMessages(
   agentSlug: string,
-  organizationId: string
+  organizationId: string,
+  before?: string,
 ): Promise<Message[]> {
   try {
+    const qs = new URLSearchParams({ organizationId, limit: "20" })
+    if (before) qs.set("before", before)
     return await apiFetch<Message[]>(
-      `/agents/${agentSlug}/chat?organizationId=${encodeURIComponent(organizationId)}`,
+      `/agents/${agentSlug}/chat?${qs.toString()}`,
       { agentSlugForNotFound: agentSlug }
     )
   } catch (err) {
@@ -181,10 +184,17 @@ export function useMessages(agentSlug: string, organizationId: string) {
   })
 }
 
+export type SendMessageCallbacks = {
+  onOptimistic?: (msg: Message) => void
+  onSuccess?: (msg: Message) => void
+  onError?: () => void
+}
+
 export function useSendMessage(
   agentSlug: string,
   organizationId: string,
   conversationId?: string,
+  callbacks?: SendMessageCallbacks,
 ) {
   const queryClient = useQueryClient()
 
@@ -194,25 +204,18 @@ export function useSendMessage(
       sendMessage(agentSlug, organizationId, content, conversationId),
 
     onMutate: async (content: string) => {
-      const key = qk.chat(agentSlug, organizationId)
-      await queryClient.cancelQueries({ queryKey: key })
-      const previous = queryClient.getQueryData<Message[]>(key) ?? []
       const optimistic: Message = {
         role: "user",
         content,
         imageUrl: null,
         createdAt: new Date().toISOString(),
       }
-      queryClient.setQueryData<Message[]>(key, [...previous, optimistic])
-      return { previous }
+      callbacks?.onOptimistic?.(optimistic)
+      return { optimistic }
     },
 
     onSuccess: (serverMsg: Message, content: string) => {
-      const key = qk.chat(agentSlug, organizationId)
-      queryClient.setQueryData<Message[]>(key, (prev) => [
-        ...(prev ?? []),
-        serverMsg,
-      ])
+      callbacks?.onSuccess?.(serverMsg)
 
       queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(
         qk.lastMessages(),
@@ -231,12 +234,8 @@ export function useSendMessage(
       )
     },
 
-    onError: (_err, _content, ctx) => {
-      if (!ctx) return
-      queryClient.setQueryData<Message[]>(
-        qk.chat(agentSlug, organizationId),
-        ctx.previous,
-      )
+    onError: () => {
+      callbacks?.onError?.()
     },
   })
 }

@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { MessageSquare, Send } from "lucide-react"
-import { FONT } from "@/lib/fonts"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
 import type { DashboardSummary } from "@/lib/api/dashboard"
 
@@ -20,60 +19,22 @@ function relativeTime(iso: string): string {
 
 export function RecentActivity({ items }: { items: DashboardSummary["recentActivity"] }) {
   return (
-    <div
-      style={{
-        background: "#FFF9ED",
-        border: "3px solid #111",
-        borderRadius: 16,
-        boxShadow: "6px 6px 0 #111",
-        padding: 20,
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
+    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5 flex flex-col gap-3">
       <div>
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 3,
-            textTransform: "uppercase",
-            color: "#555",
-          }}
-        >
+        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           [ activity feed ]
         </div>
-        <div
-          style={{
-            fontFamily: FONT.display,
-            fontSize: 28,
-            letterSpacing: -0.5,
-            color: "#111",
-            marginTop: 2,
-          }}
-        >
+        <div className="font-display text-[28px] tracking-tight text-foreground mt-0.5">
           recently
         </div>
       </div>
 
       {items.length === 0 ? (
-        <div
-          style={{
-            padding: "14px 16px",
-            background: "#fff",
-            border: "2px dashed #111",
-            borderRadius: 10,
-            fontFamily: FONT.mono,
-            fontSize: 12,
-            color: "#555",
-            letterSpacing: 1,
-          }}
-        >
+        <div className="px-4 py-3.5 bg-white border-2 border-dashed border-foreground rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
           {"// nothing to show yet"}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="flex flex-col gap-1.5">
           {items.map((item, i) => {
             const agent = item.agent
               ? (() => {
@@ -89,70 +50,40 @@ export function RecentActivity({ items }: { items: DashboardSummary["recentActiv
             const Icon = item.type === "post" ? Send : MessageSquare
 
             const content = (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "10px 12px",
-                  background: "#fff",
-                  border: "2px solid #111",
-                  borderRadius: 10,
-                  transition: "transform 120ms ease",
-                }}
-              >
+              <div className="max-sm:items-start flex items-center gap-3 px-3 py-2.5 bg-white border-2 border-foreground rounded-xl transition-transform duration-[120ms] ease">
+                {/* Avatar: colored base + icon behind + photo on top */}
                 <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    overflow: "hidden",
-                    border: "2px solid #111",
-                    background: bg,
-                    flexShrink: 0,
-                    display: "grid",
-                    placeItems: "center",
-                  }}
+                  className="relative size-8 rounded-full overflow-hidden border-2 border-foreground shrink-0 grid place-items-center"
+                  style={{ background: bg }}
                 >
-                  {agentPhoto ? (
-                    <img src={agentPhoto} alt={agent?.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <Icon className="size-3.5" style={{ color: "#111" }} />
+                  <Icon className="size-3.5 text-foreground absolute" />
+                  {agentPhoto && (
+                    <img
+                      src={agentPhoto}
+                      alt={agent?.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                      }}
+                    />
                   )}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: FONT.body,
-                      fontSize: 13,
-                      color: "#111",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                <div className="flex-1 min-w-0">
+                  <div className="font-body text-[13px] text-foreground line-clamp-2">
                     {item.title}
                   </div>
                 </div>
-                <div
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                    color: "#666",
-                    flexShrink: 0,
-                  }}
-                >
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground shrink-0">
                   {relativeTime(item.at)}
                 </div>
               </div>
             )
+
             return item.href ? (
               <Link
                 key={i}
                 href={item.href}
-                style={{ textDecoration: "none", color: "inherit" }}
+                className="block no-underline text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {content}
               </Link>

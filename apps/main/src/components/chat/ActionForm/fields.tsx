@@ -139,17 +139,48 @@ export function PlatformMultiPicker({
   value,
   onChange,
   exclude = [],
+  showAll = false,
 }: {
   value: ContentPlatform[]
   onChange: (next: ContentPlatform[]) => void
   exclude?: ContentPlatform[]
+  /** Show an "All" toggle button before the platform list. */
+  showAll?: boolean
 }) {
+  const available = PLATFORMS.filter((p) => !exclude.includes(p.id))
+  const allSelected = available.every((p) => value.includes(p.id))
+
   const toggle = (p: ContentPlatform) => {
     if (exclude.includes(p)) return
     onChange(value.includes(p) ? value.filter((x) => x !== p) : [...value, p])
   }
+
+  const toggleAll = () => {
+    if (allSelected) {
+      // Deselect all → fall back to first available
+      onChange(available.length > 0 ? [available[0].id] : [])
+    } else {
+      onChange(available.map((p) => p.id))
+    }
+  }
+
+  const selectedCls = "border-2 border-[#111] bg-[#111] text-[#FFF9ED]"
+  const idleCls = "border border-[#D4C9B0] bg-[#FFF9ED] hover:bg-[#EFE7D6] text-[#111]"
+
   return (
     <div className="flex gap-1.5">
+      {showAll && (
+        <button
+          type="button"
+          onClick={toggleAll}
+          className={cn(
+            "px-3 py-1.5 text-xs font-medium transition-colors",
+            allSelected ? selectedCls : idleCls
+          )}
+        >
+          All
+        </button>
+      )}
       {PLATFORMS.map((p) => (
         <button
           key={p.id}
@@ -157,12 +188,12 @@ export function PlatformMultiPicker({
           onClick={() => toggle(p.id)}
           disabled={exclude.includes(p.id)}
           className={cn(
-            "flex-1 border border-border px-2 py-1.5 text-xs transition-colors",
+            "flex-1 px-2 py-1.5 text-xs font-medium transition-colors",
             exclude.includes(p.id)
-              ? "opacity-25 cursor-not-allowed"
+              ? "opacity-25 cursor-not-allowed border border-[#D4C9B0]"
               : value.includes(p.id)
-                ? "bg-primary text-primary-foreground border-primary"
-                : "hover:bg-muted"
+                ? selectedCls
+                : idleCls
           )}
         >
           {p.label}

@@ -78,7 +78,7 @@ function ScoreGauge({ score, label }: { score: number; label: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
       <span className={cn("font-display text-lg leading-none", color)}>{score}</span>
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
         {label}
       </span>
     </div>
@@ -171,8 +171,8 @@ export function KeywordClusterCard({
             >
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between px-2 pb-0.5">
-                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">keyword</span>
-                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">keyword</span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                     vol/mo · difficulty · relevance
                   </span>
                 </div>
@@ -253,8 +253,8 @@ export function KeywordClusterCard({
           {clusters.length === 0 && flatList.length > 0 && (
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between px-2 pb-0.5">
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">keyword</span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">keyword</span>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   vol/mo · difficulty · relevance
                 </span>
               </div>
@@ -331,8 +331,7 @@ export function KeywordClusterCard({
           successLabel="Keywords copied"
         />
         <Button
-          variant="outline"
-          size="xs"
+          variant="chat-utility"
           onClick={() => copyText(csvWithHeader, "CSV copied")}
         >
           <Copy data-icon="inline-start" /> Copy as CSV
@@ -470,17 +469,16 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
           )}
         </AgentCard.Body>
         <AgentCard.Footer>
-          <Button variant="outline" size="xs" onClick={() => setPreviewOpen(true)}>
+          <Button variant="chat-utility" onClick={() => setPreviewOpen(true)}>
             <Eye data-icon="inline-start" /> Preview
           </Button>
           <CopyButton text={blog.content} successLabel="Content copied" />
-          <Button variant="outline" size="xs" onClick={downloadMd}>
+          <Button variant="chat-utility" onClick={downloadMd}>
             <Download data-icon="inline-start" /> Download .md
           </Button>
           {blog.wordpress_format && (
             <Button
-              variant="outline"
-              size="xs"
+              variant="chat-utility"
               onClick={() =>
                 copyText(
                   JSON.stringify(blog.wordpress_format, null, 2),
@@ -515,7 +513,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                   className="flex w-full items-center justify-between px-4 py-2.5 text-left"
                   onClick={() => setMetaOpen((o) => !o)}
                 >
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Meta / SEO fields</span>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Meta / SEO fields</span>
                   {metaOpen
                     ? <ChevronUp className="size-3 text-muted-foreground" />
                     : <ChevronDown className="size-3 text-muted-foreground" />
@@ -804,14 +802,14 @@ export function ContentBriefCard({
           <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             <Button
               size="xs"
-              variant="outline"
+              variant="chat-action"
               onClick={() => onFollowUpAction("maya:draft-content", {
                 topic: b.title_options[0],
                 platform: "linkedin",
                 additional_context: [b.cta_recommendation, b.topical_authority_tip].filter(Boolean).join("\n"),
               })}
             >
-              <Sparkles data-icon="inline-start" /> Draft social post · Maya
+              <Sparkles className="size-3" /> Draft social post · Maya
             </Button>
           </div>
         )}
@@ -876,9 +874,8 @@ function IdeaCard({
       {onFollowUpAction && (
         <div className="flex gap-1.5 pt-0.5">
           <Button
-            size="xs"
-            variant="outline"
-            className="flex-1 gap-1"
+            variant="chat-action"
+            className="flex-1"
             onClick={() =>
               onFollowUpAction("sage:generate-blog", {
                 topic: idea.title,
@@ -891,9 +888,8 @@ function IdeaCard({
             Write blog
           </Button>
           <Button
-            size="xs"
-            variant="outline"
-            className="flex-1 gap-1"
+            variant="chat-action"
+            className="flex-1"
             onClick={() =>
               onFollowUpAction("maya:draft-content", {
                 topic: idea.title,
@@ -1044,7 +1040,7 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className="absolute flex flex-col items-center">
         <span className="font-display text-base leading-none" style={{ color }}>{score}</span>
-        <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">score</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">score</span>
       </div>
     </div>
   )
@@ -1149,11 +1145,11 @@ export function PageSeoAuditCard({
         {/* ── Mentor summary ── */}
         {result.mentor_summary && (
           <div className="rounded border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] leading-relaxed text-foreground/90">{result.mentor_summary}</p>
+            <p className="text-sm leading-relaxed text-foreground">{result.mentor_summary}</p>
             {result.next_move && (
               <div className="mt-2 flex items-start gap-1.5 border-t border-border/40 pt-2">
                 <ArrowRight className="mt-0.5 size-3 shrink-0 text-chart-2" />
-                <p className="text-[11px] font-medium leading-tight text-chart-2">{result.next_move}</p>
+                <p className="text-[11px] font-semibold leading-tight text-chart-2">{result.next_move}</p>
               </div>
             )}
           </div>
@@ -1243,9 +1239,9 @@ export function PageSeoAuditCard({
             />
             {t.schema_issues.length > 0 && (
               <div className="mt-1 flex flex-col gap-0.5 rounded bg-chart-3/5 px-2 py-1.5">
-                <p className="text-[10px] font-medium text-chart-3">Schema issues to fix:</p>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-chart-3">Schema issues to fix</p>
                 {t.schema_issues.slice(0, 3).map((issue, i) => (
-                  <p key={i} className="flex items-start gap-1 text-[10px] text-muted-foreground">
+                  <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/70">
                     <AlertTriangle className="mt-0.5 size-2.5 shrink-0 text-chart-3" /> {issue}
                   </p>
                 ))}
@@ -1377,7 +1373,7 @@ export function PageSeoAuditCard({
 
             {(op.readability_grade || op.content_depth_assessment) && (
               <div className="rounded bg-muted/20 px-2.5 py-2">
-                {op.readability_grade && <p className="text-[10px]"><strong>Readability:</strong> {op.readability_grade}</p>}
+                {op.readability_grade && <p className="text-[10px]"><span className="font-bold">Readability:</span> {op.readability_grade}</p>}
                 {op.content_depth_assessment && <p className="mt-0.5 text-[10px] text-foreground/80">{op.content_depth_assessment}</p>}
               </div>
             )}
@@ -1466,7 +1462,7 @@ export function PageSeoAuditCard({
                 )}
                 {op.paa_unanswered.length > 0 && (
                   <>
-                    <p className="mt-1.5 text-[10px] font-medium text-chart-3">{op.paa_unanswered.length} unanswered PAA questions — add these to your FAQ or body content:</p>
+                    <p className="mt-1.5 text-[10px] font-bold text-chart-3">{op.paa_unanswered.length} unanswered PAA questions — add these to your FAQ or body content:</p>
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       {op.paa_unanswered.slice(0, 4).map((q, i) => (
                         <p key={i} className="flex items-start gap-1 text-[10px] text-muted-foreground">
@@ -1539,9 +1535,9 @@ export function PageSeoAuditCard({
             />
             {eeat.missing_signals.length > 0 && (
               <div className="mt-1 rounded bg-muted/20 px-2 py-1.5">
-                <p className="text-[10px] font-medium text-muted-foreground">Signals to add:</p>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Signals to add</p>
                 {eeat.missing_signals.slice(0, 4).map((s, i) => (
-                  <p key={i} className="text-[10px] text-foreground/70">• {s}</p>
+                  <p key={i} className="mt-0.5 text-[10px] text-foreground/70">• {s}</p>
                 ))}
               </div>
             )}
@@ -1558,7 +1554,7 @@ export function PageSeoAuditCard({
             {/* Word count bar chart */}
             {wcData.length > 1 && (
               <div>
-                <p className="mb-1 text-[10px] font-medium">Word count vs. competitors</p>
+                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Word count vs. competitors</p>
                 {comp.word_count_verdict && (
                   <p className="mb-2 text-[10px] leading-relaxed text-foreground/80">{comp.word_count_verdict}</p>
                 )}
@@ -1605,12 +1601,12 @@ export function PageSeoAuditCard({
               <div className="rounded border border-chart-3/30 bg-chart-3/5 px-2.5 py-2">
                 {comp.featured_snippet_holder ? (
                   <>
-                    <p className="text-[10px] font-medium">Featured snippet currently held by: <span className="text-chart-3">{comp.featured_snippet_holder}</span>{comp.featured_snippet_format ? ` (${comp.featured_snippet_format.replace(/_/g, " ")} format)` : ""}</p>
+                    <p className="text-[10px] font-bold text-foreground">Featured snippet currently held by: <span className="text-chart-3">{comp.featured_snippet_holder}</span>{comp.featured_snippet_format ? ` (${comp.featured_snippet_format.replace(/_/g, " ")} format)` : ""}</p>
                     {comp.featured_snippet_tip && <p className="mt-1 text-[10px] text-foreground/80">{comp.featured_snippet_tip}</p>}
                   </>
                 ) : (
                   <>
-                    <p className="text-[10px] font-medium">Featured snippet opportunity available</p>
+                    <p className="text-[10px] font-bold text-foreground">Featured snippet opportunity available</p>
                     {comp.featured_snippet_tip && <p className="mt-0.5 text-[10px] text-foreground/80">{comp.featured_snippet_tip}</p>}
                   </>
                 )}
@@ -1635,7 +1631,7 @@ export function PageSeoAuditCard({
             {/* Unique angle */}
             {comp.unique_angle_opportunity && (
               <div className="rounded border border-chart-2/30 bg-chart-2/5 px-2.5 py-2">
-                <p className="text-[10px] font-medium text-chart-2">Untapped opportunity:</p>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-chart-2">Untapped opportunity</p>
                 <p className="mt-0.5 text-[10px] text-foreground/80">{comp.unique_angle_opportunity}</p>
               </div>
             )}
@@ -1649,7 +1645,7 @@ export function PageSeoAuditCard({
                     <div key={i} className="rounded border border-border/50 px-2.5 py-2">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-[10px] font-medium leading-tight">{c.title || c.url}</p>
-                        <Badge variant="outline" className="shrink-0 text-[8px]">{c.word_count_estimate.toLocaleString()}w</Badge>
+                        <Badge variant="outline" className="shrink-0 text-[9px]">{c.word_count_estimate.toLocaleString()}w</Badge>
                       </div>
                       {c.main_h2s.length > 0 && (
                         <p className="mt-0.5 text-[9px] text-muted-foreground">Covers: {c.main_h2s.slice(0, 3).join(" · ")}</p>
@@ -1657,7 +1653,7 @@ export function PageSeoAuditCard({
                       {c.schema_types.length > 0 && (
                         <div className="mt-0.5 flex flex-wrap gap-0.5">
                           {c.schema_types.map((s) => (
-                            <Badge key={s} variant="secondary" className="text-[8px]">{s}</Badge>
+                            <Badge key={s} variant="secondary" className="text-[9px]">{s}</Badge>
                           ))}
                         </div>
                       )}
@@ -1680,7 +1676,7 @@ export function PageSeoAuditCard({
                     <div className="w-0.5 flex-1 bg-border/40" />
                   </div>
                   <div className="flex-1 pb-2">
-                    <p className="mb-1 text-[10px] font-semibold text-chart-2">First 30 days — Foundation</p>
+                    <p className="mb-1 text-[10px] font-bold text-chart-2">First 30 days — Foundation</p>
                     {result.action_plan_30d.map((a, i) => (
                       <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/80">
                         <ArrowRight className="mt-0.5 size-2.5 shrink-0 text-chart-2" /> {a}
@@ -1696,7 +1692,7 @@ export function PageSeoAuditCard({
                     <div className="w-0.5 flex-1 bg-border/40" />
                   </div>
                   <div className="flex-1 pb-2">
-                    <p className="mb-1 text-[10px] font-semibold text-chart-3">Days 30–60 — Growth</p>
+                    <p className="mb-1 text-[10px] font-bold text-chart-3">Days 30–60 — Growth</p>
                     {result.action_plan_60d.map((a, i) => (
                       <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/80">
                         <ArrowRight className="mt-0.5 size-2.5 shrink-0 text-chart-3" /> {a}
@@ -1711,7 +1707,7 @@ export function PageSeoAuditCard({
                     <div className="flex h-7 w-7 items-center justify-center rounded-full bg-chart-1/15 text-[9px] font-bold text-chart-1">90d</div>
                   </div>
                   <div className="flex-1">
-                    <p className="mb-1 text-[10px] font-semibold text-chart-1">Days 60–90 — Authority</p>
+                    <p className="mb-1 text-[10px] font-bold text-chart-1">Days 60–90 — Authority</p>
                     {result.action_plan_90d.map((a, i) => (
                       <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/80">
                         <ArrowRight className="mt-0.5 size-2.5 shrink-0 text-chart-1" /> {a}
@@ -1741,15 +1737,14 @@ export function PageSeoAuditCard({
         {/* ── Footer buttons ── */}
         <div className="flex flex-wrap gap-1.5">
           <Button
-            variant="outline"
-            size="xs"
+            variant="chat-utility"
             onClick={() =>
               onFollowUpAction?.("sage:page-seo-audit", { url: result.url, target_keyword: result.target_keyword })
             }
           >
             <Gauge className="size-3" /> Re-audit
           </Button>
-          <CopyButton text={JSON.stringify(result, null, 2)} label="Copy full report" size="xs" />
+          <CopyButton text={JSON.stringify(result, null, 2)} label="Copy full report" />
         </div>
 
       </AgentCard.Body>
