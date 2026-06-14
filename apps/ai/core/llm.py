@@ -699,7 +699,11 @@ class LLMClient:
                 contents=full_prompt,
                 config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
             )
-            for part in response.candidates[0].content.parts:
+            candidate = response.candidates[0] if response.candidates else None
+            if candidate is None or candidate.content is None:
+                finish = getattr(candidate, "finish_reason", None) if candidate else None
+                raise LLMError(f"Gemini returned no image content (finish_reason={finish})")
+            for part in candidate.content.parts:
                 if part.inline_data is not None:
                     b64 = _base64.b64encode(part.inline_data.data).decode()
                     if generation:
@@ -785,7 +789,11 @@ class LLMClient:
                 contents=parts,
                 config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
             )
-            for part in response.candidates[0].content.parts:
+            candidate = response.candidates[0] if response.candidates else None
+            if candidate is None or candidate.content is None:
+                finish = getattr(candidate, "finish_reason", None) if candidate else None
+                raise LLMError(f"Gemini returned no image content (finish_reason={finish})")
+            for part in candidate.content.parts:
                 if part.inline_data is not None:
                     b64 = _base64.b64encode(part.inline_data.data).decode()
                     if generation:

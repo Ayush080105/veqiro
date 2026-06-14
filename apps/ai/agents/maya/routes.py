@@ -832,17 +832,27 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
         return ImageRegenResponse(image=image)
 
     source_bytes = await _fetch_asset(str(request.image_url))
-    if source_bytes:
-        edit_prompt = (
-            f"You are editing the reference image. Make ONLY this specific change: {request.prompt}\n\n"
-            "CRITICAL: Keep the entire composition, all characters, colors, layout, and visual style "
-            "EXACTLY the same as the reference. Do NOT regenerate or redesign the image. "
-            "Only apply the described change and nothing else. "
-            "If the change involves text, spell every word EXACTLY as specified — no typos, no letter swaps."
-        )
-        b64 = await _llm.generate_image_with_image_bytes(edit_prompt, [source_bytes])
-    else:
-        b64 = await _llm.generate_image(request.prompt)
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            if source_bytes:
+                edit_prompt = (
+                    f"You are editing the reference image. Make ONLY this specific change: {request.prompt}\n\n"
+                    "CRITICAL: Keep the entire composition, all characters, colors, layout, and visual style "
+                    "EXACTLY the same as the reference. Do NOT regenerate or redesign the image. "
+                    "Only apply the described change and nothing else. "
+                    "If the change involves text, spell every word EXACTLY as specified — no typos, no letter swaps."
+                )
+                b64 = await _llm.generate_image_with_image_bytes(edit_prompt, [source_bytes])
+            else:
+                b64 = await _llm.generate_image(request.prompt)
+            last_err = None
+            break
+        except Exception as err:
+            last_err = err
+            logger.warning("regenerate-image attempt %d/3 failed | error=%s", attempt + 1, err)
+    if last_err is not None:
+        raise last_err
 
     image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=request.prompt)
     return ImageRegenResponse(image=image, model_used="gemini-2.5-flash-image")
@@ -1347,24 +1357,27 @@ async def create_campaign(request: CampaignRequest):
             f"  • EMOTIONAL REGISTER: What emotion should the viewer feel? Encode it through the environment mood.\n"
             f"  BRIEF TEXT: {request.campaign_brief}"
         )
-        try:
-            image = await generate_social_image(
-                prompt=request.campaign_brief,
-                platform=request.platform,
-                use_logo=request.use_logo,
-                use_mascot=request.use_mascot,
-                user_id=request.user_id,
-                organization_id=request.organization_id,
-                brand_kit=brand_kit,
-                context_hints=hints,
-                reference_urls=[request.product_image_url],
-                campaign_mode=True,
-                campaign_anchor_b64=anchor_b64,
-            )
-            return CampaignPhoto(image=image, composition_role=role)
-        except Exception as err:
-            logger.error("campaign image_gen failed | role=%s error=%s", role, err)
-            return None
+        for attempt in range(3):
+            try:
+                image = await generate_social_image(
+                    prompt=request.campaign_brief,
+                    platform=request.platform,
+                    use_logo=request.use_logo,
+                    use_mascot=request.use_mascot,
+                    user_id=request.user_id,
+                    organization_id=request.organization_id,
+                    brand_kit=brand_kit,
+                    context_hints=hints,
+                    reference_urls=[request.product_image_url],
+                    campaign_mode=True,
+                    campaign_anchor_b64=anchor_b64,
+                )
+                return CampaignPhoto(image=image, composition_role=role)
+            except Exception as err:
+                logger.warning("campaign image_gen attempt %d/3 failed | role=%s error=%s", attempt + 1, role, err)
+                if attempt == 2:
+                    logger.error("campaign image_gen failed after 3 attempts | role=%s error=%s", role, err)
+        return None
 
     # Generate photo 1 first — it defines the visual DNA (lighting, grade, subject rendering)
     # for the entire campaign. Photos 2+ receive it as a style anchor.
