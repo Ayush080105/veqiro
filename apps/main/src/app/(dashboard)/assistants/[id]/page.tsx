@@ -309,8 +309,6 @@ function EmptyState({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "#FFF9ED"
-              }}
-              onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translate(0,0)"
               }}
             >
