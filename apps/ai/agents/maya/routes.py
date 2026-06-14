@@ -1330,18 +1330,10 @@ async def create_campaign(request: CampaignRequest):
 
     total_photos = len(roles)
 
-    async def _gen_photo(role: str, photo_index: int, anchor_b64: str | None = None) -> CampaignPhoto | None:
-        anchor_note = (
-            "\nSTYLE ANCHOR: Reference image 1 (above) is Photo 1 of this campaign. "
-            "Match its lighting style, colour grade, and realism level. "
-            "The product's colors and visual identity must stay consistent with Photo 1 — "
-            "but the camera angle, framing, and scene for THIS photo are dictated by its own composition role below and will be completely different.\n"
-        ) if anchor_b64 else ""
-
-        hints = (
+    def _make_hints(role: str, photo_index: int) -> str:
+        return (
             f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
             f"{style_lock}\n\n"
-            f"{anchor_note}"
             f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n\n"
             f"COMPOSITION ROLE — this defines the camera angle AND how the product is oriented/framed for this specific photo:\n"
             f"{role}\n\n"
@@ -1352,12 +1344,26 @@ async def create_campaign(request: CampaignRequest):
             f"SCENE DISTINCTNESS: This photo's background and environment must be completely different from every other photo in the campaign.\n\n"
             f"CAMPAIGN BRIEF — extract and apply ONLY the following from this brief:\n"
             f"  • ENVIRONMENT: What physical location or space does this brief imply? Apply it to the background/scene.\n"
-            f"  • LIGHTING FEEL: What quality of light does the brief suggest (harsh sun, soft indoor, neon, dusk)? Align with the Style Lock above.\n"
-            f"  • COLOR STORY: What dominant hues or color relationships does this brief imply? Use them in the background and props, not the product.\n"
+            f"  • LIGHTING FEEL: What quality of light does the brief suggest? Align with the Style Lock above.\n"
+            f"  • COLOR STORY: What dominant hues does this brief imply? Use them in background and props, not the product.\n"
             f"  • EMOTIONAL REGISTER: What emotion should the viewer feel? Encode it through the environment mood.\n"
             f"  BRIEF TEXT: {request.campaign_brief}"
         )
+
+    async def _gen_photo(
+        role: str,
+        photo_index: int,
+        anchor_b64: str | None = None,
+    ) -> CampaignPhoto | None:
+        hints = _make_hints(role, photo_index)
+        # Photo 1 (anchor=None):  refs = product URL + logo  (2 refs)
+        # Photo 2+ (anchor=b64):  refs = anchor + logo       (2 refs)
+        #   anchor already shows the product correctly rendered, so it acts as
+        #   both the style lock and product identity — no separate URL needed.
+        product_urls = [] if anchor_b64 else [request.product_image_url]
         for attempt in range(3):
+            if attempt:
+                await asyncio.sleep(2 * attempt)
             try:
                 image = await generate_social_image(
                     prompt=request.campaign_brief,
@@ -1368,10 +1374,12 @@ async def create_campaign(request: CampaignRequest):
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
                     context_hints=hints,
-                    reference_urls=[request.product_image_url],
+                    reference_urls=product_urls,
                     campaign_mode=True,
                     campaign_anchor_b64=anchor_b64,
                 )
+                if attempt:
+                    logger.info("campaign image_gen recovered on attempt %d | role=%s", attempt + 1, role)
                 return CampaignPhoto(image=image, composition_role=role)
             except Exception as err:
                 logger.warning("campaign image_gen attempt %d/3 failed | role=%s error=%s", attempt + 1, role, err)
@@ -1379,8 +1387,8 @@ async def create_campaign(request: CampaignRequest):
                     logger.error("campaign image_gen failed after 3 attempts | role=%s error=%s", role, err)
         return None
 
-    # Generate photo 1 first — it defines the visual DNA (lighting, grade, subject rendering)
-    # for the entire campaign. Photos 2+ receive it as a style anchor.
+    # Photo 1 is generated first (no anchor) — its output becomes the visual
+    # anchor for all remaining photos, which are generated in parallel.
     photo_1 = await _gen_photo(roles[0], 0, anchor_b64=None)
     anchor_b64 = photo_1.image.image_base64 if photo_1 else None
 
