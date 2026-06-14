@@ -1022,8 +1022,7 @@ def _generate_docx(document_text: str, document_type: str) -> bytes:
                 p.runs[0].font.name = "Times New Roman"
 
     footer_para = doc.sections[0].footer.paragraphs[0]
-    footer_para.text = "CONFIDENTIAL — TEMPLATE ONLY — Consult a qualified attorney before use"
-    footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    footer_para.text = ""
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -1083,10 +1082,6 @@ def _generate_pdf(document_text: str, document_type: str) -> bytes:
     def _footer(canvas, doc):
         canvas.saveState()
         canvas.setFont("Times-Italic", 8)
-        canvas.drawCentredString(
-            LETTER[0] / 2, 0.5 * inch,
-            "CONFIDENTIAL — TEMPLATE ONLY — Consult a qualified attorney before use",
-        )
         canvas.drawRightString(LETTER[0] - 1.25 * inch, 0.5 * inch, f"Page {doc.page}")
         canvas.restoreState()
 
