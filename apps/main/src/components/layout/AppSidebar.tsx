@@ -80,7 +80,7 @@ const monoLabelStyle: React.CSSProperties = {
 }
 
 const LANDING_URL =
-  process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3001"
+  process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3000"
 const POST_LOGOUT_URL = LANDING_URL
 
 export function AppSidebar() {

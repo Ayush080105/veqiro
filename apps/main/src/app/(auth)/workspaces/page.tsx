@@ -21,7 +21,7 @@ import {
 import { FONT } from "@/lib/fonts"
 
 const LANDING_URL =
-  process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3001"
+  process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3000"
 
 function WorkspaceSkeleton() {
   return (
