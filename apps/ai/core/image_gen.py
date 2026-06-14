@@ -379,16 +379,10 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"Visual style: {style}. "
         f"{typography}"
         f"{exact_text_block}"
-        f"COMPOSITION: Dynamic, bold, brand-driven. Apply ALL of the following spatial rules:\n"
-        f"  VISUAL HIERARCHY: Primary subject occupies one strong zone of the frame (upper-right, lower-left, or a diagonal half). "
-        f"Typography anchors to the opposite zone, creating tension and drawing the eye across the image.\n"
-        f"  RULE OF THIRDS: Place the primary subject at a third-line intersection — NOT dead center. "
-        f"Leave deliberate breathing room (at least 20% of the frame) around the subject — negative space is intentional, not empty.\n"
-        f"  DEFINITIONS — FULL-BLEED: brand color or imagery extends to ALL four edges, zero internal borders or frames. "
-        f"ASYMMETRIC: left and right halves carry different visual weight, color, or content. "
-        f"OVERSIZED TYPOGRAPHY: headline text occupies at least 25-35% of the total image height — it is a graphic element, not a caption.\n"
+        f"COMPOSITION: Dynamic, bold, brand-driven. Use full-bleed brand colors, asymmetric layouts, "
+        f"oversized typography, diagonal splits, or large geometric brand-color shapes. "
         f"FORBIDDEN: bordered card inside canvas, square frame inside square, centered text on plain gradient, "
-        f"generic white panel on colored background, equal visual weight on both halves — these look like stock templates. "
+        f"generic white panel on colored background — these look like stock templates. "
         f"Output must look like it was designed by a top-tier social media creative director. "
         f"{guardrails}"
     )
@@ -480,7 +474,7 @@ async def generate_social_image(
         from core.llm import _resize_for_reference
         raw_anchor = _base64.b64decode(carousel_anchor_b64)
         # Downscale to 512 px — enough for style matching, avoids API input size errors
-        anchor_images: list[bytes] = [_resize_for_reference(raw_anchor, max_side=512)]
+        anchor_images: list[bytes] = [_resize_for_reference(raw_anchor, max_side=256)]
         anchor_instructions = [
             "Reference image 1 is slide 1 of this carousel. "
             "CRITICAL — match its EXACT design template: same background color and texture, "
@@ -513,7 +507,67 @@ async def generate_social_image(
         logger.info("image_gen carousel-anchor done | user=%s slide", user_id or "anon")
         return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
 
-    # ── Reference-image mode: theme/mood inspiration + brand kit ─────────
+    # ── Campaign anchor mode: photos 2+ use photo-1 as product+style reference ──
+    # Handled BEFORE the reference_urls check because anchor photos have no
+    # product URL (reference_urls=[]) — they get the anchor as ref image 1.
+    # refs = anchor(256px) + logo = 2 max, same as photo 1 (product + logo).
+    if campaign_mode and campaign_anchor_b64:
+        import base64 as _base64
+        from core.llm import _resize_for_reference
+        anchor_raw = _base64.b64decode(campaign_anchor_b64)
+        anchor_images: list[bytes] = [_resize_for_reference(anchor_raw, max_side=256)]
+        anchor_extra: list[str] = []
+
+        if use_mascot and brand_kit and brand_kit.mascot_url:
+            mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
+            if mascot_bytes:
+                anchor_images.append(mascot_bytes)
+                idx = len(anchor_images)
+                anchor_extra.append(
+                    f"Reference image {idx} is a brand mascot character. "
+                    f"Include as a small, tasteful supporting element. "
+                    f"The product from reference image 1 remains the hero."
+                )
+                logger.info("mascot reference added (campaign anchor mode) | user=%s", user_id)
+
+        if use_logo and brand_kit and brand_kit.logo_url:
+            logo_bytes = await _fetch_asset(brand_kit.logo_url)
+            if logo_bytes:
+                anchor_images.append(logo_bytes)
+                idx = len(anchor_images)
+                anchor_extra.append(
+                    f"MANDATORY: Reference image {idx} is the brand logo. "
+                    f"You MUST include it — its absence is a failure. "
+                    f"Reproduce it with faithful accuracy: exact shape, colors, proportions. "
+                    f"If the logo has a background colour, ignore it — composite only the logo mark with no white box. "
+                    f"Place it naturally in the composition (corner or edge), occupying 8-12% of image width."
+                )
+                logger.info("logo reference added (campaign anchor mode) | user=%s", user_id)
+
+        mandate = _asset_mandate(
+            use_logo and bool(brand_kit and brand_kit.logo_url),
+            use_mascot and bool(brand_kit and brand_kit.mascot_url),
+        )
+        anchor_product_instr = (
+            "Reference image 1 is Photo 1 of this campaign — the style and product master. "
+            "Study it for: (a) the subject's exact appearance — colors, textures, proportions, markings; "
+            "(b) lighting quality, colour grade, and overall visual style to match across all photos. "
+            "Recreate the same subject from the angle/pose defined by the composition role, "
+            "in a completely new scene — same product identity, different shot."
+        )
+        full_prompt = (
+            f"{mandate}"
+            f"{base_prompt}\n\n"
+            f"PRODUCT CAMPAIGN PHOTOGRAPH: The subject from the reference is the absolute hero. "
+            f"Every compositional decision exists to showcase it.\n\n"
+            f"{anchor_product_instr}"
+            + ("\n" + "\n".join(anchor_extra) if anchor_extra else "")
+        )
+        b64 = await llm.generate_image_with_image_bytes(full_prompt, anchor_images, aspect_ratio=aspect_ratio)
+        logger.info("image_gen campaign-anchor done | user=%s refs=%d logo=%s", user_id, len(anchor_images), use_logo)
+        return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
+
+    # ── Reference-image mode: product URL refs (photo 1) or theme inspiration ──
     has_references = bool(reference_urls)
     if has_references:
         import asyncio as _asyncio
@@ -526,38 +580,25 @@ async def generate_social_image(
             extra_instructions: list[str] = []
 
             if campaign_mode:
-                # ── Campaign mode: inject style anchor (photo 1) before product refs ──
-                if campaign_anchor_b64:
-                    import base64 as _base64
-                    from core.llm import _resize_for_reference
-                    anchor_raw = _base64.b64decode(campaign_anchor_b64)
-                    anchor_resized = _resize_for_reference(anchor_raw, max_side=512)
-                    # Insert anchor as image 1; product refs shift to 2+
-                    all_images = [anchor_resized] + all_images
-                    anchor_instr = (
-                        "Reference image 1 is Photo 1 of this campaign — the STYLE MASTER. "
-                        "You MUST match its exact: lighting quality and direction, colour grade and temperature, "
-                        "background mood and environment style, level of photorealism. "
-                        "The subject must look IDENTICAL to how it appears across all photos — same colours, same textures, same proportions. "
-                        "Only the composition role changes."
-                    )
-                    # Shift product instruction indices
-                    product_ref_offset = 1
-                else:
-                    anchor_instr = ""
-                    product_ref_offset = 0
-
-                # ── Product/subject identity capture ──
-                product_instructions = (
-                    (anchor_instr + "\n") if anchor_instr else ""
-                ) + "\n".join(
-                    f"Reference image {i + 1 + product_ref_offset}: This is the campaign subject — study it with extreme detail.\n"
-                    f"  CATALOG: exact colours (every hue and gradient), surface materials and textures (glossy/matte/metallic/fabric), "
-                    f"shape and silhouette (proportions, edges, curves), any logos/text/markings on the subject, distinctive features.\n"
-                    f"  REPRODUCE: Every one of these attributes must appear with faithful accuracy — exact colors, correct proportions, all distinctive surface markings preserved. "
-                    f"The subject must be immediately recognisable as the EXACT same subject from this reference. "
-                    f"Create a completely original scene — new pose, new background, new angle — but the subject itself is unchanged.\n"
-                    f"  DO NOT copy the reference image's background, framing, or pose — only the subject's identity."
+                # Photo 1: product URL is the only product reference
+                # product_instructions = "\n".join(
+                #     f"Reference image {i + 1}: This is the campaign subject — study it with extreme detail.\n"
+                #     f"  CATALOG: exact colours (every hue and gradient), surface materials and textures "
+                #     f"(glossy/matte/metallic/fabric), shape and silhouette (proportions, edges, curves), "
+                #     f"any logos/text/markings on the subject, distinctive features.\n"
+                #     f"  REPRODUCE: Every one of these attributes must appear with faithful accuracy — "
+                #     f"exact colors, correct proportions, all distinctive surface markings preserved. "
+                #     f"The subject must be immediately recognisable as the EXACT same subject from this reference. "
+                #     f"Create a completely original scene — new pose, new background, new angle — but the subject itself is unchanged.\n"
+                #     f"  DO NOT copy the reference image's background, framing, or pose — only the subject's identity."
+                #     for i in range(len(ref_images_ext))
+                # )
+                product_instructions = "\n".join(
+                    f"Reference image {i + 1} contains the product. "
+                    f"Preserve the product's identity, colors, materials, proportions, and overall appearance. "
+                    f"Keep the product clearly recognizable as the same product from the reference. "
+                    f"DO NOT recreate the reference image composition, camera angle, pose, background, or framing. "
+                    f"Generate a fresh campaign image where the product appears in a noticeably different pose, orientation, camera perspective, and environment while maintaining the same product identity."
                     for i in range(len(ref_images_ext))
                 )
 
@@ -580,14 +621,21 @@ async def generate_social_image(
                     if logo_bytes:
                         all_images.append(logo_bytes)
                         idx = len(all_images)
+                        # extra_instructions.append(
+                        #     f"MANDATORY: Reference image {idx} is the brand logo. "
+                        #     f"You MUST include it in the final image — its absence is a failure. "
+                        #     f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
+                        #     f"Do NOT simplify, redraw, or reinterpret it. "
+                        #     f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                        #     f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
+                        #     f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
+                        # )
                         extra_instructions.append(
-                            f"MANDATORY: Reference image {idx} is the brand logo. "
-                            f"You MUST include it in the final image — its absence is a failure. "
-                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
-                            f"Do NOT simplify, redraw, or reinterpret it. "
-                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
-                            f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
-                            f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
+                            f"Reference image {idx} contains the brand logo and visual identity. "
+                            f"Use it as a branding reference for the campaign. "
+                            f"Maintain consistency with the brand's visual style, colors, and identity. "
+                            f"If appropriate, the logo may appear naturally and subtly within the composition. "
+                            f"The primary goal is to create a high-quality marketing image featuring the product."
                         )
                         logger.info("logo reference added (campaign mode) | user=%s", user_id)
 

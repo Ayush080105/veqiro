@@ -1,9 +1,12 @@
 import asyncio
 import base64
 import json as _json
+import logging
 from typing import AsyncGenerator
 from core.config import settings
 from core.exceptions import LLMError
+
+logger = logging.getLogger("llm")
 from core.tools import (
     ToolDefinition, ToolCall, LLMToolResponse,
     tool_defs_to_openai, tool_defs_to_gemini,
@@ -61,6 +64,54 @@ def _resize_for_reference(data: bytes, max_side: int = 512) -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)
     return buf.getvalue()
+
+
+def _describe_image_failure(response, candidate) -> str:
+    """Build a diagnostic string explaining why Gemini returned no image.
+
+    IMAGE_OTHER and empty-content responses are opaque on their own. This pulls
+    the prompt-level block reason, candidate finish reason, safety ratings, and
+    any TEXT the model returned instead of an image (a strong signal that the
+    prompt read as instructions/refusal rather than a scene to draw).
+    """
+    bits: list[str] = []
+    finish = getattr(candidate, "finish_reason", None) if candidate else None
+    bits.append(f"finish_reason={finish}")
+
+    pf = getattr(response, "prompt_feedback", None)
+    if pf is not None:
+        block = getattr(pf, "block_reason", None)
+        if block:
+            bits.append(f"block_reason={block}")
+        pf_ratings = getattr(pf, "safety_ratings", None)
+        blocked = [
+            f"{getattr(r, 'category', '?')}={getattr(r, 'probability', '?')}"
+            for r in (pf_ratings or [])
+            if getattr(r, "blocked", False)
+        ]
+        if blocked:
+            bits.append(f"prompt_safety_blocked=[{', '.join(blocked)}]")
+
+    if candidate is not None:
+        cand_ratings = getattr(candidate, "safety_ratings", None)
+        flagged = [
+            f"{getattr(r, 'category', '?')}={getattr(r, 'probability', '?')}"
+            for r in (cand_ratings or [])
+            if getattr(r, "blocked", False)
+        ]
+        if flagged:
+            bits.append(f"candidate_safety_blocked=[{', '.join(flagged)}]")
+        # Did the model return text instead of an image?
+        content = getattr(candidate, "content", None)
+        text_parts = [
+            getattr(p, "text", "")
+            for p in (getattr(content, "parts", None) or [])
+            if getattr(p, "text", None)
+        ]
+        if text_parts:
+            snippet = " ".join(text_parts)[:200].replace("\n", " ")
+            bits.append(f"model_returned_text='{snippet}'")
+    return " ".join(bits)
 
 
 # A minimal 1x1 red PNG in base64
@@ -318,6 +369,8 @@ class LLMClient:
         if text is None:
             finish = None
             try:
+                print("Gemini response candidates:", response.candidates)
+                print(response)
                 finish = response.candidates[0].finish_reason
             except Exception:
                 pass
@@ -659,11 +712,17 @@ class LLMClient:
             finish_reason="stop",
         )
 
-    async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
-        """Text-to-image via Gemini. Returns base64 PNG."""
+    async def generate_image_with_image_bytes(
+        self,
+        prompt: str,
+        images: list[bytes],
+        aspect_ratio: str = "1:1"
+    ) -> str:
+        """Image generation with raw reference image bytes via Gemini."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return _RED_PNG_B64
+
         import time
         import base64 as _base64
         from langfuse import Langfuse as _Langfuse
@@ -680,47 +739,174 @@ class LLMClient:
             try:
                 if obs_ctx.trace_id is None:
                     obs_ctx.trace_id = _Langfuse.create_trace_id()
+
                 generation = lf.start_observation(
                     trace_context={"trace_id": obs_ctx.trace_id},
-                    name="generate_image",
+                    name="generate_image_with_references",
                     as_type="generation",
                     model="gemini-2.5-flash-image",
-                    input={"prompt": prompt[:500], "aspect_ratio": aspect_ratio},
-                    model_parameters={"aspect_ratio": aspect_ratio},
+                    input={
+                        "prompt": prompt[:500],
+                        "num_references": len(images),
+                        "aspect_ratio": aspect_ratio,
+                    },
+                    model_parameters={
+                        "aspect_ratio": aspect_ratio,
+                        "num_references": len(images),
+                    },
                 )
             except Exception:
                 pass
 
         try:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            full_prompt = f"{prompt}\n\nOutput image dimensions: {_aspect_ratio_hint(aspect_ratio)}."
+
+            full_prompt = (
+                f"{prompt}\n\n"
+                f"Output image dimensions: {_aspect_ratio_hint(aspect_ratio)}."
+            )
+
+            logger.info(
+                "generate_image_with_references | refs=%s prompt_len=%s",
+                len(images),
+                len(full_prompt),
+            )
+
+            parts = [types.Part.from_text(text=full_prompt)]
+
+            for idx, img_bytes in enumerate(images):
+                logger.info(
+                    "reference_%s original_size_kb=%.2f",
+                    idx + 1,
+                    len(img_bytes) / 1024,
+                )
+
+                squared = _pad_to_square(img_bytes)
+
+                optimized = _resize_for_reference(
+                    squared,
+                    max_side=512,
+                )
+
+                logger.info(
+                    "reference_%s resized_size_kb=%.2f",
+                    idx + 1,
+                    len(optimized) / 1024,
+                )
+
+                parts.append(
+                    types.Part.from_bytes(
+                        data=optimized,
+                        mime_type="image/png",
+                    )
+                )
+
             response = await client.aio.models.generate_content(
                 model="gemini-2.5-flash-image",
-                contents=full_prompt,
-                config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
+                contents=parts,
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                ),
             )
-            for part in response.candidates[0].content.parts:
-                if part.inline_data is not None:
-                    b64 = _base64.b64encode(part.inline_data.data).decode()
+
+            logger.info(
+                "generate_image_with_references | response received"
+            )
+
+            candidate = (
+                response.candidates[0]
+                if response.candidates
+                else None
+            )
+
+            if candidate is None or candidate.content is None:
+                detail = _describe_image_failure(
+                    response,
+                    candidate,
+                )
+
+                logger.warning(
+                    "generate_image_with_references | no image content | %s",
+                    detail,
+                )
+
+                logger.warning(
+                    "FULL GEMINI RESPONSE:\n%s",
+                    response,
+                )
+
+                raise LLMError(
+                    f"Gemini returned no image content ({detail})"
+                )
+
+            for part in candidate.content.parts:
+                if getattr(part, "inline_data", None) is not None:
+
+                    b64 = _base64.b64encode(
+                        part.inline_data.data
+                    ).decode()
+
                     if generation:
                         try:
                             generation.update(
                                 output="[image generated]",
-                                usage_details={"input": 0, "output": 1, "total": 1, "unit": "IMAGES"},
-                                metadata={"latency_ms": int((time.perf_counter() - t0) * 1000), "aspect_ratio": aspect_ratio, "org_id": obs_ctx.org_id, "agent": obs_ctx.agent_slug},
+                                usage_details={
+                                    "input": 0,
+                                    "output": 1,
+                                    "total": 1,
+                                    "unit": "IMAGES",
+                                },
+                                metadata={
+                                    "latency_ms": int(
+                                        (time.perf_counter() - t0)
+                                        * 1000
+                                    ),
+                                    "aspect_ratio": aspect_ratio,
+                                    "num_references": len(images),
+                                    "org_id": obs_ctx.org_id,
+                                    "agent": obs_ctx.agent_slug,
+                                },
                             )
                             generation.end()
                         except Exception:
                             pass
+
                     return b64
-            raise LLMError("Gemini returned no image data")
+
+            detail = _describe_image_failure(
+                response,
+                candidate,
+            )
+
+            logger.warning(
+                "generate_image_with_references | no image data | %s",
+                detail,
+            )
+
+            logger.warning(
+                "FULL GEMINI RESPONSE:\n%s",
+                response,
+            )
+
+            raise LLMError(
+                f"Gemini returned no image data ({detail})"
+            )
+
         except Exception as e:
+            logger.exception(
+                "generate_image_with_references failed"
+            )
+
             if generation:
                 try:
-                    generation.update(level="ERROR", status_message=str(e))
+                    generation.update(
+                        level="ERROR",
+                        status_message=str(e),
+                    )
                     generation.end()
                 except Exception:
                     pass
+
             raise
 
     async def generate_image_with_reference(
@@ -785,7 +971,11 @@ class LLMClient:
                 contents=parts,
                 config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
             )
-            for part in response.candidates[0].content.parts:
+            candidate = response.candidates[0] if response.candidates else None
+            if candidate is None or candidate.content is None:
+                finish = getattr(candidate, "finish_reason", None) if candidate else None
+                raise LLMError(f"Gemini returned no image content (finish_reason={finish})")
+            for part in candidate.content.parts:
                 if part.inline_data is not None:
                     b64 = _base64.b64encode(part.inline_data.data).decode()
                     if generation:
