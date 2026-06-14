@@ -78,8 +78,10 @@ const markdownComponents: Components = {
       {children}
     </blockquote>
   ),
-  img: ({ src, alt }: { src?: string; alt?: string }) =>
-    src ? <ChatImage src={src} alt={alt ?? ""} className="my-2" /> : null,
+  img: ({ src, alt }: { src?: string | Blob; alt?: string }) => {
+    const srcStr = typeof src === "string" ? src : undefined
+    return srcStr ? <ChatImage src={srcStr} alt={alt ?? ""} className="my-2" /> : null
+  },
   table: ({ children }: { children?: React.ReactNode }) => (
     <div className="my-1.5 overflow-x-auto">
       <table className="w-full text-left text-xs">{children}</table>
