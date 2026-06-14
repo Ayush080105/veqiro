@@ -158,7 +158,7 @@ export async function finalizeBrandKit(
 // Direct-to-R2: presign → PUT to R2 → finalize on server.
 import { uploadToR2 } from "@/lib/api/uploads"
 
-export type UploadKind = "logo" | "mascot"
+export type UploadKind = "logo" | "mascot" | "letterhead"
 
 export type UploadAssetResult =
   | { ok: true; url: string; key: string; kind: UploadKind }

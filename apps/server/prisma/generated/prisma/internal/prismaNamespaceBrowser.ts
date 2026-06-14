@@ -235,6 +235,8 @@ export const BrandKitScalarFieldEnum = {
   logo_key: 'logo_key',
   mascot_url: 'mascot_url',
   mascot_key: 'mascot_key',
+  letterhead_url: 'letterhead_url',
+  letterhead_key: 'letterhead_key',
   brand_colors: 'brand_colors',
   platform_tones: 'platform_tones',
   competitors: 'competitors',

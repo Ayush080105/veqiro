@@ -14,6 +14,7 @@ import {
   Mail,
   PenLine,
   Loader2,
+  Stamp,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -39,6 +40,7 @@ import type {
   LexExplainResult,
   LexLegalResearchResult,
   LexComplianceCheckResult,
+  LexStampLetterheadResult,
   AgentActionId,
 } from "@/lib/types/agents"
 
@@ -484,6 +486,7 @@ export function ContractAnalysisCard({
 
 export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }) {
   const [downloading, setDownloading] = React.useState<"docx" | "pdf" | null>(null)
+  const [withLetterhead, setWithLetterhead] = React.useState(false)
 
   const docTitle =
     result.document
@@ -494,7 +497,12 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
   const handleExport = async (format: "docx" | "pdf") => {
     setDownloading(format)
     try {
-      const data = await exportLexDocument({ document: result.document, format, documentType: docTitle })
+      const data = await exportLexDocument({
+        document: result.document,
+        format,
+        documentType: docTitle,
+        includeLetterhead: withLetterhead,
+      })
       const binary = atob(data.file_b64)
       const bytes = new Uint8Array(binary.length)
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
@@ -529,6 +537,15 @@ export function DraftDocumentCard({ result }: { result: LexDraftDocumentResult }
         )}
       </AgentCard.Body>
       <AgentCard.Footer>
+        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={withLetterhead}
+            onChange={(e) => setWithLetterhead(e.target.checked)}
+            className="h-3 w-3"
+          />
+          Include letterhead
+        </label>
         <CopyButton text={result.document} />
         <Button
           variant="outline"
@@ -775,6 +792,41 @@ export function ComplianceCheckCard({
         )}
 
       </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── Stamp letterhead card ───────────────────────────────────────────────────
+
+export function StampLetterheadCard({ result }: { result: LexStampLetterheadResult }) {
+  const handleDownload = () => {
+    const binary = atob(result.file_b64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    const blob = new Blob([bytes], { type: result.mime_type })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = result.filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header icon={<Stamp />} title="Letterhead applied" />
+      <AgentCard.Body className="flex flex-col gap-3">
+        <p className="text-[11px] text-muted-foreground">
+          Your letterhead has been stamped on every page of{" "}
+          <span className="font-medium text-foreground">{result.filename}</span>.
+        </p>
+      </AgentCard.Body>
+      <AgentCard.Footer>
+        <Button variant="outline" size="xs" onClick={handleDownload}>
+          <Download data-icon="inline-start" />
+          Download
+        </Button>
+      </AgentCard.Footer>
     </AgentCard>
   )
 }

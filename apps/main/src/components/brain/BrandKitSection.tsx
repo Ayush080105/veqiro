@@ -564,11 +564,11 @@ export function BrandKitSection({
           </VqSectionCard>
         </TabsContent>
 
-        {/* Assets — logo & mascot uploads */}
+        {/* Assets — logo, mascot & letterhead uploads */}
         <TabsContent value="assets">
           <VqSectionCard
-            title="Logo & Mascot"
-            description="Maya pulls these into generated images. PNG, JPEG, WebP, or SVG; under 5MB."
+            title="Logo, Mascot & Letterhead"
+            description="Maya pulls logo and mascot into generated images. Letterhead is stamped on Lex document exports. PNG, JPEG, WebP, or SVG; under 5MB (10MB for letterhead)."
             shadow="var(--vq-green)"
           >
             <FieldGroup>
@@ -615,6 +615,33 @@ export function BrandKitSection({
                           shouldTouch: true,
                         })
                         setValue("mascotKey", key, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                        scheduleAutoSave()
+                      }}
+                      disabled={!organizationId}
+                    />
+                  )}
+                />
+              </Field>
+
+              <Field>
+                <Controller
+                  name="letterheadUrl"
+                  control={control}
+                  render={({ field }) => (
+                    <AssetUpload
+                      kind="letterhead"
+                      label="Letterhead (optional)"
+                      hint="Full-width letterhead image — appears at the top of every Lex document export"
+                      value={field.value}
+                      onChange={({ url, key }) => {
+                        setValue("letterheadUrl", url, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                        setValue("letterheadKey", key, {
                           shouldDirty: true,
                           shouldTouch: true,
                         })

@@ -90,6 +90,8 @@ export interface BrandKit {
   logoKey: string | null
   mascotUrl: string | null
   mascotKey: string | null
+  letterheadUrl: string | null
+  letterheadKey: string | null
   brandColors: BrandColors
   platformTones: PlatformTones
   competitors: string[]
@@ -121,6 +123,8 @@ export interface BrainFormValues {
   logoKey: string | null
   mascotUrl: string | null
   mascotKey: string | null
+  letterheadUrl: string | null
+  letterheadKey: string | null
   crawledContent: string | null
   crawledSummary: string | null
 }

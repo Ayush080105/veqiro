@@ -56,6 +56,7 @@ import {
   ExplainerCard,
   LegalResearchCard,
   ComplianceCheckCard,
+  StampLetterheadCard,
 } from "@/components/agents/lex/cards"
 // Vega
 import {
@@ -168,6 +169,8 @@ export function ActionResultRenderer({ actionId, result, onFollowUpAction, onRev
       return <LegalResearchCard result={r} />
     case "lex:compliance-check":
       return <ComplianceCheckCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "lex:stamp-letterhead":
+      return <StampLetterheadCard result={r} />
 
     case "vega:process-inbox":
       return <InboxTriageCard result={r} onFollowUpAction={onFollowUpAction} />

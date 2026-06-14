@@ -93,10 +93,26 @@ export function useDeleteLexSource() {
   })
 }
 
+export async function stampLexLetterhead(input: {
+  fileUrl: string
+  filename: string
+  format: "docx" | "pdf"
+}): Promise<{ file_b64: string; mime_type: string; filename: string }> {
+  return apiFetch("/agents/lex/stamp-letterhead", {
+    method: "POST",
+    body: {
+      fileUrl: input.fileUrl,
+      filename: input.filename,
+      format: input.format,
+    },
+  })
+}
+
 export async function exportLexDocument(input: {
   document: string
   format: "docx" | "pdf"
   documentType?: string
+  includeLetterhead?: boolean
 }): Promise<{ file_b64: string; mime_type: string; filename: string }> {
   return apiFetch("/agents/lex/export-document", {
     method: "POST",
@@ -104,6 +120,7 @@ export async function exportLexDocument(input: {
       document: input.document,
       format: input.format,
       documentType: input.documentType ?? "Legal Document",
+      includeLetterhead: input.includeLetterhead ?? false,
     },
   })
 }

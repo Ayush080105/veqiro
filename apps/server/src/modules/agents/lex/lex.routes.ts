@@ -8,6 +8,7 @@ import {
   analyzeContract,
   draftDocument,
   exportDocument,
+  stampLetterhead,
   explain,
   legalResearch,
   complianceCheck,
@@ -28,6 +29,7 @@ router.post("/analyze-contract", analyzeContract);
 router.post("/query-document", queryDocument);
 router.post("/draft-document", draftDocument);
 router.post("/export-document", exportDocument);
+router.post("/stamp-letterhead", stampLetterhead);
 router.post("/explain", explain);
 router.post("/legal-research", legalResearch);
 router.post("/compliance-check", complianceCheck);

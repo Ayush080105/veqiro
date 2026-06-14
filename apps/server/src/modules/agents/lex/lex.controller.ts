@@ -6,6 +6,7 @@ import {
   analyzeContractSchema,
   draftDocumentSchema,
   exportDocumentSchema,
+  stampLetterheadSchema,
   explainSchema,
   legalResearchSchema,
   complianceCheckSchema,
@@ -82,9 +83,16 @@ export const draftDocument = async (req: Request, res: Response) => {
 };
 
 export const exportDocument = async (req: Request, res: Response) => {
-  requireAuthContext(req);
+  const { organizationId } = requireAuthContext(req);
   const input = exportDocumentSchema.parse(req.body);
-  const result = await lexService.exportDocument(input);
+  const result = await lexService.exportDocument(organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const stampLetterhead = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const input = stampLetterheadSchema.parse(req.body);
+  const result = await lexService.stampLetterhead(organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

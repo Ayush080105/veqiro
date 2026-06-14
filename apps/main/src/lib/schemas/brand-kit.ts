@@ -125,6 +125,8 @@ export const brainAutosaveSchema = z.object({
   logoKey: z.string().nullable(),
   mascotUrl: z.string().nullable(),
   mascotKey: z.string().nullable(),
+  letterheadUrl: z.string().nullable(),
+  letterheadKey: z.string().nullable(),
   crawledContent: z.string().nullable(),
   crawledSummary: z.string().nullable(),
 })

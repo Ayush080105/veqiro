@@ -331,6 +331,10 @@ model BrandKit {
   mascot_url          String?
   /// R2 key for the mascot asset.
   mascot_key          String?
+  /// Public URL for the organization's letterhead image (used in Lex document exports).
+  letterhead_url      String?
+  /// R2 key for the letterhead asset.
+  letterhead_key      String?
   /// Brand color tokens.
   brand_colors        Json      @default("{}")
   /// Platform-specific tone guidance.

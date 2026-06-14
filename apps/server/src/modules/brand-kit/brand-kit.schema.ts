@@ -57,6 +57,8 @@ export const partialBrandKitSchema = z
     logoKey: z.string().max(500).nullable().optional(),
     mascotUrl: z.string().max(1000).nullable().optional(),
     mascotKey: z.string().max(500).nullable().optional(),
+    letterheadUrl: z.string().max(1000).nullable().optional(),
+    letterheadKey: z.string().max(500).nullable().optional(),
     brandColors: brandColorsSchema.optional(),
     platformTones: platformTonesSchema.optional(),
     competitors: z.array(z.string().min(1).max(500)).max(50).optional(),
@@ -135,7 +137,7 @@ export const finalizeBrandKitSchema = z
 // Called after the client has PUT the file directly to R2 via a presigned
 // URL. The server only needs the key + URL to verify (HeadObject) and persist.
 export const finalizeAssetSchema = z.object({
-  kind: z.enum(["logo", "mascot"]),
+  kind: z.enum(["logo", "mascot", "letterhead"]),
   key: z.string().min(1).max(500),
   url: z.string().min(1).max(1000),
 });

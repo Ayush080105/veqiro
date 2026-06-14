@@ -44,6 +44,8 @@ export interface BrandKitDto {
   logoKey: string | null;
   mascotUrl: string | null;
   mascotKey: string | null;
+  letterheadUrl: string | null;
+  letterheadKey: string | null;
   brandColors: { primary?: string; secondary?: string; accent?: string };
   platformTones: { twitter?: string; linkedin?: string; instagram?: string };
   competitors: string[];
@@ -71,6 +73,8 @@ export const serializeBrandKit = (row: BrandKitRow): BrandKitDto => ({
   logoKey: row.logo_key,
   mascotUrl: row.mascot_url,
   mascotKey: row.mascot_key,
+  letterheadUrl: row.letterhead_url,
+  letterheadKey: row.letterhead_key,
   brandColors: (row.brand_colors as BrandKitDto["brandColors"]) ?? {},
   platformTones: (row.platform_tones as BrandKitDto["platformTones"]) ?? {},
   competitors: (row.competitors as string[]) ?? [],
@@ -102,6 +106,9 @@ const toPrismaInput = (
   if (input.logoKey !== undefined) data.logo_key = input.logoKey;
   if (input.mascotUrl !== undefined) data.mascot_url = input.mascotUrl;
   if (input.mascotKey !== undefined) data.mascot_key = input.mascotKey;
+  const p = input as PartialBrandKitInput;
+  if (p.letterheadUrl !== undefined) data.letterhead_url = p.letterheadUrl ?? null;
+  if (p.letterheadKey !== undefined) data.letterhead_key = p.letterheadKey ?? null;
   if (input.brandColors !== undefined)
     data.brand_colors = input.brandColors as Prisma.InputJsonValue;
   if (input.platformTones !== undefined)
@@ -217,7 +224,7 @@ export const scrapeWebsite = async (
 export const finalizeAssetUpload = async (
   organizationId: string,
   input: FinalizeAssetInput,
-): Promise<{ url: string; key: string; kind: "logo" | "mascot" }> => {
+): Promise<{ url: string; key: string; kind: "logo" | "mascot" | "letterhead" }> => {
   if (!isR2Configured()) {
     throw new BadRequestError(
       "Asset uploads aren't configured on the server. Set R2_* env vars.",
@@ -246,7 +253,11 @@ export const finalizeAssetUpload = async (
   // shouldn't block the upload, the new URL is what matters).
   const existing = await repo.findBrandKit(organizationId);
   const oldKey =
-    input.kind === "logo" ? existing?.logo_key : existing?.mascot_key;
+    input.kind === "logo"
+      ? existing?.logo_key
+      : input.kind === "mascot"
+        ? existing?.mascot_key
+        : existing?.letterhead_key;
 
   await repo.setBrandAsset(organizationId, input.kind, input.url, input.key);
 
@@ -267,10 +278,15 @@ export const finalizeAssetUpload = async (
 // DELETE-style helper (called from PATCH with logoUrl=null) — clean up R2 too.
 export const removeAsset = async (
   organizationId: string,
-  kind: "logo" | "mascot",
+  kind: "logo" | "mascot" | "letterhead",
 ): Promise<BrandKitDto> => {
   const existing = await repo.findBrandKit(organizationId);
-  const oldKey = kind === "logo" ? existing?.logo_key : existing?.mascot_key;
+  const oldKey =
+    kind === "logo"
+      ? existing?.logo_key
+      : kind === "mascot"
+        ? existing?.mascot_key
+        : existing?.letterhead_key;
   const row = await repo.setBrandAsset(organizationId, kind, null, null);
   if (oldKey && isR2Configured()) {
     try {

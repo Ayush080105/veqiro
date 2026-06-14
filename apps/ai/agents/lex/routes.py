@@ -962,7 +962,7 @@ def _parse_document_sections(text: str) -> list[dict]:
     return sections
 
 
-def _generate_docx(document_text: str, document_type: str) -> bytes:
+def _generate_docx(document_text: str, document_type: str, letterhead_bytes: bytes | None = None) -> bytes:
     from docx import Document as DocxDocument
     from docx.shared import Inches, Pt
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -971,8 +971,20 @@ def _generate_docx(document_text: str, document_type: str) -> bytes:
     for section in doc.sections:
         section.left_margin = Inches(1.25)
         section.right_margin = Inches(1.25)
-        section.top_margin = Inches(1.0)
+        section.top_margin = Inches(1.5) if letterhead_bytes else Inches(1.0)
         section.bottom_margin = Inches(1.0)
+
+    if letterhead_bytes:
+        sec0 = doc.sections[0]
+        header = sec0.header
+        hp = header.paragraphs[0]
+        hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        # Negative indents cancel out page margins so image spans full page width
+        hp.paragraph_format.left_indent = -sec0.left_margin
+        hp.paragraph_format.right_indent = -sec0.right_margin
+        hp.paragraph_format.space_before = Pt(0)
+        hp.paragraph_format.space_after = Pt(0)
+        hp.add_run().add_picture(io.BytesIO(letterhead_bytes), width=sec0.page_width)
 
     normal = doc.styles["Normal"]
     normal.font.name = "Times New Roman"
@@ -1029,7 +1041,7 @@ def _generate_docx(document_text: str, document_type: str) -> bytes:
     return buf.getvalue()
 
 
-def _generate_pdf(document_text: str, document_type: str) -> bytes:
+def _generate_pdf(document_text: str, document_type: str, letterhead_bytes: bytes | None = None) -> bytes:
     from reportlab.lib.pagesizes import LETTER
     from reportlab.lib.units import inch
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -1040,10 +1052,17 @@ def _generate_pdf(document_text: str, document_type: str) -> bytes:
         return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     buf = io.BytesIO()
+    if letterhead_bytes:
+        from reportlab.lib.utils import ImageReader as _IR
+        _isz = _IR(io.BytesIO(letterhead_bytes))
+        _iw, _ih = _isz.getSize()
+        top_margin = LETTER[0] * (_ih / _iw) + 0.25 * inch  # letterhead height + 18pt gap
+    else:
+        top_margin = 1.0 * inch
     doc_template = SimpleDocTemplate(
         buf, pagesize=LETTER,
         leftMargin=1.25 * inch, rightMargin=1.25 * inch,
-        topMargin=1.0 * inch, bottomMargin=0.9 * inch,
+        topMargin=top_margin, bottomMargin=0.9 * inch,
     )
 
     base = getSampleStyleSheet()["Normal"]
@@ -1081,6 +1100,13 @@ def _generate_pdf(document_text: str, document_type: str) -> bytes:
 
     def _footer(canvas, doc):
         canvas.saveState()
+        if letterhead_bytes:
+            from reportlab.lib.utils import ImageReader
+            img = ImageReader(io.BytesIO(letterhead_bytes))
+            iw, ih = img.getSize()
+            draw_w = LETTER[0]
+            draw_h = draw_w * (ih / iw)
+            canvas.drawImage(img, 0, LETTER[1] - draw_h, width=draw_w, height=draw_h, preserveAspectRatio=True, mask="auto")
         canvas.setFont("Times-Italic", 8)
         canvas.drawRightString(LETTER[0] - 1.25 * inch, 0.5 * inch, f"Page {doc.page}")
         canvas.restoreState()
@@ -1195,6 +1221,8 @@ class ExportDocumentRequest(BaseModel):
     document: str
     format: Literal["docx", "pdf"]
     document_type: str = "Legal Document"
+    organization_id: str = ""
+    include_letterhead: bool = False
 
 
 class ExportDocumentResponse(BaseModel):
@@ -1208,19 +1236,184 @@ async def export_document(request: ExportDocumentRequest) -> ExportDocumentRespo
     """Convert a drafted legal document to a formatted DOCX or PDF binary."""
     safe_name = re.sub(r"[^\w\s-]", "", request.document_type).strip().replace(" ", "_").lower() or "legal_document"
 
+    letterhead_bytes: bytes | None = None
+    if request.include_letterhead and request.organization_id:
+        try:
+            import httpx as _httpx
+            from core.brand_kit import load_brand_kit
+            brand_kit = await load_brand_kit(request.organization_id)
+            if brand_kit.letterhead_url:
+                async with _httpx.AsyncClient(timeout=10) as _client:
+                    _r = await _client.get(brand_kit.letterhead_url)
+                    if _r.status_code == 200:
+                        letterhead_bytes = _r.content
+        except Exception as _e:
+            import logging as _logging
+            _logging.getLogger("lex").warning("letterhead fetch failed: %s", _e)
+
     if request.format == "docx":
-        binary = _generate_docx(request.document, request.document_type)
+        binary = _generate_docx(request.document, request.document_type, letterhead_bytes)
         return ExportDocumentResponse(
             file_b64=base64.b64encode(binary).decode(),
             mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             filename=f"lex_{safe_name}.docx",
         )
     else:
-        binary = _generate_pdf(request.document, request.document_type)
+        binary = _generate_pdf(request.document, request.document_type, letterhead_bytes)
         return ExportDocumentResponse(
             file_b64=base64.b64encode(binary).decode(),
             mime_type="application/pdf",
             filename=f"lex_{safe_name}.pdf",
+        )
+
+
+# ── Stamp letterhead on existing document ─────────────────────────────────────
+
+class StampLetterheadRequest(BaseModel):
+    file_url: str
+    filename: str
+    format: Literal["docx", "pdf"]
+    organization_id: str = ""
+
+
+def _stamp_letterhead_docx(file_bytes: bytes, letterhead_bytes: bytes) -> bytes:
+    from docx import Document as DocxDocument
+    from docx.shared import Inches, Pt, Emu
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from PIL import Image as _PILImage
+
+    # Calculate letterhead height in EMUs so top_margin can match it
+    with _PILImage.open(io.BytesIO(letterhead_bytes)) as _pil:
+        _iw, _ih = _pil.size
+
+    doc = DocxDocument(io.BytesIO(file_bytes))
+    for section in doc.sections:
+        page_w_emu = section.page_width  # e.g., 12240000 EMU for 8.5"
+        lh_h_emu = int(page_w_emu * (_ih / _iw))
+        # top_margin = letterhead height + small gap so body text clears the header
+        section.top_margin = lh_h_emu + Pt(14).pt * 12700  # letterhead + ~14pt gap
+
+        header = section.header
+        for para in header.paragraphs:
+            for run in para.runs:
+                run.text = ""
+        hp = header.paragraphs[0] if header.paragraphs else header.add_paragraph()
+        hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        # Negative indents cancel page margins → image bleeds to paper edges
+        hp.paragraph_format.left_indent = -section.left_margin
+        hp.paragraph_format.right_indent = -section.right_margin
+        hp.paragraph_format.space_before = Pt(0)
+        hp.paragraph_format.space_after = Pt(0)
+        hp.add_run().add_picture(io.BytesIO(letterhead_bytes), width=section.page_width)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def _stamp_letterhead_pdf(file_bytes: bytes, letterhead_bytes: bytes) -> bytes:
+    from PyPDF2 import PdfReader, PdfWriter
+    from PyPDF2.generic import RectangleObject
+    from reportlab.lib.pagesizes import LETTER
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas as rl_canvas
+
+    _sz = ImageReader(io.BytesIO(letterhead_bytes))
+    iw, ih = _sz.getSize()
+    page_w = LETTER[0]  # 612 pts — standard width used for letterhead sizing
+    lh_h = page_w * (ih / iw)  # proportional letterhead height
+
+    reader = PdfReader(io.BytesIO(file_bytes))
+    writer = PdfWriter()
+
+    for page in reader.pages:
+        # Determine this page's actual dimensions
+        mb = page.mediabox
+        p_x0 = float(mb.left)
+        p_y0 = float(mb.bottom)
+        p_x1 = float(mb.right)
+        p_y1 = float(mb.top)
+        p_w = p_x1 - p_x0
+        p_h = p_y1 - p_y0
+
+        # Scale letterhead width to match this page's actual width
+        lh_h_scaled = p_w * (ih / iw)
+
+        # Extend the page upward by lh_h_scaled.
+        # Original content stays exactly at its original coordinates —
+        # no transformation, no scaling, text remains fully selectable.
+        new_y1 = p_y1 + lh_h_scaled
+        page.mediabox = RectangleObject([p_x0, p_y0, p_x1, new_y1])
+        if hasattr(page, "cropbox"):
+            page.cropbox = RectangleObject([p_x0, p_y0, p_x1, new_y1])
+
+        # Build a letterhead overlay sized to the new extended page.
+        # The letterhead occupies the NEW top section: y=p_y1 to y=new_y1.
+        overlay_buf = io.BytesIO()
+        c = rl_canvas.Canvas(overlay_buf, pagesize=(p_w, p_h + lh_h_scaled))
+        img = ImageReader(io.BytesIO(letterhead_bytes))
+        c.drawImage(img, 0, p_y1, width=p_w, height=lh_h_scaled,
+                    preserveAspectRatio=True, mask="auto")
+        c.save()
+        overlay_buf.seek(0)
+
+        overlay_page = PdfReader(overlay_buf).pages[0]
+        page.merge_page(overlay_page)
+        writer.add_page(page)
+
+    out_buf = io.BytesIO()
+    writer.write(out_buf)
+    return out_buf.getvalue()
+
+
+@router.post("/stamp-letterhead", response_model=ExportDocumentResponse, summary="Stamp letterhead on existing document")
+async def stamp_letterhead(request: StampLetterheadRequest) -> ExportDocumentResponse:
+    """Fetch the org's letterhead from brand kit and stamp it onto every page of the uploaded document."""
+    if not request.organization_id:
+        raise HTTPException(status_code=400, detail="organization_id is required")
+
+    from core.brand_kit import load_brand_kit
+    brand_kit = await load_brand_kit(request.organization_id)
+    if not brand_kit.letterhead_url:
+        raise HTTPException(status_code=400, detail="No letterhead uploaded in Brand Kit. Upload one in Brain → Assets.")
+
+    try:
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=10) as _client:
+            _r = await _client.get(brand_kit.letterhead_url)
+        if _r.status_code != 200:
+            raise HTTPException(status_code=502, detail="Could not fetch letterhead image.")
+        letterhead_bytes = _r.content
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Letterhead fetch failed: {e}") from e
+
+    try:
+        async with _httpx.AsyncClient(timeout=30) as _fclient:
+            _fr = await _fclient.get(request.file_url)
+        if _fr.status_code != 200:
+            raise HTTPException(status_code=502, detail="Could not fetch document from URL.")
+        file_bytes = _fr.content
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Document fetch failed: {e}") from e
+
+    safe_name = re.sub(r"[^\w\s-]", "", request.filename.rsplit(".", 1)[0]).strip().replace(" ", "_").lower() or "document"
+
+    if request.format == "docx":
+        binary = _stamp_letterhead_docx(file_bytes, letterhead_bytes)
+        return ExportDocumentResponse(
+            file_b64=base64.b64encode(binary).decode(),
+            mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=f"{safe_name}_with_letterhead.docx",
+        )
+    else:
+        binary = _stamp_letterhead_pdf(file_bytes, letterhead_bytes)
+        return ExportDocumentResponse(
+            file_b64=base64.b64encode(binary).decode(),
+            mime_type="application/pdf",
+            filename=f"{safe_name}_with_letterhead.pdf",
         )
 
 

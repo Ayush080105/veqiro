@@ -66,8 +66,9 @@ import {
   LexExplainForm,
   LexLegalResearchForm,
   LexComplianceCheckForm,
+  LexStampLetterheadForm,
 } from "@/components/agents/lex/forms"
-import { uploadLexDocument } from "@/lib/api/lex"
+import { uploadLexDocument, stampLexLetterhead } from "@/lib/api/lex"
 // Vega forms
 import {
   VegaProcessInboxForm,
@@ -483,6 +484,17 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
         : !v.frameworks?.length
           ? "Add at least one framework."
           : null,
+  },
+  "lex:stamp-letterhead": {
+    defaultValue: { source_id: "", source_url: "", source_name: "" },
+    Form: LexStampLetterheadForm,
+    validate: (v) => (v.source_id?.trim() ? null : "Pick a document."),
+    submitLabel: "Stamp letterhead",
+    customSubmit: async (v) => {
+      const ext = (v.source_name as string).split(".").pop()?.toLowerCase() ?? ""
+      const format = ext === "docx" ? "docx" : "pdf"
+      return stampLexLetterhead({ fileUrl: v.source_url as string, filename: v.source_name as string, format })
+    },
   },
 
   "vega:process-inbox": {

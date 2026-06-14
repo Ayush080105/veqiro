@@ -5,6 +5,7 @@ import {
   analyzeContractSchema,
   draftDocumentSchema,
   exportDocumentSchema,
+  stampLetterheadSchema,
   explainSchema,
   legalResearchSchema,
   complianceCheckSchema,
@@ -16,6 +17,9 @@ export type FinalizeSourceInput = z.infer<typeof finalizeSourceSchema>;
 export type AnalyzeContractInput = z.infer<typeof analyzeContractSchema>;
 export type DraftDocumentInput = z.infer<typeof draftDocumentSchema>;
 export type ExportDocumentInput = z.infer<typeof exportDocumentSchema>;
+export type StampLetterheadInput = z.infer<typeof stampLetterheadSchema>;
+export type StampLetterheadResponse = ExportDocumentResponse;
+
 export type ExplainInput = z.infer<typeof explainSchema>;
 export type LegalResearchInput = z.infer<typeof legalResearchSchema>;
 export type ComplianceCheckInput = z.infer<typeof complianceCheckSchema>;

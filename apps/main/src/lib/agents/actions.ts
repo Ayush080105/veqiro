@@ -364,6 +364,14 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       description: "Evaluate practice or doc against GDPR, CCPA, SOC2, HIPAA.",
       icon: "ShieldCheck",
     },
+    {
+      id: "lex:stamp-letterhead",
+      agent: "lex",
+      endpoint: "stamp-letterhead",
+      label: "Add letterhead",
+      description: "Stamp your company letterhead onto any PDF or Word document.",
+      icon: "Stamp",
+    },
   ],
   vega: [
     {

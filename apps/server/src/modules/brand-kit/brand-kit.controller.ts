@@ -66,10 +66,10 @@ export const finalizeAssetUpload = async (req: Request, res: Response) => {
 export const removeAsset = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
   const kindRaw = req.params.kind;
-  if (kindRaw !== "logo" && kindRaw !== "mascot") {
+  if (kindRaw !== "logo" && kindRaw !== "mascot" && kindRaw !== "letterhead") {
     res
       .status(StatusCodes.BAD_REQUEST)
-      .json({ message: "kind must be 'logo' or 'mascot'" });
+      .json({ message: "kind must be 'logo', 'mascot', or 'letterhead'" });
     return;
   }
   const kit = await brandKitService.removeAsset(organizationId, kindRaw);

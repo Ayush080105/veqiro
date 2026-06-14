@@ -26,6 +26,8 @@ import {
   type LexLegalResearchValues,
   lexComplianceCheckSchema,
   type LexComplianceCheckValues,
+  lexStampLetterheadSchema,
+  type LexStampLetterheadValues,
 } from "@/lib/schemas/agents/lex"
 
 const DOC_TYPES = ["contract", "agreement", "policy", "nda", "tos", "other"]
@@ -552,6 +554,61 @@ export function LexComplianceCheckForm({
           />
         )}
       </RhfField>
+    </FieldGroup>
+  )
+}
+
+// ─── Stamp letterhead ───────────────────────────────────────────────────────
+
+export function LexStampLetterheadForm({
+  value,
+  onChange,
+}: {
+  value: LexStampLetterheadValues
+  onChange: (patch: Partial<LexStampLetterheadValues>) => void
+}) {
+  const { data: sources, isLoading, error } = useLexSources()
+
+  return (
+    <FieldGroup>
+      <div className="flex flex-col gap-1.5">
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+          Document <span className="text-destructive">*</span>
+        </span>
+        <p className="text-[11px] text-muted-foreground">
+          Your letterhead will be stamped on every page of the selected document.
+        </p>
+        {isLoading ? (
+          <div className="flex items-center gap-2 border border-border bg-muted/20 px-2 py-2 text-[11px] text-muted-foreground">
+            <Loader2 className="size-3 animate-spin" /> Loading documents…
+          </div>
+        ) : error ? (
+          <div className="border border-destructive/30 bg-destructive/10 px-2 py-2 text-[11px] text-destructive">
+            Failed to load documents.
+          </div>
+        ) : !sources?.length ? (
+          <div className="border border-border bg-muted/20 px-2 py-2 text-[11px] text-muted-foreground">
+            No documents yet — upload one first via "Upload a document".
+          </div>
+        ) : (
+          <select
+            value={value.source_id ?? ""}
+            onChange={(e) => {
+              const src = sources.find((s) => s.sourceId === e.target.value)
+              if (!src) return
+              onChange({ source_id: src.sourceId, source_url: src.r2Url, source_name: src.name })
+            }}
+            className="w-full border border-border bg-background px-2 py-1.5 text-xs"
+          >
+            <option value="">Select a document…</option>
+            {sources.map((s) => (
+              <option key={s.id} value={s.sourceId}>
+                {s.name} · {s.pageCount}p
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
     </FieldGroup>
   )
 }

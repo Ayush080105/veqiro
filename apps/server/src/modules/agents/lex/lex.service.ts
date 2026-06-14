@@ -22,6 +22,8 @@ import type {
   DraftDocumentResponse,
   ExportDocumentInput,
   ExportDocumentResponse,
+  StampLetterheadInput,
+  StampLetterheadResponse,
   ExplainInput,
   ExplainResponse,
   LegalResearchInput,
@@ -412,7 +414,24 @@ export const draftDocument = async (
   return data;
 };
 
+export const stampLetterhead = async (
+  organizationId: string,
+  input: StampLetterheadInput
+): Promise<StampLetterheadResponse> => {
+  const { data } = await aiService.post<StampLetterheadResponse>(
+    "/ai/lex/stamp-letterhead",
+    {
+      file_url: input.fileUrl,
+      filename: input.filename,
+      format: input.format,
+      organization_id: organizationId,
+    }
+  );
+  return data;
+};
+
 export const exportDocument = async (
+  organizationId: string,
   input: ExportDocumentInput
 ): Promise<ExportDocumentResponse> => {
   const { data } = await aiService.post<ExportDocumentResponse>(
@@ -421,6 +440,8 @@ export const exportDocument = async (
       document: input.document,
       format: input.format,
       document_type: input.documentType,
+      organization_id: organizationId,
+      include_letterhead: input.includeLetterhead ?? false,
     }
   );
   return data;

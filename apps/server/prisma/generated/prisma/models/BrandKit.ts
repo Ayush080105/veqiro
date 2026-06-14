@@ -37,6 +37,8 @@ export type BrandKitMinAggregateOutputType = {
   logo_key: string | null
   mascot_url: string | null
   mascot_key: string | null
+  letterhead_url: string | null
+  letterhead_key: string | null
   key_differentiators: string | null
   website_url: string | null
   location: string | null
@@ -61,6 +63,8 @@ export type BrandKitMaxAggregateOutputType = {
   logo_key: string | null
   mascot_url: string | null
   mascot_key: string | null
+  letterhead_url: string | null
+  letterhead_key: string | null
   key_differentiators: string | null
   website_url: string | null
   location: string | null
@@ -85,6 +89,8 @@ export type BrandKitCountAggregateOutputType = {
   logo_key: number
   mascot_url: number
   mascot_key: number
+  letterhead_url: number
+  letterhead_key: number
   brand_colors: number
   platform_tones: number
   competitors: number
@@ -114,6 +120,8 @@ export type BrandKitMinAggregateInputType = {
   logo_key?: true
   mascot_url?: true
   mascot_key?: true
+  letterhead_url?: true
+  letterhead_key?: true
   key_differentiators?: true
   website_url?: true
   location?: true
@@ -138,6 +146,8 @@ export type BrandKitMaxAggregateInputType = {
   logo_key?: true
   mascot_url?: true
   mascot_key?: true
+  letterhead_url?: true
+  letterhead_key?: true
   key_differentiators?: true
   website_url?: true
   location?: true
@@ -162,6 +172,8 @@ export type BrandKitCountAggregateInputType = {
   logo_key?: true
   mascot_url?: true
   mascot_key?: true
+  letterhead_url?: true
+  letterhead_key?: true
   brand_colors?: true
   platform_tones?: true
   competitors?: true
@@ -262,6 +274,8 @@ export type BrandKitGroupByOutputType = {
   logo_key: string | null
   mascot_url: string | null
   mascot_key: string | null
+  letterhead_url: string | null
+  letterhead_key: string | null
   brand_colors: runtime.JsonValue
   platform_tones: runtime.JsonValue
   competitors: runtime.JsonValue
@@ -310,6 +324,8 @@ export type BrandKitWhereInput = {
   logo_key?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   mascot_url?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   mascot_key?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  letterhead_url?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  letterhead_key?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   brand_colors?: Prisma.JsonFilter<"BrandKit">
   platform_tones?: Prisma.JsonFilter<"BrandKit">
   competitors?: Prisma.JsonFilter<"BrandKit">
@@ -337,6 +353,8 @@ export type BrandKitOrderByWithRelationInput = {
   logo_key?: Prisma.SortOrderInput | Prisma.SortOrder
   mascot_url?: Prisma.SortOrderInput | Prisma.SortOrder
   mascot_key?: Prisma.SortOrderInput | Prisma.SortOrder
+  letterhead_url?: Prisma.SortOrderInput | Prisma.SortOrder
+  letterhead_key?: Prisma.SortOrderInput | Prisma.SortOrder
   brand_colors?: Prisma.SortOrder
   platform_tones?: Prisma.SortOrder
   competitors?: Prisma.SortOrder
@@ -367,6 +385,8 @@ export type BrandKitWhereUniqueInput = Prisma.AtLeast<{
   logo_key?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   mascot_url?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   mascot_key?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  letterhead_url?: Prisma.StringNullableFilter<"BrandKit"> | string | null
+  letterhead_key?: Prisma.StringNullableFilter<"BrandKit"> | string | null
   brand_colors?: Prisma.JsonFilter<"BrandKit">
   platform_tones?: Prisma.JsonFilter<"BrandKit">
   competitors?: Prisma.JsonFilter<"BrandKit">
@@ -394,6 +414,8 @@ export type BrandKitOrderByWithAggregationInput = {
   logo_key?: Prisma.SortOrderInput | Prisma.SortOrder
   mascot_url?: Prisma.SortOrderInput | Prisma.SortOrder
   mascot_key?: Prisma.SortOrderInput | Prisma.SortOrder
+  letterhead_url?: Prisma.SortOrderInput | Prisma.SortOrder
+  letterhead_key?: Prisma.SortOrderInput | Prisma.SortOrder
   brand_colors?: Prisma.SortOrder
   platform_tones?: Prisma.SortOrder
   competitors?: Prisma.SortOrder
@@ -427,6 +449,8 @@ export type BrandKitScalarWhereWithAggregatesInput = {
   logo_key?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
   mascot_url?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
   mascot_key?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
+  letterhead_url?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
+  letterhead_key?: Prisma.StringNullableWithAggregatesFilter<"BrandKit"> | string | null
   brand_colors?: Prisma.JsonWithAggregatesFilter<"BrandKit">
   platform_tones?: Prisma.JsonWithAggregatesFilter<"BrandKit">
   competitors?: Prisma.JsonWithAggregatesFilter<"BrandKit">
@@ -454,6 +478,8 @@ export type BrandKitCreateInput = {
   logo_key?: string | null
   mascot_url?: string | null
   mascot_key?: string | null
+  letterhead_url?: string | null
+  letterhead_key?: string | null
   brand_colors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   platform_tones?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -481,6 +507,8 @@ export type BrandKitUncheckedCreateInput = {
   logo_key?: string | null
   mascot_url?: string | null
   mascot_key?: string | null
+  letterhead_url?: string | null
+  letterhead_key?: string | null
   brand_colors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   platform_tones?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -508,6 +536,8 @@ export type BrandKitUpdateInput = {
   logo_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brand_colors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   platform_tones?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -535,6 +565,8 @@ export type BrandKitUncheckedUpdateInput = {
   logo_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brand_colors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   platform_tones?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -562,6 +594,8 @@ export type BrandKitCreateManyInput = {
   logo_key?: string | null
   mascot_url?: string | null
   mascot_key?: string | null
+  letterhead_url?: string | null
+  letterhead_key?: string | null
   brand_colors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   platform_tones?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -589,6 +623,8 @@ export type BrandKitUpdateManyMutationInput = {
   logo_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brand_colors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   platform_tones?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -616,6 +652,8 @@ export type BrandKitUncheckedUpdateManyInput = {
   logo_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascot_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  letterhead_key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brand_colors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   platform_tones?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   competitors?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -643,6 +681,8 @@ export type BrandKitCountOrderByAggregateInput = {
   logo_key?: Prisma.SortOrder
   mascot_url?: Prisma.SortOrder
   mascot_key?: Prisma.SortOrder
+  letterhead_url?: Prisma.SortOrder
+  letterhead_key?: Prisma.SortOrder
   brand_colors?: Prisma.SortOrder
   platform_tones?: Prisma.SortOrder
   competitors?: Prisma.SortOrder
@@ -670,6 +710,8 @@ export type BrandKitMaxOrderByAggregateInput = {
   logo_key?: Prisma.SortOrder
   mascot_url?: Prisma.SortOrder
   mascot_key?: Prisma.SortOrder
+  letterhead_url?: Prisma.SortOrder
+  letterhead_key?: Prisma.SortOrder
   key_differentiators?: Prisma.SortOrder
   website_url?: Prisma.SortOrder
   location?: Prisma.SortOrder
@@ -694,6 +736,8 @@ export type BrandKitMinOrderByAggregateInput = {
   logo_key?: Prisma.SortOrder
   mascot_url?: Prisma.SortOrder
   mascot_key?: Prisma.SortOrder
+  letterhead_url?: Prisma.SortOrder
+  letterhead_key?: Prisma.SortOrder
   key_differentiators?: Prisma.SortOrder
   website_url?: Prisma.SortOrder
   location?: Prisma.SortOrder
@@ -720,6 +764,8 @@ export type BrandKitSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   logo_key?: boolean
   mascot_url?: boolean
   mascot_key?: boolean
+  letterhead_url?: boolean
+  letterhead_key?: boolean
   brand_colors?: boolean
   platform_tones?: boolean
   competitors?: boolean
@@ -747,6 +793,8 @@ export type BrandKitSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   logo_key?: boolean
   mascot_url?: boolean
   mascot_key?: boolean
+  letterhead_url?: boolean
+  letterhead_key?: boolean
   brand_colors?: boolean
   platform_tones?: boolean
   competitors?: boolean
@@ -774,6 +822,8 @@ export type BrandKitSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   logo_key?: boolean
   mascot_url?: boolean
   mascot_key?: boolean
+  letterhead_url?: boolean
+  letterhead_key?: boolean
   brand_colors?: boolean
   platform_tones?: boolean
   competitors?: boolean
@@ -801,6 +851,8 @@ export type BrandKitSelectScalar = {
   logo_key?: boolean
   mascot_url?: boolean
   mascot_key?: boolean
+  letterhead_url?: boolean
+  letterhead_key?: boolean
   brand_colors?: boolean
   platform_tones?: boolean
   competitors?: boolean
@@ -815,7 +867,7 @@ export type BrandKitSelectScalar = {
   updatedAt?: boolean
 }
 
-export type BrandKitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "company_name" | "company_description" | "value_proposition" | "industry" | "target_audience" | "brand_voice" | "logo_url" | "logo_key" | "mascot_url" | "mascot_key" | "brand_colors" | "platform_tones" | "competitors" | "key_differentiators" | "website_url" | "location" | "crawled_content" | "crawled_summary" | "crawled_at" | "crawl_source" | "createdAt" | "updatedAt", ExtArgs["result"]["brandKit"]>
+export type BrandKitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "company_name" | "company_description" | "value_proposition" | "industry" | "target_audience" | "brand_voice" | "logo_url" | "logo_key" | "mascot_url" | "mascot_key" | "letterhead_url" | "letterhead_key" | "brand_colors" | "platform_tones" | "competitors" | "key_differentiators" | "website_url" | "location" | "crawled_content" | "crawled_summary" | "crawled_at" | "crawl_source" | "createdAt" | "updatedAt", ExtArgs["result"]["brandKit"]>
 
 export type $BrandKitPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BrandKit"
@@ -869,6 +921,14 @@ export type $BrandKitPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
      * R2 key for the mascot asset.
      */
     mascot_key: string | null
+    /**
+     * Public URL for the organization's letterhead image (used in Lex document exports).
+     */
+    letterhead_url: string | null
+    /**
+     * R2 key for the letterhead asset.
+     */
+    letterhead_key: string | null
     /**
      * Brand color tokens.
      */
@@ -1352,6 +1412,8 @@ export interface BrandKitFieldRefs {
   readonly logo_key: Prisma.FieldRef<"BrandKit", 'String'>
   readonly mascot_url: Prisma.FieldRef<"BrandKit", 'String'>
   readonly mascot_key: Prisma.FieldRef<"BrandKit", 'String'>
+  readonly letterhead_url: Prisma.FieldRef<"BrandKit", 'String'>
+  readonly letterhead_key: Prisma.FieldRef<"BrandKit", 'String'>
   readonly brand_colors: Prisma.FieldRef<"BrandKit", 'Json'>
   readonly platform_tones: Prisma.FieldRef<"BrandKit", 'Json'>
   readonly competitors: Prisma.FieldRef<"BrandKit", 'Json'>

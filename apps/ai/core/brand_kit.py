@@ -15,6 +15,7 @@ class BrandKit(BaseModel):
     brand_voice: str = "Professional and friendly"
     logo_url: str | None = None
     mascot_url: str | None = None
+    letterhead_url: str | None = None
     brand_colors: dict = {"primary": "#6C3CE1", "secondary": "#FF6B35", "accent": "#10B981"}
     brand_fonts: dict | None = None
     platform_tones: dict = {
@@ -103,6 +104,7 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
                 brand_voice=data.get("brand_voice") or "Professional and friendly",
                 logo_url=data.get("logo_url"),
                 mascot_url=data.get("mascot_url"),
+                letterhead_url=data.get("letterhead_url"),
                 brand_colors=data.get("brand_colors") or {},
                 brand_fonts=data.get("brand_fonts"),
                 platform_tones=data.get("platform_tones") or {},

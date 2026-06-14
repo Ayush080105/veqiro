@@ -40,6 +40,13 @@ export const exportDocumentSchema = z.object({
   document: z.string().min(1).max(200000),
   format: z.enum(["docx", "pdf"]),
   documentType: z.string().max(100).optional().default("Legal Document"),
+  includeLetterhead: z.boolean().optional().default(false),
+});
+
+export const stampLetterheadSchema = z.object({
+  fileUrl: z.string().url(),
+  filename: z.string().min(1).max(255),
+  format: z.enum(["docx", "pdf"]),
 });
 
 export const explainSchema = z.object({

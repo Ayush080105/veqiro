@@ -56,6 +56,13 @@ export const lexLegalResearchSchema = z.object({
 })
 export type LexLegalResearchValues = z.infer<typeof lexLegalResearchSchema>
 
+export const lexStampLetterheadSchema = z.object({
+  source_id: z.string().min(1, "Pick a document"),
+  source_url: z.string().min(1),
+  source_name: z.string().min(1),
+})
+export type LexStampLetterheadValues = z.infer<typeof lexStampLetterheadSchema>
+
 export const lexComplianceCheckSchema = z.object({
   description: z.string().min(2, "Describe the workflow or system"),
   frameworks: z.array(z.string()).min(1, "Pick at least one framework"),

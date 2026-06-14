@@ -40,6 +40,8 @@ const DEFAULT_VALUES: BrainFormValues = {
   logoKey: null,
   mascotUrl: null,
   mascotKey: null,
+  letterheadUrl: null,
+  letterheadKey: null,
   crawledContent: null,
   crawledSummary: null,
 }
@@ -68,6 +70,8 @@ function brandKitToForm(kit: BrandKit): BrainFormValues {
     logoKey: kit.logoKey ?? null,
     mascotUrl: kit.mascotUrl ?? null,
     mascotKey: kit.mascotKey ?? null,
+    letterheadUrl: kit.letterheadUrl ?? null,
+    letterheadKey: kit.letterheadKey ?? null,
     crawledContent: kit.crawledContent ?? null,
     crawledSummary: kit.crawledSummary ?? null,
   }

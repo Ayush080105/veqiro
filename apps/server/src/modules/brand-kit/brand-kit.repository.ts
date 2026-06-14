@@ -39,14 +39,16 @@ export const upsertBrandKitAndMarkOnboarded = (
 
 export const setBrandAsset = (
   organizationId: string,
-  kind: "logo" | "mascot",
+  kind: "logo" | "mascot" | "letterhead",
   url: string | null,
   key: string | null,
 ) => {
   const assetData =
     kind === "logo"
       ? { logo_url: url, logo_key: key }
-      : { mascot_url: url, mascot_key: key };
+      : kind === "mascot"
+        ? { mascot_url: url, mascot_key: key }
+        : { letterhead_url: url, letterhead_key: key };
   return prisma.brandKit.upsert({
     where: { organizationId },
     create: {

@@ -1047,6 +1047,12 @@ export interface LexComplianceCheckRequest {
   business_context?: string
 }
 
+export interface LexStampLetterheadResult {
+  file_b64: string
+  mime_type: string
+  filename: string
+}
+
 export interface LexComplianceCheckResult {
   overall_status: string
   framework_results: Array<{
@@ -1269,6 +1275,7 @@ export type AgentActionId =
   | "lex:explain"
   | "lex:legal-research"
   | "lex:compliance-check"
+  | "lex:stamp-letterhead"
   | "vega:process-inbox"
   | "vega:draft-reply"
   | "vega:calendar-summary"
