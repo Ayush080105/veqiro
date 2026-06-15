@@ -19,6 +19,7 @@ export const mayaDraftSchema = z.object({
   include_image: z.boolean().optional(),
   use_logo: z.boolean().optional(),
   use_mascot: z.boolean().optional(),
+  use_brand_colors: z.boolean().optional(),
   additional_context: z.string().optional(),
   from_rex: z.boolean().optional(),
   inspiration_images: z.array(z.string().url()).max(5).optional(),
@@ -77,6 +78,7 @@ export const mayaCampaignSchema = z.object({
   photo_count: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6)]),
   use_logo: z.boolean(),
   use_mascot: z.boolean(),
+  use_brand_colors: z.boolean(),
   platform: platformSchema,
 })
 export type MayaCampaignValues = z.infer<typeof mayaCampaignSchema>

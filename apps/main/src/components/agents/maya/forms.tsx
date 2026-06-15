@@ -292,6 +292,19 @@ export function MayaDraftForm({
         />
         <Controller
           control={form.control}
+          name="use_brand_colors"
+          render={({ field }) => (
+            <label className="flex items-center gap-2 text-xs">
+              <Switch
+                checked={field.value ?? true}
+                onCheckedChange={field.onChange}
+              />
+              Brand colours
+            </label>
+          )}
+        />
+        <Controller
+          control={form.control}
           name="make_carousel"
           render={({ field }) => (
             <label className="flex items-center gap-2 text-xs">
@@ -865,6 +878,24 @@ export function MayaCampaignForm({
             <span className="text-muted-foreground">
               Overlay mascot
               <span className="ml-1 text-[10px] opacity-60">from brand kit</span>
+            </span>
+            <Switch
+              checked={field.value ?? true}
+              onCheckedChange={field.onChange}
+            />
+          </label>
+        )}
+      />
+
+      {/* Brand colours */}
+      <Controller
+        control={form.control}
+        name="use_brand_colors"
+        render={({ field }) => (
+          <label className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              Brand colours
+              <span className="ml-1 text-[10px] opacity-60">apply palette to photos</span>
             </span>
             <Switch
               checked={field.value ?? true}

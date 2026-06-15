@@ -267,6 +267,7 @@ export interface MayaDraftRequest {
   include_image?: boolean
   use_logo?: boolean
   use_mascot?: boolean
+  use_brand_colors?: boolean
   additional_context?: string
 }
 
@@ -313,6 +314,7 @@ export interface MayaCarouselDraftRequest {
   include_images?: boolean
   use_logo?: boolean
   use_mascot?: boolean
+  use_brand_colors?: boolean
   additional_context?: string
   image_aspect_ratio?: string
 }
@@ -1213,6 +1215,7 @@ export interface MayaCampaignRequest {
   photo_count: 1 | 2 | 3 | 4 | 6
   use_logo: boolean
   use_mascot: boolean
+  use_brand_colors: boolean
   platform: ContentPlatform
 }
 
