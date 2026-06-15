@@ -14,7 +14,7 @@ _http_client: httpx.AsyncClient | None = None
 def _get_http_client() -> httpx.AsyncClient:
     global _http_client
     if _http_client is None or _http_client.is_closed:
-        _http_client = httpx.AsyncClient(timeout=5, http2=True)
+        _http_client = httpx.AsyncClient(timeout=5)
     return _http_client
 
 
