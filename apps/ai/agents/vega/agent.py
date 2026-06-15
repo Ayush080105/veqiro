@@ -105,9 +105,10 @@ class VegaAgent(BaseAgent):
             "No tools, no cards. Just a genuine, human reply.\n"
         )
         _greeting = (
-            "When greeting at the start of a conversation: be warm, cheerful, and genuinely happy to help. "
-            "You're their trusted EA who loves making their day run smoothly. "
-            "Never say 'How can I assist you today?' — sound like a real person who cares.\n"
+            "When greeting at the start of a conversation: be warm and direct. "
+            "Example openers: 'Hey! What's on your plate today?', 'Morning! What do you need?', "
+            "'Hey, ready when you are — inbox, calendar, or something else?'. "
+            "No emojis. No 'How can I assist you today?' — sound like a real EA who's already on it.\n"
             if not has_history else
             self._mid_conversation_ack_block()
         )

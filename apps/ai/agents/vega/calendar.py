@@ -1,46 +1,61 @@
 """Google Calendar API utilities. In mock mode returns realistic mock calendar data."""
 from core.config import settings
 
-_MOCK_EVENTS = [
-    {
-        "id": "event_001",
-        "title": "Team Standup",
-        "description": "Daily team sync – product updates, blockers, priorities",
-        "start": "2025-03-31T09:00:00Z",
-        "end": "2025-03-31T09:30:00Z",
-        "attendees": ["founder@veqiroai.com", "cto@veqiroai.com", "design@veqiroai.com"],
-        "location": "Google Meet",
-        "meet_link": "https://meet.google.com/abc-defg-hij",
-        "status": "confirmed",
-        "recurring": True,
-    },
-    {
-        "id": "event_002",
-        "title": "Investor Call – Accel Partners (Sarah Chen)",
-        "description": "Seed round deep dive – technical and market diligence",
-        "start": "2025-04-03T15:00:00Z",
-        "end": "2025-04-03T15:45:00Z",
-        "attendees": ["founder@veqiroai.com", "sarah.chen@accelpartners.com"],
-        "location": "Zoom",
-        "meet_link": "https://zoom.us/j/123456789",
-        "status": "confirmed",
-        "recurring": False,
-    },
-]
+def _mock_dates():
+    """Return event/slot dates relative to today so mock data is always upcoming."""
+    from datetime import datetime, timedelta, timezone
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    d1 = (today + timedelta(days=1)).strftime("%Y-%m-%d")  # tomorrow
+    d2 = (today + timedelta(days=3)).strftime("%Y-%m-%d")  # in 3 days
+    d3 = (today + timedelta(days=5)).strftime("%Y-%m-%d")  # in 5 days
+    return d1, d2, d3
 
-_MOCK_FREE_SLOTS = [
-    {"date": "2025-04-01", "start": "10:00", "end": "12:00", "duration_hours": 2},
-    {"date": "2025-04-01", "start": "14:00", "end": "17:00", "duration_hours": 3},
-    {"date": "2025-04-02", "start": "09:00", "end": "11:30", "duration_hours": 2.5},
-    {"date": "2025-04-02", "start": "13:00", "end": "16:00", "duration_hours": 3},
-    {"date": "2025-04-03", "start": "09:00", "end": "14:30", "duration_hours": 5.5},
-]
+
+def _get_mock_events():
+    d1, d2, _ = _mock_dates()
+    return [
+        {
+            "id": "event_001",
+            "title": "Team Standup",
+            "description": "Daily team sync – product updates, blockers, priorities",
+            "start": f"{d1}T09:00:00Z",
+            "end": f"{d1}T09:30:00Z",
+            "attendees": ["founder@veqiroai.com", "cto@veqiroai.com", "design@veqiroai.com"],
+            "location": "Google Meet",
+            "meet_link": "https://meet.google.com/abc-defg-hij",
+            "status": "confirmed",
+            "recurring": True,
+        },
+        {
+            "id": "event_002",
+            "title": "Investor Call – Accel Partners (Sarah Chen)",
+            "description": "Seed round deep dive – technical and market diligence",
+            "start": f"{d2}T15:00:00Z",
+            "end": f"{d2}T15:45:00Z",
+            "attendees": ["founder@veqiroai.com", "sarah.chen@accelpartners.com"],
+            "location": "Zoom",
+            "meet_link": "https://zoom.us/j/123456789",
+            "status": "confirmed",
+            "recurring": False,
+        },
+    ]
+
+
+def _get_mock_free_slots():
+    d1, d2, d3 = _mock_dates()
+    return [
+        {"start": f"{d1}T10:00:00Z", "end": f"{d1}T12:00:00Z", "duration_hours": 2},
+        {"start": f"{d1}T14:00:00Z", "end": f"{d1}T17:00:00Z", "duration_hours": 3},
+        {"start": f"{d2}T09:00:00Z", "end": f"{d2}T11:30:00Z", "duration_hours": 2.5},
+        {"start": f"{d2}T13:00:00Z", "end": f"{d2}T16:00:00Z", "duration_hours": 3},
+        {"start": f"{d3}T09:00:00Z", "end": f"{d3}T14:30:00Z", "duration_hours": 5.5},
+    ]
 
 
 async def list_events(access_token: str, days_ahead: int = 7) -> list[dict]:
     """List calendar events for the next N days. In mock mode returns sample meetings."""
     if settings.MOCK_MODE:
-        return _MOCK_EVENTS
+        return _get_mock_events()
 
     from googleapiclient.discovery import build
     from google.oauth2.credentials import Credentials
@@ -124,7 +139,7 @@ async def create_event(access_token: str, event_data: dict) -> dict:
 async def find_free_slots(access_token: str, date_range: dict) -> list[dict]:
     """Find available time slots in the given date range. In mock mode returns sample free slots."""
     if settings.MOCK_MODE:
-        return _MOCK_FREE_SLOTS
+        return _get_mock_free_slots()
 
     from googleapiclient.discovery import build
     from google.oauth2.credentials import Credentials
@@ -163,9 +178,8 @@ async def find_free_slots(access_token: str, date_range: dict) -> list[dict]:
                     duration = (b_start - slot_start).total_seconds() / 3600
                     if duration >= 0.5:
                         free_slots.append({
-                            "date": current.strftime("%Y-%m-%d"),
-                            "start": slot_start.strftime("%H:%M"),
-                            "end": b_start.strftime("%H:%M"),
+                            "start": slot_start.isoformat(),
+                            "end": b_start.isoformat(),
                             "duration_hours": round(duration, 1),
                         })
                 slot_start = max(slot_start, b_end)
@@ -174,9 +188,8 @@ async def find_free_slots(access_token: str, date_range: dict) -> list[dict]:
                 duration = (day_end - slot_start).total_seconds() / 3600
                 if duration >= 0.5:
                     free_slots.append({
-                        "date": current.strftime("%Y-%m-%d"),
-                        "start": slot_start.strftime("%H:%M"),
-                        "end": "18:00",
+                        "start": slot_start.isoformat(),
+                        "end": day_end.isoformat(),
                         "duration_hours": round(duration, 1),
                     })
             current += timedelta(days=1)

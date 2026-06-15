@@ -44,16 +44,19 @@ function priorityLevel(p: "urgent" | "high" | "medium" | "low") {
 }
 
 function fmtDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
+  if (!iso) return ""
+  // Full ISO datetime (e.g. "2026-06-16T10:00:00Z" or "+00:00" suffix)
+  const d = new Date(iso)
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleString(undefined, {
       month: "short",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
     })
-  } catch {
-    return iso
   }
+  // Fallback: return as-is (time-only strings like "10:00" stay readable)
+  return iso
 }
 
 function copyText(text: string, label = "Copied") {
