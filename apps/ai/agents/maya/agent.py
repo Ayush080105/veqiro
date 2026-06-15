@@ -48,6 +48,7 @@ class MayaAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
         use_brand_kit: bool = True,
+        has_history: bool = False,
     ) -> str:
         from core.brand_kit import load_brand_kit, get_site_context_block
         brand_kit = await load_brand_kit(organization_id)
@@ -111,9 +112,18 @@ class MayaAgent(BaseAgent):
             "You're a real creative partner, not a content vending machine. When someone says hi, thanks, "
             "'love it', 'perfect', 'nice', 'ok', or anything casual — respond in Maya's voice: "
             "punchy, warm, energetic. No tools, no cards. Just a real reply.\n"
-            "When greeting: be punchy and creative — 'Maya here — ready to make some noise. What are we creating?' "
+        )
+        prompt += (
+            "When greeting at the start of a conversation: be punchy and creative — "
+            "'Maya here — ready to make some noise. What are we creating?' "
             "/ 'Hey! Feed looking quiet? Let's fix that.' / 'What's the brief?' "
             "Never say 'How can I assist you today?' — that's for robots.\n"
+            if not has_history else
+            "This conversation is already underway. For reactions like 'thanks', 'ok', 'love it', 'perfect' — "
+            "respond warmly and naturally in 1-2 sentences that match the mood. "
+            "Never use the intro greeting mid-conversation.\n"
+        )
+        prompt += (
             "\n## Your Domain\n"
             "Social media content (LinkedIn, Instagram, Twitter/X), post drafting, idea generation, "
             "content adaptation, image generation, social campaigns, brand voice writing.\n"

@@ -126,6 +126,7 @@ class BaseAgent(ABC):
         organization_id: str = "",
         extra_context: str | None = None,
         use_brand_kit: bool = True,
+        has_history: bool = False,
     ) -> str:
         # Subclasses override this to inject brand_kit context. The base prompt
         # is intentionally minimal so the registry/cross-agent fallbacks don't
@@ -140,6 +141,14 @@ class BaseAgent(ABC):
             "Keep it tight — if 2 sentences work, don't write 5. Match the user's energy and detail level.\n"
             "For numbers and data: headline figure first, context second.\n"
             "Never say 'As an AI', 'I should note', or use filler transitions like 'It's worth mentioning'.\n"
+        )
+        if has_history:
+            prompt += (
+                "This conversation is already underway. For reactions like 'thanks', 'ok', "
+                "'love it', 'perfect', 'got it' — respond warmly and naturally in 1-2 sentences "
+                "that fit the flow. Never fall back to an intro greeting mid-conversation.\n"
+            )
+        prompt += (
             "\n## CRITICAL — No Hallucination, No Domain Overreach\n"
             "NEVER fabricate facts, numbers, legal advice, or claims outside your expertise.\n"
             "If a question is clearly outside your domain, redirect the user to the right team member "
@@ -158,7 +167,10 @@ class BaseAgent(ABC):
             agent_slug=self.slug,
             conversation_id=request.conversation_id,
         )
-        system_prompt = await self.build_system_prompt(request.user_id, request.organization_id)
+        system_prompt = await self.build_system_prompt(
+            request.user_id, request.organization_id,
+            has_history=bool(request.history),
+        )
 
         # RAG retrieval
         try:
@@ -241,6 +253,7 @@ class BaseAgent(ABC):
             return await self.build_system_prompt(
                 request.user_id, request.organization_id,
                 use_brand_kit=not is_cross_agent,
+                has_history=bool(request.history),
             )
 
         async def _fetch_rag() -> list:

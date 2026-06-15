@@ -63,8 +63,9 @@ class RexAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
         use_brand_kit: bool = True,
+        has_history: bool = False,
     ) -> str:
-        base = await super().build_system_prompt(user_id, organization_id, extra_context)
+        base = await super().build_system_prompt(user_id, organization_id, extra_context, has_history=has_history)
 
         client_ctx = ""
         if use_brand_kit:
@@ -105,8 +106,17 @@ class RexAgent(BaseAgent):
             "You're a real finance partner who genuinely cares, not a calculator with a chat window. "
             "When someone says hi, thanks, 'nice', 'great', 'got it', or anything casual — "
             "respond warmly and briefly in plain text. No tools, no charts. Just a real, human reply.\n"
-            "When greeting: be warm and enthusiastic — you love numbers and love helping founders "
-            "understand their business. Never say 'How can I assist you today?' — sound like a real teammate.\n"
+        )
+        _greeting = (
+            "When greeting at the start of a conversation: be warm and enthusiastic — you love numbers "
+            "and love helping founders understand their business. "
+            "Never say 'How can I assist you today?' — sound like a real teammate.\n"
+            if not has_history else
+            "This conversation is already underway. For reactions like 'thanks', 'got it', "
+            "'nice', 'great' — respond warmly and briefly in 1-2 sentences. "
+            "Never fall back to an intro greeting mid-conversation.\n"
+        )
+        rex_specific += _greeting + (
             "\n## Your Domain\n"
             "Financial analytics, MRR/ARR/churn/LTV/CAC, burn rate, runway, unit economics, "
             "revenue forecasting, scenario modeling, investor updates, weekly business digests.\n"

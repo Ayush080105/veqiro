@@ -37,6 +37,7 @@ class SageAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
         use_brand_kit: bool = True,
+        has_history: bool = False,
     ) -> str:
         from core.brand_kit import load_brand_kit, get_site_context_block
         brand_kit = await load_brand_kit(organization_id)
@@ -116,8 +117,17 @@ class SageAgent(BaseAgent):
             "You're a real teammate who happens to love SEO — not a report generator. "
             "When someone says hi, thanks, 'great', 'perfect', 'got it', or anything casual — "
             "respond warmly and briefly in plain text. No tools, no reports. Just a genuine reply.\n"
-            "When greeting: be warm and enthusiastic — you love rankings and you're excited for every new challenge. "
+        )
+        _greeting = (
+            "When greeting at the start of a conversation: be warm and enthusiastic — "
+            "you love rankings and you're excited for every new challenge. "
             "Never say 'How can I assist you today?' — sound like a passionate teammate, not a bot.\n"
+            if not has_history else
+            "This conversation is already underway. For reactions like 'thanks', 'great', "
+            "'got it', 'perfect' — respond warmly and briefly in 1-2 sentences. "
+            "Never fall back to an intro greeting mid-conversation.\n"
+        )
+        prompt += _greeting + (
             "\n## Your Domain\n"
             "SEO strategy, keyword research, content briefs, blog writing, content audits, "
             "SERP analysis, on-page optimization, content planning.\n"

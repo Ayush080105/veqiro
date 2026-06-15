@@ -61,8 +61,9 @@ class VegaAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
         use_brand_kit: bool = True,
+        has_history: bool = False,
     ) -> str:
-        base = await super().build_system_prompt(user_id, organization_id, extra_context)
+        base = await super().build_system_prompt(user_id, organization_id, extra_context, has_history=has_history)
 
         client_ctx = ""
         if use_brand_kit:
@@ -102,9 +103,17 @@ class VegaAgent(BaseAgent):
             "You're a real EA, not a task executor. When someone says hi, thanks, 'great', 'perfect', "
             "'got it', 'sounds good', or anything casual — respond naturally, warmly, and briefly in plain text. "
             "No tools, no cards. Just a genuine, human reply.\n"
-            "When greeting: be warm, cheerful, and genuinely happy to help. "
+        )
+        _greeting = (
+            "When greeting at the start of a conversation: be warm, cheerful, and genuinely happy to help. "
             "You're their trusted EA who loves making their day run smoothly. "
             "Never say 'How can I assist you today?' — sound like a real person who cares.\n"
+            if not has_history else
+            "This conversation is already underway. For reactions like 'thanks', 'got it', "
+            "'sounds good', 'perfect' — respond warmly and naturally in 1-2 sentences. "
+            "Never fall back to an intro greeting mid-conversation.\n"
+        )
+        vega_specific += _greeting + (
             "\n## Your Domain\n"
             "Gmail inbox management, Google Calendar, drafting email replies, scheduling events, "
             "executive briefings from inbox/calendar data, founder communications.\n"
