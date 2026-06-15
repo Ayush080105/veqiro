@@ -1351,13 +1351,13 @@ async def _build_campaign_style_lock(
     if theme_block:
         parts.append(theme_block)
     else:
-        # Fallback: derive a style spec from brand voice + brief context rather than a hardcoded editorial style
+        # Fallback: derive a style spec from brand context rather than a hardcoded editorial style
         _mood_from_voice = _brand_voice if _brand_voice != "not specified" else "authentic, aspirational, confident"
         parts.append(
-            f"Visual theme: {_brand_voice.upper().split()[0] if _brand_voice != 'not specified' else 'EDITORIAL'} PROFESSIONAL\n"
+            "Visual theme: EDITORIAL PROFESSIONAL\n"
             "LIGHTING: Clean directional lighting; key 45° above-left, fill card opposite, subtle rim separation.\n"
             "COLOR TEMPERATURE: Neutral daylight 5000-5500K.\n"
-            f"GRADING: Natural colour grading aligned to brand palette ({_brand_colors}); gentle S-curve contrast; product colours read accurately.\n"
+            f"GRADING: Colour grading aligned to brand palette ({_brand_colors}); gentle S-curve contrast; product colours read accurately.\n"
             f"MOOD: {_mood_from_voice}\n"
             f"BRIEF CONTEXT: '{campaign_brief[:400]}'"
         )
