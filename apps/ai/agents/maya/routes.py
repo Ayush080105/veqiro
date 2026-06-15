@@ -1152,6 +1152,27 @@ async def expand_brief(request: ExpandBriefRequest):
 
 # ── Campaign Generator ────────────────────────────────────────────────────────
 
+_STYLE_LOCK_PROMPT = """\
+You are a senior commercial art director and cinematographer.
+You will receive a product image and a campaign brief.
+Output ONLY a tightly formatted style specification block — no prose, no preamble, no markdown fences.
+
+Campaign brief: {brief}
+Platform: {platform}
+
+Analyse the product in the image carefully — its category, materials, colours, finish, price-point signals, and intended use — then write a campaign visual style that is bespoke to THIS specific product.
+
+Output exactly this block (replace the bracketed descriptions with your values):
+
+Visual theme: [2-4 word label that captures the aesthetic, e.g. "DARK SPA LUXURY" or "BOLD STREET ENERGY"]
+LIGHTING: [specific recipe — key light placement, quality hard/soft, fill ratio, practicals if any]
+COLOR TEMPERATURE: [Kelvin range for key light, and any accent colour temperature]
+GRADING: [colour grade recipe — hue shifts, saturation, contrast, lift/gamma/gain, film grain % if any, a real-world photographic reference]
+MOOD: [3-5 adjectives that must be palpable in every frame]
+ENVIRONMENT CUES: [2-3 appropriate environments or surface textures that complement this product]
+PHOTOGRAPHIC REFERENCE: [1-2 real campaign styles or photographer names whose visual language fits]
+"""
+
 _CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial art director creating a multi-image product campaign. You receive a reference image of the product — your job is to show that product from a DIFFERENT angle and scene in every photo.
 
 ════════════════════════════════════════
@@ -1234,57 +1255,52 @@ class CampaignResponse(BaseModel):
     model_used: str
 
 
-def _build_campaign_style_lock(campaign_brief: str, brand_kit, platform: str) -> str:
+async def _build_campaign_style_lock(
+    campaign_brief: str,
+    brand_kit,
+    platform: str,
+    product_image_url: str | None = None,
+) -> str:
     """Build a shared visual language spec — injected into every photo so all N shots
-    share the same aesthetic, lighting, and theme while only composition differs."""
+    share the same aesthetic, lighting, and theme while only composition differs.
+    Uses a vision LLM call against the product image to generate a bespoke spec."""
     parts: list[str] = [
         "=== CAMPAIGN STYLE LOCK — every photo MUST share ALL of the following ==="
     ]
 
-    # Derive visual theme keywords from the brief
-    brief_lower = campaign_brief.lower()
-    if any(w in brief_lower for w in ["luxury", "premium", "elite", "high-end", "exclusive"]):
-        parts.append(
-            "Visual theme: LUXURY — "
-            "LIGHTING: Dramatic low-key Rembrandt or split lighting; single hard source with deep shadows filling 60-70% of the frame; practicals (candles, backlit glass) as accent. "
-            "COLOR TEMPERATURE: Warm tungsten 2700-3200K on highlights, cool shadow fill, producing a rich amber-to-charcoal gradient. "
-            "GRADING: Crushed blacks, lifted midtones for velvet feel, slight orange-teal split grade; film grain at 15-20%; references high-end watch and fragrance advertising."
-        )
-    elif any(w in brief_lower for w in ["playful", "fun", "vibrant", "energetic", "bold", "kids"]):
-        parts.append(
-            "Visual theme: ENERGETIC — "
-            "LIGHTING: High-key flat lighting with no harsh shadows; bright overcast or large softbox fill; specular highlights kept punchy. "
-            "COLOR TEMPERATURE: Daylight neutral 5500K; colors pushed to 80-90% saturation; no desaturation or film grade. "
-            "GRADING: Clean bright lifted shadows (no crushed blacks), vivid primaries, slight contrast boost in midtones only; references toy packaging and sports apparel campaigns."
-        )
-    elif any(w in brief_lower for w in ["minimal", "clean", "simple", "modern", "sleek"]):
-        parts.append(
-            "Visual theme: MINIMAL — "
-            "LIGHTING: Large area softbox or window light directly to one side; near-shadowless on background; subtle gradient from light to slightly darker edge. "
-            "COLOR TEMPERATURE: Cool-neutral 5000-5500K; palette limited to 2-3 colors maximum including white or off-white. "
-            "GRADING: Muted, slightly desaturated; highlights preserved but not blown; shadow lift to soft gray rather than black; references Apple product photography and Muji catalog."
-        )
-    elif any(w in brief_lower for w in ["natural", "organic", "eco", "outdoor", "nature", "earthy"]):
-        parts.append(
-            "Visual theme: NATURAL — "
-            "LIGHTING: Golden-hour sun at 15-30 degrees above horizon OR overcast diffused outdoor light; lens flare acceptable; dappled shadow from foliage welcome. "
-            "COLOR TEMPERATURE: Warm 3800-4500K; earth tones (terracotta, sage, sand, deep green) anchor the palette. "
-            "GRADING: Film-emulation grade with gentle fade in shadows, warm highlights, slight green push in midtones; references outdoor lifestyle and farm-to-table food brands."
-        )
-    elif any(w in brief_lower for w in ["tech", "ai", "digital", "future", "innovation", "smart"]):
-        parts.append(
-            "Visual theme: TECH/FUTURISTIC — "
-            "LIGHTING: Hard directional key light from above-left 45°; electric blue or cyan rim light on product edges; dark background with subtle gradient from near-black to deep navy. "
-            "COLOR TEMPERATURE: Cool 6500-7500K key; accent lights at electric blue or cyan; zero warm tones. "
-            "GRADING: High local contrast, deep crushed blacks, pushed highlights on product surfaces to near-white specular; slight chromatic aberration on edges acceptable; references semiconductor and EV campaign photography."
-        )
+    theme_block: str | None = None
+
+    if product_image_url and not settings.MOCK_MODE:
+        try:
+            import httpx as _httpx
+            async with _httpx.AsyncClient(timeout=10.0) as _client:
+                _resp = await _client.get(product_image_url)
+                _resp.raise_for_status()
+                _img_bytes = _resp.content
+                _mime = _resp.headers.get("content-type", "image/jpeg").split(";")[0]
+            theme_block = await _llm.complete_with_vision(
+                file_bytes=_img_bytes,
+                prompt=_STYLE_LOCK_PROMPT.format(
+                    brief=campaign_brief[:600],
+                    platform=platform,
+                ),
+                mime_type=_mime,
+            )
+            theme_block = theme_block.strip()
+        except Exception as _e:
+            logger.warning("style_lock vision call failed, falling back | error=%s", _e)
+            theme_block = None
+
+    if theme_block:
+        parts.append(theme_block)
     else:
         parts.append(
-            "Visual theme: EDITORIAL PROFESSIONAL — "
-            "LIGHTING: Clean three-point studio lighting; soft key from 45° above-left, fill card on opposite side, subtle rim light separating subject from background. "
-            "COLOR TEMPERATURE: Neutral daylight 5000-5500K throughout; no strong warm or cool cast unless the product's own colors warrant it. "
-            "GRADING: Natural, true-to-life color reproduction; gentle S-curve contrast; no heavy stylistic grade — the product's own colors should read accurately. "
-            f"BRIEF CONTEXT: '{campaign_brief[:200]}' — use this to inform the environment, props, and subject mood only, not to override the lighting or grading above."
+            "Visual theme: EDITORIAL PROFESSIONAL\n"
+            "LIGHTING: Clean three-point studio lighting; soft key 45° above-left, fill card opposite, subtle rim light.\n"
+            "COLOR TEMPERATURE: Neutral daylight 5000-5500K.\n"
+            "GRADING: Natural true-to-life colour; gentle S-curve contrast; product colours read accurately.\n"
+            "MOOD: authentic, aspirational, confident\n"
+            f"BRIEF CONTEXT: '{campaign_brief[:200]}'"
         )
 
     if brand_kit:
@@ -1326,7 +1342,10 @@ async def create_campaign(request: CampaignRequest):
 
     # Build a shared style description from brand kit data — gives all photos the same
     # colour/mood/energy without the carousel anchor that locks composition too tightly.
-    style_lock = _build_campaign_style_lock(request.campaign_brief, brand_kit, request.platform)
+    style_lock = await _build_campaign_style_lock(
+        request.campaign_brief, brand_kit, request.platform,
+        product_image_url=request.product_image_url,
+    )
 
     total_photos = len(roles)
 
