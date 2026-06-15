@@ -1254,6 +1254,7 @@ class CampaignRequest(BaseModel):
     use_logo: bool = True
     use_mascot: bool = True
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    brand_images: list[BrandImageRef] = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
 
 class CampaignPhoto(BaseModel):
@@ -1409,6 +1410,7 @@ async def create_campaign(request: CampaignRequest):
                     campaign_mode=True,
                     campaign_anchor_b64=anchor_b64,
                     campaign_shot_type=role,
+                    brand_images=request.brand_images or [],
                 )
                 if attempt:
                     logger.info("campaign image_gen recovered on attempt %d | role=%s", attempt + 1, role)

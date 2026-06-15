@@ -100,7 +100,8 @@ async def _fetch_asset(url: str) -> bytes | None:
             resp = await client.get(url)
             resp.raise_for_status()
             return resp.content
-    except Exception:
+    except Exception as exc:
+        logger.warning("_fetch_asset failed | url=%s error=%s", url, exc)
         return None
 
 
@@ -570,6 +571,26 @@ async def generate_social_image(
                 )
                 logger.info("logo reference added (campaign anchor mode) | user=%s", user_id)
 
+        if brand_images:
+            import asyncio as _asyncio
+            bi_urls = [bi.url if hasattr(bi, "url") else bi["url"] for bi in brand_images]
+            bi_prompts = [bi.prompt if hasattr(bi, "prompt") else bi.get("prompt") for bi in brand_images]
+            bi_bytes_list = await _asyncio.gather(*[_fetch_asset(url) for url in bi_urls])
+            for bi_bytes, bi_prompt, bi_url in zip(bi_bytes_list, bi_prompts, bi_urls):
+                if bi_bytes:
+                    anchor_images.append(bi_bytes)
+                    idx = len(anchor_images)
+                    if bi_prompt:
+                        anchor_extra.append(f"MANDATORY: Reference image {idx}: {bi_prompt} — you MUST incorporate it visibly.")
+                    else:
+                        anchor_extra.append(
+                            f"MANDATORY: Reference image {idx} is a brand asset that MUST appear in the final image — its absence is a failure. "
+                            f"Study its subjects, characters, or visual elements and incorporate them naturally into the scene."
+                        )
+                    logger.info("brand_image added (campaign anchor mode) | user=%s idx=%d", user_id, idx)
+                else:
+                    logger.warning("brand_image fetch failed (campaign anchor mode) | user=%s url=%s", user_id, bi_url)
+
         mandate = _asset_mandate(
             use_logo and bool(brand_kit and brand_kit.logo_url),
             use_mascot and bool(brand_kit and brand_kit.mascot_url),
@@ -658,6 +679,26 @@ async def generate_social_image(
                             f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
                         )
                         logger.info("logo reference added (campaign mode) | user=%s", user_id)
+
+                if brand_images:
+                    import asyncio as _asyncio
+                    bi_urls = [bi.url if hasattr(bi, "url") else bi["url"] for bi in brand_images]
+                    bi_prompts = [bi.prompt if hasattr(bi, "prompt") else bi.get("prompt") for bi in brand_images]
+                    bi_bytes_list = await _asyncio.gather(*[_fetch_asset(url) for url in bi_urls])
+                    for bi_bytes, bi_prompt, bi_url in zip(bi_bytes_list, bi_prompts, bi_urls):
+                        if bi_bytes:
+                            all_images.append(bi_bytes)
+                            idx = len(all_images)
+                            if bi_prompt:
+                                extra_instructions.append(f"MANDATORY: Reference image {idx}: {bi_prompt} — you MUST incorporate it visibly.")
+                            else:
+                                extra_instructions.append(
+                                    f"MANDATORY: Reference image {idx} is a brand asset that MUST appear in the final image — its absence is a failure. "
+                                    f"Study its subjects, characters, or visual elements and incorporate them naturally into the scene."
+                                )
+                            logger.info("brand_image added (campaign mode) | user=%s idx=%d", user_id, idx)
+                        else:
+                            logger.warning("brand_image fetch failed (campaign mode) | user=%s url=%s", user_id, bi_url)
 
                 mandate = _asset_mandate(
                     use_logo and bool(brand_kit and brand_kit.logo_url),
