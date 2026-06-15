@@ -110,6 +110,7 @@ async def _elaborate_prompt_5component(
     brand_kit,
     tone: str = "",
     extra_context: str = "",
+    campaign_shot_type: str = "",
 ) -> dict | None:
     """Elaborates a visual description into a 6-component Gemini prompt template.
 
@@ -177,6 +178,10 @@ async def _elaborate_prompt_5component(
             + (f"Brand context: {brand_context}\n" if brand_context else "")
             + (f"Tone: {tone}\n" if tone else "")
             + (f"Composition context (use to guide text_overlay tone): {extra_context[:400]}\n" if extra_context else "")
+            + (
+                f"MANDATORY SHOT TYPE — the camera_angle field MUST match this exactly: {campaign_shot_type}\n"
+                if campaign_shot_type else ""
+            )
         )
 
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -213,7 +218,7 @@ async def _elaborate_prompt_5component(
         return None
 
 
-def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None) -> str:
+def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "") -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
     # Colors — kept as hex for accuracy; framed as design values so the model never prints them as text
@@ -354,7 +359,25 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         + "=== END GUARDRAILS ==="
     )
 
-    # 5-component composition block — placed first so Gemini treats it as primary directive
+    # Campaign shot mandate — placed before everything else so Gemini cannot miss it.
+    # This is a hard directive, NOT wrapped in [COMPOSITION CONTEXT] brackets,
+    # so the guardrails do NOT suppress it. It defines the exact camera position,
+    # framing, and environment for this specific photo in the campaign.
+    shot_mandate = ""
+    if campaign_shot_type:
+        shot_mandate = (
+            "╔══════════════════════════════════════════════════════╗\n"
+            "║  MANDATORY SHOT DIRECTIVE — ABSOLUTE HIGHEST PRIORITY  ║\n"
+            "╚══════════════════════════════════════════════════════╝\n"
+            f"{campaign_shot_type}\n"
+            "This is a professional product campaign photograph. "
+            "The shot type above dictates EXACTLY: the camera angle, the product orientation, "
+            "the framing, and the environment. Execute it with precision — "
+            "deviating from the specified angle or framing is a failure.\n"
+            "══════════════════════════════════════════════════════════\n\n"
+        )
+
+    # 5-component composition block — placed after shot mandate so Gemini treats it as primary directive
     composition_block = ""
     if components:
         composition_block = (
@@ -367,6 +390,7 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         )
 
     return (
+        f"{shot_mandate}"
         f"{composition_block}"
         f"Design a premium {platform} social media graphic ({aspect_ratio}). "
         f"Main topic: \"{topic}\". "
@@ -432,6 +456,7 @@ async def generate_social_image(
     campaign_mode: bool = False,
     campaign_anchor_b64: str | None = None,
     brand_images: list | None = None,
+    campaign_shot_type: str = "",
 ) -> ImageResult:
     """Generate a premium social media image.
 
@@ -452,9 +477,9 @@ async def generate_social_image(
     # ── 5-Component prompt elaboration ───────────────────────────────────────
     # Expands the visual description into Subject/Setting/Style/Lighting/Camera
     # Angle before building the final prompt. Falls back silently on failure.
-    components = await _elaborate_prompt_5component(prompt, platform, brand_kit, extra_context=context_hints)
+    components = await _elaborate_prompt_5component(prompt, platform, brand_kit, extra_context=context_hints, campaign_shot_type=campaign_shot_type)
 
-    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components)
+    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components, campaign_shot_type)
 
     logger.info(
         "image_gen start | user=%s platform=%s aspect=%s use_logo=%s use_mascot=%s brand=%s",

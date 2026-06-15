@@ -1173,62 +1173,74 @@ ENVIRONMENT CUES: [2-3 appropriate environments or surface textures that complem
 PHOTOGRAPHIC REFERENCE: [1-2 real campaign styles or photographer names whose visual language fits]
 """
 
-_CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial art director creating a multi-image product campaign. You receive a reference image of the product — your job is to show that product from a DIFFERENT angle and scene in every photo.
+_CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial photographer and art director — think Nick Knight, Txema Yeste, or Tim Walker for product work. You are creating a multi-image editorial product campaign where every photo is a distinct, magazine-quality shot.
+
+You receive a reference image of the product. Your job: produce the shot defined by the MANDATORY SHOT DIRECTIVE with the precision and intentionality of a commissioned editorial photographer.
 
 ════════════════════════════════════════
 WHAT IS FIXED vs WHAT MUST CHANGE
 ════════════════════════════════════════
 
-FIXED — never change these:
-- The product's colors, color palette, and visual style
-- The count of elements (if the product shows 6 characters, every image shows exactly 6)
-- The product's overall design language, art style, and identity
-- Do NOT add or remove any characters, figures, or objects that are part of the product
+FIXED — the product's identity never changes:
+- Exact colors, materials, and finish of the product
+- Element count (if the product has 6 parts, every photo shows exactly 6)
+- Overall design language and silhouette
 
-MUST CHANGE — every photo must differ in ALL of these:
-- Camera angle: each photo views the product from a completely different angle (front, side, above, below, three-quarter, close, wide)
-- Framing: how much of the product is in frame and how it is cropped
-- Scene and background: entirely different environment per photo
-- Pose / orientation: the product should be oriented differently to suit each composition role
+MUST CHANGE — every photo is a completely different shot:
+- Camera angle and position: follow the MANDATORY SHOT DIRECTIVE exactly
+- Framing and crop: how much of the product is visible
+- Environment and background: entirely different scene per photo
+- Lighting character: shifts within the locked style (hard vs soft, warm vs cool rim)
+- Styling details: different surface, different props arrangement
 
-STEP 1 — STUDY THE REFERENCE:
-Memorize the product's colors, element count, art style, and visual identity.
+════════════════════════════════════════
+MAGAZINE PHOTOGRAPHY STANDARDS
+════════════════════════════════════════
 
-STEP 2 — APPLY THE COMPOSITION ROLE:
-Each photo has an assigned role that specifies the camera angle and framing. Follow it exactly — this is what creates variety across the campaign.
+Every photo must pass this editorial quality bar:
+- LIGHTING: One clear, intentional light source direction — no flat, omnidirectional lighting
+- NEGATIVE SPACE: Deliberately composed — empty areas are a design decision, not an accident
+- SURFACE TEXTURE: The surface the product rests on must have real texture and material character
+- DEPTH: Three-dimensional sense of space — foreground / subject / background planes are distinct
+- SHARPNESS: Product is tack-sharp; background transitions to controlled bokeh or intentional blur
+- NO CLUTTER: Every prop and element in frame is there by decision — nothing accidental
 
-STEP 3 — CAMPAIGN CONSISTENCY:
-- Same color grading, lighting mood, and realism level across every photo.
-- Each photo must look like a completely different shot of the same product.
+════════════════════════════════════════
+EXECUTION
+════════════════════════════════════════
 
-Output: One campaign photo per call. Vary the angle aggressively — sameness across photos is a failure."""
+STEP 1: Memorize the product's exact colors, materials, element count, and visual identity from the reference.
+STEP 2: Execute the MANDATORY SHOT DIRECTIVE — camera position, framing, and environment are non-negotiable.
+STEP 3: Apply the Campaign Style Lock for consistent color grading and lighting mood across photos.
+
+Sameness across photos is a failure. Each shot must be unmistakably a different photograph."""
 
 _CAMPAIGN_ROLES: dict[int, list[str]] = {
     1: [
-        "HERO SHOT — Camera directly in front of the product at eye level. Product centered, filling most of the frame, facing the lens straight-on. Clean premium studio background, bold lighting.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered with equal negative space left and right. Single hard key light from 45° above-left casting a clean directional shadow on the surface beneath the product. Surface: pure white or polished light grey. Background: pure studio gradient fading to white. This is a magazine cover shot — razor-sharp product, zero clutter.",
     ],
     2: [
-        "HERO SHOT — Camera directly in front of the product at eye level. Product centered, facing the lens straight-on. Clean premium background, bold studio lighting.",
-        "LIFESTYLE THREE-QUARTER — Camera positioned at a 45-degree angle to the product's side. Product is turned so its side profile and front are both visible. Real aspirational environment surrounds it.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Single hard key light from 45° above-left. Clean studio background — white or very light neutral. Negative space on left third for editorial text overlay. Magazine cover quality.",
+        "LIFESTYLE SCENE — Camera at 45° to the product's right side, slightly above eye-level. Product rests naturally in its real-world environment — a marble countertop, a wooden table, or an outdoor stone surface. Depth of field f/2.0: background life is present but softly blurred. A hand or lifestyle prop enters frame from the edge. Warm natural or golden-hour side-light rakes across the surface texture. Aspirational and editorial — like Kinfolk or Vogue Living.",
     ],
     3: [
-        "HERO SHOT — Camera directly in front, eye-level. Product faces the lens straight-on, centered, full product in frame.",
-        "LIFESTYLE SIDE PROFILE — Camera positioned at the product's side, shooting in profile. The product faces away from or perpendicular to the lens. Real-world aspirational environment.",
-        "ELEVATED CLOSE FRAME — Camera directly above and slightly in front, looking down at the product from a high angle. Product fills the frame from this top-down-ish perspective.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left, clean shadow line on surface. White or very light neutral studio background. Zero distracting elements.",
+        "LIFESTYLE SIDE PROFILE — Camera at the product's side, 90° from the front, slightly elevated at 20° above horizon. Product in profile — reveals depth, thickness, material layers. Soft natural window light from the far left rims the product edge. Real environment: linen tablecloth, slate surface, or raw concrete. Background: softly blurred lifestyle setting at f/2.0.",
+        "EDITORIAL FLATLAY — Camera directly overhead, 90° pointing straight down. Product is the centerpiece placed in the lower-center third. Organic ingredients, botanicals, or lifestyle objects arranged with deliberate negative space around the product. Surface: dark slate, warm oak wood grain, or soft linen. Directional side light enters from the top-left of the frame, casting soft shadows that reveal surface texture.",
     ],
     4: [
-        "HERO SHOT — Camera directly in front at eye level. Product faces the lens straight-on, centered, full product in frame, premium studio background.",
-        "LIFESTYLE THREE-QUARTER — Camera at a 45-degree side angle. Product turned so both its front and one side are visible. Real-world environment with depth.",
-        "TOP-DOWN OVERHEAD — Camera directly above, pointing straight down. Product and props arranged flat on a surface below. Pure bird's-eye view.",
-        "LOW ANGLE DRAMATIC — Camera at ground level pointing upward at the product. Product appears to tower over the viewer. Bold perspective, dramatic sky or environment behind it.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame. Hard key light 45° above-left, clean shadow on surface. Pure white or light neutral studio background. Negative space on left for copy. This is the magazine cover anchor shot — everything else references this quality.",
+        "LIFESTYLE ENVIRONMENT SCENE — Camera at 35-45° angle to the product's right, positioned slightly above eye-level. Product sits naturally in a real-world environment — a kitchen counter, wooden shelf, or outdoor surface — with lifestyle context around it: a ceramic bowl, cut ingredients, folded linen. Background has life and depth, softly blurred at f/2.0. Warm natural side-light. Feels like an editorial spread in a wellness magazine.",
+        "EDITORIAL FLATLAY — Camera 90° directly overhead pointing straight down. Product centered in the lower third. Organic props and ingredients arranged with intentional breathing room between objects — negative space is a design element, not empty space. Surface: dark slate, warm wood, or textured linen. One directional window-quality side light from the frame's top-left creates gentle shadows that add depth and texture.",
+        "DRAMATIC LOW ANGLE — Camera at ground level (10-15cm height) pointing upward at 15-20°. Product occupies the bottom-center third of the frame, towering upward. Upper two-thirds: a dramatic, out-of-focus environment — sky with volumetric light, warm interior blur, or architectural depth. Product is in sharp focus; everything above it falls away into bokeh. Bold, confidence-inducing perspective.",
     ],
     6: [
-        "HERO SHOT — Camera directly in front at eye level. Product faces the lens straight-on, centered, clean premium background.",
-        "LIFESTYLE THREE-QUARTER — Camera at 45-degree angle to product's side. Product turned, front and side both visible. Aspirational real-world environment.",
-        "TOP-DOWN OVERHEAD — Camera directly above pointing straight down. Product flat on a textured surface with props. Pure bird's-eye.",
-        "LOW ANGLE — Camera at ground level looking upward. Product towers in frame. Dramatic perspective, bold environment.",
-        "TIGHT CLOSE-UP — Camera very close to the product, showing it large in frame. Product fills 80% of the image. Background blurred. Angle slightly elevated.",
-        "WIDE ESTABLISHING — Camera far back. Product appears small within a large dramatic environment. Architecture or nature dominates. Product is a small part of a big world.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left. Pure white or light neutral studio background. Magazine cover quality.",
+        "LIFESTYLE ENVIRONMENT — Camera at 40° right angle, slightly elevated. Product in real-world scene — countertop, table, outdoor surface — with contextual props softly blurred at f/2.0. Warm natural side-light.",
+        "EDITORIAL FLATLAY — Camera 90° directly overhead. Product centered with organic ingredients and props arranged intentionally around it. Textured surface (slate, wood, linen). Directional side-light from top-left.",
+        "DRAMATIC LOW ANGLE — Camera at ground level (10cm height) pointing upward. Product towers in bottom-center. Background blurs into dramatic bokeh. Bold confidence-inducing perspective.",
+        "MACRO DETAIL — Camera extremely close: 15-20cm from the product surface. One specific detail fills the entire frame — a texture, a logo element, a material surface, a cap mechanism. Razor-sharp focus on the detail; everything peripheral falls to blurred abstraction. Lighting: single side-rim light that reveals micro-texture.",
+        "WIDE ESTABLISHING — Camera pulled back so the product occupies only 20-25% of the frame, placed in the rule-of-thirds lower-right. A large, dramatic real-world environment dominates — an architectural space, a natural landscape, or a richly textured interior. The product is small but unmistakable. Creates scale and world-building.",
     ],
 }
 
@@ -1396,6 +1408,7 @@ async def create_campaign(request: CampaignRequest):
                     reference_urls=product_urls,
                     campaign_mode=True,
                     campaign_anchor_b64=anchor_b64,
+                    campaign_shot_type=role,
                 )
                 if attempt:
                     logger.info("campaign image_gen recovered on attempt %d | role=%s", attempt + 1, role)
