@@ -1,7 +1,6 @@
 import { aiService } from "../../common/utils/aiService.js"
 import * as repo from "./context.repository.js"
 import { Agent } from "../../../prisma/generated/prisma/client.js"
-import { SUMMARIZE_THRESHOLD } from "../../config/constants.js"
 
 export const getAgentMemory = (organizationId: string, agent: Agent) =>
   repo.findAgentMemory(organizationId, agent)
@@ -61,16 +60,38 @@ export const triggerSummarize = async (
   )
   const existingFacts: string[] = (mem?.longTermFacts as string[]) ?? []
   const incoming: string[] = data.extracted_facts ?? []
-  // Deduplicate: skip incoming facts whose first 60 chars match an existing fact
-  const trulyNew = incoming.filter(
+
+  // Separate [PREFERENCE] facts — they get their own stable home in sharedMemory.userPreferences
+  const incomingPrefs = incoming.filter(f => f.trimStart().startsWith("[PREFERENCE]"))
+  const incomingNonPrefs = incoming.filter(f => !f.trimStart().startsWith("[PREFERENCE]"))
+
+  // Deduplicate non-preference facts against existing longTermFacts
+  const trulyNewFacts = incomingNonPrefs.filter(
     f => !existingFacts.some(e => e.slice(0, 60) === f.slice(0, 60))
   )
   // Cap at 60 total — drop oldest (head) to make room for newest (tail)
-  const newFacts = [...existingFacts, ...trulyNew].slice(-60)
+  const newFacts = [...existingFacts, ...trulyNewFacts].slice(-60)
+
   await repo.upsertAgentMemory(organizationId, agent, {
     runningSummary: data.updated_summary,
     longTermFacts: newFacts,
     messageCount: 0,
     lastSummarizedAt: new Date(),
   })
+
+  // Write new preferences to OrgMemory.sharedMemory.userPreferences (deduped, capped at 20)
+  if (incomingPrefs.length > 0) {
+    const orgMem = await repo.findOrgMemory(organizationId)
+    const sharedMem = (orgMem?.sharedMemory as Record<string, unknown>) ?? {}
+    const existingPrefs: string[] = (sharedMem.userPreferences as string[]) ?? []
+    const trulyNewPrefs = incomingPrefs.filter(
+      p => !existingPrefs.some(e => e.slice(0, 60) === p.slice(0, 60))
+    )
+    if (trulyNewPrefs.length > 0) {
+      const mergedPrefs = [...existingPrefs, ...trulyNewPrefs].slice(-20)
+      await repo.upsertOrgMemory(organizationId, {
+        sharedMemory: { ...sharedMem, userPreferences: mergedPrefs },
+      })
+    }
+  }
 }
