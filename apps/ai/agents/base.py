@@ -41,6 +41,8 @@ def _args_summary(args: dict) -> str:
     return ", ".join(parts) if parts else ""
 
 MAX_TOOL_RESULT_CHARS = 10000
+_TOOL_TIMEOUT = 300.0       # seconds — safety net for tools with no internal timeout
+_MEMORY_HARD_CAP = 8000     # chars (~2k tokens) — prevents context overflow on any message
 
 # Maps AI tool names to frontend AgentActionId values for rich card rendering
 RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
@@ -302,22 +304,29 @@ class BaseAgent(ABC):
             has_history=bool(request.history),
         )
 
-        # RAG retrieval
-        try:
-            rag_chunks = await self.rag.retrieve(
-                user_id=request.user_id,
-                query=request.message,
-                top_k=5,
-                source_agent=self.slug,
-            )
-        except Exception:
-            rag_chunks = []
+        # RAG retrieval — skip for short conversational messages (no semantic benefit)
+        rag_chunks: list = []
+        if len(request.message.split()) > 4:
+            try:
+                rag_chunks = await self.rag.retrieve(
+                    user_id=request.user_id,
+                    query=request.message,
+                    top_k=5,
+                    source_agent=self.slug,
+                )
+            except Exception:
+                rag_chunks = []
         if rag_chunks:
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
 
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
+            word_count = len(request.message.split())
+            if word_count <= 5 and len(memory_context) > 1200:
+                memory_context = memory_context[:1200].rstrip()
+            elif len(memory_context) > _MEMORY_HARD_CAP:
+                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
             system_prompt += f"\n\n{memory_context}"
 
         messages = [
@@ -426,12 +435,15 @@ class BaseAgent(ABC):
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
             original_len = len(memory_context)
-            # For short conversational messages (≤ 5 words), only inject the
-            # summary section (~first 1200 chars). The full facts list adds tokens
-            # and LLM latency without helping "thanks" or "ok" replies.
-            if len(request.message.split()) <= 5 and original_len > 1200:
+            word_count = len(request.message.split())
+            # Short messages only need the summary section (~1200 chars)
+            if word_count <= 5 and original_len > 1200:
                 memory_context = memory_context[:1200].rstrip()
                 print(f"  {_DIM}[ctx] memory_block trimmed {original_len}→1200 chars (short msg){_X}")
+            # Hard cap for all messages — prevents context overflow regardless of length
+            elif original_len > _MEMORY_HARD_CAP:
+                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
+                print(f"  {_DIM}[ctx] memory_block hard-capped {original_len}→{_MEMORY_HARD_CAP} chars{_X}")
             else:
                 print(f"  {_DIM}[ctx] memory_block injected ({original_len} chars){_X}")
             system_prompt += f"\n\n{memory_context}"
@@ -540,12 +552,19 @@ class BaseAgent(ABC):
 
             async def _run_one(tc) -> str:
                 if tc.name == "ask_agent":
-                    return await self._execute_cross_agent_call(
+                    coro = self._execute_cross_agent_call(
                         tc.arguments, request.user_id, request.organization_id
                     )
-                return await self.execute_tool(
-                    tc.name, tc.arguments, request.user_id, request.organization_id
-                )
+                else:
+                    coro = self.execute_tool(
+                        tc.name, tc.arguments, request.user_id, request.organization_id
+                    )
+                try:
+                    return await asyncio.wait_for(coro, timeout=_TOOL_TIMEOUT)
+                except asyncio.TimeoutError:
+                    raise asyncio.TimeoutError(
+                        f"Tool '{tc.name}' timed out after {_TOOL_TIMEOUT}s"
+                    )
 
             # return_exceptions=True: one failing tool returns its exception as a
             # value instead of cancelling sibling tasks. Order matches valid_tool_calls.
@@ -653,6 +672,26 @@ class BaseAgent(ABC):
         )
         result = await target_agent.chat_sync(inner_request)
         return result.response
+
+    # ── Safe fire-and-forget RAG ingest ─────────────────────────────────
+
+    def _fire_rag_ingest(
+        self,
+        user_id: str,
+        text: str,
+        source_id: str,
+        metadata: dict | None = None,
+    ) -> None:
+        """Schedule RAG ingest without blocking the response. Logs failures."""
+        task = asyncio.create_task(
+            self.ingest_to_rag(user_id, text, source_id, metadata)
+        )
+        task.add_done_callback(
+            lambda t: _log.error(
+                "RAG ingest failed | agent=%s source=%s err=%s",
+                self.slug, source_id, t.exception(),
+            ) if not t.cancelled() and t.exception() is not None else None
+        )
 
     # ── RAG ingestion ───────────────────────────────────────────────────
 

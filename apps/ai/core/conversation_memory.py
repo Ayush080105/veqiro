@@ -120,6 +120,7 @@ async def retrieve_relevant(
             top_k,
         )
 
+    _MIN_SIMILARITY = 0.70  # cosine similarity floor — below this the turn is noise
     return [
         {
             "role": row["role"],
@@ -127,4 +128,5 @@ async def retrieve_relevant(
             "score": float(row["score"]),
         }
         for row in rows
+        if float(row["score"]) >= _MIN_SIMILARITY
     ]

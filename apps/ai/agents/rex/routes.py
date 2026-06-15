@@ -776,12 +776,12 @@ async def calculate_runway(request: RunwayRequest) -> RunwayResponse:
 
     growth_rate = request.growth_rate_pct / 100.0
     result = compute_runway_scenarios(request.cash_on_hand, request.monthly_burn, request.monthly_revenue, growth_rate)
-    asyncio.create_task(_agent.ingest_to_rag(
+    _agent._fire_rag_ingest(
         user_id=request.user_id,
         text=json.dumps(result, default=str),
         source_id=f"rex-runway-{request.user_id}",
         metadata={"tool": "calculate_runway", "agent": "rex"},
-    ))
+    )
     return RunwayResponse(**result)
 
 
@@ -827,12 +827,12 @@ async def unit_economics(request: UnitEconomicsRequest) -> UnitEconomicsResponse
             ltv_cac_health="red", payback_health="red", health="red",
             benchmark_context=result["error"], recommendations=[],
         )
-    asyncio.create_task(_agent.ingest_to_rag(
+    _agent._fire_rag_ingest(
         user_id=request.user_id,
         text=json.dumps(result, default=str),
         source_id=f"rex-unit-econ-{request.user_id}",
         metadata={"tool": "unit_economics", "agent": "rex"},
-    ))
+    )
     return UnitEconomicsResponse(**result)
 
 
@@ -993,12 +993,12 @@ async def weekly_digest(request: WeeklyDigestRequest) -> WeeklyDigestResponse:
             "generated_at": datetime.utcnow().isoformat(),
         }
 
-    asyncio.create_task(_agent.ingest_to_rag(
+    _agent._fire_rag_ingest(
         user_id=request.user_id,
         text=json.dumps(data, default=str),
         source_id=f"rex-weekly-digest-{request.user_id}",
         metadata={"tool": "weekly_digest", "agent": "rex", "priority": "high"},
-    ))
+    )
     return WeeklyDigestResponse(
         **data,
         tokens_used=tokens_used,

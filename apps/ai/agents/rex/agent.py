@@ -143,15 +143,12 @@ class RexAgent(BaseAgent):
                 "compile_briefing", "financial_analysis", "generate_investor_update",
                 "calculate_runway", "unit_economics", "scenario_model", "weekly_digest",
             }:
-                try:
-                    asyncio.create_task(self.ingest_to_rag(
-                        user_id=request.user_id,
-                        text=response.response,
-                        source_id=f"rex-{tc['name']}-{request.conversation_id}",
-                        metadata={"tool": tc["name"], "agent": "rex"},
-                    ))
-                except Exception:
-                    pass  # best-effort
+                self._fire_rag_ingest(
+                    user_id=request.user_id,
+                    text=response.response,
+                    source_id=f"rex-{tc['name']}-{request.conversation_id}",
+                    metadata={"tool": tc["name"], "agent": "rex"},
+                )
 
         return response
 
@@ -506,12 +503,12 @@ class RexAgent(BaseAgent):
             growth_rate = float(arguments.get("growth_rate_pct", 0)) / 100.0
 
             result = compute_runway_scenarios(cash, burn, mrr, growth_rate)
-            asyncio.create_task(self.ingest_to_rag(
+            self._fire_rag_ingest(
                 user_id=user_id,
                 text=json.dumps(result, default=str),
                 source_id=f"rex-runway-{user_id}",
                 metadata={"tool": "calculate_runway", "agent": "rex"},
-            ))
+            )
             return json.dumps(result, default=str)
 
         elif name == "unit_economics":
@@ -529,12 +526,12 @@ class RexAgent(BaseAgent):
             lifetime = float(arguments.get("avg_customer_lifetime_months", 24.0))
 
             result = compute_unit_economics(marketing_data, customers_data, arpu, lifetime)
-            asyncio.create_task(self.ingest_to_rag(
+            self._fire_rag_ingest(
                 user_id=user_id,
                 text=json.dumps(result, default=str),
                 source_id=f"rex-unit-econ-{user_id}",
                 metadata={"tool": "unit_economics", "agent": "rex"},
-            ))
+            )
             return json.dumps(result, default=str)
 
         elif name == "scenario_model":
@@ -648,12 +645,12 @@ class RexAgent(BaseAgent):
                     "generated_at": _dt.utcnow().isoformat(),
                 }
 
-            asyncio.create_task(self.ingest_to_rag(
+            self._fire_rag_ingest(
                 user_id=user_id,
                 text=json.dumps(data, default=str),
                 source_id=f"rex-weekly-digest-{user_id}",
                 metadata={"tool": "weekly_digest", "agent": "rex", "priority": "high"},
-            ))
+            )
             return json.dumps(data, default=str)
 
         raise ValueError(f"Unknown tool: {name}")

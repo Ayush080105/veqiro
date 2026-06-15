@@ -74,6 +74,7 @@ class RAGService:
                 source_id,
             )
 
+        _MIN_SCORE = 0.70  # cosine similarity floor — below this the chunk is noise
         return [
             {
                 "id": str(row["id"]),
@@ -84,6 +85,7 @@ class RAGService:
                 "score": float(row["score"]),
             }
             for row in rows
+            if float(row["score"]) >= _MIN_SCORE
         ]
 
     async def ingest(

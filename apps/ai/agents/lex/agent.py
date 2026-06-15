@@ -144,15 +144,12 @@ class LexAgent(BaseAgent):
         tool_calls = response.metadata.get("tool_calls", [])
         for tc in tool_calls:
             if tc["name"] in {"analyze_contract", "legal_research", "compliance_check"}:
-                try:
-                    asyncio.create_task(self.ingest_to_rag(
-                        user_id=request.user_id,
-                        text=response.response,
-                        source_id=f"lex-{tc['name']}-{request.conversation_id}",
-                        metadata={"tool": tc["name"], "agent": "lex"},
-                    ))
-                except Exception:
-                    pass  # best-effort
+                self._fire_rag_ingest(
+                    user_id=request.user_id,
+                    text=response.response,
+                    source_id=f"lex-{tc['name']}-{request.conversation_id}",
+                    metadata={"tool": tc["name"], "agent": "lex"},
+                )
 
         return response
 

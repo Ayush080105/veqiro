@@ -171,12 +171,12 @@ class ScoutAgent(BaseAgent):
                         or tc["arguments"].get("company_name")
                         or tc["arguments"].get("industry", "research")
                     )
-                    asyncio.create_task(self.ingest_to_rag(
+                    self._fire_rag_ingest(
                         user_id=request.user_id,
                         text=response.response,
                         source_id=f"scout-{tc['name']}-{request.conversation_id}",
                         metadata={"tool": tc["name"], "topic": topic, "agent": "scout"},
-                    ))
+                    )
                 except Exception as rag_err:
                     logger.warning("RAG ingest failed for %s (conv %s): %s", tc["name"], request.conversation_id, rag_err)
 
