@@ -12,14 +12,6 @@ from core.tools import ToolDefinition, ToolCall, ToolResult
 
 MAX_TOOL_RESULT_CHARS = 10000
 
-_INTENT_SYSTEM = (
-    "You are a one-word classifier. Reply with exactly one word.\n"
-    "Reply 'task' if the message is requesting information, research, analysis, "
-    "drafting, creation, or any action that needs tools.\n"
-    "Reply 'chat' if the message is a greeting, thanks, acknowledgment, "
-    "reaction, or casual small talk with no task intent."
-)
-
 # Maps AI tool names to frontend AgentActionId values for rich card rendering
 RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
     "draft_content":            "maya:draft-content",
@@ -64,10 +56,10 @@ RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
 
 
 def _pick_rich_result(tool_calls: list[dict]) -> tuple[str | None, dict | None]:
-    """Return (action_id, result_dict) for the last rich tool call that produced a dict result."""
+    """Return (action_id, result_dict) for the last rich tool call that executed successfully."""
     for tc in reversed(tool_calls):
         mapped = RICH_TOOL_TO_ACTION_ID.get(tc.get("name", ""))
-        if mapped and isinstance(tc.get("result"), dict):
+        if mapped and isinstance(tc.get("result"), dict) and not tc.get("is_error"):
             return mapped, tc["result"]
     return None, None
 
@@ -89,13 +81,28 @@ class BaseAgent(ABC):
 
     def get_tool_instructions(self) -> str:
         return (
-            "\n\nYou have access to specialized tools. Use them when the user's request "
-            "would benefit from structured data, analysis, or actions. For simple conversational "
-            "questions, respond directly without using tools. When using tools, synthesize "
-            "the results into a helpful, natural response."
+            "\n\nYou have access to specialized tools. "
+            "Call a tool ONLY when the user has made an explicit request that a tool fulfills. "
+            "For greetings, acknowledgments ('thanks', 'great', 'ok', 'love it'), reactions, "
+            "or open-ended conversation, reply directly with no tool call. "
+            "When using tools, synthesize the results into a helpful, natural response."
         )
 
     # ── Tool definitions (override in subclass) ─────────────────────────
+
+    def validate_tool_call(self, name: str, arguments: dict) -> str | None:
+        """Returns a rejection reason string if the call is structurally invalid, else None."""
+        for tool in self.get_tools():
+            if tool.name != name:
+                continue
+            for param in tool.parameters:
+                if not param.required:
+                    continue
+                val = arguments.get(param.name)
+                if val is None or (isinstance(val, str) and not val.strip()):
+                    return f"Missing required parameter: {param.name}"
+            return None
+        return None
 
     def get_tools(self) -> list[ToolDefinition]:
         """Return agent-specific tool definitions. Override in subclass."""
@@ -225,39 +232,29 @@ class BaseAgent(ABC):
         if len(tools) <= 1:  # only ask_agent
             return await self._chat_sync_no_tools(request)
 
-        # Intent gate: only classify short messages (≤8 words) where ambiguity
-        # actually exists. Longer messages are almost always tasks — skip the
-        # extra LLM call entirely so real requests pay no latency penalty.
-        if len(request.message.split()) <= 8:
-            try:
-                intent = await self.llm.complete(
-                    provider=self.default_provider,
-                    model=self.default_model,
-                    system=_INTENT_SYSTEM,
-                    messages=[{"role": "user", "content": request.message}],
-                    max_tokens=3,
-                )
-                if intent.strip().lower().startswith("chat"):
-                    return await self._chat_sync_no_tools(request)
-            except Exception:
-                pass  # classification failure → proceed with tool loop as normal
-
-        # Build system prompt with RAG (skip brand kit for internal cross-agent calls)
+        # Build system prompt and fetch RAG context concurrently for lower latency.
+        # Stable static prefix (brand kit + rules) comes first so OpenAI prefix
+        # caching can kick in per-org; dynamic RAG/memory appended after.
         is_cross_agent = request.metadata.get("_cross_agent_call", False)
-        system_prompt = await self.build_system_prompt(
-            request.user_id, request.organization_id,
-            use_brand_kit=not is_cross_agent,
-        )
 
-        try:
-            rag_chunks = await self.rag.retrieve(
-                user_id=request.user_id,
-                query=request.message,
-                top_k=5,
-                source_agent=self.slug,
+        async def _build_prompt() -> str:
+            return await self.build_system_prompt(
+                request.user_id, request.organization_id,
+                use_brand_kit=not is_cross_agent,
             )
-        except Exception:
-            rag_chunks = []
+
+        async def _fetch_rag() -> list:
+            try:
+                return await self.rag.retrieve(
+                    user_id=request.user_id,
+                    query=request.message,
+                    top_k=5,
+                    source_agent=self.slug,
+                )
+            except Exception:
+                return []
+
+        system_prompt, rag_chunks = await asyncio.gather(_build_prompt(), _fetch_rag())
         if rag_chunks:
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
@@ -304,16 +301,45 @@ class BaseAgent(ABC):
                     action_result=action_result,
                 )
 
-            # Execute tool calls — all concurrently, preserving order.
-            # Append stub entries first so indices are stable, then backfill
-            # the parsed result after gather.
+            # Validate calls before executing — reject structurally invalid ones.
             stub_start = len(all_tool_calls)
-            for tc in response.tool_calls:
+            rejected: list[int] = []
+            for idx, tc in enumerate(response.tool_calls):
+                reason = self.validate_tool_call(tc.name, tc.arguments)
+                if reason:
+                    rejected.append(idx)
+
+            # All calls invalid on the first iteration (nothing executed yet) →
+            # re-run with tool_choice="none" to get a clean conversational reply.
+            if rejected and len(rejected) == len(response.tool_calls) and not all_tool_calls:
+                fallback = await self.llm.complete_with_tools(
+                    provider=self.default_provider,
+                    model=self.default_model,
+                    system=system_prompt,
+                    messages=messages,
+                    tools=tools,
+                    tool_choice="none",
+                )
+                full_text = fallback.content or ""
+                return ChatSyncResponse(
+                    response=full_text,
+                    agent=self.slug,
+                    message_id=str(uuid.uuid4()),
+                    tokens_used=self.llm.count_tokens(full_text),
+                    model_used=self.default_model,
+                    metadata={},
+                )
+
+            valid_tool_calls = [tc for i, tc in enumerate(response.tool_calls) if i not in rejected]
+
+            # Append stub entries first so indices are stable, then backfill after gather.
+            for tc in valid_tool_calls:
                 all_tool_calls.append({
                     "id": tc.id,
                     "name": tc.name,
                     "arguments": tc.arguments,
                     "result": None,
+                    "is_error": False,
                 })
 
             async def _run_one(tc) -> str:
@@ -326,15 +352,17 @@ class BaseAgent(ABC):
                 )
 
             # return_exceptions=True: one failing tool returns its exception as a
-            # value instead of cancelling sibling tasks. Order matches tool_calls.
+            # value instead of cancelling sibling tasks. Order matches valid_tool_calls.
             raw_results = await asyncio.gather(
-                *[_run_one(tc) for tc in response.tool_calls],
+                *[_run_one(tc) for tc in valid_tool_calls],
                 return_exceptions=True,
             )
 
             tool_results: list[ToolResult] = []
-            for i, (tc, raw) in enumerate(zip(response.tool_calls, raw_results)):
+            for i, (tc, raw) in enumerate(zip(valid_tool_calls, raw_results)):
                 if isinstance(raw, BaseException):
+                    all_tool_calls[stub_start + i]["is_error"] = True
+                    all_tool_calls[stub_start + i]["result"] = f"Error: {str(raw)}"
                     tool_results.append(ToolResult(
                         tool_call_id=tc.id,
                         name=tc.name,
@@ -363,7 +391,7 @@ class BaseAgent(ABC):
             # In mock mode, always use OpenAI format for consistent detection
             provider_for_format = "openai" if settings.MOCK_MODE else self.default_provider
             result_messages = format_tool_result_messages(
-                provider_for_format, response.tool_calls, tool_results
+                provider_for_format, valid_tool_calls, tool_results
             )
             messages.extend(result_messages)
 
