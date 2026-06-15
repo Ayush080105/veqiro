@@ -1,9 +1,21 @@
 import logging
 import time
+import httpx
 from pydantic import BaseModel
 from core.config import settings
 
 logger = logging.getLogger("brand_kit")
+
+# Module-level persistent client — reuses TCP connections across requests
+# instead of opening a new socket on every brand kit fetch.
+_http_client: httpx.AsyncClient | None = None
+
+
+def _get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=5, http2=True)
+    return _http_client
 
 
 class BrandKit(BaseModel):
@@ -88,11 +100,10 @@ async def load_brand_kit(organization_id: str) -> BrandKit:
     # Fetch from Express
     brand_kit = BrandKit()
     try:
-        import httpx
         url = f"{settings.BRAND_KIT_SERVICE_URL}/api/v1/internal/brand-kit/{organization_id}"
         logger.info("brand_kit fetch | org=%s url=%s", organization_id, url)
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(url, headers={"x-internal-key": settings.INTERNAL_API_KEY})
+        client = _get_http_client()
+        resp = await client.get(url, headers={"x-internal-key": settings.INTERNAL_API_KEY})
         if resp.status_code == 200:
             data = resp.json()
             brand_kit = BrandKit(

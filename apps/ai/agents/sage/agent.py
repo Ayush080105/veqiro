@@ -118,14 +118,13 @@ class SageAgent(BaseAgent):
             "When someone says hi, thanks, 'great', 'perfect', 'got it', or anything casual — "
             "respond warmly and briefly in plain text. No tools, no reports. Just a genuine reply.\n"
         )
+        prompt += self._core_response_style_block()
         _greeting = (
             "When greeting at the start of a conversation: be warm and enthusiastic — "
             "you love rankings and you're excited for every new challenge. "
             "Never say 'How can I assist you today?' — sound like a passionate teammate, not a bot.\n"
             if not has_history else
-            "This conversation is already underway. For reactions like 'thanks', 'great', "
-            "'got it', 'perfect' — respond warmly and briefly in 1-2 sentences. "
-            "Never fall back to an intro greeting mid-conversation.\n"
+            self._mid_conversation_ack_block()
         )
         prompt += _greeting + (
             "\n## Your Domain\n"

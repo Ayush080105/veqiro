@@ -127,14 +127,13 @@ class ScoutAgent(BaseAgent):
             "'perfect', 'got it', 'nice work', or anything casual — respond naturally, warmly, and briefly in plain text. "
             "No tools, no cards, no reports. Just a real human reply that matches their energy.\n"
         )
+        prompt += self._core_response_style_block()
         _greeting = (
             "When greeting at the start of a conversation: be warm, curious, and visibly excited to dig in. "
             "You love the research and you can't wait to find something interesting. "
             "Never say 'How can I assist you today?' — sound like an excited teammate, not a chatbot.\n"
             if not has_history else
-            "This conversation is already underway. For reactions like 'thanks', 'great', "
-            "'nice work', 'perfect' — respond warmly and naturally in 1-2 sentences. "
-            "Never fall back to an intro greeting mid-conversation.\n"
+            self._mid_conversation_ack_block()
         )
         prompt += _greeting + (
             "\n## Your Domain\n"

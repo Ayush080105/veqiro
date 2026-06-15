@@ -112,9 +112,7 @@ class RexAgent(BaseAgent):
             "and love helping founders understand their business. "
             "Never say 'How can I assist you today?' — sound like a real teammate.\n"
             if not has_history else
-            "This conversation is already underway. For reactions like 'thanks', 'got it', "
-            "'nice', 'great' — respond warmly and briefly in 1-2 sentences. "
-            "Never fall back to an intro greeting mid-conversation.\n"
+            self._mid_conversation_ack_block()
         )
         rex_specific += _greeting + (
             "\n## Your Domain\n"

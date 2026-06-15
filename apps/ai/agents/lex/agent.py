@@ -107,9 +107,7 @@ class LexAgent(BaseAgent):
             "Never say 'How can I assist you today?' — sound like the brilliant lawyer friend "
             "they're lucky to have, not a chatbot.\n"
             if not has_history else
-            "This conversation is already underway. For reactions like 'thanks', 'got it', "
-            "'great', 'nice one', 'perfect' — respond warmly and naturally in 1-2 sentences. "
-            "Never fall back to an intro greeting mid-conversation.\n"
+            self._mid_conversation_ack_block()
         )
         lex_specific += _greeting + (
             "\n## Your Domain — When in Doubt, Answer\n"

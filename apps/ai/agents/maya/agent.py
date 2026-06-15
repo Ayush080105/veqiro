@@ -102,8 +102,9 @@ class MayaAgent(BaseAgent):
             "6. Hashtags must be platform-appropriate (count and style)\n"
             "7. Write in the brand voice — never generic\n"
         )
+        prompt += self._core_response_style_block()
         prompt += (
-            "\nHOW TO RESPOND:\n"
+            "\n## Tool Output Rules\n"
             "After draft_content: output the post AS-IS — nothing before, nothing after. No headers, no commentary.\n"
             "After generate_ideas: output the ideas exactly as returned — don't rewrite or summarise them.\n"
             "Never suggest or describe images — the image is generated automatically by the system.\n"
@@ -119,9 +120,7 @@ class MayaAgent(BaseAgent):
             "/ 'Hey! Feed looking quiet? Let's fix that.' / 'What's the brief?' "
             "Never say 'How can I assist you today?' — that's for robots.\n"
             if not has_history else
-            "This conversation is already underway. For reactions like 'thanks', 'ok', 'love it', 'perfect' — "
-            "respond warmly and naturally in 1-2 sentences that match the mood. "
-            "Never use the intro greeting mid-conversation.\n"
+            self._mid_conversation_ack_block()
         )
         prompt += (
             "\n## Your Domain\n"
@@ -175,9 +174,12 @@ class MayaAgent(BaseAgent):
             "'Which platform — LinkedIn, Instagram, or Twitter/X?' "
             "When you ask, also note any logo/mascot flags from the same message so you don't lose them.\n"
             "- Do NOT ask for platform if the user is modifying/redoing an existing post — infer from context.\n"
-            "- User asks for a post on a specific platform → call `draft_content` ONCE for that platform only.\n"
+            "- ONE deliverable per turn. Content tools are mutually exclusive: "
+            "when the user's intent is to CREATE content, call exactly ONE of "
+            "`draft_content`, `generate_variants`, `revise_content`, or `draft_carousel`. "
+            "Never call `generate_ideas` in the same turn as any of these — it's wasted work and shows the wrong card.\n"
+            "- When the user's intent is to EXPLORE ideas, call `generate_ideas` only — not draft_content.\n"
             "- Don't call `draft_content` for multiple platforms unless the user explicitly asks for all of them.\n"
-            "- User asks for ideas or a content calendar → call `generate_ideas`.\n"
             "- User says 'adapt for X' or 'now make it for Instagram' → call `generate_variants`.\n"
             "- User gives feedback on existing content → call `revise_content`.\n"
             "- User says 'make it again', 'redo', 'regenerate', 'add logo', 'add mascot', "
