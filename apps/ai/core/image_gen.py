@@ -549,9 +549,10 @@ async def generate_social_image(
                 anchor_images.append(mascot_bytes)
                 idx = len(anchor_images)
                 anchor_extra.append(
-                    f"Reference image {idx} is a brand mascot character. "
-                    f"Include as a small, tasteful supporting element. "
-                    f"The product from reference image 1 remains the hero."
+                    f"MANDATORY: Reference image {idx} is the brand mascot character. "
+                    f"You MUST include it in the final image — its absence is a failure. "
+                    f"Place it as a small, tasteful supporting element (corner, edge, or subtle background accent). "
+                    f"The product from reference image 1 remains the undeniable hero — do NOT make the mascot equal in prominence."
                 )
                 logger.info("mascot reference added (campaign anchor mode) | user=%s", user_id)
 
@@ -633,11 +634,12 @@ async def generate_social_image(
                         all_images.append(mascot_bytes)
                         idx = len(all_images)
                         extra_instructions.append(
-                            f"Reference image {idx} is a brand mascot character. "
-                            f"Include ONLY as a small, tasteful supporting element — e.g. peeking from a corner, "
+                            f"MANDATORY: Reference image {idx} is the brand mascot character. "
+                            f"You MUST include it in the final image — its absence is a failure. "
+                            f"Place it as a small, tasteful supporting element — e.g. peeking from a corner, "
                             f"appearing small in the background, or as a subtle accent. "
-                            f"The PRODUCT from the first reference images remains the undeniable hero. "
-                            f"DO NOT make the mascot the primary or equal subject."
+                            f"The PRODUCT from the first reference images remains the undeniable hero — "
+                            f"do NOT make the mascot the primary or equal subject."
                         )
                         logger.info("mascot reference added (campaign mode) | user=%s", user_id)
 
@@ -646,21 +648,14 @@ async def generate_social_image(
                     if logo_bytes:
                         all_images.append(logo_bytes)
                         idx = len(all_images)
-                        # extra_instructions.append(
-                        #     f"MANDATORY: Reference image {idx} is the brand logo. "
-                        #     f"You MUST include it in the final image — its absence is a failure. "
-                        #     f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
-                        #     f"Do NOT simplify, redraw, or reinterpret it. "
-                        #     f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
-                        #     f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
-                        #     f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
-                        # )
                         extra_instructions.append(
-                            f"Reference image {idx} contains the brand logo and visual identity. "
-                            f"Use it as a branding reference for the campaign. "
-                            f"Maintain consistency with the brand's visual style, colors, and identity. "
-                            f"If appropriate, the logo may appear naturally and subtly within the composition. "
-                            f"The primary goal is to create a high-quality marketing image featuring the product."
+                            f"MANDATORY: Reference image {idx} is the brand logo. "
+                            f"You MUST include it in the final image — its absence is a failure. "
+                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
+                            f"Do NOT simplify, redraw, or reinterpret it. "
+                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                            f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
+                            f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
                         )
                         logger.info("logo reference added (campaign mode) | user=%s", user_id)
 
