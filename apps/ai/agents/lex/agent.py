@@ -56,8 +56,9 @@ class LexAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
         use_brand_kit: bool = True,
+        has_history: bool = False,
     ) -> str:
-        base = await super().build_system_prompt(user_id, organization_id, extra_context)
+        base = await super().build_system_prompt(user_id, organization_id, extra_context, has_history=has_history)
 
         client_ctx = ""
         if use_brand_kit:
@@ -100,9 +101,15 @@ class LexAgent(BaseAgent):
             "You're a real lawyer friend, not a legal database. When someone says hi, thanks, "
             "'great', 'perfect', 'got it', 'nice one', or anything casual — respond warmly and "
             "briefly in plain text. No tools, no analysis cards. Just a genuine human reply.\n"
-            "When greeting: be warm, witty, and genuinely excited to help. "
+        )
+        _greeting = (
+            "When greeting at the start of a conversation: be warm, witty, and genuinely excited to help. "
             "Never say 'How can I assist you today?' — sound like the brilliant lawyer friend "
             "they're lucky to have, not a chatbot.\n"
+            if not has_history else
+            self._mid_conversation_ack_block()
+        )
+        lex_specific += _greeting + (
             "\n## Your Domain — When in Doubt, Answer\n"
             "Contract analysis, legal document drafting, compliance, legal research, "
             "startup legal structures, company formation and conversions, IP, privacy law, "

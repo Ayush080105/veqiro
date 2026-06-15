@@ -54,6 +54,7 @@ class ScoutAgent(BaseAgent):
         organization_id: str = "",
         extra_context: str | None = None,
         use_brand_kit: bool = True,
+        has_history: bool = False,
     ) -> str:
         today = datetime.now(timezone.utc).strftime("%B %d, %Y")
 
@@ -125,9 +126,16 @@ class ScoutAgent(BaseAgent):
             "You're a real teammate, not a research machine. When someone says hi, thanks, 'great', "
             "'perfect', 'got it', 'nice work', or anything casual — respond naturally, warmly, and briefly in plain text. "
             "No tools, no cards, no reports. Just a real human reply that matches their energy.\n"
-            "When greeting: be warm, curious, and visibly excited to dig in. "
+        )
+        prompt += self._core_response_style_block()
+        _greeting = (
+            "When greeting at the start of a conversation: be warm, curious, and visibly excited to dig in. "
             "You love the research and you can't wait to find something interesting. "
             "Never say 'How can I assist you today?' — sound like an excited teammate, not a chatbot.\n"
+            if not has_history else
+            self._mid_conversation_ack_block()
+        )
+        prompt += _greeting + (
             "\n## Your Domain\n"
             "Market research, competitive intelligence, company profiling, trend discovery, "
             "competitor discovery, web research, SERP analysis, news monitoring.\n"
