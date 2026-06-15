@@ -191,7 +191,7 @@ async def _elaborate_prompt_5component(
             contents=user_prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
-                temperature=0.4,
+                temperature=0.6,
                 max_output_tokens=1024,
                 # Disable thinking — pure JSON extraction needs no reasoning chain,
                 # and thinking tokens would consume the output budget before the JSON starts.
@@ -212,11 +212,54 @@ async def _elaborate_prompt_5component(
         if not required.issubset(components.keys()):
             logger.warning("5-component response missing keys: %s", components.keys())
             return None
-        logger.info("5-component elaboration done | platform=%s", platform)
+        # Depth check — reject shallow components that would downgrade the original prompt.
+        # Any component under 30 chars is likely a placeholder ("a product", "natural light")
+        # that overrides the richer original description without adding value.
+        min_len = min(len(v) for v in components.values() if isinstance(v, str))
+        if min_len < 30:
+            logger.warning("5-component elaboration too shallow (min_component_len=%d) — falling back", min_len)
+            return None
+        logger.info("5-component elaboration done | platform=%s min_len=%d", platform, min_len)
         return components
     except Exception as exc:
         logger.warning("6-component elaboration failed (fallback to plain prompt): %s", exc)
         return None
+
+
+# Maps brand voice keywords to concrete visual directions Gemini can act on.
+# Checked at prompt-build time; matched entries appended to the brand atmosphere block.
+_VOICE_VISUAL_MAP: list[tuple[str, str]] = [
+    ("bold", "high-contrast compositions, dominant focal point, strong geometric shapes"),
+    ("luxury", "dark backgrounds, metallic or glass accents, dramatic single-source dramatic lighting"),
+    ("premium", "dark backgrounds, metallic accents, refined typography with generous tracking"),
+    ("minimal", "generous negative space, single focal point, restrained color use"),
+    ("clean", "white or light neutral backgrounds, minimal props, uncluttered framing"),
+    ("warm", "golden tones, soft gradients, natural materials — wood, linen, terracotta"),
+    ("natural", "earthy tones, organic textures, soft diffused natural light"),
+    ("playful", "bright saturated colors, curved shapes, informal prop placement"),
+    ("energetic", "dynamic angles, vibrant colors, movement-suggesting compositions"),
+    ("professional", "clean grid compositions, neutral tones, controlled depth of field"),
+    ("elegant", "soft muted palette, silk or marble textures, high-key diffused lighting"),
+    ("friendly", "warm mid-tones, approachable eye-level framing, soft shadows"),
+]
+
+# Maps font name keywords → style descriptors Gemini can translate to visual weight/style.
+# Gemini cannot render specific typefaces, but it can match typographic personality.
+_FONT_STYLE_MAP: list[tuple[list[str], str]] = [
+    (["serif", "georgia", "garamond", "times", "baskerville", "didot", "playfair", "minion"], "classical serif typography with refined stroke contrast"),
+    (["sans", "helvetica", "inter", "roboto", "montserrat", "poppins", "futura", "proxima", "gill", "lato", "raleway"], "clean geometric sans-serif with even stroke weight"),
+    (["display", "bebas", "oswald", "impact", "black", "ultra", "condensed"], "expressive large-format display type, strong visual weight"),
+    (["mono", "courier", "code", "space mono", "inconsolata", "fira", "hack"], "technical monospaced type, utilitarian aesthetic"),
+    (["script", "pacifico", "dancing", "cursive", "brush", "handwritten", "great vibes", "satisfy"], "flowing connected letterforms, human warmth"),
+]
+
+
+def _font_to_style(font_name: str) -> str:
+    font_lower = font_name.lower()
+    for keywords, style in _FONT_STYLE_MAP:
+        if any(kw in font_lower for kw in keywords):
+            return style
+    return f"typographic style inspired by {font_name} — match its visual weight and personality"
 
 
 def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "") -> str:
@@ -240,21 +283,24 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
             colors = (
                 f"BRAND COLOR VALUES (apply to design only — NEVER print these codes as text): "
                 f"{', '.join(color_parts)}. "
-                f"These colors must dominate the entire design. "
+                f"Primary color must occupy at least 40% of the visual canvas. "
+                f"Secondary color as the supporting tone in 20-30% of the frame. "
+                f"Accent color for highlights and focal accents only. "
             )
 
-    # Fonts
+    # Fonts — inject style descriptors, not font names, since Gemini can't render specific typefaces
     fonts = ""
     if brand_kit and brand_kit.brand_fonts:
         f_ = brand_kit.brand_fonts
         heading = f_.get("heading") or f_.get("primary") or f_.get("display")
         body = f_.get("body") or f_.get("secondary")
+        font_parts = []
         if heading:
-            fonts += f"Heading font: {heading}. "
+            font_parts.append(f"heading: {_font_to_style(heading)}")
         if body:
-            fonts += f"Body font: {body}. "
-        if fonts:
-            fonts = f"Typography: {fonts}Use these fonts for all text in the image. "
+            font_parts.append(f"body: {_font_to_style(body)}")
+        if font_parts:
+            fonts = f"Typography style: {'; '.join(font_parts)}. Apply this typographic character to any text elements. "
 
     # Brand identity — framed as visual atmosphere direction, never as text to render
     brand = ""
@@ -263,7 +309,12 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         if brand_kit.company_name:
             brand_parts.append(f"brand: {brand_kit.company_name}")
         if brand_kit.brand_voice:
+            voice_visual = "; ".join(
+                desc for kw, desc in _VOICE_VISUAL_MAP if kw in brand_kit.brand_voice.lower()
+            )
             brand_parts.append(f"visual atmosphere/mood: {brand_kit.brand_voice}")
+            if voice_visual:
+                brand_parts.append(f"translate that voice into: {voice_visual}")
         if brand_kit.key_differentiators:
             brand_parts.append(f"brand personality: {brand_kit.key_differentiators}")
         if brand_parts:
@@ -351,7 +402,7 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         "ABSOLUTELY NEVER render any of the following as visible text in the image:\n"
         "  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225) — apply as color values only, never print them\n"
         "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [BRAND ATMOSPHERE], [AUDIENCE CONTEXT], [PLATFORM ENERGY], [EXACT TEXT TO RENDER]\n"
-        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb, elaborate, describe, component, 5-component, pixel-perfect, subject, setting, style, lighting, camera angle — these are internal workflow terms\n"
+        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb, elaborate, describe, component, 5-component, pixel-perfect — these are internal workflow terms\n"
         "  ✗ Any JSON-like syntax, field names, key-value pairs, or schema fragments\n"
         "  ✗ Slide numbers, bullet markers, list syntax, or numbered sequences\n"
         "  ✗ Any text from the composition context, brand atmosphere, audience context, or platform energy sections\n"
@@ -596,11 +647,11 @@ async def generate_social_image(
             use_mascot and bool(brand_kit and brand_kit.mascot_url),
         )
         anchor_product_instr = (
-            "Reference image 1 is Photo 1 of this campaign — the style and product master. "
-            "Study it for: (a) the subject's exact appearance — colors, textures, proportions, markings; "
-            "(b) lighting quality, colour grade, and overall visual style to match across all photos. "
-            "Recreate the same subject from the angle/pose defined by the composition role, "
-            "in a completely new scene — same product identity, different shot."
+            "Reference image 1 establishes TWO things ONLY:\n"
+            "(a) the product's exact visual identity — colors, materials, proportions, surface markings, finish;\n"
+            "(b) the lighting style and color grade to maintain across all photos.\n"
+            "DO NOT copy its composition, camera angle, background, or environment.\n"
+            "Your shot must be entirely different in framing and setting — same product, different everything else."
         )
         full_prompt = (
             f"{mandate}"

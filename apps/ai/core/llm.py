@@ -916,6 +916,10 @@ class LLMClient:
 
             raise
 
+    async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
+        """Image generation with no reference images — pure text-to-image."""
+        return await self.generate_image_with_image_bytes(prompt, [], aspect_ratio)
+
     async def generate_image_with_reference(
         self, prompt: str, reference_image_b64: str, aspect_ratio: str = "1:1"
     ) -> str:
