@@ -192,6 +192,8 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
     if (sharedMem.goals) sharedParts.push(`Goals: ${(sharedMem.goals as string[]).join(", ")}`)
     if (sharedMem.product) sharedParts.push(`Product: ${sharedMem.product as string}`)
     if (sharedMem.decisions) sharedParts.push(`Decisions: ${(sharedMem.decisions as string[]).slice(-3).join("; ")}`)
+    if (sharedMem.userPreferences && (sharedMem.userPreferences as string[]).length > 0)
+      sharedParts.push(`Preferences I've learned: ${(sharedMem.userPreferences as string[]).join("; ")}`)
 
     const { data } = await aiService.post<BuildContextResponse>("/ai/context/build", {
       user_message: userMessage,
@@ -234,7 +236,10 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
   // endpoints return action-specific schemas and are recorded by repositories.
   const chatResponse = chatResponseSchema.safeParse(response)
   if (chatResponse.success) {
-    void recordAgentTurnContext({
+    // Await so memory is reliably persisted before the response is returned.
+    // On serverless runtimes that support waitUntil, migrate this there to
+    // avoid adding latency; the durable fix (queue) is Phase 3.
+    await recordAgentTurnContext({
       organizationId,
       agent: agentEnum,
       agentRole,
