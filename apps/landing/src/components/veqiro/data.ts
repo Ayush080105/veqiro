@@ -439,7 +439,7 @@ export const EMPLOYEES: Employee[] = [
     tag: "Reads the fine print so you don't",
     color: '#8A8AF0',
     ink: '#2A2A7A',
-    skills: ['Contract analysis', 'Risk flagging', 'Doc drafting', 'Compliance checks', 'Document library'],
+    skills: ['Contract analysis', 'Risk flagging', 'Doc drafting', 'Compliance checks', 'Document library', 'Letterhead stamping'],
     quote: "Clause 9.2 lets them suspend your access with 24 hours notice for any reason — no cure period, no appeals. That's not standard, and it needs to go.",
     stats: [{ k: 'Contracts reviewed', v: '180K' }, { k: 'Red flags caught', v: '41K' }, { k: 'Avg review time', v: '4 min' }],
     description: "Lex reads contracts, spots the traps, and explains what the clauses actually mean — in plain English, not legalese. He doesn't replace a lawyer, but she makes sure you don't go into a lawyer meeting blind.",
@@ -449,6 +449,7 @@ export const EMPLOYEES: Employee[] = [
       { title: "Document Q&A & Plain-English Explanations", description: "Ask anything about an uploaded contract and get the exact clause back — or paste any legal text for a plain-English translation with a key terms glossary." },
       { title: "Document Drafting", description: "Generates NDAs, SaaS agreements, and offer letters with custom clauses." },
       { title: "Legal Research & Compliance Check", description: "Research by jurisdiction with applicable laws and cases, or run a framework-by-framework gap check against GDPR, CCPA, SOC2, or HIPAA." },
+      { title: "Letterhead Stamping on Documents", description: "One click stamps your company letterhead on every page of any contract or agreement PDF — branded, professional, ready to send. No Word, no manual editing." },
     ],
     useCases: [
       "Founders reviewing their first enterprise contract",
@@ -525,6 +526,7 @@ export const EMPLOYEES: Employee[] = [
       "Research non-compete enforceability in California",
       "Run a GDPR and CCPA compliance check on our data practices",
       "Explain what this clause means in plain English: [paste clause]",
+      "Stamp our company letterhead on this vendor agreement PDF",
     ],
   },
   {

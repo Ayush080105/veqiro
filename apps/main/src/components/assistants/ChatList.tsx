@@ -9,6 +9,7 @@ import { useMutationState } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
 import { AGENTS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
+import { stripMarkdown } from "@/lib/utils"
 const AGENT_PHOTOS: Record<string, string> = {
   maya:  "/agents/maya.jpeg",
   rex:   "/agents/rex.jpeg",
@@ -75,7 +76,7 @@ function previewLine(
 ): string {
   if (last) {
     const prefix = last.role === "user" ? "You: " : ""
-    return `${prefix}${last.content}`.replace(/\s+/g, " ").trim()
+    return `${prefix}${stripMarkdown(last.content)}`.replace(/\s+/g, " ").trim()
   }
   return fallback ?? "No messages yet"
 }

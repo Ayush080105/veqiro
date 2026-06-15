@@ -12,6 +12,7 @@ import {
   keyBelongsToOrg,
 } from "../../../common/utils/r2.js";
 import * as lexRepository from "./lex.repository.js";
+import { findBrandKit } from "../brand-kit/brand-kit.repository.js";
 import type {
   SendMessageInput,
   AssistantMessagePayload,
@@ -420,6 +421,13 @@ export const stampLetterhead = async (
   organizationId: string,
   input: StampLetterheadInput
 ): Promise<StampLetterheadResponse> => {
+  const brandKit = await findBrandKit(organizationId);
+  if (!brandKit?.letterhead_url) {
+    throw new BadRequestError(
+      "No letterhead configured. Upload a letterhead image in your Brand Brain first."
+    );
+  }
+
   const { data } = await aiService.post<StampLetterheadResponse>(
     "/ai/lex/stamp-letterhead",
     {
@@ -427,6 +435,7 @@ export const stampLetterhead = async (
       filename: input.filename,
       format: input.format,
       organization_id: organizationId,
+      letterhead_url: brandKit.letterhead_url,
     }
   );
   return data;
