@@ -521,16 +521,17 @@ class LLMClient:
         tools: list[ToolDefinition],
         temperature: float = 0.7,
         max_tokens: int = 4096,
+        tool_choice: str = "auto",
     ) -> LLMToolResponse:
         """Complete with tool/function calling support. Returns text OR tool calls."""
         if settings.MOCK_MODE:
             return await self._mock_complete_with_tools(system, messages, tools)
         return await self._real_complete_with_tools(
-            provider, model, system, messages, tools, temperature, max_tokens
+            provider, model, system, messages, tools, temperature, max_tokens, tool_choice
         )
 
     async def _real_complete_with_tools(
-        self, provider, model, system, messages, tools, temperature, max_tokens
+        self, provider, model, system, messages, tools, temperature, max_tokens, tool_choice="auto"
     ) -> LLMToolResponse:
         import time
         from langfuse import Langfuse as _Langfuse
@@ -565,7 +566,7 @@ class LLMClient:
             try:
                 if provider == "gemini":
                     result = await self._gemini_complete_with_tools(
-                        model, system, messages, tools, temperature, max_tokens
+                        model, system, messages, tools, temperature, max_tokens, tool_choice
                     )
                     input_text = system + " ".join(str(m.get("content", "")) for m in messages)
                     pt = self.count_tokens(input_text)
@@ -573,7 +574,7 @@ class LLMClient:
                     ct = self.count_tokens(output_text)
                 elif provider == "openai":
                     result, pt, ct = await self._openai_complete_with_tools(
-                        model, system, messages, tools, temperature, max_tokens
+                        model, system, messages, tools, temperature, max_tokens, tool_choice
                     )
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
@@ -606,7 +607,7 @@ class LLMClient:
         raise LLMError(f"LLM tool call failed after retries: {last_exc}")
 
     async def _openai_complete_with_tools(
-        self, model, system, messages, tools, temperature, max_tokens
+        self, model, system, messages, tools, temperature, max_tokens, tool_choice="auto"
     ) -> tuple:
         import openai as _openai
         client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -618,6 +619,7 @@ class LLMClient:
             tools=oai_tools,
             temperature=temperature,
             max_tokens=max_tokens,
+            tool_choice=tool_choice,
         )
         choice = resp.choices[0]
         usage = resp.usage
@@ -646,7 +648,7 @@ class LLMClient:
         ), pt, ct
 
     async def _gemini_complete_with_tools(
-        self, model, system, messages, tools, temperature, max_tokens
+        self, model, system, messages, tools, temperature, max_tokens, tool_choice="auto"
     ) -> LLMToolResponse:
         from google import genai
         from google.genai import types
@@ -664,15 +666,20 @@ class LLMClient:
             for m in messages
         ]
 
+        gem_config_kwargs: dict = dict(
+            system_instruction=system,
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            tools=[gem_tools],
+        )
+        if tool_choice == "none":
+            gem_config_kwargs["tool_config"] = types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(mode="NONE")
+            )
         response = await client.aio.models.generate_content(
             model=model,
             contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system,
-                temperature=temperature,
-                max_output_tokens=max_tokens,
-                tools=[gem_tools],
-            ),
+            config=types.GenerateContentConfig(**gem_config_kwargs),
         )
 
         # Check for function calls in response
