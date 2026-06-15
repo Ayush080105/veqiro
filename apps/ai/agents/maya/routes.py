@@ -98,6 +98,7 @@ class DraftRequest(BaseModel):
     include_image: bool = False
     use_logo: bool = False
     use_mascot: bool = False
+    use_brand_colors: bool = True
     additional_context: str | None = Field(None, max_length=1000)
     from_rex: bool = False
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
@@ -272,6 +273,7 @@ class CarouselDraftRequest(BaseModel):
     include_images: bool = True
     use_logo: bool = False
     use_mascot: bool = False
+    use_brand_colors: bool = True
     additional_context: str | None = Field(None, max_length=1000)
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
     brand_images: list[BrandImageRef] = Field(default_factory=list)
@@ -540,6 +542,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                     context_hints=request.additional_context or "",
                     reference_urls=request.reference_images if request.use_reference else [],
                     brand_images=request.brand_images or [],
+                    use_brand_colors=request.use_brand_colors,
                 )
             except Exception as _img_err:
                 logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
@@ -625,6 +628,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 context_hints=request.additional_context or "",
                 reference_urls=request.reference_images if request.use_reference else [],
                 brand_images=request.brand_images or [],
+                use_brand_colors=request.use_brand_colors,
             )
         except Exception as _img_err:
             logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
@@ -991,6 +995,7 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                     text_spec=text_spec,
                     carousel_anchor_b64=anchor_b64,
                     brand_images=request.brand_images or [],
+                    use_brand_colors=request.use_brand_colors,
                 )
             except Exception as img_err:
                 last_err = img_err
@@ -1283,6 +1288,7 @@ class CampaignRequest(BaseModel):
     photo_count: int = Field(4)
     use_logo: bool = True
     use_mascot: bool = True
+    use_brand_colors: bool = True
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
     brand_images: list[BrandImageRef] = Field(default_factory=list)
@@ -1485,6 +1491,7 @@ async def create_campaign(request: CampaignRequest):
                     campaign_anchor_b64=anchor_b64,
                     campaign_shot_type=role,
                     brand_images=request.brand_images or [],
+                    use_brand_colors=request.use_brand_colors,
                 )
                 if attempt:
                     logger.info("campaign image_gen recovered on attempt %d | role=%s", attempt + 1, role)

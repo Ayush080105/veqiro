@@ -262,12 +262,12 @@ def _font_to_style(font_name: str) -> str:
     return f"typographic style inspired by {font_name} — match its visual weight and personality"
 
 
-def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "") -> str:
+def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "", use_brand_colors: bool = True) -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
     # Colors — kept as hex for accuracy; framed as design values so the model never prints them as text
     colors = ""
-    if brand_kit and brand_kit.brand_colors:
+    if use_brand_colors and brand_kit and brand_kit.brand_colors:
         c = brand_kit.brand_colors
         primary = c.get("primary", "")
         secondary = c.get("secondary", "")
@@ -509,6 +509,7 @@ async def generate_social_image(
     campaign_anchor_b64: str | None = None,
     brand_images: list | None = None,
     campaign_shot_type: str = "",
+    use_brand_colors: bool = True,
 ) -> ImageResult:
     """Generate a premium social media image.
 
@@ -531,7 +532,7 @@ async def generate_social_image(
     # Angle before building the final prompt. Falls back silently on failure.
     components = await _elaborate_prompt_5component(prompt, platform, brand_kit, extra_context=context_hints, campaign_shot_type=campaign_shot_type)
 
-    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components, campaign_shot_type)
+    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components, campaign_shot_type, use_brand_colors)
 
     logger.info(
         "image_gen start | user=%s platform=%s aspect=%s use_logo=%s use_mascot=%s brand=%s",
