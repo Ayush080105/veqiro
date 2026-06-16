@@ -395,7 +395,7 @@ export function InboxView() {
                 <EmailCard
                   key={email.emailId}
                   email={email}
-                  isSelected={selectedEmail?.emailId === email.emailId}
+                  isSelected={false}
                   isChecked={checkedIds.has(email.emailId)}
                   onSelect={setSelectedEmail}
                   onCheck={(item, checked) => {
