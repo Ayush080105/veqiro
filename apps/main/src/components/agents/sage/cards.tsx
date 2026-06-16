@@ -1048,6 +1048,146 @@ function ScoreRing({ score }: { score: number }) {
 
 // ─── Page SEO Audit Card ─────────────────────────────────────────────────────
 
+const emptyUrlAnalysis = {
+  url: "",
+  is_https: false,
+  keyword_in_slug: false,
+  url_length: 0,
+  url_depth: 0,
+  has_stop_words: false,
+  slug: "",
+  score: 0,
+  issues: [],
+}
+
+const emptyTechnicalAudit = {
+  score: 0,
+  title: "",
+  title_length: 0,
+  title_has_keyword: false,
+  title_has_brand: false,
+  meta_description: "",
+  meta_description_length: 0,
+  meta_description_has_keyword: false,
+  meta_description_has_cta: false,
+  has_canonical: false,
+  canonical_url: null,
+  canonical_is_self: false,
+  is_indexable: false,
+  is_followable: false,
+  h1_count: 0,
+  h1_text: "",
+  h1_has_keyword: false,
+  h2_count: 0,
+  h3_count: 0,
+  keyword_in_h2: false,
+  heading_hierarchy_valid: false,
+  heading_hierarchy_issues: [],
+  has_schema_markup: false,
+  schema_types: [],
+  schema_issues: [],
+  schema_eligible_rich_results: [],
+  has_og_tags: false,
+  og_title: "",
+  og_description: "",
+  og_image: "",
+  has_twitter_card: false,
+  has_viewport: false,
+  has_hreflang: false,
+  has_preconnect_hints: false,
+  issues: [],
+}
+
+const emptySpeedSignals = {
+  score: 0,
+  render_blocking_scripts: 0,
+  render_blocking_stylesheets: 0,
+  total_external_requests: 0,
+  images_lazy_loaded: 0,
+  images_not_lazy_loaded: 0,
+  images_using_modern_format: 0,
+  images_total: 0,
+  has_inline_critical_css: false,
+  has_font_preloading: false,
+  issues: [],
+}
+
+const emptyImageAudit = {
+  score: 0,
+  images_total: 0,
+  images_missing_alt: 0,
+  images_with_descriptive_alt: 0,
+  images_with_generic_alt: 0,
+  images_with_keyword_filename: 0,
+  images_with_dimensions: 0,
+  images_without_dimensions: 0,
+  webp_avif_percentage: 0,
+  issues: [],
+}
+
+const emptyOnPageAudit = {
+  score: 0,
+  word_count: 0,
+  reading_time_minutes: 0,
+  keyword_density: "0%",
+  keyword_occurrences: 0,
+  keyword_in_title: false,
+  keyword_in_h1: false,
+  keyword_in_meta: false,
+  keyword_in_first_100_words: false,
+  keyword_in_h2s: false,
+  keyword_in_last_paragraph: false,
+  lsi_keywords_found: [],
+  lsi_keywords_missing: [],
+  paa_answered: [],
+  paa_unanswered: [],
+  has_featured_snippet_structure: false,
+  featured_snippet_type: null,
+  has_faq_section: false,
+  content_freshness: null,
+  last_modified: null,
+  readability_grade: "",
+  content_depth_assessment: "",
+  anchor_text_generic_count: 0,
+  anchor_text_descriptive_count: 0,
+  issues: [],
+  improvements: [],
+}
+
+const emptyEeatAudit = {
+  score: 0,
+  has_author_byline: false,
+  has_author_bio: false,
+  has_publication_date: false,
+  has_updated_date: false,
+  has_external_citations: false,
+  citation_count: 0,
+  has_authoritative_citations: false,
+  has_trust_links: false,
+  has_social_proof_schema: false,
+  credentials_signals: [],
+  missing_signals: [],
+  issues: [],
+}
+
+const emptyCompetitiveAudit = {
+  score: 0,
+  serp_features_present: [],
+  serp_features_missing: [],
+  avg_competitor_word_count: 0,
+  your_word_count: 0,
+  word_count_gap: 0,
+  word_count_verdict: "",
+  top_competitors: [],
+  content_gaps: [],
+  unique_angle_opportunity: "",
+  featured_snippet_holder: null,
+  featured_snippet_format: null,
+  featured_snippet_tip: "",
+  paa_questions: [],
+  competitor_schema_types: [],
+}
+
 export function PageSeoAuditCard({
   result,
   onFollowUpAction,
@@ -1055,16 +1195,29 @@ export function PageSeoAuditCard({
   result: SagePageSeoAuditResult
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 }) {
-  const t = result.technical
-  const speed = result.speed_signals
-  const img = result.image_seo
-  const op = result.on_page
-  const eeat = result.eeat
-  const comp = result.competitive
+  const urlAnalysis = { ...emptyUrlAnalysis, ...result.url_analysis }
+  const t = { ...emptyTechnicalAudit, ...result.technical }
+  const speed = { ...emptySpeedSignals, ...result.speed_signals }
+  const img = { ...emptyImageAudit, ...result.image_seo }
+  const op = { ...emptyOnPageAudit, ...result.on_page }
+  const eeat = { ...emptyEeatAudit, ...result.eeat }
+  const comp = { ...emptyCompetitiveAudit, ...result.competitive }
+  const pageUrl = result.url ?? urlAnalysis.url ?? ""
+  const overallScore = result.overall_score ?? (result as { score?: number }).score ?? 0
+  const competitors = comp.top_competitors.map((competitor) => ({
+    ...competitor,
+    url: competitor.url ?? "",
+    title: competitor.title ?? "",
+    meta_description: competitor.meta_description ?? "",
+    word_count_estimate: competitor.word_count_estimate ?? 0,
+    main_h2s: competitor.main_h2s ?? [],
+    schema_types: competitor.schema_types ?? [],
+    main_topics: competitor.main_topics ?? [],
+  }))
 
   // Radar chart data — 7 SEO dimensions
   const radarData = [
-    { dim: "URL", score: result.url_analysis.score },
+    { dim: "URL", score: urlAnalysis.score },
     { dim: "Technical", score: t.score },
     { dim: "Speed", score: speed.score },
     { dim: "Images", score: img.score },
@@ -1076,7 +1229,7 @@ export function PageSeoAuditCard({
   // Word count bar — you vs top competitors
   const wcData = [
     { name: "You", words: comp.your_word_count, fill: "var(--chart-1)" },
-    ...comp.top_competitors.slice(0, 3).map((c, i) => ({
+    ...competitors.slice(0, 3).map((c, i) => ({
       name: c.title?.split(" ").slice(0, 2).join(" ") || `Competitor ${i + 1}`,
       words: c.word_count_estimate,
       fill: "var(--muted-foreground)",
@@ -1096,11 +1249,11 @@ export function PageSeoAuditCard({
           <span className="flex flex-col gap-0.5">
             <span>Page SEO Audit</span>
             <span className="max-w-55 truncate text-[10px] font-normal text-muted-foreground">
-              {result.url.replace(/^https?:\/\//, "")}
+              {pageUrl.replace(/^https?:\/\//, "") || "Unknown URL"}
             </span>
           </span>
         }
-        right={<ScoreRing score={result.overall_score} />}
+        right={<ScoreRing score={overallScore} />}
       />
       <AgentCard.Body className="flex flex-col gap-4">
 
@@ -1637,11 +1790,11 @@ export function PageSeoAuditCard({
             )}
 
             {/* Top competitors */}
-            {comp.top_competitors.length > 0 && (
+            {competitors.length > 0 && (
               <div>
                 <Kicker prefix="//">competitors analyzed</Kicker>
                 <div className="mt-1 flex flex-col gap-1.5">
-                  {comp.top_competitors.map((c, i) => (
+                  {competitors.map((c, i) => (
                     <div key={i} className="rounded border border-border/50 px-2.5 py-2">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-[10px] font-medium leading-tight">{c.title || c.url}</p>
@@ -1739,7 +1892,7 @@ export function PageSeoAuditCard({
           <Button
             variant="chat-utility"
             onClick={() =>
-              onFollowUpAction?.("sage:page-seo-audit", { url: result.url, target_keyword: result.target_keyword })
+              onFollowUpAction?.("sage:page-seo-audit", { url: pageUrl, target_keyword: result.target_keyword })
             }
           >
             <Gauge className="size-3" /> Re-audit
@@ -1762,8 +1915,10 @@ export function SiteAuditCard({
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 }) {
   const pages = result.results ?? []
+  const pageScore = (page: SagePageSeoAuditResult) =>
+    page.overall_score ?? (page as { score?: number }).score ?? 0
   const avgScore = pages.length
-    ? Math.round(pages.reduce((s, p) => s + p.overall_score, 0) / pages.length)
+    ? Math.round(pages.reduce((s, p) => s + pageScore(p), 0) / pages.length)
     : 0
 
   return (
@@ -1795,7 +1950,7 @@ export function SiteAuditCard({
 
       {/* Individual page audit cards */}
       {pages.map((page, i) => (
-        <div key={page.url} className="flex flex-col gap-0.5">
+        <div key={page.url ?? i} className="flex flex-col gap-0.5">
           <p className="px-1 text-[9px] uppercase tracking-widest text-muted-foreground">
             Page {i + 1} of {pages.length}
           </p>
