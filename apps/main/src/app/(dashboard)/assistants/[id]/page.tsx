@@ -437,9 +437,12 @@ export default function AssistantChatPage() {
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const scrollAnchorRef = useRef<number | null>(null)
   const scrollIntentRef = useRef<"instant" | "smooth" | null>("instant")
+  const thisMutationRef = useRef(false)
+  const prevMutationStatusRef = useRef<string | undefined>(undefined)
 
   const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current, {
     onOptimistic: (optimistic) => {
+      thisMutationRef.current = true
       scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => [...prev, optimistic].slice(-WINDOW))
       setHasPreviousPage(true)
@@ -461,9 +464,39 @@ export default function AssistantChatPage() {
   const pendingCount = useMutationState({
     filters: { mutationKey: ["sendMessage", id, organizationId], status: "pending" },
   }).length
+  const mutationStatuses = useMutationState({
+    filters: { mutationKey: ["sendMessage", id, organizationId] },
+    select: (m) => m.state.status,
+  })
+  const latestMutationStatus = mutationStatuses[mutationStatuses.length - 1]
   const isLoading = pendingCount > 0 || sendMutation.isPending
   const isBusy = isLoading || actionSubmitting
   const historyLoaded = initialLoaded
+
+  // When a sendMessage mutation completes after the user navigated away and back,
+  // onSuccess fired on the old (unmounted) component and was a no-op. Detect that
+  // transition here and re-fetch messages so the AI response appears without a refresh.
+  useEffect(() => {
+    const prev = prevMutationStatusRef.current
+    prevMutationStatusRef.current = latestMutationStatus
+
+    if (prev !== "pending" || latestMutationStatus !== "success") return
+
+    if (thisMutationRef.current) {
+      // This component instance sent the mutation; onSuccess already updated msgWindow.
+      thisMutationRef.current = false
+      return
+    }
+
+    // Orphaned mutation — re-fetch so the result and tool cards appear.
+    getMessages(id, organizationId).then((msgs) => {
+      scrollIntentRef.current = "smooth"
+      setMsgWindow(msgs)
+      try {
+        localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
+      } catch {}
+    })
+  }, [latestMutationStatus, id, organizationId])
 
   useEffect(() => {
     if (!agent) router.push("/assistants")
