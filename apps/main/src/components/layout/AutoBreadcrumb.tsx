@@ -23,6 +23,7 @@ const LABELS: Record<string, string> = {
   "/settings/integrations": "Integrations",
   "/settings/members": "Members",
   "/settings/notifications": "Notifications",
+  "/settings/vega": "Email Settings",
   "/workspace": "Workspace",
   "/workspace/briefing": "Briefing",
   "/workspace/content": "Content",

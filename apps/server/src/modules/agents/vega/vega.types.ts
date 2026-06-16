@@ -148,12 +148,33 @@ export interface TriagedEmail {
   isVIP: boolean;
   receivedAt?: string | null;
   threadId?: string | null;
+  snippet?: string;
+}
+
+export interface EmailThreadMessage {
+  id: string;
+  threadId: string | null;
+  fromName: string;
+  fromEmail: string;
+  to: string;
+  cc: string;
+  subject: string;
+  receivedAt: string | null;
+  snippet: string;
+  bodyText: string;
+  bodyHtml: string | null;
+}
+
+export interface EmailThreadResponse {
+  threadId: string;
+  messages: EmailThreadMessage[];
 }
 
 export interface VegaLabelRecord {
   id: string;
   name: string;
   color: string;
+  rationale: string;
   autoReply: boolean;
   organizationId: string;
   createdAt: string;

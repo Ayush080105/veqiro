@@ -9,6 +9,16 @@ from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
 from core.utils import strip_json_fences, safe_json_loads
 
+DEFAULT_LABEL_DEFINITIONS = [
+    {"name": "Investors", "rationale": "Investor, fundraising, diligence, metrics, deck, term sheet, VC, angel, shareholder, or board-related communication."},
+    {"name": "Sales Leads", "rationale": "Prospects, demos, pricing, trials, purchasing intent, inbound leads, customer evaluation, or sales follow-up."},
+    {"name": "Newsletters", "rationale": "Subscriptions, digests, marketing newsletters, product updates, event roundups, or automated broadcasts with no direct action required."},
+    {"name": "Team", "rationale": "Internal teammates, collaborators, hiring, operations, project coordination, status updates, or work planning."},
+    {"name": "Legal", "rationale": "Contracts, compliance, terms, privacy, legal notices, signatures, policies, or regulatory matters."},
+    {"name": "Finance", "rationale": "Invoices, receipts, payments, accounting, payroll, banking, taxes, or financial operations."},
+    {"name": "Other", "rationale": "Use only when the email does not clearly match another configured label."},
+]
+
 
 class VegaAgent(BaseAgent):
     slug = "vega"
@@ -28,6 +38,43 @@ class VegaAgent(BaseAgent):
         super().__init__(llm_client, rag_service)
         self._node_actions_buffer: list[dict] = []
         self._google_token: str = ""
+        self._label_definitions: list[dict] = DEFAULT_LABEL_DEFINITIONS
+
+    def _coerce_label_definitions(self, metadata: dict) -> list[dict]:
+        definitions = []
+        for item in metadata.get("label_definitions") or []:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name", "")).strip()
+            if name:
+                definitions.append({
+                    "name": name,
+                    "rationale": str(item.get("rationale", "") or "No rationale provided.").strip(),
+                })
+        if definitions:
+            return definitions
+        custom_labels = metadata.get("custom_labels") or []
+        if custom_labels:
+            return [{"name": str(name), "rationale": "No rationale provided."} for name in custom_labels if str(name).strip()]
+        return DEFAULT_LABEL_DEFINITIONS
+
+    def _label_names(self) -> list[str]:
+        return [label["name"] for label in self._label_definitions]
+
+    def _label_prompt(self) -> str:
+        return "\n".join(
+            f"- {label['name']}: {label.get('rationale') or 'No rationale provided.'}"
+            for label in self._label_definitions
+        )
+
+    def _normalize_label(self, label: str | None) -> str:
+        names = self._label_names()
+        if label:
+            lower = label.lower().removeprefix("vega/")
+            for name in names:
+                if name.lower() == lower:
+                    return name
+        return next((name for name in names if name.lower() == "other"), names[0] if names else "Other")
 
     # ── Tool-use instructions ────────────────────────────────────────────
 
@@ -138,6 +185,7 @@ class VegaAgent(BaseAgent):
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
         self._node_actions_buffer = []
         self._google_token = request.metadata.get("google_access_token", "")
+        self._label_definitions = self._coerce_label_definitions(request.metadata)
 
         response = await super().chat_sync(request)
 
@@ -236,6 +284,8 @@ class VegaAgent(BaseAgent):
 
             processed = []
             label_messages = []
+            label_list = ", ".join(self._label_names())
+            label_rationales = self._label_prompt()
 
             for email in emails[:max_emails]:
                 raw = await self.llm.complete(
@@ -244,11 +294,13 @@ class VegaAgent(BaseAgent):
                     messages=[{"role": "user", "content": (
                         "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys:\n"
                         "priority (urgent/high/medium/low), summary (1-2 sentences), "
-                        "suggested_action (string), label (one of: Investors, Sales Leads, "
-                        "Newsletters, Team, Legal, Finance, Other), "
+                        f"suggested_action (string), label (exactly one of: {label_list}), "
                         "hidden_tasks (list of strings — implicit action items, e.g. 'review attached deck', 'respond before Friday'), "
                         "suggested_reply (string — a 1-3 sentence reply suggestion if suggested_action is 'reply', otherwise null), "
                         "meeting_request (object with keys date, time, topic if the email requests a meeting, otherwise null)\n\n"
+                        "Use these label rationales to choose the best label. Do not invent labels. "
+                        "Use Other only when no configured rationale clearly fits.\n"
+                        f"{label_rationales}\n\n"
                         f"From: {email.get('from', '')}\n"
                         f"Subject: {email.get('subject', '')}\n"
                         f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
@@ -259,7 +311,7 @@ class VegaAgent(BaseAgent):
                     priority = analysis.get("priority", "medium")
                     summary = analysis.get("summary", raw[:200])
                     suggested_action = analysis.get("suggested_action", "review")
-                    label = analysis.get("label", "Other")
+                    label = self._normalize_label(analysis.get("label", "Other"))
                     hidden_tasks = analysis.get("hidden_tasks", [])
                     suggested_reply = analysis.get("suggested_reply", None)
                     meeting_request = analysis.get("meeting_request", None)
@@ -267,7 +319,7 @@ class VegaAgent(BaseAgent):
                     priority = "medium"
                     summary = raw[:200]
                     suggested_action = "review"
-                    label = "Other"
+                    label = self._normalize_label("Other")
                     hidden_tasks = []
                     suggested_reply = None
                     meeting_request = None

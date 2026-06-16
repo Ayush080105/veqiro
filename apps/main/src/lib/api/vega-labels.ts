@@ -4,6 +4,7 @@ export interface VegaLabel {
   id: string;
   name: string;
   color: string;
+  rationale: string;
   autoReply: boolean;
   organizationId: string;
   createdAt: string;
@@ -16,6 +17,7 @@ export function fetchLabels(): Promise<VegaLabel[]> {
 export function createLabel(data: {
   name: string;
   color?: string;
+  rationale?: string;
 }): Promise<VegaLabel> {
   return apiFetch<VegaLabel>("/agents/vega/labels", {
     method: "POST",
@@ -29,7 +31,7 @@ export function deleteLabel(labelId: string): Promise<void> {
 
 export function updateLabel(
   labelId: string,
-  data: { autoReply?: boolean; color?: string }
+  data: { autoReply?: boolean; color?: string; rationale?: string }
 ): Promise<VegaLabel> {
   return apiFetch<VegaLabel>(`/agents/vega/labels/${labelId}`, {
     method: "PATCH",

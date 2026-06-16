@@ -179,6 +179,36 @@ html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
   gap: 20px;
 }
 
+.email-html-content {
+  color: var(--foreground);
+}
+
+.email-html-content table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.email-html-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.email-html-content a {
+  color: #187A91;
+  text-decoration: underline;
+}
+
+.email-html-content p {
+  margin: 0 0 0.75rem;
+}
+
+.email-html-content blockquote {
+  margin: 0.75rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid rgba(17, 17, 17, 0.2);
+  color: var(--muted-foreground);
+}
+
 @media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: 1fr;

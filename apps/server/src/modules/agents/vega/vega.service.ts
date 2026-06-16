@@ -12,6 +12,7 @@ import {
   labelMessage,
 } from "../../../common/utils/googleApis.js";
 import * as vegaRepository from "./vega.repository.js";
+import { getLabelDefinitions, getLabels } from "./vega.workspace.service.js";
 import type {
   SendMessageInput,
   AssistantMessagePayload,
@@ -33,9 +34,29 @@ import type {
 const notConnectedMessage = () =>
   "Google account not connected. Connect Gmail + Calendar in Settings → Integrations first.";
 
+type LabelExecutionContext = {
+  managedLabelNames?: string[];
+  labelColors?: Record<string, string>;
+};
+
+const normalizeManagedLabel = (
+  label: string,
+  managedLabelNames: string[] | undefined
+): string => {
+  if (!managedLabelNames?.length) return label;
+  const found = managedLabelNames.find((name) => name.toLowerCase() === label.toLowerCase());
+  if (found) return found;
+  return (
+    managedLabelNames.find((name) => name.toLowerCase() === "other") ??
+    managedLabelNames[0] ??
+    "Other"
+  );
+};
+
 const executeNodeActions = async (
   accessToken: string,
-  actions: NodeAction[] | undefined
+  actions: NodeAction[] | undefined,
+  labelContext: LabelExecutionContext = {}
 ): Promise<{ executed: number; errors: string[]; artifacts: Record<string, unknown> }> => {
   const errors: string[] = [];
   const artifacts: Record<string, unknown> = {};
@@ -47,10 +68,13 @@ const executeNodeActions = async (
       if (action.node_action === "label_messages") {
         for (const m of action.messages) {
           if (!m.email_id) continue;
+          const labelName = normalizeManagedLabel(m.label, labelContext.managedLabelNames);
           await labelMessage({
             accessToken,
             messageId: m.email_id,
-            labelName: m.label,
+            labelName,
+            managedLabelNames: labelContext.managedLabelNames,
+            labelColor: labelContext.labelColors?.[labelName],
           });
         }
         executed++;
@@ -109,8 +133,16 @@ export const sendMessage = async (
   });
 
   let googleAccessToken: string | null = null;
+  let labelContext: LabelExecutionContext = {};
+  let labelDefinitions: ReturnType<typeof getLabelDefinitions> = [];
   try {
     googleAccessToken = await getGoogleAccessToken(userId);
+    const labels = await getLabels(organizationId);
+    labelDefinitions = getLabelDefinitions(labels);
+    labelContext = {
+      managedLabelNames: labels.map((label) => label.name),
+      labelColors: Object.fromEntries(labels.map((label) => [label.name, label.color])),
+    };
   } catch (err) {
     if (!(err instanceof GoogleNotConnectedError)) throw err;
   }
@@ -124,7 +156,15 @@ export const sendMessage = async (
     conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
-    ...(googleAccessToken ? { extraPayload: { google_access_token: googleAccessToken } } : {}),
+    ...(googleAccessToken
+      ? {
+          extraPayload: {
+            google_access_token: googleAccessToken,
+            custom_labels: labelContext.managedLabelNames ?? [],
+            label_definitions: labelDefinitions,
+          },
+        }
+      : {}),
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
@@ -133,7 +173,7 @@ export const sendMessage = async (
     | { executed: number; errors: string[]; artifacts: Record<string, unknown> }
     | undefined;
   if (nodeActions?.length && googleAccessToken) {
-    execResult = await executeNodeActions(googleAccessToken, nodeActions);
+    execResult = await executeNodeActions(googleAccessToken, nodeActions, labelContext);
   }
 
   const richInput =
@@ -181,10 +221,16 @@ export const processInbox = async (
   organizationId: string,
   input: ProcessInboxInput
 ): Promise<ProcessInboxResponse & { executed?: number; errors?: string[] }> => {
-  const [token, history] = await Promise.all([
+  const [token, history, labels] = await Promise.all([
     requireGoogleToken(userId),
     vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    getLabels(organizationId),
   ]);
+  const labelDefinitions = getLabelDefinitions(labels);
+  const labelContext: LabelExecutionContext = {
+    managedLabelNames: labels.map((label) => label.name),
+    labelColors: Object.fromEntries(labels.map((label) => [label.name, label.color])),
+  };
 
   const userMsg = await vegaRepository.createUserMessage({
     organizationId,
@@ -206,12 +252,14 @@ export const processInbox = async (
       max_emails: input.maxEmails,
       auto_label: input.autoLabel,
       draft_replies: input.draftReplies,
+      custom_labels: labelContext.managedLabelNames ?? [],
+      label_definitions: labelDefinitions,
     },
     extraPayload: { google_access_token: token },
   });
 
   const exec = input.autoLabel
-    ? await executeNodeActions(token, data.node_actions)
+    ? await executeNodeActions(token, data.node_actions, labelContext)
     : { executed: 0, errors: [], artifacts: {} };
 
   const stats = {
@@ -416,9 +464,10 @@ export const executiveBriefing = async (
   organizationId: string,
   input: ExecutiveBriefingInput
 ): Promise<ExecutiveBriefingResponse> => {
-  const [token, history] = await Promise.all([
+  const [token, history, labels] = await Promise.all([
     requireGoogleToken(userId),
     vegaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
+    getLabels(organizationId),
   ]);
 
   const userMsg = await vegaRepository.createUserMessage({
@@ -440,6 +489,7 @@ export const executiveBriefing = async (
     topLevelPayload: {
       include_email: input.includeEmail,
       include_calendar: input.includeCalendar,
+      label_definitions: getLabelDefinitions(labels),
     },
     extraPayload: { google_access_token: token },
   });

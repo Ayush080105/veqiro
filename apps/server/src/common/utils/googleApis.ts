@@ -1,5 +1,168 @@
 // Minimal Gmail + Google Calendar client — used to execute Vega's node_actions.
 
+type GmailHeader = { name?: string; value?: string };
+type GmailMessagePart = {
+  mimeType?: string;
+  filename?: string;
+  body?: { data?: string; size?: number };
+  parts?: GmailMessagePart[];
+};
+
+type GmailMessage = {
+  id: string;
+  threadId?: string;
+  labelIds?: string[];
+  snippet?: string;
+  internalDate?: string;
+  payload?: GmailMessagePart & { headers?: GmailHeader[] };
+};
+
+const decodeBase64Url = (value: string): string =>
+  Buffer.from(value.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+
+const getHeader = (headers: GmailHeader[] | undefined, name: string): string => {
+  const found = headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase());
+  return found?.value ?? "";
+};
+
+const stripHtml = (html: string): string =>
+  html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+const findBodyPart = (
+  part: GmailMessagePart | undefined,
+  mimeType: "text/plain" | "text/html"
+): string | null => {
+  if (!part) return null;
+  if (part.mimeType === mimeType && part.body?.data) {
+    return decodeBase64Url(part.body.data);
+  }
+  for (const child of part.parts ?? []) {
+    const found = findBodyPart(child, mimeType);
+    if (found) return found;
+  }
+  return null;
+};
+
+const parseAddress = (value: string): { name: string; email: string } => {
+  const match = value.match(/^(?:"?([^"<]*)"?\s)?<([^>]+)>$/);
+  if (!match) return { name: value, email: value };
+  const email = match[2]?.trim() ?? value;
+  return {
+    name: (match[1] ?? "").trim() || email,
+    email,
+  };
+};
+
+export interface GmailMessageMetadata {
+  id: string;
+  threadId: string | null;
+  snippet: string;
+  receivedAt: string | null;
+}
+
+export interface GmailThreadMessage {
+  id: string;
+  threadId: string | null;
+  fromName: string;
+  fromEmail: string;
+  to: string;
+  cc: string;
+  subject: string;
+  receivedAt: string | null;
+  snippet: string;
+  bodyText: string;
+  bodyHtml: string | null;
+}
+
+export interface GmailThreadResponse {
+  threadId: string;
+  messages: GmailThreadMessage[];
+}
+
+const toThreadMessage = (message: GmailMessage): GmailThreadMessage => {
+  const headers = message.payload?.headers ?? [];
+  const from = parseAddress(getHeader(headers, "From"));
+  const htmlBody = findBodyPart(message.payload, "text/html");
+  const bodyText =
+    findBodyPart(message.payload, "text/plain") ||
+    stripHtml(htmlBody ?? "") ||
+    message.snippet ||
+    "";
+  return {
+    id: message.id,
+    threadId: message.threadId ?? null,
+    fromName: from.name,
+    fromEmail: from.email,
+    to: getHeader(headers, "To"),
+    cc: getHeader(headers, "Cc"),
+    subject: getHeader(headers, "Subject"),
+    receivedAt: message.internalDate
+      ? new Date(Number(message.internalDate)).toISOString()
+      : null,
+    snippet: message.snippet ?? "",
+    bodyText,
+    bodyHtml: htmlBody,
+  };
+};
+
+export const getGmailMessageMetadata = async (
+  accessToken: string,
+  messageId: string
+): Promise<GmailMessageMetadata> => {
+  const res = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}?format=metadata`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gmail message metadata failed (${res.status}): ${err}`);
+  }
+  const message = (await res.json()) as GmailMessage;
+  return {
+    id: message.id,
+    threadId: message.threadId ?? null,
+    snippet: message.snippet ?? "",
+    receivedAt: message.internalDate
+      ? new Date(Number(message.internalDate)).toISOString()
+      : null,
+  };
+};
+
+export const getGmailThread = async (
+  accessToken: string,
+  messageId: string
+): Promise<GmailThreadResponse> => {
+  const meta = await getGmailMessageMetadata(accessToken, messageId);
+  const threadId = meta.threadId ?? messageId;
+  const res = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/threads/${encodeURIComponent(threadId)}?format=full`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gmail thread fetch failed (${res.status}): ${err}`);
+  }
+  const thread = (await res.json()) as { id: string; messages?: GmailMessage[] };
+  return {
+    threadId: thread.id,
+    messages: (thread.messages ?? []).map(toThreadMessage),
+  };
+};
+
 interface GmailDraftArgs {
   accessToken: string;
   to: string;
@@ -84,12 +247,14 @@ interface LabelMessageArgs {
   accessToken: string;
   messageId: string;
   labelName: string;
+  managedLabelNames?: string[];
+  labelColor?: string;
 }
 
 // Cache label ids per access token + name to avoid re-listing for every message
 const labelIdCache = new Map<string, string>();
-// All known Vega/* label IDs per token prefix — used to remove stale labels
-const vegaLabelIds = new Map<string, Set<string>>();
+// All known managed label IDs per token prefix, including legacy Vega/* labels.
+const managedLabelIds = new Map<string, Set<string>>();
 
 // Gmail only accepts colors from its predefined palette
 const LABEL_COLOR_MAP: Record<string, { backgroundColor: string; textColor: string }> = {
@@ -119,7 +284,14 @@ const COLOR_PALETTE = [
   { backgroundColor: "#3c78d8", textColor: "#ffffff" },
 ];
 
-function getLabelColor(labelName: string) {
+function getLabelColor(labelName: string, preferredColor?: string) {
+  if (preferredColor) {
+    const normalized = preferredColor.toLowerCase();
+    const accepted = [...Object.values(LABEL_COLOR_MAP), ...COLOR_PALETTE].find(
+      (color) => color.backgroundColor === normalized
+    );
+    if (accepted) return accepted;
+  }
   const lower = labelName.toLowerCase().replace(/^vega\//, "");
   for (const [key, color] of Object.entries(LABEL_COLOR_MAP)) {
     if (lower.includes(key)) return color;
@@ -131,11 +303,20 @@ function getLabelColor(labelName: string) {
 
 const getOrCreateLabel = async (
   accessToken: string,
-  labelName: string
+  labelName: string,
+  opts: { managedLabelNames?: string[]; labelColor?: string } = {}
 ): Promise<string> => {
-  const key = `${accessToken.slice(0, 12)}:${labelName}`;
+  const tokenPrefix = accessToken.slice(0, 12);
+  const key = `${tokenPrefix}:${labelName}`;
   const cached = labelIdCache.get(key);
-  if (cached) return cached;
+  if (cached && (!opts.managedLabelNames?.length || managedLabelIds.has(tokenPrefix))) {
+    return cached;
+  }
+  const managedNames = new Set(
+    (opts.managedLabelNames?.length ? opts.managedLabelNames : [labelName]).map((name) =>
+      name.toLowerCase()
+    )
+  );
 
   const listRes = await fetch(
     "https://gmail.googleapis.com/gmail/v1/users/me/labels",
@@ -145,11 +326,13 @@ const getOrCreateLabel = async (
     const data = (await listRes.json()) as {
       labels?: Array<{ id: string; name: string; color?: { backgroundColor?: string } }>;
     };
-    // Cache ALL Vega/* label IDs so we can remove stale ones on apply
-    const tokenPrefix = accessToken.slice(0, 12);
-    if (!vegaLabelIds.has(tokenPrefix)) vegaLabelIds.set(tokenPrefix, new Set());
+    if (!managedLabelIds.has(tokenPrefix)) managedLabelIds.set(tokenPrefix, new Set());
     for (const l of data.labels ?? []) {
-      if (l.name.startsWith("Vega/")) vegaLabelIds.get(tokenPrefix)!.add(l.id);
+      const lowerName = l.name.toLowerCase();
+      const legacyName = lowerName.startsWith("vega/") ? lowerName.slice(5) : "";
+      if (managedNames.has(lowerName) || (legacyName && managedNames.has(legacyName))) {
+        managedLabelIds.get(tokenPrefix)!.add(l.id);
+      }
     }
 
     const found = data.labels?.find(
@@ -162,7 +345,7 @@ const getOrCreateLabel = async (
         fetch(`https://gmail.googleapis.com/gmail/v1/users/me/labels/${found.id}`, {
           method: "PATCH",
           headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ color: getLabelColor(labelName) }),
+          body: JSON.stringify({ color: getLabelColor(labelName, opts.labelColor) }),
         }).catch(() => {});
       }
       return found.id;
@@ -181,7 +364,7 @@ const getOrCreateLabel = async (
         name: labelName,
         labelListVisibility: "labelShow",
         messageListVisibility: "show",
-        color: getLabelColor(labelName),
+        color: getLabelColor(labelName, opts.labelColor),
       }),
     }
   );
@@ -191,9 +374,8 @@ const getOrCreateLabel = async (
   }
   const label = (await createRes.json()) as { id: string };
   labelIdCache.set(key, label.id);
-  const tokenPrefix = accessToken.slice(0, 12);
-  if (!vegaLabelIds.has(tokenPrefix)) vegaLabelIds.set(tokenPrefix, new Set());
-  vegaLabelIds.get(tokenPrefix)!.add(label.id);
+  if (!managedLabelIds.has(tokenPrefix)) managedLabelIds.set(tokenPrefix, new Set());
+  managedLabelIds.get(tokenPrefix)!.add(label.id);
   return label.id;
 };
 
@@ -201,12 +383,17 @@ export const labelMessage = async ({
   accessToken,
   messageId,
   labelName,
+  managedLabelNames,
+  labelColor,
 }: LabelMessageArgs) => {
   if (!messageId) return;
-  const labelId = await getOrCreateLabel(accessToken, labelName);
-  // Remove all other Vega/* labels so each email has exactly one
+  const labelId = await getOrCreateLabel(accessToken, labelName, {
+    managedLabelNames,
+    labelColor,
+  });
+  // Remove other managed labels so each email has one current Vega classification.
   const tokenPrefix = accessToken.slice(0, 12);
-  const removeLabelIds = [...(vegaLabelIds.get(tokenPrefix) ?? [])].filter(
+  const removeLabelIds = [...(managedLabelIds.get(tokenPrefix) ?? [])].filter(
     (id) => id !== labelId
   );
   const res = await fetch(
@@ -235,6 +422,62 @@ interface CalendarEventArgs {
   description?: string;
   addGoogleMeet?: boolean;
 }
+
+export interface GoogleCalendarEvent {
+  id?: string;
+  summary?: string;
+  description?: string;
+  eventType?: string;
+  start?: { dateTime?: string; date?: string; timeZone?: string };
+  end?: { dateTime?: string; date?: string; timeZone?: string };
+  attendees?: Array<{ email?: string; displayName?: string; responseStatus?: string }>;
+  organizer?: { email?: string; displayName?: string; self?: boolean };
+  location?: string;
+  status?: string;
+  recurringEventId?: string;
+  recurrence?: string[];
+  htmlLink?: string;
+  hangoutLink?: string;
+  colorId?: string;
+  conferenceData?: { entryPoints?: Array<{ uri?: string; entryPointType?: string }> };
+  workingLocationProperties?: unknown;
+}
+
+const DISPLAY_CALENDAR_EVENT_TYPES = ["default", "birthday", "fromGmail"] as const;
+
+export const isDisplayableCalendarEvent = (event: GoogleCalendarEvent): boolean =>
+  event.eventType !== "workingLocation";
+
+export const listCalendarEvents = async (args: {
+  accessToken: string;
+  timeMin: string;
+  timeMax: string;
+  timeZone?: string;
+}): Promise<GoogleCalendarEvent[]> => {
+  const url = new URL(
+    "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+  );
+  url.searchParams.set("timeMin", args.timeMin);
+  url.searchParams.set("timeMax", args.timeMax);
+  url.searchParams.set("singleEvents", "true");
+  url.searchParams.set("orderBy", "startTime");
+  url.searchParams.set("showDeleted", "false");
+  url.searchParams.set("maxResults", "2500");
+  for (const eventType of DISPLAY_CALENDAR_EVENT_TYPES) {
+    url.searchParams.append("eventTypes", eventType);
+  }
+  if (args.timeZone) url.searchParams.set("timeZone", args.timeZone);
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${args.accessToken}` },
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Calendar event list failed (${res.status}): ${err}`);
+  }
+  const data = (await res.json()) as { items?: GoogleCalendarEvent[] };
+  return data.items ?? [];
+};
 
 export const createCalendarEvent = async (args: CalendarEventArgs) => {
   const body: Record<string, unknown> = {

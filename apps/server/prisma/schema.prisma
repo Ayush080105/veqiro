@@ -787,6 +787,8 @@ model VegaLabel {
   name           String
   /// Hex color used in the UI.
   color          String   @default("#999999")
+  /// Classification guidance used by Vega when choosing this label.
+  rationale      String   @default("")
   /// Whether Vega should auto-draft replies for this label.
   autoReply      Boolean  @default(false)
   /// Owning organization id.

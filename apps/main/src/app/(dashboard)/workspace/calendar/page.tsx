@@ -13,11 +13,17 @@ export default async function CalendarPage({
   searchParams: SearchParams
 }) {
   const sp = await searchParams
+  const attendees = sp.attendees
+    ? sp.attendees
+        .split(",")
+        .map((email) => email.trim())
+        .filter(Boolean)
+    : []
   const prefill =
     sp.title || sp.attendees || sp.description
       ? {
           title: sp.title,
-          attendees: sp.attendees ? [sp.attendees] : [],
+          attendees,
           description: sp.description,
         }
       : undefined
@@ -27,7 +33,7 @@ export default async function CalendarPage({
       <PageHeader
         kicker="vega"
         title="smart calendar"
-        subtitle="AI-powered scheduling — plan, prep, and follow up on every meeting."
+        subtitle="AI-powered scheduling - plan, prep, and follow up on every meeting."
         sticker={{ label: "calendar", rot: -3, color: "var(--vq-green)" }}
       />
       <div

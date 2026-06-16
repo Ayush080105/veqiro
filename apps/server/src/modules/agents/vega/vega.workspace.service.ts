@@ -1,5 +1,6 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
+import { randomUUID } from "crypto";
 import {
   getGoogleAccessToken,
   GoogleNotConnectedError,
@@ -9,8 +10,13 @@ import {
   sendGmailReply,
   createCalendarEvent as createGoogleCalendarEvent,
   updateCalendarEvent as updateGoogleCalendarEvent,
+  listCalendarEvents,
   labelMessage,
   modifyMessageLabels,
+  getGmailMessageMetadata,
+  getGmailThread,
+  isDisplayableCalendarEvent,
+  type GoogleCalendarEvent,
 } from "../../../common/utils/googleApis.js";
 import { prisma } from "../../../config/prisma.js";
 import type {
@@ -23,6 +29,7 @@ import type {
   VegaLabelRecord,
   BriefingCacheEntry,
   ExecutiveBriefingResponse,
+  EmailThreadResponse,
 } from "./vega.types.js";
 import type {
   getInboxSchema,
@@ -91,6 +98,7 @@ export const getInbox = async (
   // Fetch org labels (seeds defaults if none exist yet) for dynamic label list
   const orgLabels = await getLabels(organizationId);
   const customLabelNames = orgLabels.map((l) => l.name);
+  const labelDefinitions = getLabelDefinitions(orgLabels);
 
   // Fetch VIP emails for this org to mark emails
   const vipContacts = await prisma.vIPContact.findMany({
@@ -108,27 +116,48 @@ export const getInbox = async (
       auto_label: false,
       draft_replies: false,
       custom_labels: customLabelNames,
+      label_definitions: labelDefinitions,
       metadata: { google_access_token: token },
     }
   );
 
-  const emails: TriagedEmail[] = (data.processed ?? []).map((e) => ({
-    emailId: e.email_id,
-    subject: e.subject,
-    fromName: e.from_name,
-    fromEmail: e.from_email ?? "",
-    priority: e.priority,
-    uiCategory: mapPriorityToCategory(e.priority, e.suggested_action),
-    label: e.label_applied ?? "Other",
-    summary: e.summary,
-    suggestedAction: e.suggested_action,
-    hiddenTasks: e.hidden_tasks ?? [],
-    suggestedReply: e.suggested_reply ?? null,
-    meetingRequest: e.meeting_request ?? null,
-    isVIP: vipEmails.has((e.from_email ?? "").toLowerCase()),
-    receivedAt: null,
-    threadId: null,
-  }));
+  const metadataEntries = await Promise.all(
+    (data.processed ?? []).map(async (email) => {
+      try {
+        const metadata = await getGmailMessageMetadata(token, email.email_id);
+        return [email.email_id, metadata] as const;
+      } catch {
+        return null;
+      }
+    })
+  );
+  const metadataById = new Map(
+    metadataEntries.filter(
+      (entry): entry is Exclude<(typeof metadataEntries)[number], null> => Boolean(entry)
+    )
+  );
+
+  const emails: TriagedEmail[] = (data.processed ?? []).map((e) => {
+    const metadata = metadataById.get(e.email_id);
+    return {
+      emailId: e.email_id,
+      subject: e.subject,
+      fromName: e.from_name,
+      fromEmail: e.from_email ?? "",
+      priority: e.priority,
+      uiCategory: mapPriorityToCategory(e.priority, e.suggested_action),
+      label: e.label_applied ?? "Other",
+      summary: e.summary,
+      suggestedAction: e.suggested_action,
+      hiddenTasks: e.hidden_tasks ?? [],
+      suggestedReply: e.suggested_reply ?? null,
+      meetingRequest: e.meeting_request ?? null,
+      isVIP: vipEmails.has((e.from_email ?? "").toLowerCase()),
+      receivedAt: metadata?.receivedAt ?? null,
+      threadId: metadata?.threadId ?? null,
+      snippet: metadata?.snippet ?? "",
+    };
+  });
 
   // Sort: reply_now first, then action_needed, fyi, can_ignore; VIPs to top of each group
   const categoryOrder: UICategory[] = ["reply_now", "action_needed", "fyi", "can_ignore"];
@@ -166,6 +195,15 @@ export const sendReply = async (
     replyToThreadId: input.threadId ?? null,
   });
   return { messageId: sent.id, threadId: sent.threadId };
+};
+
+export const getEmailThread = async (
+  userId: string,
+  _organizationId: string,
+  emailId: string
+): Promise<EmailThreadResponse> => {
+  const token = await requireGoogleToken(userId);
+  return getGmailThread(token, emailId);
 };
 
 // ─── Follow-ups ───────────────────────────────────────────────────────────────
@@ -294,6 +332,7 @@ export const generateAndCacheBriefing = async (
 ): Promise<BriefingCacheEntry> => {
   const date = today();
   const token = await requireGoogleToken(userId);
+  const labels = await getLabels(organizationId);
 
   // Run executive briefing and today's agent messages in parallel
   const todayStart = new Date();
@@ -305,6 +344,7 @@ export const generateAndCacheBriefing = async (
       organization_id: organizationId,
       include_email: input.includeEmail,
       include_calendar: input.includeCalendar,
+      label_definitions: getLabelDefinitions(labels),
       metadata: { google_access_token: token },
     }),
     findMessagesInWindow(organizationId, todayStart, new Date()),
@@ -367,11 +407,15 @@ export interface CalendarEvent {
   description: string;
   start: string;
   end: string;
+  allDay?: boolean;
   attendees: string[];
   location: string;
   meetLink?: string;
+  htmlLink?: string;
   status: string;
   recurring?: boolean;
+  organizer?: string;
+  colorId?: string;
 }
 
 export interface CalendarSlot {
@@ -396,49 +440,77 @@ export interface MeetingPrepResult {
 const calendarCache = new Map<string, { data: CalendarResponse; cachedAt: number }>();
 const CALENDAR_CACHE_TTL_MS = 5 * 60 * 1000;
 
+const invalidateCalendarCache = (organizationId: string, userId?: string) => {
+  const prefix = userId ? `${organizationId}:${userId}:` : `${organizationId}:`;
+  for (const key of calendarCache.keys()) {
+    if (key.startsWith(prefix)) calendarCache.delete(key);
+  }
+};
+
+const getCalendarRange = (input: z.infer<typeof getCalendarSchema>) => {
+  if (input.timeMin && input.timeMax) {
+    return { timeMin: input.timeMin, timeMax: input.timeMax };
+  }
+  const now = new Date();
+  const max = new Date(now);
+  max.setDate(max.getDate() + (input.daysAhead ?? 7));
+  return { timeMin: now.toISOString(), timeMax: max.toISOString() };
+};
+
+const getMeetLink = (event: GoogleCalendarEvent): string | undefined =>
+  event.hangoutLink ??
+  event.conferenceData?.entryPoints?.find((entry) => entry.entryPointType === "video")
+    ?.uri;
+
+const normalizeCalendarEvent = (event: GoogleCalendarEvent): CalendarEvent | null => {
+  const start = event.start?.dateTime ?? event.start?.date ?? "";
+  const end = event.end?.dateTime ?? event.end?.date ?? "";
+  if (!event.id || !start || !end) return null;
+  return {
+    id: event.id,
+    title: event.summary?.trim() || "(No title)",
+    description: event.description ?? "",
+    start,
+    end,
+    allDay: Boolean(event.start?.date && !event.start?.dateTime),
+    attendees: (event.attendees ?? [])
+      .map((attendee) => attendee.email)
+      .filter((email): email is string => Boolean(email)),
+    location: event.location ?? "",
+    meetLink: getMeetLink(event),
+    htmlLink: event.htmlLink,
+    status: event.status ?? "confirmed",
+    recurring: Boolean(event.recurringEventId || event.recurrence?.length),
+    organizer: event.organizer?.email,
+    colorId: event.colorId,
+  };
+};
+
 export const getCalendar = async (
   userId: string,
   organizationId: string,
   input: z.infer<typeof getCalendarSchema>
 ): Promise<CalendarResponse> => {
-  const cacheKey = `${organizationId}:${input.daysAhead}`;
+  const range = getCalendarRange(input);
+  const cacheKey = `${organizationId}:${userId}:${range.timeMin}:${range.timeMax}:${input.timeZone ?? ""}`;
   const cached = calendarCache.get(cacheKey);
   if (cached && Date.now() - cached.cachedAt < CALENDAR_CACHE_TTL_MS) {
     return cached.data;
   }
 
   const token = await requireGoogleToken(userId);
-  const { data } = await aiService.post<{
-    events: Array<Record<string, unknown>>;
-    free_slots: Array<Record<string, unknown>>;
-  }>("/ai/vega/calendar-summary", {
-    user_id: userId,
-    organization_id: organizationId,
-    days_ahead: input.daysAhead,
-    metadata: { google_access_token: token },
+  const rawEvents = await listCalendarEvents({
+    accessToken: token,
+    timeMin: range.timeMin,
+    timeMax: range.timeMax,
+    timeZone: input.timeZone,
   });
 
-  const events: CalendarEvent[] = (data.events ?? []).map((e) => ({
-    id: String(e.id ?? ""),
-    title: String(e.title ?? ""),
-    description: String(e.description ?? ""),
-    start: String(e.start ?? ""),
-    end: String(e.end ?? ""),
-    attendees: Array.isArray(e.attendees) ? e.attendees.map(String) : [],
-    location: String(e.location ?? ""),
-    meetLink: e.meet_link ? String(e.meet_link) : undefined,
-    status: String(e.status ?? ""),
-    recurring: e.recurring != null ? Boolean(e.recurring) : undefined,
-  }));
-
-  const slots: CalendarSlot[] = (data.free_slots ?? []).map((s) => ({
-    date: String(s.date ?? ""),
-    start: String(s.start ?? ""),
-    end: String(s.end ?? ""),
-    durationHours: Number(s.duration_hours ?? 0),
-  }));
-
-  const result = { events, slots };
+  const events = rawEvents
+    .filter(isDisplayableCalendarEvent)
+    .map(normalizeCalendarEvent)
+    .filter((event): event is CalendarEvent => Boolean(event));
+  const result = { events, slots: [] };
   calendarCache.set(cacheKey, { data: result, cachedAt: Date.now() });
   return result;
 };
@@ -449,9 +521,7 @@ export const createCalendarEventWorkspace = async (
   input: z.infer<typeof createCalendarEventSchema>
 ): Promise<CalendarEvent> => {
   // Invalidate calendar cache so the new event appears immediately
-  for (const key of calendarCache.keys()) {
-    if (key.startsWith(organizationId)) calendarCache.delete(key);
-  }
+  invalidateCalendarCache(organizationId, userId);
   const token = await requireGoogleToken(userId);
   const result = await createGoogleCalendarEvent({
     accessToken: token,
@@ -581,7 +651,7 @@ export const sendFollowUpEmail = async (
 
 export const updateCalendarEventWorkspace = async (
   userId: string,
-  _organizationId: string,
+  organizationId: string,
   eventId: string,
   input: z.infer<typeof updateCalendarEventSchema>
 ): Promise<{ id: string }> => {
@@ -592,6 +662,7 @@ export const updateCalendarEventWorkspace = async (
     start: input.start,
     end: input.end,
   });
+  invalidateCalendarCache(organizationId, userId);
   return { id: result.id };
 };
 
@@ -651,11 +722,12 @@ export const bulkInboxAction = async (
           removeLabelIds: ["INBOX", "UNREAD"],
         });
       } else {
-        // snooze: add a "Vega/Snoozed" label so it's visually distinguishable
+        // snooze: add a managed "Snoozed" label so it's visually distinguishable
         await labelMessage({
           accessToken: token,
           messageId: emailId,
-          labelName: "Vega/Snoozed",
+          labelName: "Snoozed",
+          managedLabelNames: ["Snoozed"],
         });
         // Also remove from INBOX so it disappears from the inbox view
         await modifyMessageLabels({
@@ -674,36 +746,107 @@ export const bulkInboxAction = async (
 
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
-const DEFAULT_LABEL_NAMES = [
-  "Investors",
-  "Sales Leads",
-  "Newsletters",
-  "Team",
-  "Legal",
-  "Finance",
-  "Other",
+const DEFAULT_LABELS: Array<{ name: string; color: string; rationale: string }> = [
+  {
+    name: "Investors",
+    color: "#8A8AF0",
+    rationale:
+      "Investor, fundraising, diligence, metrics, deck, term sheet, VC, angel, shareholder, or board-related communication.",
+  },
+  {
+    name: "Sales Leads",
+    color: "#1DBC87",
+    rationale:
+      "Prospects, demos, pricing, trials, purchasing intent, inbound leads, customer evaluation, or sales follow-up.",
+  },
+  {
+    name: "Newsletters",
+    color: "#6FCDE8",
+    rationale:
+      "Subscriptions, digests, marketing newsletters, product updates, event roundups, or automated broadcasts with no direct action required.",
+  },
+  {
+    name: "Team",
+    color: "#F5C518",
+    rationale:
+      "Internal teammates, collaborators, hiring, operations, project coordination, status updates, or work planning.",
+  },
+  {
+    name: "Legal",
+    color: "#B3B3F7",
+    rationale:
+      "Contracts, compliance, terms, privacy, legal notices, signatures, policies, or regulatory matters.",
+  },
+  {
+    name: "Finance",
+    color: "#149E60",
+    rationale:
+      "Invoices, receipts, payments, accounting, payroll, banking, expenses, taxes, or financial operations.",
+  },
+  {
+    name: "Other",
+    color: "#999999",
+    rationale: "Use only when the email does not clearly match another configured label.",
+  },
 ];
+
+type VegaLabelRow = {
+  id: string;
+  name: string;
+  color: string;
+  rationale: string;
+  autoReply: boolean;
+  organizationId: string;
+  createdAt: Date;
+};
+
+const toLabelRecord = (row: VegaLabelRow): VegaLabelRecord => ({
+  id: row.id,
+  name: row.name,
+  color: row.color,
+  rationale: row.rationale,
+  autoReply: row.autoReply,
+  organizationId: row.organizationId,
+  createdAt: row.createdAt.toISOString(),
+});
+
+const invalidateInboxSnapshot = (organizationId: string) =>
+  prisma.vegaInboxSnapshot.delete({ where: { organizationId } }).catch(() => {});
+
+export const getLabelDefinitions = (labels: VegaLabelRecord[]) =>
+  labels.map((label) => ({
+    name: label.name,
+    rationale: label.rationale || "No rationale provided.",
+  }));
 
 export const getLabels = async (organizationId: string): Promise<VegaLabelRecord[]> => {
   const count = await prisma.vegaLabel.count({ where: { organizationId } });
   if (count === 0) {
-    await prisma.vegaLabel.createMany({
-      data: DEFAULT_LABEL_NAMES.map((name) => ({ name, organizationId })),
-      skipDuplicates: true,
-    });
+    for (const label of DEFAULT_LABELS) {
+      await prisma.$executeRaw`
+        INSERT INTO "vega_label" ("id", "name", "color", "rationale", "organizationId")
+        VALUES (${randomUUID()}, ${label.name}, ${label.color}, ${label.rationale}, ${organizationId})
+        ON CONFLICT ("name", "organizationId") DO NOTHING
+      `;
+    }
+  } else {
+    for (const label of DEFAULT_LABELS) {
+      await prisma.$executeRaw`
+        UPDATE "vega_label"
+        SET
+          "color" = CASE WHEN "color" = '#999999' THEN ${label.color} ELSE "color" END,
+          "rationale" = CASE WHEN "rationale" = '' THEN ${label.rationale} ELSE "rationale" END
+        WHERE "organizationId" = ${organizationId} AND "name" = ${label.name}
+      `;
+    }
   }
-  const rows = await prisma.vegaLabel.findMany({
-    where: { organizationId },
-    orderBy: { createdAt: "asc" },
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    color: r.color,
-    autoReply: r.autoReply,
-    organizationId: r.organizationId,
-    createdAt: r.createdAt.toISOString(),
-  }));
+  const rows = await prisma.$queryRaw<VegaLabelRow[]>`
+    SELECT "id", "name", "color", "rationale", "autoReply", "organizationId", "createdAt"
+    FROM "vega_label"
+    WHERE "organizationId" = ${organizationId}
+    ORDER BY "createdAt" ASC
+  `;
+  return rows.map(toLabelRecord);
 };
 
 export const createLabel = async (
@@ -714,17 +857,13 @@ export const createLabel = async (
     where: { name: input.name, organizationId },
   });
   if (existing) throw new BadRequestError("A label with this name already exists");
-  const row = await prisma.vegaLabel.create({
-    data: { name: input.name, color: input.color ?? "#999999", organizationId },
-  });
-  return {
-    id: row.id,
-    name: row.name,
-    color: row.color,
-    autoReply: row.autoReply,
-    organizationId: row.organizationId,
-    createdAt: row.createdAt.toISOString(),
-  };
+  const rows = await prisma.$queryRaw<VegaLabelRow[]>`
+    INSERT INTO "vega_label" ("id", "name", "color", "rationale", "organizationId")
+    VALUES (${randomUUID()}, ${input.name}, ${input.color ?? "#999999"}, ${input.rationale ?? ""}, ${organizationId})
+    RETURNING "id", "name", "color", "rationale", "autoReply", "organizationId", "createdAt"
+  `;
+  await invalidateInboxSnapshot(organizationId);
+  return toLabelRecord(rows[0]!);
 };
 
 export const deleteLabel = async (
@@ -736,6 +875,7 @@ export const deleteLabel = async (
   });
   if (!existing) throw new BadRequestError("Label not found");
   await prisma.vegaLabel.delete({ where: { id: labelId } });
+  await invalidateInboxSnapshot(organizationId);
 };
 
 export const updateLabel = async (
@@ -747,19 +887,18 @@ export const updateLabel = async (
     where: { id: labelId, organizationId },
   });
   if (!existing) throw new BadRequestError("Label not found");
-  const row = await prisma.vegaLabel.update({
-    where: { id: labelId },
-    data: {
-      ...(input.autoReply !== undefined ? { autoReply: input.autoReply } : {}),
-      ...(input.color !== undefined ? { color: input.color } : {}),
-    },
-  });
-  return {
-    id: row.id,
-    name: row.name,
-    color: row.color,
-    autoReply: row.autoReply,
-    organizationId: row.organizationId,
-    createdAt: row.createdAt.toISOString(),
-  };
+  const autoReply = input.autoReply ?? null;
+  const color = input.color ?? null;
+  const rationale = input.rationale ?? null;
+  const rows = await prisma.$queryRaw<VegaLabelRow[]>`
+    UPDATE "vega_label"
+    SET
+      "autoReply" = COALESCE(${autoReply}, "autoReply"),
+      "color" = COALESCE(${color}, "color"),
+      "rationale" = COALESCE(${rationale}, "rationale")
+    WHERE "id" = ${labelId} AND "organizationId" = ${organizationId}
+    RETURNING "id", "name", "color", "rationale", "autoReply", "organizationId", "createdAt"
+  `;
+  await invalidateInboxSnapshot(organizationId);
+  return toLabelRecord(rows[0]!);
 };

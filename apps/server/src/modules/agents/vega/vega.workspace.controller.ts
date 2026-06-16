@@ -47,6 +47,14 @@ export const sendReply = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(result);
 };
 
+export const getEmailThread = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const emailId = req.params.emailId as string;
+  if (!emailId) throw new BadRequestError("emailId param required");
+  const result = await ws.getEmailThread(userId, organizationId, emailId);
+  res.status(StatusCodes.OK).json(result);
+};
+
 // Follow-ups
 export const getFollowUps = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);

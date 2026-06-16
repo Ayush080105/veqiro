@@ -52,7 +52,7 @@ export function ReplyEditor({ initialDraft, onSend, onDiscard }: ReplyEditorProp
           ) : (
             <Send className="size-3.5" />
           )}
-          {sending ? "Sending…" : "Send Reply"}
+          {sending ? "Sending..." : "Send Reply"}
         </Button>
         <Button variant="ghost" size="sm" onClick={onDiscard} disabled={sending}>
           <X className="size-3.5" />

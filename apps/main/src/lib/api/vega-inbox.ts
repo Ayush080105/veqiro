@@ -16,6 +16,26 @@ export interface TriagedEmail {
   isVIP: boolean;
   receivedAt: string | null;
   threadId: string | null;
+  snippet?: string;
+}
+
+export interface EmailThreadMessage {
+  id: string;
+  threadId: string | null;
+  fromName: string;
+  fromEmail: string;
+  to: string;
+  cc: string;
+  subject: string;
+  receivedAt: string | null;
+  snippet: string;
+  bodyText: string;
+  bodyHtml: string | null;
+}
+
+export interface EmailThreadResponse {
+  threadId: string;
+  messages: EmailThreadMessage[];
 }
 
 export interface InboxStats {
@@ -50,6 +70,12 @@ export async function sendReply(
     method: "POST",
     body: payload,
   });
+}
+
+export async function fetchEmailThread(emailId: string): Promise<EmailThreadResponse> {
+  return apiFetch<EmailThreadResponse>(
+    `/agents/vega/inbox/${encodeURIComponent(emailId)}/thread`
+  );
 }
 
 export function bulkInboxAction(payload: {

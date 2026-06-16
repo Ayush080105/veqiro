@@ -30,9 +30,27 @@ export const generateBriefingSchema = z.object({
   type: z.enum(["MORNING", "EVENING", "WEEKLY"]).optional().default("MORNING"),
 });
 
-export const getCalendarSchema = z.object({
-  daysAhead: z.coerce.number().int().min(1).max(30).optional().default(7),
-});
+export const getCalendarSchema = z
+  .object({
+    daysAhead: z.coerce.number().int().min(1).max(30).optional(),
+    timeMin: z.string().datetime().optional(),
+    timeMax: z.string().datetime().optional(),
+    timeZone: z.string().min(1).max(100).optional(),
+  })
+  .refine((data) => Boolean(data.daysAhead || (data.timeMin && data.timeMax)), {
+    message: "Provide either daysAhead or both timeMin and timeMax",
+    path: ["timeMin"],
+  })
+  .refine(
+    (data) =>
+      !data.timeMin ||
+      !data.timeMax ||
+      new Date(data.timeMin).getTime() < new Date(data.timeMax).getTime(),
+    {
+      message: "timeMax must be after timeMin",
+      path: ["timeMax"],
+    }
+  );
 
 export const createCalendarEventSchema = z.object({
   title: z.string().min(1).max(500),
@@ -94,9 +112,11 @@ export const bulkInboxActionSchema = z.object({
 export const createLabelSchema = z.object({
   name: z.string().min(1).max(50),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().default("#999999"),
+  rationale: z.string().max(1000).optional().default(""),
 });
 
 export const updateLabelSchema = z.object({
   autoReply: z.boolean().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  rationale: z.string().max(1000).optional(),
 });

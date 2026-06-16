@@ -6,11 +6,15 @@ export interface CalendarEvent {
   description: string;
   start: string;
   end: string;
+  allDay?: boolean;
   attendees: string[];
   location: string;
   meetLink?: string;
+  htmlLink?: string;
   status: string;
   recurring?: boolean;
+  organizer?: string;
+  colorId?: string;
 }
 
 export interface CalendarSlot {
@@ -41,9 +45,18 @@ export interface CreateEventPayload {
   addGoogleMeet?: boolean;
 }
 
-export function fetchCalendar(daysAhead = 14): Promise<CalendarResponse> {
+export function fetchCalendar(params: {
+  timeMin: string;
+  timeMax: string;
+  timeZone?: string;
+}): Promise<CalendarResponse> {
+  const sp = new URLSearchParams({
+    timeMin: params.timeMin,
+    timeMax: params.timeMax,
+  });
+  if (params.timeZone) sp.set("timeZone", params.timeZone);
   return apiFetch<CalendarResponse>(
-    `/agents/vega/calendar/events?daysAhead=${daysAhead}`
+    `/agents/vega/calendar/events?${sp.toString()}`
   );
 }
 

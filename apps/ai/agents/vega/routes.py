@@ -27,14 +27,72 @@ register_agent(_agent)
 
 # ── Models ───────────────────────────────────────────────────────────────────
 
+DEFAULT_LABEL_DEFINITIONS = [
+    {"name": "Investors", "rationale": "Investor, fundraising, diligence, metrics, deck, term sheet, VC, angel, shareholder, or board-related communication."},
+    {"name": "Sales Leads", "rationale": "Prospects, demos, pricing, trials, purchasing intent, inbound leads, customer evaluation, or sales follow-up."},
+    {"name": "Newsletters", "rationale": "Subscriptions, digests, marketing newsletters, product updates, event roundups, or automated broadcasts with no direct action required."},
+    {"name": "Team", "rationale": "Internal teammates, collaborators, hiring, operations, project coordination, status updates, or work planning."},
+    {"name": "Legal", "rationale": "Contracts, compliance, terms, privacy, legal notices, signatures, policies, or regulatory matters."},
+    {"name": "Finance", "rationale": "Invoices, receipts, payments, accounting, payroll, banking, taxes, or financial operations."},
+    {"name": "Other", "rationale": "Use only when the email does not clearly match another configured label."},
+]
+
+
+def _coerce_label_definitions(label_definitions=None, custom_labels=None) -> list[dict]:
+    definitions = []
+    for item in label_definitions or []:
+        if isinstance(item, BaseModel):
+            item = item.model_dump()
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "")).strip()
+        if name:
+            definitions.append({
+                "name": name,
+                "rationale": str(item.get("rationale", "") or "No rationale provided.").strip(),
+            })
+    if definitions:
+        return definitions
+    if custom_labels:
+        return [{"name": str(name), "rationale": "No rationale provided."} for name in custom_labels if str(name).strip()]
+    return DEFAULT_LABEL_DEFINITIONS
+
+
+def _label_names(label_definitions: list[dict]) -> list[str]:
+    return [label["name"] for label in label_definitions]
+
+
+def _label_prompt(label_definitions: list[dict]) -> str:
+    return "\n".join(
+        f"- {label['name']}: {label.get('rationale') or 'No rationale provided.'}"
+        for label in label_definitions
+    )
+
+
+def _normalize_label(label: str | None, label_definitions: list[dict]) -> str:
+    names = _label_names(label_definitions)
+    if label:
+        lower = label.lower().removeprefix("vega/")
+        for name in names:
+            if name.lower() == lower:
+                return name
+    return next((name for name in names if name.lower() == "other"), names[0] if names else "Other")
+
+
+class LabelDefinition(BaseModel):
+    name: str
+    rationale: str = ""
+
+
 class ProcessInboxRequest(BaseModel):
     user_id: str
     organization_id: str = ""
     max_emails: int = 20
     auto_label: bool = True
     draft_replies: bool = True
-    skip_labeled: bool = False  # cron-only: skip emails that already have a Vega/* label
+    skip_labeled: bool = False  # cron-only: skip emails that already have a managed label
     custom_labels: list[str] = []
+    label_definitions: list[LabelDefinition] = []
     metadata: dict = {}
 
     model_config = ConfigDict(
@@ -176,6 +234,7 @@ class ExecutiveBriefingRequest(BaseModel):
     organization_id: str = ""
     include_email: bool = True
     include_calendar: bool = True
+    label_definitions: list[LabelDefinition] = []
     metadata: dict = {}
 
     model_config = ConfigDict(
@@ -290,13 +349,23 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
     """Triage, label, and draft replies for unread emails. Returns node_actions for backend."""
     token = request.metadata.get("google_access_token", "") or "mock-token"
     emails = await list_unread(token, max_results=request.max_emails)
+    label_definitions = _coerce_label_definitions(request.label_definitions, request.custom_labels)
+    managed_label_names = {name.lower() for name in _label_names(label_definitions)}
 
-    # Cron-only: skip emails that already carry a Vega/* label
+    # Cron-only: skip emails that already carry a managed label or legacy Vega/* label
     if request.skip_labeled and token and token != "mock-token":
         try:
             from agents.vega.gmail import list_labels as _list_labels
             all_labels = await _list_labels(token)
-            vega_label_ids = {l["id"] for l in all_labels if l["name"].startswith("Vega/")}
+            vega_label_ids = {
+                l["id"]
+                for l in all_labels
+                if l["name"].lower() in managed_label_names
+                or (
+                    l["name"].lower().startswith("vega/")
+                    and l["name"].lower()[5:] in managed_label_names
+                )
+            }
             emails = [e for e in emails if not any(lid in vega_label_ids for lid in e.get("labels", []))]
         except Exception:
             pass
@@ -351,7 +420,8 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
 
     import asyncio
 
-    label_list = ", ".join(request.custom_labels) if request.custom_labels else "Investors, Sales Leads, Newsletters, Team, Legal, Finance, Other"
+    label_list = ", ".join(_label_names(label_definitions))
+    label_rationales = _label_prompt(label_definitions)
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
@@ -364,10 +434,13 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             messages=[{"role": "user", "content": (
                 "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys: "
                 "priority (urgent/high/medium/low), summary (1-2 sentences), "
-                f"suggested_action (string), label (one of: {label_list}), "
+                f"suggested_action (string), label (exactly one of: {label_list}), "
                 "hidden_tasks (list of strings — implicit action items, e.g. 'review attached deck', 'respond before Friday'), "
                 "suggested_reply (string — a 1-3 sentence reply suggestion if suggested_action is 'reply', otherwise null), "
                 "meeting_request (object with keys date, time, topic if the email requests a meeting, otherwise null)\n\n"
+                "Use these label rationales to choose the best label. Do not invent labels. "
+                "Use Other only when no configured rationale clearly fits.\n"
+                f"{label_rationales}\n\n"
                 f"From: {email.get('from', '')}\n"
                 f"Subject: {email.get('subject', '')}\n"
                 f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
@@ -379,7 +452,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             priority = analysis.get("priority", "medium")
             summary = analysis.get("summary", raw[:300])
             suggested_action = analysis.get("suggested_action", "review")
-            label = analysis.get("label", "Other")
+            label = _normalize_label(analysis.get("label", "Other"), label_definitions)
             hidden_tasks = analysis.get("hidden_tasks", [])
             suggested_reply = analysis.get("suggested_reply", None)
             meeting_request = analysis.get("meeting_request", None)
@@ -387,7 +460,7 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             priority = "medium"
             summary = raw[:300]
             suggested_action = "review"
-            label = "Other"
+            label = _normalize_label("Other", label_definitions)
             hidden_tasks = []
             suggested_reply = None
             meeting_request = None
@@ -646,6 +719,8 @@ async def create_calendar_event(request: CreateEventRequest) -> CreateEventRespo
 async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBriefingResponse:
     """Generate a comprehensive executive briefing combining email, calendar, and context."""
     token = request.metadata.get("google_access_token", "") or "mock-token"
+    label_definitions = _coerce_label_definitions(request.label_definitions)
+    managed_label_names = {name.lower() for name in _label_names(label_definitions)}
 
     if settings.MOCK_MODE:
         return ExecutiveBriefingResponse(
@@ -706,11 +781,14 @@ async def executive_briefing(request: ExecutiveBriefingRequest) -> ExecutiveBrie
                     return {l["id"]: l["name"] for l in svc.users().labels().list(userId="me").execute().get("labels", [])}
                 id_to_name = await _asyncio.to_thread(_fetch_label_names)
                 for email in emails:
-                    vega_cats = [
-                        id_to_name[lid][5:]
-                        for lid in email.get("labels", [])
-                        if id_to_name.get(lid, "").startswith("Vega/")
-                    ]
+                    vega_cats = []
+                    for lid in email.get("labels", []):
+                        label_name = id_to_name.get(lid, "")
+                        lower_name = label_name.lower()
+                        if lower_name in managed_label_names:
+                            vega_cats.append(_normalize_label(label_name, label_definitions))
+                        elif lower_name.startswith("vega/") and lower_name[5:] in managed_label_names:
+                            vega_cats.append(_normalize_label(label_name[5:], label_definitions))
                     # Prefer most specific label — skip "Other" if a better one exists
                     primary = next(
                         (c for c in vega_cats if c.lower() != "other"),

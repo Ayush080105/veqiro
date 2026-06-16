@@ -12,6 +12,7 @@ import {
 import {
   getInbox,
   sendReply,
+  getEmailThread,
   getFollowUps,
   createFollowUp,
   cancelFollowUp,
@@ -48,6 +49,7 @@ router.post("/compose-email", composeEmail);
 // workspace: inbox
 router.get("/inbox", getInbox);
 router.post("/inbox/bulk", bulkInboxActionHandler);
+router.get("/inbox/:emailId/thread", getEmailThread);
 router.post("/inbox/:emailId/reply", sendReply);
 
 // workspace: follow-ups

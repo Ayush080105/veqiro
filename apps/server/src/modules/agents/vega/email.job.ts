@@ -8,7 +8,11 @@ import {
   createGmailDraft,
 } from "../../../common/utils/googleApis.js";
 import { prisma } from "../../../config/prisma.js";
-import { getLabels, mapPriorityToCategory } from "./vega.workspace.service.js";
+import {
+  getLabelDefinitions,
+  getLabels,
+  mapPriorityToCategory,
+} from "./vega.workspace.service.js";
 import type { ProcessInboxResponse, NodeAction } from "./vega.types.js";
 
 export async function runEmailPipeline(
@@ -27,6 +31,13 @@ export async function runEmailPipeline(
   // 2. Get org's labels (seeds defaults on first run) for dynamic label list and autoReply flags
   const orgLabels = await getLabels(organizationId);
   const customLabelNames = orgLabels.map((l) => l.name);
+  const labelDefinitions = getLabelDefinitions(orgLabels);
+  const labelColors = new Map(orgLabels.map((l) => [l.name, l.color]));
+  const normalizeLabel = (label: string) => {
+    const found = orgLabels.find((l) => l.name.toLowerCase() === label.toLowerCase());
+    if (found) return found.name;
+    return orgLabels.find((l) => l.name.toLowerCase() === "other")?.name ?? customLabelNames[0] ?? "Other";
+  };
   const autoReplyLabelNames = new Set(
     orgLabels.filter((l) => l.autoReply).map((l) => l.name)
   );
@@ -42,6 +53,7 @@ export async function runEmailPipeline(
       draft_replies: false,
       skip_labeled: true,
       custom_labels: customLabelNames,
+      label_definitions: labelDefinitions,
       metadata: { google_access_token: token },
     }
   );
@@ -55,15 +67,18 @@ export async function runEmailPipeline(
 
   if (labelAction?.messages?.length) {
     await Promise.allSettled(
-      labelAction.messages.map(({ email_id, label }) =>
-        labelMessage({
+      labelAction.messages.map(({ email_id, label }) => {
+        const labelName = normalizeLabel(label);
+        return labelMessage({
           accessToken: token,
           messageId: email_id,
-          labelName: `Vega/${label}`,
+          labelName,
+          managedLabelNames: customLabelNames,
+          labelColor: labelColors.get(labelName),
         }).catch((err: unknown) =>
           console.error(`[email-job] Label failed for ${email_id}:`, err)
-        )
-      )
+        );
+      })
     );
   }
 

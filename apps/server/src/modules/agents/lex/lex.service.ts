@@ -12,7 +12,7 @@ import {
   keyBelongsToOrg,
 } from "../../../common/utils/r2.js";
 import * as lexRepository from "./lex.repository.js";
-import { findBrandKit } from "../brand-kit/brand-kit.repository.js";
+import { findBrandKit } from "../../brand-kit/brand-kit.repository.js";
 import type {
   SendMessageInput,
   AssistantMessagePayload,

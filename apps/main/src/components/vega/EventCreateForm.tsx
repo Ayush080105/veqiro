@@ -16,8 +16,9 @@ function toLocalDateKey(d: Date) {
 
 function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [hStr, mStr] = value.split(":")
-  const h = parseInt(hStr, 10)
-  const m = Math.round(parseInt(mStr, 10) / 5) * 5 % 60
+  const h = Number.isFinite(Number(hStr)) ? Math.min(23, Math.max(0, parseInt(hStr, 10))) : 0
+  const rawMinute = Number.isFinite(Number(mStr)) ? parseInt(mStr, 10) : 0
+  const m = Math.min(55, Math.max(0, Math.floor(rawMinute / 5) * 5))
   const pad = (n: number) => String(n).padStart(2, "0")
   const sel: React.CSSProperties = {
     appearance: "none",
@@ -53,6 +54,9 @@ interface EventCreateFormProps {
     title?: string
     attendees?: string[]
     description?: string
+    date?: string
+    startTime?: string
+    endTime?: string
   }
 }
 
@@ -79,6 +83,8 @@ const labelStyle: React.CSSProperties = {
   display: "block",
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export function EventCreateForm({
   onCreated,
   onCancel,
@@ -91,9 +97,9 @@ export function EventCreateForm({
   const defaultDate = toLocalDateKey(tomorrow)
 
   const [title, setTitle] = useState(prefill?.title ?? "")
-  const [date, setDate] = useState(defaultDate)
-  const [startTime, setStartTime] = useState("10:00")
-  const [endTime, setEndTime] = useState("11:00")
+  const [date, setDate] = useState(prefill?.date ?? defaultDate)
+  const [startTime, setStartTime] = useState(prefill?.startTime ?? "10:00")
+  const [endTime, setEndTime] = useState(prefill?.endTime ?? "11:00")
   const [attendeeInput, setAttendeeInput] = useState("")
   const [attendees, setAttendees] = useState<string[]>(prefill?.attendees ?? [])
   const [description, setDescription] = useState(prefill?.description ?? "")
@@ -112,7 +118,12 @@ export function EventCreateForm({
 
   const addAttendee = () => {
     const email = attendeeInput.trim()
-    if (email && !attendees.includes(email)) {
+    if (!email) return
+    if (!EMAIL_RE.test(email)) {
+      toast.error("Enter a valid attendee email")
+      return
+    }
+    if (!attendees.includes(email)) {
       setAttendees((prev) => [...prev, email])
       setAttendeeInput("")
     }
@@ -125,6 +136,11 @@ export function EventCreateForm({
     }
     if (endTime <= startTime) {
       toast.error("End time must be after start time")
+      return
+    }
+    const invalidAttendee = attendees.find((email) => !EMAIL_RE.test(email))
+    if (invalidAttendee) {
+      toast.error(`Invalid attendee email: ${invalidAttendee}`)
       return
     }
     mutate({
@@ -270,7 +286,7 @@ export function EventCreateForm({
           size="sm"
           style={{ border: "2px solid #111", boxShadow: "2px 2px 0 #111", flex: 1 }}
         >
-          {isPending ? "Creating…" : "Create Event"}
+          {isPending ? "Creating..." : "Create Event"}
         </Button>
         <Button variant="outline" size="sm" onClick={onCancel}>
           Cancel
