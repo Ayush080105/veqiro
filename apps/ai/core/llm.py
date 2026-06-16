@@ -916,6 +916,10 @@ class LLMClient:
 
             raise
 
+    async def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> str:
+        """Image generation with no reference images — pure text-to-image."""
+        return await self.generate_image_with_image_bytes(prompt, [], aspect_ratio)
+
     async def generate_image_with_reference(
         self, prompt: str, reference_image_b64: str, aspect_ratio: str = "1:1"
     ) -> str:
@@ -931,80 +935,6 @@ class LLMClient:
         return await self.generate_image_with_image_bytes(
             prompt, [base64.b64decode(b64) for b64 in reference_images_b64], aspect_ratio
         )
-
-    async def generate_image_with_image_bytes(
-        self, prompt: str, images: list[bytes], aspect_ratio: str = "1:1"
-    ) -> str:
-        """Image generation with raw reference image bytes via Gemini."""
-        if settings.MOCK_MODE:
-            await asyncio.sleep(0.05)
-            return _RED_PNG_B64
-        import time
-        import base64 as _base64
-        from langfuse import Langfuse as _Langfuse
-        from core.observability import get_llm_context, get_langfuse
-        from google import genai
-        from google.genai import types
-
-        obs_ctx = get_llm_context()
-        lf = get_langfuse()
-        generation = None
-        t0 = time.perf_counter()
-
-        if lf:
-            try:
-                if obs_ctx.trace_id is None:
-                    obs_ctx.trace_id = _Langfuse.create_trace_id()
-                generation = lf.start_observation(
-                    trace_context={"trace_id": obs_ctx.trace_id},
-                    name="generate_image_with_references",
-                    as_type="generation",
-                    model="gemini-2.5-flash-image",
-                    input={"prompt": prompt[:500], "num_references": len(images), "aspect_ratio": aspect_ratio},
-                    model_parameters={"aspect_ratio": aspect_ratio, "num_references": len(images)},
-                )
-            except Exception:
-                pass
-
-        try:
-            client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            full_prompt = f"{prompt}\n\nOutput image dimensions: {_aspect_ratio_hint(aspect_ratio)}."
-            parts = [types.Part.from_text(text=full_prompt)]
-            for img_bytes in images:
-                squared = _pad_to_square(img_bytes)
-                parts.append(types.Part.from_bytes(data=squared, mime_type="image/png"))
-            response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash-image",
-                contents=parts,
-                config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
-            )
-            candidate = response.candidates[0] if response.candidates else None
-            if candidate is None or candidate.content is None:
-                finish = getattr(candidate, "finish_reason", None) if candidate else None
-                raise LLMError(f"Gemini returned no image content (finish_reason={finish})")
-            for part in candidate.content.parts:
-                if part.inline_data is not None:
-                    b64 = _base64.b64encode(part.inline_data.data).decode()
-                    if generation:
-                        try:
-                            generation.update(
-                                output="[image generated]",
-                                usage_details={"input": 0, "output": 1, "total": 1, "unit": "IMAGES"},
-                                metadata={"latency_ms": int((time.perf_counter() - t0) * 1000), "aspect_ratio": aspect_ratio, "num_references": len(images), "org_id": obs_ctx.org_id, "agent": obs_ctx.agent_slug},
-                            )
-                            generation.end()
-                        except Exception:
-                            pass
-                    return b64
-            raise LLMError("Gemini returned no image data")
-        except Exception as e:
-            if generation:
-                try:
-                    generation.update(level="ERROR", status_message=str(e))
-                    generation.end()
-                except Exception:
-                    pass
-            raise
 
     async def complete_with_vision(
         self,

@@ -180,6 +180,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       photo_count: 4,
       use_logo: true,
       use_mascot: true,
+      use_brand_colors: true,
       platform: "instagram",
     },
     Form: MayaCampaignForm,
@@ -199,6 +200,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
         photo_count: v.photo_count,
         use_logo: v.use_logo,
         use_mascot: v.use_mascot,
+        use_brand_colors: v.use_brand_colors ?? true,
         platform: v.platform,
       })
     },
@@ -215,6 +217,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       include_image: true,
       use_logo: false,
       use_mascot: false,
+      use_brand_colors: true,
       make_carousel: false,
       carousel_count: 3,
     },

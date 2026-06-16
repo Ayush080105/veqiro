@@ -98,6 +98,7 @@ class DraftRequest(BaseModel):
     include_image: bool = False
     use_logo: bool = False
     use_mascot: bool = False
+    use_brand_colors: bool = True
     additional_context: str | None = Field(None, max_length=1000)
     from_rex: bool = False
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
@@ -272,8 +273,10 @@ class CarouselDraftRequest(BaseModel):
     include_images: bool = True
     use_logo: bool = False
     use_mascot: bool = False
+    use_brand_colors: bool = True
     additional_context: str | None = Field(None, max_length=1000)
     image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
+    brand_images: list[BrandImageRef] = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
 
 
@@ -539,6 +542,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                     context_hints=request.additional_context or "",
                     reference_urls=request.reference_images if request.use_reference else [],
                     brand_images=request.brand_images or [],
+                    use_brand_colors=request.use_brand_colors,
                 )
             except Exception as _img_err:
                 logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
@@ -624,6 +628,7 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 context_hints=request.additional_context or "",
                 reference_urls=request.reference_images if request.use_reference else [],
                 brand_images=request.brand_images or [],
+                use_brand_colors=request.use_brand_colors,
             )
         except Exception as _img_err:
             logger.error("image_gen failed | user=%s error=%s", request.user_id, _img_err)
@@ -968,23 +973,36 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                 "stat": prompt_data.stat,
                 "subtext": prompt_data.subtext,
             }
-        try:
-            return await generate_social_image(
-                prompt_data.image_prompt,
-                request.platform,
-                aspect_ratio=request.image_aspect_ratio,
-                use_logo=request.use_logo,
-                use_mascot=request.use_mascot,
-                user_id=request.user_id,
-                organization_id=request.organization_id,
-                brand_kit=brand_kit,
-                context_hints=prompt_data.context_note,
-                text_spec=text_spec,
-                carousel_anchor_b64=anchor_b64,
-            )
-        except Exception as img_err:
-            logger.error("carousel image_gen failed | slide=%d error=%s", idx + 1, img_err)
-            return None
+        last_err: BaseException | None = None
+        for attempt in range(3):
+            if attempt and last_err:
+                last_err_str = str(last_err)
+                if "429" in last_err_str or "RESOURCE_EXHAUSTED" in last_err_str.upper():
+                    await asyncio.sleep(30 + attempt * 30)
+                else:
+                    await asyncio.sleep(2 * attempt)
+            try:
+                return await generate_social_image(
+                    prompt_data.image_prompt,
+                    request.platform,
+                    aspect_ratio=request.image_aspect_ratio,
+                    use_logo=request.use_logo,
+                    use_mascot=request.use_mascot,
+                    user_id=request.user_id,
+                    organization_id=request.organization_id,
+                    brand_kit=brand_kit,
+                    context_hints=prompt_data.context_note,
+                    text_spec=text_spec,
+                    carousel_anchor_b64=anchor_b64,
+                    brand_images=request.brand_images or [],
+                    use_brand_colors=request.use_brand_colors,
+                )
+            except Exception as img_err:
+                last_err = img_err
+                logger.warning("carousel image_gen attempt %d/3 failed | slide=%d error=%s", attempt + 1, idx + 1, img_err)
+                if attempt == 2:
+                    logger.error("carousel image_gen failed after 3 attempts | slide=%d error=%s", idx + 1, img_err)
+        return None
 
     # Step 2a: Generate slide 1 first — it defines the visual DNA for the carousel
     slide_1_image = await _gen(content.image_prompts[0], 0, anchor_b64=None)
@@ -1152,63 +1170,113 @@ async def expand_brief(request: ExpandBriefRequest):
 
 # ── Campaign Generator ────────────────────────────────────────────────────────
 
-_CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial art director creating a multi-image product campaign. You receive a reference image of the product — your job is to show that product from a DIFFERENT angle and scene in every photo.
+_STYLE_LOCK_PROMPT = """\
+You are a senior commercial art director and cinematographer.
+You will receive a product image and a campaign brief.
+Output ONLY a tightly formatted style specification block — no prose, no preamble, no markdown fences.
+
+Campaign brief: {brief}
+Platform: {platform}
+Brand voice: {brand_voice}
+Brand color palette: {brand_colors}
+Target audience: {target_audience}
+
+Analyse the product in the image carefully — its category, materials, colours, finish, price-point signals, and intended use. Then write a campaign visual style that is bespoke to THIS specific product AND brand personality. The brand voice and color palette must be reflected in the grading, lighting character, and mood — not ignored.
+
+Output exactly this block (replace the bracketed descriptions with your values):
+
+Visual theme: [2-4 word label that captures the aesthetic, e.g. "DARK SPA LUXURY" or "BOLD STREET ENERGY"]
+LIGHTING: [specific recipe — key light placement, quality hard/soft, fill ratio, practicals if any]
+COLOR TEMPERATURE: [Kelvin range for key light, and any accent colour temperature]
+GRADING: [colour grade recipe — hue shifts, saturation, contrast, lift/gamma/gain, film grain % if any, a real-world photographic reference]
+MOOD: [3-5 adjectives that must be palpable in every frame]
+ENVIRONMENT CUES: [2-3 appropriate environments or surface textures that complement this product and brand]
+PHOTOGRAPHIC REFERENCE: [1-2 real campaign styles or photographer names whose visual language fits this brand]
+"""
+
+_CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial photographer and art director — think Nick Knight, Txema Yeste, or Tim Walker for product work. You are creating a multi-image editorial product campaign where every photo is a distinct, magazine-quality shot.
+
+You receive a reference image of the product. Your job: produce the shot defined by the MANDATORY SHOT DIRECTIVE with the precision and intentionality of a commissioned editorial photographer.
 
 ════════════════════════════════════════
 WHAT IS FIXED vs WHAT MUST CHANGE
 ════════════════════════════════════════
 
-FIXED — never change these:
-- The product's colors, color palette, and visual style
-- The count of elements (if the product shows 6 characters, every image shows exactly 6)
-- The product's overall design language, art style, and identity
-- Do NOT add or remove any characters, figures, or objects that are part of the product
+FIXED — the product's identity never changes:
+- Exact colors, materials, and finish of the product
+- Element count (if the product has 6 parts, every photo shows exactly 6)
+- Overall design language and silhouette
 
-MUST CHANGE — every photo must differ in ALL of these:
-- Camera angle: each photo views the product from a completely different angle (front, side, above, below, three-quarter, close, wide)
-- Framing: how much of the product is in frame and how it is cropped
-- Scene and background: entirely different environment per photo
-- Pose / orientation: the product should be oriented differently to suit each composition role
+MUST CHANGE — every photo is a completely different shot:
+- Camera angle and position: follow the MANDATORY SHOT DIRECTIVE exactly
+- Framing and crop: how much of the product is visible
+- Environment and background: entirely different scene per photo
+- Lighting character: shifts within the locked style (hard vs soft, warm vs cool rim)
+- Styling details: different surface, different props arrangement
 
-STEP 1 — STUDY THE REFERENCE:
-Memorize the product's colors, element count, art style, and visual identity.
+════════════════════════════════════════
+MAGAZINE PHOTOGRAPHY STANDARDS
+════════════════════════════════════════
 
-STEP 2 — APPLY THE COMPOSITION ROLE:
-Each photo has an assigned role that specifies the camera angle and framing. Follow it exactly — this is what creates variety across the campaign.
+Every photo must pass this editorial quality bar:
+- LIGHTING: One clear, intentional light source direction — no flat, omnidirectional lighting
+- NEGATIVE SPACE: Deliberately composed — empty areas are a design decision, not an accident
+- SURFACE TEXTURE: The surface the product rests on must have real texture and material character
+- DEPTH: Three-dimensional sense of space — foreground / subject / background planes are distinct
+- SHARPNESS: Product is tack-sharp; background transitions to controlled bokeh or intentional blur
+- NO CLUTTER: Every prop and element in frame is there by decision — nothing accidental
 
-STEP 3 — CAMPAIGN CONSISTENCY:
-- Same color grading, lighting mood, and realism level across every photo.
-- Each photo must look like a completely different shot of the same product.
+════════════════════════════════════════
+EXECUTION
+════════════════════════════════════════
 
-Output: One campaign photo per call. Vary the angle aggressively — sameness across photos is a failure."""
+STEP 1: Memorize the product's exact colors, materials, element count, and visual identity from the reference.
+STEP 2: Execute the MANDATORY SHOT DIRECTIVE — camera position, framing, and environment are non-negotiable.
+STEP 3: Apply the Campaign Style Lock for consistent color grading and lighting mood across photos.
+
+Sameness across photos is a failure. Each shot must be unmistakably a different photograph."""
 
 _CAMPAIGN_ROLES: dict[int, list[str]] = {
     1: [
-        "HERO SHOT — Camera directly in front of the product at eye level. Product centered, filling most of the frame, facing the lens straight-on. Clean premium studio background, bold lighting.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered with equal negative space left and right. Single hard key light from 45° above-left casting a clean directional shadow on the surface beneath the product. ENVIRONMENT: Clean studio — pure white or polished light grey surface, seamless white background. This is a magazine cover shot — razor-sharp product, zero clutter.",
     ],
     2: [
-        "HERO SHOT — Camera directly in front of the product at eye level. Product centered, facing the lens straight-on. Clean premium background, bold studio lighting.",
-        "LIFESTYLE THREE-QUARTER — Camera positioned at a 45-degree angle to the product's side. Product is turned so its side profile and front are both visible. Real aspirational environment surrounds it.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Single hard key light from 45° above-left. ENVIRONMENT: Clean studio — white or very light neutral surface, seamless gradient background. Negative space on left third for editorial text overlay. Magazine cover quality.",
+        "LIFESTYLE SCENE — Camera at 45° to the product's right side, slightly above eye-level. Product rests naturally in its real-world environment. ENVIRONMENT: Warm lived-in setting — wooden table or oak shelf with soft natural light from a nearby window. Depth of field f/2.0: background softly blurred. Aspirational and editorial — like Kinfolk or Vogue Living.",
     ],
     3: [
-        "HERO SHOT — Camera directly in front, eye-level. Product faces the lens straight-on, centered, full product in frame.",
-        "LIFESTYLE SIDE PROFILE — Camera positioned at the product's side, shooting in profile. The product faces away from or perpendicular to the lens. Real-world aspirational environment.",
-        "ELEVATED CLOSE FRAME — Camera directly above and slightly in front, looking down at the product from a high angle. Product fills the frame from this top-down-ish perspective.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left, clean shadow line on surface. ENVIRONMENT: Clean studio — white or very light neutral surface, zero distracting elements.",
+        "LIFESTYLE SIDE PROFILE — Camera at the product's side, 90° from the front, slightly elevated at 20° above horizon. Product in profile — reveals depth, thickness, material layers. ENVIRONMENT: Tactile surface — raw linen tablecloth or rough slate, with soft natural window light rimming the product edge. Background: softly blurred interior setting at f/2.0.",
+        "EDITORIAL FLATLAY — Camera directly overhead, 90° pointing straight down. Product is the centerpiece placed in the lower-center third. Organic ingredients or botanicals arranged with deliberate negative space. ENVIRONMENT: Textured dark surface — dark slate or charcoal-toned stone. Directional side light from the top-left reveals surface texture.",
     ],
     4: [
-        "HERO SHOT — Camera directly in front at eye level. Product faces the lens straight-on, centered, full product in frame, premium studio background.",
-        "LIFESTYLE THREE-QUARTER — Camera at a 45-degree side angle. Product turned so both its front and one side are visible. Real-world environment with depth.",
-        "TOP-DOWN OVERHEAD — Camera directly above, pointing straight down. Product and props arranged flat on a surface below. Pure bird's-eye view.",
-        "LOW ANGLE DRAMATIC — Camera at ground level pointing upward at the product. Product appears to tower over the viewer. Bold perspective, dramatic sky or environment behind it.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame. Hard key light 45° above-left, clean shadow on surface. ENVIRONMENT: Clean studio — pure white or light neutral seamless background. This is the anchor shot — everything else references this quality.",
+        "LIFESTYLE ENVIRONMENT SCENE — Camera at 35-45° angle to the product's right, slightly above eye-level. Product sits naturally with lifestyle context around it: a ceramic bowl, cut ingredients, folded cloth. ENVIRONMENT: Warm natural setting — kitchen counter with terracotta or cream-toned tiles, warm golden-hour side light. Background depth softly blurred at f/2.0.",
+        "EDITORIAL FLATLAY — Camera 90° directly overhead pointing straight down. Product centered in the lower third. Organic props arranged with intentional breathing room. ENVIRONMENT: Warm wood surface — pale oak or walnut grain with one directional window-quality side light from the frame's top-left casting gentle shadows.",
+        "DRAMATIC LOW ANGLE — Camera at ground level (10-15cm height) pointing upward at 15-20°. Product occupies the bottom-center third, towering upward. ENVIRONMENT: Outdoor or architectural — dramatic sky with volumetric light, or a large interior space with high ceilings. Everything above the product falls into bokeh.",
     ],
     6: [
-        "HERO SHOT — Camera directly in front at eye level. Product faces the lens straight-on, centered, clean premium background.",
-        "LIFESTYLE THREE-QUARTER — Camera at 45-degree angle to product's side. Product turned, front and side both visible. Aspirational real-world environment.",
-        "TOP-DOWN OVERHEAD — Camera directly above pointing straight down. Product flat on a textured surface with props. Pure bird's-eye.",
-        "LOW ANGLE — Camera at ground level looking upward. Product towers in frame. Dramatic perspective, bold environment.",
-        "TIGHT CLOSE-UP — Camera very close to the product, showing it large in frame. Product fills 80% of the image. Background blurred. Angle slightly elevated.",
-        "WIDE ESTABLISHING — Camera far back. Product appears small within a large dramatic environment. Architecture or nature dominates. Product is a small part of a big world.",
+        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left. ENVIRONMENT: Clean studio — pure white or light neutral seamless. Magazine cover quality.",
+        "LIFESTYLE ENVIRONMENT — Camera at 40° right angle, slightly elevated. Product in real-world scene with contextual props. ENVIRONMENT: Warm kitchen or living space — terracotta tiles or cream linen surface, warm natural side-light.",
+        "EDITORIAL FLATLAY — Camera 90° directly overhead. Product centered with organic props arranged intentionally. ENVIRONMENT: Warm wood surface — pale oak or walnut grain, directional side-light from top-left.",
+        "DRAMATIC LOW ANGLE — Camera at ground level (10cm height) pointing upward. Product towers in bottom-center. ENVIRONMENT: Outdoor sky or dramatic architectural space — background blurs into epic bokeh.",
+        "MACRO DETAIL — Camera extremely close: 15-20cm from the product surface. One specific detail fills the entire frame — a texture, label, material surface, or cap mechanism. ENVIRONMENT: Single-color or near-black background; single side-rim light that reveals micro-texture.",
+        "WIDE ESTABLISHING — Camera pulled back, product occupies 20-25% of frame in the rule-of-thirds lower-right. ENVIRONMENT: Large dramatic real-world space — a natural landscape, architectural interior, or lush outdoor scene. The product is small but unmistakable within a world-building setting.",
     ],
+}
+
+# Maps each role label (first word) to its assigned environment type.
+# Used by _make_hints to pre-assign environments and list forbidden ones for sibling photos.
+_ROLE_ENVIRONMENT_LABEL: dict[str, str] = {
+    "EDITORIAL HERO": "clean studio (white/neutral seamless surface)",
+    "LIFESTYLE SCENE": "warm lived-in setting (wooden table, oak shelf, natural window light)",
+    "LIFESTYLE SIDE PROFILE": "tactile surface (linen tablecloth, raw slate, soft window rim light)",
+    "LIFESTYLE ENVIRONMENT SCENE": "warm natural setting (kitchen counter, terracotta tiles, golden-hour light)",
+    "LIFESTYLE ENVIRONMENT": "warm kitchen or living space (terracotta or cream linen, warm side-light)",
+    "EDITORIAL FLATLAY": "warm wood surface (pale oak or walnut, overhead directional side-light)",
+    "DRAMATIC LOW ANGLE": "outdoor sky or architectural space (dramatic bokeh background)",
+    "MACRO DETAIL": "near-black or single-color close-up (side-rim light)",
+    "WIDE ESTABLISHING": "large real-world landscape or interior (world-building environment)",
 }
 
 
@@ -1220,7 +1288,10 @@ class CampaignRequest(BaseModel):
     photo_count: int = Field(4)
     use_logo: bool = True
     use_mascot: bool = True
+    use_brand_colors: bool = True
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    image_aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
+    brand_images: list[BrandImageRef] = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
 
 class CampaignPhoto(BaseModel):
@@ -1234,57 +1305,67 @@ class CampaignResponse(BaseModel):
     model_used: str
 
 
-def _build_campaign_style_lock(campaign_brief: str, brand_kit, platform: str) -> str:
+async def _build_campaign_style_lock(
+    campaign_brief: str,
+    brand_kit,
+    platform: str,
+    product_image_url: str | None = None,
+) -> str:
     """Build a shared visual language spec — injected into every photo so all N shots
-    share the same aesthetic, lighting, and theme while only composition differs."""
+    share the same aesthetic, lighting, and theme while only composition differs.
+    Uses a vision LLM call against the product image to generate a bespoke spec."""
     parts: list[str] = [
         "=== CAMPAIGN STYLE LOCK — every photo MUST share ALL of the following ==="
     ]
 
-    # Derive visual theme keywords from the brief
-    brief_lower = campaign_brief.lower()
-    if any(w in brief_lower for w in ["luxury", "premium", "elite", "high-end", "exclusive"]):
-        parts.append(
-            "Visual theme: LUXURY — "
-            "LIGHTING: Dramatic low-key Rembrandt or split lighting; single hard source with deep shadows filling 60-70% of the frame; practicals (candles, backlit glass) as accent. "
-            "COLOR TEMPERATURE: Warm tungsten 2700-3200K on highlights, cool shadow fill, producing a rich amber-to-charcoal gradient. "
-            "GRADING: Crushed blacks, lifted midtones for velvet feel, slight orange-teal split grade; film grain at 15-20%; references high-end watch and fragrance advertising."
-        )
-    elif any(w in brief_lower for w in ["playful", "fun", "vibrant", "energetic", "bold", "kids"]):
-        parts.append(
-            "Visual theme: ENERGETIC — "
-            "LIGHTING: High-key flat lighting with no harsh shadows; bright overcast or large softbox fill; specular highlights kept punchy. "
-            "COLOR TEMPERATURE: Daylight neutral 5500K; colors pushed to 80-90% saturation; no desaturation or film grade. "
-            "GRADING: Clean bright lifted shadows (no crushed blacks), vivid primaries, slight contrast boost in midtones only; references toy packaging and sports apparel campaigns."
-        )
-    elif any(w in brief_lower for w in ["minimal", "clean", "simple", "modern", "sleek"]):
-        parts.append(
-            "Visual theme: MINIMAL — "
-            "LIGHTING: Large area softbox or window light directly to one side; near-shadowless on background; subtle gradient from light to slightly darker edge. "
-            "COLOR TEMPERATURE: Cool-neutral 5000-5500K; palette limited to 2-3 colors maximum including white or off-white. "
-            "GRADING: Muted, slightly desaturated; highlights preserved but not blown; shadow lift to soft gray rather than black; references Apple product photography and Muji catalog."
-        )
-    elif any(w in brief_lower for w in ["natural", "organic", "eco", "outdoor", "nature", "earthy"]):
-        parts.append(
-            "Visual theme: NATURAL — "
-            "LIGHTING: Golden-hour sun at 15-30 degrees above horizon OR overcast diffused outdoor light; lens flare acceptable; dappled shadow from foliage welcome. "
-            "COLOR TEMPERATURE: Warm 3800-4500K; earth tones (terracotta, sage, sand, deep green) anchor the palette. "
-            "GRADING: Film-emulation grade with gentle fade in shadows, warm highlights, slight green push in midtones; references outdoor lifestyle and farm-to-table food brands."
-        )
-    elif any(w in brief_lower for w in ["tech", "ai", "digital", "future", "innovation", "smart"]):
-        parts.append(
-            "Visual theme: TECH/FUTURISTIC — "
-            "LIGHTING: Hard directional key light from above-left 45°; electric blue or cyan rim light on product edges; dark background with subtle gradient from near-black to deep navy. "
-            "COLOR TEMPERATURE: Cool 6500-7500K key; accent lights at electric blue or cyan; zero warm tones. "
-            "GRADING: High local contrast, deep crushed blacks, pushed highlights on product surfaces to near-white specular; slight chromatic aberration on edges acceptable; references semiconductor and EV campaign photography."
-        )
+    theme_block: str | None = None
+
+    # Build brand context strings to inject into the style lock prompt
+    _brand_voice = (brand_kit.brand_voice if brand_kit and brand_kit.brand_voice else "not specified")
+    _target_audience = (brand_kit.target_audience if brand_kit and brand_kit.target_audience else "not specified")
+    if brand_kit and brand_kit.brand_colors:
+        _c = brand_kit.brand_colors
+        _color_parts = [f"{k}: {v}" for k, v in _c.items() if v]
+        _brand_colors = ", ".join(_color_parts) if _color_parts else "not specified"
     else:
+        _brand_colors = "not specified"
+
+    if product_image_url and not settings.MOCK_MODE:
+        try:
+            import httpx as _httpx
+            async with _httpx.AsyncClient(timeout=10.0) as _client:
+                _resp = await _client.get(product_image_url)
+                _resp.raise_for_status()
+                _img_bytes = _resp.content
+                _mime = _resp.headers.get("content-type", "image/jpeg").split(";")[0]
+            theme_block = await _llm.complete_with_vision(
+                file_bytes=_img_bytes,
+                prompt=_STYLE_LOCK_PROMPT.format(
+                    brief=campaign_brief[:1200],
+                    platform=platform,
+                    brand_voice=_brand_voice,
+                    brand_colors=_brand_colors,
+                    target_audience=_target_audience,
+                ),
+                mime_type=_mime,
+            )
+            theme_block = theme_block.strip()
+        except Exception as _e:
+            logger.warning("style_lock vision call failed, falling back | error=%s", _e)
+            theme_block = None
+
+    if theme_block:
+        parts.append(theme_block)
+    else:
+        # Fallback: derive a style spec from brand context rather than a hardcoded editorial style
+        _mood_from_voice = _brand_voice if _brand_voice != "not specified" else "authentic, aspirational, confident"
         parts.append(
-            "Visual theme: EDITORIAL PROFESSIONAL — "
-            "LIGHTING: Clean three-point studio lighting; soft key from 45° above-left, fill card on opposite side, subtle rim light separating subject from background. "
-            "COLOR TEMPERATURE: Neutral daylight 5000-5500K throughout; no strong warm or cool cast unless the product's own colors warrant it. "
-            "GRADING: Natural, true-to-life color reproduction; gentle S-curve contrast; no heavy stylistic grade — the product's own colors should read accurately. "
-            f"BRIEF CONTEXT: '{campaign_brief[:200]}' — use this to inform the environment, props, and subject mood only, not to override the lighting or grading above."
+            "Visual theme: EDITORIAL PROFESSIONAL\n"
+            "LIGHTING: Clean directional lighting; key 45° above-left, fill card opposite, subtle rim separation.\n"
+            "COLOR TEMPERATURE: Neutral daylight 5000-5500K.\n"
+            f"GRADING: Colour grading aligned to brand palette ({_brand_colors}); gentle S-curve contrast; product colours read accurately.\n"
+            f"MOOD: {_mood_from_voice}\n"
+            f"BRIEF CONTEXT: '{campaign_brief[:400]}'"
         )
 
     if brand_kit:
@@ -1326,24 +1407,48 @@ async def create_campaign(request: CampaignRequest):
 
     # Build a shared style description from brand kit data — gives all photos the same
     # colour/mood/energy without the carousel anchor that locks composition too tightly.
-    style_lock = _build_campaign_style_lock(request.campaign_brief, brand_kit, request.platform)
+    style_lock = await _build_campaign_style_lock(
+        request.campaign_brief, brand_kit, request.platform,
+        product_image_url=request.product_image_url,
+    )
 
     total_photos = len(roles)
 
+    # Pre-assign a distinct environment label to each role so concurrent photos
+    # never independently choose the same background (e.g., marble/marble/marble).
+    def _env_label(role: str) -> str:
+        role_key = role.split(" — ")[0].strip() if " — " in role else role.split("\n")[0].strip()
+        return _ROLE_ENVIRONMENT_LABEL.get(role_key, "distinct background unique to this shot")
+
+    role_environments = [_env_label(r) for r in roles]
+
     def _make_hints(role: str, photo_index: int) -> str:
+        this_env = role_environments[photo_index]
+        forbidden_envs = [
+            f"Photo {i + 1}: {env}"
+            for i, env in enumerate(role_environments)
+            if i != photo_index
+        ]
+        forbidden_block = (
+            f"FORBIDDEN ENVIRONMENTS — already used by sibling photos, MUST NOT be reused:\n"
+            + "\n".join(f"  ✗ {e}" for e in forbidden_envs)
+            + "\n"
+        ) if forbidden_envs else ""
+
         return (
             f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
             f"{style_lock}\n\n"
             f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n\n"
             f"COMPOSITION ROLE — this defines the camera angle AND how the product is oriented/framed for this specific photo:\n"
             f"{role}\n\n"
+            f"ASSIGNED ENVIRONMENT FOR THIS PHOTO: {this_env}\n"
+            f"You MUST use this environment category. Do NOT substitute a different surface, background, or setting.\n\n"
+            f"{forbidden_block}"
             f"PRODUCT IDENTITY LOCK:\n"
             f"• Keep the product's colors, design style, and element count exactly the same as the reference.\n"
             f"• Do NOT add or remove any characters, objects, or elements from the product.\n"
             f"• The camera angle, orientation, and framing of the product MUST follow the composition role above — this is what makes each photo different.\n\n"
-            f"SCENE DISTINCTNESS: This photo's background and environment must be completely different from every other photo in the campaign.\n\n"
             f"CAMPAIGN BRIEF — extract and apply ONLY the following from this brief:\n"
-            f"  • ENVIRONMENT: What physical location or space does this brief imply? Apply it to the background/scene.\n"
             f"  • LIGHTING FEEL: What quality of light does the brief suggest? Align with the Style Lock above.\n"
             f"  • COLOR STORY: What dominant hues does this brief imply? Use them in background and props, not the product.\n"
             f"  • EMOTIONAL REGISTER: What emotion should the viewer feel? Encode it through the environment mood.\n"
@@ -1361,13 +1466,20 @@ async def create_campaign(request: CampaignRequest):
         #   anchor already shows the product correctly rendered, so it acts as
         #   both the style lock and product identity — no separate URL needed.
         product_urls = [] if anchor_b64 else [request.product_image_url]
+        last_err: BaseException | None = None
         for attempt in range(3):
-            if attempt:
-                await asyncio.sleep(2 * attempt)
+            if attempt and last_err:
+                last_err_str = str(last_err)
+                # Rate-limit errors need much longer backoff than transient failures
+                if "429" in last_err_str or "RESOURCE_EXHAUSTED" in last_err_str.upper():
+                    await asyncio.sleep(30 + attempt * 30)
+                else:
+                    await asyncio.sleep(2 * attempt)
             try:
                 image = await generate_social_image(
                     prompt=request.campaign_brief,
                     platform=request.platform,
+                    aspect_ratio=request.image_aspect_ratio,
                     use_logo=request.use_logo,
                     use_mascot=request.use_mascot,
                     user_id=request.user_id,
@@ -1377,11 +1489,15 @@ async def create_campaign(request: CampaignRequest):
                     reference_urls=product_urls,
                     campaign_mode=True,
                     campaign_anchor_b64=anchor_b64,
+                    campaign_shot_type=role,
+                    brand_images=request.brand_images or [],
+                    use_brand_colors=request.use_brand_colors,
                 )
                 if attempt:
                     logger.info("campaign image_gen recovered on attempt %d | role=%s", attempt + 1, role)
                 return CampaignPhoto(image=image, composition_role=role)
             except Exception as err:
+                last_err = err
                 logger.warning("campaign image_gen attempt %d/3 failed | role=%s error=%s", attempt + 1, role, err)
                 if attempt == 2:
                     logger.error("campaign image_gen failed after 3 attempts | role=%s error=%s", role, err)
@@ -1393,8 +1509,15 @@ async def create_campaign(request: CampaignRequest):
     anchor_b64 = photo_1.image.image_base64 if photo_1 else None
 
     if len(roles) > 1:
+        async def _gen_photo_with_timeout(role: str, photo_index: int, anchor_b64: str | None) -> CampaignPhoto | None:
+            try:
+                return await asyncio.wait_for(_gen_photo(role, photo_index, anchor_b64), timeout=120)
+            except asyncio.TimeoutError:
+                logger.error("campaign image_gen timed out (120s) | role=%s photo=%d", role, photo_index + 1)
+                return None
+
         rest = await asyncio.gather(
-            *[_gen_photo(role, i + 1, anchor_b64=anchor_b64) for i, role in enumerate(roles[1:])],
+            *[_gen_photo_with_timeout(role, i + 1, anchor_b64=anchor_b64) for i, role in enumerate(roles[1:])],
             return_exceptions=True,
         )
     else:
