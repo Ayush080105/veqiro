@@ -159,10 +159,17 @@ export default function WaitlistPageContent({ count, max }: Props) {
                     letterSpacing: 0.5,
                     whiteSpace: 'nowrap',
                   }}>30% off</span>
-                  {' '}— first month only. Launch confetti included.
+                  {' '}— on your first plan. Launch confetti included.
                 </>
             }
           </p>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', margin: '-32px 0 44px' }}>
+            {['✓ Start free', '7-day trial', 'No payment method needed'].map((label) => (
+              <span key={label} style={{ background: '#F5C518', color: '#111', fontFamily: FONT.head, fontWeight: 700, fontSize: 11, padding: '3px 10px', borderRadius: 99, letterSpacing: 0.5 }}>{label}</span>
+            ))}
+          </div>
+
 
           {cd?.launched ? (
             <a
@@ -225,7 +232,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                   </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
                     We&apos;ll email you the moment the doors open — along with your{' '}
-                    <span style={{ fontFamily: FONT.head, fontWeight: 700 }}>30% off your first month</span>.
+                    <span style={{ fontFamily: FONT.head, fontWeight: 700 }}>30% off on your first plan</span>.
                   </p>
                 </div>
               ) : status === 'already' ? (
@@ -305,7 +312,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                       }} />
                     </div>
                     <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#999', margin: '10px 0 0', letterSpacing: 0.3 }}>
-                      No spam · Just the launch email + your first-month 30% off
+                      No spam · Just the launch email + 30% off on your first plan
                     </p>
                   </div>
                 </div>
