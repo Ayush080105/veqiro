@@ -309,3 +309,75 @@ export function usePublishedPosts(organizationId: string) {
     placeholderData: (prev) => prev,
   })
 }
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export interface PostAnalyticsData {
+  likes: number
+  comments: number
+  shares: number
+  impressions: number | null
+  reach: number | null
+  saves: number | null
+  lastFetchedAt: string
+}
+
+export interface PostWithAnalytics {
+  id: string
+  platform: "LINKEDIN" | "TWITTER" | "INSTAGRAM"
+  caption: string
+  hashtags: string[]
+  imageUrl: string | null
+  publishedAt: string | null
+  createdAt: string
+  platformPostId: string | null
+  analytics: PostAnalyticsData | null
+}
+
+export interface AnalyticsSummary {
+  posts: PostWithAnalytics[]
+  totals: { likes: number; comments: number; shares: number; impressions: number }
+  byPlatform: Record<string, { likes: number; comments: number; shares: number; impressions: number }>
+  unavailable: string[]
+}
+
+export async function getPostAnalytics(organizationId: string): Promise<AnalyticsSummary> {
+  try {
+    return await apiFetch<AnalyticsSummary>(
+      `/agents/maya/analytics?organizationId=${encodeURIComponent(organizationId)}`,
+      { agentSlugForNotFound: "maya" }
+    )
+  } catch (err) {
+    if (err instanceof AgentNotAvailableError) {
+      return { posts: [], totals: { likes: 0, comments: 0, shares: 0, impressions: 0 }, byPlatform: {} }
+    }
+    throw err
+  }
+}
+
+export async function refreshPostAnalytics(organizationId: string): Promise<AnalyticsSummary> {
+  return apiFetch<AnalyticsSummary>("/agents/maya/analytics/refresh", {
+    method: "POST",
+    body: { organizationId },
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export function usePostAnalytics(organizationId: string) {
+  return useQuery({
+    queryKey: qk.mayaAnalytics(organizationId),
+    queryFn: () => getPostAnalytics(organizationId),
+    enabled: !!organizationId,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useRefreshPostAnalytics(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => refreshPostAnalytics(organizationId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(qk.mayaAnalytics(organizationId), data)
+    },
+  })
+}

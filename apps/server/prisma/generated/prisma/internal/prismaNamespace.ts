@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.8.0
- * Query Engine version: 3c6e192761c0362d496ed980de936e2f3cebcd3a
+ * Prisma Client JS version: 7.6.0
+ * Query Engine version: 75cbdc1eb7150937890ad5465d861175c6624711
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.8.0",
-  engine: "3c6e192761c0362d496ed980de936e2f3cebcd3a"
+  client: "7.6.0",
+  engine: "75cbdc1eb7150937890ad5465d861175c6624711"
 }
 
 /**
@@ -399,6 +399,7 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
+  PostAnalytics: 'PostAnalytics',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
   LexSource: 'LexSource',
@@ -431,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "postAnalytics" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1542,6 +1543,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.PublishedPostCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.PublishedPostCountAggregateOutputType> | number
+        }
+      }
+    }
+    PostAnalytics: {
+      payload: Prisma.$PostAnalyticsPayload<ExtArgs>
+      fields: Prisma.PostAnalyticsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PostAnalyticsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PostAnalyticsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>
+        }
+        findFirst: {
+          args: Prisma.PostAnalyticsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PostAnalyticsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>
+        }
+        findMany: {
+          args: Prisma.PostAnalyticsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>[]
+        }
+        create: {
+          args: Prisma.PostAnalyticsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>
+        }
+        createMany: {
+          args: Prisma.PostAnalyticsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PostAnalyticsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>[]
+        }
+        delete: {
+          args: Prisma.PostAnalyticsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>
+        }
+        update: {
+          args: Prisma.PostAnalyticsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>
+        }
+        deleteMany: {
+          args: Prisma.PostAnalyticsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PostAnalyticsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PostAnalyticsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>[]
+        }
+        upsert: {
+          args: Prisma.PostAnalyticsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostAnalyticsPayload>
+        }
+        aggregate: {
+          args: Prisma.PostAnalyticsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePostAnalytics>
+        }
+        groupBy: {
+          args: Prisma.PostAnalyticsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PostAnalyticsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PostAnalyticsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PostAnalyticsCountAggregateOutputType> | number
         }
       }
     }
@@ -3089,6 +3164,23 @@ export const PublishedPostScalarFieldEnum = {
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
+export const PostAnalyticsScalarFieldEnum = {
+  id: 'id',
+  publishedPostId: 'publishedPostId',
+  likes: 'likes',
+  comments: 'comments',
+  shares: 'shares',
+  impressions: 'impressions',
+  reach: 'reach',
+  saves: 'saves',
+  lastFetchedAt: 'lastFetchedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PostAnalyticsScalarFieldEnum = (typeof PostAnalyticsScalarFieldEnum)[keyof typeof PostAnalyticsScalarFieldEnum]
+
+
 export const MayaContentIdeaScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -3230,6 +3322,7 @@ export const VegaLabelScalarFieldEnum = {
   id: 'id',
   name: 'name',
   color: 'color',
+  rationale: 'rationale',
   autoReply: 'autoReply',
   organizationId: 'organizationId',
   createdAt: 'createdAt'
@@ -3664,21 +3757,6 @@ export type PrismaClientOptions = ({
    * ```
    */
   comments?: runtime.SqlCommenterPlugin[]
-  /**
-   * Optional maximum size for the query plan cache. If not provided, a default size will be used.
-   * A value of `0` can be used to disable the cache entirely. A higher cache size can improve
-   * performance for applications that execute a large number of unique queries, while a smaller
-   * cache size can reduce memory usage.
-   * 
-   * @example
-   * ```
-   * const prisma = new PrismaClient({
-   *   adapter,
-   *   queryPlanCacheMaxSize: 100,
-   * })
-   * ```
-   */
-  queryPlanCacheMaxSize?: number
 }
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
@@ -3696,6 +3774,7 @@ export type GlobalOmitConfig = {
   orgMemory?: Prisma.OrgMemoryOmit
   socialAccount?: Prisma.SocialAccountOmit
   publishedPost?: Prisma.PublishedPostOmit
+  postAnalytics?: Prisma.PostAnalyticsOmit
   mayaContentIdea?: Prisma.MayaContentIdeaOmit
   sageSavedKeyword?: Prisma.SageSavedKeywordOmit
   lexSource?: Prisma.LexSourceOmit

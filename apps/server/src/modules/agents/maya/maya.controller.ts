@@ -127,3 +127,17 @@ export const expandBrief = async (req: Request, res: Response) => {
   const result = await mayaService.expandBrief(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
+
+export const getAnalytics = async (req: Request, res: Response) => {
+  const organizationId = (req.query.organizationId as string) ?? req.organizationId;
+  if (!organizationId) throw new BadRequestError("Organization ID is required");
+  const summary = await mayaService.getAnalyticsSummary(organizationId);
+  res.status(StatusCodes.OK).json(summary);
+};
+
+export const refreshAnalytics = async (req: Request, res: Response) => {
+  const organizationId = (req.body.organizationId as string) ?? req.organizationId;
+  if (!organizationId) throw new BadRequestError("Organization ID is required");
+  const summary = await mayaService.fetchAndCacheAnalytics(organizationId);
+  res.status(StatusCodes.OK).json(summary);
+};

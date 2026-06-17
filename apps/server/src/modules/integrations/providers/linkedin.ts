@@ -1,8 +1,10 @@
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
 import type {
+  AnalyticsResult,
   AuthorizeContext,
   ExchangeContext,
   ExchangeResult,
+  GetAnalyticsArgs,
   PublishArgs,
   PublishResult,
   RefreshResult,
@@ -220,5 +222,44 @@ export const linkedin: SocialProvider = {
       console.warn("[linkedin] publish succeeded but no post URN in response headers");
     }
     return { platformPostId: postUrn || id, url };
+  },
+
+  async getAnalytics({ platformPostId, account }: GetAnalyticsArgs): Promise<AnalyticsResult> {
+    // LinkedIn's socialActions endpoint is a Partner API (partnerApiSocialActions)
+    // and returns 403 ACCESS_DENIED for standard member OAuth tokens.
+    // Personal post analytics are not available via the standard w_member_social scope —
+    // they require LinkedIn Marketing Partner program access.
+    // We still attempt the call so that if the app is ever approved as a partner,
+    // it works automatically.
+    const encodedUrn = encodeURIComponent(platformPostId);
+    const res = await fetch(
+      `https://api.linkedin.com/rest/socialActions/${encodedUrn}`,
+      {
+        headers: {
+          Authorization: `Bearer ${account.accessToken}`,
+          "LinkedIn-Version": API_VERSION,
+          "X-Restli-Protocol-Version": "2.0.0",
+        },
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      let parsed: { code?: string } = {};
+      try { parsed = JSON.parse(body); } catch { /* ignore */ }
+      if (res.status === 403 && parsed.code === "ACCESS_DENIED") {
+        throw new Error("LINKEDIN_PARTNER_REQUIRED");
+      }
+      throw new Error(`LinkedIn GET /rest/socialActions failed (${res.status}): ${body}`);
+    }
+    const json = (await res.json()) as {
+      likesSummary?: { totalLikes?: number };
+      commentsSummary?: { totalFirstLevelComments?: number };
+      sharesSummary?: { totalShares?: number };
+    };
+    return {
+      likes: json.likesSummary?.totalLikes ?? 0,
+      comments: json.commentsSummary?.totalFirstLevelComments ?? 0,
+      shares: json.sharesSummary?.totalShares ?? 0,
+    };
   },
 };

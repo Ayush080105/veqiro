@@ -66,6 +66,7 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   PublishedPost: 'PublishedPost',
+  PostAnalytics: 'PostAnalytics',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
   LexSource: 'LexSource',
@@ -348,6 +349,23 @@ export const PublishedPostScalarFieldEnum = {
 export type PublishedPostScalarFieldEnum = (typeof PublishedPostScalarFieldEnum)[keyof typeof PublishedPostScalarFieldEnum]
 
 
+export const PostAnalyticsScalarFieldEnum = {
+  id: 'id',
+  publishedPostId: 'publishedPostId',
+  likes: 'likes',
+  comments: 'comments',
+  shares: 'shares',
+  impressions: 'impressions',
+  reach: 'reach',
+  saves: 'saves',
+  lastFetchedAt: 'lastFetchedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PostAnalyticsScalarFieldEnum = (typeof PostAnalyticsScalarFieldEnum)[keyof typeof PostAnalyticsScalarFieldEnum]
+
+
 export const MayaContentIdeaScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -489,6 +507,7 @@ export const VegaLabelScalarFieldEnum = {
   id: 'id',
   name: 'name',
   color: 'color',
+  rationale: 'rationale',
   autoReply: 'autoReply',
   organizationId: 'organizationId',
   createdAt: 'createdAt'

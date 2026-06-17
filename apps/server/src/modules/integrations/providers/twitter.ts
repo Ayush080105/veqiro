@@ -1,8 +1,10 @@
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
 import type {
+  AnalyticsResult,
   AuthorizeContext,
   ExchangeContext,
   ExchangeResult,
+  GetAnalyticsArgs,
   PublishArgs,
   PublishResult,
   RefreshResult,
@@ -194,6 +196,37 @@ export const twitter: SocialProvider = {
       ? `https://x.com/${handle}/status/${json.data.id}`
       : `https://x.com/i/status/${json.data.id}`;
     return { platformPostId: json.data.id, url };
+  },
+
+  async getAnalytics({ platformPostId, account }: GetAnalyticsArgs): Promise<AnalyticsResult> {
+    const res = await fetch(
+      `https://api.twitter.com/2/tweets/${platformPostId}?tweet.fields=public_metrics`,
+      { headers: { Authorization: `Bearer ${account.accessToken}` } },
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Twitter GET /2/tweets failed (${res.status}): ${body}`);
+    }
+    const json = (await res.json()) as {
+      data?: {
+        public_metrics?: {
+          like_count: number;
+          reply_count: number;
+          retweet_count: number;
+          quote_count: number;
+          bookmark_count: number;
+          impression_count: number;
+        };
+      };
+    };
+    const m = json.data?.public_metrics;
+    return {
+      likes: m?.like_count ?? 0,
+      comments: m?.reply_count ?? 0,
+      shares: (m?.retweet_count ?? 0) + (m?.quote_count ?? 0),
+      impressions: m?.impression_count,
+      saves: m?.bookmark_count,
+    };
   },
 
   async revoke(account) {

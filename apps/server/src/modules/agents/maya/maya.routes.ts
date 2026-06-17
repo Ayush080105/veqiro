@@ -14,6 +14,8 @@ import {
   getPublishedPosts,
   createCampaign,
   expandBrief,
+  getAnalytics,
+  refreshAnalytics,
 } from "./maya.controller.js";
 
 const router = Router();
@@ -32,5 +34,7 @@ router.post("/publish-carousel", publishCarousel);
 router.get("/published-posts", getPublishedPosts);
 router.post("/campaign", createCampaign);
 router.post("/expand-brief", expandBrief);
+router.get("/analytics", getAnalytics);
+router.post("/analytics/refresh", refreshAnalytics);
 
 export default router;

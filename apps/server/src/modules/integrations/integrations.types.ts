@@ -49,6 +49,20 @@ export interface PublishResult {
   url?: string;
 }
 
+export interface AnalyticsResult {
+  likes: number;
+  comments: number;
+  shares: number;
+  impressions?: number;
+  reach?: number;
+  saves?: number;
+}
+
+export interface GetAnalyticsArgs {
+  platformPostId: string;
+  account: SocialAccount;
+}
+
 export interface SocialProvider {
   platform: SocialPlatform;
   slug: PlatformSlug;
@@ -59,6 +73,7 @@ export interface SocialProvider {
   refresh?(refreshToken: string): Promise<RefreshResult>;
   publish(args: PublishArgs): Promise<PublishResult>;
   publishCarousel?(args: PublishCarouselArgs): Promise<PublishResult>;
+  getAnalytics?(args: GetAnalyticsArgs): Promise<AnalyticsResult>;
   revoke?(account: SocialAccount): Promise<void>;
 }
 

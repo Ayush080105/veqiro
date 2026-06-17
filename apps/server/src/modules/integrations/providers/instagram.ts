@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
 import type {
+  AnalyticsResult,
   AuthorizeContext,
   ExchangeContext,
   ExchangeResult,
+  GetAnalyticsArgs,
   PublishArgs,
   PublishCarouselArgs,
   PublishResult,
@@ -148,9 +150,7 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
 export const instagram: SocialProvider = {
   platform: SocialPlatform.INSTAGRAM,
   slug: "instagram",
-  // The minimum needed to publish a feed image. Add `_manage_messages` /
-  // `_manage_comments` later if we surface those features.
-  scopes: "instagram_business_basic,instagram_business_content_publish",
+  scopes: "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights",
   usesPkce: false,
 
   buildAuthorizeUrl({ state, redirectUri }: AuthorizeContext) {
@@ -404,5 +404,39 @@ export const instagram: SocialProvider = {
     const handle = meta.username;
     const url = handle ? `https://www.instagram.com/${handle}/` : undefined;
     return { platformPostId: mediaId, url };
+  },
+
+  async getAnalytics({ platformPostId, account }: GetAnalyticsArgs): Promise<AnalyticsResult> {
+    // instagram_business_manage_insights is required for media insights.
+    // That scope is not in our default connect flow — it requires Meta app review.
+    // If the account was connected without it, skip gracefully.
+    const grantedScopes = (account.scope ?? "").split(",").map((s) => s.trim());
+    if (!grantedScopes.includes("instagram_business_manage_insights")) {
+      throw new Error("instagram_business_manage_insights scope not granted — reconnect with insights permission to enable analytics");
+    }
+
+    const metrics = ["likes", "comments", "shares", "saved", "impressions", "reach"].join(",");
+    const res = await fetch(
+      `https://graph.instagram.com/${GRAPH_VERSION}/${platformPostId}/insights?metric=${metrics}&access_token=${account.accessToken}`,
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Instagram GET /insights failed (${res.status}): ${body}`);
+    }
+    const json = (await res.json()) as {
+      data?: Array<{ name: string; values?: Array<{ value: number }> }>;
+    };
+    const byName: Record<string, number> = {};
+    for (const item of json.data ?? []) {
+      byName[item.name] = item.values?.[0]?.value ?? 0;
+    }
+    return {
+      likes: byName["likes"] ?? 0,
+      comments: byName["comments"] ?? 0,
+      shares: byName["shares"] ?? 0,
+      impressions: byName["impressions"],
+      reach: byName["reach"],
+      saves: byName["saved"],
+    };
   },
 };

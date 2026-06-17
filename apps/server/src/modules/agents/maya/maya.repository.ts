@@ -1,6 +1,7 @@
 import { prisma } from "../../../config/prisma.js";
 import { Agent, Prisma, SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
 import { recordDirectActionContextForAssistantMessage } from "../../../common/utils/contextService.js";
+import type { AnalyticsResult } from "../../integrations/integrations.types.js";
 
 export const createUserMessage = (data: {
   organizationId: string;
@@ -120,3 +121,82 @@ export const saveIdeas = (
     contentType: string;
   }[]
 ) => prisma.mayaContentIdea.createMany({ data: ideas });
+
+export const findPublishedPostsWithAccounts = (organizationId: string) =>
+  prisma.publishedPost.findMany({
+    where: { organizationId, status: "success", platformPostId: { not: null } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      platform: true,
+      caption: true,
+      hashtags: true,
+      imageUrl: true,
+      status: true,
+      publishedAt: true,
+      createdAt: true,
+      platformPostId: true,
+      socialAccount: {
+        select: {
+          id: true,
+          platform: true,
+          providerAccountId: true,
+          accountName: true,
+          accessToken: true,
+          refreshToken: true,
+          accessTokenExpiresAt: true,
+          scope: true,
+          metadata: true,
+          organizationId: true,
+          userId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+      analytics: true,
+    },
+  });
+
+export const upsertPostAnalytics = (
+  publishedPostId: string,
+  data: AnalyticsResult & { lastFetchedAt: Date }
+) =>
+  prisma.postAnalytics.upsert({
+    where: { publishedPostId },
+    create: {
+      publishedPostId,
+      likes: data.likes,
+      comments: data.comments,
+      shares: data.shares,
+      impressions: data.impressions ?? null,
+      reach: data.reach ?? null,
+      saves: data.saves ?? null,
+      lastFetchedAt: data.lastFetchedAt,
+    },
+    update: {
+      likes: data.likes,
+      comments: data.comments,
+      shares: data.shares,
+      impressions: data.impressions ?? null,
+      reach: data.reach ?? null,
+      saves: data.saves ?? null,
+      lastFetchedAt: data.lastFetchedAt,
+    },
+  });
+
+export const findPostsWithAnalytics = (organizationId: string) =>
+  prisma.publishedPost.findMany({
+    where: { organizationId, status: "success", platformPostId: { not: null } },
+    orderBy: { publishedAt: "desc" },
+    select: {
+      id: true,
+      platform: true,
+      caption: true,
+      hashtags: true,
+      imageUrl: true,
+      publishedAt: true,
+      createdAt: true,
+      platformPostId: true,
+      analytics: true,
+    },
+  });

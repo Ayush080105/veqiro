@@ -4,7 +4,7 @@ import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
-import { Agent } from "../../../../prisma/generated/prisma/client.js";
+import { Agent, SocialAccount } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64 } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsRepository from "../../integrations/integrations.repository.js";
@@ -805,3 +805,123 @@ export const createCampaign = async (
 
   return result;
 };
+
+export type PostWithAnalytics = {
+  id: string;
+  platform: SocialPlatform;
+  caption: string;
+  hashtags: string[];
+  imageUrl: string | null;
+  publishedAt: Date | null;
+  createdAt: Date;
+  platformPostId: string | null;
+  analytics: {
+    likes: number;
+    comments: number;
+    shares: number;
+    impressions: number | null;
+    reach: number | null;
+    saves: number | null;
+    lastFetchedAt: Date;
+  } | null;
+};
+
+export type AnalyticsSummary = {
+  posts: PostWithAnalytics[];
+  totals: {
+    likes: number;
+    comments: number;
+    shares: number;
+    impressions: number;
+  };
+  byPlatform: Record<string, { likes: number; comments: number; shares: number; impressions: number }>;
+  unavailable: string[];
+};
+
+export const fetchAndCacheAnalytics = async (organizationId: string): Promise<AnalyticsSummary> => {
+  const posts = await mayaRepository.findPublishedPostsWithAccounts(organizationId);
+  const now = new Date();
+  const unavailablePlatforms = new Set<string>();
+
+  await Promise.allSettled(
+    posts.map(async (post) => {
+      if (!post.platformPostId || !post.socialAccount) return;
+      const slug = platformFromEnum(post.platform);
+      const provider = providers[slug];
+      if (!provider.getAnalytics) return;
+
+      let account = post.socialAccount as SocialAccount;
+
+      // Lazy token refresh
+      if (
+        account.accessTokenExpiresAt &&
+        account.accessTokenExpiresAt.getTime() < Date.now() + 60_000 &&
+        account.refreshToken &&
+        provider.refresh
+      ) {
+        try {
+          const refreshed = await provider.refresh(account.refreshToken);
+          account = await integrationsRepository.update(account.id, {
+            accessToken: refreshed.accessToken,
+            accessTokenExpiresAt: refreshed.expiresAt ?? null,
+          });
+        } catch (err) {
+          console.error("[maya:analytics] token refresh failed", err);
+        }
+      }
+
+      try {
+        const result = await provider.getAnalytics({
+          platformPostId: post.platformPostId,
+          account,
+        });
+        await mayaRepository.upsertPostAnalytics(post.id, { ...result, lastFetchedAt: now });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg === "LINKEDIN_PARTNER_REQUIRED") {
+          unavailablePlatforms.add("LINKEDIN");
+        } else if (msg.includes("instagram_business_manage_insights")) {
+          unavailablePlatforms.add("INSTAGRAM");
+        } else {
+          console.error(`[maya:analytics] failed to fetch analytics for post ${post.id}`, err);
+        }
+      }
+    })
+  );
+
+  const summary = buildSummary(await mayaRepository.findPostsWithAnalytics(organizationId));
+  return { ...summary, unavailable: Array.from(unavailablePlatforms) };
+};
+
+export const getAnalyticsSummary = async (organizationId: string): Promise<AnalyticsSummary> => {
+  const posts = await mayaRepository.findPostsWithAnalytics(organizationId);
+  if (posts.some((p) => p.analytics)) {
+    return buildSummary(posts);
+  }
+  return fetchAndCacheAnalytics(organizationId);
+};
+
+function buildSummary(
+  posts: Awaited<ReturnType<typeof mayaRepository.findPostsWithAnalytics>>,
+  unavailable: string[] = []
+): AnalyticsSummary {
+  const totals = { likes: 0, comments: 0, shares: 0, impressions: 0 };
+  const byPlatform: Record<string, { likes: number; comments: number; shares: number; impressions: number }> = {};
+
+  for (const post of posts) {
+    const a = post.analytics;
+    if (!a) continue;
+    const platform = post.platform as string;
+    if (!byPlatform[platform]) byPlatform[platform] = { likes: 0, comments: 0, shares: 0, impressions: 0 };
+    totals.likes += a.likes;
+    totals.comments += a.comments;
+    totals.shares += a.shares;
+    totals.impressions += a.impressions ?? 0;
+    byPlatform[platform].likes += a.likes;
+    byPlatform[platform].comments += a.comments;
+    byPlatform[platform].shares += a.shares;
+    byPlatform[platform].impressions += a.impressions ?? 0;
+  }
+
+  return { posts: posts as PostWithAnalytics[], totals, byPlatform, unavailable };
+}

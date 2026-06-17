@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } fr
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useMutationState } from "@tanstack/react-query"
-import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown } from "lucide-react"
+import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, BarChart2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -32,6 +32,7 @@ import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
+import { MayaAnalyticsTab } from "@/components/agents/maya/analytics-tab"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
@@ -431,7 +432,7 @@ export default function AssistantChatPage() {
   const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
-  const [mayaTab, setMayaTab] = useState<"chat" | "published">("chat")
+  const [mayaTab, setMayaTab] = useState<"chat" | "published" | "analytics">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const chatScrollRef = useRef<HTMLDivElement>(null)
@@ -1083,12 +1084,28 @@ export default function AssistantChatPage() {
           >
             <FolderOpen className="size-3" /> Published Posts
           </button>
+          <button
+            suppressHydrationWarning
+            type="button"
+            onClick={() => setMayaTab("analytics")}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              mayaTab === "analytics"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <BarChart2 className="size-3" /> Analytics
+          </button>
         </div>
       )}
 
       {isMaya && mayaTab === "published" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <MayaPublishedPostsTab />
+        </div>
+      ) : isMaya && mayaTab === "analytics" ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <MayaAnalyticsTab />
         </div>
       ) : isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
@@ -1274,7 +1291,7 @@ export default function AssistantChatPage() {
           !(isScout && scoutTab === "watchlist") &&
           !(isSage && sageTab === "favourites") &&
           !(isRex && rexTab === "data") &&
-          !(isMaya && mayaTab === "published") && (
+          !(isMaya && (mayaTab === "published" || mayaTab === "analytics")) && (
           <ChatInput
             value={content}
             onChange={setContent}

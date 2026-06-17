@@ -93,6 +93,11 @@ export type SocialAccount = Prisma.SocialAccountModel
  */
 export type PublishedPost = Prisma.PublishedPostModel
 /**
+ * Model PostAnalytics
+ * Cached engagement analytics for a published social post.
+ */
+export type PostAnalytics = Prisma.PostAnalyticsModel
+/**
  * Model MayaContentIdea
  * Maya-generated idea saved to avoid repeats.
  */

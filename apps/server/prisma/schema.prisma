@@ -531,6 +531,8 @@ model PublishedPost {
   publishedAt     DateTime?
   /// Local creation timestamp.
   createdAt       DateTime       @default(now())
+  /// Cached engagement analytics for this post.
+  analytics       PostAnalytics?
 
   @@index([organizationId, createdAt])
   @@index([organizationId, status, publishedAt])
@@ -538,6 +540,36 @@ model PublishedPost {
   @@index([organizationId, platform, createdAt])
   @@index([socialAccountId])
   @@map("published_post")
+}
+
+/// Cached engagement analytics for a published social post.
+model PostAnalytics {
+  /// Analytics record id.
+  id              String        @id @default(uuid())
+  /// Published post this record belongs to.
+  publishedPostId String        @unique
+  /// Relation to the published post.
+  publishedPost   PublishedPost @relation(fields: [publishedPostId], references: [id], onDelete: Cascade)
+  /// Number of likes / reactions.
+  likes           Int           @default(0)
+  /// Number of comments / replies.
+  comments        Int           @default(0)
+  /// Number of shares / retweets.
+  shares          Int           @default(0)
+  /// Total impressions (platform-dependent availability).
+  impressions     Int?
+  /// Unique reach (Instagram only).
+  reach           Int?
+  /// Saves (Instagram) or bookmarks (Twitter).
+  saves           Int?
+  /// When this record was last fetched from the platform.
+  lastFetchedAt   DateTime
+  /// Record creation timestamp.
+  createdAt       DateTime      @default(now())
+  /// Record update timestamp.
+  updatedAt       DateTime      @updatedAt
+
+  @@map("post_analytics")
 }
 
 /// Maya-generated idea saved to avoid repeats.
