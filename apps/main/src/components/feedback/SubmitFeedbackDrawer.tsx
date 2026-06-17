@@ -51,7 +51,7 @@ const CATEGORIES: Array<{
   { value: "INTEGRATION", label: "Integration", description: "Connect with a tool or platform", icon: Puzzle, color: "#8A8AF0" },
   { value: "NEW_AGENT", label: "New Agent", description: "An entirely new AI agent to build", icon: Bot, color: "#1DBC87" },
   { value: "UX_IMPROVEMENT", label: "UX Improvement", description: "Make something easier to use", icon: Sparkles, color: "#6FCDE8" },
-  { value: "GENERAL", label: "General", description: "Anything else on your mind", icon: MessageSquare, color: "#F79FD4" },
+  { value: "GENERAL", label: "Opinion / Other", description: "Share thoughts, complaints, or anything on your mind", icon: MessageSquare, color: "#F79FD4" },
 ]
 
 const STATUS_COLORS: Record<string, string> = {

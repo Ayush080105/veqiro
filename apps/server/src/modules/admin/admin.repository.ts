@@ -2,6 +2,10 @@ import { prisma } from "../../config/prisma.js";
 import { buildSignupBuckets, buildHealthBuckets, buildTokenBuckets } from "./admin.charts.js";
 import { estimateCost, PLAN_MONTHLY_REVENUE } from "./admin.costs.js";
 import { computeOrgHealth } from "./admin.health.js";
+import {
+  FeedbackStatus,
+  FeedbackCategory,
+} from "../../../prisma/generated/prisma/client.js";
 
 const PAGE_SIZE = 25;
 const ALL_AGENTS = ["MAYA", "REX", "SCOUT", "SAGE", "LEX", "VEGA"] as const;
@@ -1327,4 +1331,86 @@ export async function exportUsersCsv() {
   );
 
   return header + rows.join("\n");
+}
+
+// ── Feedback (admin) ──────────────────────────────────────────────────────────
+
+export async function listFeedbackAdmin(filters: {
+  status?: FeedbackStatus;
+  category?: FeedbackCategory;
+  agentSlug?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const { status, category, agentSlug, search, page = 1, limit = 25 } = filters;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    ...(status ? { status } : {}),
+    ...(category ? { category } : {}),
+    ...(agentSlug ? { agentSlug } : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { description: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.feedbackPost.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: [{ createdAt: "desc" }, { voteCount: "desc" }],
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        agentSlug: true,
+        status: true,
+        voteCount: true,
+        adminReply: true,
+        adminNote: true,
+        roadmapEta: true,
+        isMerged: true,
+        createdAt: true,
+        createdBy: { select: { id: true, name: true, email: true } },
+        _count: { select: { comments: true } },
+      },
+    }),
+    prisma.feedbackPost.count({ where }),
+  ]);
+
+  return { data, total, page, totalPages: Math.ceil(total / limit) };
+}
+
+export async function getFeedbackStats() {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [total, newThisWeek, byStatus, byCategory, topVoted] = await Promise.all([
+    prisma.feedbackPost.count(),
+    prisma.feedbackPost.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+    prisma.feedbackPost.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.feedbackPost.groupBy({ by: ["category"], _count: { _all: true } }),
+    prisma.feedbackPost.findMany({
+      orderBy: { voteCount: "desc" },
+      take: 5,
+      select: { id: true, title: true, voteCount: true },
+    }),
+  ]);
+
+  const byStatusMap = Object.fromEntries(byStatus.map((s) => [s.status, s._count._all]));
+  const byCategoryMap = Object.fromEntries(byCategory.map((c) => [c.category, c._count._all]));
+
+  return {
+    total,
+    newThisWeek,
+    byStatus: byStatusMap as Record<string, number>,
+    byCategory: byCategoryMap as Record<string, number>,
+    topVoted,
+  };
 }
