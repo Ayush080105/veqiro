@@ -196,10 +196,9 @@ export function MayaDraftForm({
         description={platforms?.length === 1 ? limitHint[platforms[0]] : undefined}
       >
         {({ field }) => (
-          <PlatformMultiPicker
-            value={(field.value as ContentPlatform[]) ?? []}
-            onChange={field.onChange}
-            showAll
+          <PlatformPicker
+            value={(field.value as ContentPlatform[])?.[0] ?? "linkedin"}
+            onChange={(p) => field.onChange([p])}
           />
         )}
       </RhfField>

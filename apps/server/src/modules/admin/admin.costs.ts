@@ -1,4 +1,5 @@
 const MODEL_COST_PER_TOKEN: Record<string, number> = {
+  "gpt-4.1-mini":     0.40 / 1_000_000,
   "gpt-4o-mini":      0.30 / 1_000_000,
   "gpt-4o":           2.50 / 1_000_000,
   "gemini-2.5-flash": 0.20 / 1_000_000,

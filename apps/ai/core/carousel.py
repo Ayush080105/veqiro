@@ -57,20 +57,20 @@ _SLIDE_ROLES = {
     8: ["hook", "problem", "insight 1", "insight 2", "insight 3", "proof/stat", "social proof", "takeaway / CTA visual"],
 }
 
-# Each slide role maps to a distinct dynamic composition — prevents monotonic square-in-square layouts
+# Each slide role maps to a photographic/cinematic visual approach — real people, real environments
 _SLIDE_COMPOSITIONS = {
-    "hook": "full-bleed brand color background, massive oversized headline text at bold angle, no borders or frames",
-    "hook / opening visual": "full-bleed brand color background, massive oversized headline at bold angle, no borders",
-    "proof or punchline / closing visual": "strong color split diagonally, bold punchline text on one side, striking visual on the other",
-    "core insight visual": "large bold statistic or quote centered, geometric brand-color shape (circle or triangle) as background accent",
-    "problem visual": "dark moody background, cracked or tension visual metaphor, bold warning-style headline in brand accent color",
-    "solution visual": "bright positive brand color, bold upward arrow or breakout shape, headline overlapping a visual element",
-    "insight 1": "asymmetric layout — big number '01' in brand color far left, insight text right-aligned with thin horizontal rule",
-    "insight 2": "split composition: colored band top-third, white/light lower two-thirds, headline bridging the split",
-    "insight 3": "data-visualization inspired — bold chart or graph shape in brand colors, single key takeaway overlaid",
-    "proof/stat": "stark minimal — huge impactful number in brand primary color dominates 60% of the image, small supporting context",
-    "social proof": "quote marks as giant decorative element in brand accent, testimonial text inside, person/brand name below",
-    "takeaway / CTA visual": "strong brand gradient or solid color, clean bold CTA text centered, arrow or button shape element, brand name bottom-right",
+    "hook": "dramatic split diagonal — before/after contrast with real person at the inflection point, immediate emotional stakes, cinematic atmospheric color grade",
+    "hook / opening visual": "high-impact opening scene — real person facing the central tension, environment telegraphs the stakes, strong subject with atmospheric depth behind them",
+    "proof or punchline / closing visual": "payoff moment — transformed subject in empowered environment, emotional resolution, bright confident energy contrasting earlier struggle",
+    "core insight visual": "concept scene — person interacting with the central idea in a real-world setting, single dramatic light source, environment that symbolises the insight",
+    "problem visual": "pain point close-up — stressed person in chaotic environment, warm dark amber tones, shallow depth of field isolating the expression of struggle",
+    "solution visual": "transformation scene — same persona now calm and confident, cool clean light, modern space, forward momentum visible in body language and environment",
+    "insight 1": "medium shot — person with a visual element embodying this insight, complementary color grade to the hook slide",
+    "insight 2": "wider environment shot — the insight playing out in a real space, brand color accent visible in a scene detail or light source",
+    "insight 3": "tight detail shot — close crop of the key element representing this insight, high contrast directional lighting",
+    "proof/stat": "stark impact shot — single powerful visual that embodies the statistic, minimal environment, brand color in a dominant light source or foreground element",
+    "social proof": "authentic human moment — person in a genuine satisfied interaction, warm natural light, direct or implied eye contact with the viewer",
+    "takeaway / CTA visual": "confident closing scene — subject facing the viewer, clean modern environment with brand color accents, sense of momentum and forward possibility",
 }
 
 
@@ -89,8 +89,9 @@ def _build_carousel_prompt(
     locked_numbers: list[str] | None = None,
 ) -> str:
     roles = _SLIDE_ROLES.get(count, _SLIDE_ROLES[5])
+    _default_composition = "cinematic scene that embodies this slides message, real person or environment, brand color grade"
     roles_str = "\n".join(
-        f"  Image {i+1}: {r} — composition: {_SLIDE_COMPOSITIONS.get(r, 'dynamic, bold, brand-driven layout')}"
+        f"  Image {i+1}: {r} — visual approach: {_SLIDE_COMPOSITIONS.get(r, _default_composition)}"
         for i, r in enumerate(roles)
     )
 
@@ -115,29 +116,29 @@ def _build_carousel_prompt(
     if additional_context:
         brand_context += f"Context: {additional_context}. "
 
-    # Build an explicit brand visual spec — label hex codes as design values so they never render as text
+    # Brand color names for photographic/cinematic use — color grading, not flat fills
     brand_visual = ""
     if brand_colors:
         primary = brand_colors.get("primary", "")
         secondary = brand_colors.get("secondary", "")
         accent = brand_colors.get("accent", "")
         parts = [
-            f"primary {_hex_to_color_name(primary)} ({primary})" if primary else "",
-            f"secondary {_hex_to_color_name(secondary)} ({secondary})" if secondary else "",
-            f"accent {_hex_to_color_name(accent)} ({accent})" if accent else "",
+            f"primary {_hex_to_color_name(primary)}" if primary else "",
+            f"secondary {_hex_to_color_name(secondary)}" if secondary else "",
+            f"accent {_hex_to_color_name(accent)}" if accent else "",
         ]
         color_str = ", ".join(p for p in parts if p)
         if color_str:
             brand_visual += (
-                f"BRAND COLOR VALUES (apply to design only — NEVER print these codes as text): {color_str}. "
+                f"Brand color palette (use for cinematic color grading, accent light sources, and text overlays — never print as raw text): {color_str}. "
             )
     if brand_fonts:
         heading = brand_fonts.get("heading") or brand_fonts.get("primary") or brand_fonts.get("display") or ""
         body = brand_fonts.get("body") or brand_fonts.get("secondary") or ""
         if heading:
-            brand_visual += f"Heading font: {heading}. "
+            brand_visual += f"Heading font style: {heading}. "
         if body:
-            brand_visual += f"Body font: {body}. "
+            brand_visual += f"Body font style: {body}. "
 
     # Locked numbers block — injected when numeric facts are extracted from topic
     locked_block = ""
@@ -150,40 +151,53 @@ def _build_carousel_prompt(
         )
 
     return (
-        f"Create a {platform} carousel post with {count} swipeable images for this topic.\n"
+        f"Create a {platform} carousel post with {count} swipeable photographic images for this topic.\n"
         f"Topic: \"{topic}\"\n"
         f"{brand_context}\n"
         f"{brand_visual}\n"
         f"{locked_block}"
         f"TASK:\n"
         f"1. Write ONE single caption for the whole post ({limit_rule})\n"
-        f"2. Define ONE locked DESIGN SYSTEM that will be applied identically to every slide image.\n"
-        f"3. Create {count} image prompts using that design system — one per swipeable slide.\n\n"
-        f"Image visual arc (follow exactly):\n{roles_str}\n\n"
-        f"DESIGN SYSTEM rules (this is the most important part):\n"
-        f"- The design system MUST be built around the brand colors and fonts listed above.\n"
-        f"  Do NOT invent a different color palette — use the brand's exact colors.\n"
-        f"- Define a specific, locked design template in 2-3 sentences covering:\n"
-        f"  * Background: use the brand's primary or secondary color as the dominant background\n"
-        f"  * Accent & text colors: derived from the brand palette (use color names, not hex codes)\n"
-        f"  * Layout grid: where the headline sits, where the visual element sits, margins\n"
-        f"  * Typography style: font weight, size relationship (e.g. 'large bold display headline top-left, small caption bottom-right')\n"
-        f"  * Logo/brand placement: exact corner and size (e.g. 'brand name bottom-right in accent color, small')\n"
-        f"  * Decorative motif: one consistent repeating element that uses brand colors (e.g. 'thin diagonal accent line', 'circle frame')\n"
-        f"- This design_system string gets embedded verbatim at the start of every image_prompt.\n\n"
+        f"2. Define ONE VISUAL DNA — a shared cinematic photographic style that unifies all slides.\n"
+        f"3. Create {count} image prompts — each describes a real photographic scene that tells that slide's visual story.\n\n"
+        f"Visual narrative arc (follow exactly):\n{roles_str}\n\n"
+        f"VISUAL DNA rules (this is the most important part):\n"
+        f"- The visual DNA defines how every slide FEELS photographically — NOT a layout template or infographic.\n"
+        f"- Define it in 2-3 sentences covering:\n"
+        f"  * Color grade: the cinematic color treatment applied across all images — incorporate the brand's primary color "
+        f"(e.g. 'warm amber and teal split grade with golden accent light', 'cool desaturated teal with yellow accent highlights'). "
+        f"This is a photographic color grade, not a background fill.\n"
+        f"  * Lighting style: consistent light quality across all slides "
+        f"(e.g. 'soft directional window light with atmospheric haze', 'hard dramatic side lighting casting sharp shadows')\n"
+        f"  * Composition approach: how subjects are framed "
+        f"(e.g. 'diagonal splits, medium-to-wide shots, subject offset left', 'alternating close-ups and wide establishing shots')\n"
+        f"  * Typography treatment: how text overlays appear across all slides "
+        f"(e.g. 'large bold white headline bottom-left, semi-transparent dark gradient behind text area')\n"
+        f"  * Logo position: 'logo mark bottom-right corner' — NEVER 'brand name as text'\n"
+        f"- This visual_dna string gets embedded verbatim at the start of every image_prompt.\n\n"
         f"Image prompt rules:\n"
-        f"- Start every image_prompt with 'DESIGN SYSTEM: [the exact design_system text above]. '\n"
-        f"- Then describe ONLY the slide's visual composition and scene — no headline text in image_prompt.\n"
-        f"  The headline/stat/subtext fields below carry the exact text to render.\n"
-        f"- The visual metaphor/scene and composition CHANGE per slide; the color palette and brand elements NEVER change.\n"
-        f"- FORBIDDEN PATTERNS (never use these): bordered card with inner content, square frame inside a square canvas, "
-        f"centered text on a plain gradient, generic white card on colored background, template-like bordered panels. "
-        f"These look unprofessional and monotonic.\n"
-        f"- USE INSTEAD: full-bleed colors, bold oversized typography, diagonal splits, asymmetric layouts, "
-        f"overlapping text and visuals, large geometric brand-color shapes, dramatic scale contrast.\n"
-        f"- context_note: 5-8 words max describing VISUAL direction only "
-        f"(e.g. 'warmer tone, solution revealed', 'darker bg, consequence shown'). "
-        f"NEVER write summaries, analytical text, research findings, or anything resembling prose.\n\n"
+        f"- Start every image_prompt with 'VISUAL DNA: [the exact visual_dna text above]. '\n"
+        f"- Then describe the PHOTOREALISTIC SCENE for this slide: who is in it, where they are, "
+        f"what they're doing, the environment, the emotional mood, the specific lighting.\n"
+        f"- Think like a professional photographer/director — each slide is a real campaign photograph, not a graphic.\n"
+        f"- The scene, subject, and environment CHANGE per slide; the color grade, lighting style, and typography treatment NEVER change.\n"
+        f"- ABSOLUTELY FORBIDDEN (these produce flat template images — never describe):\n"
+        f"  * Colored boxes, cards, panels, or frames with icons inside\n"
+        f"  * Flat solid-color backgrounds with text only\n"
+        f"  * Infographic-style layouts with labeled sections\n"
+        f"  * Icon or illustration-based visuals on solid backgrounds\n"
+        f"  * Bordered panels or square-inside-square compositions\n"
+        f"  * Generic gradient backgrounds with text overlaid\n"
+        f"  * Any design that looks like a Canva template\n"
+        f"- INSTEAD, always describe:\n"
+        f"  * Real people in real environments that embody the slide's message\n"
+        f"  * Cinematic photography with depth — foreground subject, midground action, atmospheric background\n"
+        f"  * Brand color grade as a photographic treatment, accent lights, or environmental color\n"
+        f"  * Dramatic lighting — shadows, highlights, atmospheric haze, directional sources\n"
+        f"  * Diagonal compositions, diagonal splits, architectural depth, human emotion\n"
+        f"- context_note: 5-8 words describing the visual mood and scene "
+        f"(e.g. 'stressed person, chaotic warm amber tones', 'confident CEO, clean cool office'). "
+        f"NEVER write analytical text or prose summaries.\n\n"
         f"Text fields per slide (CRITICAL — these control ALL text rendered in each image):\n"
         f"- headline: 3-5 words, the EXACT main headline to render. Correct spelling. "
         f"Use LOCKED NUMBERS exactly if the slide references a metric.\n"
@@ -199,12 +213,12 @@ def _build_carousel_prompt(
         f'  "meta_description": "<SEO meta description>",\n'
         f'  "word_count": <integer>,\n'
         f'  "tone_used": "<tone>",\n'
-        f'  "design_system": "<2-3 sentence locked visual template covering bg, accent, layout, typography, logo placement, motif — describe colors by name (e.g. deep violet), not hex codes>",\n'
+        f'  "design_system": "<2-3 sentence VISUAL DNA: color grade + lighting style + composition approach + typography treatment + logo position — describe a cinematic photographic style, NOT a flat design template. Example: \'Warm amber-teal split color grade, soft directional window light casting sharp shadows. Medium-to-wide shots with diagonal composition, subject offset left. Large bold white headline bottom-left over dark gradient area; logo mark bottom-right corner.\'>",\n'
         f'  "image_prompts": [\n'
         f'    {{\n'
         f'      "slide_number": 1,\n'
-        f'      "image_prompt": "DESIGN SYSTEM: [copy design_system here]. [slide-specific visual composition and scene only — no text content here]",\n'
-        f'      "context_note": "Opening image — introduces the hook",\n'
+        f'      "image_prompt": "VISUAL DNA: [copy design_system here]. [photorealistic scene: describe the person/subject, environment, action, emotional mood, specific lighting — as if directing a real campaign photograph]",\n'
+        f'      "context_note": "stressed overworked person, chaotic warm tones",\n'
         f'      "headline": "Exact 3-5 word headline to render",\n'
         f'      "stat": "Key stat or null",\n'
         f'      "subtext": "1-line supporting copy or null"\n'
@@ -236,10 +250,12 @@ async def build_carousel_content(
     target_audience = brand_kit.target_audience if brand_kit else ""
 
     system = (
-        "You are a world-class social media content strategist specialising in carousel posts. "
-        "Carousels have ONE caption and multiple swipeable images that tell a visual story. "
-        "The caption hooks the reader; the images reward the swipe. "
-        "Always use the brand's exact colors and visual identity — never invent a new palette."
+        "You are a world-class social media creative director specialising in photographic carousel posts. "
+        "Carousels have ONE caption and multiple swipeable images that tell a cinematic visual story through photography. "
+        "The caption hooks the reader; the images are real campaign photographs that reward the swipe. "
+        "Think like a film director — each slide is a real photograph in a visual narrative, never a flat graphic design or infographic. "
+        "Use the brand's color palette as cinematic color grading and accent lighting, not as flat background fills. "
+        "Never generate design templates, icon-based layouts, colored boxes, or infographic-style panels — always real people, real environments, real emotion."
     )
     locked_numbers = _extract_numbers(f"{topic} {additional_context}")
 
@@ -254,7 +270,7 @@ async def build_carousel_content(
 
     raw = await llm.complete(
         provider="openai",
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         system=system,
         messages=[{"role": "user", "content": prompt}],
     )
