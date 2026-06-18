@@ -132,6 +132,24 @@ export const sendMessage = async (
     customInput = { actionId: responseData.action_id, input: {}, result };
   }
 
+  // When the AI modified an image via chat (e.g. modify_image tool for logo/mascot
+  // changes) it returns the new image at the top level with no action_id/action_result.
+  // Package it as maya:regenerate-image so displayMessages can patch the DraftCard
+  // in-place instead of just showing an orphaned inline image.
+  if (imageUrl && !customInput) {
+    customInput = {
+      actionId: "maya:regenerate-image",
+      input: {},
+      result: {
+        image: {
+          image_url: imageUrl,
+          content_type: responseData.image?.content_type ?? "image/png",
+          prompt_used: responseData.image?.prompt_used ?? "",
+        },
+      },
+    };
+  }
+
   const assistantMessage = await mayaRepository.createAssistantMessage({
     organizationId,
     userId,
