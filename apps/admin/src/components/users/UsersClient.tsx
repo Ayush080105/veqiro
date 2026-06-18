@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -39,17 +38,19 @@ export function UsersClient() {
     setLoading(true);
     setFetchError(null);
     try {
-      const result = await (authClient as any).admin.listUsers({
-        query: {
-          limit: PAGE_SIZE,
-          offset,
-          ...(search ? { searchValue: search, searchField: "email" } : {}),
-          ...(showBanned ? { filterField: "banned", filterValue: "true" } : {}),
-        },
-      });
-      if (result.error) throw new Error(result.error.message ?? "Unknown error");
-      setUsers(result.data?.users ?? []);
-      setTotal(result.data?.total ?? 0);
+      const params = new URLSearchParams();
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(offset));
+      if (search) params.set("search", search);
+      if (showBanned) {
+        params.set("filterField", "banned");
+        params.set("filterValue", "true");
+      }
+      const result = await apiFetch<{ users: BaUser[]; total: number }>(
+        `/admin/users?${params.toString()}`
+      );
+      setUsers(result.users ?? []);
+      setTotal(result.total ?? 0);
     } catch (e) {
       setFetchError(String(e));
     } finally {
@@ -250,10 +251,10 @@ export function UsersClient() {
                         onClick={() => toggleBan(u)}
                         disabled={banningId === u.id}
                         className={cn(
-                          "rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50",
+                          "rounded px-2 py-0.5 text-xs font-medium transition-colors disabled:opacity-50",
                           u.banned
-                            ? "border border-green-300 text-green-700 hover:bg-green-50"
-                            : "border border-red-300 text-red-700 hover:bg-red-50",
+                            ? "border border-green-300 text-green-700 hover:border-green-400 hover:bg-green-100"
+                            : "border border-red-300 text-red-700 hover:border-red-400 hover:bg-red-100",
                         )}
                       >
                         {banningId === u.id ? "…" : u.banned ? "Unban" : "Ban"}
@@ -261,14 +262,19 @@ export function UsersClient() {
                       <button
                         onClick={() => { setConfirmDeleteId(null); void verifyEmail(u); }}
                         disabled={verifyingId === u.id || u.emailVerified === true}
-                        className="rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50 border border-blue-300 text-blue-700 hover:bg-blue-50"
+                        className={cn(
+                          "rounded px-2 py-0.5 text-xs font-medium transition-colors disabled:opacity-50",
+                          u.emailVerified
+                            ? "border border-green-300 text-green-700"
+                            : "border border-blue-300 text-blue-700 hover:border-blue-400 hover:bg-blue-100",
+                        )}
                       >
-                        {verifyingId === u.id ? "…" : "Verify Email"}
+                        {verifyingId === u.id ? "…" : u.emailVerified ? "Verified ✓" : "Verify Email"}
                       </button>
                       <button
                         onClick={() => { setConfirmDeleteId(null); void revokeSessions(u); }}
                         disabled={revokingId === u.id}
-                        className="rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50 border border-orange-300 text-orange-700 hover:bg-orange-50"
+                        className="rounded px-2 py-0.5 text-xs font-medium transition-colors disabled:opacity-50 border border-orange-300 text-orange-700 hover:border-orange-400 hover:bg-orange-100"
                       >
                         {revokingId === u.id ? "…" : "Revoke Sessions"}
                       </button>
@@ -276,10 +282,10 @@ export function UsersClient() {
                         onClick={() => deleteUser(u)}
                         disabled={deletingId === u.id}
                         className={cn(
-                          "rounded px-2 py-0.5 text-xs font-medium disabled:opacity-50",
+                          "rounded px-2 py-0.5 text-xs font-medium transition-colors disabled:opacity-50",
                           confirmDeleteId === u.id
                             ? "bg-red-600 text-white hover:bg-red-700"
-                            : "border border-red-300 text-red-700 hover:bg-red-50",
+                            : "border border-red-300 text-red-700 hover:border-red-400 hover:bg-red-100",
                         )}
                       >
                         {deletingId === u.id ? "…" : confirmDeleteId === u.id ? "Confirm?" : "Delete"}

@@ -91,9 +91,13 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const listUsers = async (req: Request, res: Response) => {
   const q = req.query as Record<string, string | undefined>;
+  const isBannedFilter = q.filterField === "banned";
   const data = await repo.listUsers({
-    search: q.search?.trim() || undefined,
-    page: Number(q.page) || 1,
+    search: (q.search ?? q.searchValue)?.trim() || undefined,
+    limit: q.limit ? Number(q.limit) : undefined,
+    offset: q.offset ? Number(q.offset) : undefined,
+    page: q.page ? Number(q.page) : undefined,
+    banned: isBannedFilter ? q.filterValue === "true" : undefined,
   });
   res.status(StatusCodes.OK).json(data);
 };

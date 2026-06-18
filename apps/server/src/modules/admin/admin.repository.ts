@@ -1185,16 +1185,30 @@ export async function deleteUser(userId: string) {
   return { deleted: true, userId };
 }
 
-export async function listUsers(params: { page: number; search?: string }) {
-  const { page, search } = params;
-  const where = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" as const } },
-          { email: { contains: search, mode: "insensitive" as const } },
-        ],
-      }
-    : {};
+export async function listUsers(params: {
+  page?: number;
+  limit?: number;
+  offset?: number;
+  search?: string;
+  banned?: boolean;
+}) {
+  const { page, search, banned } = params;
+  const pageSize = params.limit ?? PAGE_SIZE;
+  const skip = params.offset !== undefined ? params.offset : ((page ?? 1) - 1) * pageSize;
+
+  const where: {
+    OR?: { name?: object; email?: object }[];
+    banned?: boolean;
+  } = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+    ];
+  }
+  if (banned !== undefined) {
+    where.banned = banned;
+  }
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({
@@ -1206,16 +1220,17 @@ export async function listUsers(params: { page: number; search?: string }) {
         emailVerified: true,
         createdAt: true,
         banned: true,
+        banReason: true,
         role: true,
       },
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
+      skip,
+      take: pageSize,
     }),
     prisma.user.count({ where }),
   ]);
 
-  return { users, total, page, pageSize: PAGE_SIZE };
+  return { users, total, page: page ?? 1, pageSize };
 }
 
 export async function listWaitlistEntries(params: {
