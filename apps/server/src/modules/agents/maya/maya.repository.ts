@@ -53,8 +53,31 @@ export const findRecentMessages = (organizationId: string, limit: number) =>
     where: { organizationId, agent: Agent.MAYA },
     take: limit,
     orderBy: { createdAt: "desc" },
-    select: { role: true, content: true },
+    select: { id: true, role: true, content: true, imageUrl: true },
   });
+
+export const updateMessageImage = async (
+  messageId: string,
+  imageUrl: string,
+  imageResult: { image_url: string; content_type: string; prompt_used: string }
+) => {
+  const existing = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { customInput: true },
+  });
+  const current = (existing?.customInput as Record<string, unknown> | null) ?? {};
+  const currentResult = (current.result as Record<string, unknown> | null) ?? {};
+  return prisma.message.update({
+    where: { id: messageId },
+    data: {
+      imageUrl,
+      customInput: {
+        ...current,
+        result: { ...currentResult, image: imageResult },
+      } as Prisma.InputJsonValue,
+    },
+  });
+};
 
 export const findAllMayaMessages = (
   organizationId: string,

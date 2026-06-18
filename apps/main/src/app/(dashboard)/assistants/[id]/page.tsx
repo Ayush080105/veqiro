@@ -451,7 +451,31 @@ export default function AssistantChatPage() {
       scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => {
         const withoutOptimistic = prev.slice(0, -1)
-        return [...withoutOptimistic, serverMsg].slice(-WINDOW)
+        const updated = [...withoutOptimistic, serverMsg]
+
+        // If the server updated an existing draft card image in-place, patch it
+        // in React state so the user sees the new image without a page reload.
+        const patchInfo = serverMsg.customInput?.result as Record<string, unknown> | undefined
+        if (patchInfo?._modifyImagePatch === true) {
+          const patchedId = patchInfo.patchedMessageId as string | undefined
+          const newImage = patchInfo.image as { image_url: string; content_type: string; prompt_used: string } | undefined
+          if (patchedId && newImage) {
+            for (let i = 0; i < updated.length - 1; i++) {
+              if (updated[i].id === patchedId) {
+                const ci = updated[i].customInput
+                const result = (ci?.result as Record<string, unknown>) ?? {}
+                updated[i] = {
+                  ...updated[i],
+                  imageUrl: newImage.image_url,
+                  customInput: ci ? { ...ci, result: { ...result, image: newImage } } : ci,
+                }
+                break
+              }
+            }
+          }
+        }
+
+        return updated.slice(-WINDOW)
       })
     },
     onError: () => {

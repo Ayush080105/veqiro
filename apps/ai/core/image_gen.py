@@ -147,12 +147,20 @@ async def _elaborate_prompt_5component(
 
         brand_context_parts = []
         if brand_kit:
+            if brand_kit.company_name:
+                brand_context_parts.append(f"company: {brand_kit.company_name}")
+            if getattr(brand_kit, "company_description", None):
+                brand_context_parts.append(f"what they do: {brand_kit.company_description[:200]}")
+            if getattr(brand_kit, "value_proposition", None):
+                brand_context_parts.append(f"value prop: {brand_kit.value_proposition[:150]}")
             if brand_kit.brand_voice:
                 brand_context_parts.append(f"brand voice: {brand_kit.brand_voice}")
             if brand_kit.industry:
                 brand_context_parts.append(f"industry: {brand_kit.industry}")
             if brand_kit.target_audience:
-                brand_context_parts.append(f"audience: {brand_kit.target_audience}")
+                brand_context_parts.append(f"target audience: {brand_kit.target_audience}")
+            if getattr(brand_kit, "key_differentiators", None):
+                brand_context_parts.append(f"differentiator: {brand_kit.key_differentiators[:120]}")
         brand_context = "; ".join(brand_context_parts)
 
         system_prompt = (
@@ -178,7 +186,7 @@ async def _elaborate_prompt_5component(
             f"Platform: {platform} ({platform_context})\n"
             + (f"Brand context: {brand_context}\n" if brand_context else "")
             + (f"Tone: {tone}\n" if tone else "")
-            + (f"Composition context (use to guide text_overlay tone): {extra_context[:400]}\n" if extra_context else "")
+            + (f"Content context (use to align the visual concept, mood, and subject with this specific post angle — this is the MOST IMPORTANT creative brief): {extra_context[:500]}\n" if extra_context else "")
             + (
                 f"MANDATORY SHOT TYPE — the camera_angle field MUST match this exactly: {campaign_shot_type}\n"
                 if campaign_shot_type else ""
@@ -274,11 +282,11 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         accent = c.get("accent", "")
         color_parts = []
         if primary:
-            color_parts.append(f"primary {_hex_to_color_name(primary)} ({primary})")
+            color_parts.append(f"primary {_hex_to_color_name(primary)}")
         if secondary:
-            color_parts.append(f"secondary {_hex_to_color_name(secondary)} ({secondary})")
+            color_parts.append(f"secondary {_hex_to_color_name(secondary)}")
         if accent:
-            color_parts.append(f"accent {_hex_to_color_name(accent)} ({accent})")
+            color_parts.append(f"accent {_hex_to_color_name(accent)}")
         if color_parts:
             colors = (
                 f"BRAND COLOR VALUES (apply to design only — NEVER print these codes as text): "
@@ -407,6 +415,7 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         "  ✗ Slide numbers, bullet markers, list syntax, or numbered sequences\n"
         "  ✗ Any text from the composition context, brand atmosphere, audience context, or platform energy sections\n"
         "  ✗ Brand voice phrases, company differentiators, taglines, or audience descriptors — these inform visual style only, never appear as image text\n"
+        "  ✗ The brand/company name rendered as standalone text separate from the logo — if the logo reference is provided, it already contains the brand name; do NOT duplicate it as independent text\n"
         + guardrails_extra
         + "=== END GUARDRAILS ==="
     )
@@ -549,17 +558,28 @@ async def generate_social_image(
     # ── Carousel continuity mode: slide 1 is the visual anchor ───────────
     if carousel_anchor_b64:
         import base64 as _base64
-        from core.llm import _resize_for_reference
+        import io as _io
+        from PIL import Image as _PIL_Image
         raw_anchor = _base64.b64decode(carousel_anchor_b64)
-        # Downscale to 512 px — enough for style matching, avoids API input size errors
-        anchor_images: list[bytes] = [_resize_for_reference(raw_anchor, max_side=256)]
+        # Convert to JPEG and downscale — JPEG strips AI-generation metadata that triggers
+        # Gemini's IMAGE_OTHER policy; smaller size avoids input budget issues.
+        _img = _PIL_Image.open(_io.BytesIO(raw_anchor)).convert("RGB")
+        _w, _h = _img.size
+        _max = 200
+        if max(_w, _h) > _max:
+            _scale = _max / max(_w, _h)
+            _img = _img.resize((int(_w * _scale), int(_h * _scale)), _PIL_Image.LANCZOS)
+        _buf = _io.BytesIO()
+        _img.save(_buf, format="JPEG", quality=72)
+        anchor_jpeg = _buf.getvalue()
+        anchor_images: list[bytes] = [anchor_jpeg]
         anchor_instructions = [
-            "Reference image 1 is slide 1 of this carousel. "
-            "CRITICAL — match its EXACT design template: same background color and texture, "
-            "same color palette, same layout grid and margins, same typography weight and style, "
-            "same decorative motif and its position, same logo/brand placement (corner, size). "
-            "Only the headline text and visual illustration change per slide. "
-            "The set of carousel images MUST look like they came from a single design template."
+            "Reference image 1 is a style/character reference from slide 1 of this carousel. "
+            "Maintain visual continuity with it: same overall color grade and atmosphere, "
+            "same lighting style and mood, same general environment and setting. "
+            "If any people appear in the reference, the same person must appear in this slide — "
+            "same face, build, clothing, and style — shown in a different pose or action that fits this slide's message. "
+            "This is a new scene, not a copy — only the person and visual atmosphere carry over."
         ]
         if use_mascot and brand_kit and brand_kit.mascot_url:
             mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
@@ -576,8 +596,9 @@ async def generate_social_image(
                 anchor_instructions.append(
                     f"MANDATORY: Reference image {len(anchor_images)} is the brand logo. "
                     f"You MUST include it — its absence is a failure. "
-                    f"Place it in the exact same position, size, and styling as in slide 1. "
-                    f"If the logo has a background colour, ignore it — composite only the logo mark itself, with no white box or rectangular border."
+                    f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color, and correct proportions. "
+                    f"If the logo has a background colour, ignore it — composite only the logo mark with no white box or rectangular border. "
+                    f"Place it in the bottom-right corner, occupying 8-12% of image width. Crisp and exact."
                 )
         mandate = _asset_mandate(use_logo and bool(brand_kit and brand_kit.logo_url), use_mascot and bool(brand_kit and brand_kit.mascot_url))
         full_prompt = mandate + base_prompt + "\n\n" + "\n".join(anchor_instructions)

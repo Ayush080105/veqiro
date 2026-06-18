@@ -32,7 +32,7 @@ class VegaAgent(BaseAgent):
         "Always calm, always a step ahead, and genuinely happy to help."
     )
     default_provider = "openai"
-    default_model = "gpt-4o-mini"
+    default_model = "gpt-4.1-mini"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)

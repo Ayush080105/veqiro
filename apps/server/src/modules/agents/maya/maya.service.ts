@@ -79,6 +79,7 @@ export const sendMessage = async (
     organizationId,
     CONTEXT_HISTORY_LIMIT
   );
+  const lastImageUrl = history.find(m => m.role === "assistant" && m.imageUrl)?.imageUrl ?? undefined;
   const userMessage = await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -93,6 +94,7 @@ export const sendMessage = async (
     conversationId: input.conversationId ?? userMessage.id,
     userMessage: input.content,
     rawHistory: history,
+    extraPayload: lastImageUrl ? { last_image_url: lastImageUrl } : {},
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
@@ -109,6 +111,41 @@ export const sendMessage = async (
     } catch (err) {
       console.error("[maya] chat image upload failed", err);
     }
+  }
+
+  // When modify-image fires in-place: update the original draft card's image
+  // instead of creating a new image card in the chat stream.
+  if (responseData.action_id === "maya:modify-image" && imageUrl) {
+    const lastImageMessage = history.find(m => m.role === "assistant" && m.imageUrl);
+    if (lastImageMessage?.id) {
+      await mayaRepository.updateMessageImage(lastImageMessage.id, imageUrl, {
+        image_url: imageUrl,
+        content_type: responseData.image?.content_type ?? "image/png",
+        prompt_used: responseData.image?.prompt_used ?? "",
+      });
+    }
+    return mayaRepository.createAssistantMessage({
+      organizationId,
+      userId,
+      content: responseData.response,
+      tokensUsed: responseData.tokens_used,
+      model: responseData.model_used,
+      // No actionId — renders as plain text. result carries the patch signal
+      // so the frontend can update the original draft card image in-place.
+      customInput: lastImageMessage?.id
+        ? {
+            result: {
+              _modifyImagePatch: true,
+              patchedMessageId: lastImageMessage.id,
+              image: {
+                image_url: imageUrl,
+                content_type: responseData.image?.content_type ?? "image/png",
+                prompt_used: responseData.image?.prompt_used ?? "",
+              },
+            },
+          }
+        : undefined,
+    });
   }
 
   // Build customInput for rich card rendering. For content actions inject the
