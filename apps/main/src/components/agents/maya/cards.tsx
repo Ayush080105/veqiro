@@ -348,7 +348,7 @@ export function DraftPreview({
               <Tooltip>
                 <TooltipTrigger
                   type="button"
-                  aria-label="Revise a post"
+                  aria-label="Revise the caption"
                   onClick={() =>
                     onFollowUpAction("maya:revise", {
                       original_content: fullText,
@@ -359,7 +359,7 @@ export function DraftPreview({
                 >
                   <Wand2 className="size-3" />
                 </TooltipTrigger>
-                <TooltipContent>Revise a post</TooltipContent>
+                <TooltipContent>Revise the caption</TooltipContent>
               </Tooltip>
               {src && (
                 <Tooltip>
