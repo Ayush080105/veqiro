@@ -909,6 +909,7 @@ const socialAccountSchema = z.object({
   scope: z.string().nullable(),
   metadata: z.record(z.string(), z.unknown()).nullable(),
   accessTokenExpiresAt: z.string().nullable(),
+  canRefresh: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

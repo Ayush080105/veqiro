@@ -1,14 +1,12 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { getBrandImagesForGeneration } from "../../brand-images/brand-images.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
-import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64 } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
-import * as integrationsRepository from "../../integrations/integrations.repository.js";
-import { providers } from "../../integrations/providers/index.js";
+import * as integrationsService from "../../integrations/integrations.service.js";
 import type {
   SendMessageInput,
   AssistantMessagePayload,
@@ -505,22 +503,11 @@ export const regenerateContent = async (
   return data;
 };
 
-const platformFromEnum = (p: SocialPlatform): "twitter" | "linkedin" | "instagram" => {
-  if (p === SocialPlatform.TWITTER) return "twitter";
-  if (p === SocialPlatform.LINKEDIN) return "linkedin";
-  return "instagram";
-};
-
 export const publish = async (
   userId: string,
   organizationId: string,
   input: PublishInput
 ): Promise<PublishResponse> => {
-  const account = await integrationsRepository.findById(input.socialAccountId);
-  if (!account || account.organizationId !== organizationId) {
-    throw new NotFoundError("Social account not found");
-  }
-
   let imageUrl = input.imageUrl;
   if (!imageUrl && input.imageBase64) {
     if (!isR2Configured()) {
@@ -536,29 +523,12 @@ export const publish = async (
     imageUrl = uploaded.url;
   }
 
-  // Pre-flight: some platforms demand an image
-  if (account.platform === SocialPlatform.INSTAGRAM && !imageUrl) {
-    throw new BadRequestError("Instagram publishing requires an image");
-  }
+  let { account: activeAccount, provider, platform } =
+    await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
 
-  // Lazy token refresh if expired
-  let activeAccount = account;
-  const provider = providers[platformFromEnum(account.platform)];
-  if (
-    account.accessTokenExpiresAt &&
-    account.accessTokenExpiresAt.getTime() < Date.now() + 60_000 &&
-    account.refreshToken &&
-    provider.refresh
-  ) {
-    try {
-      const refreshed = await provider.refresh(account.refreshToken);
-      activeAccount = await integrationsRepository.update(account.id, {
-        accessToken: refreshed.accessToken,
-        accessTokenExpiresAt: refreshed.expiresAt ?? null,
-      });
-    } catch (err) {
-      console.error("[maya] token refresh failed", err);
-    }
+  // Pre-flight: some platforms demand an image
+  if (activeAccount.platform === SocialPlatform.INSTAGRAM && !imageUrl) {
+    throw new BadRequestError("Instagram publishing requires an image");
   }
 
   // Hashtags can arrive from the LLM with or without a leading `#`, with stray
@@ -588,11 +558,30 @@ export const publish = async (
   });
 
   try {
-    const { platformPostId, url } = await provider.publish({
-      account: activeAccount,
-      caption,
-      imageUrl,
-    });
+    let platformPostId: string;
+    let url: string | undefined;
+    try {
+      const result = await provider.publish({
+        account: activeAccount,
+        caption,
+        imageUrl,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    } catch (err) {
+      if (!integrationsService.isAuthTokenError(err)) throw err;
+      ({ account: activeAccount, provider, platform } =
+        await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId, {
+          forceRefresh: true,
+        }));
+      const result = await provider.publish({
+        account: activeAccount,
+        caption,
+        imageUrl,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    }
 
     await prisma.publishedPost.update({
       where: { id: pending.id },
@@ -602,8 +591,6 @@ export const publish = async (
         publishedAt: new Date(),
       },
     });
-
-    const platform = platformFromEnum(activeAccount.platform);
 
     await mayaRepository.createAssistantMessage({
       organizationId,
@@ -713,15 +700,13 @@ export const publishCarousel = async (
   organizationId: string,
   input: PublishCarouselInput
 ): Promise<PublishCarouselResponse> => {
-  const account = await integrationsRepository.findById(input.socialAccountId);
-  if (!account || account.organizationId !== organizationId) {
-    throw new NotFoundError("Social account not found");
-  }
+  let { account, provider } = await integrationsService.getUsableSocialAccount(
+    organizationId,
+    input.socialAccountId
+  );
   if (account.platform !== SocialPlatform.INSTAGRAM) {
     throw new BadRequestError("Carousel publishing is only supported for Instagram");
   }
-
-  const provider = providers["instagram"];
   if (!provider.publishCarousel) {
     throw new BadRequestError("Carousel publishing not supported by this provider");
   }
@@ -749,11 +734,36 @@ export const publishCarousel = async (
   });
 
   try {
-    const { platformPostId, url } = await provider.publishCarousel({
-      account,
-      caption,
-      imageUrls: input.imageUrls,
-    });
+    let platformPostId: string;
+    let url: string | undefined;
+    try {
+      const result = await provider.publishCarousel({
+        account,
+        caption,
+        imageUrls: input.imageUrls,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    } catch (err) {
+      if (!integrationsService.isAuthTokenError(err)) throw err;
+      const refreshed = await integrationsService.getUsableSocialAccount(
+        organizationId,
+        input.socialAccountId,
+        { forceRefresh: true }
+      );
+      account = refreshed.account;
+      provider = refreshed.provider;
+      if (!provider.publishCarousel) {
+        throw new BadRequestError("Carousel publishing not supported by this provider");
+      }
+      const result = await provider.publishCarousel({
+        account,
+        caption,
+        imageUrls: input.imageUrls,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    }
 
     await prisma.publishedPost.update({
       where: { id: pending.id },

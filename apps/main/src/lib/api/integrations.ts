@@ -15,6 +15,7 @@ export interface SocialAccount {
   scope: string | null
   metadata: Record<string, unknown> | null
   accessTokenExpiresAt: string | null
+  canRefresh?: boolean
   createdAt: string
   updatedAt: string
 }

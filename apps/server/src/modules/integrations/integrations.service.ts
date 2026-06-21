@@ -2,9 +2,10 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
+import { SocialAccount, SocialPlatform } from "../../../prisma/generated/prisma/client.js";
 import * as repo from "./integrations.repository.js";
 import { getProvider } from "./providers/index.js";
-import type { PlatformSlug, StatePayload } from "./integrations.types.js";
+import type { PlatformSlug, SocialProvider, StatePayload } from "./integrations.types.js";
 
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 min
 
@@ -59,6 +60,49 @@ const resolveBaseUrl = (): string => {
 
 const apiVersion = () => process.env.API_VERSION || "v1";
 
+const REFRESH_SKEW_MS = 10 * 60 * 1000;
+
+const platformSlugByEnum: Record<SocialPlatform, PlatformSlug> = {
+  TWITTER: "twitter",
+  LINKEDIN: "linkedin",
+  INSTAGRAM: "instagram",
+};
+
+const platformLabel = (platform: SocialPlatform): string => {
+  if (platform === SocialPlatform.TWITTER) return "Twitter/X";
+  if (platform === SocialPlatform.LINKEDIN) return "LinkedIn";
+  return "Instagram";
+};
+
+const hasScope = (scope: string | null | undefined, target: string): boolean =>
+  (scope ?? "").split(/[\s,]+/).includes(target);
+
+const canRefreshAccount = (account: Pick<SocialAccount, "platform" | "refreshToken" | "accessToken" | "scope">): boolean => {
+  if (account.platform === SocialPlatform.INSTAGRAM) return Boolean(account.accessToken);
+  if (account.platform === SocialPlatform.TWITTER) {
+    return Boolean(account.refreshToken) && hasScope(account.scope, "offline.access");
+  }
+  return Boolean(account.refreshToken);
+};
+
+const needsRefresh = (
+  account: Pick<SocialAccount, "accessTokenExpiresAt">,
+  force = false
+): boolean => {
+  if (force) return true;
+  if (!account.accessTokenExpiresAt) return true;
+  return account.accessTokenExpiresAt.getTime() <= Date.now() + REFRESH_SKEW_MS;
+};
+
+const refreshCredential = (account: SocialAccount): string | null => {
+  if (account.refreshToken) return account.refreshToken;
+  if (account.platform === SocialPlatform.INSTAGRAM) return account.accessToken;
+  return null;
+};
+
+const reconnectError = (account: Pick<SocialAccount, "platform">): BadRequestError =>
+  new BadRequestError(`${platformLabel(account.platform)} connection expired. Please reconnect this integration.`);
+
 export const buildRedirectUri = (slug: PlatformSlug): string =>
   `${resolveBaseUrl()}/api/${apiVersion()}/integrations/${slug}/callback`;
 
@@ -68,7 +112,13 @@ const generatePkcePair = (): { verifier: string; challenge: string } => {
   return { verifier, challenge };
 };
 
-export const list = (organizationId: string) => repo.findByOrg(organizationId);
+export const list = async (organizationId: string) => {
+  const accounts = await repo.findByOrg(organizationId);
+  return accounts.map(({ accessToken, refreshToken, ...account }) => ({
+    ...account,
+    canRefresh: canRefreshAccount({ ...account, accessToken, refreshToken }),
+  }));
+};
 
 export interface BeginConnectArgs {
   organizationId: string;
@@ -187,4 +237,57 @@ export const disconnect = async (organizationId: string, id: string) => {
     }
   }
   await repo.remove(id);
+};
+
+export const isAuthTokenError = (err: unknown): boolean => {
+  const message = err instanceof Error ? err.message : String(err);
+  return /\b(401|403)\b/i.test(message) ||
+    /invalid[_\s-]?token|expired|unauthorized|forbidden/i.test(message);
+};
+
+export const refreshSocialAccount = async (
+  account: SocialAccount,
+  provider: SocialProvider,
+  opts: { force?: boolean } = {}
+): Promise<SocialAccount> => {
+  if (!provider.refresh || !needsRefresh(account, opts.force)) return account;
+
+  const credential = refreshCredential(account);
+  if (!credential) throw reconnectError(account);
+
+  try {
+    const refreshed = await provider.refresh(credential);
+    return repo.update(account.id, {
+      accessToken: refreshed.accessToken,
+      accessTokenExpiresAt: refreshed.expiresAt === undefined
+        ? account.accessTokenExpiresAt ?? null
+        : refreshed.expiresAt,
+      ...(refreshed.refreshToken !== undefined ? { refreshToken: refreshed.refreshToken } : {}),
+    });
+  } catch (err) {
+    console.error("[integrations] token refresh failed", {
+      accountId: account.id,
+      platform: account.platform,
+      err,
+    });
+    throw reconnectError(account);
+  }
+};
+
+export const getUsableSocialAccount = async (
+  organizationId: string,
+  id: string,
+  opts: { forceRefresh?: boolean } = {}
+): Promise<{ account: SocialAccount; provider: SocialProvider; platform: PlatformSlug }> => {
+  const account = await repo.findById(id);
+  if (!account || account.organizationId !== organizationId) {
+    throw new NotFoundError("Social account not found");
+  }
+
+  const platform = platformSlugByEnum[account.platform];
+  const provider = getProvider(platform);
+  const activeAccount = await refreshSocialAccount(account, provider, {
+    force: opts.forceRefresh,
+  });
+  return { account: activeAccount, provider, platform };
 };

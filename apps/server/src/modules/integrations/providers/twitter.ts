@@ -11,7 +11,7 @@ import type {
 import { fetchImageAsBuffer } from "../../../common/utils/r2.js";
 
 const AUTHORIZE_URL = "https://twitter.com/i/oauth2/authorize";
-const TOKEN_URL = "https://api.twitter.com/2/oauth2/token";
+const TOKEN_URL = "https://api.x.com/2/oauth2/token";
 const ME_URL = "https://api.twitter.com/2/users/me";
 const TWEET_URL = "https://api.twitter.com/2/tweets";
 const MEDIA_UPLOAD_URL = "https://api.x.com/2/media/upload";

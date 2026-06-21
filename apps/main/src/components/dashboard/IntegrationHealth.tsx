@@ -25,10 +25,11 @@ function platformRow(
 ): Row {
   const hit = accounts.find((a) => a.platform === platformEnum)
   if (!hit) return { id, label, state: "disconnected" }
+  const refreshableTwitter = platformEnum === "TWITTER" && hit.canRefresh
   if (hit.accessTokenExpiresAt) {
     const expires = new Date(hit.accessTokenExpiresAt).getTime()
     const daysLeft = Math.floor((expires - Date.now()) / DAY_MS)
-    if (daysLeft < 7) {
+    if (daysLeft < 7 && !refreshableTwitter) {
       return {
         id,
         label,
