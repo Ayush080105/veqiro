@@ -63,6 +63,15 @@ const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
   GENERAL: "General",
 }
 
+const CATEGORY_COLORS: Record<FeedbackCategory, string> = {
+  FEATURE_REQUEST: "#F5C518",
+  BUG_REPORT: "#F06464",
+  INTEGRATION: "#8A8AF0",
+  NEW_AGENT: "#1DBC87",
+  UX_IMPROVEMENT: "#6FCDE8",
+  GENERAL: "#F79FD4",
+}
+
 const CATEGORY_FILTERS: Array<{ value: FeedbackCategory | "ALL"; label: string }> = [
   { value: "ALL", label: "All" },
   { value: "FEATURE_REQUEST", label: "Feature Requests" },
@@ -152,6 +161,11 @@ function UpcomingAgentsSection() {
                 <div className="mt-0.5 text-xs text-muted-foreground leading-snug line-clamp-2">
                   {agent.tagline}
                 </div>
+                {agent.description && (
+                  <div className="mt-1.5 text-[10px] text-muted-foreground/70 leading-relaxed line-clamp-2">
+                    {agent.description}
+                  </div>
+                )}
               </div>
             </div>
             <button
@@ -188,6 +202,7 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
   const statusConfig = STATUS_CONFIG[post.status]
   const agentColor = post.agentSlug ? AGENT_COLORS[post.agentSlug] : null
   const categoryLabel = CATEGORY_LABELS[post.category]
+  const categoryColor = CATEGORY_COLORS[post.category]
 
   return (
     <Link
@@ -202,9 +217,10 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
           onVote(post.id)
         }}
         className={cn(
-          "flex w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-l-md border-r-[3px] border-foreground py-3 transition-colors",
-          post.hasVoted ? "bg-foreground text-background" : "bg-muted/50 hover:bg-muted text-foreground"
+          "flex w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-l-md border-r-[3px] border-foreground py-3 transition-all duration-150",
+          post.hasVoted ? "text-foreground" : "bg-muted/50 hover:bg-muted text-foreground"
         )}
+        style={post.hasVoted ? { background: categoryColor } : undefined}
       >
         <ChevronUp className={cn("size-4", post.hasVoted && "fill-current")} />
         <span
@@ -462,7 +478,11 @@ export default function FeedbackPage() {
             <div className="text-center">
               <p className="font-head text-base font-medium text-foreground">Nothing here yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {search ? "Try a different search term." : "Be the first to submit feedback!"}
+                {search
+                  ? "Try a different search term."
+                  : (categoryFilter ?? agentFilter)
+                  ? "No one's asked for this yet — be the first to raise it."
+                  : "Be the first to submit feedback!"}
               </p>
             </div>
             <Button variant="brand-dark" size="brand-sm" onClick={() => setDrawerOpen(true)}>

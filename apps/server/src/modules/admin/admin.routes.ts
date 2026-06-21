@@ -16,6 +16,8 @@ import {
   deleteUser,
   listUsers,
   listWaitlistEntries,
+  listFeedbackAdmin,
+  getFeedbackStats,
 } from "./admin.controller.js";
 
 const router = Router();
@@ -41,5 +43,9 @@ router.get("/users", listUsers);
 router.post("/users/:id/verify-email", verifyUserEmail);
 router.delete("/users/:id/sessions", revokeUserSessions);
 router.delete("/users/:id", deleteUser);
+
+// Feedback routes (static before param routes)
+router.get("/feedback/stats", getFeedbackStats);
+router.get("/feedback", listFeedbackAdmin);
 
 export default router;

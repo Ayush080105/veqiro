@@ -21,7 +21,13 @@ export const listPosts = (filters: ListPostsFilters) => {
     isMerged: false,
     ...(status ? { status } : {}),
     ...(category ? { category } : {}),
-    ...(agentSlug ? { agentSlug } : {}),
+    // The frontend sends "__platform" to mean "platform-level posts" (no agent),
+    // which are stored with agentSlug = null.
+    ...(agentSlug
+      ? agentSlug === "__platform"
+        ? { agentSlug: null }
+        : { agentSlug }
+      : {}),
     ...(search
       ? {
           OR: [

@@ -13,6 +13,7 @@
     "seed:dashboard": "tsx prisma/seed-dashboard.ts",
     "seed:brand-kit": "tsx prisma/seed-brand-kit.ts",
     "seed:admin": "tsx prisma/seed-admin.ts",
+    "seed:upcoming-agents": "tsx prisma/seed-upcoming-agents.ts",
     "test": "vitest run \"src/modules/agents/scout/scout.test.ts\" \"src/tests/unit/*.test.ts\"",
     "seed:tasks": "tsx prisma/seed-tasks.ts"
   },

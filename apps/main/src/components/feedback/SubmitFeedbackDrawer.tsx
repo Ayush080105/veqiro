@@ -51,7 +51,7 @@ const CATEGORIES: Array<{
   { value: "INTEGRATION", label: "Integration", description: "Connect with a tool or platform", icon: Puzzle, color: "#8A8AF0" },
   { value: "NEW_AGENT", label: "New Agent", description: "An entirely new AI agent to build", icon: Bot, color: "#1DBC87" },
   { value: "UX_IMPROVEMENT", label: "UX Improvement", description: "Make something easier to use", icon: Sparkles, color: "#6FCDE8" },
-  { value: "GENERAL", label: "General", description: "Anything else on your mind", icon: MessageSquare, color: "#F79FD4" },
+  { value: "GENERAL", label: "Opinion / Other", description: "Share thoughts, complaints, or anything on your mind", icon: MessageSquare, color: "#F79FD4" },
 ]
 
 const STATUS_COLORS: Record<string, string> = {
@@ -88,6 +88,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -176,7 +177,12 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                     <button
                       key={cat.value}
                       type="button"
-                      onClick={() => setSelectedCategory(cat.value)}
+                      onClick={() => {
+                        setSelectedCategory(cat.value)
+                        // Keep react-hook-form in sync so the required `category`
+                        // field passes validation (it lives in local state only).
+                        setValue("category", cat.value, { shouldValidate: true })
+                      }}
                       className={cn(
                         "flex items-start gap-2.5 rounded-md border-[2.5px] border-foreground p-3 text-left transition-all hover:translate-y-px",
                         isSelected
@@ -223,7 +229,10 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setSelectedAgent(null)}
+                  onClick={() => {
+                    setSelectedAgent(null)
+                    setValue("agentSlug", null)
+                  }}
                   className={cn(
                     "rounded-full border-[2px] border-foreground px-3 py-1 text-xs font-head uppercase tracking-wide transition-all",
                     selectedAgent === null
@@ -239,7 +248,11 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                     <button
                       key={slug}
                       type="button"
-                      onClick={() => setSelectedAgent(isSelected ? null : slug)}
+                      onClick={() => {
+                        const next = isSelected ? null : slug
+                        setSelectedAgent(next)
+                        setValue("agentSlug", next)
+                      }}
                       className={cn(
                         "rounded-full border-[2px] border-foreground px-3 py-1 text-xs font-head uppercase tracking-wide transition-all",
                         isSelected

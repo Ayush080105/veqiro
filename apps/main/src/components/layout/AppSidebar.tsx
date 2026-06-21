@@ -70,6 +70,7 @@ const navItems = [
 ]
 
 const bottomNavItems = [
+  { href: "/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/brain", label: "Brain", icon: Brain },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
