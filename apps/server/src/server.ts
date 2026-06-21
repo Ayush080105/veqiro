@@ -1,13 +1,13 @@
 import "dotenv/config";
 import { app } from "./app.js";
 import env from "./config/env.js";
-import { startRexCron } from "./modules/agents/rex/rex.cron.js";
-import { startVegaCron } from "./modules/agents/vega/vega.cron.js";
+import { startTaskCronRunner } from "./modules/tasks/tasks.cron.js";
+import { startSystemCrons } from "./modules/tasks/system.cron.js";
 
 app.listen(env.PORT, () => {
   console.log(`Server listening on http://localhost:${env.PORT}`);
-  if (process.env.NODE_ENV === "production") {
-    startRexCron();
-    startVegaCron();
+  if (process.env.NODE_ENV !== "test") {
+    startTaskCronRunner();
+    startSystemCrons();
   }
 });

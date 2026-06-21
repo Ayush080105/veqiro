@@ -375,6 +375,7 @@ export default function OnboardingLayout({
       } catch {
         /* even if refetch fails, proxy.ts will gate the next page anyway */
       }
+      try { localStorage.setItem("veqiro.tour.pending", "1") } catch { /* ignore */ }
       toast.success("Brand kit saved. Meet the crew.")
       router.push("/dashboard?__session=refresh")
     } catch {

@@ -19,6 +19,7 @@ import {
   ArrowUpRight,
   Loader2,
   MessageSquare,
+  CalendarClock,
 } from "lucide-react"
 import {
   Sidebar,
@@ -64,6 +65,7 @@ const workspaceItems = [
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/assistants", label: "Assistants", icon: Users },
+  { href: "/tasks", label: "Tasks", icon: CalendarClock },
   { href: "/feedback", label: "Feedback", icon: MessageSquare },
 ]
 
@@ -298,7 +300,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
+                <SidebarMenuItem
+                  key={item.href}
+                  data-tour={`nav-${item.href.replace("/", "")}`}
+                >
                   <SidebarMenuButton
                     render={<Link href={item.href} style={monoLabelStyle} />}
                     tooltip={item.label}
@@ -313,7 +318,7 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
 
-              <SidebarMenuItem>
+              <SidebarMenuItem data-tour="nav-workspace">
                 <Collapsible open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
                   <SidebarMenuButton
                     isActive={isWorkspaceActive}
@@ -369,7 +374,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {bottomNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
+                <SidebarMenuItem
+                  key={item.href}
+                  data-tour={`nav-${item.href.replace("/", "")}`}
+                >
                   <SidebarMenuButton
                     render={<Link href={item.href} style={monoLabelStyle} />}
                     tooltip={item.label}

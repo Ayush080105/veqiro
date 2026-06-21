@@ -142,6 +142,7 @@ function AgentRow({
   return (
     <Link
       href={`/assistants/${agent.id}`}
+      data-tour={`assistant-row-${agent.id}`}
       style={{
         display: "flex",
         alignItems: "center",
@@ -328,6 +329,7 @@ export default function ChatList() {
 
   return (
     <aside
+      data-tour="assistants-sidebar"
       style={{
         background: "#FFF9ED",
         display: "flex",

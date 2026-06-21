@@ -23,6 +23,7 @@ import billingRouter from "./modules/billing/billing.routes.js";
 import adminRouter from "./modules/admin/admin.routes.js";
 import { adminMiddleware } from "./modules/admin/admin.middleware.js";
 import feedbackRouter from "./modules/feedback/feedback.routes.js";
+import tasksRouter from "./modules/tasks/tasks.routes.js";
 import waitlistRouter from "./modules/waitlist/waitlist.router.js";
 import contactRouter from "./modules/contact/contact.router.js";
 
@@ -62,6 +63,7 @@ router.use("/uploads", authMiddleware, uploadsRouter);
 router.use("/billing", authMiddleware, billingRouter);
 router.use("/admin", adminMiddleware, adminRouter);
 router.use("/feedback", authMiddleware, feedbackRouter);
+router.use("/tasks", authMiddleware, tasksRouter);
 
 // Public OAuth callbacks (state-verified) mounted BEFORE the protected router
 router.use("/integrations", integrationsPublicRouter);

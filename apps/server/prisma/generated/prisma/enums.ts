@@ -49,6 +49,14 @@ export const SubscriptionPlan = {
 export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan]
 
 
+export const TaskType = {
+  AGENT: 'AGENT',
+  GENERAL: 'GENERAL'
+} as const
+
+export type TaskType = (typeof TaskType)[keyof typeof TaskType]
+
+
 export const FollowUpStatus = {
   PENDING: 'PENDING',
   SENT: 'SENT',

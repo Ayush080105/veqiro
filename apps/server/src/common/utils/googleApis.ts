@@ -387,29 +387,50 @@ export const labelMessage = async ({
   labelColor,
 }: LabelMessageArgs) => {
   if (!messageId) return;
-  const labelId = await getOrCreateLabel(accessToken, labelName, {
-    managedLabelNames,
-    labelColor,
-  });
-  // Remove other managed labels so each email has one current Vega classification.
-  const tokenPrefix = accessToken.slice(0, 12);
-  const removeLabelIds = [...(managedLabelIds.get(tokenPrefix) ?? [])].filter(
-    (id) => id !== labelId
-  );
-  const res = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ addLabelIds: [labelId], removeLabelIds }),
+
+  const attempt = async () => {
+    const labelId = await getOrCreateLabel(accessToken, labelName, {
+      managedLabelNames,
+      labelColor,
+    });
+    // Remove other managed labels so each email has one current Vega classification.
+    const tokenPrefix = accessToken.slice(0, 12);
+    const removeLabelIds = [...(managedLabelIds.get(tokenPrefix) ?? [])].filter(
+      (id) => id !== labelId
+    );
+    const res = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ addLabelIds: [labelId], removeLabelIds }),
+      }
+    );
+    if (!res.ok) {
+      const errText = await res.text();
+      // Stale cached label ID — clear cache so next attempt re-fetches/re-creates
+      if (res.status === 400 && errText.includes("labelId not found")) {
+        const tokenPrefix = accessToken.slice(0, 12);
+        labelIdCache.delete(`${tokenPrefix}:${labelName}`);
+        managedLabelIds.delete(tokenPrefix);
+        throw Object.assign(new Error("stale-label-id"), { stale: true });
+      }
+      throw new Error(`Gmail label-message failed (${res.status}): ${errText}`);
     }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gmail label-message failed (${res.status}): ${err}`);
+  };
+
+  try {
+    await attempt();
+  } catch (err) {
+    // Retry once after clearing the stale cache entry
+    if (err instanceof Error && (err as Error & { stale?: boolean }).stale) {
+      await attempt();
+    } else {
+      throw err;
+    }
   }
 };
 

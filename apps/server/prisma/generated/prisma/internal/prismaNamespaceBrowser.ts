@@ -82,7 +82,8 @@ export const ModelName = {
   FeedbackComment: 'FeedbackComment',
   UpcomingAgent: 'UpcomingAgent',
   UpcomingAgentVote: 'UpcomingAgentVote',
-  WaitlistEntry: 'WaitlistEntry'
+  WaitlistEntry: 'WaitlistEntry',
+  Task: 'Task'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -489,6 +490,7 @@ export const VegaLabelScalarFieldEnum = {
   id: 'id',
   name: 'name',
   color: 'color',
+  rationale: 'rationale',
   autoReply: 'autoReply',
   organizationId: 'organizationId',
   createdAt: 'createdAt'
@@ -586,6 +588,27 @@ export const WaitlistEntryScalarFieldEnum = {
 } as const
 
 export type WaitlistEntryScalarFieldEnum = (typeof WaitlistEntryScalarFieldEnum)[keyof typeof WaitlistEntryScalarFieldEnum]
+
+
+export const TaskScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  description: 'description',
+  type: 'type',
+  agent: 'agent',
+  cronExpression: 'cronExpression',
+  timezone: 'timezone',
+  isEnabled: 'isEnabled',
+  isDefault: 'isDefault',
+  payload: 'payload',
+  lastRunAt: 'lastRunAt',
+  nextRunAt: 'nextRunAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
 
 
 export const SortOrder = {

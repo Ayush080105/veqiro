@@ -177,3 +177,8 @@ export type UpcomingAgentVote = Prisma.UpcomingAgentVoteModel
  * Pre-launch waitlist entry collected before product launch.
  */
 export type WaitlistEntry = Prisma.WaitlistEntryModel
+/**
+ * Model Task
+ * Scheduled task owned by an organization — agent-automated or user-defined.
+ */
+export type Task = Prisma.TaskModel

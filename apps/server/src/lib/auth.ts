@@ -14,6 +14,7 @@ import {
   handleSubscriptionFailed,
   handlePaymentFailed,
 } from "../modules/billing/billing.webhooks.js";
+import { seedDefaultTasks } from "../modules/tasks/tasks.service.js";
 
 const auth = betterAuth({
 
@@ -82,6 +83,19 @@ const auth = betterAuth({
               type: "boolean",
               input: false,
               defaultValue: false,
+            },
+          },
+        },
+      },
+      databaseHooks: {
+        organization: {
+          create: {
+            after: async (org: { id: string }) => {
+              try {
+                await seedDefaultTasks(org.id);
+              } catch (err) {
+                console.error(`[tasks] Failed to seed default tasks for org ${org.id}:`, err);
+              }
             },
           },
         },

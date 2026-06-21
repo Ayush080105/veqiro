@@ -39,6 +39,12 @@ enum SubscriptionPlan {
   ANNUAL
 }
 
+/// Task type: agent-automated vs user-defined general task.
+enum TaskType {
+  AGENT
+  GENERAL
+}
+
 /// Vega follow-up lifecycle.
 enum FollowUpStatus {
   PENDING
@@ -215,6 +221,8 @@ model Organization {
   agentMemory          AgentMemory[]
   /// Organization-wide memory summary.
   orgMemory            OrgMemory?
+  /// Scheduled tasks owned by this organization.
+  tasks                Task[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -991,4 +999,44 @@ model WaitlistEntry {
   createdAt DateTime  @default(now())
 
   @@map("waitlist_entry")
+}
+
+/// Scheduled task owned by an organization — agent-automated or user-defined.
+model Task {
+  /// Task id.
+  id             String       @id @default(cuid())
+  /// Owning organization id.
+  organizationId String
+  /// Owning organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Display name.
+  name           String
+  /// Optional description.
+  description    String?
+  /// Whether this is an automated agent task or a user-defined general task.
+  type           TaskType     @default(GENERAL)
+  /// Agent responsible for running this task (AGENT type only).
+  agent          Agent?
+  /// CRON expression for recurrence (null means one-off).
+  cronExpression String?
+  /// IANA timezone for the cron schedule.
+  timezone       String       @default("UTC")
+  /// Whether the task is active and should run on schedule.
+  isEnabled      Boolean      @default(true)
+  /// True when seeded as a default task at org creation.
+  isDefault      Boolean      @default(false)
+  /// Extra configuration passed to the agent handler.
+  payload        Json?
+  /// Timestamp of the last run.
+  lastRunAt      DateTime?
+  /// Next scheduled run timestamp (computed from cron expression).
+  nextRunAt      DateTime?
+  /// Creation timestamp.
+  createdAt      DateTime     @default(now())
+  /// Update timestamp.
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([nextRunAt, isEnabled])
+  @@map("task")
 }

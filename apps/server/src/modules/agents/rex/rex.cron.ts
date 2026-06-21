@@ -4,7 +4,12 @@ import { resend } from "../../../lib/resend.js";
 import * as rexRepository from "./rex.repository.js";
 import type { AlertRule } from "./rex.schema.js";
 
-async function runWeeklyDigestForOrg(organizationId: string, recipients: string[]) {
+export async function runWeeklyDigestForOrg(organizationId: string, recipients?: string[]) {
+  if (!recipients) {
+    const settings = await rexRepository.findAllOrgsWithDigestEnabled();
+    const orgSettings = settings.find((s) => s.organizationId === organizationId);
+    recipients = orgSettings?.weeklyDigestRecipients ?? [];
+  }
   try {
     const datasets = await rexRepository.findDatasets(organizationId);
 

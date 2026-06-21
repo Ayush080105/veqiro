@@ -31,6 +31,19 @@ async function findOrgsWithGoogle(): Promise<
   return Array.from(orgMap.values());
 }
 
+export async function runBriefingForOrg(organizationId: string, type: "MORNING" | "EVENING" | "WEEKLY") {
+  const orgs = await findOrgsWithGoogle();
+  const org = orgs.find((o) => o.organizationId === organizationId);
+  if (!org) return;
+  await generateAndCacheBriefing(org.userId, org.organizationId, {
+    type,
+    includeEmail: true,
+    includeCalendar: true,
+  }).catch((err) =>
+    console.error(`[vega-cron] ${type} briefing failed for org ${organizationId}:`, err)
+  );
+}
+
 async function runBriefingForAllOrgs(type: "MORNING" | "EVENING" | "WEEKLY") {
   const orgs = await findOrgsWithGoogle();
   await Promise.allSettled(
@@ -50,7 +63,7 @@ async function runBriefingForAllOrgs(type: "MORNING" | "EVENING" | "WEEKLY") {
   console.log(`[vega-cron] ${type} briefing generated for ${orgs.length} orgs`);
 }
 
-async function runFollowUpCheck() {
+export async function runFollowUpCheck() {
   try {
     const overdue = await prisma.vegaFollowUp.updateMany({
       where: {
@@ -67,18 +80,15 @@ async function runFollowUpCheck() {
   }
 }
 
-async function runEmailPipelineForAllOrgs() {
+export async function runEmailPipelineForAllOrgs() {
   const orgs = await findOrgsWithGoogle();
-  await Promise.allSettled(
-    orgs.map(({ userId, organizationId }) =>
-      runEmailPipeline(userId, organizationId).catch((err) =>
-        console.error(
-          `[vega-cron] email pipeline failed for org ${organizationId}:`,
-          err
-        )
-      )
-    )
-  );
+  // Sequential — parallel Promise.allSettled across 16 orgs floods the event loop
+  // with 100+ concurrent AI + Gmail callbacks, causing node-cron missed-tick warnings.
+  for (const { userId, organizationId } of orgs) {
+    await runEmailPipeline(userId, organizationId).catch((err) =>
+      console.error(`[vega-cron] email pipeline failed for org ${organizationId}:`, err)
+    );
+  }
   console.log(`[vega-cron] Email pipeline complete for ${orgs.length} orgs`);
 }
 

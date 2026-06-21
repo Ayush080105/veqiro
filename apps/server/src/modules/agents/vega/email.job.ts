@@ -66,20 +66,27 @@ export async function runEmailPipeline(
   ) as { node_action: string; messages: Array<{ email_id: string; label: string }> } | undefined;
 
   if (labelAction?.messages?.length) {
-    await Promise.allSettled(
-      labelAction.messages.map(({ email_id, label }) => {
-        const labelName = normalizeLabel(label);
-        return labelMessage({
-          accessToken: token,
-          messageId: email_id,
-          labelName,
-          managedLabelNames: customLabelNames,
-          labelColor: labelColors.get(labelName),
-        }).catch((err: unknown) =>
-          console.error(`[email-job] Label failed for ${email_id}:`, err)
-        );
-      })
-    );
+    // Process in batches of 5 to avoid Gmail's concurrent request rate limit
+    const BATCH = 5;
+    const msgs = labelAction.messages;
+    for (let i = 0; i < msgs.length; i += BATCH) {
+      await Promise.allSettled(
+        msgs.slice(i, i + BATCH).map(({ email_id, label }) => {
+          const labelName = normalizeLabel(label);
+          return labelMessage({
+            accessToken: token,
+            messageId: email_id,
+            labelName,
+            managedLabelNames: customLabelNames,
+            labelColor: labelColors.get(labelName),
+          }).catch((err: unknown) =>
+            console.error(`[email-job] Label failed for ${email_id}:`, err)
+          );
+        })
+      );
+      // Small pause between batches to stay within Gmail rate limits
+      if (i + BATCH < msgs.length) await new Promise((r) => setTimeout(r, 250));
+    }
   }
 
   // 5. Auto-draft replies for emails whose label has autoReply=true

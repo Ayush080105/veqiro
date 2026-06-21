@@ -86,7 +86,18 @@ export const getGoogleAccessToken = async (userId: string): Promise<string> => {
       const fresh = await refreshAccessToken(account.id, account.refreshToken);
       return fresh.accessToken;
     } catch (err) {
-      console.error("[google] refresh failed, using existing token", err);
+      // Any 4xx from the token endpoint is a permanent auth failure (revoked token,
+      // unauthorized_client, bad credentials). Only 5xx = Google is down = transient.
+      const isPermanent =
+        err instanceof Error &&
+        (/refresh failed \(4\d\d\)/.test(err.message) ||
+          err.message.includes("invalid_grant") ||
+          err.message.includes("unauthorized_client") ||
+          err.message.includes("Token has been expired or revoked"));
+      if (isPermanent) {
+        throw new GoogleNotConnectedError();
+      }
+      console.error("[google] refresh failed transiently, using existing token", err);
     }
   }
 

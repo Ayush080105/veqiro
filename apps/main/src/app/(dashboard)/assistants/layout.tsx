@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import ChatList from "@/components/assistants/ChatList"
+import { AssistantsTour } from "@/components/tour/AssistantsTour"
 
 export default function AssistantsLayout({
   children,
@@ -16,6 +17,7 @@ export default function AssistantsLayout({
       className="-m-4 flex overflow-hidden"
       style={{ height: "calc(100vh - 3rem)", background: "#EFE7D6" }}
     >
+      <AssistantsTour />
       {/* Agent list — full-width on mobile when no chat open, 340px sidebar on desktop */}
       <div
         className={[

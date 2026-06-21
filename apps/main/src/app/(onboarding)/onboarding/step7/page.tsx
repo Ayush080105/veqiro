@@ -59,16 +59,16 @@ export default function Step7Review() {
           {rows.map(({ label, value, jumpTo }) => (
             <div
               key={label}
-              className="flex items-center gap-3 border-b border-dashed border-border pb-2.5"
+              className="flex min-w-0 items-center gap-3 border-b border-dashed border-border pb-2.5"
             >
-              <div className="w-32 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="w-32 shrink-0 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                 {label}
               </div>
-              <div className="flex-1 font-body text-[15px]">{value}</div>
+              <div className="min-w-0 flex-1 truncate font-body text-[15px]">{value}</div>
               <button
                 type="button"
                 onClick={() => router.push(`/onboarding/${jumpTo}`)}
-                className="cursor-pointer rounded-full border-2 border-foreground bg-secondary px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                className="shrink-0 cursor-pointer rounded-full border-2 border-foreground bg-secondary px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
               >
                 Edit
               </button>

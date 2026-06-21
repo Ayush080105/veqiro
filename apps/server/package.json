@@ -13,7 +13,8 @@
     "seed:dashboard": "tsx prisma/seed-dashboard.ts",
     "seed:brand-kit": "tsx prisma/seed-brand-kit.ts",
     "seed:admin": "tsx prisma/seed-admin.ts",
-    "test": "vitest run \"src/modules/agents/scout/scout.test.ts\" \"src/tests/unit/*.test.ts\""
+    "test": "vitest run \"src/modules/agents/scout/scout.test.ts\" \"src/tests/unit/*.test.ts\"",
+    "seed:tasks": "tsx prisma/seed-tasks.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -29,6 +30,7 @@
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.5.6",
     "cors": "^2.8.6",
+    "cron-parser": "^4.9.0",
     "dodopayments": "^2.28.2",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",

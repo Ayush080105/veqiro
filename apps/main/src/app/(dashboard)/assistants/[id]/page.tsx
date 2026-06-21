@@ -205,7 +205,7 @@ function EmptyState({
           position: "relative",
         }}
       >
-        <div style={{ position: "absolute", top: -8, left: 20 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
           <Sticker rotate={-6} style={{ background: agent.color as string }}>
             {agent.tag}
           </Sticker>

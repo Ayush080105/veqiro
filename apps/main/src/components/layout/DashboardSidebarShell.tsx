@@ -11,6 +11,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar"
 import { AutoBreadcrumb } from "@/components/layout/AutoBreadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { TrialBanner } from "@/components/billing/TrialBanner"
+import { AppTour } from "@/components/tour/AppTour"
 
 const isAssistantsPath = (p: string) => p.startsWith("/assistants")
 
@@ -34,6 +35,7 @@ export default function DashboardSidebarShell({
   return (
     <SidebarProvider open={open} onOpenChange={setOpen}>
       <AppSidebar />
+      <AppTour />
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger className="-ml-1" />

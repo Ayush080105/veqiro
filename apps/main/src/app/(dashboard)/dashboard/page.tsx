@@ -141,7 +141,7 @@ export default function DashboardPage() {
       {showSkeletons ? (
         <div className="h-[72px] rounded-md border-[3px] border-foreground bg-[#D5CCBA] shadow-[5px_5px_0_var(--vq-green)] animate-pulse" />
       ) : (
-        <div className="relative">
+        <div className="relative" data-tour="dashboard-briefing">
           <Link
             href="/workspace/briefing"
             className="flex items-center gap-3.5 rounded-md border-[3px] border-foreground bg-card p-4 px-5 no-underline shadow-[5px_5px_0_var(--vq-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:flex-col max-sm:items-start"
@@ -175,7 +175,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3" data-tour="dashboard-metrics">
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           [ at a glance ]
         </span>

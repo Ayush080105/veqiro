@@ -28,6 +28,7 @@ export type VegaLabelMinAggregateOutputType = {
   id: string | null
   name: string | null
   color: string | null
+  rationale: string | null
   autoReply: boolean | null
   organizationId: string | null
   createdAt: Date | null
@@ -37,6 +38,7 @@ export type VegaLabelMaxAggregateOutputType = {
   id: string | null
   name: string | null
   color: string | null
+  rationale: string | null
   autoReply: boolean | null
   organizationId: string | null
   createdAt: Date | null
@@ -46,6 +48,7 @@ export type VegaLabelCountAggregateOutputType = {
   id: number
   name: number
   color: number
+  rationale: number
   autoReply: number
   organizationId: number
   createdAt: number
@@ -57,6 +60,7 @@ export type VegaLabelMinAggregateInputType = {
   id?: true
   name?: true
   color?: true
+  rationale?: true
   autoReply?: true
   organizationId?: true
   createdAt?: true
@@ -66,6 +70,7 @@ export type VegaLabelMaxAggregateInputType = {
   id?: true
   name?: true
   color?: true
+  rationale?: true
   autoReply?: true
   organizationId?: true
   createdAt?: true
@@ -75,6 +80,7 @@ export type VegaLabelCountAggregateInputType = {
   id?: true
   name?: true
   color?: true
+  rationale?: true
   autoReply?: true
   organizationId?: true
   createdAt?: true
@@ -157,6 +163,7 @@ export type VegaLabelGroupByOutputType = {
   id: string
   name: string
   color: string
+  rationale: string
   autoReply: boolean
   organizationId: string
   createdAt: Date
@@ -187,6 +194,7 @@ export type VegaLabelWhereInput = {
   id?: Prisma.StringFilter<"VegaLabel"> | string
   name?: Prisma.StringFilter<"VegaLabel"> | string
   color?: Prisma.StringFilter<"VegaLabel"> | string
+  rationale?: Prisma.StringFilter<"VegaLabel"> | string
   autoReply?: Prisma.BoolFilter<"VegaLabel"> | boolean
   organizationId?: Prisma.StringFilter<"VegaLabel"> | string
   createdAt?: Prisma.DateTimeFilter<"VegaLabel"> | Date | string
@@ -196,6 +204,7 @@ export type VegaLabelOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   autoReply?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -209,6 +218,7 @@ export type VegaLabelWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.VegaLabelWhereInput | Prisma.VegaLabelWhereInput[]
   name?: Prisma.StringFilter<"VegaLabel"> | string
   color?: Prisma.StringFilter<"VegaLabel"> | string
+  rationale?: Prisma.StringFilter<"VegaLabel"> | string
   autoReply?: Prisma.BoolFilter<"VegaLabel"> | boolean
   organizationId?: Prisma.StringFilter<"VegaLabel"> | string
   createdAt?: Prisma.DateTimeFilter<"VegaLabel"> | Date | string
@@ -218,6 +228,7 @@ export type VegaLabelOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   autoReply?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -233,6 +244,7 @@ export type VegaLabelScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"VegaLabel"> | string
   name?: Prisma.StringWithAggregatesFilter<"VegaLabel"> | string
   color?: Prisma.StringWithAggregatesFilter<"VegaLabel"> | string
+  rationale?: Prisma.StringWithAggregatesFilter<"VegaLabel"> | string
   autoReply?: Prisma.BoolWithAggregatesFilter<"VegaLabel"> | boolean
   organizationId?: Prisma.StringWithAggregatesFilter<"VegaLabel"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"VegaLabel"> | Date | string
@@ -242,6 +254,7 @@ export type VegaLabelCreateInput = {
   id?: string
   name: string
   color?: string
+  rationale?: string
   autoReply?: boolean
   organizationId: string
   createdAt?: Date | string
@@ -251,6 +264,7 @@ export type VegaLabelUncheckedCreateInput = {
   id?: string
   name: string
   color?: string
+  rationale?: string
   autoReply?: boolean
   organizationId: string
   createdAt?: Date | string
@@ -260,6 +274,7 @@ export type VegaLabelUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
   autoReply?: Prisma.BoolFieldUpdateOperationsInput | boolean
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -269,6 +284,7 @@ export type VegaLabelUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
   autoReply?: Prisma.BoolFieldUpdateOperationsInput | boolean
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -278,6 +294,7 @@ export type VegaLabelCreateManyInput = {
   id?: string
   name: string
   color?: string
+  rationale?: string
   autoReply?: boolean
   organizationId: string
   createdAt?: Date | string
@@ -287,6 +304,7 @@ export type VegaLabelUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
   autoReply?: Prisma.BoolFieldUpdateOperationsInput | boolean
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -296,6 +314,7 @@ export type VegaLabelUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
   autoReply?: Prisma.BoolFieldUpdateOperationsInput | boolean
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -310,6 +329,7 @@ export type VegaLabelCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   autoReply?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -319,6 +339,7 @@ export type VegaLabelMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   autoReply?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -328,6 +349,7 @@ export type VegaLabelMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   color?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
   autoReply?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -339,6 +361,7 @@ export type VegaLabelSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   id?: boolean
   name?: boolean
   color?: boolean
+  rationale?: boolean
   autoReply?: boolean
   organizationId?: boolean
   createdAt?: boolean
@@ -348,6 +371,7 @@ export type VegaLabelSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   name?: boolean
   color?: boolean
+  rationale?: boolean
   autoReply?: boolean
   organizationId?: boolean
   createdAt?: boolean
@@ -357,6 +381,7 @@ export type VegaLabelSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   name?: boolean
   color?: boolean
+  rationale?: boolean
   autoReply?: boolean
   organizationId?: boolean
   createdAt?: boolean
@@ -366,12 +391,13 @@ export type VegaLabelSelectScalar = {
   id?: boolean
   name?: boolean
   color?: boolean
+  rationale?: boolean
   autoReply?: boolean
   organizationId?: boolean
   createdAt?: boolean
 }
 
-export type VegaLabelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "color" | "autoReply" | "organizationId" | "createdAt", ExtArgs["result"]["vegaLabel"]>
+export type VegaLabelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "color" | "rationale" | "autoReply" | "organizationId" | "createdAt", ExtArgs["result"]["vegaLabel"]>
 
 export type $VegaLabelPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "VegaLabel"
@@ -389,6 +415,10 @@ export type $VegaLabelPayload<ExtArgs extends runtime.Types.Extensions.InternalA
      * Hex color used in the UI.
      */
     color: string
+    /**
+     * Classification guidance used by Vega when choosing this label.
+     */
+    rationale: string
     /**
      * Whether Vega should auto-draft replies for this label.
      */
@@ -827,6 +857,7 @@ export interface VegaLabelFieldRefs {
   readonly id: Prisma.FieldRef<"VegaLabel", 'String'>
   readonly name: Prisma.FieldRef<"VegaLabel", 'String'>
   readonly color: Prisma.FieldRef<"VegaLabel", 'String'>
+  readonly rationale: Prisma.FieldRef<"VegaLabel", 'String'>
   readonly autoReply: Prisma.FieldRef<"VegaLabel", 'Boolean'>
   readonly organizationId: Prisma.FieldRef<"VegaLabel", 'String'>
   readonly createdAt: Prisma.FieldRef<"VegaLabel", 'DateTime'>
