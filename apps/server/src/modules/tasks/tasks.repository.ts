@@ -1,5 +1,5 @@
 import { prisma } from "../../config/prisma.js";
-import { Agent, Task, TaskType } from "../../../prisma/generated/prisma/client.js";
+import { Agent, Prisma, Task, TaskType } from "../../../prisma/generated/prisma/client.js";
 
 export function findTasksByOrg(organizationId: string, type?: TaskType) {
   return prisma.task.findMany({
@@ -21,6 +21,7 @@ export function createTask(data: {
   cronExpression?: string | null;
   timezone?: string;
   isDefault?: boolean;
+  payload?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput;
   nextRunAt?: Date | null;
 }) {
   return prisma.task.create({ data });

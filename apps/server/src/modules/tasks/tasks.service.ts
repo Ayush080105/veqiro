@@ -1,14 +1,14 @@
 import cronParser from "cron-parser";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import * as tasksRepository from "./tasks.repository.js";
-import { Agent, Task, TaskType } from "../../../prisma/generated/prisma/client.js";
+import { Agent, Prisma, Task, TaskType } from "../../../prisma/generated/prisma/client.js";
 
 const DEFAULT_TASKS: Array<{
   name: string;
   description: string;
   agent: Agent;
   cronExpression: string;
-  payload?: Record<string, unknown>;
+  payload?: Prisma.InputJsonObject;
 }> = [
   {
     name: "Weekly Financial Digest",
@@ -69,7 +69,7 @@ export async function seedDefaultTasks(organizationId: string) {
       cronExpression: task.cronExpression,
       timezone: "UTC",
       isDefault: true,
-      payload: task.payload ?? null,
+      payload: task.payload ?? Prisma.JsonNull,
       nextRunAt,
     });
   }
