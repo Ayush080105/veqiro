@@ -3,7 +3,8 @@ import json
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter
+import httpx
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from core.llm import LLMClient
@@ -348,7 +349,12 @@ async def vega_chat(request: ChatRequest) -> ChatSyncResponse:
 async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
     """Triage, label, and draft replies for unread emails. Returns node_actions for backend."""
     token = request.metadata.get("google_access_token", "") or "mock-token"
-    emails = await list_unread(token, max_results=request.max_emails)
+    try:
+        emails = await list_unread(token, max_results=request.max_emails)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 401:
+            raise HTTPException(status_code=401, detail="Google access token expired or invalid")
+        raise
     label_definitions = _coerce_label_definitions(request.label_definitions, request.custom_labels)
     managed_label_names = {name.lower() for name in _label_names(label_definitions)}
 
