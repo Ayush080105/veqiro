@@ -88,6 +88,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -176,7 +177,12 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                     <button
                       key={cat.value}
                       type="button"
-                      onClick={() => setSelectedCategory(cat.value)}
+                      onClick={() => {
+                        setSelectedCategory(cat.value)
+                        // Keep react-hook-form in sync so the required `category`
+                        // field passes validation (it lives in local state only).
+                        setValue("category", cat.value, { shouldValidate: true })
+                      }}
                       className={cn(
                         "flex items-start gap-2.5 rounded-md border-[2.5px] border-foreground p-3 text-left transition-all hover:translate-y-px",
                         isSelected
@@ -223,7 +229,10 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setSelectedAgent(null)}
+                  onClick={() => {
+                    setSelectedAgent(null)
+                    setValue("agentSlug", null)
+                  }}
                   className={cn(
                     "rounded-full border-[2px] border-foreground px-3 py-1 text-xs font-head uppercase tracking-wide transition-all",
                     selectedAgent === null
@@ -239,7 +248,11 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                     <button
                       key={slug}
                       type="button"
-                      onClick={() => setSelectedAgent(isSelected ? null : slug)}
+                      onClick={() => {
+                        const next = isSelected ? null : slug
+                        setSelectedAgent(next)
+                        setValue("agentSlug", next)
+                      }}
                       className={cn(
                         "rounded-full border-[2px] border-foreground px-3 py-1 text-xs font-head uppercase tracking-wide transition-all",
                         isSelected
