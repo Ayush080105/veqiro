@@ -152,11 +152,11 @@ export function ContentPipeline({
             </div>
           ))}
         </div>
-        {data.byStatus.failed > 0 && (
+        {/* {data.byStatus.failed > 0 && (
           <Button asChild variant="brand" size="brand-sm" className="mt-3.5">
             <Link href="/workspace/content">retry failed -&gt;</Link>
           </Button>
-        )}
+        )} */}
       </div>
     </div>
   )

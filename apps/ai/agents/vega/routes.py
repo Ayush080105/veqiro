@@ -432,18 +432,26 @@ async def process_inbox(request: ProcessInboxRequest) -> ProcessInboxResponse:
             provider=_agent.default_provider, model=_agent.default_model,
             system=system,
             messages=[{"role": "user", "content": (
-                "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys: "
-                "priority (urgent/high/medium/low), summary (1-2 sentences), "
-                f"suggested_action (string), label (exactly one of: {label_list}), "
-                "hidden_tasks (list of strings — implicit action items, e.g. 'review attached deck', 'respond before Friday'), "
-                "suggested_reply (string — a 1-3 sentence reply suggestion if suggested_action is 'reply', otherwise null), "
-                "meeting_request (object with keys date, time, topic if the email requests a meeting, otherwise null)\n\n"
-                "Use these label rationales to choose the best label. Do not invent labels. "
-                "Use Other only when no configured rationale clearly fits.\n"
-                f"{label_rationales}\n\n"
+                f"## Available Labels\n{label_rationales}\n\n"
+                "## Classification Rules\n"
+                "1. Use the sender's email address and domain as a primary signal.\n"
+                "2. Choose the label whose rationale best matches the email's purpose and sender.\n"
+                "3. Automated alerts, transactional notifications, newsletters, and digests from known services "
+                "should match by content — not default to Sales Leads.\n"
+                "4. Use 'Other' only when no rationale clearly fits.\n\n"
+                "## Email\n"
                 f"From: {email.get('from', '')}\n"
                 f"Subject: {email.get('subject', '')}\n"
-                f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
+                f"Body:\n{email.get('body', email.get('snippet', ''))[:1500]}\n\n"
+                "## Task\n"
+                "Analyze the email above. Return ONLY a JSON object (no markdown fences) with these keys:\n"
+                "- priority: urgent | high | medium | low\n"
+                "- summary: 1-2 sentence summary\n"
+                "- suggested_action: string\n"
+                f"- label: exactly one of: {label_list}\n"
+                "- hidden_tasks: list of implicit action items (strings)\n"
+                "- suggested_reply: 1-3 sentence reply if suggested_action is 'reply', else null\n"
+                "- meeting_request: object with date, time, topic if meeting is requested, else null\n"
             )}],
         )
         tokens = _llm.count_tokens(raw)

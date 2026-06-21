@@ -50,7 +50,7 @@ import type {
   AgentConfig,
   AgentSlug,
 } from "@/lib/types"
-import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult } from "@/lib/types/agents"
+import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult, MayaContentRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 
 function ChatHeader({
@@ -451,7 +451,31 @@ export default function AssistantChatPage() {
       scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => {
         const withoutOptimistic = prev.slice(0, -1)
-        return [...withoutOptimistic, serverMsg].slice(-WINDOW)
+        const updated = [...withoutOptimistic, serverMsg]
+
+        // If the server updated an existing draft card image in-place, patch it
+        // in React state so the user sees the new image without a page reload.
+        const patchInfo = serverMsg.customInput?.result as Record<string, unknown> | undefined
+        if (patchInfo?._modifyImagePatch === true) {
+          const patchedId = patchInfo.patchedMessageId as string | undefined
+          const newImage = patchInfo.image as { image_url: string; content_type: string; prompt_used: string } | undefined
+          if (patchedId && newImage) {
+            for (let i = 0; i < updated.length - 1; i++) {
+              if (updated[i].id === patchedId) {
+                const ci = updated[i].customInput
+                const result = (ci?.result as Record<string, unknown>) ?? {}
+                updated[i] = {
+                  ...updated[i],
+                  imageUrl: newImage.image_url,
+                  customInput: ci ? { ...ci, result: { ...result, image: newImage } } : ci,
+                }
+                break
+              }
+            }
+          }
+        }
+
+        return updated.slice(-WINDOW)
       })
     },
     onError: () => {
@@ -552,6 +576,7 @@ export default function AssistantChatPage() {
   const handleActionStart = useCallback(
     (ctx: { actionId: AgentActionId; input: unknown }) => {
       if (ctx.actionId === "maya:regenerate-image") return
+      if (ctx.actionId === "maya:regenerate-content") return
 
       const meta = findAction(ctx.actionId)
       const userMsg: Message = {
@@ -642,6 +667,61 @@ export default function AssistantChatPage() {
           return msgs
         })
         toast.success("Image regenerated.")
+        return
+      }
+
+      // ── maya:regenerate-content ───────────────────────────────────────────
+      // Patches the most-recent DraftCard's caption/hashtags/cta in-place so
+      // the rewrite appears where the post already lives, not as a new card.
+      // Falls back to appending a ContentRegenCard only if no source is found.
+      if (ctx.actionId === "maya:regenerate-content") {
+        const regenResult = ctx.result as MayaContentRegenResult
+
+        setMsgWindow((prev) => {
+          const msgs = [...prev]
+          let patched = false
+
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const ci = msgs[i].customInput
+            if (!ci?.actionId || !ci.result) continue
+
+            if (ci.actionId === "maya:draft-content") {
+              const r = ci.result as MayaDraftResult
+              if (!r?.draft) continue
+              msgs[i] = {
+                ...msgs[i],
+                customInput: {
+                  ...ci,
+                  result: {
+                    ...r,
+                    draft: {
+                      ...r.draft,
+                      body: regenResult.caption,
+                      hashtags: regenResult.hashtags,
+                      cta: regenResult.cta,
+                    },
+                  },
+                },
+              }
+              patched = true
+              break
+            }
+          }
+
+          if (!patched) {
+            const assistantMsg: Message = {
+              role: "assistant",
+              content: meta ? `${meta.label} — done.` : "Action complete.",
+              imageUrl: null,
+              createdAt: now,
+              customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult },
+            }
+            return [...msgs, assistantMsg].slice(-WINDOW)
+          }
+          return msgs
+        })
+
+        toast.success(meta ? `${meta.label} complete.` : "Caption updated.")
         return
       }
 
@@ -850,6 +930,42 @@ export default function AssistantChatPage() {
 
       if (patched) {
         // Also remove the preceding user message that triggered the regen
+        if (i > 0 && merged[i - 1].role === "user") toRemove.add(i - 1)
+        toRemove.add(i)
+      }
+    }
+
+    // Merge maya:regenerate-content messages (from regular chat) into the most
+    // recent DraftCard's caption/hashtags/cta, then hide the regen message.
+    for (let i = 0; i < merged.length; i++) {
+      if (toRemove.has(i)) continue
+      const ci = merged[i].customInput
+      if (ci?.actionId !== "maya:regenerate-content") continue
+      const regenResult = ci.result as MayaContentRegenResult | undefined
+      if (!regenResult?.caption) continue
+
+      let patched = false
+      for (let j = i - 1; j >= 0; j--) {
+        if (toRemove.has(j)) continue
+        const src = merged[j].customInput
+        if (!src?.actionId || !src.result) continue
+
+        if (src.actionId === "maya:draft-content") {
+          const r = src.result as MayaDraftResult
+          if (!r?.draft) continue
+          merged[j] = {
+            ...merged[j],
+            customInput: {
+              ...src,
+              result: { ...r, draft: { ...r.draft, body: regenResult.caption, hashtags: regenResult.hashtags, cta: regenResult.cta } },
+            },
+          }
+          patched = true
+          break
+        }
+      }
+
+      if (patched) {
         if (i > 0 && merged[i - 1].role === "user") toRemove.add(i - 1)
         toRemove.add(i)
       }

@@ -177,7 +177,7 @@ class BaseAgent(ABC):
     slug: str = "base"
     name: str = "Base Agent"
     default_provider: str = "openai"
-    default_model: str = "gpt-4o-mini"
+    default_model: str = "gpt-4.1-mini"
     personality: str = "Helpful AI assistant"
 
     MAX_TOOL_CALLS = 5  # Circuit breaker for tool-calling loop

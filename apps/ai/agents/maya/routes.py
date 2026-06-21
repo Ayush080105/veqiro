@@ -1,8 +1,6 @@
 import asyncio
-import json
 import logging
-import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger("agents")
 
@@ -295,8 +293,7 @@ class CarouselDraftResponse(BaseModel):
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-def _mock_ideas(count: int, topic_hint: str) -> list[ContentIdea]:
-    topic = topic_hint or "AI productivity for founders"
+def _mock_ideas(count: int, _topic_hint: str) -> list[ContentIdea]:
     return [
         ContentIdea(
             title="How We Used AI to Save 10 Hours/Week Running Our Startup",
@@ -437,7 +434,7 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         topic = (brand_kit.company_name if brand_kit else None) or request.topic_hint
         return IdeationResponse(
             ideas=_mock_ideas(request.count, topic),
-            generated_at=datetime.utcnow().isoformat(),
+            generated_at=datetime.now(timezone.utc).isoformat(),
             image=image,
         )
 
@@ -515,7 +512,7 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
 
     return IdeationResponse(
         ideas=ideas,
-        generated_at=datetime.utcnow().isoformat(),
+        generated_at=datetime.now(timezone.utc).isoformat(),
         image=image,
         tokens_used=tokens_used,
         model_used=_agent.default_model,
@@ -780,6 +777,9 @@ class ImageRegenRequest(BaseModel):
     organization_id: str = Field("", max_length=128)
     image_url: HttpUrl = Field(..., description="URL of the existing image to modify")
     prompt: str = Field(..., min_length=1, max_length=1000)
+    use_logo: bool = False
+    use_mascot: bool = False
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -787,6 +787,9 @@ class ImageRegenRequest(BaseModel):
                 "user_id": "user_123",
                 "image_url": "https://r2.example.com/images/abc.png",
                 "prompt": "Make the background more vibrant and professional",
+                "use_logo": False,
+                "use_mascot": False,
+                "platform": "instagram",
             }
         }
     )
@@ -838,15 +841,15 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
 
     source_bytes = await _fetch_asset(str(request.image_url))
     last_err: Exception | None = None
+    b64: str = ""
     for attempt in range(3):
         try:
             if source_bytes:
                 edit_prompt = (
-                    f"You are editing the reference image. Make ONLY this specific change: {request.prompt}\n\n"
-                    "CRITICAL: Keep the entire composition, all characters, colors, layout, and visual style "
-                    "EXACTLY the same as the reference. Do NOT regenerate or redesign the image. "
-                    "Only apply the described change and nothing else. "
-                    "If the change involves text, spell every word EXACTLY as specified — no typos, no letter swaps."
+                    f"Based on reference image 1, produce an updated version that applies this specific change: {request.prompt}\n\n"
+                    "Preserve the original composition, visual style, colour palette, typography, and all existing elements. "
+                    "The output should look identical to the reference image except for the requested change. "
+                    "If the change involves text, reproduce every word exactly as specified."
                 )
                 b64 = await _llm.generate_image_with_image_bytes(edit_prompt, [source_bytes])
             else:
@@ -856,10 +859,27 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
         except Exception as err:
             last_err = err
             logger.warning("regenerate-image attempt %d/3 failed | error=%s", attempt + 1, err)
-    if last_err is not None:
-        raise last_err
 
-    image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=request.prompt)
+    if last_err is not None:
+        logger.warning("regenerate-image: all retries failed, falling back to fresh generation | error=%s", last_err)
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+            from core.image_gen import generate_social_image
+            fallback = await generate_social_image(
+                request.prompt,
+                request.platform,
+                use_logo=request.use_logo,
+                use_mascot=request.use_mascot,
+                user_id=request.user_id,
+                organization_id=request.organization_id,
+                brand_kit=brand_kit,
+            )
+            image = fallback
+        except Exception as fallback_err:
+            logger.error("regenerate-image: fallback also failed | error=%s", fallback_err)
+            raise last_err
+    else:
+        image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=request.prompt)
     return ImageRegenResponse(image=image, model_used="gemini-2.5-flash-image")
 
 
@@ -960,12 +980,9 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
         tone_used=content.tone_used,
     )
 
-    total = len(content.image_prompts)
-
     async def _gen(prompt_data: CarouselImagePrompt, idx: int, anchor_b64: str | None = None) -> ImageResult | None:
         if not request.include_images:
             return None
-        # Build text_spec from pre-generated exact text fields — prevents spelling mistakes
         text_spec: dict | None = None
         if prompt_data.headline:
             text_spec = {
@@ -973,12 +990,22 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                 "stat": prompt_data.stat,
                 "subtext": prompt_data.subtext,
             }
+        _hint_parts = [p.strip().strip(".") for p in [
+            request.topic,
+            prompt_data.context_note,
+            request.additional_context or "",
+        ] if p and p.strip()]
+        _context_hints = ". ".join(_hint_parts)
         last_err: BaseException | None = None
+        current_anchor = anchor_b64
         for attempt in range(3):
             if attempt and last_err:
                 last_err_str = str(last_err)
                 if "429" in last_err_str or "RESOURCE_EXHAUSTED" in last_err_str.upper():
                     await asyncio.sleep(30 + attempt * 30)
+                elif "IMAGE_OTHER" in last_err_str and current_anchor:
+                    logger.warning("carousel IMAGE_OTHER on anchor | slide=%d dropping anchor for retry", idx + 1)
+                    current_anchor = None
                 else:
                     await asyncio.sleep(2 * attempt)
             try:
@@ -991,9 +1018,9 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                     user_id=request.user_id,
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
-                    context_hints=prompt_data.context_note,
+                    context_hints=_context_hints,
                     text_spec=text_spec,
-                    carousel_anchor_b64=anchor_b64,
+                    carousel_anchor_b64=current_anchor,
                     brand_images=request.brand_images or [],
                     use_brand_colors=request.use_brand_colors,
                 )
@@ -1004,11 +1031,12 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                     logger.error("carousel image_gen failed after 3 attempts | slide=%d error=%s", idx + 1, img_err)
         return None
 
-    # Step 2a: Generate slide 1 first — it defines the visual DNA for the carousel
+    # Slide 1 generated first — defines the character, style, and atmosphere for the carousel.
+    # Slides 2+ receive slide 1 as a JPEG style/character reference (JPEG strips AI metadata
+    # that triggers Gemini's IMAGE_OTHER policy on PNG anchors).
     slide_1_image = await _gen(content.image_prompts[0], 0, anchor_b64=None)
     anchor_b64 = slide_1_image.image_base64 if slide_1_image else None
 
-    # Step 2b: Generate remaining slides in parallel, each anchored to slide 1
     if len(content.image_prompts) > 1:
         rest = await asyncio.gather(
             *[_gen(p, i + 1, anchor_b64=anchor_b64) for i, p in enumerate(content.image_prompts[1:])],

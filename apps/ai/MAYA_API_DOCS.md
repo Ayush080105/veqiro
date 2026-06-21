@@ -104,7 +104,7 @@ POST /ai/maya/chat
   "agent": "maya",
   "message_id": "msg_abc123",
   "tokens_used": 420,
-  "model_used": "gpt-4o-mini",
+  "model_used": "gpt-4.1-mini",
   "metadata": {
     "tool_calls": [
       { "name": "draft_content", "arguments": { "topic": "AI feature launch", "platform": "linkedin" } }

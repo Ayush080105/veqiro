@@ -224,6 +224,8 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     Form: MayaDraftForm,
     validate: (v) => (!v.topic?.trim() ? "Topic is required." : !v.platforms?.length ? "Pick at least one platform." : null),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolveActionId: (v: any) => (v.make_carousel ? "maya:draft-carousel" : "maya:draft-content"),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     customSubmit: async (v: any, organizationId: string, conversationId?: string) => {
       const platforms: ContentPlatform[] = v.platforms?.length ? v.platforms : ["linkedin"]
       if (v.make_carousel) {

@@ -14,7 +14,7 @@ from core.tools import (
 
 # Provider + model constants
 GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
-GPT4O_MINI = ("openai", "gpt-4o-mini")
+GPT4O_MINI = ("openai", "gpt-4.1-mini")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
 def _aspect_ratio_hint(aspect_ratio: str) -> str:
@@ -961,7 +961,7 @@ class LLMClient:
         )
         return response.text
 
-    def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
+    def count_tokens(self, text: str, model: str = "gpt-4.1-mini") -> int:
         """Approximate token count."""
         try:
             import tiktoken

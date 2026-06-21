@@ -17,8 +17,15 @@ import { useIntegrations } from "@/lib/api/integrations"
 import { publishPost, publishCarousel } from "@/lib/api/assistants"
 import type { ContentPlatform, ImageResult } from "@/lib/types/agents"
 
+const CONTENT_PLATFORMS = ["linkedin", "twitter", "instagram"] as const
+
+function normalizePlatform(platform?: ContentPlatform | string | null): ContentPlatform | null {
+  const normalized = platform?.toLowerCase()
+  return CONTENT_PLATFORMS.find((p) => p === normalized) ?? null
+}
+
 interface PublishDialogProps {
-  platform: ContentPlatform
+  platform?: ContentPlatform | string | null
   caption: string
   hashtags: string[]
   image?: ImageResult | null
@@ -41,7 +48,7 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
   const { data: accounts = [], isLoading: loading, isError, error } = useIntegrations()
 
   const eligible = useMemo(
-    () => accounts.filter((a) => a.platform.toUpperCase() === "INSTAGRAM"),
+    () => accounts.filter((a) => String(a.platform ?? "").toUpperCase() === "INSTAGRAM"),
     [accounts]
   )
 
@@ -152,15 +159,17 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
 
   // Case-insensitive match — defends against any backend casing drift
   // (Prisma serialises enums as upper-case strings; ContentPlatform is lower-case).
-  const target = platform.toUpperCase()
+  const normalizedPlatform = normalizePlatform(platform)
+  const platformLabel = normalizedPlatform ?? "this platform"
+  const target = normalizedPlatform?.toUpperCase()
   const eligible = useMemo(
-    () => accounts.filter((a) => a.platform.toUpperCase() === target),
+    () => accounts.filter((a) => String(a.platform ?? "").toUpperCase() === target),
     [accounts, target]
   )
 
   if (open && accounts.length > 0 && eligible.length === 0) {
     console.warn("PublishDialog: no eligible accounts for platform", {
-      platform,
+      platform: normalizedPlatform,
       platforms: accounts.map((a) => a.platform),
     })
   }
@@ -198,15 +207,15 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
 
   return (
     <>
-      <Button variant="chat-action" onClick={() => setOpen(true)}>
+      <Button variant="chat-action" onClick={() => setOpen(true)} disabled={!normalizedPlatform}>
         <Send className="size-3" /> Publish
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
         <DialogHeader>
-          <DialogTitle>Publish to {platform}</DialogTitle>
+          <DialogTitle>Publish to {platformLabel}</DialogTitle>
           <DialogDescription>
-            Choose a connected {platform} account to publish this post.
+            Choose a connected {platformLabel} account to publish this post.
           </DialogDescription>
         </DialogHeader>
 
@@ -219,13 +228,13 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
         ) : eligible.length === 0 ? (
           <div className="flex flex-col gap-2 text-xs">
             <p className="text-muted-foreground">
-              No {platform} account connected yet.
+              No {platformLabel} account connected yet.
             </p>
             <a
               href="/settings/integrations"
               className="inline-flex items-center gap-1 text-foreground hover:underline"
             >
-              Connect {platform} <ExternalLink className="size-3" />
+              Connect {platformLabel} <ExternalLink className="size-3" />
             </a>
           </div>
         ) : (

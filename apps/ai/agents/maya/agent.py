@@ -40,7 +40,7 @@ class MayaAgent(BaseAgent):
         "creative direction, and always have a reason for every choice. Enthusiastic but not over the top."
     )
     default_provider = "openai"
-    default_model = "gpt-4o-mini"
+    default_model = "gpt-4.1-mini"
 
     async def build_system_prompt(
         self,
@@ -157,7 +157,19 @@ class MayaAgent(BaseAgent):
                 "→ use modify_image (keep same topic/platform, apply new logo/mascot flags). "
                 "Do NOT call draft_content for a redo — it produces duplicate content.\n"
                 "- 'Add logo to the image', 'put our logo on it', 'add mascot' → call modify_image, NOT draft_content.\n"
+                "- CRITICAL: Phrases about logo STYLING (e.g. 'make the logo with white background', "
+                "'logo white background', 'change the logo color', 'make the logo bold', 'logo bigger', "
+                "'logo smaller', 'logo in corner') → ALWAYS call modify_image. NEVER call draft_content. "
+                "These are image edits, not new post requests.\n"
                 "- Never assume the user wants logo or mascot just because brand kit has them.\n"
+                "- IMPORTANT: When user requests ANY visual or style change (not just logo/mascot) — "
+                "'make it more realistic', 'attention-grabbing', 'bolder', 'darker', etc. → call modify_image "
+                "and capture their exact visual instructions in the style_changes parameter.\n"
+                "- 'no transparent logo' / 'don't use transparent logo' means the logo was rendering incorrectly "
+                "transparent — the user STILL WANTS the logo, just solid. → use_logo=True + "
+                "style_changes='render logo fully opaque and solid, not transparent' plus any other instructions.\n"
+                "- Only set use_logo=False if user explicitly says 'remove the logo', 'no logo at all', "
+                "'without logo', or 'skip the logo'.\n"
             )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
@@ -170,6 +182,14 @@ class MayaAgent(BaseAgent):
             "\n\n## Tool Rules\n"
             "NEVER use tools for: greetings, thanks, 'great', 'love it', 'ok', small talk, "
             "or anything that is not a content creation request. Respond to those in Maya's voice — no tools.\n\n"
+            "## HIGHEST PRIORITY — Image vs New Content disambiguation\n"
+            "If an image was already generated in this conversation AND the user's message is about:\n"
+            "  • the image, logo, or visual (e.g. 'make the logo with white background', 'add logo',\n"
+            "    'change the logo', 'make it bolder', 'logo white background', 'update the image',\n"
+            "    'redo the image', 'change the background', ANY logo/mascot/visual tweak)\n"
+            "→ ALWAYS call `modify_image`. NEVER call `draft_content` for this — it generates new content\n"
+            "  which is NOT what the user wants. The user wants the existing image changed.\n"
+            "Only call `draft_content` when the user is explicitly asking for a BRAND NEW post on a new topic.\n\n"
             "- If the user asks for a NEW post but does NOT specify a platform → ask once: "
             "'Which platform — LinkedIn, Instagram, or Twitter/X?' "
             "When you ask, also note any logo/mascot flags from the same message so you don't lose them.\n"
@@ -181,10 +201,14 @@ class MayaAgent(BaseAgent):
             "- When the user's intent is to EXPLORE ideas, call `generate_ideas` only — not draft_content.\n"
             "- Don't call `draft_content` for multiple platforms unless the user explicitly asks for all of them.\n"
             "- User says 'adapt for X' or 'now make it for Instagram' → call `generate_variants`.\n"
-            "- User gives feedback on existing content → call `revise_content`.\n"
+            "- User gives feedback on existing content text → call `revise_content`.\n"
             "- User says 'make it again', 'redo', 'regenerate', 'add logo', 'add mascot', "
-            "'use my logo', 'put logo on it' after an image was shown → call `modify_image` with the "
-            "correct use_logo/use_mascot flags. Infer topic and platform from the previous draft in history.\n"
+            "'use my logo', 'put logo on it', 'make it more realistic', 'attention-grabbing', "
+            "'no transparent logo', 'logo white background', 'make the logo...', 'change the logo', "
+            "'bolder', 'darker', or ANY visual quality/style request "
+            "after an image was shown → call `modify_image` with the correct use_logo/use_mascot flags "
+            "AND pass the user's exact visual instructions in style_changes. "
+            "Infer topic and platform from the previous draft in history.\n"
             "After any tool call the card is rendered automatically — output NOTHING extra.\n\n"
             "## When to use ask_agent\n"
             "- User asks for trending topics, hot news, or what's popular right now → call `ask_agent` with scout FIRST "
@@ -204,11 +228,15 @@ class MayaAgent(BaseAgent):
         tool_calls = response.metadata.get("tool_calls", [])
 
         # Branch A: new content was drafted/adapted/ideated — generate image
+        # Skip Branch A entirely if modify_image was also called — the model
+        # should never run draft_content alongside modify_image, but when it
+        # does (mis-fire), the image-edit intent always takes priority.
+        modify_also_called = any(tc["name"] == "modify_image" for tc in tool_calls)
         content_call = next(
             (tc for tc in tool_calls if tc["name"] in {"draft_content", "generate_variants", "generate_ideas"}),
             None,
         )
-        if content_call:
+        if content_call and not modify_also_called:
             try:
                 from core.brand_kit import load_brand_kit
                 from core.image_gen import generate_social_image
@@ -221,12 +249,34 @@ class MayaAgent(BaseAgent):
                 use_mascot: bool = bool(args.get("use_mascot", False))
 
                 brand_kit = await load_brand_kit(request.organization_id)
+                _tone = args.get("tone", "")
+                # Build rich context from the actual draft/idea result so the
+                # 5-component elaboration understands the post angle, hook, and audience.
+                _ctx_parts = [_tone] if _tone else []
+                if response.action_result:
+                    draft = response.action_result.get("draft") or {}
+                    if draft.get("hook"):
+                        _ctx_parts.append(f"hook: {draft['hook']}")
+                    if draft.get("body"):
+                        _ctx_parts.append(f"post excerpt: {str(draft['body'])[:250]}")
+                    ideas = response.action_result.get("ideas") or []
+                    if ideas and isinstance(ideas, list):
+                        idea = ideas[0]
+                        if idea.get("hook"):
+                            _ctx_parts.append(f"hook: {idea['hook']}")
+                        if idea.get("rationale"):
+                            _ctx_parts.append(f"angle: {str(idea['rationale'])[:150]}")
+                        if idea.get("engagement_prediction"):
+                            _ctx_parts.append(f"audience note: {str(idea['engagement_prediction'])[:100]}")
+                _ctx_parts.append(request.message)
+                _ctx = "; ".join(filter(None, _ctx_parts))[:600]
                 image_result = await generate_social_image(
                     topic, platform,
                     use_logo=use_logo, use_mascot=use_mascot,
                     user_id=request.user_id,
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
+                    context_hints=_ctx,
                 )
 
                 response.image = image_result
@@ -244,24 +294,92 @@ class MayaAgent(BaseAgent):
         if modify_call:
             try:
                 from core.brand_kit import load_brand_kit
-                from core.image_gen import generate_social_image
+                from core.image_gen import _fetch_asset, generate_social_image
+                from core.models import ImageResult
                 args = modify_call["arguments"]
                 use_logo: bool = bool(args.get("use_logo", False))
                 use_mascot: bool = bool(args.get("use_mascot", False))
                 topic: str = args.get("topic", "content")
                 platform: str = args.get("platform", "linkedin")
                 aspect_ratio: str = args.get("aspect_ratio", "1:1")
+                style_changes: str = args.get("style_changes", "")
+                _ctx = (style_changes or request.message or "")[:500]
+                last_image_url: str = request.metadata.get("last_image_url", "")
 
                 brand_kit = await load_brand_kit(request.organization_id)
-                new_image = await generate_social_image(
-                    topic, platform,
-                    use_logo=use_logo, use_mascot=use_mascot,
-                    aspect_ratio=aspect_ratio,
-                    user_id=request.user_id,
-                    organization_id=request.organization_id,
-                    brand_kit=brand_kit,
-                )
-                response.image = new_image
+
+                original_bytes = await _fetch_asset(last_image_url) if last_image_url else None
+
+                if original_bytes:
+                    edit_images: list[bytes] = [original_bytes]
+                    asset_instructions: list[str] = []
+
+                    # Only add logo/mascot as a NEW reference image if the user's message
+                    # explicitly mentions the logo or brand. If they ask for other visual
+                    # changes (colour, cartoons, etc.), the logo is already in ref image 1
+                    # and adding it again causes repositioning/duplication.
+                    user_text_lower = (style_changes + " " + request.message).lower()
+                    logo_mentioned = any(kw in user_text_lower for kw in [
+                        "logo", "brand", "mark", "icon", "badge",
+                    ])
+                    mascot_mentioned = any(kw in user_text_lower for kw in ["mascot", "character"])
+
+                    if use_logo and logo_mentioned and brand_kit and brand_kit.logo_url:
+                        logo_bytes = await _fetch_asset(brand_kit.logo_url)
+                        if logo_bytes:
+                            edit_images.append(logo_bytes)
+                            asset_instructions.append(
+                                f"Reference image {len(edit_images)} is the brand logo. "
+                                "Composite it into reference image 1. Reproduce the logo exactly — "
+                                "exact shape, colours, proportions. If the logo has a background colour, "
+                                "ignore it and composite only the logo mark with no white box or border. "
+                                "Place it in the bottom-right corner, occupying 8-12% of image width."
+                            )
+
+                    if use_mascot and mascot_mentioned and brand_kit and brand_kit.mascot_url:
+                        mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
+                        if mascot_bytes:
+                            edit_images.append(mascot_bytes)
+                            asset_instructions.append(
+                                f"Reference image {len(edit_images)} is the brand mascot. "
+                                "Add it to reference image 1 as a natural supporting element."
+                            )
+
+                    style_desc = style_changes.strip() if style_changes.strip() else request.message.strip()
+                    changes_parts: list[str] = []
+                    if style_desc:
+                        changes_parts.append(style_desc)
+                    for instr in asset_instructions:
+                        changes_parts.append(instr)
+                    if not changes_parts:
+                        changes_parts.append("apply the requested change")
+
+                    edit_prompt = (
+                        "Based on reference image 1, produce an updated version that applies ALL of the following changes:\n"
+                        + "\n".join(f"- {p}" for p in changes_parts)
+                        + "\n\nPreserve the original composition, typography, colour palette, layout, and all other "
+                        "existing visual elements. The output should look like reference image 1 with only these additions applied."
+                    )
+                    b64 = await self.llm.generate_image_with_image_bytes(edit_prompt, edit_images, aspect_ratio=aspect_ratio)
+                    response.image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=edit_prompt)
+                    # Signal TypeScript to update the original draft card's image in-place.
+                    # Also override the response text so any accidental draft_content output
+                    # is replaced with a concise confirmation.
+                    response.action_id = "maya:modify-image"
+                    response.action_result = {"image": response.image.model_dump()}
+                    _summary = (style_changes.strip() or request.message.strip())[:120]
+                    response.response = f"Done — updated the image: {_summary}."
+                else:
+                    new_image = await generate_social_image(
+                        topic, platform,
+                        use_logo=use_logo, use_mascot=use_mascot,
+                        aspect_ratio=aspect_ratio,
+                        user_id=request.user_id,
+                        organization_id=request.organization_id,
+                        brand_kit=brand_kit,
+                        context_hints=_ctx,
+                    )
+                    response.image = new_image
             except Exception:
                 pass  # image modification is best-effort
 
@@ -320,9 +438,10 @@ class MayaAgent(BaseAgent):
             ToolDefinition(
                 name="modify_image",
                 description=(
-                    "Regenerate the image for a post already created in this conversation, with updated logo/mascot flags. "
-                    "Use ONLY for follow-up requests like 'add the logo', 'remove the mascot', 'now add our logo to it'. "
-                    "Do NOT use this if no image has been generated yet — use draft_content instead."
+                    "Regenerate or modify the image for a post already created in this conversation. "
+                    "Use for ANY image change request: logo/mascot flags, visual style changes, "
+                    "'make it more realistic', 'attention-grabbing', 'no transparent logo', 'bolder', 'darker mood', etc. "
+                    "Do NOT use if no image has been generated yet — use draft_content instead."
                 ),
                 parameters=[
                     ToolParameter(name="topic", type="string", description="Same topic used for the original post in this conversation", required=True),
@@ -330,6 +449,17 @@ class MayaAgent(BaseAgent):
                     ToolParameter(name="aspect_ratio", type="string", description="Same aspect ratio used for the original image (e.g. 1:1, 16:9)", required=False, default="1:1"),
                     ToolParameter(name="use_logo", type="boolean", description="Whether the logo should appear on the final image", required=True),
                     ToolParameter(name="use_mascot", type="boolean", description="Whether the mascot should appear in the final image", required=True),
+                    ToolParameter(
+                        name="style_changes",
+                        type="string",
+                        description=(
+                            "Any visual or style changes requested beyond logo/mascot flags — "
+                            "e.g. 'make it photorealistic', 'more attention-grabbing', 'render logo solid not transparent', "
+                            "'darker mood', 'bold and energetic'. Copy the user's exact visual instruction here."
+                        ),
+                        required=False,
+                        default="",
+                    ),
                 ],
             ),
             ToolDefinition(

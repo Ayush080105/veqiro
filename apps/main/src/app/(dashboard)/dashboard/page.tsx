@@ -3,7 +3,7 @@
 import { useState } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { AlertTriangle, Newspaper, RefreshCw } from "lucide-react"
+import { Newspaper, RefreshCw } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 import { useDashboardSummary, ALL_SLUGS, type Range } from "@/lib/api/dashboard"
@@ -92,8 +92,6 @@ export default function DashboardPage() {
     byPlatform: { twitter: 0, linkedin: 0, instagram: 0 },
     byStatus: { draft: 0, scheduled: 0, published: 0, failed: 0 },
   }
-  const attention = summary?.attention ?? []
-
   return (
     <div className="flex min-w-0 flex-col gap-8 pb-10">
       <DashboardProgressBar active={showProgressBar} />
@@ -139,29 +137,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {attention.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3.5 rounded-md border-[3px] border-foreground bg-foreground p-4 text-primary-foreground shadow-[6px_6px_0_var(--destructive)]">
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="size-5 text-accent" />
-            <span className="font-mono text-[11px] uppercase tracking-widest text-accent">
-              needs attention
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {attention.map((a, i) => (
-              <Link
-                key={i}
-                href={a.href}
-                className={`inline-flex min-h-10 items-center rounded-full border-2 border-background px-3 py-1.5 font-mono text-xs text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background ${
-                  a.severity === "critical" ? "bg-destructive" : "bg-accent"
-                }`}
-              >
-                {a.message}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       {showSkeletons ? (
         <div className="h-[72px] rounded-md border-[3px] border-foreground bg-[#D5CCBA] shadow-[5px_5px_0_var(--vq-green)] animate-pulse" />

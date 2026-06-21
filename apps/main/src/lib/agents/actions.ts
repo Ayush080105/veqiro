@@ -125,7 +125,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       id: "maya:revise",
       agent: "maya",
       endpoint: "revise",
-      label: "Revise a post",
+      label: "Revise the caption",
       description: "Refine an existing post based on feedback.",
       icon: "Wand2",
       hideFromMenu: true,

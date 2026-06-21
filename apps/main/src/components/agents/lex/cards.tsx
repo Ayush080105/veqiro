@@ -45,13 +45,15 @@ import type {
 } from "@/lib/types/agents"
 
 type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
+type ContractAnalysis = LexAnalyzeContractResult["analysis"]
 
 function copyText(text: string, label = "Copied") {
   navigator.clipboard.writeText(text).then(() => toast.success(label))
 }
 
-function sevLevel(level: "low" | "medium" | "high" | "critical") {
-  return level === "critical" || level === "high" ? "danger" : level === "medium" ? "warn" : "info"
+function sevLevel(level?: string | null): React.ComponentProps<typeof StatusPill>["level"] {
+  const normalized = level?.toLowerCase()
+  return normalized === "critical" || normalized === "high" ? "danger" : normalized === "medium" ? "warn" : "info"
 }
 
 function actionLevel(action: string): React.ComponentProps<typeof StatusPill>["level"] {
@@ -63,6 +65,46 @@ function actionLevel(action: string): React.ComponentProps<typeof StatusPill>["l
 
 function actionLabel(action: string) {
   return action.replace(/_/g, " ")
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isContractAnalysis(value: unknown): value is ContractAnalysis {
+  return isRecord(value) && typeof value.risk_level === "string"
+}
+
+function getContractAnalysis(result: unknown): ContractAnalysis | null {
+  if (isRecord(result) && isContractAnalysis(result.analysis)) {
+    return result.analysis
+  }
+
+  if (isContractAnalysis(result)) {
+    return result
+  }
+
+  return null
+}
+
+function InvalidLexResultCard({ title, result }: { title: string; result: unknown }) {
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header
+        icon={<ShieldAlert />}
+        title={title}
+        badge={<StatusPill level="warn">unavailable</StatusPill>}
+      />
+      <AgentCard.Body className="flex flex-col gap-2">
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          This Lex result could not be rendered because the saved response is missing the expected fields.
+        </p>
+        <pre className="max-h-48 overflow-auto rounded border border-border bg-muted/20 p-2 text-[10px]">
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      </AgentCard.Body>
+    </AgentCard>
+  )
 }
 
 // ─── Upload-source card ──────────────────────────────────────────────────────
@@ -156,8 +198,13 @@ export function ContractAnalysisCard({
   result: LexAnalyzeContractResult
   onFollowUpAction?: FollowUp
 }) {
-  const a = result.analysis
-  const riskLevel = sevLevel(a.risk_level as "low" | "medium" | "high" | "critical")
+  const a = getContractAnalysis(result)
+
+  if (!a) {
+    return <InvalidLexResultCard title="Contract analysis unavailable" result={result} />
+  }
+
+  const riskLevel = sevLevel(a.risk_level)
 
   return (
     <AgentCard size="sm">
