@@ -439,6 +439,9 @@ export default function AssistantChatPage() {
   const scrollIntentRef = useRef<"instant" | "smooth" | null>("instant")
   const thisMutationRef = useRef(false)
   const prevMutationStatusRef = useRef<string | undefined>(undefined)
+  const didCatchUpRef = useRef(false) // Guards the "already-complete-on-mount" fetch
+  const isAtBottomRef = useRef(isAtBottom) // Latest scroll position for action callbacks
+  isAtBottomRef.current = isAtBottom
 
   const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current, {
     onOptimistic: (optimistic) => {
@@ -493,6 +496,9 @@ export default function AssistantChatPage() {
     select: (m) => m.state.status,
   })
   const latestMutationStatus = mutationStatuses[mutationStatuses.length - 1]
+  // Ref to read latest mutation status from event listeners without stale closures
+  const latestMutationStatusRef = useRef(latestMutationStatus)
+  latestMutationStatusRef.current = latestMutationStatus // Keep updated on every render
   const isLoading = pendingCount > 0 || sendMutation.isPending
   const isBusy = isLoading || actionSubmitting
   const historyLoaded = initialLoaded
@@ -516,11 +522,48 @@ export default function AssistantChatPage() {
     getMessages(id, organizationId).then((msgs) => {
       scrollIntentRef.current = "smooth"
       setMsgWindow(msgs)
+      setHasPreviousPage(msgs.length === WINDOW)
       try {
         localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
       } catch {}
     })
   }, [latestMutationStatus, id, organizationId])
+
+  // Refetch when user returns to this tab — covers the "agent finished while on
+  // another tab" case. React Query has refetchOnWindowFocus disabled globally,
+  // so this targeted listener handles only the chat message list.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") return
+      const status = latestMutationStatusRef.current
+      if (status !== "pending" && status !== "success") return
+      getMessages(id, organizationId).then((msgs) => {
+        setMsgWindow(msgs)
+        setHasPreviousPage(msgs.length === WINDOW)
+        try {
+          localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
+        } catch {}
+      })
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    return () => document.removeEventListener("visibilitychange", handleVisibility)
+  }, [id, organizationId]) // Only re-register when agent changes, not on every status change
+
+  // If a mutation for this agent completed before this component mounted, the
+  // orphaned detection can't catch it (no pending→success transition seen).
+  // After initialLoaded settles, do one additional fetch as belt-and-suspenders.
+  useEffect(() => {
+    if (!initialLoaded || didCatchUpRef.current) return
+    if (latestMutationStatus !== "success" || mutationStatuses.length === 0) return
+    didCatchUpRef.current = true
+    getMessages(id, organizationId).then((msgs) => {
+      setMsgWindow(msgs)
+      setHasPreviousPage(msgs.length === WINDOW)
+      try {
+        localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
+      } catch {}
+    })
+  }, [initialLoaded, latestMutationStatus, mutationStatuses.length, id, organizationId])
 
   useEffect(() => {
     if (!agent) router.push("/assistants")
@@ -586,6 +629,7 @@ export default function AssistantChatPage() {
         imageUrl: null,
         createdAt: new Date().toISOString(),
       }
+      scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => [...prev, userMsg].slice(-WINDOW))
     },
     [id, organizationId],
@@ -660,6 +704,7 @@ export default function AssistantChatPage() {
           }
 
           if (!patched) {
+            if (isAtBottomRef.current) scrollIntentRef.current = "smooth"
             const userMsg: Message = { role: "user", content: meta?.label ?? "Regenerate image", imageUrl: null, createdAt: now }
             const assistantMsg: Message = { role: "assistant", content: "Image regenerated.", imageUrl: null, createdAt: now, customInput: { actionId: ctx.actionId, input: ctx.input, result: regenResult } }
             return [...msgs, userMsg, assistantMsg].slice(-WINDOW)
@@ -709,6 +754,7 @@ export default function AssistantChatPage() {
           }
 
           if (!patched) {
+            if (isAtBottomRef.current) scrollIntentRef.current = "smooth"
             const assistantMsg: Message = {
               role: "assistant",
               content: meta ? `${meta.label} — done.` : "Action complete.",
@@ -746,6 +792,7 @@ export default function AssistantChatPage() {
           createdAt: now,
           customInput: { actionId: ctx.actionId, input: ctx.input, result: enrichedResult },
         }
+        if (isAtBottomRef.current) scrollIntentRef.current = "smooth"
         setMsgWindow((prev) => [...prev, assistantMsg].slice(-WINDOW))
         toast.success(meta ? `${meta.label} complete.` : "Action complete.")
         return
@@ -765,6 +812,7 @@ export default function AssistantChatPage() {
           result: ctx.result,
         },
       }
+      if (isAtBottomRef.current) scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => [...prev, assistantMsg].slice(-WINDOW))
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
     },

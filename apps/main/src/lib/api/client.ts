@@ -21,6 +21,7 @@ type RequestOpts = {
   body?: unknown
   agentSlugForNotFound?: string
   signal?: AbortSignal
+  cache?: RequestCache
 }
 
 let redirectingToLogin = false
@@ -32,10 +33,11 @@ function redirectToLogin() {
 }
 
 export async function apiFetch<T>(path: string, opts: RequestOpts = {}): Promise<T> {
-  const { method = "GET", body, agentSlugForNotFound, signal } = opts
+  const { method = "GET", body, agentSlugForNotFound, signal, cache } = opts
   const res = await fetch(`${API_URL}${path}`, {
     method,
     credentials: "include",
+    cache,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
     signal,

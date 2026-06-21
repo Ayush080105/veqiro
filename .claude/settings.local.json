@@ -89,7 +89,8 @@
       "Bash(git commit *)",
       "Bash(pnpm run *)",
       "Bash(PowerShell *)",
-      "Bash(dir \"D:\\\\Coding\\\\veqiro\\\\apps\\\\main\\\\src\\\\app\\\\assistants\" /s)"
+      "Bash(dir \"D:\\\\Coding\\\\veqiro\\\\apps\\\\main\\\\src\\\\app\\\\assistants\" /s)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   },
   "enableAllProjectMcpServers": true,

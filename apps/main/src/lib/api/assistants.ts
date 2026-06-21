@@ -30,7 +30,7 @@ export async function getMessages(
     if (before) qs.set("before", before)
     return await apiFetch<Message[]>(
       `/agents/${agentSlug}/chat?${qs.toString()}`,
-      { agentSlugForNotFound: agentSlug }
+      { agentSlugForNotFound: agentSlug, cache: "no-store" }
     )
   } catch (err) {
     if (err instanceof AgentNotAvailableError) return []
@@ -262,6 +262,7 @@ export function useRunAgentAction(organizationId: string) {
       queryClient.invalidateQueries({
         queryKey: qk.chat(agentSlug, organizationId),
       })
+      queryClient.invalidateQueries({ queryKey: qk.lastMessages() })
     },
   })
 }
