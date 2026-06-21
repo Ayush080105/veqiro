@@ -69,7 +69,7 @@ export function OverviewTab({ groupId }: { groupId: string }) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={tickFmt} width={90} />
-              <Tooltip formatter={(v: number) => fmt(v, currency)} />
+              <Tooltip formatter={(v) => fmt(v as number, currency)} />
               <Line type="monotone" dataKey="total" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -94,7 +94,7 @@ export function OverviewTab({ groupId }: { groupId: string }) {
                   <Cell key={entry.category} fill={CATEGORY_COLORS[entry.category] ?? "#95A5A6"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => fmt(v, currency)} />
+              <Tooltip formatter={(v) => fmt(v as number, currency)} />
               <Legend formatter={(v) => v.toLowerCase()} wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -109,7 +109,7 @@ export function OverviewTab({ groupId }: { groupId: string }) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={tickFmt} width={90} />
-            <Tooltip formatter={(v: number) => fmt(v, currency)} />
+            <Tooltip formatter={(v) => fmt(v as number, currency)} />
             <Bar dataKey="total" fill="var(--primary)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

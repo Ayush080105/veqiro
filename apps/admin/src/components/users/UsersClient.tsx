@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
 
 const PAGE_SIZE = 25;
 
