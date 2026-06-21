@@ -139,7 +139,7 @@ export function ExpenseList({ groupId, group }: { groupId: string; group: Expens
                 <td className="px-4 py-3 text-right font-mono text-sm">{e.amount.toFixed(2)} {e.currency}</td>
                 <td className="px-4 py-3 text-right font-mono text-sm text-[var(--muted-foreground)]">${e.amountUsd.toFixed(2)}</td>
                 <td className="px-4 py-3 text-center">
-                  {e.isRecurring && <RefreshCw className="mx-auto h-3.5 w-3.5 text-[var(--muted-foreground)]" title={e.cronExpression ?? ""} />}
+                  {e.isRecurring && <span title={e.cronExpression ?? ""}><RefreshCw className="mx-auto h-3.5 w-3.5 text-[var(--muted-foreground)]" /></span>}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
