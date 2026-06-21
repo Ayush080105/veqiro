@@ -206,3 +206,28 @@ export type WaitlistEntry = Prisma.WaitlistEntryModel
  * Scheduled task owned by an organization — agent-automated or user-defined.
  */
 export type Task = Prisma.TaskModel
+/**
+ * Model ExpenseGroup
+ * A named group of people sharing expenses (e.g. "Team Offsite", "Office").
+ */
+export type ExpenseGroup = Prisma.ExpenseGroupModel
+/**
+ * Model ExpenseGroupMember
+ * Free-text named member of an ExpenseGroup (not linked to an app user account).
+ */
+export type ExpenseGroupMember = Prisma.ExpenseGroupMemberModel
+/**
+ * Model Expense
+ * A single expense logged in an ExpenseGroup.
+ */
+export type Expense = Prisma.ExpenseModel
+/**
+ * Model ExpenseSplit
+ * One member's share of a single Expense.
+ */
+export type ExpenseSplit = Prisma.ExpenseSplitModel
+/**
+ * Model Settlement
+ * A recorded debt payment between two group members.
+ */
+export type Settlement = Prisma.SettlementModel

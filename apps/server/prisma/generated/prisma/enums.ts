@@ -98,3 +98,27 @@ export const FeedbackCategory = {
 } as const
 
 export type FeedbackCategory = (typeof FeedbackCategory)[keyof typeof FeedbackCategory]
+
+
+export const ExpenseCategory = {
+  FOOD: 'FOOD',
+  TRAVEL: 'TRAVEL',
+  ACCOMMODATION: 'ACCOMMODATION',
+  OFFICE: 'OFFICE',
+  ENTERTAINMENT: 'ENTERTAINMENT',
+  UTILITIES: 'UTILITIES',
+  SUBSCRIPTIONS: 'SUBSCRIPTIONS',
+  EQUIPMENT: 'EQUIPMENT',
+  OTHER: 'OTHER'
+} as const
+
+export type ExpenseCategory = (typeof ExpenseCategory)[keyof typeof ExpenseCategory]
+
+
+export const SplitType = {
+  EQUAL: 'EQUAL',
+  EXACT: 'EXACT',
+  PERCENTAGE: 'PERCENTAGE'
+} as const
+
+export type SplitType = (typeof SplitType)[keyof typeof SplitType]

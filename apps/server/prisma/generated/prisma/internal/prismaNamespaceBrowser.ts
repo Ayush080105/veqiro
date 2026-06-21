@@ -83,7 +83,12 @@ export const ModelName = {
   UpcomingAgent: 'UpcomingAgent',
   UpcomingAgentVote: 'UpcomingAgentVote',
   WaitlistEntry: 'WaitlistEntry',
-  Task: 'Task'
+  Task: 'Task',
+  ExpenseGroup: 'ExpenseGroup',
+  ExpenseGroupMember: 'ExpenseGroupMember',
+  Expense: 'Expense',
+  ExpenseSplit: 'ExpenseSplit',
+  Settlement: 'Settlement'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -609,6 +614,79 @@ export const TaskScalarFieldEnum = {
 } as const
 
 export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+
+
+export const ExpenseGroupScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  createdById: 'createdById',
+  currency: 'currency',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExpenseGroupScalarFieldEnum = (typeof ExpenseGroupScalarFieldEnum)[keyof typeof ExpenseGroupScalarFieldEnum]
+
+
+export const ExpenseGroupMemberScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  name: 'name',
+  joinedAt: 'joinedAt'
+} as const
+
+export type ExpenseGroupMemberScalarFieldEnum = (typeof ExpenseGroupMemberScalarFieldEnum)[keyof typeof ExpenseGroupMemberScalarFieldEnum]
+
+
+export const ExpenseScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  title: 'title',
+  amount: 'amount',
+  currency: 'currency',
+  amountUsd: 'amountUsd',
+  category: 'category',
+  paidByMemberId: 'paidByMemberId',
+  receiptUrl: 'receiptUrl',
+  notes: 'notes',
+  date: 'date',
+  isRecurring: 'isRecurring',
+  cronExpression: 'cronExpression',
+  nextRunAt: 'nextRunAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
+
+
+export const ExpenseSplitScalarFieldEnum = {
+  id: 'id',
+  expenseId: 'expenseId',
+  memberId: 'memberId',
+  splitType: 'splitType',
+  shareAmount: 'shareAmount',
+  shareAmountUsd: 'shareAmountUsd'
+} as const
+
+export type ExpenseSplitScalarFieldEnum = (typeof ExpenseSplitScalarFieldEnum)[keyof typeof ExpenseSplitScalarFieldEnum]
+
+
+export const SettlementScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  fromMemberId: 'fromMemberId',
+  toMemberId: 'toMemberId',
+  amount: 'amount',
+  currency: 'currency',
+  amountUsd: 'amountUsd',
+  method: 'method',
+  notes: 'notes',
+  settledAt: 'settledAt'
+} as const
+
+export type SettlementScalarFieldEnum = (typeof SettlementScalarFieldEnum)[keyof typeof SettlementScalarFieldEnum]
 
 
 export const SortOrder = {

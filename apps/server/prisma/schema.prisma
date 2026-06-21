@@ -100,7 +100,6 @@ model User {
   feedbackComments     FeedbackComment[]    @relation("FeedbackCommentUser")
   /// Upvotes cast by this user on upcoming agents.
   upcomingAgentVotes   UpcomingAgentVote[]  @relation("UpcomingAgentVoteUser")
-
   @@unique([email])
   @@map("user")
 }
@@ -1039,4 +1038,187 @@ model Task {
   @@index([organizationId])
   @@index([nextRunAt, isEnabled])
   @@map("task")
+}
+
+// ─── Expense Tracker ─────────────────────────────────────────────────────────
+
+/// Expense category tag.
+enum ExpenseCategory {
+  FOOD
+  TRAVEL
+  ACCOMMODATION
+  OFFICE
+  ENTERTAINMENT
+  UTILITIES
+  SUBSCRIPTIONS
+  EQUIPMENT
+  OTHER
+}
+
+/// How the cost is divided among members.
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+}
+
+/// A named group of people sharing expenses (e.g. "Team Offsite", "Office").
+model ExpenseGroup {
+  /// Group id.
+  id          String               @id @default(cuid())
+  /// Display name.
+  name        String
+  /// Optional description.
+  description String?
+  /// User who created the group.
+  createdById String
+  /// Default currency for new expenses.
+  currency    String               @default("USD")
+  /// Creation timestamp.
+  createdAt   DateTime             @default(now())
+  /// Update timestamp.
+  updatedAt   DateTime             @updatedAt
+  /// Group members.
+  members     ExpenseGroupMember[]
+  /// Expenses in this group.
+  expenses    Expense[]
+  /// Settlements recorded in this group.
+  settlements Settlement[]
+
+  @@index([createdAt])
+  @@map("expense_group")
+}
+
+/// Free-text named member of an ExpenseGroup (not linked to an app user account).
+model ExpenseGroupMember {
+  /// Row id.
+  id       String       @id @default(cuid())
+  /// Group this membership belongs to.
+  groupId  String
+  /// Display name for this member (free text).
+  name     String
+  /// When the member was added.
+  joinedAt DateTime     @default(now())
+  /// Group relation.
+  group           ExpenseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  /// Expenses paid by this member.
+  expenses        Expense[]    @relation("ExpensePaidByMember")
+  /// Splits this member is responsible for.
+  expenseSplits   ExpenseSplit[]
+  /// Settlements where this member is the payer.
+  settlementsFrom Settlement[] @relation("SettlementFromMember")
+  /// Settlements where this member is the receiver.
+  settlementsTo   Settlement[] @relation("SettlementToMember")
+
+  @@unique([groupId, name])
+  @@index([groupId])
+  @@map("expense_group_member")
+}
+
+/// A single expense logged in an ExpenseGroup.
+model Expense {
+  /// Expense id.
+  id             String          @id @default(cuid())
+  /// Owning group id.
+  groupId        String
+  /// Short description of the expense.
+  title          String
+  /// Amount in the original currency.
+  amount         Float
+  /// ISO-4217 currency code.
+  currency       String          @default("USD")
+  /// Amount converted to USD for balance calculations.
+  amountUsd      Float
+  /// Category tag.
+  category       ExpenseCategory @default(OTHER)
+  /// Member who paid for this expense.
+  paidByMemberId String
+  /// Optional receipt image/PDF URL (R2).
+  receiptUrl     String?
+  /// Optional free-text notes.
+  notes          String?
+  /// Date the expense occurred.
+  date           DateTime
+  /// Whether this expense recurs on a schedule.
+  isRecurring    Boolean         @default(false)
+  /// CRON expression for recurrence (null if not recurring).
+  cronExpression String?
+  /// Next scheduled recurrence timestamp.
+  nextRunAt      DateTime?
+  /// Creation timestamp.
+  createdAt      DateTime        @default(now())
+  /// Update timestamp.
+  updatedAt      DateTime        @updatedAt
+  /// Owning group relation.
+  group          ExpenseGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  /// Member who paid.
+  paidByMember   ExpenseGroupMember @relation("ExpensePaidByMember", fields: [paidByMemberId], references: [id])
+  /// How the cost is split among members.
+  splits         ExpenseSplit[]
+
+  @@index([groupId, date])
+  @@index([groupId, category])
+  @@index([paidByMemberId])
+  @@index([isRecurring, nextRunAt])
+  @@map("expense")
+}
+
+/// One member's share of a single Expense.
+model ExpenseSplit {
+  /// Row id.
+  id             String             @id @default(cuid())
+  /// Parent expense id.
+  expenseId      String
+  /// Group member responsible for this share.
+  memberId       String
+  /// How the split was computed.
+  splitType      SplitType
+  /// Share amount in the expense's original currency.
+  shareAmount    Float
+  /// Share amount converted to USD.
+  shareAmountUsd Float
+  /// Parent expense relation.
+  expense        Expense            @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  /// Member relation.
+  member         ExpenseGroupMember @relation(fields: [memberId], references: [id])
+
+  @@unique([expenseId, memberId])
+  @@index([expenseId])
+  @@index([memberId])
+  @@map("expense_split")
+}
+
+/// A recorded debt payment between two group members.
+model Settlement {
+  /// Settlement id.
+  id          String       @id @default(cuid())
+  /// Group this settlement belongs to.
+  groupId     String
+  /// Member who is paying.
+  fromMemberId String
+  /// Member who is receiving payment.
+  toMemberId   String
+  /// Amount paid in the settlement currency.
+  amount      Float
+  /// ISO-4217 currency code.
+  currency    String       @default("USD")
+  /// Amount converted to USD.
+  amountUsd   Float
+  /// Payment method (e.g. "UPI", "Cash", "Bank Transfer").
+  method      String?
+  /// Optional notes.
+  notes       String?
+  /// When the settlement was recorded.
+  settledAt   DateTime     @default(now())
+  /// Group relation.
+  group        ExpenseGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  /// Payer relation.
+  fromMember   ExpenseGroupMember @relation("SettlementFromMember", fields: [fromMemberId], references: [id])
+  /// Receiver relation.
+  toMember     ExpenseGroupMember @relation("SettlementToMember", fields: [toMemberId], references: [id])
+
+  @@index([groupId, settledAt])
+  @@index([fromMemberId])
+  @@index([toMemberId])
+  @@map("settlement")
 }

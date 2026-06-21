@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { claimDueTasks, updateTask } from "./tasks.repository.js";
 import { computeNextRun, dispatchTask } from "./tasks.service.js";
+import { processRecurringExpenses } from "../expenses/expenses.service.js";
 
 export function startTaskCronRunner() {
   cron.schedule("*/15 * * * *", async () => {
@@ -34,6 +35,13 @@ export function startTaskCronRunner() {
     if (dueTasks.length > 0) {
       console.log(`[tasks-cron] Dispatched ${dueTasks.length} due task(s)`);
     }
+  });
+
+  // Recurring expense cloning — runs on the same 15-min cadence
+  cron.schedule("*/15 * * * *", () => {
+    void processRecurringExpenses().catch((err) =>
+      console.error("[expenses-cron] processRecurringExpenses failed:", err),
+    );
   });
 
   console.log("[tasks-cron] Dynamic task runner started — polling every 15 minutes");
