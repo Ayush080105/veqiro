@@ -616,13 +616,20 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
     logger.info("draft_content | include_image=%s user=%s", request.include_image, request.user_id)
     if request.include_image:
         try:
+            # Feed the generated caption into context_hints so the creative concept
+            # aligns to what the post actually says, not just the raw topic keyword.
+            _caption_context = "\n".join(filter(None, [
+                draft.title,
+                draft.body[:600],
+                request.additional_context or "",
+            ]))
             image = await generate_social_image(
                 request.topic, request.platform,
                 aspect_ratio=request.image_aspect_ratio,
                 use_logo=request.use_logo, use_mascot=request.use_mascot,
                 user_id=request.user_id, organization_id=request.organization_id,
                 brand_kit=brand_kit,
-                context_hints=request.additional_context or "",
+                context_hints=_caption_context,
                 reference_urls=request.reference_images if request.use_reference else [],
                 brand_images=request.brand_images or [],
                 use_brand_colors=request.use_brand_colors,
@@ -992,6 +999,7 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
             }
         _hint_parts = [p.strip().strip(".") for p in [
             request.topic,
+            content.caption_body[:300],
             prompt_data.context_note,
             request.additional_context or "",
         ] if p and p.strip()]
