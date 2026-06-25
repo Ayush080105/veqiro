@@ -16,7 +16,7 @@ export const isPreLaunch =
 export const launchDate =
   process.env.NEXT_PUBLIC_LAUNCH_DATE || '2026-06-17T00:00:00Z';
 
-export const maxWaitlistSlots = 100;
+export const maxWaitlistSlots = 150;
 
 export const waitlistUrl = '/waitlist';
 

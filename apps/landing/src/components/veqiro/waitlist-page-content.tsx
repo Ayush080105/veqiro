@@ -65,7 +65,7 @@ interface Props {
 export default function WaitlistPageContent({ count, max }: Props) {
   const [cd, setCd] = useState<CountdownState | null>(null);
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'already' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'already' | 'error' | 'full'>('idle');
 
   useEffect(() => {
     setCd(getCountdown(launchDate));
@@ -84,6 +84,13 @@ export default function WaitlistPageContent({ count, max }: Props) {
         body: JSON.stringify({ email: email.trim() }),
       });
       if (!res.ok) {
+        if (res.status === 400) {
+          const data = await res.json().catch(() => ({}));
+          if (data.message === "All waitlist spots are fully booked") {
+            setStatus('full');
+            return;
+          }
+        }
         setStatus('error');
         return;
       }
@@ -249,6 +256,75 @@ export default function WaitlistPageContent({ count, max }: Props) {
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
                     You&apos;re already on the list — we&apos;ve got you. Sit tight.
                   </p>
+                </div>
+              ) : status === 'full' || count >= max ? (
+                <div style={{ maxWidth: 520, margin: '0 auto' }}>
+                  <div style={{
+                    border: '3px solid #F06464',
+                    borderRadius: 14,
+                    padding: '28px 32px',
+                    background: '#FFF9ED',
+                    boxShadow: '5px 5px 0 #F06464',
+                    textAlign: 'center',
+                    marginBottom: 24,
+                  }}>
+                    <div style={{ fontFamily: FONT.display, fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8, color: '#111' }}>
+                      founding spots filled.
+                    </div>
+                    <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: '0 0 16px', lineHeight: 1.5 }}>
+                      All {max} founding member spots have been claimed! Thank you for the incredible support. We will be opening general access very soon.
+                    </p>
+                    <div style={{
+                      display: 'inline-block',
+                      fontFamily: FONT.mono,
+                      fontSize: 11,
+                      background: '#F06464',
+                      color: '#FFF',
+                      fontWeight: 700,
+                      padding: '6px 14px',
+                      borderRadius: 99,
+                      letterSpacing: 0.5,
+                      textTransform: 'uppercase',
+                    }}>
+                      Closed for Pre-Launch
+                    </div>
+                  </div>
+
+                  {/* Spots counter + progress bar */}
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      marginBottom: 8,
+                    }}>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555', letterSpacing: 0.5 }}>
+                        <span style={{ fontFamily: FONT.head, fontWeight: 700, color: '#111', fontSize: 14 }}>{claimed}</span>
+                        {' '}/ {max} founding spots claimed
+                      </span>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888' }}>
+                        {max - claimed} left
+                      </span>
+                    </div>
+                    <div style={{
+                      height: 8,
+                      background: '#D9D0BF',
+                      borderRadius: 999,
+                      border: '2px solid #111',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${pct}%`,
+                        background: '#1DBC87',
+                        borderRadius: 999,
+                        transition: 'width 600ms ease',
+                      }} />
+                    </div>
+                    <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#999', margin: '10px 0 0', letterSpacing: 0.3 }}>
+                      We are gearing up for launch. Get ready.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div style={{ maxWidth: 520, margin: '0 auto' }}>
