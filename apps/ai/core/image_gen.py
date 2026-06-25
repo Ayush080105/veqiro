@@ -15,23 +15,34 @@ _PLACEHOLDER_B64 = (
 
 _PLATFORM_STYLE = {
     "linkedin": (
-        "corporate editorial photography: neutral 5000K daylight lighting, controlled depth of field, "
-        "16:9 landscape orientation; typography uses a single sans-serif typeface at heavy weight with generous tracking; "
-        "color palette stays within 2 brand colors plus white or near-white; "
-        "composition favors left-aligned text block with visual subject in right two-thirds of frame"
+        "award-winning corporate editorial photography — the look of a Wired or Fast Company cover shoot: "
+        "architectural depth, deliberate negative space, long directional shadows, "
+        "raking late-afternoon window light across textured surfaces; "
+        "16:9 landscape with one commanding subject occupying the right two-thirds — "
+        "left third is intentional empty space that reads as authority, not emptiness; "
+        "typography: one ultra-bold sans-serif headline anchored left, generous tracking; "
+        "color palette: exactly 2 brand tones plus near-white, zero gradients, zero noise; "
+        "the overall image feels like it was commissioned, not generated"
     ),
     "instagram": (
-        "lifestyle photography with high color saturation (vibrance +20-30%), shallow depth of field f/1.8-f/2.8 feel, "
-        "natural or golden-hour lighting; square 1:1 composition with subject slightly off-center; "
-        "typography is minimal — headline only, large, lower-third or upper-third placement; "
-        "background must have visual texture or depth, not a flat solid fill"
+        "cinematic lifestyle photography with a deliberate, intentional colour grade — "
+        "choose ONE signature treatment: teal-and-orange film-stock warmth, bleached muted fashion editorial, "
+        "or high-key luminous white with one jewel-tone accent; "
+        "shallow depth of field f/1.8 feel, subject at a rule-of-thirds intersection; "
+        "include ONE unexpected texture, colour, or prop detail that breaks the predictable composition "
+        "and earns a second look — something that reframes the subject or deepens the narrative; "
+        "typography: single oversized headline, lower-third or upper-third only, never centred; "
+        "the image must communicate a feeling before the text is read; "
+        "square 1:1 with rich visual texture in the background — never a flat solid fill"
     ),
     "twitter": (
-        "bold graphic design with hard-edge shapes and maximum contrast; "
-        "typography dominates at least 40% of the image area; "
-        "single hero color from brand palette pushed to maximum saturation; "
-        "16:9 landscape with strong left-to-right reading direction; "
-        "photographic elements (if any) are cropped tightly and treated with high-contrast duotone filter"
+        "poster-art boldness: ONE idea, ruthlessly edited — cut everything that does not serve it; "
+        "the image communicates its entire message in under 0.3 seconds at thumbnail scale; "
+        "maximum contrast, single dominant brand colour at full saturation, hard-edge geometric shapes; "
+        "typography occupies 35-45% of frame as the PRIMARY visual element — not a caption, a design object; "
+        "16:9 landscape with immediate left-to-right visual momentum; "
+        "if photographic elements are used, apply a high-contrast duotone treatment so they read as graphic, not photographic; "
+        "the result should feel closer to a protest poster or album cover than a corporate social post"
     ),
 }
 
@@ -164,20 +175,35 @@ async def _elaborate_prompt_5component(
         brand_context = "; ".join(brand_context_parts)
 
         system_prompt = (
-            "You are a professional AI image prompt engineer specializing in Google Gemini image generation.\n"
-            "Given a visual description and context, elaborate it into the 5-Component Prompt Template "
-            "that produces the highest quality, most specific Gemini image outputs.\n\n"
+            "You are a world-class image art director and Gemini prompt specialist. "
+            "Your outputs have one job: produce the technical precision blueprint that makes an AI generate a breathtaking, "
+            "scroll-stopping image — not a competent one, a stunning one.\n\n"
+            "Given a creative concept and context, break it into 5 cinematic technical components.\n\n"
             "Return ONLY a valid JSON object with exactly these 5 keys:\n"
-            '  "subject": The main focus — specific people, objects, or elements with precise visual details\n'
-            '  "setting": Environment, location, background, atmosphere, time of day\n'
-            '  "style": Visual aesthetic — photography or design style, art direction, color treatment, overall look\n'
-            '  "lighting": Type, quality, direction, and mood of the lighting\n'
-            '  "camera_angle": Perspective, framing, focal length, composition technique\n\n'
+            '  "subject": The main subject with hyper-specific visual details — exact appearance, texture, material, '
+            'expression, action, or configuration. Name the specific type, not a category '
+            '(not "a person" — "a woman in her 40s in a tailored charcoal suit, mid-gesture, one hand raised, '
+            'eyes focused off-camera left, a faint reflection visible in the glass surface beneath her").\n'
+            '  "setting": A specific named environment with materials, time of day, and background depth '
+            '(not "an office" — "a glass-walled corner boardroom at dusk, floor-to-ceiling windows smearing '
+            'the city into orange and indigo behind the subject, a single architect\'s lamp pooling warm light '
+            'on a matte-black conference table, shallow focus blurring the cityscape into bokeh").\n'
+            '  "style": Name a visual movement or master photographer\'s aesthetic, then add 2-3 execution specifics '
+            '(e.g., "editorial fashion photography in the style of Annie Leibovitz — strong directional shadow, '
+            'slight film grain at ISO 800, desaturated midtones with rich shadow retention" or '
+            '"Bauhaus graphic design — hard geometric shapes, primary color restriction, no decoration beyond function").\n'
+            '  "lighting": Name a SPECIFIC lighting technique (Rembrandt, split, rim, motivated practical source, '
+            'backlit silhouette, hard single-source from above). Describe direction (angle, side), color temperature '
+            '(cool/warm/neutral), shadow hardness (hard/feathered/soft), and the emotional mood it creates.\n'
+            '  "camera_angle": Precise perspective — focal length equivalent (28mm wide drama, 85mm portrait compression, '
+            '200mm isolating telephoto), exact angle (eye-level, 15° low-angle authority, bird\'s-eye, Dutch 12°), '
+            'and a named composition technique (rule of thirds with subject right, deliberate negative space left, '
+            'leading lines from lower-left corner, subject breaking the right-side frame edge).\n\n'
             "Rules:\n"
-            "- Be specific and evocative — avoid vague generic descriptions\n"
-            "- Align each component to the platform aesthetic and brand context provided\n"
-            "- Do NOT invent brand names or details not provided\n"
-            "- Keep each component to 1-2 sentences\n"
+            "- EVERY component must be 2-3 rich, specific sentences — never a single phrase or a list\n"
+            "- If the input concept is already specific, make it MORE specific — add materials, surface qualities, light direction\n"
+            "- Do NOT invent brand names or details not provided in the input\n"
+            "- NEVER use these words: beautiful, stunning, amazing, professional, modern, elegant — show it, don't label it\n"
             "- Return ONLY the JSON — no markdown, no explanation, no code fences"
         )
 
@@ -224,13 +250,101 @@ async def _elaborate_prompt_5component(
         # Any component under 30 chars is likely a placeholder ("a product", "natural light")
         # that overrides the richer original description without adding value.
         min_len = min(len(v) for v in components.values() if isinstance(v, str))
-        if min_len < 30:
+        if min_len < 60:
             logger.warning("5-component elaboration too shallow (min_component_len=%d) — falling back", min_len)
             return None
         logger.info("5-component elaboration done | platform=%s min_len=%d", platform, min_len)
         return components
     except Exception as exc:
         logger.warning("6-component elaboration failed (fallback to plain prompt): %s", exc)
+        return None
+
+
+async def _generate_creative_concept(
+    topic: str,
+    platform: str,
+    brand_kit,
+    tone: str = "",
+    extra_context: str = "",
+) -> str | None:
+    """Invents a specific, unexpected cinematic visual concept before elaboration.
+
+    Called BEFORE _elaborate_prompt_5component so the 5-component breakdown
+    builds precision on top of a genuinely creative idea rather than just the
+    user's brief. Falls back gracefully to None on any failure.
+    """
+    if settings.MOCK_MODE:
+        return None
+    try:
+        from google import genai
+        from google.genai import types
+
+        platform_energy = {
+            "linkedin": "authoritative, thought-leadership, premium B2B — surprising but credible",
+            "instagram": "emotionally resonant, visually arresting, scroll-stopping in a feed of thousands",
+            "twitter":  "instant impact, poster-art clarity, one idea communicated in a single glance",
+        }.get(platform.lower(), "professional social media, visually distinctive")
+
+        brand_parts: list[str] = []
+        if brand_kit:
+            if brand_kit.company_name:
+                brand_parts.append(f"brand: {brand_kit.company_name}")
+            if getattr(brand_kit, "company_description", None):
+                brand_parts.append(f"what they do: {brand_kit.company_description[:200]}")
+            if getattr(brand_kit, "value_proposition", None):
+                brand_parts.append(f"value prop: {brand_kit.value_proposition[:150]}")
+            if brand_kit.brand_voice:
+                brand_parts.append(f"brand voice: {brand_kit.brand_voice}")
+            if getattr(brand_kit, "key_differentiators", None):
+                brand_parts.append(f"differentiator: {brand_kit.key_differentiators[:120]}")
+        brand_context = "; ".join(brand_parts)
+
+        system_prompt = (
+            "You are a creative director at a world-class advertising agency (Droga5, Wieden+Kennedy, BBDO). "
+            "Your single job: for any brief, invent ONE specific, unexpected, cinematic visual concept for a single social media image.\n\n"
+            "This is NOT a prompt template. This is a creative concept — a director's vision statement for THE image.\n\n"
+            "Rules:\n"
+            "1. SPECIFIC — not 'a person working' but 'a woman in a white lab coat leaning over a glass table, "
+            "her reflection perfectly mirrored below, holding a glowing vial that casts teal light across her face'\n"
+            "2. UNEXPECTED — reject your first idea, it is the cliché. Push past it to something that earns genuine "
+            "attention in a feed of thousands. Ask yourself: what is the LAST image anyone would expect for this brief? "
+            "Now make it feel inevitable.\n"
+            "3. ONE concept only — no alternatives, no lists, no 'or you could...'\n"
+            "4. Describe THE IMAGE — the exact scene. Not a direction, not a mood board. Paint the specific moment.\n"
+            "5. ACHIEVABLE — must be possible for an AI image generator to produce in a single shot.\n"
+            "6. MEANINGFULLY CONNECTED — the concept must authentically illuminate the topic and brand. "
+            "A viewer who knows the brief should feel 'of course — that's exactly right.'\n\n"
+            "Output: 2-3 sentences painting the exact scene. No preamble, no labels, no explanation. Just the scene."
+        )
+
+        user_prompt = (
+            f"Topic / brief: {topic}\n"
+            f"Platform energy: {platform_energy}\n"
+            + (f"Brand context: {brand_context}\n" if brand_context else "")
+            + (f"Tone: {tone}\n" if tone else "")
+            + (f"Post context (CRITICAL — the concept must serve this specific angle): {extra_context[:400]}\n" if extra_context else "")
+            + "\nInvent ONE stunning, unexpected visual concept for this image."
+        )
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = await client.aio.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=1.0,
+                max_output_tokens=512,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
+        )
+        concept = (response.text or "").strip()
+        if not concept or len(concept) < 60:
+            logger.warning("creative concept too short or empty — falling back to raw topic")
+            return None
+        logger.info("creative concept generated | platform=%s len=%d", platform, len(concept))
+        return concept
+    except Exception as exc:
+        logger.warning("creative concept generation failed (fallback to raw topic): %s", exc)
         return None
 
 
@@ -464,11 +578,15 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"Visual style: {style}. "
         f"{typography}"
         f"{exact_text_block}"
-        f"COMPOSITION: Dynamic, bold, brand-driven. Use full-bleed brand colors, asymmetric layouts, "
-        f"oversized typography, diagonal splits, or large geometric brand-color shapes. "
+        f"COMPOSITION: Execute the concept above as a cinematic art director would — not a template, a specific vision. "
+        f"Apply these techniques deliberately: environmental storytelling through a single unexpected prop or detail "
+        f"that reframes the subject; forced perspective, Dutch angle, or extreme hero framing for visual tension; "
+        f"negative space that feels intentional and charged, not empty; a background detail that rewards a second viewing "
+        f"— something a viewer notices only after the first impression lands. "
+        f"The image must communicate its core idea at thumbnail scale AND reveal new detail on close inspection. "
         f"FORBIDDEN: bordered card inside canvas, square frame inside square, centered text on plain gradient, "
-        f"generic white panel on colored background — these look like stock templates. "
-        f"Output must look like it was designed by a top-tier social media creative director. "
+        f"generic white panel on colored background, symmetrical centered compositions — these read as Canva templates, not creative direction. "
+        f"Output must look like it was commissioned by a world-class brand, not generated by a default AI pipeline. "
         f"{guardrails}"
     )
 
@@ -536,10 +654,12 @@ async def generate_social_image(
         brand_kit = await load_brand_kit(organization_id)
         logger.info("brand_kit auto-loaded | org=%s company=%s", organization_id, brand_kit.company_name)
 
-    # ── 5-Component prompt elaboration ───────────────────────────────────────
-    # Expands the visual description into Subject/Setting/Style/Lighting/Camera
-    # Angle before building the final prompt. Falls back silently on failure.
-    components = await _elaborate_prompt_5component(prompt, platform, brand_kit, extra_context=context_hints, campaign_shot_type=campaign_shot_type)
+    # ── Creative concept + 5-component elaboration ───────────────────────────
+    # Step 1: invent a specific cinematic visual concept (the "director's brief").
+    # Step 2: elaborate THAT concept into Subject/Setting/Style/Lighting/Camera Angle.
+    # Both steps fall back silently so generation always completes.
+    concept = await _generate_creative_concept(prompt, platform, brand_kit, extra_context=context_hints)
+    components = await _elaborate_prompt_5component(concept or prompt, platform, brand_kit, extra_context=context_hints, campaign_shot_type=campaign_shot_type)
 
     base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components, campaign_shot_type, use_brand_colors)
 
