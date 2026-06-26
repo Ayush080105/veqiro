@@ -56,18 +56,6 @@ export function FeatureLockBanner({ title, description }: FeatureLockBannerProps
         >
           {description}
         </p>
-        <p
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#999",
-            margin: "4px 0 0",
-          }}
-        >
-          {"// google api verification in progress"}
-        </p>
       </div>
     </div>
   )
