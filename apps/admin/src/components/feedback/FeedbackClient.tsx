@@ -45,6 +45,14 @@ type FeedbackCategory =
   | "UX_IMPROVEMENT"
   | "GENERAL";
 
+type FeedbackComment = {
+  id: string;
+  content: string;
+  isAdminReply: boolean;
+  createdAt: string;
+  author: { id: string; name: string; email: string };
+};
+
 type FeedbackPost = {
   id: string;
   title: string;
@@ -253,6 +261,62 @@ function AdminReplyPanel({
         >
           Cancel
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Comments Panel ────────────────────────────────────────────────────────────
+
+function CommentsPanel({ postId, commentCount }: { postId: string; commentCount: number }) {
+  const [comments, setComments] = useState<FeedbackComment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (commentCount === 0) return;
+    setLoading(true);
+    apiFetch<FeedbackComment[]>(`/admin/feedback/${postId}/comments`)
+      .then((data) => { setComments(data); setLoaded(true); })
+      .catch(() => setLoaded(true))
+      .finally(() => setLoading(false));
+  }, [postId, commentCount]);
+
+  if (commentCount === 0) return null;
+
+  return (
+    <div className="border-t border-[var(--border)] bg-[var(--muted)]/20 px-4 py-3">
+      <p className="mb-2 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+        Comments ({commentCount})
+      </p>
+      {loading && (
+        <p className="text-xs text-[var(--muted-foreground)]">Loading comments...</p>
+      )}
+      {loaded && comments.length === 0 && (
+        <p className="text-xs text-[var(--muted-foreground)]">No comments yet.</p>
+      )}
+      <div className="flex flex-col gap-2">
+        {comments.map((c) => (
+          <div
+            key={c.id}
+            className={`rounded-md border px-3 py-2 text-sm ${
+              c.isAdminReply
+                ? "border-[var(--primary)]/30 bg-[var(--primary)]/5"
+                : "border-[var(--border)] bg-[var(--card)]"
+            }`}
+          >
+            <div className="mb-1 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <span className="font-medium text-[var(--foreground)]">{c.author.name}</span>
+              {c.isAdminReply && (
+                <span className="rounded-full bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--primary-foreground)]">
+                  Admin
+                </span>
+              )}
+              <span>{timeAgo(c.createdAt)}</span>
+            </div>
+            <p className="leading-snug text-[var(--foreground)]">{c.content}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -557,11 +621,13 @@ export function FeedbackClient() {
 
   return (
     <div className="space-y-6 p-8">
-      <div>
-        <h1 className="text-xl font-semibold">Feedback</h1>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Manage user feedback, feature requests, and upcoming agents.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Feedback</h1>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Manage user feedback, feature requests, and upcoming agents.
+          </p>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -722,6 +788,7 @@ export function FeedbackClient() {
                     ? [
                         <TableRow key={`${post.id}-reply`}>
                           <TableCell colSpan={7} className="p-0">
+                            <CommentsPanel postId={post.id} commentCount={post._count.comments} />
                             <AdminReplyPanel
                               post={post}
                               onSaved={(patch) => applyPostUpdate(post.id, patch)}

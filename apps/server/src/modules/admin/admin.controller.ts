@@ -125,7 +125,13 @@ export const listFeedbackAdmin = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(data);
 };
 
+export const getFeedbackComments = async (req: Request, res: Response) => {
+  const data = await repo.getFeedbackComments(requireParam(req.params.id));
+  res.status(StatusCodes.OK).json(data);
+};
+
 export const getFeedbackStats = async (_req: Request, res: Response) => {
   const data = await repo.getFeedbackStats();
   res.status(StatusCodes.OK).json(data);
 };
+

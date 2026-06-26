@@ -66,7 +66,6 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/assistants", label: "Assistants", icon: Users },
   { href: "/tasks", label: "Tasks", icon: CalendarClock },
-  { href: "/feedback", label: "Feedback", icon: MessageSquare },
 ]
 
 const bottomNavItems = [

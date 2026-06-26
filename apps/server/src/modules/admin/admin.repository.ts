@@ -1403,6 +1403,20 @@ export async function listFeedbackAdmin(filters: {
   return { data, total, page, totalPages: Math.ceil(total / limit) };
 }
 
+export async function getFeedbackComments(feedbackId: string) {
+  return prisma.feedbackComment.findMany({
+    where: { feedbackId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      content: true,
+      isAdminReply: true,
+      createdAt: true,
+      author: { select: { id: true, name: true, email: true } },
+    },
+  });
+}
+
 export async function getFeedbackStats() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 

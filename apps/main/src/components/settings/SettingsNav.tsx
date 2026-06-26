@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { User, Users, Plug, Bell, CreditCard, MessageSquarePlus, MailCheck } from "lucide-react"
+import { User, Users, Plug, Bell, CreditCard, MailCheck } from "lucide-react"
 import { FONT } from "@/lib/fonts"
 
 const SETTINGS_NAV = [
@@ -12,7 +12,6 @@ const SETTINGS_NAV = [
   { href: "/settings/vega", label: "Email Settings", icon: MailCheck, color: "#E8F4FD" },
   { href: "/settings/notifications", label: "Notifications", icon: Bell, color: "var(--vq-pink)" },
   { href: "/settings/billing", label: "Billing", icon: CreditCard, color: "var(--vq-blue)" },
-  { href: "/settings/feedback", label: "Feedback", icon: MessageSquarePlus, color: "var(--vq-violet)" },
 ]
 
 export function SettingsNav() {

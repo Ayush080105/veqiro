@@ -18,6 +18,7 @@ import {
   listWaitlistEntries,
   listFeedbackAdmin,
   getFeedbackStats,
+  getFeedbackComments,
 } from "./admin.controller.js";
 
 const router = Router();
@@ -47,5 +48,6 @@ router.delete("/users/:id", deleteUser);
 // Feedback routes (static before param routes)
 router.get("/feedback/stats", getFeedbackStats);
 router.get("/feedback", listFeedbackAdmin);
+router.get("/feedback/:id/comments", getFeedbackComments);
 
 export default router;

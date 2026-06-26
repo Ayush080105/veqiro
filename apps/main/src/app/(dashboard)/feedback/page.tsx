@@ -19,6 +19,13 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { SubmitFeedbackDrawer } from "@/components/feedback/SubmitFeedbackDrawer"
 import {
   useFeedbackList,
@@ -28,6 +35,7 @@ import {
   type FeedbackCategory,
   type FeedbackStatus,
   type FeedbackPost,
+  type UpcomingAgent,
 } from "@/lib/api/feedback"
 import { FONT } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
@@ -102,11 +110,92 @@ function timeAgo(dateStr: string): string {
   return "just now"
 }
 
+// ─── Agent Detail Dialog ──────────────────────────────────────────────────────
+
+function AgentDetailDialog({
+  agent,
+  onClose,
+  onVote,
+  isVoting,
+}: {
+  agent: UpcomingAgent | null
+  onClose: () => void
+  onVote: (id: string) => void
+  isVoting: boolean
+}) {
+  return (
+    <Dialog open={!!agent} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-md border-[3px] border-foreground shadow-[8px_8px_0_var(--foreground)] rounded-xl p-0 overflow-hidden">
+        {agent && (
+          <>
+            {/* Color bar */}
+            {agent.color && (
+              <div className="h-2 w-full" style={{ background: agent.color }} />
+            )}
+            <div className="flex flex-col gap-5 p-6">
+              {/* Header */}
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  {agent.emoji && (
+                    <span className="text-4xl leading-none">{agent.emoji}</span>
+                  )}
+                  <div>
+                    <DialogTitle
+                      className="text-xl font-semibold tracking-tight"
+                      style={{ fontFamily: FONT.head }}
+                    >
+                      {agent.name}
+                    </DialogTitle>
+                    <DialogDescription className="text-sm text-muted-foreground mt-0.5 leading-snug">
+                      {agent.tagline}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Description */}
+              {agent.description && (
+                <p className="text-sm text-foreground/80 leading-relaxed">
+                  {agent.description}
+                </p>
+              )}
+
+              {/* Vote button */}
+              <button
+                onClick={() => onVote(agent.id)}
+                disabled={isVoting}
+                className={cn(
+                  "flex w-full items-center justify-center gap-2 rounded-lg border-[2.5px] border-foreground px-4 py-2.5 transition-all",
+                  agent.hasVoted
+                    ? "shadow-none translate-y-px"
+                    : "shadow-[4px_4px_0_var(--foreground)] hover:shadow-[2px_2px_0_var(--foreground)] hover:translate-y-px"
+                )}
+                style={{
+                  background: agent.hasVoted ? (agent.color ?? "#1DBC87") : "var(--card)",
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                }}
+              >
+                <ChevronUp className="size-4" />
+                <span className="font-medium">{agent.voteCount}</span>
+                <span className="text-muted-foreground">{agent.hasVoted ? "voted" : "vote for this agent"}</span>
+              </button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Upcoming Agents Section ──────────────────────────────────────────────────
 
 function UpcomingAgentsSection() {
   const { data: agents, isPending } = useUpcomingAgents()
   const { mutate: toggleVote, isPending: isVoting } = useToggleUpcomingVote()
+  const [selectedAgent, setSelectedAgent] = useState<UpcomingAgent | null>(null)
 
   if (isPending) {
     return (
@@ -139,7 +228,8 @@ function UpcomingAgentsSection() {
         {agents.map((agent) => (
           <div
             key={agent.id}
-            className="relative flex flex-col gap-3 rounded-lg border-[3px] border-foreground bg-card p-4 shadow-[5px_5px_0_var(--foreground)]"
+            onClick={() => setSelectedAgent(agent)}
+            className="relative flex flex-col gap-3 rounded-lg border-[3px] border-foreground bg-card p-4 shadow-[5px_5px_0_var(--foreground)] cursor-pointer transition-all hover:shadow-[3px_3px_0_var(--foreground)] hover:translate-x-0.5 hover:translate-y-0.5"
           >
             {agent.color && (
               <div
@@ -169,7 +259,10 @@ function UpcomingAgentsSection() {
               </div>
             </div>
             <button
-              onClick={() => toggleVote(agent.id)}
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleVote(agent.id)
+              }}
               disabled={isVoting}
               className={cn(
                 "flex items-center justify-center gap-1.5 rounded-md border-[2.5px] border-foreground px-3 py-1.5 transition-all",
@@ -192,6 +285,13 @@ function UpcomingAgentsSection() {
           </div>
         ))}
       </div>
+
+      <AgentDetailDialog
+        agent={selectedAgent}
+        onClose={() => setSelectedAgent(null)}
+        onVote={(id) => toggleVote(id)}
+        isVoting={isVoting}
+      />
     </section>
   )
 }
