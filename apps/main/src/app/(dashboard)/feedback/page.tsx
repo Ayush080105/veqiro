@@ -86,6 +86,8 @@ const CATEGORY_FILTERS: Array<{ value: FeedbackCategory | "ALL"; label: string }
   { value: "BUG_REPORT", label: "Bugs" },
   { value: "INTEGRATION", label: "Integrations" },
   { value: "NEW_AGENT", label: "New Agent" },
+  { value: "UX_IMPROVEMENT", label: "UX" },
+  { value: "GENERAL", label: "General" },
 ]
 
 const SORT_OPTIONS: Array<{ value: "votes" | "newest" | "trending"; label: string; icon: React.ElementType }> = [

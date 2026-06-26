@@ -1413,7 +1413,7 @@ export async function getFeedbackComments(feedbackId: string) {
       content: true,
       isAdminReply: true,
       createdAt: true,
-      author: { select: { id: true, name: true, email: true } },
+      user: { select: { id: true, name: true, email: true } },
     },
   });
 }

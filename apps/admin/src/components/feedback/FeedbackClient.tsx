@@ -50,7 +50,7 @@ type FeedbackComment = {
   content: string;
   isAdminReply: boolean;
   createdAt: string;
-  author: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string };
 };
 
 type FeedbackPost = {
@@ -307,7 +307,7 @@ function CommentsPanel({ postId, commentCount }: { postId: string; commentCount:
             }`}
           >
             <div className="mb-1 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
-              <span className="font-medium text-[var(--foreground)]">{c.author.name}</span>
+              <span className="font-medium text-[var(--foreground)]">{c.user.name}</span>
               {c.isAdminReply && (
                 <span className="rounded-full bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--primary-foreground)]">
                   Admin
