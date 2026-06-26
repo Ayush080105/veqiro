@@ -27,6 +27,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/ui/page-header"
+import { FeatureLockBanner } from "@/components/ui/feature-lock-banner"
+import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 
 function formatBriefingDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -586,6 +588,7 @@ export default function BriefingPage() {
   }
 
   useEffect(() => {
+    if (GOOGLE_FEATURES_LOCKED) return
     if (activeOrg?.id) void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrg?.id])
@@ -599,13 +602,22 @@ export default function BriefingPage() {
         sticker={{ label: "today's brief", rot: -5, color: "var(--vq-green)" }}
       />
 
-      {phase === "loading" && <BriefingLoadingSkeleton />}
-      {phase === "empty" && (
-        <BriefingEmptyState onGenerate={generate} generating={generating} />
-      )}
-      {phase === "error" && <BriefingError onRetry={load} />}
-      {phase === "ready" && briefing && (
-        <BriefingDisplay briefing={briefing} onRegenerate={generate} regenerating={generating} />
+      {GOOGLE_FEATURES_LOCKED ? (
+        <FeatureLockBanner
+          title="daily briefing"
+          description="Vega generates your executive summary using Gmail and Google Calendar data — emails, schedule, and priorities in one view."
+        />
+      ) : (
+        <>
+          {phase === "loading" && <BriefingLoadingSkeleton />}
+          {phase === "empty" && (
+            <BriefingEmptyState onGenerate={generate} generating={generating} />
+          )}
+          {phase === "error" && <BriefingError onRetry={load} />}
+          {phase === "ready" && briefing && (
+            <BriefingDisplay briefing={briefing} onRegenerate={generate} regenerating={generating} />
+          )}
+        </>
       )}
     </div>
   )

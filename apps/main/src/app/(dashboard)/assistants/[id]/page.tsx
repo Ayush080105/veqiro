@@ -36,6 +36,8 @@ import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
+import { FeatureLockBanner } from "@/components/ui/feature-lock-banner"
+import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
@@ -1295,6 +1297,11 @@ export default function AssistantChatPage() {
             onSwitchToChat={() => setRexTab("chat")}
           />
         </div>
+      ) : isVega && GOOGLE_FEATURES_LOCKED ? (
+        <FeatureLockBanner
+          title="vega"
+          description="Vega manages your inbox, schedules meetings, and delivers executive briefings — powered by Gmail and Google Calendar. She'll be ready very soon."
+        />
       ) : historyLoaded && !hasMessages && !isBusy ? (
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
@@ -1445,8 +1452,8 @@ export default function AssistantChatPage() {
             onSend={handleSend}
             onPlusClick={() => setPlusOpen(true)}
             onAttachClick={isLex ? openUploadAction : undefined}
-            placeholder={`Message ${agent.name.toLowerCase()}…`}
-            disabled={isLoading}
+            placeholder={isVega && GOOGLE_FEATURES_LOCKED ? "Vega is coming soon…" : `Message ${agent.name.toLowerCase()}…`}
+            disabled={isLoading || (isVega && GOOGLE_FEATURES_LOCKED)}
           />
         )}
       </div>

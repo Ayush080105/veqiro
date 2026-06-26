@@ -1,0 +1,2 @@
+export const GOOGLE_FEATURES_LOCKED =
+  process.env.NEXT_PUBLIC_GOOGLE_FEATURES_LOCKED === 'true'
