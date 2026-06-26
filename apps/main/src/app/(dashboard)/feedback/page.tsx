@@ -203,7 +203,7 @@ function UpcomingAgentsSection() {
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           [ vote for the next agent ]
         </span>
-        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-28 rounded-lg" />
           ))}
@@ -224,7 +224,7 @@ function UpcomingAgentsSection() {
           coming soon
         </Sticker>
       </div>
-      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
         {agents.map((agent) => (
           <div
             key={agent.id}
@@ -317,7 +317,7 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
           onVote(post.id)
         }}
         className={cn(
-          "flex w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-l-md border-r-[3px] border-foreground py-3 transition-all duration-150",
+          "flex w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-l-md border-r-[3px] border-foreground py-3 transition-all duration-150 sm:w-14",
           post.hasVoted ? "text-foreground" : "bg-muted/50 hover:bg-muted text-foreground"
         )}
         style={post.hasVoted ? { background: categoryColor } : undefined}
@@ -413,7 +413,7 @@ export default function FeedbackPage() {
   const { mutate: toggleVote } = useToggleVote()
 
   return (
-    <div className="flex flex-col gap-8 pb-10">
+    <div className="flex flex-col gap-6 pb-10 sm:gap-8">
       {/* Header */}
       <PageHeader
         kicker="community"
@@ -447,7 +447,7 @@ export default function FeedbackPage() {
       {/* Filters toolbar */}
       <div className="flex flex-col gap-3">
         {/* Category tabs */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {CATEGORY_FILTERS.map((f) => {
             const isActive = f.value === "ALL" ? !categoryFilter : categoryFilter === f.value
             return (
@@ -468,7 +468,7 @@ export default function FeedbackPage() {
         </div>
 
         {/* Agent filter */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           <span
             className="text-muted-foreground mr-1"
             style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}
@@ -511,8 +511,8 @@ export default function FeedbackPage() {
           </button>
         </div>
 
-        {/* Sort + Search */}
-        <div className="flex items-center gap-2">
+        {/* Sort + Search + Submit button */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-md border-[2.5px] border-foreground p-0.5 shadow-[3px_3px_0_var(--foreground)]">
             {SORT_OPTIONS.map((opt) => {
               const Icon = opt.icon
@@ -532,7 +532,7 @@ export default function FeedbackPage() {
             })}
           </div>
 
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 min-w-[160px]">
             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
@@ -543,6 +543,16 @@ export default function FeedbackPage() {
               style={{ fontFamily: FONT.body }}
             />
           </div>
+
+          <Button
+            variant="brand-dark"
+            size="brand-sm"
+            onClick={() => setDrawerOpen(true)}
+            className="shrink-0"
+          >
+            <Plus className="size-4" />
+            Submit
+          </Button>
         </div>
       </div>
 

@@ -56,6 +56,7 @@ type FeedbackComment = {
 type FeedbackPost = {
   id: string;
   title: string;
+  description: string;
   category: FeedbackCategory;
   agentSlug: string | null;
   status: FeedbackStatus;
@@ -181,7 +182,7 @@ function AdminReplyPanel({
   const save = async () => {
     setSaving(true);
     try {
-      await apiFetch(`/feedback/${post.id}/status`, {
+      await apiFetch(`/admin/feedback/${post.id}/status`, {
         method: "PATCH",
         body: JSON.stringify({
           status,
@@ -359,12 +360,12 @@ function AgentDialog({
         isVisible,
       };
       if (initial) {
-        await apiFetch(`/feedback/upcoming-agents/${initial.id}`, {
+        await apiFetch(`/admin/feedback/upcoming-agents/${initial.id}`, {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
       } else {
-        await apiFetch("/feedback/upcoming-agents", {
+        await apiFetch("/admin/feedback/upcoming-agents", {
           method: "POST",
           body: JSON.stringify(payload),
         });
@@ -544,7 +545,7 @@ export function FeedbackClient() {
 
   const loadAgents = useCallback(async () => {
     try {
-      const data = await apiFetch<UpcomingAgent[]>("/feedback/upcoming-agents");
+      const data = await apiFetch<UpcomingAgent[]>("/admin/feedback/upcoming-agents");
       setAgents(data);
     } catch {
       // non-critical
@@ -564,7 +565,7 @@ export function FeedbackClient() {
   const deleteAgent = async (id: string) => {
     if (!confirm("Delete this upcoming agent?")) return;
     try {
-      await safeDelete(`/feedback/upcoming-agents/${id}`);
+      await safeDelete(`/admin/feedback/upcoming-agents/${id}`);
       toast.success("Agent deleted");
       void loadAgents();
     } catch {
@@ -574,7 +575,7 @@ export function FeedbackClient() {
 
   const toggleAgentVisibility = async (agent: UpcomingAgent) => {
     try {
-      await apiFetch(`/feedback/upcoming-agents/${agent.id}`, {
+      await apiFetch(`/admin/feedback/upcoming-agents/${agent.id}`, {
         method: "PATCH",
         body: JSON.stringify({ isVisible: !agent.isVisible }),
       });
@@ -620,7 +621,7 @@ export function FeedbackClient() {
     : null;
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Feedback</h1>
@@ -669,7 +670,7 @@ export function FeedbackClient() {
       </div>
 
       {/* Category filter + search + export */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <select
           value={categoryFilter}
           onChange={(e) => {
@@ -704,7 +705,7 @@ export function FeedbackClient() {
       </div>
 
       {/* Feedback table */}
-      <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -788,6 +789,16 @@ export function FeedbackClient() {
                     ? [
                         <TableRow key={`${post.id}-reply`}>
                           <TableCell colSpan={7} className="p-0">
+                            {post.description && (
+                              <div className="border-t border-[var(--border)] bg-[var(--muted)]/20 px-4 py-3">
+                                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                                  Description
+                                </p>
+                                <p className="text-sm leading-relaxed text-[var(--foreground)]">
+                                  {post.description}
+                                </p>
+                              </div>
+                            )}
                             <CommentsPanel postId={post.id} commentCount={post._count.comments} />
                             <AdminReplyPanel
                               post={post}
@@ -854,7 +865,7 @@ export function FeedbackClient() {
           </Button>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+        <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
           <Table>
             <TableHeader>
               <TableRow>
