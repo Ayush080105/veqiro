@@ -29,6 +29,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/ui/page-header"
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
+import { FeatureLockBanner } from "@/components/ui/feature-lock-banner"
+import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 
 function formatBriefingDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -601,6 +603,7 @@ export default function BriefingPage() {
   }
 
   useEffect(() => {
+    if (GOOGLE_FEATURES_LOCKED) return
     if (activeOrg?.id) void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrg?.id])
@@ -614,14 +617,23 @@ export default function BriefingPage() {
         sticker={{ label: "today's brief", rot: -5, color: "var(--vq-green)" }}
       />
 
-      {upgradeReason && <UpgradeRequiredCard reason={upgradeReason} />}
+      {GOOGLE_FEATURES_LOCKED ? (
+        <FeatureLockBanner
+          title="daily briefing"
+          description="Vega generates your executive summary using Gmail and Google Calendar data — emails, schedule, and priorities in one view."
+        />
+      ) : (
+        <>
+          {upgradeReason && <UpgradeRequiredCard reason={upgradeReason} />}
       {!upgradeReason && phase === "loading" && <BriefingLoadingSkeleton />}
-      {!upgradeReason && phase === "empty" && (
-        <BriefingEmptyState onGenerate={generate} generating={generating} />
-      )}
-      {!upgradeReason && phase === "error" && <BriefingError onRetry={load} />}
-      {!upgradeReason && phase === "ready" && briefing && (
-        <BriefingDisplay briefing={briefing} onRegenerate={generate} regenerating={generating} />
+          {!upgradeReason && phase === "empty" && (
+            <BriefingEmptyState onGenerate={generate} generating={generating} />
+          )}
+          {!upgradeReason && phase === "error" && <BriefingError onRetry={load} />}
+          {!upgradeReason && phase === "ready" && briefing && (
+            <BriefingDisplay briefing={briefing} onRegenerate={generate} regenerating={generating} />
+          )}
+        </>
       )}
     </div>
   )

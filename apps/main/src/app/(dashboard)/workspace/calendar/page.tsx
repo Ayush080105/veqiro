@@ -1,5 +1,7 @@
 import { CalendarView } from "@/components/vega/CalendarView"
 import { PageHeader } from "@/components/ui/page-header"
+import { FeatureLockBanner } from "@/components/ui/feature-lock-banner"
+import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 
 type SearchParams = Promise<{
   title?: string
@@ -40,7 +42,14 @@ export default async function CalendarPage({
         className="flex-1 min-h-0 overflow-hidden rounded-xl"
         style={{ border: "2.5px solid #111", boxShadow: "4px 4px 0 #111" }}
       >
-        <CalendarView initialPrefill={prefill} />
+        {GOOGLE_FEATURES_LOCKED ? (
+          <FeatureLockBanner
+            title="smart calendar"
+            description="Vega uses Google Calendar access to schedule meetings, prep agendas, and send follow-ups."
+          />
+        ) : (
+          <CalendarView initialPrefill={prefill} />
+        )}
       </div>
     </div>
   )

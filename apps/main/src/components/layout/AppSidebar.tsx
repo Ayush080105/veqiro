@@ -66,11 +66,10 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/assistants", label: "Assistants", icon: Users },
   { href: "/tasks", label: "Tasks", icon: CalendarClock },
-  { href: "/feedback", label: "Feedback", icon: MessageSquare },
 ]
 
 const bottomNavItems = [
-  { href: "/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/feedback", label: "Community", icon: MessageSquare },
   { href: "/brain", label: "Brain", icon: Brain },
   { href: "/settings", label: "Settings", icon: Settings },
 ]

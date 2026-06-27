@@ -1384,6 +1384,7 @@ export async function listFeedbackAdmin(filters: {
       select: {
         id: true,
         title: true,
+        description: true,
         category: true,
         agentSlug: true,
         status: true,
@@ -1401,6 +1402,89 @@ export async function listFeedbackAdmin(filters: {
   ]);
 
   return { data, total, page, totalPages: Math.ceil(total / limit) };
+}
+
+export async function getFeedbackComments(feedbackId: string) {
+  return prisma.feedbackComment.findMany({
+    where: { feedbackId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      content: true,
+      isAdminReply: true,
+      createdAt: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+}
+
+export async function updateFeedbackStatusAdmin(
+  feedbackId: string,
+  data: {
+    status: FeedbackStatus;
+    adminReply?: string | null;
+    adminNote?: string | null;
+    roadmapEta?: string | null;
+  },
+) {
+  return prisma.feedbackPost.update({
+    where: { id: feedbackId },
+    data: {
+      status: data.status,
+      adminReply: data.adminReply ?? null,
+      adminNote: data.adminNote ?? null,
+      roadmapEta: data.roadmapEta ?? null,
+    },
+  });
+}
+
+export async function listUpcomingAgentsAdmin() {
+  return prisma.upcomingAgent.findMany({
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      name: true,
+      tagline: true,
+      description: true,
+      emoji: true,
+      color: true,
+      order: true,
+      isVisible: true,
+      voteCount: true,
+    },
+  });
+}
+
+export async function createUpcomingAgentAdmin(data: {
+  name: string;
+  tagline: string;
+  description?: string | null;
+  emoji?: string | null;
+  color?: string | null;
+  order?: number;
+  isVisible?: boolean;
+}) {
+  return prisma.upcomingAgent.create({ data });
+}
+
+export async function updateUpcomingAgentAdmin(
+  id: string,
+  data: Partial<{
+    name: string;
+    tagline: string;
+    description: string | null;
+    emoji: string | null;
+    color: string | null;
+    order: number;
+    isVisible: boolean;
+  }>,
+) {
+  return prisma.upcomingAgent.update({ where: { id }, data });
+}
+
+export async function deleteUpcomingAgentAdmin(id: string) {
+  await prisma.upcomingAgentVote.deleteMany({ where: { upcomingAgentId: id } });
+  return prisma.upcomingAgent.delete({ where: { id } });
 }
 
 export async function getFeedbackStats() {

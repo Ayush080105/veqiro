@@ -89,7 +89,7 @@ export function ChatInput({
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
       e.preventDefault()
-      onPlusClick()
+      if (!disabled) onPlusClick()
     }
   }
 
@@ -110,6 +110,7 @@ export function ChatInput({
           onClick={onPlusClick}
           ariaLabel="Open actions menu"
           title="Actions (Ctrl/Cmd+K)"
+          disabled={disabled}
         >
           <Plus className="size-5" />
         </IconButton>

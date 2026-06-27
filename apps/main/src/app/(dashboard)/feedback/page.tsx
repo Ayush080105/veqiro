@@ -19,6 +19,13 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { SubmitFeedbackDrawer } from "@/components/feedback/SubmitFeedbackDrawer"
 import {
   useFeedbackList,
@@ -28,6 +35,7 @@ import {
   type FeedbackCategory,
   type FeedbackStatus,
   type FeedbackPost,
+  type UpcomingAgent,
 } from "@/lib/api/feedback"
 import { FONT } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
@@ -78,6 +86,8 @@ const CATEGORY_FILTERS: Array<{ value: FeedbackCategory | "ALL"; label: string }
   { value: "BUG_REPORT", label: "Bugs" },
   { value: "INTEGRATION", label: "Integrations" },
   { value: "NEW_AGENT", label: "New Agent" },
+  { value: "UX_IMPROVEMENT", label: "UX" },
+  { value: "GENERAL", label: "General" },
 ]
 
 const SORT_OPTIONS: Array<{ value: "votes" | "newest" | "trending"; label: string; icon: React.ElementType }> = [
@@ -102,11 +112,92 @@ function timeAgo(dateStr: string): string {
   return "just now"
 }
 
+// ─── Agent Detail Dialog ──────────────────────────────────────────────────────
+
+function AgentDetailDialog({
+  agent,
+  onClose,
+  onVote,
+  isVoting,
+}: {
+  agent: UpcomingAgent | null
+  onClose: () => void
+  onVote: (id: string) => void
+  isVoting: boolean
+}) {
+  return (
+    <Dialog open={!!agent} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-md border-[3px] border-foreground shadow-[8px_8px_0_var(--foreground)] rounded-xl p-0 overflow-hidden">
+        {agent && (
+          <>
+            {/* Color bar */}
+            {agent.color && (
+              <div className="h-2 w-full" style={{ background: agent.color }} />
+            )}
+            <div className="flex flex-col gap-5 p-6">
+              {/* Header */}
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  {agent.emoji && (
+                    <span className="text-4xl leading-none">{agent.emoji}</span>
+                  )}
+                  <div>
+                    <DialogTitle
+                      className="text-xl font-semibold tracking-tight"
+                      style={{ fontFamily: FONT.head }}
+                    >
+                      {agent.name}
+                    </DialogTitle>
+                    <DialogDescription className="text-sm text-muted-foreground mt-0.5 leading-snug">
+                      {agent.tagline}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Description */}
+              {agent.description && (
+                <p className="text-sm text-foreground/80 leading-relaxed">
+                  {agent.description}
+                </p>
+              )}
+
+              {/* Vote button */}
+              <button
+                onClick={() => onVote(agent.id)}
+                disabled={isVoting}
+                className={cn(
+                  "flex w-full items-center justify-center gap-2 rounded-lg border-[2.5px] border-foreground px-4 py-2.5 transition-all",
+                  agent.hasVoted
+                    ? "shadow-none translate-y-px"
+                    : "shadow-[4px_4px_0_var(--foreground)] hover:shadow-[2px_2px_0_var(--foreground)] hover:translate-y-px"
+                )}
+                style={{
+                  background: agent.hasVoted ? (agent.color ?? "#1DBC87") : "var(--card)",
+                  fontFamily: FONT.mono,
+                  fontSize: 11,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                }}
+              >
+                <ChevronUp className="size-4" />
+                <span className="font-medium">{agent.voteCount}</span>
+                <span className="text-muted-foreground">{agent.hasVoted ? "voted" : "vote for this agent"}</span>
+              </button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Upcoming Agents Section ──────────────────────────────────────────────────
 
 function UpcomingAgentsSection() {
   const { data: agents, isPending } = useUpcomingAgents()
   const { mutate: toggleVote, isPending: isVoting } = useToggleUpcomingVote()
+  const [selectedAgent, setSelectedAgent] = useState<UpcomingAgent | null>(null)
 
   if (isPending) {
     return (
@@ -114,7 +205,7 @@ function UpcomingAgentsSection() {
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           [ vote for the next agent ]
         </span>
-        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-28 rounded-lg" />
           ))}
@@ -135,11 +226,12 @@ function UpcomingAgentsSection() {
           coming soon
         </Sticker>
       </div>
-      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
         {agents.map((agent) => (
           <div
             key={agent.id}
-            className="relative flex flex-col gap-3 rounded-lg border-[3px] border-foreground bg-card p-4 shadow-[5px_5px_0_var(--foreground)]"
+            onClick={() => setSelectedAgent(agent)}
+            className="relative flex flex-col gap-3 rounded-lg border-[3px] border-foreground bg-card p-4 shadow-[5px_5px_0_var(--foreground)] cursor-pointer transition-all hover:shadow-[3px_3px_0_var(--foreground)] hover:translate-x-0.5 hover:translate-y-0.5"
           >
             {agent.color && (
               <div
@@ -169,7 +261,10 @@ function UpcomingAgentsSection() {
               </div>
             </div>
             <button
-              onClick={() => toggleVote(agent.id)}
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleVote(agent.id)
+              }}
               disabled={isVoting}
               className={cn(
                 "flex items-center justify-center gap-1.5 rounded-md border-[2.5px] border-foreground px-3 py-1.5 transition-all",
@@ -192,6 +287,13 @@ function UpcomingAgentsSection() {
           </div>
         ))}
       </div>
+
+      <AgentDetailDialog
+        agent={selectedAgent}
+        onClose={() => setSelectedAgent(null)}
+        onVote={(id) => toggleVote(id)}
+        isVoting={isVoting}
+      />
     </section>
   )
 }
@@ -217,7 +319,7 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
           onVote(post.id)
         }}
         className={cn(
-          "flex w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-l-md border-r-[3px] border-foreground py-3 transition-all duration-150",
+          "flex w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-l-md border-r-[3px] border-foreground py-3 transition-all duration-150 sm:w-14",
           post.hasVoted ? "text-foreground" : "bg-muted/50 hover:bg-muted text-foreground"
         )}
         style={post.hasVoted ? { background: categoryColor } : undefined}
@@ -313,7 +415,7 @@ export default function FeedbackPage() {
   const { mutate: toggleVote } = useToggleVote()
 
   return (
-    <div className="flex flex-col gap-8 pb-10">
+    <div className="flex flex-col gap-6 pb-10 sm:gap-8">
       {/* Header */}
       <PageHeader
         kicker="community"
@@ -347,7 +449,7 @@ export default function FeedbackPage() {
       {/* Filters toolbar */}
       <div className="flex flex-col gap-3">
         {/* Category tabs */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {CATEGORY_FILTERS.map((f) => {
             const isActive = f.value === "ALL" ? !categoryFilter : categoryFilter === f.value
             return (
@@ -368,7 +470,7 @@ export default function FeedbackPage() {
         </div>
 
         {/* Agent filter */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           <span
             className="text-muted-foreground mr-1"
             style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}
@@ -411,8 +513,8 @@ export default function FeedbackPage() {
           </button>
         </div>
 
-        {/* Sort + Search */}
-        <div className="flex items-center gap-2">
+        {/* Sort + Search + Submit button */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-md border-[2.5px] border-foreground p-0.5 shadow-[3px_3px_0_var(--foreground)]">
             {SORT_OPTIONS.map((opt) => {
               const Icon = opt.icon
@@ -432,7 +534,7 @@ export default function FeedbackPage() {
             })}
           </div>
 
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 min-w-[160px]">
             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
@@ -443,6 +545,16 @@ export default function FeedbackPage() {
               style={{ fontFamily: FONT.body }}
             />
           </div>
+
+          <Button
+            variant="brand-dark"
+            size="brand-sm"
+            onClick={() => setDrawerOpen(true)}
+            className="shrink-0"
+          >
+            <Plus className="size-4" />
+            Submit
+          </Button>
         </div>
       </div>
 

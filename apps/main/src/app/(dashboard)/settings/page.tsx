@@ -1,82 +1,145 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Save } from "lucide-react"
+import { toast } from "sonner"
+import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { PageHeader } from "@/components/ui/page-header"
-import { profileSchema, type ProfileValues } from "@/lib/schemas/profile"
 
-type ProfileForm = ProfileValues
+// ─── Schemas ──────────────────────────────────────────────────────────────────
 
-const TIMEZONES = [
-  { value: "UTC", label: "UTC" },
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "Europe/London", label: "London (GMT)" },
-  { value: "Europe/Paris", label: "Paris (CET)" },
-  { value: "Asia/Kolkata", label: "India (IST)" },
-  { value: "Asia/Singapore", label: "Singapore (SGT)" },
-  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-  { value: "Australia/Sydney", label: "Sydney (AEST)" },
-]
+const profileSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+})
+
+const orgSchema = z.object({
+  orgName: z.string().min(1, "Workspace name is required"),
+})
+
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "At least 8 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  })
+
+type ProfileForm = z.infer<typeof profileSchema>
+type OrgForm = z.infer<typeof orgSchema>
+type PasswordForm = z.infer<typeof passwordSchema>
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsProfilePage() {
   const { data: session } = authClient.useSession()
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const user = session?.user
 
+  // ── Personal info ──────────────────────────────────────────────────────────
+  const [savingProfile, setSavingProfile] = useState(false)
   const {
-    register,
-    setValue,
-    watch,
-    formState: { errors },
+    register: regProfile,
+    setValue: setProfileValue,
+    handleSubmit: handleProfileSubmit,
+    formState: { errors: profileErrors, isDirty: profileDirty },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      timezone: "UTC",
-    },
+    defaultValues: { name: "" },
   })
 
   useEffect(() => {
-    if (user) {
-      setValue("name", user.name ?? "")
-      setValue("email", user.email ?? "")
+    if (user) setProfileValue("name", user.name ?? "")
+  }, [user, setProfileValue])
+
+  async function onSaveProfile(values: ProfileForm) {
+    setSavingProfile(true)
+    try {
+      await authClient.updateUser({ name: values.name })
+      toast.success("Profile updated")
+    } catch (err) {
+      toast.error(`Failed to save: ${(err as Error).message}`)
+    } finally {
+      setSavingProfile(false)
     }
-  }, [user, setValue])
+  }
 
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "?"
+  // ── Workspace name ─────────────────────────────────────────────────────────
+  const [savingOrg, setSavingOrg] = useState(false)
+  const {
+    register: regOrg,
+    setValue: setOrgValue,
+    handleSubmit: handleOrgSubmit,
+    formState: { errors: orgErrors, isDirty: orgDirty },
+  } = useForm<OrgForm>({
+    resolver: zodResolver(orgSchema),
+    defaultValues: { orgName: "" },
+  })
 
-  const watchedTimezone = watch("timezone")
+  useEffect(() => {
+    if (activeOrg?.name) setOrgValue("orgName", activeOrg.name)
+  }, [activeOrg, setOrgValue])
+
+  async function onSaveOrg(values: OrgForm) {
+    if (!activeOrg?.id) return
+    setSavingOrg(true)
+    try {
+      const res = await authClient.organization.update({
+        organizationId: activeOrg.id,
+        data: { name: values.orgName },
+      })
+      const err = (res as { error?: { message?: string } | null }).error
+      if (err) throw new Error(err.message ?? "Unknown error")
+      toast.success("Workspace name updated")
+    } catch (err) {
+      toast.error(`Failed to save: ${(err as Error).message}`)
+    } finally {
+      setSavingOrg(false)
+    }
+  }
+
+  // ── Change password ────────────────────────────────────────────────────────
+  const [savingPassword, setSavingPassword] = useState(false)
+  const {
+    register: regPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPassword,
+    formState: { errors: passwordErrors, isDirty: passwordDirty },
+  } = useForm<PasswordForm>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+  })
+
+  async function onSavePassword(values: PasswordForm) {
+    setSavingPassword(true)
+    try {
+      const res = await authClient.changePassword({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+        revokeOtherSessions: false,
+      })
+      const err = (res as { error?: { message?: string } | null }).error
+      if (err) throw new Error(err.message ?? "Unknown error")
+      toast.success("Password changed")
+      resetPassword()
+    } catch (err) {
+      toast.error(`Failed to change password: ${(err as Error).message}`)
+    } finally {
+      setSavingPassword(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 pb-8">
@@ -89,55 +152,25 @@ export default function SettingsProfilePage() {
 
       <SettingsNav />
 
-      <div className="flex flex-col gap-6">
-        {/* Avatar */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Profile picture</CardTitle>
-            <CardDescription>Your avatar is shown across the platform and in briefings.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <Avatar size="lg">
-                {user?.image && <AvatarImage src={user.image} alt={user.name ?? ""} />}
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col gap-2">
-                <Button variant="outline" size="sm" type="button" disabled>
-                  Upload photo
-                </Button>
-                <p className="text-[10px] text-muted-foreground">JPG or PNG, max 2 MB</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Profile fields */}
+      {/* ── Personal information ── */}
+      <form onSubmit={handleProfileSubmit(onSaveProfile)} className="flex flex-col gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Personal information</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {/* Name */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name" className="text-xs font-medium">
-                Full name
-              </Label>
-              <Input id="name" {...register("name")} placeholder="Your name" disabled />
-              {errors.name && (
-                <p className="text-xs text-destructive">{errors.name.message}</p>
+              <Label htmlFor="name" className="text-xs font-medium">Full name</Label>
+              <Input id="name" {...regProfile("name")} placeholder="Your name" />
+              {profileErrors.name && (
+                <p className="text-xs text-destructive">{profileErrors.name.message}</p>
               )}
             </div>
 
-            {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email" className="text-xs font-medium">
-                Email
-              </Label>
+              <Label htmlFor="email" className="text-xs font-medium">Email</Label>
               <div className="flex items-center gap-2">
-                <Input id="email" {...register("email")} placeholder="you@example.com" disabled />
+                <Input id="email" value={user?.email ?? ""} placeholder="you@example.com" disabled readOnly />
                 <Badge variant="secondary" className="shrink-0">
                   {user?.emailVerified ? "Verified" : "Unverified"}
                 </Badge>
@@ -146,48 +179,82 @@ export default function SettingsProfilePage() {
                 Email changes require verification. Contact support to update.
               </p>
             </div>
+          </CardContent>
+        </Card>
 
-            <Separator />
+        <div className="flex justify-end">
+          <Button type="submit" disabled={savingProfile || !profileDirty}>
+            <Save className="size-3.5" />
+            {savingProfile ? "Saving…" : "Save changes"}
+          </Button>
+        </div>
+      </form>
 
-            {/* Timezone */}
+      {/* ── Workspace ── */}
+      <form onSubmit={handleOrgSubmit(onSaveOrg)} className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Workspace</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="timezone" className="text-xs font-medium">
-                Timezone
-              </Label>
-              <Select
-                value={watchedTimezone}
-                onValueChange={(v) => setValue("timezone", v ?? "", { shouldDirty: true })}
-                disabled
-              >
-                <SelectTrigger id="timezone" className="w-full max-w-xs">
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-muted-foreground">
-                Used for briefing delivery times and scheduling.
-              </p>
+              <Label htmlFor="orgName" className="text-xs font-medium">Workspace name</Label>
+              <Input id="orgName" {...regOrg("orgName")} placeholder="Your workspace name" />
+              {orgErrors.orgName && (
+                <p className="text-xs text-destructive">{orgErrors.orgName.message}</p>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Save button */}
-        <div className="flex items-center justify-end gap-3">
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Profile editing · coming soon
-          </span>
-          <Button type="button" disabled>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={savingOrg || !orgDirty}>
             <Save className="size-3.5" />
-            Save changes
+            {savingOrg ? "Saving…" : "Save changes"}
           </Button>
         </div>
-      </div>
+      </form>
+
+      {/* ── Change password ── */}
+      <form onSubmit={handlePasswordSubmit(onSavePassword)} className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Change password</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="currentPassword" className="text-xs font-medium">Current password</Label>
+              <Input id="currentPassword" type="password" {...regPassword("currentPassword")} placeholder="••••••••" />
+              {passwordErrors.currentPassword && (
+                <p className="text-xs text-destructive">{passwordErrors.currentPassword.message}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="newPassword" className="text-xs font-medium">New password</Label>
+              <Input id="newPassword" type="password" {...regPassword("newPassword")} placeholder="••••••••" />
+              {passwordErrors.newPassword && (
+                <p className="text-xs text-destructive">{passwordErrors.newPassword.message}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="confirmPassword" className="text-xs font-medium">Confirm new password</Label>
+              <Input id="confirmPassword" type="password" {...regPassword("confirmPassword")} placeholder="••••••••" />
+              {passwordErrors.confirmPassword && (
+                <p className="text-xs text-destructive">{passwordErrors.confirmPassword.message}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={savingPassword || !passwordDirty}>
+            <Save className="size-3.5" />
+            {savingPassword ? "Saving…" : "Update password"}
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }

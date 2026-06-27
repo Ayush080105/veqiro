@@ -125,7 +125,50 @@ export const listFeedbackAdmin = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(data);
 };
 
+export const getFeedbackComments = async (req: Request, res: Response) => {
+  const data = await repo.getFeedbackComments(requireParam(req.params.id));
+  res.status(StatusCodes.OK).json(data);
+};
+
 export const getFeedbackStats = async (_req: Request, res: Response) => {
   const data = await repo.getFeedbackStats();
   res.status(StatusCodes.OK).json(data);
 };
+
+export const updateFeedbackStatusAdmin = async (req: Request, res: Response) => {
+  const id = requireParam(req.params.id);
+  const { status, adminReply, adminNote, roadmapEta } = req.body as {
+    status: string;
+    adminReply?: string | null;
+    adminNote?: string | null;
+    roadmapEta?: string | null;
+  };
+  const data = await repo.updateFeedbackStatusAdmin(id, {
+    status: status as Parameters<typeof repo.updateFeedbackStatusAdmin>[1]["status"],
+    adminReply,
+    adminNote,
+    roadmapEta,
+  });
+  res.status(StatusCodes.OK).json(data);
+};
+
+export const listUpcomingAgentsAdmin = async (_req: Request, res: Response) => {
+  const data = await repo.listUpcomingAgentsAdmin();
+  res.status(StatusCodes.OK).json(data);
+};
+
+export const createUpcomingAgentAdmin = async (req: Request, res: Response) => {
+  const data = await repo.createUpcomingAgentAdmin(req.body as Parameters<typeof repo.createUpcomingAgentAdmin>[0]);
+  res.status(StatusCodes.CREATED).json(data);
+};
+
+export const updateUpcomingAgentAdmin = async (req: Request, res: Response) => {
+  const data = await repo.updateUpcomingAgentAdmin(requireParam(req.params.agentId), req.body as Parameters<typeof repo.updateUpcomingAgentAdmin>[1]);
+  res.status(StatusCodes.OK).json(data);
+};
+
+export const deleteUpcomingAgentAdmin = async (req: Request, res: Response) => {
+  await repo.deleteUpcomingAgentAdmin(requireParam(req.params.agentId));
+  res.status(StatusCodes.NO_CONTENT).send();
+};
+

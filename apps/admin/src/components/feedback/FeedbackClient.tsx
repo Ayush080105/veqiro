@@ -45,9 +45,18 @@ type FeedbackCategory =
   | "UX_IMPROVEMENT"
   | "GENERAL";
 
+type FeedbackComment = {
+  id: string;
+  content: string;
+  isAdminReply: boolean;
+  createdAt: string;
+  user: { id: string; name: string; email: string };
+};
+
 type FeedbackPost = {
   id: string;
   title: string;
+  description: string;
   category: FeedbackCategory;
   agentSlug: string | null;
   status: FeedbackStatus;
@@ -173,7 +182,7 @@ function AdminReplyPanel({
   const save = async () => {
     setSaving(true);
     try {
-      await apiFetch(`/feedback/${post.id}/status`, {
+      await apiFetch(`/admin/feedback/${post.id}/status`, {
         method: "PATCH",
         body: JSON.stringify({
           status,
@@ -258,6 +267,62 @@ function AdminReplyPanel({
   );
 }
 
+// ── Comments Panel ────────────────────────────────────────────────────────────
+
+function CommentsPanel({ postId, commentCount }: { postId: string; commentCount: number }) {
+  const [comments, setComments] = useState<FeedbackComment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (commentCount === 0) return;
+    setLoading(true);
+    apiFetch<FeedbackComment[]>(`/admin/feedback/${postId}/comments`)
+      .then((data) => { setComments(data); setLoaded(true); })
+      .catch(() => setLoaded(true))
+      .finally(() => setLoading(false));
+  }, [postId, commentCount]);
+
+  if (commentCount === 0) return null;
+
+  return (
+    <div className="border-t border-[var(--border)] bg-[var(--muted)]/20 px-4 py-3">
+      <p className="mb-2 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+        Comments ({commentCount})
+      </p>
+      {loading && (
+        <p className="text-xs text-[var(--muted-foreground)]">Loading comments...</p>
+      )}
+      {loaded && comments.length === 0 && (
+        <p className="text-xs text-[var(--muted-foreground)]">No comments yet.</p>
+      )}
+      <div className="flex flex-col gap-2">
+        {comments.map((c) => (
+          <div
+            key={c.id}
+            className={`rounded-md border px-3 py-2 text-sm ${
+              c.isAdminReply
+                ? "border-[var(--primary)]/30 bg-[var(--primary)]/5"
+                : "border-[var(--border)] bg-[var(--card)]"
+            }`}
+          >
+            <div className="mb-1 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <span className="font-medium text-[var(--foreground)]">{c.user.name}</span>
+              {c.isAdminReply && (
+                <span className="rounded-full bg-[var(--primary)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--primary-foreground)]">
+                  Admin
+                </span>
+              )}
+              <span>{timeAgo(c.createdAt)}</span>
+            </div>
+            <p className="leading-snug text-[var(--foreground)]">{c.content}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Agent Dialog ──────────────────────────────────────────────────────────────
 
 function AgentDialog({
@@ -295,12 +360,12 @@ function AgentDialog({
         isVisible,
       };
       if (initial) {
-        await apiFetch(`/feedback/upcoming-agents/${initial.id}`, {
+        await apiFetch(`/admin/feedback/upcoming-agents/${initial.id}`, {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
       } else {
-        await apiFetch("/feedback/upcoming-agents", {
+        await apiFetch("/admin/feedback/upcoming-agents", {
           method: "POST",
           body: JSON.stringify(payload),
         });
@@ -480,7 +545,7 @@ export function FeedbackClient() {
 
   const loadAgents = useCallback(async () => {
     try {
-      const data = await apiFetch<UpcomingAgent[]>("/feedback/upcoming-agents");
+      const data = await apiFetch<UpcomingAgent[]>("/admin/feedback/upcoming-agents");
       setAgents(data);
     } catch {
       // non-critical
@@ -500,7 +565,7 @@ export function FeedbackClient() {
   const deleteAgent = async (id: string) => {
     if (!confirm("Delete this upcoming agent?")) return;
     try {
-      await safeDelete(`/feedback/upcoming-agents/${id}`);
+      await safeDelete(`/admin/feedback/upcoming-agents/${id}`);
       toast.success("Agent deleted");
       void loadAgents();
     } catch {
@@ -510,7 +575,7 @@ export function FeedbackClient() {
 
   const toggleAgentVisibility = async (agent: UpcomingAgent) => {
     try {
-      await apiFetch(`/feedback/upcoming-agents/${agent.id}`, {
+      await apiFetch(`/admin/feedback/upcoming-agents/${agent.id}`, {
         method: "PATCH",
         body: JSON.stringify({ isVisible: !agent.isVisible }),
       });
@@ -556,12 +621,14 @@ export function FeedbackClient() {
     : null;
 
   return (
-    <div className="space-y-6 p-8">
-      <div>
-        <h1 className="text-xl font-semibold">Feedback</h1>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Manage user feedback, feature requests, and upcoming agents.
-        </p>
+    <div className="space-y-6 p-4 sm:p-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Feedback</h1>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Manage user feedback, feature requests, and upcoming agents.
+          </p>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -603,7 +670,7 @@ export function FeedbackClient() {
       </div>
 
       {/* Category filter + search + export */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <select
           value={categoryFilter}
           onChange={(e) => {
@@ -638,7 +705,7 @@ export function FeedbackClient() {
       </div>
 
       {/* Feedback table */}
-      <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -722,6 +789,17 @@ export function FeedbackClient() {
                     ? [
                         <TableRow key={`${post.id}-reply`}>
                           <TableCell colSpan={7} className="p-0">
+                            {post.description && (
+                              <div className="border-t border-[var(--border)] bg-[var(--muted)]/20 px-4 py-3">
+                                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                                  Description
+                                </p>
+                                <p className="text-sm leading-relaxed text-[var(--foreground)]">
+                                  {post.description}
+                                </p>
+                              </div>
+                            )}
+                            <CommentsPanel postId={post.id} commentCount={post._count.comments} />
                             <AdminReplyPanel
                               post={post}
                               onSaved={(patch) => applyPostUpdate(post.id, patch)}
@@ -787,7 +865,7 @@ export function FeedbackClient() {
           </Button>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+        <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
           <Table>
             <TableHeader>
               <TableRow>

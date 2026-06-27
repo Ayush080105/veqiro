@@ -18,6 +18,12 @@ import {
   listWaitlistEntries,
   listFeedbackAdmin,
   getFeedbackStats,
+  getFeedbackComments,
+  updateFeedbackStatusAdmin,
+  listUpcomingAgentsAdmin,
+  createUpcomingAgentAdmin,
+  updateUpcomingAgentAdmin,
+  deleteUpcomingAgentAdmin,
 } from "./admin.controller.js";
 
 const router = Router();
@@ -46,6 +52,12 @@ router.delete("/users/:id", deleteUser);
 
 // Feedback routes (static before param routes)
 router.get("/feedback/stats", getFeedbackStats);
+router.get("/feedback/upcoming-agents", listUpcomingAgentsAdmin);
+router.post("/feedback/upcoming-agents", createUpcomingAgentAdmin);
+router.patch("/feedback/upcoming-agents/:agentId", updateUpcomingAgentAdmin);
+router.delete("/feedback/upcoming-agents/:agentId", deleteUpcomingAgentAdmin);
 router.get("/feedback", listFeedbackAdmin);
+router.get("/feedback/:id/comments", getFeedbackComments);
+router.patch("/feedback/:id/status", updateFeedbackStatusAdmin);
 
 export default router;

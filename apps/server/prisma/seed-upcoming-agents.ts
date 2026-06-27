@@ -7,59 +7,56 @@ const prisma = new PrismaClient({ adapter });
 
 const upcomingAgents = [
   {
-    name: "Orbit",
-    tagline: "Join any meeting, capture every insight",
+    name: "Cade",
+    tagline: "Find leads, map connections & run outreach on autopilot",
     description:
-      "Orbit joins your Google Meet, Zoom, or Teams calls, takes timestamped notes, extracts action items, and sends a clean summary to your inbox — no manual notes needed.",
-    emoji: "🛰️",
-    color: "#4ECDC4",
+      "Cade digs through the web to surface qualified leads, maps decision-maker connections, and fires off personalised outreach sequences — so your pipeline fills itself.",
+    emoji: "🎯",
+    color: "#FF6B35",
     order: 1,
     isVisible: true,
   },
   {
-    name: "Pulse",
-    tagline: "Design, send & optimize email campaigns that convert",
+    name: "Echo",
+    tagline: "Joins your calls, takes notes & turns talk into tasks",
     description:
-      "Pulse lets you build drip sequences, broadcast campaigns, and A/B test subject lines — all from a simple drag-and-drop editor powered by your CRM data.",
-    emoji: "📡",
-    color: "#FF6B35",
+      "Echo sits in on any video call, transcribes every word, pulls out action items, and drops them straight into your task list. Nothing decided in a meeting gets lost again.",
+    emoji: "🎙️",
+    color: "#4ECDC4",
     order: 2,
     isVisible: true,
   },
   {
-    name: "Forge",
-    tagline: "Find, enrich & qualify leads from any source",
+    name: "Vera",
+    tagline: "Screen candidates & run AI interviews at scale",
     description:
-      "Forge scours the web, LinkedIn, and industry databases to surface qualified leads, auto-enrich their profiles, and push them straight into Scout's pipeline.",
-    emoji: "⚗️",
+      "Vera takes over your hiring pipeline — parsing CVs, running structured AI video interviews, scoring soft skills, and handing you a ranked shortlist of your best fits.",
+    emoji: "🤝",
     color: "#9B59B6",
     order: 3,
+    isVisible: true,
+  },
+  {
+    name: "Aria",
+    tagline: "Handles your support queue 24/7 with human warmth",
+    description:
+      "Aria answers questions, resolves tickets, and only loops in your team when it really needs to — so customers get instant replies and your team stays focused.",
+    emoji: "🎧",
+    color: "#3498DB",
+    order: 4,
     isVisible: true,
   },
 ];
 
 async function main() {
-  console.log("Seeding upcoming agents...");
+  console.log("Clearing existing upcoming agents and votes...");
+  await prisma.upcomingAgentVote.deleteMany();
+  await prisma.upcomingAgent.deleteMany();
 
+  console.log("Seeding upcoming agents...");
   for (const agent of upcomingAgents) {
-    const existing = await prisma.upcomingAgent.findFirst({ where: { name: agent.name } });
-    if (existing) {
-      await prisma.upcomingAgent.update({
-        where: { id: existing.id },
-        data: {
-          tagline: agent.tagline,
-          description: agent.description,
-          emoji: agent.emoji,
-          color: agent.color,
-          order: agent.order,
-          isVisible: agent.isVisible,
-        },
-      });
-      console.log(`  ~ Updated ${agent.name}`);
-    } else {
-      await prisma.upcomingAgent.create({ data: agent });
-      console.log(`  + Created ${agent.name}`);
-    }
+    await prisma.upcomingAgent.create({ data: agent });
+    console.log(`  + Created ${agent.name}`);
   }
 
   console.log("Done.");
