@@ -27,6 +27,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageHeader } from "@/components/ui/page-header"
+import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
+import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
 
 function formatBriefingDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -553,12 +555,14 @@ export default function BriefingPage() {
 
   const [briefing, setBriefing] = useState<Briefing | null>(null)
   const [phase, setPhase] = useState<"loading" | "empty" | "ready" | "error">("loading")
+  const [upgradeReason, setUpgradeReason] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
 
   const today = new Date()
 
   async function load() {
     setPhase("loading")
+    setUpgradeReason(null)
     try {
       const data = await getExistingBriefing()
       if (data) {
@@ -567,19 +571,30 @@ export default function BriefingPage() {
       } else {
         setPhase("empty")
       }
-    } catch {
-      setPhase("error")
+    } catch (err) {
+      const reason = getUpgradeRequiredReason(err)
+      if (reason) {
+        setUpgradeReason(reason)
+      } else {
+        setPhase("error")
+      }
     }
   }
 
   async function generate() {
     setGenerating(true)
+    setUpgradeReason(null)
     try {
       const data = await generateBriefing()
       setBriefing(data)
       setPhase("ready")
-    } catch {
-      setPhase("error")
+    } catch (err) {
+      const reason = getUpgradeRequiredReason(err)
+      if (reason) {
+        setUpgradeReason(reason)
+      } else {
+        setPhase("error")
+      }
     } finally {
       setGenerating(false)
     }
@@ -599,12 +614,13 @@ export default function BriefingPage() {
         sticker={{ label: "today's brief", rot: -5, color: "var(--vq-green)" }}
       />
 
-      {phase === "loading" && <BriefingLoadingSkeleton />}
-      {phase === "empty" && (
+      {upgradeReason && <UpgradeRequiredCard reason={upgradeReason} />}
+      {!upgradeReason && phase === "loading" && <BriefingLoadingSkeleton />}
+      {!upgradeReason && phase === "empty" && (
         <BriefingEmptyState onGenerate={generate} generating={generating} />
       )}
-      {phase === "error" && <BriefingError onRetry={load} />}
-      {phase === "ready" && briefing && (
+      {!upgradeReason && phase === "error" && <BriefingError onRetry={load} />}
+      {!upgradeReason && phase === "ready" && briefing && (
         <BriefingDisplay briefing={briefing} onRegenerate={generate} regenerating={generating} />
       )}
     </div>

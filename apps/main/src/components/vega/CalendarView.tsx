@@ -5,6 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
 import { qk } from "@/lib/query-keys"
 import { fetchCalendar } from "@/lib/api/vega-calendar"
+import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
+import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
 import { EventSidePanel } from "./EventSidePanel"
 import { EventCreateForm } from "./EventCreateForm"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -447,7 +449,7 @@ export function CalendarView({ initialPrefill }: CalendarViewProps) {
   )
 
   const calendarQueryKey = qk.vegaCalendar(organizationId, queryRange)
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: calendarQueryKey,
     queryFn: () => fetchCalendar(queryRange),
     enabled: !!organizationId,
@@ -499,6 +501,11 @@ export function CalendarView({ initialPrefill }: CalendarViewProps) {
         <Skeleton className="h-full flex-1 rounded-lg" />
       </div>
     )
+  }
+
+  const upgradeReason = getUpgradeRequiredReason(error)
+  if (upgradeReason) {
+    return <UpgradeRequiredCard reason={upgradeReason} />
   }
 
   if (isError) {

@@ -387,11 +387,26 @@ export function Footer() {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: 12,
+          gap: 20,
         }}>
           <div style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555' }}>
             {footerBottom.copyright}
           </div>
+          <a
+            href="https://openhunts.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="OpenHunts Club"
+            style={{ display: 'inline-flex', flexShrink: 0 }}
+          >
+            <img
+              alt="OpenHunts Club Member"
+              height="105"
+              src="https://cdn.openhunts.com/badges/club.webp"
+              style={{ width: '195px', height: 'auto' }}
+              width="486"
+            />
+          </a>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
             <Link href="/privacy" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
               Privacy

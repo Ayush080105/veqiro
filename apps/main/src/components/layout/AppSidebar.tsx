@@ -120,7 +120,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="border-r-0" style={{ borderRightWidth: 0 }}>
       <SidebarHeader className="gap-1.5 px-3 pt-1 pb-2">
         <a
           href={LANDING_URL}
@@ -293,8 +293,6 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarHeader>
-
-      <SidebarSeparator />
 
       <SidebarContent>
         <SidebarGroup>

@@ -16,6 +16,8 @@ import { bulkInboxAction, fetchInbox } from "@/lib/api/vega-inbox"
 import { fetchLabels } from "@/lib/api/vega-labels"
 import { qk } from "@/lib/query-keys"
 import { authClient } from "@/lib/auth-client"
+import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
+import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -97,6 +99,7 @@ export function InboxView() {
     data,
     isLoading,
     isError,
+    error,
     refetch,
     isFetching,
   } = useQuery({
@@ -107,7 +110,7 @@ export function InboxView() {
     staleTime: 10 * 60 * 1000,
   })
 
-  const { data: labels = [] } = useQuery({
+  const { data: labels = [], error: labelsError } = useQuery({
     queryKey: qk.vegaLabels(organizationId),
     queryFn: fetchLabels,
     enabled: !!organizationId,
@@ -200,6 +203,12 @@ export function InboxView() {
   const setMailboxAndReset = (next: MailboxFilter) => {
     setMailbox(next)
     setCheckedIds(new Set())
+  }
+
+  const upgradeReason =
+    getUpgradeRequiredReason(error) ?? getUpgradeRequiredReason(labelsError)
+  if (upgradeReason) {
+    return <UpgradeRequiredCard reason={upgradeReason} />
   }
 
   if (selectedEmail) {
