@@ -7,10 +7,10 @@ import { FONT } from "@/lib/fonts"
 
 const SETTINGS_NAV = [
   { href: "/settings", label: "Profile", icon: User, color: "var(--vq-red)" },
-  { href: "/settings/members", label: "Members", icon: Users, color: "var(--vq-green)" },
+  // { href: "/settings/members", label: "Members", icon: Users, color: "var(--vq-green)" },
   { href: "/settings/integrations", label: "Integrations", icon: Plug, color: "var(--vq-yellow)" },
   { href: "/settings/vega", label: "Email Settings", icon: MailCheck, color: "#E8F4FD" },
-  { href: "/settings/notifications", label: "Notifications", icon: Bell, color: "var(--vq-pink)" },
+  // { href: "/settings/notifications", label: "Notifications", icon: Bell, color: "var(--vq-pink)" },
   { href: "/settings/billing", label: "Billing", icon: CreditCard, color: "var(--vq-blue)" },
 ]
 

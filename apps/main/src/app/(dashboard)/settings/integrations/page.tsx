@@ -30,6 +30,8 @@ interface IntegrationDef {
   description: string
   requiredBy: string[]
   docsUrl?: string
+  /** Optional note shown below the description (e.g. requirements or setup tips). */
+  note?: string
   /** If set, this integration is wired to /api/v1/integrations/:slug */
   platformSlug?: SocialPlatformSlug
   /** If true, this integration uses Better Auth's social sign-in for OAuth */
@@ -66,6 +68,7 @@ const INTEGRATIONS: IntegrationDef[] = [
     name: "Instagram",
     description:
       "Publish Maya's visual posts to an Instagram Business account linked to a Facebook Page.",
+    note: "Requires a Professional account. To switch (it's free): ••• → Account type and tools → Account type → Switch to professional.",
     requiredBy: ["Maya"],
     platformSlug: "instagram",
   },
@@ -160,6 +163,11 @@ function IntegrationCard({
           <div className="flex flex-col gap-0.5">
             <CardTitle className="text-sm font-semibold">{integration.name}</CardTitle>
             <CardDescription>{integration.description}</CardDescription>
+            {integration.note && (
+              <p className="mt-1.5 text-[11px] text-muted-foreground/70 leading-relaxed">
+                {integration.note}
+              </p>
+            )}
           </div>
           {connected ? (
             <CheckCircle2 className="size-4 shrink-0 text-chart-2 mt-0.5" />
