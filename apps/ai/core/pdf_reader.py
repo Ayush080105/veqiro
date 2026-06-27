@@ -1,7 +1,7 @@
 from core.config import settings
 
 _VISION_EXTRACT_PROMPT = (
-    "Extract ALL content from this PDF document exactly as it appears.\n"
+    "Extract ALL content from this PDF document exactly as it appears..\n"
     "Rules:\n"
     "- Preserve the logical order and structure of the document\n"
     "- For tables: convert to markdown table format, preserving all rows and columns\n"
