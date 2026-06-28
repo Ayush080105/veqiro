@@ -5,7 +5,7 @@ import { ComparePageContent } from '@/components/veqiro/compare-page-content';
 export const metadata = buildPageMetadata({
   title: 'Veqiro vs Sintra vs Marblism — AI Employee Platform Comparison',
   description:
-    'An honest side-by-side comparison of Veqiro, Sintra, and Marblism. 56 features across 7 categories. See which AI employee platform actually covers your business.',
+    'An honest side-by-side comparison of Veqiro, Sintra, and Marblism across 7 business categories. See which AI employee platform actually covers your business.',
   path: '/compare',
   keywords: [
     'veqiro vs sintra',

@@ -205,6 +205,7 @@ export const footerColumns: FooterColumn[] = [
     h: 'Product',
     links: [
       { label: 'Pricing', href: '/pricing' },
+      { label: 'Compare', href: '/compare' },
       { label: 'How it works', href: '/#how' },
       { label: 'FAQ', href: '/#faq' },
     ],

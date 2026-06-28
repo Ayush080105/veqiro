@@ -46,6 +46,16 @@ const upcomingAgents = [
     order: 4,
     isVisible: true,
   },
+  {
+    name: "Clio",
+    tagline: "Write scripts, generate reels & produce ad creatives on demand",
+    description:
+      "Clio handles your entire short-form video pipeline — from writing hooks and scripts to generating reels and ad creatives ready for TikTok, Instagram, or YouTube Shorts. Brief her once; she ships scroll-stopping content.",
+    emoji: "🎬",
+    color: "#E63946",
+    order: 5,
+    isVisible: true,
+  },
 ];
 
 async function main() {

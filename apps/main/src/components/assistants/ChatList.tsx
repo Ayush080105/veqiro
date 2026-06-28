@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Search } from "lucide-react"
+import { Search, Lock } from "lucide-react"
 import { useMutationState } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth-client"
 import { AGENTS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
+import { useUpcomingAgents, type UpcomingAgent } from "@/lib/api/feedback"
 import { stripMarkdown } from "@/lib/utils"
+import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 const AGENT_PHOTOS: Record<string, string> = {
   maya:  "/agents/maya.jpeg",
   rex:   "/agents/rex.jpeg",
@@ -156,36 +158,55 @@ function AgentRow({
         transition: "background 120ms",
       }}
     >
-      <div
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: "50%",
-          overflow: "hidden",
-          border: "none",
-          background: agent.color,
-          flexShrink: 0,
-        }}
-      >
-        {photo ? (
-          <img
-            src={photo}
-            alt={agent.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <div
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <div
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: "50%",
+            overflow: "hidden",
+            border: "none",
+            background: agent.color,
+          }}
+        >
+          {photo ? (
+            <img
+              src={photo}
+              alt={agent.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "grid",
+                placeItems: "center",
+                fontFamily: FONT.head,
+                fontSize: 14,
+              }}
+            >
+              {agent.initials}
+            </div>
+          )}
+        </div>
+        {agent.id === "vega" && GOOGLE_FEATURES_LOCKED && (
+          <span
             style={{
-              width: "100%",
-              height: "100%",
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              width: 18,
+              height: 18,
+              borderRadius: "50%",
+              background: "#fff",
+              border: "1.5px solid #D4C9B0",
               display: "grid",
               placeItems: "center",
-              fontFamily: FONT.head,
-              fontSize: 14,
             }}
           >
-            {agent.initials}
-          </div>
+            <Lock style={{ width: 10, height: 10, color: "#555" }} />
+          </span>
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -296,6 +317,87 @@ function AgentRow({
   )
 }
 
+function UpcomingAgentRow({ agent, active }: { agent: UpcomingAgent; active: boolean }) {
+  return (
+    <Link
+      href={`/assistants/upcoming/${agent.id}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 14px",
+        background: active ? "#EEF6F1" : "transparent",
+        borderBottom: "1px solid #E5DCC8",
+        textDecoration: "none",
+        color: "#111",
+        position: "relative",
+        transition: "background 120ms",
+        opacity: 0.75,
+      }}
+    >
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <div
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: "50%",
+            background: agent.color ?? "#aaa",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 22,
+          }}
+        >
+          {agent.emoji ?? "🤖"}
+        </div>
+        <span
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            background: "#fff",
+            border: "1.5px solid #D4C9B0",
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          <Lock style={{ width: 10, height: 10, color: "#555" }} />
+        </span>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: FONT.head,
+            fontSize: 15,
+            color: "#111",
+            letterSpacing: -0.2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {agent.name}
+        </div>
+        <div
+          style={{
+            fontFamily: FONT.body,
+            fontSize: 12,
+            color: "#666",
+            marginTop: 3,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {agent.tagline}
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 export default function ChatList() {
   const pathname = usePathname()
   const { data: activeOrg } = authClient.useActiveOrganization()
@@ -303,6 +405,7 @@ export default function ChatList() {
 
   const { data: statuses } = useAgentStatuses(organizationId)
   const { data: lastMap } = useLastMessages()
+  const { data: upcomingAgents } = useUpcomingAgents()
   const [query, setQuery] = useState("")
   const unreadSet = useUnreadTracker(lastMap, pathname)
 
@@ -414,6 +517,39 @@ export default function ChatList() {
             />
           )
         })}
+
+        {upcomingAgents && upcomingAgents.length > 0 && (
+          <>
+            <div
+              style={{
+                padding: "10px 14px 6px",
+                borderBottom: "1px solid #E5DCC8",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: FONT.mono,
+                  fontSize: 10,
+                  letterSpacing: "1.5px",
+                  textTransform: "uppercase",
+                  color: "#999",
+                }}
+              >
+                Coming Soon
+              </span>
+            </div>
+            {upcomingAgents.map((agent) => (
+              <UpcomingAgentRow
+                key={agent.id}
+                agent={agent}
+                active={pathname === `/assistants/upcoming/${agent.id}`}
+              />
+            ))}
+          </>
+        )}
       </div>
     </aside>
   )

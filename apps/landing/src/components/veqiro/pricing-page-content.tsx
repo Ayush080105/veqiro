@@ -338,6 +338,12 @@ export default function PricingPageContent() {
             <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start 7-day free trial →'}</Button>
             <Button variant="ghost" onClick={() => setIsContactOpen(true)}>Talk to a human</Button>
           </div>
+          <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 20, letterSpacing: 1, textTransform: 'uppercase' }}>
+            Comparing options?{' '}
+            <Link href="/compare" style={{ color: '#111', textDecoration: 'underline' }}>
+              See Veqiro vs Sintra vs Marblism →
+            </Link>
+          </p>
         </div>
       </section>
 
