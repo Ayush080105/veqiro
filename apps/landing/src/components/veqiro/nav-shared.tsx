@@ -61,6 +61,7 @@ export function NavShared({ variant = 'page' }: Props) {
         .nav-crew-wrap::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 14px; }
         .nav-crew-menu { display: none; position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%); background: #fff; border: 2.5px solid #111; border-radius: 14px; padding: 6px; box-shadow: 4px 4px 0 #111; min-width: 248px; z-index: 200; }
         .nav-crew-wrap:hover .nav-crew-menu { display: flex; flex-direction: column; }
+        .nav-crew-menu-right { left: auto; right: 0; transform: none; }
         .nav-crew-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; text-decoration: none; color: #111 !important; transition: background 120ms; }
         .nav-crew-item:hover { background: #F5F0E8; }
       `}</style>
@@ -149,6 +150,33 @@ export function NavShared({ variant = 'page' }: Props) {
               </span>
               <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>All use cases</span>
             </Link>
+          </div>
+        </div>
+
+        {/* More dropdown */}
+        <div className="nav-crew-wrap">
+          More ▾
+          <div className="nav-crew-menu nav-crew-menu-right">
+            {[
+              { href: '/#faq',       label: 'FAQ',     sub: 'Common questions',   color: '#F5C518' },
+              { href: '/compare',    label: 'Compare',  sub: 'Veqiro vs others',   color: '#6FCDE8' },
+              { href: '/about',      label: 'About',    sub: 'Who we are',         color: '#F06464' },
+              { href: '/about#contact', label: 'Contact', sub: 'Talk to us',       color: '#1DBC87' },
+              { href: '/blog',       label: 'Blog',     sub: 'Guides & playbooks', color: '#8A8AF0' },
+            ].map(item => (
+              <Link key={item.href} href={item.href} className="nav-crew-item">
+                <span
+                  aria-hidden
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    border: '2px solid #111', background: item.color,
+                    flexShrink: 0, display: 'inline-block',
+                  }}
+                />
+                <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>{item.label}</span>
+                <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{item.sub}</span>
+              </Link>
+            ))}
           </div>
         </div>
       </div>
@@ -298,6 +326,32 @@ export function NavShared({ variant = 'page' }: Props) {
                 </span>
                 <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>All use cases</span>
               </Link>
+
+              <div className="vq-drawer-section">More</div>
+              {[
+                { href: '/#faq',          label: 'FAQ',     color: '#F5C518' },
+                { href: '/compare',       label: 'Compare', color: '#6FCDE8' },
+                { href: '/about',         label: 'About',   color: '#F06464' },
+                { href: '/about#contact', label: 'Contact', color: '#1DBC87' },
+                { href: '/blog',          label: 'Blog',    color: '#8A8AF0' },
+              ].map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="vq-drawer-crew"
+                  onClick={() => setOpen(false)}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      border: '2px solid #111', background: item.color,
+                      flexShrink: 0, display: 'inline-block',
+                    }}
+                  />
+                  <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>{item.label}</span>
+                </Link>
+              ))}
 
               <div className="vq-drawer-divider" />
 

@@ -90,7 +90,12 @@
       "Bash(pnpm run *)",
       "Bash(PowerShell *)",
       "Bash(dir \"D:\\\\Coding\\\\veqiro\\\\apps\\\\main\\\\src\\\\app\\\\assistants\" /s)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Skill(run)",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__evaluate_script",
+      "Bash(pkill -f \"next dev\")"
     ]
   },
   "enableAllProjectMcpServers": true,

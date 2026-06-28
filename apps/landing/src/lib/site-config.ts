@@ -36,7 +36,6 @@ export const nav: { href: string; label: string }[] = [
   { href: '#crew', label: 'The Crew' },
   { href: '#how', label: 'How it Works' },
   { href: 'pricing', label: 'Pricing' },
-  { href: '#faq', label: 'FAQ' },
 ];
 
 export interface UseCaseNavItem {
