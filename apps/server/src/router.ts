@@ -1,6 +1,7 @@
 import { Router } from "express";
 import authMiddleware from "./middlewares/auth.middleware.js";
-import { entitlementMiddleware } from "./middlewares/entitlement.middleware.js";
+import { entitlementMiddleware, entitlementMiddlewareForAgent } from "./middlewares/entitlement.middleware.js";
+import { Agent } from "../prisma/generated/prisma/client.js";
 import { internalKeyMiddleware } from "./middlewares/internal.middleware.js";
 import sageRouter from "./modules/agents/sage/sage.routes.js";
 import rexRouter, { publicRouter as rexPublicRouter } from "./modules/agents/rex/rex.routes.js";
@@ -40,12 +41,12 @@ router.use("/contact", contactRouter);
 // Mounted BEFORE the protected router so authMiddleware doesn't intercept them.
 router.use(rexPublicRouter);
 
-router.use("/agents/sage",  authMiddleware, entitlementMiddleware, sageRouter);
-router.use("/agents/rex",   authMiddleware, entitlementMiddleware, rexRouter);
-router.use("/agents/scout", authMiddleware, entitlementMiddleware, scoutRouter);
-router.use("/agents/maya",  authMiddleware, entitlementMiddleware, mayaRouter);
-router.use("/agents/lex",   authMiddleware, entitlementMiddleware, lexRouter);
-router.use("/agents/vega",  authMiddleware, entitlementMiddleware, vegaRouter);
+router.use("/agents/sage",  authMiddleware, entitlementMiddlewareForAgent(Agent.SAGE), sageRouter);
+router.use("/agents/rex",   authMiddleware, entitlementMiddlewareForAgent(Agent.REX), rexRouter);
+router.use("/agents/scout", authMiddleware, entitlementMiddlewareForAgent(Agent.SCOUT), scoutRouter);
+router.use("/agents/maya",  authMiddleware, entitlementMiddlewareForAgent(Agent.MAYA), mayaRouter);
+router.use("/agents/lex",   authMiddleware, entitlementMiddlewareForAgent(Agent.LEX), lexRouter);
+router.use("/agents/vega",  authMiddleware, entitlementMiddlewareForAgent(Agent.VEGA), vegaRouter);
 router.use("/agents/context/:agent", authMiddleware, contextRouter);
 router.use("/agents",       authMiddleware, entitlementMiddleware, messagesRouter);
 router.use("/dashboard", authMiddleware, dashboardRouter);

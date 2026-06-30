@@ -390,6 +390,7 @@ export const ModelName = {
   Verification: 'Verification',
   Organization: 'Organization',
   Subscription: 'Subscription',
+  BillingWebhookEvent: 'BillingWebhookEvent',
   Member: 'Member',
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
@@ -437,7 +438,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "billingWebhookEvent" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -882,6 +883,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SubscriptionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    BillingWebhookEvent: {
+      payload: Prisma.$BillingWebhookEventPayload<ExtArgs>
+      fields: Prisma.BillingWebhookEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BillingWebhookEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BillingWebhookEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>
+        }
+        findFirst: {
+          args: Prisma.BillingWebhookEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BillingWebhookEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>
+        }
+        findMany: {
+          args: Prisma.BillingWebhookEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>[]
+        }
+        create: {
+          args: Prisma.BillingWebhookEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>
+        }
+        createMany: {
+          args: Prisma.BillingWebhookEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BillingWebhookEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>[]
+        }
+        delete: {
+          args: Prisma.BillingWebhookEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>
+        }
+        update: {
+          args: Prisma.BillingWebhookEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.BillingWebhookEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BillingWebhookEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BillingWebhookEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.BillingWebhookEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingWebhookEventPayload>
+        }
+        aggregate: {
+          args: Prisma.BillingWebhookEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBillingWebhookEvent>
+        }
+        groupBy: {
+          args: Prisma.BillingWebhookEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BillingWebhookEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BillingWebhookEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BillingWebhookEventCountAggregateOutputType> | number
         }
       }
     }
@@ -3365,7 +3440,8 @@ export const OrganizationScalarFieldEnum = {
   metadata: 'metadata',
   onboarded: 'onboarded',
   subscriptionStatus: 'subscriptionStatus',
-  entitlementExpiresAt: 'entitlementExpiresAt'
+  entitlementExpiresAt: 'entitlementExpiresAt',
+  unlockedAgents: 'unlockedAgents'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -3378,6 +3454,14 @@ export const SubscriptionScalarFieldEnum = {
   dodoSubscriptionId: 'dodoSubscriptionId',
   status: 'status',
   plan: 'plan',
+  entitlementMode: 'entitlementMode',
+  selectedAgents: 'selectedAgents',
+  pendingCheckoutSessionId: 'pendingCheckoutSessionId',
+  pendingPlan: 'pendingPlan',
+  pendingEntitlementMode: 'pendingEntitlementMode',
+  pendingSelectedAgents: 'pendingSelectedAgents',
+  pendingProductId: 'pendingProductId',
+  pendingCheckoutCreatedAt: 'pendingCheckoutCreatedAt',
   trialEndsAt: 'trialEndsAt',
   currentPeriodEnd: 'currentPeriodEnd',
   cancelAtPeriodEnd: 'cancelAtPeriodEnd',
@@ -3386,6 +3470,18 @@ export const SubscriptionScalarFieldEnum = {
 } as const
 
 export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const BillingWebhookEventScalarFieldEnum = {
+  eventId: 'eventId',
+  eventType: 'eventType',
+  subscriptionId: 'subscriptionId',
+  organizationId: 'organizationId',
+  processedAt: 'processedAt',
+  result: 'result'
+} as const
+
+export type BillingWebhookEventScalarFieldEnum = (typeof BillingWebhookEventScalarFieldEnum)[keyof typeof BillingWebhookEventScalarFieldEnum]
 
 
 export const MemberScalarFieldEnum = {
@@ -3978,6 +4074,20 @@ export type ListEnumSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'Agent[]'
+ */
+export type ListEnumAgentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Agent[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Agent'
+ */
+export type EnumAgentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Agent'>
+    
+
+
+/**
  * Reference to a field of type 'SubscriptionPlan'
  */
 export type EnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionPlan'>
@@ -3992,6 +4102,20 @@ export type ListEnumSubscriptionPlanFieldRefInput<$PrismaModel> = FieldRefInputT
 
 
 /**
+ * Reference to a field of type 'SubscriptionEntitlementMode'
+ */
+export type EnumSubscriptionEntitlementModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionEntitlementMode'>
+    
+
+
+/**
+ * Reference to a field of type 'SubscriptionEntitlementMode[]'
+ */
+export type ListEnumSubscriptionEntitlementModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionEntitlementMode[]'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -4002,20 +4126,6 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-/**
- * Reference to a field of type 'Agent'
- */
-export type EnumAgentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Agent'>
-    
-
-
-/**
- * Reference to a field of type 'Agent[]'
- */
-export type ListEnumAgentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Agent[]'>
     
 
 
@@ -4259,6 +4369,7 @@ export type GlobalOmitConfig = {
   verification?: Prisma.VerificationOmit
   organization?: Prisma.OrganizationOmit
   subscription?: Prisma.SubscriptionOmit
+  billingWebhookEvent?: Prisma.BillingWebhookEventOmit
   member?: Prisma.MemberOmit
   invitation?: Prisma.InvitationOmit
   brandKit?: Prisma.BrandKitOmit

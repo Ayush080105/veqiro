@@ -39,6 +39,12 @@ enum SubscriptionPlan {
   ANNUAL
 }
 
+/// Billing entitlement shape.
+enum SubscriptionEntitlementMode {
+  CREW
+  CUSTOM
+}
+
 /// Task type: agent-automated vs user-defined general task.
 enum TaskType {
   AGENT
@@ -214,6 +220,8 @@ model Organization {
   subscriptionStatus   SubscriptionStatus?
   /// Fast entitlement expiry used by middleware.
   entitlementExpiresAt DateTime?
+  /// Fast per-agent unlocks used by middleware.
+  unlockedAgents       Agent[]              @default([])
   /// Source billing subscription row.
   subscription         Subscription?
   /// Per-agent memory summaries.
@@ -246,6 +254,22 @@ model Subscription {
   status             SubscriptionStatus @default(TRIALING)
   /// Current paid plan cadence.
   plan               SubscriptionPlan?
+  /// Whether the subscription unlocks all agents or a selected subset.
+  entitlementMode    SubscriptionEntitlementMode @default(CREW)
+  /// Agents unlocked by this subscription. CREW subscriptions store all agents.
+  selectedAgents     Agent[]       @default([])
+  /// Checkout session waiting for provider confirmation.
+  pendingCheckoutSessionId String?
+  /// Pending paid plan cadence from latest checkout.
+  pendingPlan        SubscriptionPlan?
+  /// Pending entitlement mode from latest checkout.
+  pendingEntitlementMode SubscriptionEntitlementMode?
+  /// Pending selected agents from latest checkout.
+  pendingSelectedAgents Agent[]    @default([])
+  /// Pending Dodo product id from latest checkout.
+  pendingProductId   String?
+  /// Pending checkout creation timestamp.
+  pendingCheckoutCreatedAt DateTime?
   /// Trial end timestamp.
   trialEndsAt        DateTime?
   /// Current paid period end timestamp.
@@ -258,6 +282,26 @@ model Subscription {
   updatedAt          DateTime     @updatedAt
 
   @@map("subscription")
+}
+
+/// Dodo webhook event processing ledger for idempotency.
+model BillingWebhookEvent {
+  /// Dodo webhook event id.
+  eventId        String   @id
+  /// Dodo event type such as subscription.active.
+  eventType      String
+  /// Dodo subscription id if present.
+  subscriptionId String?
+  /// Owning organization id if resolved.
+  organizationId String?
+  /// Event processing timestamp.
+  processedAt    DateTime @default(now())
+  /// Compact processing result.
+  result         String
+
+  @@index([organizationId, processedAt])
+  @@index([subscriptionId])
+  @@map("billing_webhook_event")
 }
 
 /// User membership in an organization.

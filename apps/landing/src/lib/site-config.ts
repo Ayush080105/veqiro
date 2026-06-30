@@ -96,6 +96,35 @@ export interface PricingTier {
   popular?: boolean;
 }
 
+export interface AgentPricing {
+  key: string;
+  monthly: number | null;
+}
+
+const defaultAgentMonthlyDollars: Record<string, number> = {
+  maya: 19,
+  sage: 9,
+  lex: 9,
+  rex: 9,
+  scout: 9,
+  vega: 9,
+};
+
+function publicAgentPrice(key: string): number {
+  const envKey = `NEXT_PUBLIC_AGENT_PRICE_${key.toUpperCase()}_MONTHLY_CENTS`;
+  const cents = Number(process.env[envKey]);
+  return Number.isInteger(cents) && cents > 0 ? Math.round(cents / 100) : defaultAgentMonthlyDollars[key];
+}
+
+export const agentPricing: AgentPricing[] = [
+  { key: 'maya', monthly: publicAgentPrice('maya') },
+  { key: 'sage', monthly: publicAgentPrice('sage') },
+  { key: 'lex', monthly: publicAgentPrice('lex') },
+  { key: 'rex', monthly: publicAgentPrice('rex') },
+  { key: 'scout', monthly: publicAgentPrice('scout') },
+  { key: 'vega', monthly: publicAgentPrice('vega') },
+];
+
 export const pricingTiers: PricingTier[] = [
   {
     name: 'Crew',
@@ -251,6 +280,7 @@ export const siteConfig = {
   marqueeItems,
   marqueeRedItems,
   howItWorksSteps,
+  agentPricing,
   pricingTiers,
   faqItems,
   crewReplies,

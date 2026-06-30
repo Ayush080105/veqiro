@@ -48,6 +48,11 @@ export type Organization = Prisma.OrganizationModel
  */
 export type Subscription = Prisma.SubscriptionModel
 /**
+ * Model BillingWebhookEvent
+ * Dodo webhook event processing ledger for idempotency.
+ */
+export type BillingWebhookEvent = Prisma.BillingWebhookEventModel
+/**
  * Model Member
  * User membership in an organization.
  */

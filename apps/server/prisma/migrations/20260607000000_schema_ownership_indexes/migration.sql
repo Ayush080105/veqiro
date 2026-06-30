@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS "rag_chunks" (
     "source_type" TEXT NOT NULL DEFAULT '',
     "source_agent" TEXT NOT NULL DEFAULT '',
     "content" TEXT NOT NULL,
-    "embedding" vector,
+    "embedding" vector(1536),
     "metadata" JSONB DEFAULT '{}'::jsonb,
     "created_at" TIMESTAMPTZ DEFAULT now(),
 
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS "conversation_memories" (
     "agent" TEXT NOT NULL,
     "role" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "embedding" vector,
+    "embedding" vector(1536),
     "created_at" TIMESTAMPTZ DEFAULT now(),
     "metadata" JSONB DEFAULT '{}'::jsonb,
 

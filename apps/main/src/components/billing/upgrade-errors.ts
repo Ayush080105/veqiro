@@ -7,6 +7,7 @@ const REASON_BY_ERROR: Record<string, string> = {
   "trial expired": "trial-expired",
   "subscription expired": "subscription-expired",
   "payment failed": "payment-failed",
+  "agent not purchased": "agent-not-purchased",
 }
 
 export function getUpgradeRequiredReason(error: unknown): string | null {

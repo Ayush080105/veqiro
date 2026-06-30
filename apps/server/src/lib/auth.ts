@@ -113,7 +113,7 @@ const auth = betterAuth({
           authenticatedUsersOnly: true,
         }),
         webhooks({
-          webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_SECRET!,
+          webhookKey: (process.env.DODO_PAYMENTS_WEBHOOK_SECRET ?? process.env.DODO_WEBHOOK_SECRET)!,
           onSubscriptionActive: handleSubscriptionActive as any,
           onSubscriptionRenewed: handleSubscriptionRenewed as any,
           onSubscriptionCancelled: handleSubscriptionCancelled as any,

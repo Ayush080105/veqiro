@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../config/prisma.js";
 import { dodoClient } from "../../lib/dodo.js";
-import { requireOrgOwner, startTrialForOrg } from "./billing.service.js";
+import { createCheckoutForOrg, requireOrgOwner, startTrialForOrg } from "./billing.service.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 
 function daysRemaining(date: Date | null): number | null {
@@ -22,7 +22,17 @@ export async function getStatus(req: Request, res: Response) {
       trialEndsAt: true,
       currentPeriodEnd: true,
       dodoCustomerId: true,
+      entitlementMode: true,
+      selectedAgents: true,
+      pendingCheckoutSessionId: true,
+      pendingPlan: true,
+      pendingEntitlementMode: true,
+      pendingSelectedAgents: true,
     },
+  });
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { unlockedAgents: true },
   });
 
   res.status(StatusCodes.OK).json({
@@ -33,6 +43,16 @@ export async function getStatus(req: Request, res: Response) {
           trialEndsAt: sub.trialEndsAt,
           currentPeriodEnd: sub.currentPeriodEnd,
           dodoCustomerId: sub.dodoCustomerId,
+          entitlementMode: sub.entitlementMode,
+          selectedAgents: sub.selectedAgents,
+          unlockedAgents: org?.unlockedAgents ?? [],
+          pendingCheckout: sub.pendingCheckoutSessionId
+            ? {
+                plan: sub.pendingPlan,
+                entitlementMode: sub.pendingEntitlementMode,
+                selectedAgents: sub.pendingSelectedAgents,
+              }
+            : null,
           daysRemaining:
             sub.status === "TRIALING" ? daysRemaining(sub.trialEndsAt) : null,
         }
@@ -42,12 +62,23 @@ export async function getStatus(req: Request, res: Response) {
 
 export async function startTrial(req: Request, res: Response) {
   const orgId = await requireOrgOwner(req);
-  const sub = await startTrialForOrg(orgId);
+  const sub = await startTrialForOrg(orgId, req.body?.agents);
   res.status(StatusCodes.CREATED).json({
     status: sub.status,
     trialEndsAt: sub.trialEndsAt,
     plan: sub.plan,
+    entitlementMode: sub.entitlementMode,
+    selectedAgents: sub.selectedAgents,
   });
+}
+
+export async function createCheckout(req: Request, res: Response) {
+  const orgId = await requireOrgOwner(req);
+  const checkout = await createCheckoutForOrg(orgId, {
+    agents: req.body?.agents,
+    cadence: req.body?.cadence,
+  });
+  res.status(StatusCodes.OK).json(checkout);
 }
 
 export async function openPortal(req: Request, res: Response) {

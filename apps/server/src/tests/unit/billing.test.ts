@@ -1,5 +1,11 @@
 import { assert, describe, test } from "vitest";
-import { deriveEntitlementFields, resolvePlan } from "../../modules/billing/billing.types.js";
+import {
+  deriveEntitlementFields,
+  parseEntitlementModeMetadata,
+  parsePlanMetadata,
+  resolvePlan,
+} from "../../modules/billing/billing.types.js";
+import { calculateAgentSelectionPriceCents } from "../../modules/billing/billing.catalog.js";
 
 describe("deriveEntitlementFields", () => {
   const trialEnd = new Date("2026-05-05");
@@ -53,5 +59,51 @@ describe("resolvePlan", () => {
     process.env.DODO_PRO_MONTHLY_PRODUCT_ID = "pdt_m";
     process.env.DODO_PRO_ANNUAL_PRODUCT_ID  = "pdt_a";
     assert.equal(resolvePlan("pdt_xxx"), null);
+  });
+});
+
+describe("billing metadata parsers", () => {
+  test("parses checkout entitlement metadata", () => {
+    assert.equal(parseEntitlementModeMetadata("CUSTOM"), "CUSTOM");
+    assert.equal(parseEntitlementModeMetadata("CREW"), "CREW");
+    assert.equal(parseEntitlementModeMetadata("custom"), null);
+  });
+
+  test("parses checkout plan metadata", () => {
+    assert.equal(parsePlanMetadata("MONTHLY"), "MONTHLY");
+    assert.equal(parsePlanMetadata("ANNUAL"), "ANNUAL");
+    assert.equal(parsePlanMetadata("monthly"), null);
+  });
+});
+
+describe("agent entitlement modes", () => {
+  test("CUSTOM ACTIVE unlocks only selected agents", () => {
+    const r = deriveEntitlementFields({
+      status: "ACTIVE",
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+      entitlementMode: "CUSTOM",
+      selectedAgents: ["MAYA"],
+    });
+    assert.deepEqual(r.unlockedAgents, ["MAYA"]);
+  });
+
+  test("CREW ACTIVE unlocks all agents", () => {
+    const r = deriveEntitlementFields({
+      status: "ACTIVE",
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+      entitlementMode: "CREW",
+      selectedAgents: ["MAYA"],
+    });
+    assert.deepEqual(r.unlockedAgents, ["MAYA", "SAGE", "LEX", "REX", "SCOUT", "VEGA"]);
+  });
+});
+
+describe("agent selection pricing", () => {
+  test("defaults Maya to $19 and other agents to $9", () => {
+    delete process.env.AGENT_PRICE_MAYA_MONTHLY_CENTS;
+    delete process.env.AGENT_PRICE_SAGE_MONTHLY_CENTS;
+    assert.equal(calculateAgentSelectionPriceCents(["MAYA", "SAGE"], "MONTHLY"), 2800);
   });
 });

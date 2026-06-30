@@ -58,6 +58,7 @@ export type OrganizationCountAggregateOutputType = {
   onboarded: number
   subscriptionStatus: number
   entitlementExpiresAt: number
+  unlockedAgents: number
   _all: number
 }
 
@@ -96,6 +97,7 @@ export type OrganizationCountAggregateInputType = {
   onboarded?: true
   subscriptionStatus?: true
   entitlementExpiresAt?: true
+  unlockedAgents?: true
   _all?: true
 }
 
@@ -181,6 +183,7 @@ export type OrganizationGroupByOutputType = {
   onboarded: boolean
   subscriptionStatus: $Enums.SubscriptionStatus | null
   entitlementExpiresAt: Date | null
+  unlockedAgents: $Enums.Agent[]
   _count: OrganizationCountAggregateOutputType | null
   _min: OrganizationMinAggregateOutputType | null
   _max: OrganizationMaxAggregateOutputType | null
@@ -214,6 +217,7 @@ export type OrganizationWhereInput = {
   onboarded?: Prisma.BoolFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   subscription?: Prisma.XOR<Prisma.SubscriptionNullableScalarRelationFilter, Prisma.SubscriptionWhereInput> | null
@@ -232,6 +236,7 @@ export type OrganizationOrderByWithRelationInput = {
   onboarded?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  unlockedAgents?: Prisma.SortOrder
   members?: Prisma.MemberOrderByRelationAggregateInput
   invitations?: Prisma.InvitationOrderByRelationAggregateInput
   subscription?: Prisma.SubscriptionOrderByWithRelationInput
@@ -253,6 +258,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   onboarded?: Prisma.BoolFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   subscription?: Prisma.XOR<Prisma.SubscriptionNullableScalarRelationFilter, Prisma.SubscriptionWhereInput> | null
@@ -271,6 +277,7 @@ export type OrganizationOrderByWithAggregationInput = {
   onboarded?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  unlockedAgents?: Prisma.SortOrder
   _count?: Prisma.OrganizationCountOrderByAggregateInput
   _max?: Prisma.OrganizationMaxOrderByAggregateInput
   _min?: Prisma.OrganizationMinOrderByAggregateInput
@@ -289,6 +296,7 @@ export type OrganizationScalarWhereWithAggregatesInput = {
   onboarded?: Prisma.BoolWithAggregatesFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableWithAggregatesFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Organization"> | Date | string | null
+  unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
 }
 
 export type OrganizationCreateInput = {
@@ -301,6 +309,7 @@ export type OrganizationCreateInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
@@ -319,6 +328,7 @@ export type OrganizationUncheckedCreateInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
@@ -337,6 +347,7 @@ export type OrganizationUpdateInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
@@ -355,6 +366,7 @@ export type OrganizationUncheckedUpdateInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
@@ -373,6 +385,7 @@ export type OrganizationCreateManyInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
 }
 
 export type OrganizationUpdateManyMutationInput = {
@@ -385,6 +398,7 @@ export type OrganizationUpdateManyMutationInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
 }
 
 export type OrganizationUncheckedUpdateManyInput = {
@@ -397,6 +411,15 @@ export type OrganizationUncheckedUpdateManyInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+}
+
+export type EnumAgentNullableListFilter<$PrismaModel = never> = {
+  equals?: $Enums.Agent[] | Prisma.ListEnumAgentFieldRefInput<$PrismaModel> | null
+  has?: $Enums.Agent | Prisma.EnumAgentFieldRefInput<$PrismaModel> | null
+  hasEvery?: $Enums.Agent[] | Prisma.ListEnumAgentFieldRefInput<$PrismaModel>
+  hasSome?: $Enums.Agent[] | Prisma.ListEnumAgentFieldRefInput<$PrismaModel>
+  isEmpty?: boolean
 }
 
 export type OrganizationCountOrderByAggregateInput = {
@@ -409,6 +432,7 @@ export type OrganizationCountOrderByAggregateInput = {
   onboarded?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrder
+  unlockedAgents?: Prisma.SortOrder
 }
 
 export type OrganizationMaxOrderByAggregateInput = {
@@ -440,8 +464,17 @@ export type OrganizationScalarRelationFilter = {
   isNot?: Prisma.OrganizationWhereInput
 }
 
+export type OrganizationCreateunlockedAgentsInput = {
+  set: $Enums.Agent[]
+}
+
 export type NullableEnumSubscriptionStatusFieldUpdateOperationsInput = {
   set?: $Enums.SubscriptionStatus | null
+}
+
+export type OrganizationUpdateunlockedAgentsInput = {
+  set?: $Enums.Agent[]
+  push?: $Enums.Agent | $Enums.Agent[]
 }
 
 export type OrganizationCreateNestedOneWithoutSubscriptionInput = {
@@ -538,6 +571,7 @@ export type OrganizationCreateWithoutSubscriptionInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -555,6 +589,7 @@ export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -588,6 +623,7 @@ export type OrganizationUpdateWithoutSubscriptionInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -605,6 +641,7 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -622,6 +659,7 @@ export type OrganizationCreateWithoutMembersInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -639,6 +677,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -672,6 +711,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -689,6 +729,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -706,6 +747,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -723,6 +765,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -756,6 +799,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -773,6 +817,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -790,6 +835,7 @@ export type OrganizationCreateWithoutAgentMemoryInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
@@ -807,6 +853,7 @@ export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
@@ -840,6 +887,7 @@ export type OrganizationUpdateWithoutAgentMemoryInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
@@ -857,6 +905,7 @@ export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
@@ -874,6 +923,7 @@ export type OrganizationCreateWithoutOrgMemoryInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
@@ -891,6 +941,7 @@ export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
@@ -924,6 +975,7 @@ export type OrganizationUpdateWithoutOrgMemoryInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
@@ -941,6 +993,7 @@ export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
@@ -958,6 +1011,7 @@ export type OrganizationCreateWithoutTasksInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
@@ -975,6 +1029,7 @@ export type OrganizationUncheckedCreateWithoutTasksInput = {
   onboarded?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
@@ -1008,6 +1063,7 @@ export type OrganizationUpdateWithoutTasksInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
@@ -1025,6 +1081,7 @@ export type OrganizationUncheckedUpdateWithoutTasksInput = {
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
@@ -1100,6 +1157,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   onboarded?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
+  unlockedAgents?: boolean
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
   subscription?: boolean | Prisma.Organization$subscriptionArgs<ExtArgs>
@@ -1119,6 +1177,7 @@ export type OrganizationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   onboarded?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
+  unlockedAgents?: boolean
 }, ExtArgs["result"]["organization"]>
 
 export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1131,6 +1190,7 @@ export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   onboarded?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
+  unlockedAgents?: boolean
 }, ExtArgs["result"]["organization"]>
 
 export type OrganizationSelectScalar = {
@@ -1143,9 +1203,10 @@ export type OrganizationSelectScalar = {
   onboarded?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
+  unlockedAgents?: boolean
 }
 
-export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata" | "onboarded" | "subscriptionStatus" | "entitlementExpiresAt", ExtArgs["result"]["organization"]>
+export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata" | "onboarded" | "subscriptionStatus" | "entitlementExpiresAt" | "unlockedAgents", ExtArgs["result"]["organization"]>
 export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
@@ -1223,6 +1284,10 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * Fast entitlement expiry used by middleware.
      */
     entitlementExpiresAt: Date | null
+    /**
+     * Fast per-agent unlocks used by middleware.
+     */
+    unlockedAgents: $Enums.Agent[]
   }, ExtArgs["result"]["organization"]>
   composites: {}
 }
@@ -1661,6 +1726,7 @@ export interface OrganizationFieldRefs {
   readonly onboarded: Prisma.FieldRef<"Organization", 'Boolean'>
   readonly subscriptionStatus: Prisma.FieldRef<"Organization", 'SubscriptionStatus'>
   readonly entitlementExpiresAt: Prisma.FieldRef<"Organization", 'DateTime'>
+  readonly unlockedAgents: Prisma.FieldRef<"Organization", 'Agent[]'>
 }
     
 

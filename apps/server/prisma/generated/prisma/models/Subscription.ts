@@ -31,6 +31,12 @@ export type SubscriptionMinAggregateOutputType = {
   dodoSubscriptionId: string | null
   status: $Enums.SubscriptionStatus | null
   plan: $Enums.SubscriptionPlan | null
+  entitlementMode: $Enums.SubscriptionEntitlementMode | null
+  pendingCheckoutSessionId: string | null
+  pendingPlan: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode: $Enums.SubscriptionEntitlementMode | null
+  pendingProductId: string | null
+  pendingCheckoutCreatedAt: Date | null
   trialEndsAt: Date | null
   currentPeriodEnd: Date | null
   cancelAtPeriodEnd: boolean | null
@@ -45,6 +51,12 @@ export type SubscriptionMaxAggregateOutputType = {
   dodoSubscriptionId: string | null
   status: $Enums.SubscriptionStatus | null
   plan: $Enums.SubscriptionPlan | null
+  entitlementMode: $Enums.SubscriptionEntitlementMode | null
+  pendingCheckoutSessionId: string | null
+  pendingPlan: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode: $Enums.SubscriptionEntitlementMode | null
+  pendingProductId: string | null
+  pendingCheckoutCreatedAt: Date | null
   trialEndsAt: Date | null
   currentPeriodEnd: Date | null
   cancelAtPeriodEnd: boolean | null
@@ -59,6 +71,14 @@ export type SubscriptionCountAggregateOutputType = {
   dodoSubscriptionId: number
   status: number
   plan: number
+  entitlementMode: number
+  selectedAgents: number
+  pendingCheckoutSessionId: number
+  pendingPlan: number
+  pendingEntitlementMode: number
+  pendingSelectedAgents: number
+  pendingProductId: number
+  pendingCheckoutCreatedAt: number
   trialEndsAt: number
   currentPeriodEnd: number
   cancelAtPeriodEnd: number
@@ -75,6 +95,12 @@ export type SubscriptionMinAggregateInputType = {
   dodoSubscriptionId?: true
   status?: true
   plan?: true
+  entitlementMode?: true
+  pendingCheckoutSessionId?: true
+  pendingPlan?: true
+  pendingEntitlementMode?: true
+  pendingProductId?: true
+  pendingCheckoutCreatedAt?: true
   trialEndsAt?: true
   currentPeriodEnd?: true
   cancelAtPeriodEnd?: true
@@ -89,6 +115,12 @@ export type SubscriptionMaxAggregateInputType = {
   dodoSubscriptionId?: true
   status?: true
   plan?: true
+  entitlementMode?: true
+  pendingCheckoutSessionId?: true
+  pendingPlan?: true
+  pendingEntitlementMode?: true
+  pendingProductId?: true
+  pendingCheckoutCreatedAt?: true
   trialEndsAt?: true
   currentPeriodEnd?: true
   cancelAtPeriodEnd?: true
@@ -103,6 +135,14 @@ export type SubscriptionCountAggregateInputType = {
   dodoSubscriptionId?: true
   status?: true
   plan?: true
+  entitlementMode?: true
+  selectedAgents?: true
+  pendingCheckoutSessionId?: true
+  pendingPlan?: true
+  pendingEntitlementMode?: true
+  pendingSelectedAgents?: true
+  pendingProductId?: true
+  pendingCheckoutCreatedAt?: true
   trialEndsAt?: true
   currentPeriodEnd?: true
   cancelAtPeriodEnd?: true
@@ -190,6 +230,14 @@ export type SubscriptionGroupByOutputType = {
   dodoSubscriptionId: string | null
   status: $Enums.SubscriptionStatus
   plan: $Enums.SubscriptionPlan | null
+  entitlementMode: $Enums.SubscriptionEntitlementMode
+  selectedAgents: $Enums.Agent[]
+  pendingCheckoutSessionId: string | null
+  pendingPlan: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode: $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents: $Enums.Agent[]
+  pendingProductId: string | null
+  pendingCheckoutCreatedAt: Date | null
   trialEndsAt: Date | null
   currentPeriodEnd: Date | null
   cancelAtPeriodEnd: boolean
@@ -225,6 +273,14 @@ export type SubscriptionWhereInput = {
   dodoSubscriptionId?: Prisma.StringNullableFilter<"Subscription"> | string | null
   status?: Prisma.EnumSubscriptionStatusFilter<"Subscription"> | $Enums.SubscriptionStatus
   plan?: Prisma.EnumSubscriptionPlanNullableFilter<"Subscription"> | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFilter<"Subscription"> | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.EnumAgentNullableListFilter<"Subscription">
+  pendingCheckoutSessionId?: Prisma.StringNullableFilter<"Subscription"> | string | null
+  pendingPlan?: Prisma.EnumSubscriptionPlanNullableFilter<"Subscription"> | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.EnumSubscriptionEntitlementModeNullableFilter<"Subscription"> | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.EnumAgentNullableListFilter<"Subscription">
+  pendingProductId?: Prisma.StringNullableFilter<"Subscription"> | string | null
+  pendingCheckoutCreatedAt?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
   trialEndsAt?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
   currentPeriodEnd?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFilter<"Subscription"> | boolean
@@ -240,6 +296,14 @@ export type SubscriptionOrderByWithRelationInput = {
   dodoSubscriptionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   plan?: Prisma.SortOrderInput | Prisma.SortOrder
+  entitlementMode?: Prisma.SortOrder
+  selectedAgents?: Prisma.SortOrder
+  pendingCheckoutSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingPlan?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingEntitlementMode?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingSelectedAgents?: Prisma.SortOrder
+  pendingProductId?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingCheckoutCreatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   trialEndsAt?: Prisma.SortOrderInput | Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrderInput | Prisma.SortOrder
   cancelAtPeriodEnd?: Prisma.SortOrder
@@ -258,6 +322,14 @@ export type SubscriptionWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.SubscriptionWhereInput | Prisma.SubscriptionWhereInput[]
   status?: Prisma.EnumSubscriptionStatusFilter<"Subscription"> | $Enums.SubscriptionStatus
   plan?: Prisma.EnumSubscriptionPlanNullableFilter<"Subscription"> | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFilter<"Subscription"> | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.EnumAgentNullableListFilter<"Subscription">
+  pendingCheckoutSessionId?: Prisma.StringNullableFilter<"Subscription"> | string | null
+  pendingPlan?: Prisma.EnumSubscriptionPlanNullableFilter<"Subscription"> | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.EnumSubscriptionEntitlementModeNullableFilter<"Subscription"> | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.EnumAgentNullableListFilter<"Subscription">
+  pendingProductId?: Prisma.StringNullableFilter<"Subscription"> | string | null
+  pendingCheckoutCreatedAt?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
   trialEndsAt?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
   currentPeriodEnd?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFilter<"Subscription"> | boolean
@@ -273,6 +345,14 @@ export type SubscriptionOrderByWithAggregationInput = {
   dodoSubscriptionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   plan?: Prisma.SortOrderInput | Prisma.SortOrder
+  entitlementMode?: Prisma.SortOrder
+  selectedAgents?: Prisma.SortOrder
+  pendingCheckoutSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingPlan?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingEntitlementMode?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingSelectedAgents?: Prisma.SortOrder
+  pendingProductId?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingCheckoutCreatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   trialEndsAt?: Prisma.SortOrderInput | Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrderInput | Prisma.SortOrder
   cancelAtPeriodEnd?: Prisma.SortOrder
@@ -293,6 +373,14 @@ export type SubscriptionScalarWhereWithAggregatesInput = {
   dodoSubscriptionId?: Prisma.StringNullableWithAggregatesFilter<"Subscription"> | string | null
   status?: Prisma.EnumSubscriptionStatusWithAggregatesFilter<"Subscription"> | $Enums.SubscriptionStatus
   plan?: Prisma.EnumSubscriptionPlanNullableWithAggregatesFilter<"Subscription"> | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeWithAggregatesFilter<"Subscription"> | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.EnumAgentNullableListFilter<"Subscription">
+  pendingCheckoutSessionId?: Prisma.StringNullableWithAggregatesFilter<"Subscription"> | string | null
+  pendingPlan?: Prisma.EnumSubscriptionPlanNullableWithAggregatesFilter<"Subscription"> | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.EnumSubscriptionEntitlementModeNullableWithAggregatesFilter<"Subscription"> | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.EnumAgentNullableListFilter<"Subscription">
+  pendingProductId?: Prisma.StringNullableWithAggregatesFilter<"Subscription"> | string | null
+  pendingCheckoutCreatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
   trialEndsAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
   currentPeriodEnd?: Prisma.DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolWithAggregatesFilter<"Subscription"> | boolean
@@ -306,6 +394,14 @@ export type SubscriptionCreateInput = {
   dodoSubscriptionId?: string | null
   status?: $Enums.SubscriptionStatus
   plan?: $Enums.SubscriptionPlan | null
+  entitlementMode?: $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionCreateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: string | null
+  pendingPlan?: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionCreatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: string | null
+  pendingCheckoutCreatedAt?: Date | string | null
   trialEndsAt?: Date | string | null
   currentPeriodEnd?: Date | string | null
   cancelAtPeriodEnd?: boolean
@@ -321,6 +417,14 @@ export type SubscriptionUncheckedCreateInput = {
   dodoSubscriptionId?: string | null
   status?: $Enums.SubscriptionStatus
   plan?: $Enums.SubscriptionPlan | null
+  entitlementMode?: $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionCreateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: string | null
+  pendingPlan?: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionCreatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: string | null
+  pendingCheckoutCreatedAt?: Date | string | null
   trialEndsAt?: Date | string | null
   currentPeriodEnd?: Date | string | null
   cancelAtPeriodEnd?: boolean
@@ -334,6 +438,14 @@ export type SubscriptionUpdateInput = {
   dodoSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus
   plan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionUpdateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingPlan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.NullableEnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionUpdatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingCheckoutCreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -349,6 +461,14 @@ export type SubscriptionUncheckedUpdateInput = {
   dodoSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus
   plan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionUpdateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingPlan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.NullableEnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionUpdatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingCheckoutCreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -363,6 +483,14 @@ export type SubscriptionCreateManyInput = {
   dodoSubscriptionId?: string | null
   status?: $Enums.SubscriptionStatus
   plan?: $Enums.SubscriptionPlan | null
+  entitlementMode?: $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionCreateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: string | null
+  pendingPlan?: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionCreatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: string | null
+  pendingCheckoutCreatedAt?: Date | string | null
   trialEndsAt?: Date | string | null
   currentPeriodEnd?: Date | string | null
   cancelAtPeriodEnd?: boolean
@@ -376,6 +504,14 @@ export type SubscriptionUpdateManyMutationInput = {
   dodoSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus
   plan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionUpdateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingPlan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.NullableEnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionUpdatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingCheckoutCreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -390,6 +526,14 @@ export type SubscriptionUncheckedUpdateManyInput = {
   dodoSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus
   plan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionUpdateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingPlan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.NullableEnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionUpdatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingCheckoutCreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -409,6 +553,14 @@ export type SubscriptionCountOrderByAggregateInput = {
   dodoSubscriptionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  entitlementMode?: Prisma.SortOrder
+  selectedAgents?: Prisma.SortOrder
+  pendingCheckoutSessionId?: Prisma.SortOrder
+  pendingPlan?: Prisma.SortOrder
+  pendingEntitlementMode?: Prisma.SortOrder
+  pendingSelectedAgents?: Prisma.SortOrder
+  pendingProductId?: Prisma.SortOrder
+  pendingCheckoutCreatedAt?: Prisma.SortOrder
   trialEndsAt?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrder
   cancelAtPeriodEnd?: Prisma.SortOrder
@@ -423,6 +575,12 @@ export type SubscriptionMaxOrderByAggregateInput = {
   dodoSubscriptionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  entitlementMode?: Prisma.SortOrder
+  pendingCheckoutSessionId?: Prisma.SortOrder
+  pendingPlan?: Prisma.SortOrder
+  pendingEntitlementMode?: Prisma.SortOrder
+  pendingProductId?: Prisma.SortOrder
+  pendingCheckoutCreatedAt?: Prisma.SortOrder
   trialEndsAt?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrder
   cancelAtPeriodEnd?: Prisma.SortOrder
@@ -437,6 +595,12 @@ export type SubscriptionMinOrderByAggregateInput = {
   dodoSubscriptionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  entitlementMode?: Prisma.SortOrder
+  pendingCheckoutSessionId?: Prisma.SortOrder
+  pendingPlan?: Prisma.SortOrder
+  pendingEntitlementMode?: Prisma.SortOrder
+  pendingProductId?: Prisma.SortOrder
+  pendingCheckoutCreatedAt?: Prisma.SortOrder
   trialEndsAt?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrder
   cancelAtPeriodEnd?: Prisma.SortOrder
@@ -476,6 +640,14 @@ export type SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.SubscriptionUpdateToOneWithWhereWithoutOrganizationInput, Prisma.SubscriptionUpdateWithoutOrganizationInput>, Prisma.SubscriptionUncheckedUpdateWithoutOrganizationInput>
 }
 
+export type SubscriptionCreateselectedAgentsInput = {
+  set: $Enums.Agent[]
+}
+
+export type SubscriptionCreatependingSelectedAgentsInput = {
+  set: $Enums.Agent[]
+}
+
 export type EnumSubscriptionStatusFieldUpdateOperationsInput = {
   set?: $Enums.SubscriptionStatus
 }
@@ -484,12 +656,38 @@ export type NullableEnumSubscriptionPlanFieldUpdateOperationsInput = {
   set?: $Enums.SubscriptionPlan | null
 }
 
+export type EnumSubscriptionEntitlementModeFieldUpdateOperationsInput = {
+  set?: $Enums.SubscriptionEntitlementMode
+}
+
+export type SubscriptionUpdateselectedAgentsInput = {
+  set?: $Enums.Agent[]
+  push?: $Enums.Agent | $Enums.Agent[]
+}
+
+export type NullableEnumSubscriptionEntitlementModeFieldUpdateOperationsInput = {
+  set?: $Enums.SubscriptionEntitlementMode | null
+}
+
+export type SubscriptionUpdatependingSelectedAgentsInput = {
+  set?: $Enums.Agent[]
+  push?: $Enums.Agent | $Enums.Agent[]
+}
+
 export type SubscriptionCreateWithoutOrganizationInput = {
   id?: string
   dodoCustomerId: string
   dodoSubscriptionId?: string | null
   status?: $Enums.SubscriptionStatus
   plan?: $Enums.SubscriptionPlan | null
+  entitlementMode?: $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionCreateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: string | null
+  pendingPlan?: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionCreatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: string | null
+  pendingCheckoutCreatedAt?: Date | string | null
   trialEndsAt?: Date | string | null
   currentPeriodEnd?: Date | string | null
   cancelAtPeriodEnd?: boolean
@@ -503,6 +701,14 @@ export type SubscriptionUncheckedCreateWithoutOrganizationInput = {
   dodoSubscriptionId?: string | null
   status?: $Enums.SubscriptionStatus
   plan?: $Enums.SubscriptionPlan | null
+  entitlementMode?: $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionCreateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: string | null
+  pendingPlan?: $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionCreatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: string | null
+  pendingCheckoutCreatedAt?: Date | string | null
   trialEndsAt?: Date | string | null
   currentPeriodEnd?: Date | string | null
   cancelAtPeriodEnd?: boolean
@@ -532,6 +738,14 @@ export type SubscriptionUpdateWithoutOrganizationInput = {
   dodoSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus
   plan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionUpdateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingPlan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.NullableEnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionUpdatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingCheckoutCreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -545,6 +759,14 @@ export type SubscriptionUncheckedUpdateWithoutOrganizationInput = {
   dodoSubscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus
   plan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  entitlementMode?: Prisma.EnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode
+  selectedAgents?: Prisma.SubscriptionUpdateselectedAgentsInput | $Enums.Agent[]
+  pendingCheckoutSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingPlan?: Prisma.NullableEnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan | null
+  pendingEntitlementMode?: Prisma.NullableEnumSubscriptionEntitlementModeFieldUpdateOperationsInput | $Enums.SubscriptionEntitlementMode | null
+  pendingSelectedAgents?: Prisma.SubscriptionUpdatependingSelectedAgentsInput | $Enums.Agent[]
+  pendingProductId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingCheckoutCreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -561,6 +783,14 @@ export type SubscriptionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   dodoSubscriptionId?: boolean
   status?: boolean
   plan?: boolean
+  entitlementMode?: boolean
+  selectedAgents?: boolean
+  pendingCheckoutSessionId?: boolean
+  pendingPlan?: boolean
+  pendingEntitlementMode?: boolean
+  pendingSelectedAgents?: boolean
+  pendingProductId?: boolean
+  pendingCheckoutCreatedAt?: boolean
   trialEndsAt?: boolean
   currentPeriodEnd?: boolean
   cancelAtPeriodEnd?: boolean
@@ -576,6 +806,14 @@ export type SubscriptionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   dodoSubscriptionId?: boolean
   status?: boolean
   plan?: boolean
+  entitlementMode?: boolean
+  selectedAgents?: boolean
+  pendingCheckoutSessionId?: boolean
+  pendingPlan?: boolean
+  pendingEntitlementMode?: boolean
+  pendingSelectedAgents?: boolean
+  pendingProductId?: boolean
+  pendingCheckoutCreatedAt?: boolean
   trialEndsAt?: boolean
   currentPeriodEnd?: boolean
   cancelAtPeriodEnd?: boolean
@@ -591,6 +829,14 @@ export type SubscriptionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   dodoSubscriptionId?: boolean
   status?: boolean
   plan?: boolean
+  entitlementMode?: boolean
+  selectedAgents?: boolean
+  pendingCheckoutSessionId?: boolean
+  pendingPlan?: boolean
+  pendingEntitlementMode?: boolean
+  pendingSelectedAgents?: boolean
+  pendingProductId?: boolean
+  pendingCheckoutCreatedAt?: boolean
   trialEndsAt?: boolean
   currentPeriodEnd?: boolean
   cancelAtPeriodEnd?: boolean
@@ -606,6 +852,14 @@ export type SubscriptionSelectScalar = {
   dodoSubscriptionId?: boolean
   status?: boolean
   plan?: boolean
+  entitlementMode?: boolean
+  selectedAgents?: boolean
+  pendingCheckoutSessionId?: boolean
+  pendingPlan?: boolean
+  pendingEntitlementMode?: boolean
+  pendingSelectedAgents?: boolean
+  pendingProductId?: boolean
+  pendingCheckoutCreatedAt?: boolean
   trialEndsAt?: boolean
   currentPeriodEnd?: boolean
   cancelAtPeriodEnd?: boolean
@@ -613,7 +867,7 @@ export type SubscriptionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "dodoCustomerId" | "dodoSubscriptionId" | "status" | "plan" | "trialEndsAt" | "currentPeriodEnd" | "cancelAtPeriodEnd" | "createdAt" | "updatedAt", ExtArgs["result"]["subscription"]>
+export type SubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "dodoCustomerId" | "dodoSubscriptionId" | "status" | "plan" | "entitlementMode" | "selectedAgents" | "pendingCheckoutSessionId" | "pendingPlan" | "pendingEntitlementMode" | "pendingSelectedAgents" | "pendingProductId" | "pendingCheckoutCreatedAt" | "trialEndsAt" | "currentPeriodEnd" | "cancelAtPeriodEnd" | "createdAt" | "updatedAt", ExtArgs["result"]["subscription"]>
 export type SubscriptionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }
@@ -657,6 +911,38 @@ export type $SubscriptionPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * Current paid plan cadence.
      */
     plan: $Enums.SubscriptionPlan | null
+    /**
+     * Whether the subscription unlocks all agents or a selected subset.
+     */
+    entitlementMode: $Enums.SubscriptionEntitlementMode
+    /**
+     * Agents unlocked by this subscription. CREW subscriptions store all agents.
+     */
+    selectedAgents: $Enums.Agent[]
+    /**
+     * Checkout session waiting for provider confirmation.
+     */
+    pendingCheckoutSessionId: string | null
+    /**
+     * Pending paid plan cadence from latest checkout.
+     */
+    pendingPlan: $Enums.SubscriptionPlan | null
+    /**
+     * Pending entitlement mode from latest checkout.
+     */
+    pendingEntitlementMode: $Enums.SubscriptionEntitlementMode | null
+    /**
+     * Pending selected agents from latest checkout.
+     */
+    pendingSelectedAgents: $Enums.Agent[]
+    /**
+     * Pending Dodo product id from latest checkout.
+     */
+    pendingProductId: string | null
+    /**
+     * Pending checkout creation timestamp.
+     */
+    pendingCheckoutCreatedAt: Date | null
     /**
      * Trial end timestamp.
      */
@@ -1107,6 +1393,14 @@ export interface SubscriptionFieldRefs {
   readonly dodoSubscriptionId: Prisma.FieldRef<"Subscription", 'String'>
   readonly status: Prisma.FieldRef<"Subscription", 'SubscriptionStatus'>
   readonly plan: Prisma.FieldRef<"Subscription", 'SubscriptionPlan'>
+  readonly entitlementMode: Prisma.FieldRef<"Subscription", 'SubscriptionEntitlementMode'>
+  readonly selectedAgents: Prisma.FieldRef<"Subscription", 'Agent[]'>
+  readonly pendingCheckoutSessionId: Prisma.FieldRef<"Subscription", 'String'>
+  readonly pendingPlan: Prisma.FieldRef<"Subscription", 'SubscriptionPlan'>
+  readonly pendingEntitlementMode: Prisma.FieldRef<"Subscription", 'SubscriptionEntitlementMode'>
+  readonly pendingSelectedAgents: Prisma.FieldRef<"Subscription", 'Agent[]'>
+  readonly pendingProductId: Prisma.FieldRef<"Subscription", 'String'>
+  readonly pendingCheckoutCreatedAt: Prisma.FieldRef<"Subscription", 'DateTime'>
   readonly trialEndsAt: Prisma.FieldRef<"Subscription", 'DateTime'>
   readonly currentPeriodEnd: Prisma.FieldRef<"Subscription", 'DateTime'>
   readonly cancelAtPeriodEnd: Prisma.FieldRef<"Subscription", 'Boolean'>

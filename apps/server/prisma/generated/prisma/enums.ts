@@ -49,6 +49,14 @@ export const SubscriptionPlan = {
 export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan]
 
 
+export const SubscriptionEntitlementMode = {
+  CREW: 'CREW',
+  CUSTOM: 'CUSTOM'
+} as const
+
+export type SubscriptionEntitlementMode = (typeof SubscriptionEntitlementMode)[keyof typeof SubscriptionEntitlementMode]
+
+
 export const TaskType = {
   AGENT: 'AGENT',
   GENERAL: 'GENERAL'

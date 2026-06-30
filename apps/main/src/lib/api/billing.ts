@@ -3,6 +3,8 @@ import { apiFetch } from "./client";
 
 export type SubscriptionStatus = "TRIALING" | "ACTIVE" | "CANCELLED" | "PAST_DUE" | "EXPIRED";
 export type SubscriptionPlan = "MONTHLY" | "ANNUAL";
+export type BillingAgent = "MAYA" | "SAGE" | "LEX" | "REX" | "SCOUT" | "VEGA";
+export type EntitlementMode = "CREW" | "CUSTOM";
 
 export type BillingSubscription = {
   status: SubscriptionStatus;
@@ -11,6 +13,14 @@ export type BillingSubscription = {
   currentPeriodEnd: string | null;
   trialEndsAt: string | null;
   dodoCustomerId: string | null;
+  entitlementMode: EntitlementMode;
+  selectedAgents: BillingAgent[];
+  unlockedAgents: BillingAgent[];
+  pendingCheckout: {
+    plan: SubscriptionPlan | null;
+    entitlementMode: EntitlementMode | null;
+    selectedAgents: BillingAgent[];
+  } | null;
 };
 
 export type BillingStatusResponse = {
@@ -21,6 +31,8 @@ export type StartTrialResponse = {
   status: "TRIALING";
   trialEndsAt: string;
   plan: null;
+  entitlementMode: EntitlementMode;
+  selectedAgents: BillingAgent[];
 };
 
 export const billingStatusQueryKey = (organizationId?: string | null) =>
@@ -40,6 +52,16 @@ export function useBillingStatus(organizationId?: string | null) {
 
 export function startTrial() {
   return apiFetch<StartTrialResponse>("/billing/start-trial", { method: "POST" });
+}
+
+export function createCheckout(input: {
+  agents: BillingAgent[];
+  cadence: SubscriptionPlan;
+}) {
+  return apiFetch<{ url: string }>("/billing/checkout", {
+    method: "POST",
+    body: input,
+  });
 }
 
 export function openBillingPortal() {

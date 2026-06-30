@@ -57,6 +57,7 @@ export const ModelName = {
   Verification: 'Verification',
   Organization: 'Organization',
   Subscription: 'Subscription',
+  BillingWebhookEvent: 'BillingWebhookEvent',
   Member: 'Member',
   Invitation: 'Invitation',
   BrandKit: 'BrandKit',
@@ -180,7 +181,8 @@ export const OrganizationScalarFieldEnum = {
   metadata: 'metadata',
   onboarded: 'onboarded',
   subscriptionStatus: 'subscriptionStatus',
-  entitlementExpiresAt: 'entitlementExpiresAt'
+  entitlementExpiresAt: 'entitlementExpiresAt',
+  unlockedAgents: 'unlockedAgents'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -193,6 +195,14 @@ export const SubscriptionScalarFieldEnum = {
   dodoSubscriptionId: 'dodoSubscriptionId',
   status: 'status',
   plan: 'plan',
+  entitlementMode: 'entitlementMode',
+  selectedAgents: 'selectedAgents',
+  pendingCheckoutSessionId: 'pendingCheckoutSessionId',
+  pendingPlan: 'pendingPlan',
+  pendingEntitlementMode: 'pendingEntitlementMode',
+  pendingSelectedAgents: 'pendingSelectedAgents',
+  pendingProductId: 'pendingProductId',
+  pendingCheckoutCreatedAt: 'pendingCheckoutCreatedAt',
   trialEndsAt: 'trialEndsAt',
   currentPeriodEnd: 'currentPeriodEnd',
   cancelAtPeriodEnd: 'cancelAtPeriodEnd',
@@ -201,6 +211,18 @@ export const SubscriptionScalarFieldEnum = {
 } as const
 
 export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const BillingWebhookEventScalarFieldEnum = {
+  eventId: 'eventId',
+  eventType: 'eventType',
+  subscriptionId: 'subscriptionId',
+  organizationId: 'organizationId',
+  processedAt: 'processedAt',
+  result: 'result'
+} as const
+
+export type BillingWebhookEventScalarFieldEnum = (typeof BillingWebhookEventScalarFieldEnum)[keyof typeof BillingWebhookEventScalarFieldEnum]
 
 
 export const MemberScalarFieldEnum = {

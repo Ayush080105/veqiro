@@ -10,6 +10,7 @@ const COPY: Record<string, { title: string; body: string }> = {
   "trial-expired":          { title: "Your trial has ended",       body: "Upgrade to keep using agents." },
   "subscription-expired":   { title: "Subscription ended",         body: "Reactivate your plan to continue." },
   "payment-failed":         { title: "Payment failed",             body: "Update your card to keep your subscription active." },
+  "agent-not-purchased":    { title: "Agent not in your plan",     body: "Add this agent to your subscription to run chats and actions." },
   default:                  { title: "Upgrade required",           body: "This feature is part of the Pro plan." },
 }
 

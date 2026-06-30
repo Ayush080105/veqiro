@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT, Button } from '@/components/veqiro/shared';
-import { pricingTiers, consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
+import { agentPricing, pricingTiers, consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 import { EMPLOYEES } from '@/components/veqiro/data';
 import { CHARACTER_COMPONENTS } from '@/components/veqiro/characters';
 import { ContactModal } from '@/components/veqiro/contact-modal';
@@ -36,11 +36,31 @@ const FEATURES = [
   { title: 'Unlimited Tasks', desc: 'No credits. No per-task fees. Just assign the work and get results.', color: '#8A8AF0' },
 ];
 
+const PRICE_BY_AGENT = Object.fromEntries(agentPricing.map(item => [item.key, item.monthly])) as Record<string, number | null>;
+
+function cartTotal(selected: string[], yearly: boolean, crewMonthly: number, crewAnnual: number) {
+  if (selected.length === EMPLOYEES.length) return yearly ? crewAnnual : crewMonthly;
+  const prices = selected.map(key => PRICE_BY_AGENT[key]);
+  if (prices.some(price => price == null)) return null;
+  const monthly = (prices as number[]).reduce((sum, price) => sum + price, 0);
+  return yearly ? Math.round(monthly * 12 * 0.75) : monthly;
+}
+
 export default function PricingPageContent() {
   const tier = pricingTiers[0];
   const [yearly, setYearly] = useState(false);
   const price = yearly ? tier.yearly : tier.monthly;
   const [isContactOpen, setIsContactOpen] = useState(false);
+  const [selectedAgents, setSelectedAgents] = useState<string[]>(['maya']);
+  const selectedTotal = cartTotal(selectedAgents, yearly, tier.monthly, tier.yearly * 12);
+  const selectedParam = selectedAgents.join(',');
+
+  function toggleAgent(key: string) {
+    setSelectedAgents(prev => {
+      if (prev.includes(key)) return prev.length === 1 ? prev : prev.filter(item => item !== key);
+      return [...prev, key];
+    });
+  }
 
   return (
     <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
@@ -196,6 +216,98 @@ export default function PricingPageContent() {
               <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 12, marginBottom: 0 }}>
                 No credit card · Cancel anytime
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* AGENT CART */}
+      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 32 }}>
+            <div>
+              <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 12 }}>
+                [ AGENT CART ]
+              </div>
+              <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(38px, 6vw, 76px)', margin: 0, lineHeight: 0.92 }}>
+                buy the agents<br />
+                <span style={{ background: '#6FCDE8', border: '3px solid #111', borderRadius: 8, boxShadow: '5px 5px 0 #111', padding: '0 14px', display: 'inline-block' }}>
+                  you need first.
+                </span>
+              </h2>
+            </div>
+            <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: '#444', maxWidth: 380, margin: 0 }}>
+              Start with one specialist, add more later, or pick all six and we switch you to Crew pricing automatically.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16 }}>
+            {EMPLOYEES.map(emp => {
+              const selected = selectedAgents.includes(emp.key);
+              const Comp = CHARACTER_COMPONENTS[emp.key];
+              return (
+                <button
+                  key={emp.key}
+                  onClick={() => toggleAgent(emp.key)}
+                  style={{
+                    textAlign: 'left',
+                    border: '3px solid #111',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    background: selected ? emp.color : '#fff',
+                    boxShadow: selected ? '6px 6px 0 #111' : '3px 3px 0 #111',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  <div style={{ height: 110, overflow: 'hidden', background: emp.color, borderBottom: '3px solid #111' }}>
+                    <Comp size="100%" />
+                  </div>
+                  <div style={{ padding: 14 }}>
+                    <div style={{ fontFamily: FONT.display, fontSize: 25, lineHeight: 1, color: selected ? '#111' : emp.color }}>
+                      {emp.name}
+                    </div>
+                    <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: selected ? '#111' : '#777', marginTop: 6 }}>
+                      {PRICE_BY_AGENT[emp.key] == null ? 'configured price' : `$${PRICE_BY_AGENT[emp.key]}/mo`}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{
+            marginTop: 28,
+            border: '3px solid #111',
+            borderRadius: 14,
+            boxShadow: '8px 8px 0 #111',
+            background: '#EFE7D6',
+            padding: 'clamp(18px, 4vw, 28px)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 20,
+            flexWrap: 'wrap',
+          }}>
+            <div>
+              <div style={{ fontFamily: FONT.head, fontSize: 18 }}>
+                {selectedAgents.length === EMPLOYEES.length ? 'Crew pricing applied' : `${selectedAgents.length} agent${selectedAgents.length === 1 ? '' : 's'} selected`}
+              </div>
+              <div style={{ fontFamily: FONT.body, fontSize: 14, color: '#555', marginTop: 4 }}>
+                {selectedTotal == null ? 'Final price appears once agent prices are configured.' : yearly ? 'Billed annually with 25% off.' : 'Monthly billing. Add or manage agents from billing.'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ fontFamily: FONT.display, fontSize: 44, lineHeight: 1 }}>
+                {selectedTotal == null ? 'TBD' : `$${selectedTotal}`}
+                <span style={{ fontFamily: FONT.body, fontSize: 15, color: '#555' }}>{yearly ? '/yr' : '/mo'}</span>
+              </div>
+              <Button
+                variant="dark"
+                href={isPreLaunch ? waitlistUrl : `${consoleUrl}/settings/billing?agents=${encodeURIComponent(selectedParam)}`}
+              >
+                Add to cart →
+              </Button>
             </div>
           </div>
         </div>
