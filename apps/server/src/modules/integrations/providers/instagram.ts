@@ -26,6 +26,45 @@ const MEDIA_URL = (igUserId: string) =>
 const PUBLISH_URL = (igUserId: string) =>
   `https://graph.instagram.com/${GRAPH_VERSION}/${igUserId}/media_publish`;
 
+const instagramEnvHint =
+  "Set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET from the Meta app's Instagram product setup. Do not use META_APP_ID / META_APP_SECRET or Facebook Login credentials for this direct Instagram Login flow.";
+
+const getInstagramAppId = (): string => {
+  const appId = process.env.INSTAGRAM_APP_ID;
+  if (!appId) {
+    throw new Error(`INSTAGRAM_APP_ID not configured. ${instagramEnvHint}`);
+  }
+  return appId;
+};
+
+const getInstagramCredentials = (): { appId: string; appSecret: string } => {
+  const appId = process.env.INSTAGRAM_APP_ID;
+  const appSecret = process.env.INSTAGRAM_APP_SECRET;
+  if (!appId || !appSecret) {
+    throw new Error(`INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET not configured. ${instagramEnvHint}`);
+  }
+  return { appId, appSecret };
+};
+
+const parseMetaErrorMessage = (raw: string): string | undefined => {
+  try {
+    const json = JSON.parse(raw) as { error?: { message?: unknown } };
+    return typeof json.error?.message === "string" ? json.error.message : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const longTokenExchangeError = (status: number, raw: string): Error => {
+  const message = parseMetaErrorMessage(raw);
+  const flowHint = message?.includes("Unsupported request - method type: get")
+    ? " This usually means the OAuth code/token or app credentials are for the Facebook Login/Page flow instead of Instagram API with Instagram Login. Configure Instagram-specific app credentials and reconnect the account."
+    : "";
+  return new Error(
+    `Instagram long-token exchange failed (${status}): ${message ?? raw}.${flowHint} Meta response: ${raw}`,
+  );
+};
+
 interface InstagramMetadata {
   igUserId?: string;
   /** The IG-Scoped User ID returned by OAuth — kept for reference only;
@@ -154,8 +193,7 @@ export const instagram: SocialProvider = {
   usesPkce: false,
 
   buildAuthorizeUrl({ state, redirectUri }: AuthorizeContext) {
-    const appId = process.env.INSTAGRAM_APP_ID;
-    if (!appId) throw new Error("INSTAGRAM_APP_ID not configured");
+    const appId = getInstagramAppId();
     const params = new URLSearchParams({
       response_type: "code",
       client_id: appId,
@@ -167,11 +205,7 @@ export const instagram: SocialProvider = {
   },
 
   async exchangeCode({ code, redirectUri }: ExchangeContext): Promise<ExchangeResult> {
-    const appId = process.env.INSTAGRAM_APP_ID;
-    const appSecret = process.env.INSTAGRAM_APP_SECRET;
-    if (!appId || !appSecret) {
-      throw new Error("INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET not configured");
-    }
+    const { appId, appSecret } = getInstagramCredentials();
 
     // 1. Short-lived token (~1 hour) — POST form-data, NOT query string
     const shortBody = new URLSearchParams({
@@ -210,7 +244,7 @@ export const instagram: SocialProvider = {
     const longRes = await fetch(`${LONG_TOKEN_URL}?${longParams.toString()}`);
     if (!longRes.ok) {
       const err = await longRes.text();
-      throw new Error(`Instagram long-token exchange failed (${longRes.status}): ${err}`);
+      throw longTokenExchangeError(longRes.status, err);
     }
     const longTok = (await longRes.json()) as {
       access_token: string;

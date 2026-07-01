@@ -58,6 +58,116 @@ describe("twitter OAuth refresh", () => {
   });
 });
 
+describe("instagram OAuth exchange", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env.INSTAGRAM_APP_ID = "ig_app_id";
+    process.env.INSTAGRAM_APP_SECRET = "ig_app_secret";
+    delete process.env.META_APP_ID;
+    delete process.env.META_APP_SECRET;
+  });
+
+  test("diagnoses unsupported long-token exchange responses as a flow or credential mismatch", async () => {
+    const metaError = {
+      error: {
+        message: "Unsupported request - method type: get",
+        type: "IGApiException",
+        code: 100,
+        fbtrace_id: "Asa6O6Hh0PSvIisi36YV7T1",
+      },
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: "short_access",
+          user_id: "scoped_user_id",
+          permissions: ["instagram_business_basic", "instagram_business_content_publish"],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify(metaError),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { instagram } = await import("../../modules/integrations/providers/instagram.js");
+
+    try {
+      await instagram.exchangeCode({
+        code: "oauth_code",
+        redirectUri: "https://api.veqiro.com/api/v1/integrations/instagram/callback",
+      });
+      assert.fail("Expected Instagram exchange to fail");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      expect(message).toContain(
+        "app credentials are for the Facebook Login/Page flow instead of Instagram API with Instagram Login",
+      );
+      expect(message).toContain("Meta response:");
+      expect(message).toContain("Unsupported request - method type: get");
+    }
+  });
+
+  test("exchanges long-lived tokens with the documented graph GET request", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: "short_access",
+          user_id: "scoped_user_id",
+          permissions: "instagram_business_basic,instagram_business_content_publish",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: "long_access",
+          token_type: "bearer",
+          expires_in: 5184000,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user_id: "publish_user_id",
+          username: "veqiro",
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { instagram } = await import("../../modules/integrations/providers/instagram.js");
+    const result = await instagram.exchangeCode({
+      code: "oauth_code",
+      redirectUri: "https://api.veqiro.com/api/v1/integrations/instagram/callback",
+    });
+
+    const longTokenUrl = new URL(fetchMock.mock.calls[1]![0] as string);
+    assert.equal(longTokenUrl.origin + longTokenUrl.pathname, "https://graph.instagram.com/access_token");
+    assert.equal(fetchMock.mock.calls[1]![1], undefined);
+    assert.equal(longTokenUrl.searchParams.get("grant_type"), "ig_exchange_token");
+    assert.equal(longTokenUrl.searchParams.get("client_secret"), "ig_app_secret");
+    assert.equal(longTokenUrl.searchParams.get("access_token"), "short_access");
+    assert.equal(result.accessToken, "long_access");
+    assert.equal(result.providerAccountId, "publish_user_id");
+  });
+
+  test("requires Instagram-specific app credentials", async () => {
+    delete process.env.INSTAGRAM_APP_ID;
+    delete process.env.INSTAGRAM_APP_SECRET;
+    process.env.META_APP_ID = "meta_app_id";
+    process.env.META_APP_SECRET = "meta_app_secret";
+
+    const { instagram } = await import("../../modules/integrations/providers/instagram.js");
+
+    await expect(instagram.exchangeCode({
+      code: "oauth_code",
+      redirectUri: "https://api.veqiro.com/api/v1/integrations/instagram/callback",
+    })).rejects.toThrow("Do not use META_APP_ID / META_APP_SECRET");
+  });
+});
+
 describe("social account refresh helper", () => {
   beforeEach(() => {
     vi.clearAllMocks();
