@@ -65,6 +65,52 @@ const longTokenExchangeError = (status: number, raw: string): Error => {
   );
 };
 
+interface ShortTokenPayload {
+  access_token?: unknown;
+  user_id?: unknown;
+  permissions?: unknown;
+}
+
+const responseShape = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(responseShape);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nested]) => [key, responseShape(nested)]),
+    );
+  }
+  return typeof value;
+};
+
+const normalizeShortToken = (json: unknown): {
+  accessToken: string;
+  userId: string;
+  permissions?: string | string[];
+} => {
+  const payload =
+    json && typeof json === "object" && "data" in json && Array.isArray(json.data)
+      ? json.data[0] as ShortTokenPayload | undefined
+      : json as ShortTokenPayload | undefined;
+
+  const accessToken = payload?.access_token;
+  const userId = payload?.user_id;
+  if (typeof accessToken !== "string" || !accessToken || userId === undefined || userId === null) {
+    throw new Error(
+      `Instagram short-token exchange returned no access token/user id. Response shape: ${JSON.stringify(responseShape(json))}`,
+    );
+  }
+
+  const permissions = payload?.permissions;
+  return {
+    accessToken,
+    userId: String(userId),
+    permissions: Array.isArray(permissions)
+      ? permissions.filter((permission): permission is string => typeof permission === "string")
+      : typeof permissions === "string"
+        ? permissions
+        : undefined,
+  };
+};
+
 interface InstagramMetadata {
   igUserId?: string;
   /** The IG-Scoped User ID returned by OAuth — kept for reference only;
@@ -208,13 +254,12 @@ export const instagram: SocialProvider = {
     const { appId, appSecret } = getInstagramCredentials();
 
     // 1. Short-lived token (~1 hour) — POST form-data, NOT query string
-    const shortBody = new URLSearchParams({
-      client_id: appId,
-      client_secret: appSecret,
-      grant_type: "authorization_code",
-      redirect_uri: redirectUri,
-      code,
-    });
+    const shortBody = new FormData();
+    shortBody.append("client_id", appId);
+    shortBody.append("client_secret", appSecret);
+    shortBody.append("grant_type", "authorization_code");
+    shortBody.append("redirect_uri", redirectUri);
+    shortBody.append("code", code);
     const shortRes = await fetch(SHORT_TOKEN_URL, {
       method: "POST",
       body: shortBody,
@@ -223,14 +268,8 @@ export const instagram: SocialProvider = {
       const err = await shortRes.text();
       throw new Error(`Instagram short-token exchange failed (${shortRes.status}): ${err}`);
     }
-    const shortTok = (await shortRes.json()) as {
-      access_token: string;
-      user_id: number | string;
-      // Newer IG Login returns this as an array; older docs show a CSV
-      // string. Normalise to a single CSV string for the DB column.
-      permissions?: string | string[];
-    };
-    const igUserId = String(shortTok.user_id);
+    const shortTok = normalizeShortToken(await shortRes.json());
+    const igUserId = shortTok.userId;
     const grantedScopes = Array.isArray(shortTok.permissions)
       ? shortTok.permissions.join(",")
       : shortTok.permissions;
@@ -239,7 +278,7 @@ export const instagram: SocialProvider = {
     const longParams = new URLSearchParams({
       grant_type: "ig_exchange_token",
       client_secret: appSecret,
-      access_token: shortTok.access_token,
+      access_token: shortTok.accessToken,
     });
     const longRes = await fetch(`${LONG_TOKEN_URL}?${longParams.toString()}`);
     if (!longRes.ok) {

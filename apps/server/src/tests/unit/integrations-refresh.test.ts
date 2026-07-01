@@ -115,9 +115,13 @@ describe("instagram OAuth exchange", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          access_token: "short_access",
-          user_id: "scoped_user_id",
-          permissions: "instagram_business_basic,instagram_business_content_publish",
+          data: [
+            {
+              access_token: "short_access",
+              user_id: "scoped_user_id",
+              permissions: "instagram_business_basic,instagram_business_content_publish",
+            },
+          ],
         }),
       })
       .mockResolvedValueOnce({
@@ -143,6 +147,16 @@ describe("instagram OAuth exchange", () => {
       redirectUri: "https://api.veqiro.com/api/v1/integrations/instagram/callback",
     });
 
+    const shortTokenRequest = fetchMock.mock.calls[0]![1] as { method?: string; body?: FormData };
+    assert.equal(fetchMock.mock.calls[0]![0], "https://api.instagram.com/oauth/access_token");
+    assert.equal(shortTokenRequest.method, "POST");
+    assert.ok(shortTokenRequest.body instanceof FormData);
+    assert.equal(shortTokenRequest.body.get("client_id"), "ig_app_id");
+    assert.equal(shortTokenRequest.body.get("client_secret"), "ig_app_secret");
+    assert.equal(shortTokenRequest.body.get("grant_type"), "authorization_code");
+    assert.equal(shortTokenRequest.body.get("redirect_uri"), "https://api.veqiro.com/api/v1/integrations/instagram/callback");
+    assert.equal(shortTokenRequest.body.get("code"), "oauth_code");
+
     const longTokenUrl = new URL(fetchMock.mock.calls[1]![0] as string);
     assert.equal(longTokenUrl.origin + longTokenUrl.pathname, "https://graph.instagram.com/access_token");
     assert.equal(fetchMock.mock.calls[1]![1], undefined);
@@ -151,6 +165,29 @@ describe("instagram OAuth exchange", () => {
     assert.equal(longTokenUrl.searchParams.get("access_token"), "short_access");
     assert.equal(result.accessToken, "long_access");
     assert.equal(result.providerAccountId, "publish_user_id");
+  });
+
+  test("stops before long-token exchange when short-token response is missing required fields", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            user_id: "scoped_user_id",
+            permissions: "instagram_business_basic,instagram_business_content_publish",
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { instagram } = await import("../../modules/integrations/providers/instagram.js");
+
+    await expect(instagram.exchangeCode({
+      code: "oauth_code",
+      redirectUri: "https://api.veqiro.com/api/v1/integrations/instagram/callback",
+    })).rejects.toThrow("Instagram short-token exchange returned no access token/user id");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   test("requires Instagram-specific app credentials", async () => {
