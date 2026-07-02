@@ -273,7 +273,7 @@ export function MayaDraftForm({
           render={({ field }) => (
             <label className="flex items-center gap-2 text-xs">
               <Switch
-                checked={field.value ?? false}
+                checked={field.value ?? true}
                 onCheckedChange={field.onChange}
               />
               Overlay logo
