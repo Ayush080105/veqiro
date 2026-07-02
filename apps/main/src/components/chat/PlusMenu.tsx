@@ -50,20 +50,33 @@ export function PlusMenu({
               <button
                 key={a.id}
                 type="button"
+                disabled={a.locked}
                 onClick={() => {
+                  if (a.locked) return
                   onPick(a)
                   onOpenChange(false)
                 }}
                 className={cn(
                   "group flex items-start gap-2.5 border border-transparent bg-muted/30 p-2.5 text-left transition-colors",
-                  "hover:border-border hover:bg-muted"
+                  a.locked ? "cursor-not-allowed opacity-50" : "hover:border-border hover:bg-muted"
                 )}
               >
                 <div className="flex size-8 shrink-0 items-center justify-center bg-background ring-1 ring-border">
-                  <Icon className="size-4 text-foreground" />
+                  {a.locked ? (
+                    <Icons.Lock className="size-4 text-muted-foreground" />
+                  ) : (
+                    <Icon className="size-4 text-foreground" />
+                  )}
                 </div>
                 <div className="flex flex-1 flex-col gap-0.5 min-w-0">
-                  <p className="text-xs font-medium text-foreground">{a.label}</p>
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                    {a.label}
+                    {a.locked && (
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Coming soon
+                      </span>
+                    )}
+                  </p>
                   <p className="line-clamp-2 text-[10px] text-muted-foreground leading-relaxed">
                     {a.description}
                   </p>

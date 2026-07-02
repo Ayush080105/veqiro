@@ -73,7 +73,7 @@ export const mayaPublishSchema = z.object({
 export type MayaPublishValues = z.infer<typeof mayaPublishSchema>
 
 export const mayaCampaignSchema = z.object({
-  product_image: z.instanceof(typeof window !== "undefined" ? File : Object).nullable(),
+  product_image_urls: z.array(z.string().url()).min(1, "Upload at least one product image").max(5),
   campaign_brief: z.string().min(1, "Campaign brief is required").max(5000),
   photo_count: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6)]),
   use_logo: z.boolean(),
@@ -82,3 +82,24 @@ export const mayaCampaignSchema = z.object({
   platform: platformSchema,
 })
 export type MayaCampaignValues = z.infer<typeof mayaCampaignSchema>
+
+export const videoAspectRatioSchema = z.enum(["16:9", "9:16"])
+
+export const mayaGenerateVideoSchema = z.object({
+  prompt: z.string().min(1, "Prompt is required").max(2000),
+  platform: platformSchema,
+  aspect_ratio: videoAspectRatioSchema,
+  duration_seconds: z.number().int().min(4).max(10),
+  use_logo: z.boolean(),
+})
+export type MayaGenerateVideoValues = z.infer<typeof mayaGenerateVideoSchema>
+
+export const mayaCampaignVideoSchema = z.object({
+  product_image_urls: z.array(z.string().url()).min(1, "Upload at least one product image").max(5),
+  campaign_brief: z.string().min(1, "Campaign brief is required").max(5000),
+  platform: platformSchema,
+  aspect_ratio: videoAspectRatioSchema,
+  duration_seconds: z.number().int().min(4).max(10),
+  use_logo: z.boolean(),
+})
+export type MayaCampaignVideoValues = z.infer<typeof mayaCampaignVideoSchema>

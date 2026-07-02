@@ -1,5 +1,6 @@
 import type { AgentSlug } from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
+import { VIDEO_FEATURES_LOCKED } from "@/lib/config/features"
 
 export interface AgentActionMeta {
   id: AgentActionId
@@ -14,6 +15,8 @@ export interface AgentActionMeta {
   example?: string
   /** Hide from the global Plus menu — surfaced contextually from result cards instead. */
   hideFromMenu?: boolean
+  /** Visible but not runnable — shown with a lock badge, click is a no-op. Feature-flagged. */
+  locked?: boolean
 }
 
 export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
@@ -86,6 +89,24 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       label: "Create Product Campaign",
       description: "Generate a cohesive batch of product campaign photos from a single product image.",
       icon: "Rocket",
+    },
+    {
+      id: "maya:generate-video",
+      agent: "maya",
+      endpoint: "generate-video",
+      label: "Generate Video",
+      description: "Create a short AI video from a text prompt.",
+      icon: "Clapperboard",
+      locked: VIDEO_FEATURES_LOCKED,
+    },
+    {
+      id: "maya:campaign-video",
+      agent: "maya",
+      endpoint: "campaign-video",
+      label: "Product Video",
+      description: "Turn a product photo into a short campaign video.",
+      icon: "Film",
+      locked: VIDEO_FEATURES_LOCKED,
     },
     {
       id: "maya:generate-ideas",

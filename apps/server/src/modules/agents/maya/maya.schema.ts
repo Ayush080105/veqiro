@@ -78,12 +78,31 @@ export const expandBriefSchema = z.object({
 });
 
 export const campaignSchema = z.object({
-  productImageUrl: z.string().url(),
+  productImageUrls: z.array(z.string().url()).min(1).max(5),
   campaignBrief: z.string().min(1).max(5000),
   photoCount: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(6)]).default(4),
   useLogo: z.boolean().default(true),
   useMascot: z.boolean().default(true),
   platform: platformEnum.default("instagram"),
+});
+
+const videoAspectRatioEnum = z.enum(["16:9", "9:16"]);
+
+export const generateVideoSchema = z.object({
+  prompt: z.string().min(1).max(2000),
+  platform: platformEnum.default("instagram"),
+  aspectRatio: videoAspectRatioEnum.default("9:16"),
+  durationSeconds: z.number().int().min(4).max(10).optional().default(8),
+  useLogo: z.boolean().optional().default(false),
+});
+
+export const campaignVideoSchema = z.object({
+  productImageUrls: z.array(z.string().url()).min(1).max(5),
+  campaignBrief: z.string().min(1).max(5000),
+  platform: platformEnum.default("instagram"),
+  aspectRatio: videoAspectRatioEnum.default("9:16"),
+  durationSeconds: z.number().int().min(4).max(10).optional().default(8),
+  useLogo: z.boolean().optional().default(false),
 });
 
 export const publishSchema = z

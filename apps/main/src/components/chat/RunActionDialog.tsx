@@ -8,7 +8,6 @@ import {
 } from "@/components/chat/ActionDialog"
 import { findAction } from "@/lib/agents/actions"
 import { runAgentAction } from "@/lib/api/assistants"
-import { uploadToR2 } from "@/lib/api/uploads"
 import type { AgentActionId, ContentPlatform } from "@/lib/types/agents"
 
 // Sage forms
@@ -30,6 +29,8 @@ import {
   MayaImageRegenForm,
   MayaContentRegenForm,
   MayaCampaignForm,
+  MayaGenerateVideoForm,
+  MayaCampaignVideoForm,
 } from "@/components/agents/maya/forms"
 // Scout forms
 import {
@@ -175,7 +176,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
 
   "maya:campaign": {
     defaultValue: {
-      product_image: null,
+      product_image_urls: [],
       campaign_brief: "",
       photo_count: 4,
       use_logo: true,
@@ -185,25 +186,39 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     },
     Form: MayaCampaignForm,
     validate: (v) =>
-      !v.product_image
-        ? "Upload a product image."
+      !v.product_image_urls?.length
+        ? "Upload at least one product image."
         : !v.campaign_brief?.trim()
           ? "Campaign brief is required."
           : null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    customSubmit: async (v: any, organizationId: string) => {
-      const uploaded = await uploadToR2("inspiration", v.product_image as File)
-      if (!uploaded.ok) throw new Error(uploaded.message ?? "Image upload failed")
-      return runAgentAction("maya:campaign", organizationId, {
-        product_image_url: uploaded.publicUrl,
-        campaign_brief: v.campaign_brief,
-        photo_count: v.photo_count,
-        use_logo: v.use_logo,
-        use_mascot: v.use_mascot,
-        use_brand_colors: v.use_brand_colors ?? true,
-        platform: v.platform,
-      })
+  },
+  "maya:generate-video": {
+    defaultValue: {
+      prompt: "",
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      duration_seconds: 8,
+      use_logo: false,
     },
+    Form: MayaGenerateVideoForm,
+    validate: (v) => (!v.prompt?.trim() ? "Video prompt is required." : null),
+  },
+  "maya:campaign-video": {
+    defaultValue: {
+      product_image_urls: [],
+      campaign_brief: "",
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      duration_seconds: 8,
+      use_logo: false,
+    },
+    Form: MayaCampaignVideoForm,
+    validate: (v) =>
+      !v.product_image_urls?.length
+        ? "Upload at least one product image."
+        : !v.campaign_brief?.trim()
+          ? "Campaign brief is required."
+          : null,
   },
   "maya:generate-ideas": {
     defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },

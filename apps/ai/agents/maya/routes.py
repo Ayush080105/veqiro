@@ -11,7 +11,15 @@ from core.brand_kit import load_brand_kit, get_platform_tone
 from core.image_gen import generate_social_image, _fetch_asset
 from core.llm import LLMClient
 from core.rag import RAGService
-from core.models import ChatRequest, ChatSyncResponse, ImageResult
+from core.models import ChatRequest, ChatSyncResponse, ImageResult, VideoResult
+from core.video_gen import (
+    build_video_prompt,
+    generate_maya_video,
+    plan_video_scenes,
+    plan_video_scenes_with_images,
+    add_logo_instruction,
+    add_product_fidelity_guardrail,
+)
 from core.config import settings
 from agents.maya.agent import MayaAgent, PLATFORM_RULES
 
@@ -1319,7 +1327,7 @@ _ROLE_ENVIRONMENT_LABEL: dict[str, str] = {
 class CampaignRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     organization_id: str = Field("", max_length=128)
-    product_image_url: str = Field(..., min_length=1)
+    product_image_urls: list[str] = Field(..., min_length=1, max_length=5)
     campaign_brief: str = Field(..., min_length=1, max_length=5000)
     photo_count: int = Field(4)
     use_logo: bool = True
@@ -1445,7 +1453,7 @@ async def create_campaign(request: CampaignRequest):
     # colour/mood/energy without the carousel anchor that locks composition too tightly.
     style_lock = await _build_campaign_style_lock(
         request.campaign_brief, brand_kit, request.platform,
-        product_image_url=request.product_image_url,
+        product_image_url=request.product_image_urls[0],
     )
 
     total_photos = len(roles)
@@ -1501,7 +1509,7 @@ async def create_campaign(request: CampaignRequest):
         # Photo 2+ (anchor=b64):  refs = anchor + logo       (2 refs)
         #   anchor already shows the product correctly rendered, so it acts as
         #   both the style lock and product identity — no separate URL needed.
-        product_urls = [] if anchor_b64 else [request.product_image_url]
+        product_urls = [] if anchor_b64 else request.product_image_urls
         last_err: BaseException | None = None
         for attempt in range(3):
             if attempt and last_err:
@@ -1571,3 +1579,185 @@ async def create_campaign(request: CampaignRequest):
         tokens_used=0,
         model_used=_agent.default_model,
     )
+
+
+# ── Video Generation ──────────────────────────────────────────────────────────
+
+_VIDEO_ASPECT_RATIOS = "^(16:9|9:16)$"
+
+
+class GenerateVideoRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    prompt: str = Field(..., min_length=1, max_length=2000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    duration_seconds: int = Field(8, ge=4, le=10)
+    use_logo: bool = False
+
+
+class GenerateVideoResponse(BaseModel):
+    video: VideoResult
+    tokens_used: int
+    model_used: str
+
+
+class CampaignVideoRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    product_image_urls: list[str] = Field(..., min_length=1, max_length=5)
+    campaign_brief: str = Field(..., min_length=1, max_length=5000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    duration_seconds: int = Field(8, ge=4, le=10)
+    use_logo: bool = False
+
+
+class CampaignVideoResponse(BaseModel):
+    video: VideoResult
+    tokens_used: int
+    model_used: str
+
+
+async def _fetch_logo_image(brand_kit) -> tuple[bytes, str] | None:
+    """Fetch the org's brand logo as (bytes, mime_type), or None if unavailable."""
+    if not brand_kit or not brand_kit.logo_url:
+        return None
+    try:
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=10.0) as _client:
+            _resp = await _client.get(brand_kit.logo_url)
+            _resp.raise_for_status()
+            return _resp.content, _resp.headers.get("content-type", "image/png").split(";")[0]
+    except Exception as fetch_err:
+        logger.warning("logo image fetch failed | error=%s", fetch_err)
+        return None
+
+
+async def _generate_video_with_retry(
+    prompt: str,
+    images: list[tuple[bytes, str]] | None,
+    aspect_ratio: str,
+    duration_seconds: int,
+) -> VideoResult:
+    last_err: BaseException | None = None
+    for attempt in range(3):
+        if attempt and last_err:
+            last_err_str = str(last_err)
+            if "429" in last_err_str or "RESOURCE_EXHAUSTED" in last_err_str.upper():
+                await asyncio.sleep(30 + attempt * 30)
+            else:
+                await asyncio.sleep(2 * attempt)
+        try:
+            return await asyncio.wait_for(
+                generate_maya_video(
+                    _llm,
+                    prompt=prompt,
+                    images=images,
+                    aspect_ratio=aspect_ratio,
+                    duration_seconds=duration_seconds,
+                ),
+                timeout=300,
+            )
+        except Exception as err:
+            last_err = err
+            logger.warning("generate_video attempt %d/3 failed | error=%s", attempt + 1, err)
+            if attempt == 2:
+                logger.error("generate_video failed after 3 attempts | error=%s", err)
+    raise HTTPException(status_code=502, detail=f"Video generation failed: {last_err}")
+
+
+@router.post("/generate-video", response_model=GenerateVideoResponse)
+async def generate_video_endpoint(request: GenerateVideoRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("generate-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    concept = build_video_prompt(request.prompt, request.platform, brand_kit)
+    prompt = await plan_video_scenes(
+        _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
+    )
+
+    images: list[tuple[bytes, str]] = []
+    if request.use_logo:
+        logo = await _fetch_logo_image(brand_kit)
+        if logo:
+            images.append(logo)
+            prompt = add_logo_instruction(prompt)
+
+    video = await _generate_video_with_retry(
+        prompt=prompt,
+        images=images or None,
+        aspect_ratio=request.aspect_ratio,
+        duration_seconds=request.duration_seconds,
+    )
+
+    logger.info("generate-video done | user=%s platform=%s", request.user_id, request.platform)
+    return GenerateVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
+
+
+@router.post("/campaign-video", response_model=CampaignVideoResponse)
+async def campaign_video_endpoint(request: CampaignVideoRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("campaign-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    style_lock = await _build_campaign_style_lock(
+        request.campaign_brief, brand_kit, request.platform,
+        product_image_url=request.product_image_urls[0],
+    )
+    concept = (
+        f"Turn these product photos into a short cinematic product campaign video.\n\n"
+        f"{style_lock}\n\n"
+        f"CAMPAIGN BRIEF: {request.campaign_brief}"
+    )
+
+    product_images: list[tuple[bytes, str]] = []
+    if not settings.MOCK_MODE:
+        async def _fetch_one(url: str) -> tuple[bytes, str] | None:
+            try:
+                import httpx as _httpx
+                async with _httpx.AsyncClient(timeout=10.0) as _client:
+                    _resp = await _client.get(url)
+                    _resp.raise_for_status()
+                    return _resp.content, _resp.headers.get("content-type", "image/jpeg").split(";")[0]
+            except Exception as fetch_err:
+                logger.warning("campaign-video product image fetch failed | url=%s error=%s", url, fetch_err)
+                return None
+
+        fetched = await asyncio.gather(*[_fetch_one(u) for u in request.product_image_urls])
+        product_images = [f for f in fetched if f is not None]
+
+    if product_images:
+        prompt = await plan_video_scenes_with_images(
+            _llm, concept, product_images,
+            request.duration_seconds, request.aspect_ratio, request.platform,
+        )
+        prompt = add_product_fidelity_guardrail(prompt)
+    else:
+        prompt = await plan_video_scenes(
+            _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
+        )
+
+    images = list(product_images)
+    if request.use_logo:
+        logo = await _fetch_logo_image(brand_kit)
+        if logo:
+            images.append(logo)
+            prompt = add_logo_instruction(prompt)
+
+    video = await _generate_video_with_retry(
+        prompt=prompt,
+        images=images or None,
+        aspect_ratio=request.aspect_ratio,
+        duration_seconds=request.duration_seconds,
+    )
+
+    logger.info("campaign-video done | user=%s platform=%s", request.user_id, request.platform)
+    return CampaignVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)

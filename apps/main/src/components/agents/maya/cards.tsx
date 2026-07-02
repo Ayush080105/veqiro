@@ -14,6 +14,9 @@ import {
   GalleryHorizontal,
   Rocket,
   Download,
+  Clapperboard,
+  Film,
+  Lock,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -27,6 +30,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { VIDEO_FEATURES_LOCKED } from "@/lib/config/features"
 import { PublishDialog, CampaignPublishDialog } from "./publish-dialog"
 import type { AgentActionId } from "@/lib/types/agents"
 import type {
@@ -38,9 +42,12 @@ import type {
   MayaContentRegenResult,
   MayaCarouselDraftResult,
   MayaCampaignResult,
+  MayaGenerateVideoResult,
+  MayaCampaignVideoResult,
   ContentIdea,
   ContentPlatform,
   ImageResult,
+  VideoResult,
 } from "@/lib/types/agents"
 
 export type FollowUpHandler = (
@@ -53,6 +60,14 @@ function imageSrc(img?: ImageResult | null): string | undefined {
   if (img.image_url) return img.image_url
   if (img.image_base64)
     return `data:${img.content_type || "image/png"};base64,${img.image_base64}`
+  return undefined
+}
+
+function videoSrc(video?: VideoResult | null): string | undefined {
+  if (!video) return undefined
+  if (video.video_url) return video.video_url
+  if (video.video_base64)
+    return `data:${video.content_type || "video/mp4"};base64,${video.video_base64}`
   return undefined
 }
 
@@ -220,10 +235,10 @@ function ContentIdeaCard({
       )}
 
       {onFollowUpAction && (
-        <div className="pt-0.5">
+        <div className="flex gap-1.5 pt-0.5">
           <Button
             variant="chat-action"
-            className="w-full"
+            className="flex-1"
             onClick={() =>
               onFollowUpAction("maya:draft-content", {
                 topic: idea.title,
@@ -235,6 +250,21 @@ function ContentIdeaCard({
           >
             <PenLine className="size-3" />
             Generate post
+          </Button>
+          <Button
+            variant="chat-action"
+            className="flex-1"
+            disabled={VIDEO_FEATURES_LOCKED}
+            title={VIDEO_FEATURES_LOCKED ? "Video generation is coming soon" : undefined}
+            onClick={() =>
+              onFollowUpAction("maya:generate-video", {
+                prompt: idea.visual_description || idea.hook || idea.title,
+                platform: idea.platform,
+              })
+            }
+          >
+            {VIDEO_FEATURES_LOCKED ? <Lock className="size-3" /> : <Clapperboard className="size-3" />}
+            Generate video
           </Button>
         </div>
       )}
@@ -922,6 +952,34 @@ export function CampaignResultCard({
                           <TooltipContent>Regenerate</TooltipContent>
                         </Tooltip>
                       )}
+                      {rawSrc && onFollowUpAction && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              disabled={VIDEO_FEATURES_LOCKED}
+                              onClick={() => {
+                                if (VIDEO_FEATURES_LOCKED) return
+                                onFollowUpAction("maya:campaign-video", { product_image_urls: [rawSrc], campaign_brief: "" })
+                              }}
+                              className="flex items-center justify-center"
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: "50%",
+                                background: "rgba(0,0,0,0.55)",
+                                color: "#fff",
+                                border: "none",
+                                cursor: VIDEO_FEATURES_LOCKED ? "not-allowed" : "pointer",
+                                opacity: VIDEO_FEATURES_LOCKED ? 0.6 : 1,
+                              }}
+                            >
+                              {VIDEO_FEATURES_LOCKED ? <Lock size={10} /> : <Film size={10} />}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{VIDEO_FEATURES_LOCKED ? "Coming soon" : "Turn into video"}</TooltipContent>
+                        </Tooltip>
+                      )}
                       {rawSrc && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -981,6 +1039,46 @@ export function CampaignResultCard({
           />
         </div>
       </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── Video result card ────────────────────────────────────────────────────────
+
+export function VideoResultCard({
+  result,
+  title,
+}: {
+  result: MayaGenerateVideoResult | MayaCampaignVideoResult
+  title?: string
+}) {
+  const src = videoSrc(result?.video)
+  if (!src) return null
+
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header icon={<Clapperboard />} title={title ?? "Generated video"} />
+      <AgentCard.Body className="flex flex-col gap-2">
+        <video
+          src={src}
+          controls
+          playsInline
+          className="w-full rounded"
+          style={{ maxHeight: 480, background: "#000" }}
+        />
+        {result.video?.prompt_used && (
+          <p className="text-[10px] italic text-muted-foreground">
+            Prompt: {result.video.prompt_used}
+          </p>
+        )}
+      </AgentCard.Body>
+      <AgentCard.Footer>
+        <Button variant="chat-utility" asChild>
+          <a href={src} download="maya-video.mp4">
+            <Download className="size-3" /> Download
+          </a>
+        </Button>
+      </AgentCard.Footer>
     </AgentCard>
   )
 }

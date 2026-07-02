@@ -24,6 +24,7 @@ import {
   ImageRegenCard,
   ContentRegenCard,
   CampaignResultCard,
+  VideoResultCard,
 } from "@/components/agents/maya/cards"
 // Scout
 import {
@@ -125,6 +126,10 @@ export function ActionResultRenderer({ actionId, result, agentColor, onFollowUpA
       return <ContentRegenCard result={r} />
     case "maya:campaign":
       return <CampaignResultCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "maya:generate-video":
+      return <VideoResultCard result={r} title="Generated video" />
+    case "maya:campaign-video":
+      return <VideoResultCard result={r} title="Product video" />
 
     case "scout:research-topic":
       return <ResearchReportCard result={r} onFollowUpAction={onFollowUpAction} />

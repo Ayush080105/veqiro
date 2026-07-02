@@ -120,6 +120,41 @@ _RED_PNG_B64 = (
     "z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg=="
 )
 
+# Gemini Omni model used for video generation. Pin here so it's swappable without touching call sites.
+_OMNI_VIDEO_MODEL = "gemini-omni-flash-preview"
+
+# A minimal 1-second black H.264 MP4 (64x64), used as the MOCK_MODE response for generate_video.
+_MOCK_VIDEO_MP4_B64 = (
+    "AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMVbW9vdgAAAGxtdmhkAAAAAAAAAAAA"
+    "AAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA"
+    "AABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAkB0cmFrAAAAXHRraGQAAAADAAAA"
+    "AAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAA"
+    "AAAAAAAAAABAAAAAAEAAAABAAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAA"
+    "AAG4bWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAQABVxAAAAAAALWhkbHIAAAAAAAAAAHZp"
+    "ZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABY21pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAA"
+    "ACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAASNzdGJsAAAAv3N0c2QAAAAAAAAA"
+    "AQAAAK9hdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAEAAQABIAAAASAAAAAAAAAABFUxhdmM2"
+    "MS4xOS4xMDEgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAANWF2Y0MBZAAK/+EAGGdkAAqs2UQmwEQA"
+    "AAMABAAAAwAIPEiWWAEABmjr48siwP34+AAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAAW"
+    "uAAAAAAAAAAYc3R0cwAAAAAAAAABAAAAAQAAQAAAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAEAAAAB"
+    "AAAAFHN0c3oAAAAAAAAC1wAAAAEAAAAUc3RjbwAAAAAAAAABAAADRQAAAGF1ZHRhAAAAWW1ldGEA"
+    "AAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALGlsc3QAAAAkqXRvbwAAABxk"
+    "YXRhAAAAAQAAAABMYXZmNjEuNy4xMDAAAAAIZnJlZQAAAt9tZGF0AAACrQYF//+p3EXpvebZSLeW"
+    "LNgg2SPu73gyNjQgLSBjb3JlIDE2NCByMzIwNCAzNzM2OTdiIC0gSC4yNjQvTVBFRy00IEFWQyBj"
+    "b2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAyNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQu"
+    "aHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4Mzow"
+    "eDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1l"
+    "X3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0y"
+    "MSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTIgbG9va2FoZWFk"
+    "X3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAg"
+    "Ymx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0y"
+    "IGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRw"
+    "PTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJj"
+    "X2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0w"
+    "IHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAiZYiEABX//vfJ"
+    "78Cm69vetb+Tz0j4e8ZQD6wZq+vbSH/7MQ=="
+)
+
 _MOCK_CONTENT_RESPONSE = """\
 Exciting news! 🚀 We just launched our AI-powered productivity suite designed specifically for founders and small teams.
 
@@ -936,6 +971,140 @@ class LLMClient:
             prompt, [base64.b64decode(b64) for b64 in reference_images_b64], aspect_ratio
         )
 
+    async def generate_video(
+        self,
+        prompt: str,
+        images: list[tuple[bytes, str]] | None = None,
+        aspect_ratio: str = "16:9",
+        duration_seconds: int = 8,
+        generate_audio: bool = True,
+    ) -> bytes:
+        """Video generation via Gemini Omni (`interactions.create`). `images` (list of
+        (bytes, mime_type) pairs, up to 5 + an optional logo) present = image-to-video,
+        absent = text-to-video."""
+        if settings.MOCK_MODE:
+            await asyncio.sleep(0.05)
+            return base64.b64decode(_MOCK_VIDEO_MP4_B64)
+
+        import time
+        from langfuse import Langfuse as _Langfuse
+        from core.observability import get_llm_context, get_langfuse
+        from google import genai
+
+        obs_ctx = get_llm_context()
+        lf = get_langfuse()
+        generation = None
+        t0 = time.perf_counter()
+
+        if lf:
+            try:
+                if obs_ctx.trace_id is None:
+                    obs_ctx.trace_id = _Langfuse.create_trace_id()
+
+                generation = lf.start_observation(
+                    trace_context={"trace_id": obs_ctx.trace_id},
+                    name="generate_video",
+                    as_type="generation",
+                    model=_OMNI_VIDEO_MODEL,
+                    input={
+                        "prompt": prompt[:500],
+                        "num_images": len(images) if images else 0,
+                        "aspect_ratio": aspect_ratio,
+                        "duration_seconds": duration_seconds,
+                    },
+                    model_parameters={
+                        "aspect_ratio": aspect_ratio,
+                        "duration_seconds": duration_seconds,
+                        "generate_audio": generate_audio,
+                    },
+                )
+            except Exception:
+                pass
+
+        try:
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+            logger.info(
+                "generate_video | num_images=%s prompt_len=%s duration=%s",
+                len(images) if images else 0,
+                len(prompt),
+                duration_seconds,
+            )
+
+            full_prompt = (
+                f"{prompt}\n\n"
+                f"Video aspect ratio: {aspect_ratio}. Target duration: ~{duration_seconds}s. "
+                f"{'Include natural ambient/sync audio.' if generate_audio else 'No audio.'}"
+            )
+
+            omni_input: list[dict] = [
+                {
+                    "type": "image",
+                    "data": base64.b64encode(img_bytes).decode(),
+                    "mime_type": mime_type,
+                }
+                for img_bytes, mime_type in (images or [])
+            ]
+            omni_input.append({"type": "text", "text": full_prompt})
+
+            interaction = await client.aio.interactions.create(
+                model=_OMNI_VIDEO_MODEL,
+                input=omni_input,
+            )
+
+            if interaction.status not in ("completed", "incomplete"):
+                raise LLMError(f"Gemini Omni interaction did not complete: status={interaction.status}")
+
+            video_content = interaction.output_video
+            if video_content is None:
+                raise LLMError("Gemini Omni returned no video content")
+
+            if video_content.data:
+                video_bytes = base64.b64decode(video_content.data)
+            elif video_content.uri:
+                # The Files-API URI needs API-key auth to download — a raw GET 401s.
+                video_bytes = await client.aio.files.download(file=video_content.uri)
+            else:
+                raise LLMError("Gemini Omni video content has neither inline data nor a URI")
+
+            logger.info("generate_video | done | bytes=%d", len(video_bytes))
+
+            if generation:
+                try:
+                    generation.update(
+                        output="[video generated]",
+                        usage_details={
+                            "input": 0,
+                            "output": 1,
+                            "total": 1,
+                            "unit": "VIDEOS",
+                        },
+                        metadata={
+                            "latency_ms": int((time.perf_counter() - t0) * 1000),
+                            "aspect_ratio": aspect_ratio,
+                            "duration_seconds": duration_seconds,
+                            "org_id": obs_ctx.org_id,
+                            "agent": obs_ctx.agent_slug,
+                        },
+                    )
+                    generation.end()
+                except Exception:
+                    pass
+
+            return video_bytes
+
+        except Exception as e:
+            logger.exception("generate_video failed")
+
+            if generation:
+                try:
+                    generation.update(level="ERROR", status_message=str(e))
+                    generation.end()
+                except Exception:
+                    pass
+
+            raise
+
     async def complete_with_vision(
         self,
         file_bytes: bytes,
@@ -955,6 +1124,28 @@ class LLMClient:
             types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
             types.Part.from_text(text=prompt),
         ]
+        response = await client.aio.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=parts,
+        )
+        return response.text
+
+    async def complete_with_vision_multi(
+        self,
+        files: list[tuple[bytes, str]],
+        prompt: str,
+    ) -> str:
+        """Same as complete_with_vision but grounds the response in multiple reference
+        images/files at once (e.g. several product photos from different angles)."""
+        if settings.MOCK_MODE:
+            return "[Mock vision extraction: all contract text, tables, and clauses extracted successfully]"
+
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        parts = [types.Part.from_bytes(data=data, mime_type=mime) for data, mime in files]
+        parts.append(types.Part.from_text(text=prompt))
         response = await client.aio.models.generate_content(
             model="gemini-2.5-flash",
             contents=parts,

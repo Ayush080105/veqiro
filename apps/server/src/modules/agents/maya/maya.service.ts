@@ -4,7 +4,7 @@ import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
-import { isR2Configured, uploadImageBase64 } from "../../../common/utils/r2.js";
+import { isR2Configured, uploadImageBase64, uploadBuffer } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsService from "../../integrations/integrations.service.js";
 import type {
@@ -30,10 +30,15 @@ import type {
   PublishCarouselInput,
   PublishCarouselResponse,
   ImageResult,
+  VideoResult,
   CampaignInput,
   CampaignResponse,
   CampaignCaption,
   ExpandBriefInput,
+  GenerateVideoInput,
+  GenerateVideoResponse,
+  CampaignVideoInput,
+  CampaignVideoResponse,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
@@ -65,6 +70,32 @@ const hostImage = async (
   } catch (err) {
     console.error("[maya] R2 upload failed, returning base64", err);
     return image;
+  }
+};
+
+const hostVideo = async (
+  organizationId: string,
+  video: VideoResult | null | undefined
+): Promise<VideoResult | null | undefined> => {
+  if (!video || !video.video_base64) return video ?? null;
+  if (!isR2Configured()) return video;
+  try {
+    const { url } = await uploadBuffer({
+      organizationId,
+      name: "maya",
+      buffer: Buffer.from(video.video_base64, "base64"),
+      contentType: video.content_type || "video/mp4",
+      extension: "mp4",
+      category: "videos",
+    });
+    return {
+      video_url: url,
+      content_type: video.content_type,
+      prompt_used: video.prompt_used,
+    };
+  } catch (err) {
+    console.error("[maya] R2 video upload failed, returning base64", err);
+    return video;
   }
 };
 
@@ -811,7 +842,7 @@ export const createCampaign = async (
     userMessage: `Product campaign (${input.photoCount} photos) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
     rawHistory: history,
     topLevelPayload: {
-      product_image_url: input.productImageUrl,
+      product_image_urls: input.productImageUrls,
       campaign_brief: input.campaignBrief,
       photo_count: input.photoCount,
       use_logo: input.useLogo,
@@ -866,6 +897,103 @@ export const createCampaign = async (
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:campaign", input, result },
+  });
+
+  return result;
+};
+
+export const generateVideo = async (
+  userId: string,
+  organizationId: string,
+  input: GenerateVideoInput
+): Promise<GenerateVideoResponse> => {
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Generate video on ${input.platform}: ${input.prompt.slice(0, 120)}`,
+    customInput: { actionId: "maya:generate-video", input },
+  });
+
+  const data = await callAgentWithContext<GenerateVideoResponse>({
+    agentApiPath: "/ai/maya/generate-video",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Generate video on ${input.platform}: ${input.prompt.slice(0, 120)}`,
+    rawHistory: history,
+    topLevelPayload: {
+      prompt: input.prompt,
+      platform: input.platform,
+      aspect_ratio: input.aspectRatio,
+      duration_seconds: input.durationSeconds,
+      use_logo: input.useLogo,
+    },
+  });
+
+  const result: GenerateVideoResponse = {
+    ...data,
+    video: (await hostVideo(organizationId, data.video)) ?? data.video,
+  };
+
+  await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Video generated for ${input.platform}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:generate-video", input, result },
+  });
+
+  return result;
+};
+
+export const createCampaignVideo = async (
+  userId: string,
+  organizationId: string,
+  input: CampaignVideoInput
+): Promise<CampaignVideoResponse> => {
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Product campaign video on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    customInput: { actionId: "maya:campaign-video", input },
+  });
+
+  const data = await callAgentWithContext<CampaignVideoResponse>({
+    agentApiPath: "/ai/maya/campaign-video",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Product campaign video on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    rawHistory: history,
+    topLevelPayload: {
+      product_image_urls: input.productImageUrls,
+      campaign_brief: input.campaignBrief,
+      platform: input.platform,
+      aspect_ratio: input.aspectRatio,
+      duration_seconds: input.durationSeconds,
+      use_logo: input.useLogo,
+    },
+  });
+
+  const result: CampaignVideoResponse = {
+    ...data,
+    video: (await hostVideo(organizationId, data.video)) ?? data.video,
+  };
+
+  await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Campaign video generated for ${input.platform}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:campaign-video", input, result },
   });
 
   return result;
