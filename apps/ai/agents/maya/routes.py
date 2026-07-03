@@ -595,11 +595,18 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         f"{website_line}\n\n"
         "STRICT RULES:\n"
         f"- {platform_limits.get(request.platform, 'Keep it concise and platform-native.')}\n"
-        "- Start with a specific fact, number, or bold statement. NOT with 'As a founder' or any generic opener.\n"
+        "- Pick ONE opener style and commit to it — do not default to the same shape every time: "
+        "a blunt fact or number, a counterintuitive claim, a one-line scene/story, a direct 'you' address, "
+        "or a flat opinion stated as fact. NOT 'As a founder' or any generic opener.\n"
         "- Write about the BUSINESS VALUE and REAL IMPACT. Never mention mascots, characters, visuals, or image descriptions.\n"
-        "- Sound like the founder typed it themselves — direct, confident, no filler.\n"
+        "- Sound like the founder typed it themselves — direct, confident, no filler. Let personality and humor show "
+        "where the tone allows it — this should read like a specific person wrote it, not a template.\n"
         "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
-        "- CTA: a direct question or action, not vague 'share your thoughts'.\n\n"
+        "- CTA: vary the form — a specific question, a direct action (try/click/reply), a mini-challenge, an opinion "
+        "prompt, or no CTA at all if the post lands better without one. "
+        "NEVER use the generic survey template '[stat/number] of people feel/do X — how do you feel? Let us know' "
+        "or any close variant ('what about you?', 'do you agree?', 'share your thoughts below') — it reads as "
+        "AI-generated engagement bait, not a real CTA.\n\n"
         "Return JSON with these exact fields: title, body, hashtags (list of strings WITHOUT the # symbol), cta, meta_description, word_count, platform, tone_used.\n"
         "CRITICAL FIELD RULES:\n"
         "- `body`: the post text ONLY — do NOT append the CTA or hashtags here. Body ends before the CTA.\n"
@@ -638,6 +645,14 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 user_id=request.user_id, organization_id=request.organization_id,
                 brand_kit=brand_kit,
                 context_hints=_caption_context,
+                # User-authored additional_context carries the most specific, non-negotiable
+                # instructions (explicit subjects, props, themes). Put it first so it survives
+                # the concept/elaboration truncation window even when the caption is long.
+                concept_hint="\n".join(filter(None, [
+                    request.additional_context or "",
+                    draft.title,
+                    draft.body[:300],
+                ])),
                 reference_urls=request.reference_images if request.use_reference else [],
                 brand_images=request.brand_images or [],
                 use_brand_colors=request.use_brand_colors,
@@ -1012,6 +1027,15 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
             request.additional_context or "",
         ] if p and p.strip()]
         _context_hints = ". ".join(_hint_parts)
+        # additional_context first: it carries the user's explicit, non-negotiable asks
+        # (specific subjects, props, themes) — protect it from the concept-step truncation
+        # window instead of leaving it last behind topic/caption/context_note.
+        _concept_hint_parts = [p.strip().strip(".") for p in [
+            request.additional_context or "",
+            prompt_data.context_note,
+            request.topic,
+        ] if p and p.strip()]
+        _concept_hint = ". ".join(_concept_hint_parts)
         last_err: BaseException | None = None
         current_anchor = anchor_b64
         for attempt in range(3):
@@ -1035,6 +1059,7 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
                     context_hints=_context_hints,
+                    concept_hint=_concept_hint,
                     text_spec=text_spec,
                     carousel_anchor_b64=current_anchor,
                     brand_images=request.brand_images or [],
@@ -1127,6 +1152,11 @@ _EXPAND_USER_TMPL = (
     "details, time of day, props and styling elements.\n"
     "9. PRODUCT TREATMENT: How does the product appear — hero-centered, integrated "
     "naturally, held/used, pristine studio, in-motion, etc.\n\n"
+    "10. MANDATORY LITERAL INSTRUCTIONS: If the original idea explicitly requests specific elements — "
+    "human models/people, a specific action, specific props, or a named theme/wordplay the product is built "
+    "around — state them plainly and concretely (e.g. 'a model wears the shoe mid-stride') somewhere in the "
+    "brief. Do not let an explicit request dissolve into only atmospheric or color language — name the literal "
+    "thing that was asked for.\n\n"
     "Write this as one flowing creative brief paragraph (200-250 words). "
     "No numbered lists, no headers — dense, vivid, professional prose that a "
     "photographer or AI model can execute immediately."
@@ -1163,6 +1193,11 @@ _EXPAND_VISION_PROMPT_TMPL = (
     "9. PRODUCT TREATMENT: Describe how the product should appear using its actual visual "
     "traits (e.g., 'the matte black cylindrical bottle with a brushed-gold cap, label-side "
     "facing camera') — hero-centered, integrated naturally, held/used, pristine studio, etc.\n\n"
+    "10. MANDATORY LITERAL INSTRUCTIONS: If the original campaign idea explicitly requests specific elements — "
+    "human models/people, a specific action, specific props, or a named theme/wordplay the product is built "
+    "around — state them plainly and concretely (e.g. 'a model wears the shoe mid-stride') somewhere in the "
+    "brief. Do not let an explicit request dissolve into only atmospheric or color language — name the literal "
+    "thing that was asked for.\n\n"
     "Write this as one flowing creative brief paragraph (200-250 words). "
     "No numbered lists, no headers — dense, vivid, professional prose that a "
     "photographer or AI model can execute immediately."
@@ -1492,10 +1527,14 @@ async def create_campaign(request: CampaignRequest):
             f"• Keep the product's colors, design style, and element count exactly the same as the reference.\n"
             f"• Do NOT add or remove any characters, objects, or elements from the product.\n"
             f"• The camera angle, orientation, and framing of the product MUST follow the composition role above — this is what makes each photo different.\n\n"
-            f"CAMPAIGN BRIEF — extract and apply ONLY the following from this brief:\n"
+            f"CAMPAIGN BRIEF — apply the following from this brief:\n"
             f"  • LIGHTING FEEL: What quality of light does the brief suggest? Align with the Style Lock above.\n"
             f"  • COLOR STORY: What dominant hues does this brief imply? Use them in background and props, not the product.\n"
             f"  • EMOTIONAL REGISTER: What emotion should the viewer feel? Encode it through the environment mood.\n"
+            f"  • MANDATORY SUBJECT/PROP/THEME: If the brief explicitly requests a specific subject (e.g. a human "
+            f"model wearing/using the product), a specific prop, or a named theme/motif the product is built "
+            f"around, that element is REQUIRED in this photo — do not drop it just because it isn't lighting, "
+            f"color, or mood. Stage it within the composition role above; never omit it.\n"
             f"  BRIEF TEXT: {request.campaign_brief}"
         )
 
@@ -1530,6 +1569,7 @@ async def create_campaign(request: CampaignRequest):
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
                     context_hints=hints,
+                    concept_hint=request.campaign_brief,
                     reference_urls=product_urls,
                     campaign_mode=True,
                     campaign_anchor_b64=anchor_b64,

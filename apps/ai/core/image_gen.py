@@ -204,6 +204,10 @@ async def _elaborate_prompt_5component(
             "- If the input concept is already specific, make it MORE specific — add materials, surface qualities, light direction\n"
             "- Do NOT invent brand names or details not provided in the input\n"
             "- NEVER use these words: beautiful, stunning, amazing, professional, modern, elegant — show it, don't label it\n"
+            "- If the content context below explicitly names a specific subject (e.g. a human model, a person doing "
+            "something), a specific prop, or a named theme/motif, that element MUST be written explicitly into the "
+            "'subject' and/or 'setting' field in concrete visual detail — do not translate it into an abstract mood, "
+            "color, or symbolic object instead of the literal thing requested\n"
             "- Return ONLY the JSON — no markdown, no explanation, no code fences"
         )
 
@@ -212,7 +216,13 @@ async def _elaborate_prompt_5component(
             f"Platform: {platform} ({platform_context})\n"
             + (f"Brand context: {brand_context}\n" if brand_context else "")
             + (f"Tone: {tone}\n" if tone else "")
-            + (f"Content context (use to align the visual concept, mood, and subject with this specific post angle — this is the MOST IMPORTANT creative brief): {extra_context[:500]}\n" if extra_context else "")
+            + (
+                f"Content context (this is the MOST IMPORTANT creative brief — use it to align the visual concept, "
+                f"mood, and subject with this specific post angle; ANY explicitly named subject, prop, or theme in "
+                f"here MUST appear literally in the subject/setting fields, not just as ambient mood): "
+                f"{extra_context[:900]}\n"
+                if extra_context else ""
+            )
             + (
                 f"MANDATORY SHOT TYPE — the camera_angle field MUST match this exactly: {campaign_shot_type}\n"
                 if campaign_shot_type else ""
@@ -313,7 +323,12 @@ async def _generate_creative_concept(
             "4. Describe THE IMAGE — the exact scene. Not a direction, not a mood board. Paint the specific moment.\n"
             "5. ACHIEVABLE — must be possible for an AI image generator to produce in a single shot.\n"
             "6. MEANINGFULLY CONNECTED — the concept must authentically illuminate the topic and brand. "
-            "A viewer who knows the brief should feel 'of course — that's exactly right.'\n\n"
+            "A viewer who knows the brief should feel 'of course — that's exactly right.'\n"
+            "7. MANDATORY REQUESTED ELEMENTS — if the post context below explicitly names a specific subject "
+            "(e.g. 'use a model', 'a person journaling'), a specific prop, or a named theme/motif the product is "
+            "built around, that element is a NON-NEGOTIABLE requirement, not raw material to abstract away. "
+            "Your unexpected angle must come from HOW you stage that required element (framing, action, environment) — "
+            "never from replacing or omitting it with a symbolic stand-in.\n\n"
             "Output: 2-3 sentences painting the exact scene. No preamble, no labels, no explanation. Just the scene."
         )
 
@@ -322,7 +337,8 @@ async def _generate_creative_concept(
             f"Platform energy: {platform_energy}\n"
             + (f"Brand context: {brand_context}\n" if brand_context else "")
             + (f"Tone: {tone}\n" if tone else "")
-            + (f"Post context (CRITICAL — the concept must serve this specific angle): {extra_context[:400]}\n" if extra_context else "")
+            + (f"Post context (CRITICAL — the concept MUST serve this specific angle and MUST include any subject, "
+               f"prop, or theme explicitly named here): {extra_context[:900]}\n" if extra_context else "")
             + "\nInvent ONE stunning, unexpected visual concept for this image."
         )
 
@@ -637,6 +653,7 @@ async def generate_social_image(
     brand_images: list | None = None,
     campaign_shot_type: str = "",
     use_brand_colors: bool = True,
+    concept_hint: str = "",
 ) -> ImageResult:
     """Generate a premium social media image.
 
@@ -644,6 +661,13 @@ async def generate_social_image(
     Gemini is given explicit numbered reference instructions so it knows
     which asset is the mascot character and which is the logo, and how to
     use each naturally within the scene.
+
+    `concept_hint`, when provided, is the concise user-authored brief (e.g. a
+    campaign brief or additional-context field) used for the concept +
+    5-component elaboration steps instead of `context_hints`. Callers that
+    build `context_hints` out of large boilerplate (system prompts, style
+    locks, role instructions) should pass the actual user text here so it
+    isn't buried past the truncation window those steps apply.
     """
     if not aspect_ratio:
         aspect_ratio = _ASPECT_FOR_PLATFORM.get(platform, "1:1")
@@ -658,8 +682,9 @@ async def generate_social_image(
     # Step 1: invent a specific cinematic visual concept (the "director's brief").
     # Step 2: elaborate THAT concept into Subject/Setting/Style/Lighting/Camera Angle.
     # Both steps fall back silently so generation always completes.
-    concept = await _generate_creative_concept(prompt, platform, brand_kit, extra_context=context_hints)
-    components = await _elaborate_prompt_5component(concept or prompt, platform, brand_kit, extra_context=context_hints, campaign_shot_type=campaign_shot_type)
+    concept_context = concept_hint or context_hints
+    concept = await _generate_creative_concept(prompt, platform, brand_kit, extra_context=concept_context)
+    components = await _elaborate_prompt_5component(concept or prompt, platform, brand_kit, extra_context=concept_context, campaign_shot_type=campaign_shot_type)
 
     base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components, campaign_shot_type, use_brand_colors)
 

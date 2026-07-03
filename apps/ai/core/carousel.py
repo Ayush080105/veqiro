@@ -204,6 +204,13 @@ def _build_carousel_prompt(
         f"- stat: optional key stat or power phrase (e.g. '6x faster', '$2M ARR'). "
         f"Must use LOCKED NUMBERS exactly. Use null if not needed for this slide.\n"
         f"- subtext: optional 1-line supporting copy, max 8 words. Use null if not needed.\n\n"
+        f"Caption rules — vary this from post to post, do not default to the same shape every time:\n"
+        f"- Opener: pick ONE of — a blunt fact/number, a counterintuitive claim, a one-line scene, a direct "
+        f"'you' address, a flat opinion. Do not always lead with a stat.\n"
+        f"- CTA: vary the form — a specific question, a direct action, a mini-challenge, an opinion prompt, "
+        f"or none at all. NEVER use the generic survey template '[stat] of people feel/do X — how do you feel? "
+        f"Let us know' or close variants ('what about you?', 'share your thoughts below') — it reads as "
+        f"AI-generated engagement bait.\n\n"
         f"Return ONLY a JSON object:\n"
         f"{{\n"
         f'  "caption_title": "<post title/headline>",\n'
