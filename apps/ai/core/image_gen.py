@@ -208,6 +208,9 @@ async def _elaborate_prompt_5component(
             "something), a specific prop, or a named theme/motif, that element MUST be written explicitly into the "
             "'subject' and/or 'setting' field in concrete visual detail — do not translate it into an abstract mood, "
             "color, or symbolic object instead of the literal thing requested\n"
+            "- A required subject must be described at normal, physically plausible scale, proportion, and position "
+            "within the scene, as a real photograph would show it — never shrunk, distorted, or enclosed inside "
+            "another surface or object as a substitute for actually being present in the shot\n"
             "- Return ONLY the JSON — no markdown, no explanation, no code fences"
         )
 
@@ -328,7 +331,13 @@ async def _generate_creative_concept(
             "(e.g. 'use a model', 'a person journaling'), a specific prop, or a named theme/motif the product is "
             "built around, that element is a NON-NEGOTIABLE requirement, not raw material to abstract away. "
             "Your unexpected angle must come from HOW you stage that required element (framing, action, environment) — "
-            "never from replacing or omitting it with a symbolic stand-in.\n\n"
+            "never from replacing or omitting it with a symbolic stand-in.\n"
+            "8. STAGE IT FOR REAL, NOT AS A METAPHOR FOR IT — a required subject must exist at normal, physically "
+            "plausible scale, proportion, and position within the scene, exactly as a real photograph would show it. "
+            "Find your 'unexpected' angle in framing, action, light, or environment — never by making the required "
+            "subject itself physically impossible, distorted, or shrunk down and enclosed inside some other surface "
+            "or object as a substitute for it actually being present. Any surreal or symbolic device is only ever "
+            "an addition alongside the subject appearing normally, never a replacement for it.\n\n"
             "Output: 2-3 sentences painting the exact scene. No preamble, no labels, no explanation. Just the scene."
         )
 
@@ -527,6 +536,8 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
             "Do NOT lift phrases from the brand atmosphere or audience context sections. "
             "You may add a very brief supporting line (5-8 words) directly relevant to the topic. "
             "Text must be clean, modern, perfectly legible, and integrated into the layout as a primary design element — not a caption. "
+            "Every word in both the headline and supporting line must be spelled correctly and appear exactly once — "
+            "no duplicated words, no repeated syllables, no invented word fragments. Proofread the text before rendering it. "
         )
 
     # Guardrails — explicit list of what must never appear as visible text
