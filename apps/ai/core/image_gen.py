@@ -123,6 +123,7 @@ async def _elaborate_prompt_5component(
     tone: str = "",
     extra_context: str = "",
     campaign_shot_type: str = "",
+    product_locked: bool = False,
 ) -> dict | None:
     """Elaborates a visual description into a 6-component Gemini prompt template.
 
@@ -211,7 +212,18 @@ async def _elaborate_prompt_5component(
             "- A required subject AND the product must be described at normal, physically plausible scale, "
             "proportion, and position, as a real photograph would show them — never shrunk into another object, "
             "nor the product warped into an impossible container/architecture, as a substitute for a normal shot\n"
-            "- If the content context names several distinct settings/activities or asks for a 'collage', describe "
+            + (
+                "- PRODUCT IDENTITY IS FIXED BY AN UPLOADED REFERENCE PHOTO — do NOT invent, redesign, reimagine, "
+                "or substitute a different device/object/packaging to represent the product, even if the brief's "
+                "language is abstract or futuristic (e.g. 'intelligent health', 'future of wellness'). The 'subject' "
+                "field must refer to the exact product from the reference image (describe it generically — 'the "
+                "product from the reference photo' — do not guess new colors, materials, or shape for it) and "
+                "describe only how it is staged, held, or positioned. Any futuristic/abstract mood from the brief "
+                "must be expressed through setting, lighting, and props around the unchanged product — never by "
+                "turning the product itself into a sci-fi device, hologram, or symbolic object\n"
+                if product_locked else ""
+            )
+            + "- If the content context names several distinct settings/activities or asks for a 'collage', describe "
             "the 'setting' field as genuinely separate photographic panels in a real grid/split-frame layout, not "
             "one fused impossible scene. If it asks for people/customers (especially 'diverse' ones), the 'subject' "
             "field must describe actual visible human figures — faces and bodies — not just hands\n"
@@ -233,6 +245,12 @@ async def _elaborate_prompt_5component(
             + (
                 f"MANDATORY SHOT TYPE — the camera_angle field MUST match this exactly: {campaign_shot_type}\n"
                 if campaign_shot_type else ""
+            )
+            + (
+                "PRODUCT REFERENCE PHOTO PROVIDED — the product's real appearance is fixed by an uploaded photo "
+                "you cannot see here; do not describe or invent what it looks like. Write the 'subject' field as "
+                "how the (unseen, already-fixed) product is staged/held/positioned in the scene, not what it is.\n"
+                if product_locked else ""
             )
         )
 
@@ -283,6 +301,8 @@ async def _generate_creative_concept(
     brand_kit,
     tone: str = "",
     extra_context: str = "",
+    product_locked: bool = False,
+    campaign_shot_type: str = "",
 ) -> str | None:
     """Invents a specific, unexpected cinematic visual concept before elaboration.
 
@@ -347,7 +367,18 @@ async def _generate_creative_concept(
             "collage of distinct shots — not one fused, impossible scene trying to hold all of them at once. If "
             "the brief asks for people/customers (especially 'diverse' ones), show actual distinct human figures — "
             "faces and bodies, not just disembodied hands standing in for a person.\n\n"
-            "Output: 2-3 sentences painting the exact scene. No preamble, no labels, no explanation. Just the scene."
+            + (
+                "10. PRODUCT IS A REAL, ALREADY-PHOTOGRAPHED OBJECT YOU CANNOT SEE — an uploaded reference photo "
+                "fixes its exact appearance (shape, color, material, packaging). Do NOT design, redesign, or invent "
+                "what the product looks like, and do NOT translate abstract/futuristic brief language ('intelligent "
+                "health', 'future of wellness', 'AI-powered') into a new-looking device, gadget, hologram, or "
+                "symbolic object standing in for the product. That language is a MOOD to express through setting, "
+                "lighting, props, and human action around the unchanged, ordinary-looking product — never a design "
+                "brief for reinventing the product's form. Describe the product only as 'the product' being staged "
+                "in your scene, never describe new visual attributes for it.\n\n"
+                if product_locked else ""
+            )
+            + "Output: 2-3 sentences painting the exact scene. No preamble, no labels, no explanation. Just the scene."
         )
 
         user_prompt = (
@@ -357,6 +388,20 @@ async def _generate_creative_concept(
             + (f"Tone: {tone}\n" if tone else "")
             + (f"Post context (CRITICAL — the concept MUST serve this specific angle and MUST include any subject, "
                f"prop, or theme explicitly named here): {extra_context[:900]}\n" if extra_context else "")
+            + (
+                "PRODUCT REFERENCE PHOTO PROVIDED — you cannot see it, and its real appearance is fixed. "
+                "Do not describe or invent what the product looks like.\n"
+                if product_locked else ""
+            )
+            + (
+                f"MANDATORY STORY BEAT — this photo is ONE beat in a multi-photo campaign narrative, not a "
+                f"standalone shot. Your concept MUST depict exactly this beat, matching its specified subject "
+                f"matter and mood — not a generic or unrelated idea for the brief as a whole. Regardless of the "
+                f"beat's emotional focus, the product itself must remain clearly, prominently visible and in "
+                f"sharp focus somewhere in the frame — never sidelined, blurred beyond recognition, or omitted: "
+                f"{campaign_shot_type}\n"
+                if campaign_shot_type else ""
+            )
             + "\nInvent ONE stunning, unexpected visual concept for this image."
         )
 
@@ -418,7 +463,7 @@ def _font_to_style(font_name: str) -> str:
     return f"typographic style inspired by {font_name} — match its visual weight and personality"
 
 
-def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "", use_brand_colors: bool = True) -> str:
+def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "", use_brand_colors: bool = True, product_locked: bool = False) -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
     # Colors — kept as hex for accuracy; framed as design values so the model never prints them as text
@@ -570,9 +615,57 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         "  ✗ Any text from the composition context, brand atmosphere, audience context, or platform energy sections\n"
         "  ✗ Brand voice phrases, company differentiators, taglines, or audience descriptors — these inform visual style only, never appear as image text\n"
         "  ✗ The brand/company name rendered as standalone text separate from the logo — if the logo reference is provided, it already contains the brand name; do NOT duplicate it as independent text\n"
+        "  ✗ The MANDATORY SHOT DIRECTIVE / photography brief paragraph above (or any sentence from it) — that "
+        "text describes how to shoot the photo for the photographer; it must never appear printed, captioned, "
+        "or overlaid anywhere in the actual image\n"
         + guardrails_extra
         + "=== END GUARDRAILS ==="
     )
+
+    # Product lock mandate — placed before the shot mandate and composition block so it
+    # wins any conflict with the SUBJECT field, which is written by a text-only LLM that
+    # never sees the actual reference photo and can otherwise invent a different-looking
+    # product to match abstract/futuristic brief language.
+    product_lock_mandate = ""
+    if product_locked:
+        product_lock_mandate = (
+            "╔══════════════════════════════════════════════════════╗\n"
+            "║  PRODUCT IDENTITY LOCK — ABSOLUTE HIGHEST PRIORITY     ║\n"
+            "╚══════════════════════════════════════════════════════╝\n"
+            "One or more reference photos of the real product are attached to this request — these may include "
+            "the physical item itself and/or its packaging, box, or printed label art (not necessarily just "
+            "different camera angles of one object). Its exact shape, colors, materials, proportions, and any "
+            "labels/markings/brand name/logo/printed text visible in ANY reference are NON-NEGOTIABLE and FIXED — "
+            "reproduce them verbatim, never a different device, gadget, container, or symbolic substitute, and "
+            "never a different or omitted brand name/logo/text than what the references actually show. Wherever "
+            "the text below (including any SUBJECT field) describes the product using invented visual details — "
+            "a different shape, material, brand name, or a futuristic/sci-fi reinterpretation — IGNORE that "
+            "invented description and render the actual product and its actual branding from the reference "
+            "photos instead. Abstract or futuristic language elsewhere in this prompt describes the mood of the "
+            "SETTING and LIGHTING around the product, not a redesign of the product or its branding.\n\n"
+            "The reference photo(s) may be an ordinary, hand-taken snapshot — imperfect lighting, a mediocre or "
+            "awkward camera angle, motion blur, glare, or cluttered background in the reference are incidental "
+            "artifacts of how it was casually captured, NOT part of the product's identity. Study the reference "
+            "carefully to separate the two: the TRUE PRODUCT (its exact shape, color, material, proportions, "
+            "and any visible label/markings/text) must be preserved faithfully, while the photo's own poor "
+            "lighting, framing, or angle should NOT be copied into the output. Confidently infer the product's "
+            "plausible complete 3D form from whatever partial view the reference shows, and render it "
+            "competently, sharply, and attractively from the specific angle THIS shot's directive requires — "
+            "even if that angle differs entirely from the one angle the reference happened to capture.\n\n"
+            "LABEL/PACKAGING TEXT — NEVER FABRICATE FAKE TEXT: if the product's label, packaging, or printed "
+            "markings are visible in this shot, there are only two acceptable outcomes: (a) render the exact "
+            "real brand name, dosage, and other printed text from the reference photos, faithfully legible — "
+            "this is the default whenever the label is a meaningful part of the frame; or (b) if this shot's "
+            "distance or angle would naturally make fine print too small to read (e.g. a wide shot, wide "
+            "wide establishing shot, or the label turned away from camera), render the label as a soft, "
+            "naturally out-of-focus or distant design element — matching its real colors and general layout at "
+            "a glance — WITHOUT attempting to render legible characters. Inventing garbled, scrambled, or "
+            "nonsense pseudo-text on a label — text that isn't the real label copy and isn't a real language "
+            "either — is a failure exactly like getting the brand name wrong, even when the rest of the shot is "
+            "good. When unsure whether text will render legibly, prefer a soft/blurred label over a crisp but "
+            "fabricated one.\n"
+            "══════════════════════════════════════════════════════════\n\n"
+        )
 
     # Campaign shot mandate — placed before everything else so Gemini cannot miss it.
     # This is a hard directive, NOT wrapped in [COMPOSITION CONTEXT] brackets,
@@ -584,11 +677,18 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
             "╔══════════════════════════════════════════════════════╗\n"
             "║  MANDATORY SHOT DIRECTIVE — ABSOLUTE HIGHEST PRIORITY  ║\n"
             "╚══════════════════════════════════════════════════════╝\n"
-            f"{campaign_shot_type}\n"
+            "The paragraph below is a photography brief describing HOW TO SHOOT this photo — camera "
+            "angle, lighting, environment, and narrative framing for the photographer. It is NOT a "
+            "caption, headline, or body copy. NEVER render any part of it as visible text, typography, "
+            "or a text overlay in the image itself — treat it exactly like a director's verbal "
+            "instructions on set, which a viewer of the finished photo would never see written out.\n\n"
+            f"{campaign_shot_type}\n\n"
             "This is a professional product campaign photograph. "
-            "The shot type above dictates EXACTLY: the camera angle, the product orientation, "
-            "the framing, and the environment. Execute it with precision — "
-            "deviating from the specified angle or framing is a failure.\n"
+            "The shot description above dictates EXACTLY: the camera angle, the product orientation, "
+            "the framing, and the environment. Execute it with precision as a PHOTOGRAPH, not as a "
+            "poster or graphic with paragraphs of printed text — "
+            "deviating from the specified angle or framing is a failure, and so is printing this "
+            "description's words onto the image.\n"
             "══════════════════════════════════════════════════════════\n\n"
         )
 
@@ -596,7 +696,11 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     composition_block = ""
     if components:
         composition_block = (
-            "## VISUAL COMPOSITION — HIGHEST PRIORITY DIRECTIVE — execute ALL 5 dimensions exactly as specified; they override all other descriptions below ##\n"
+            "## VISUAL COMPOSITION — HIGHEST PRIORITY DIRECTIVE — execute ALL 5 dimensions exactly as specified; "
+            "they override all other descriptions below"
+            + (", EXCEPT the PRODUCT IDENTITY LOCK above, which always wins over anything in SUBJECT that "
+               "describes the product's appearance" if product_locked else "")
+            + " ##\n"
             f"SUBJECT: {components.get('subject', '')}\n"
             f"SETTING: {components.get('setting', '')}\n"
             f"STYLE: {components.get('style', '')}\n"
@@ -605,6 +709,7 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         )
 
     return (
+        f"{product_lock_mandate}"
         f"{shot_mandate}"
         f"{composition_block}"
         f"Design a premium {platform} social media graphic ({aspect_ratio}). "
@@ -673,7 +778,6 @@ async def generate_social_image(
     reference_urls: list[str] | None = None,
     carousel_anchor_b64: str | None = None,
     campaign_mode: bool = False,
-    campaign_anchor_b64: str | None = None,
     brand_images: list | None = None,
     campaign_shot_type: str = "",
     use_brand_colors: bool = True,
@@ -706,11 +810,14 @@ async def generate_social_image(
     # Step 1: invent a specific cinematic visual concept (the "director's brief").
     # Step 2: elaborate THAT concept into Subject/Setting/Style/Lighting/Camera Angle.
     # Both steps fall back silently so generation always completes.
+    # Campaign mode means the reference image(s)/anchor are the literal, already-photographed
+    # product whose appearance must never be reinvented by the text-only concept/elaboration steps.
+    product_locked = campaign_mode
     concept_context = concept_hint or context_hints
-    concept = await _generate_creative_concept(prompt, platform, brand_kit, extra_context=concept_context)
-    components = await _elaborate_prompt_5component(concept or prompt, platform, brand_kit, extra_context=concept_context, campaign_shot_type=campaign_shot_type)
+    concept = await _generate_creative_concept(prompt, platform, brand_kit, extra_context=concept_context, product_locked=product_locked, campaign_shot_type=campaign_shot_type)
+    components = await _elaborate_prompt_5component(concept or prompt, platform, brand_kit, extra_context=concept_context, campaign_shot_type=campaign_shot_type, product_locked=product_locked)
 
-    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components, campaign_shot_type, use_brand_colors)
+    base_prompt = _build_base_prompt(prompt, platform, brand_kit, aspect_ratio, context_hints, text_spec, components, campaign_shot_type, use_brand_colors, product_locked)
 
     logger.info(
         "image_gen start | user=%s platform=%s aspect=%s use_logo=%s use_mascot=%s brand=%s",
@@ -775,88 +882,7 @@ async def generate_social_image(
         logger.info("image_gen carousel-anchor done | user=%s slide", user_id or "anon")
         return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
 
-    # ── Campaign anchor mode: photos 2+ use photo-1 as product+style reference ──
-    # Handled BEFORE the reference_urls check because anchor photos have no
-    # product URL (reference_urls=[]) — they get the anchor as ref image 1.
-    # refs = anchor(256px) + logo = 2 max, same as photo 1 (product + logo).
-    if campaign_mode and campaign_anchor_b64:
-        import base64 as _base64
-        from core.llm import _resize_for_reference
-        anchor_raw = _base64.b64decode(campaign_anchor_b64)
-        anchor_images: list[bytes] = [_resize_for_reference(anchor_raw, max_side=256)]
-        anchor_extra: list[str] = []
-
-        if use_mascot and brand_kit and brand_kit.mascot_url:
-            mascot_bytes = await _fetch_asset(brand_kit.mascot_url)
-            if mascot_bytes:
-                anchor_images.append(mascot_bytes)
-                idx = len(anchor_images)
-                anchor_extra.append(
-                    f"MANDATORY: Reference image {idx} is the brand mascot character. "
-                    f"You MUST include it in the final image — its absence is a failure. "
-                    f"Place it as a small, tasteful supporting element (corner, edge, or subtle background accent). "
-                    f"The product from reference image 1 remains the undeniable hero — do NOT make the mascot equal in prominence."
-                )
-                logger.info("mascot reference added (campaign anchor mode) | user=%s", user_id)
-
-        if use_logo and brand_kit and brand_kit.logo_url:
-            logo_bytes = await _fetch_asset(brand_kit.logo_url)
-            if logo_bytes:
-                anchor_images.append(logo_bytes)
-                idx = len(anchor_images)
-                anchor_extra.append(
-                    f"MANDATORY: Reference image {idx} is the brand logo. "
-                    f"You MUST include it — its absence is a failure. "
-                    f"Reproduce it with faithful accuracy: exact shape, colors, proportions. "
-                    f"If the logo has a background colour, ignore it — composite only the logo mark with no white box. "
-                    f"Place it naturally in the composition (corner or edge), occupying 8-12% of image width."
-                )
-                logger.info("logo reference added (campaign anchor mode) | user=%s", user_id)
-
-        if brand_images:
-            import asyncio as _asyncio
-            bi_urls = [bi.url if hasattr(bi, "url") else bi["url"] for bi in brand_images]
-            bi_prompts = [bi.prompt if hasattr(bi, "prompt") else bi.get("prompt") for bi in brand_images]
-            bi_bytes_list = await _asyncio.gather(*[_fetch_asset(url) for url in bi_urls])
-            for bi_bytes, bi_prompt, bi_url in zip(bi_bytes_list, bi_prompts, bi_urls):
-                if bi_bytes:
-                    anchor_images.append(bi_bytes)
-                    idx = len(anchor_images)
-                    if bi_prompt:
-                        anchor_extra.append(f"MANDATORY: Reference image {idx}: {bi_prompt} — you MUST incorporate it visibly.")
-                    else:
-                        anchor_extra.append(
-                            f"MANDATORY: Reference image {idx} is a brand asset that MUST appear in the final image — its absence is a failure. "
-                            f"Study its subjects, characters, or visual elements and incorporate them naturally into the scene."
-                        )
-                    logger.info("brand_image added (campaign anchor mode) | user=%s idx=%d", user_id, idx)
-                else:
-                    logger.warning("brand_image fetch failed (campaign anchor mode) | user=%s url=%s", user_id, bi_url)
-
-        mandate = _asset_mandate(
-            use_logo and bool(brand_kit and brand_kit.logo_url),
-            use_mascot and bool(brand_kit and brand_kit.mascot_url),
-        )
-        anchor_product_instr = (
-            "Reference image 1 establishes TWO things ONLY:\n"
-            "(a) the product's exact visual identity — colors, materials, proportions, surface markings, finish;\n"
-            "(b) the lighting style and color grade to maintain across all photos.\n"
-            "DO NOT copy its composition, camera angle, background, or environment.\n"
-            "Your shot must be entirely different in framing and setting — same product, different everything else."
-        )
-        full_prompt = (
-            f"{mandate}"
-            f"{base_prompt}\n\n"
-            f"PRODUCT CAMPAIGN PHOTOGRAPH: The subject from the reference is the absolute hero. "
-            f"Every compositional decision exists to showcase it.\n\n"
-            f"{anchor_product_instr}"
-            + ("\n" + "\n".join(anchor_extra) if anchor_extra else "")
-        )
-        b64 = await llm.generate_image_with_image_bytes(full_prompt, anchor_images, aspect_ratio=aspect_ratio)
-        logger.info("image_gen campaign-anchor done | user=%s refs=%d logo=%s", user_id, len(anchor_images), use_logo)
-        return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)
-
-    # ── Reference-image mode: product URL refs (photo 1) or theme inspiration ──
+    # ── Reference-image mode: product URL refs (all campaign photos) or theme inspiration ──
     has_references = bool(reference_urls)
     if has_references:
         import asyncio as _asyncio
@@ -882,12 +908,31 @@ async def generate_social_image(
                 #     f"  DO NOT copy the reference image's background, framing, or pose — only the subject's identity."
                 #     for i in range(len(ref_images_ext))
                 # )
-                product_instructions = "\n".join(
-                    f"Reference image {i + 1} contains the product. "
-                    f"Preserve the product's identity, colors, materials, proportions, and overall appearance. "
+                _multi_ref_note = (
+                    f"Reference images 1-{len(ref_images_ext)} are different photos/materials the user uploaded "
+                    f"of this real product — do NOT assume they are simply the same physical object seen from "
+                    f"different camera angles if they visually look like different things (e.g. one may show the "
+                    f"loose item itself, another may show its packaging, box, or printed label art). Study each: "
+                    f"from whichever reference(s) show the physical item, take its exact color, shape, material, "
+                    f"and surface details; from whichever reference(s) show packaging/label/box art, take its "
+                    f"exact brand name, logo, and any printed text/colors verbatim and reflect them faithfully. "
+                    f"Never drop the real brand name or packaging identity just because one reference shows the "
+                    f"item without it. "
+                    if len(ref_images_ext) > 1 else ""
+                )
+                product_instructions = _multi_ref_note + "\n".join(
+                    f"Reference image {i + 1} contains the product — treat it as a possibly rough, hand-taken "
+                    f"snapshot: study it carefully to separate the TRUE PRODUCT (exact shape, colors, materials, "
+                    f"proportions, any visible brand name/logo/printed text) from incidental artifacts of how it "
+                    f"was casually captured (poor lighting, an awkward angle, blur, glare, clutter). Preserve the "
+                    f"former faithfully — including any visible brand name, logo, or printed text, reproduced "
+                    f"verbatim, never invented or substituted — while ignoring the latter entirely. If the label "
+                    f"is visible but would naturally be too small/distant to read at this shot's scale, render it "
+                    f"soft and out-of-focus with the right colors/layout rather than inventing legible-looking "
+                    f"but fake or garbled characters — fabricated label text is never acceptable. "
                     f"Keep the product clearly recognizable as the same product from the reference. "
-                    f"DO NOT recreate the reference image composition, camera angle, pose, background, or framing. "
-                    f"Generate a fresh campaign image where the product appears in a noticeably different pose, orientation, camera perspective, and environment while maintaining the same product identity."
+                    f"DO NOT recreate the reference image's composition, camera angle, pose, lighting quality, background, or framing. "
+                    f"Generate a fresh campaign image where the product is confidently and competently rendered from a noticeably different pose, orientation, and camera perspective — inferring its plausible full form even where the reference only shows one side — while maintaining the same product identity."
                     for i in range(len(ref_images_ext))
                 )
 
@@ -949,9 +994,12 @@ async def generate_social_image(
                 full_prompt = (
                     f"{mandate}"
                     f"{base_prompt}\n\n"
-                    f"PRODUCT CAMPAIGN PHOTOGRAPH: The uploaded product is the absolute hero of this image. "
-                    f"Every compositional decision — lighting, angle, background, props — exists to showcase the product. "
-                    f"This is a professional product campaign shot, not a brand awareness graphic.\n\n"
+                    f"PRODUCT CAMPAIGN PHOTOGRAPH: This is a professional product campaign shot, not a brand "
+                    f"awareness graphic. The uploaded product must be clearly, prominently visible and in sharp "
+                    f"focus in EVERY photo — never sidelined, blurred beyond recognition, tiny, or cropped out, "
+                    f"even in photos whose composition role centers a person's emotion or story beat. The "
+                    f"narrative can lead with a human moment, but the product itself is never an afterthought — "
+                    f"it must always read as a deliberate, unmistakable part of the frame.\n\n"
                     f"{product_instructions}"
                     + ("\n" + "\n".join(extra_instructions) if extra_instructions else "")
                 )

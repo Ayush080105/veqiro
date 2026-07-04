@@ -36,6 +36,7 @@ import {
 import type { ContentPlatform, VideoAspectRatio } from "@/lib/types/agents"
 import { uploadToR2 } from "@/lib/api/uploads"
 import { expandCampaignBrief } from "@/lib/api/assistants"
+import { toast } from "sonner"
 import { BrandImagesSelector } from "@/components/agents/maya/BrandImagesSelector"
 
 const limitHint: Record<ContentPlatform, string> = {
@@ -739,25 +740,27 @@ export function MayaCampaignForm({
     const brief = form.getValues("campaign_brief" as never) as unknown as string
     const platform = form.getValues("platform" as never) as unknown as string
     const orgId = (value as Record<string, unknown>).organization_id as string
-    if (!brief?.trim() || !orgId) return
+    if (!brief?.trim()) {
+      toast.error("Write a campaign brief first.")
+      return
+    }
+    if (!orgId) {
+      toast.error("Missing organization context — try reopening this dialog.")
+      return
+    }
+    if (brief.length > 500) {
+      toast.error("Brief is too long to expand (500 char max) — shorten it first.")
+      return
+    }
     setExpanding(true)
     try {
-      let productImageBase64: string | undefined
-      if (productImages[0]) {
-        const resp = await fetch(productImages[0])
-        const blob = await resp.blob()
-        productImageBase64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve((reader.result as string).split(",")[1])
-          reader.onerror = reject
-          reader.readAsDataURL(blob)
-        })
-      }
-      const expanded = await expandCampaignBrief(orgId, brief, platform ?? "instagram", productImageBase64)
+      // Pass the R2 URL directly — the backend fetches it server-side, avoiding the
+      // browser CORS failures that block client-side fetches of R2-hosted images.
+      const expanded = await expandCampaignBrief(orgId, brief, platform ?? "instagram", productImages[0])
       form.setValue("campaign_brief" as never, expanded as never)
       onChange({ campaign_brief: expanded } as never)
-    } catch {
-      // silently fail — user still has their original brief
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to expand brief — try again.")
     } finally {
       setExpanding(false)
     }

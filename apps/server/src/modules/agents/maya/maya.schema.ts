@@ -75,6 +75,7 @@ export const expandBriefSchema = z.object({
   brief: z.string().min(1).max(500),
   platform: platformEnum.default("instagram"),
   productImageBase64: z.string().optional(),
+  productImageUrl: z.string().url().optional(),
 });
 
 export const campaignSchema = z.object({

@@ -855,6 +855,15 @@ export function CampaignResultCard({
   const photos = result?.photos ?? []
   const rawSrcs = photos.map((p) => imageSrc(p.image))
   const blobUrls = useBlobUrls(rawSrcs)
+  const [captionBody, setCaptionBody] = React.useState(() =>
+    [
+      result?.caption?.body,
+      result?.caption?.cta,
+      result?.caption?.hashtags?.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+  )
 
   if (!photos.length) return null
 
@@ -887,7 +896,6 @@ export function CampaignResultCard({
             {visiblePhotos.map((photo, i) => {
               const src = blobUrls[i] ?? rawSrcs[i]
               const rawSrc = rawSrcs[i]
-              const label = photo.composition_role.split("—")[0].trim()
               const isLast = i === MAX_VISIBLE - 1 && overflow > 0
               const spansFullWidth = fullWidthIndices.has(i)
 
@@ -925,16 +933,6 @@ export function CampaignResultCard({
                     </div>
                   )}
 
-                  {/* Label badge — bottom-left */}
-                  {label && (
-                    <span
-                      className="absolute bottom-1.5 left-1.5 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-white leading-none"
-                      style={{ background: "rgba(0,0,0,0.55)" }}
-                    >
-                      {label}
-                    </span>
-                  )}
-
                   {/* Action icons — bottom-right, revealed on hover */}
                   {!isLast && (
                     <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
@@ -951,34 +949,6 @@ export function CampaignResultCard({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent>Regenerate</TooltipContent>
-                        </Tooltip>
-                      )}
-                      {rawSrc && onFollowUpAction && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              disabled={VIDEO_FEATURES_LOCKED}
-                              onClick={() => {
-                                if (VIDEO_FEATURES_LOCKED) return
-                                onFollowUpAction("maya:campaign-video", { product_image_urls: [rawSrc], campaign_brief: "" })
-                              }}
-                              className="flex items-center justify-center"
-                              style={{
-                                width: 22,
-                                height: 22,
-                                borderRadius: "50%",
-                                background: "rgba(0,0,0,0.55)",
-                                color: "#fff",
-                                border: "none",
-                                cursor: VIDEO_FEATURES_LOCKED ? "not-allowed" : "pointer",
-                                opacity: VIDEO_FEATURES_LOCKED ? 0.6 : 1,
-                              }}
-                            >
-                              {VIDEO_FEATURES_LOCKED ? <Lock size={10} /> : <Film size={10} />}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{VIDEO_FEATURES_LOCKED ? "Coming soon" : "Turn into video"}</TooltipContent>
                         </Tooltip>
                       )}
                       {rawSrc && (
@@ -1007,36 +977,38 @@ export function CampaignResultCard({
           <div className="mt-2 mb-2 rounded-none border-t border-border/50 p-3 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Caption</p>
-              <CopyButton
-                text={[
-                  result.caption.body,
-                  result.caption.cta,
-                  result.caption.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
-                ]
-                  .filter(Boolean)
-                  .join("\n\n")}
-                label="Copy caption"
-              />
+              <CopyButton text={captionBody} label="Copy caption" />
             </div>
-            <p className="text-sm leading-relaxed text-foreground">{result.caption.body}</p>
-            {result.caption.cta && (
-              <p className="text-xs italic text-muted-foreground">{result.caption.cta}</p>
-            )}
-            {result.caption.hashtags.length > 0 && (
-              <p className="text-xs leading-relaxed text-primary/80">
-                {[...new Set(result.caption.hashtags)]
-                  .map((h) => (h.startsWith("#") ? h : `#${h}`))
-                  .join(" ")}
-              </p>
-            )}
+            <Textarea
+              value={captionBody}
+              onChange={(e) => setCaptionBody(e.target.value)}
+              placeholder="Write a caption for this campaign…"
+              className="min-h-32 text-sm leading-relaxed"
+            />
           </div>
         )}
-        <div className="flex justify-end px-3 pb-3 pt-2">
+        <div className="flex justify-end gap-2 px-3 pb-3 pt-2">
+          {publishableUrls.length > 0 && publishableUrls.length <= 5 && onFollowUpAction && (
+            <Button
+              variant="chat-action"
+              disabled={VIDEO_FEATURES_LOCKED}
+              title={VIDEO_FEATURES_LOCKED ? "Video generation is coming soon" : undefined}
+              onClick={() => {
+                if (VIDEO_FEATURES_LOCKED) return
+                onFollowUpAction("maya:campaign-video", {
+                  product_image_urls: publishableUrls,
+                  campaign_brief: "",
+                })
+              }}
+            >
+              {VIDEO_FEATURES_LOCKED ? <Lock className="size-3" /> : <Film className="size-3" />}
+              Turn into video
+            </Button>
+          )}
           <CampaignPublishDialog
             imageUrls={publishableUrls}
             photoCount={photos.length}
-            caption={result.caption?.body}
-            hashtags={result.caption?.hashtags}
+            caption={captionBody}
           />
         </div>
       </AgentCard.Body>

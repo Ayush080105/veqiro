@@ -1125,6 +1125,7 @@ class ExpandBriefRequest(BaseModel):
     brief: str = Field(..., min_length=1, max_length=500)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     product_image_base64: str | None = None
+    product_image_url: str | None = None
     metadata: dict = Field(default_factory=dict)
 
 
@@ -1226,8 +1227,17 @@ async def expand_brief(request: ExpandBriefRequest):
 
     _BRIEF_CHAR_LIMIT = 4800
 
+    image_bytes: bytes | None = None
     if request.product_image_base64:
         image_bytes = _b64.b64decode(request.product_image_base64)
+    elif request.product_image_url:
+        # Fetched server-side to avoid the browser CORS failures that block
+        # client-side fetches of R2-hosted product images.
+        image_bytes = await _fetch_asset(request.product_image_url)
+        if image_bytes is None:
+            logger.warning("expand-brief: product_image_url fetch failed | url=%s", request.product_image_url)
+
+    if image_bytes:
         vision_prompt = _EXPAND_VISION_PROMPT_TMPL.format(
             platform=request.platform,
             brief=request.brief,
@@ -1271,7 +1281,7 @@ Brand voice: {brand_voice}
 Brand color palette: {brand_colors}
 Target audience: {target_audience}
 
-Analyse the product in the image carefully — its category, materials, colours, finish, price-point signals, and intended use. Then write a campaign visual style that is bespoke to THIS specific product AND brand personality. The brand voice and color palette must be reflected in the grading, lighting character, and mood — not ignored.
+Analyse the product in the image carefully — its category, materials, colours, finish, price-point signals, and intended use. The image itself may be an ordinary hand-taken snapshot with mediocre lighting, a rough angle, or a cluttered background — look past all of that to study the product on its own merits; do not let a poor-quality reference photo drag down the style you design. Then write a campaign visual style that is bespoke to THIS specific product AND brand personality, at full professional/editorial production quality regardless of how the reference itself was captured. The brand voice and color palette must be reflected in the grading, lighting character, and mood — not ignored.
 
 Output exactly this block (replace the bracketed descriptions with your values):
 
@@ -1326,32 +1336,87 @@ STEP 3: Apply the Campaign Style Lock for consistent color grading and lighting 
 
 Sameness across photos is a failure. Each shot must be unmistakably a different photograph."""
 
+_PROBLEM_BEAT = (
+    "THE PROBLEM — Camera close and intimate, eye-level or slightly above, natural candid feel — not stiff or "
+    "posed. Show a real, relatable person genuinely experiencing the specific problem or discomfort this product "
+    "solves — infer the exact problem from the BRIEF TEXT below and depict it honestly through facial expression "
+    "and body language, a believable everyday moment of struggle. This is the story's opening hook. THE PRODUCT "
+    "MUST STILL BE CLEARLY, PROMINENTLY VISIBLE AND IN SHARP FOCUS SOMEWHERE IN THIS FRAME — held in the "
+    "person's hand, resting on a nearby table/nightstand/counter within clear view — it is never blurred, tiny, "
+    "cropped out, or absent. The emotional focus is the person's struggle, but the product is always identifiable "
+    "as part of the same frame, foreshadowing the solution. ENVIRONMENT: an authentic everyday real-world setting "
+    "where this problem would actually occur (home, desk, kitchen, bedroom, commute — infer the best fit from the "
+    "brief), natural available light, nothing staged or studio-like."
+)
+_PRODUCT_BEAT = (
+    "THE PRODUCT — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered "
+    "with equal negative space left and right. Single hard key light from 45° above-left casting a clean "
+    "directional shadow on the surface beneath the product. This is the story's turning point — the reveal of "
+    "the product as the definitive solution to the problem shown earlier. ENVIRONMENT: Clean studio — pure "
+    "white or polished light grey surface, seamless white background. Magazine-cover quality — razor-sharp "
+    "product, zero clutter."
+)
+_MOMENT_OF_USE_BEAT = (
+    "THE MOMENT OF USE — Camera at a 35-45° angle, slightly elevated, natural candid framing. Show a real person "
+    "actually using, holding, or taking the product in a believable everyday moment — genuine, mid-action. The "
+    "product must be clearly visible and identifiable in the person's hand or immediate context — this beat "
+    "proves the product in real use. ENVIRONMENT: warm, natural lifestyle setting (kitchen counter, bedside "
+    "table, desk) with soft natural side-light."
+)
+_RESOLUTION_BEAT = (
+    "THE RESOLUTION — Camera at eye-level or slightly low, warm intimate framing. Show the aftermath: a real "
+    "person now relieved, calm, or at ease — genuine relaxed body language and expression, having used the "
+    "product. This is the story's emotional payoff. THE PRODUCT MUST BE CLEARLY, PROMINENTLY VISIBLE AND IN "
+    "SHARP FOCUS in the frame — in hand or clearly placed on the nightstand/counter beside the person, not a "
+    "small or blurred afterthought. The person's relief is the emotional beat, but the product stays a "
+    "recognisable, unmistakable presence in the same shot, closing the story as the reason for the relief. "
+    "ENVIRONMENT: comfortable, warm, lived-in setting — soft natural light, aspirational but real."
+)
+_DAILY_STRUGGLE_BEAT = (
+    "THE DAILY STRUGGLE — Camera at a slightly wider, observational angle, natural candid feel. Show the SAME "
+    "problem from the opening photo recurring or impacting daily life more broadly — a different moment and "
+    "setting that raises the story's emotional stakes. THE PRODUCT MUST STILL BE CLEARLY, PROMINENTLY VISIBLE "
+    "AND IN SHARP FOCUS somewhere in this frame (in hand, on a desk/bag/counter within clear view) — never "
+    "blurred, tiny, cropped out, or absent. ENVIRONMENT: a different everyday real-world setting than the "
+    "opening problem shot (e.g. work, commute, or a social moment), reinforcing how often this problem gets in "
+    "the way."
+)
+_DETAIL_BEAT = (
+    "THE DETAIL — Camera extremely close: 15-20cm from the product surface. One specific detail fills the "
+    "entire frame — texture, label, imprint, material, or mechanism — proving the product's quality and "
+    "craftsmanship. This beat builds confidence in the product right after its reveal. ENVIRONMENT: single-color "
+    "or near-black background; single side-rim light that reveals micro-texture."
+)
+
+# Fixed FALLBACK narrative arc — problem, then product, then proof/use, then resolution — used
+# only if the dynamic per-campaign story-arc planner below fails. The planner decides the real
+# structure per campaign (it does NOT have to open with "the problem"); this is just a safety net.
 _CAMPAIGN_ROLES: dict[int, list[str]] = {
     1: [
         "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered with equal negative space left and right. Single hard key light from 45° above-left casting a clean directional shadow on the surface beneath the product. ENVIRONMENT: Clean studio — pure white or polished light grey surface, seamless white background. This is a magazine cover shot — razor-sharp product, zero clutter.",
     ],
     2: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Single hard key light from 45° above-left. ENVIRONMENT: Clean studio — white or very light neutral surface, seamless gradient background. Negative space on left third for editorial text overlay. Magazine cover quality.",
-        "LIFESTYLE SCENE — Camera at 45° to the product's right side, slightly above eye-level. Product rests naturally in its real-world environment. ENVIRONMENT: Warm lived-in setting — wooden table or oak shelf with soft natural light from a nearby window. Depth of field f/2.0: background softly blurred. Aspirational and editorial — like Kinfolk or Vogue Living.",
+        _PROBLEM_BEAT,
+        _PRODUCT_BEAT,
     ],
     3: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left, clean shadow line on surface. ENVIRONMENT: Clean studio — white or very light neutral surface, zero distracting elements.",
-        "LIFESTYLE SIDE PROFILE — Camera at the product's side, 90° from the front, slightly elevated at 20° above horizon. Product in profile — reveals depth, thickness, material layers. ENVIRONMENT: Tactile surface — raw linen tablecloth or rough slate, with soft natural window light rimming the product edge. Background: softly blurred interior setting at f/2.0.",
-        "EDITORIAL FLATLAY — Camera directly overhead, 90° pointing straight down. Product is the centerpiece placed in the lower-center third. Organic ingredients or botanicals arranged with deliberate negative space. ENVIRONMENT: Textured dark surface — dark slate or charcoal-toned stone. Directional side light from the top-left reveals surface texture.",
+        _PROBLEM_BEAT,
+        _PRODUCT_BEAT,
+        _RESOLUTION_BEAT,
     ],
     4: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame. Hard key light 45° above-left, clean shadow on surface. ENVIRONMENT: Clean studio — pure white or light neutral seamless background. This is the anchor shot — everything else references this quality.",
-        "LIFESTYLE ENVIRONMENT SCENE — Camera at 35-45° angle to the product's right, slightly above eye-level. Product sits naturally with lifestyle context around it: a ceramic bowl, cut ingredients, folded cloth. ENVIRONMENT: Warm natural setting — kitchen counter with terracotta or cream-toned tiles, warm golden-hour side light. Background depth softly blurred at f/2.0.",
-        "EDITORIAL FLATLAY — Camera 90° directly overhead pointing straight down. Product centered in the lower third. Organic props arranged with intentional breathing room. ENVIRONMENT: Warm wood surface — pale oak or walnut grain with one directional window-quality side light from the frame's top-left casting gentle shadows.",
-        "DRAMATIC LOW ANGLE — Camera at ground level (10-15cm height) pointing upward at 15-20°. Product occupies the bottom-center third, towering upward. ENVIRONMENT: Outdoor or architectural — dramatic sky with volumetric light, or a large interior space with high ceilings. Everything above the product falls into bokeh.",
+        _PROBLEM_BEAT,
+        _PRODUCT_BEAT,
+        _MOMENT_OF_USE_BEAT,
+        _RESOLUTION_BEAT,
     ],
     6: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left. ENVIRONMENT: Clean studio — pure white or light neutral seamless. Magazine cover quality.",
-        "LIFESTYLE ENVIRONMENT — Camera at 40° right angle, slightly elevated. Product in real-world scene with contextual props. ENVIRONMENT: Warm kitchen or living space — terracotta tiles or cream linen surface, warm natural side-light.",
-        "EDITORIAL FLATLAY — Camera 90° directly overhead. Product centered with organic props arranged intentionally. ENVIRONMENT: Warm wood surface — pale oak or walnut grain, directional side-light from top-left.",
-        "DRAMATIC LOW ANGLE — Camera at ground level (10cm height) pointing upward. Product towers in bottom-center. ENVIRONMENT: Outdoor sky or dramatic architectural space — background blurs into epic bokeh.",
-        "MACRO DETAIL — Camera extremely close: 15-20cm from the product surface. One specific detail fills the entire frame — a texture, label, material surface, or cap mechanism. ENVIRONMENT: Single-color or near-black background; single side-rim light that reveals micro-texture.",
-        "WIDE ESTABLISHING — Camera pulled back, product occupies 20-25% of frame in the rule-of-thirds lower-right. ENVIRONMENT: Large dramatic real-world space — a natural landscape, architectural interior, or lush outdoor scene. The product is small but unmistakable within a world-building setting.",
+        _PROBLEM_BEAT,
+        _DAILY_STRUGGLE_BEAT,
+        _PRODUCT_BEAT,
+        _DETAIL_BEAT,
+        _MOMENT_OF_USE_BEAT,
+        _RESOLUTION_BEAT,
     ],
 }
 
@@ -1359,15 +1424,106 @@ _CAMPAIGN_ROLES: dict[int, list[str]] = {
 # Used by _make_hints to pre-assign environments and list forbidden ones for sibling photos.
 _ROLE_ENVIRONMENT_LABEL: dict[str, str] = {
     "EDITORIAL HERO": "clean studio (white/neutral seamless surface)",
-    "LIFESTYLE SCENE": "warm lived-in setting (wooden table, oak shelf, natural window light)",
-    "LIFESTYLE SIDE PROFILE": "tactile surface (linen tablecloth, raw slate, soft window rim light)",
-    "LIFESTYLE ENVIRONMENT SCENE": "warm natural setting (kitchen counter, terracotta tiles, golden-hour light)",
-    "LIFESTYLE ENVIRONMENT": "warm kitchen or living space (terracotta or cream linen, warm side-light)",
-    "EDITORIAL FLATLAY": "warm wood surface (pale oak or walnut, overhead directional side-light)",
-    "DRAMATIC LOW ANGLE": "outdoor sky or architectural space (dramatic bokeh background)",
-    "MACRO DETAIL": "near-black or single-color close-up (side-rim light)",
-    "WIDE ESTABLISHING": "large real-world landscape or interior (world-building environment)",
+    "THE PROBLEM": "authentic everyday setting where the problem occurs (home/desk/kitchen — natural light, unstaged)",
+    "THE PRODUCT": "clean studio (white/neutral seamless surface)",
+    "THE MOMENT OF USE": "warm lifestyle setting where the product is actually used (kitchen counter, bedside, desk)",
+    "THE RESOLUTION": "comfortable, warm, lived-in setting — relief/payoff mood",
+    "THE DAILY STRUGGLE": "a different everyday real-world setting than the opening problem shot (e.g. work, commute, social moment)",
+    "THE DETAIL": "near-black or single-color macro close-up (side-rim light)",
 }
+
+_STORY_ARC_SYSTEM = """You are a world-class creative director planning a {photo_count}-photo product campaign as ONE continuous, coherent story — not {photo_count} independent shots.
+
+You decide the narrative structure yourself, based on whatever best serves THIS specific product and brief. There is NO fixed template — the sequence does NOT have to open with "the problem". It could open with the product itself, a lifestyle moment, a demonstration, a transformation, a problem, or any other structure you judge is the strongest story for this brief. Use your judgment as a director, not a formula.
+
+Non-negotiable rules:
+1. All {photo_count} photos form ONE throughline where each beat builds on the one before it — never independent, unrelated shots grouped together after the fact.
+2. THE PRODUCT MUST BE CLEARLY, PROMINENTLY VISIBLE AND IN SHARP FOCUS IN EVERY SINGLE PHOTO, with zero exceptions. Regardless of a beat's emotional or narrative content, the product itself is never blurred, tiny, cropped out, or absent. If a person appears in a shot, the product must still be an unmistakable, deliberate part of the same frame (in hand, on a nearby surface, being used, etc.) — never sidelined for atmosphere alone.
+3. Camera angle, framing, and environment must be genuinely different photo to photo for visual variety — draw on a range like: eye-level studio hero shot, overhead flatlay, low dramatic upward angle, extreme macro detail, wide lifestyle establishing shot, 35-45° lifestyle angle, side profile. Pick whichever fit each beat best; you don't need to use all of them.
+4. Each photo's environment/background must be visually distinct from every other photo in the sequence — never repeat a setting.
+
+CRITICAL — "role_text" IS AN INTERNAL PHOTOGRAPHY BRIEF, NEVER ON-IMAGE TEXT: it is read only by the
+photographer/AI generator to know what to shoot. It is NOT a caption, headline, or ad copy, and none of its
+wording will ever appear printed, captioned, or overlaid in the finished photo. Write it like a working
+photographer's shot list — short, technical, imperative sentences (e.g. "Camera at eye-level, 45mm equivalent.
+Product held in right hand, label facing camera. ENVIRONMENT: sunlit kitchen counter, warm morning light from
+the left.") — NOT flowing marketing prose or narration a reader would enjoy reading as copy. If it reads like
+something you'd put in an ad, rewrite it as terse camera/lighting/staging instructions instead.
+
+You also write the exact on-image text for each photo, up front, for all {photo_count} photos together — this
+matters because you can see the whole set at once and must keep every photo's text genuinely distinct, unlike
+generating each one blind to the others (which causes repeated words like "calm", "relief", "gentle" across
+every photo). Rules for this text:
+- "headline": 2-4 words, punchy, matching this photo's specific beat — never reuse a word (not even a
+  synonym-adjacent one) that another photo's headline in this set already used.
+- "subtext" (optional): 3-6 words, only if it adds something the headline doesn't; omit it (empty string) for
+  photos where the headline alone is stronger — not every photo needs a subtext line.
+- Keep it SHORT and SIMPLE. Longer or more complex text is harder for the image generator to render correctly
+  and causes visible spelling/rendering mistakes — every extra word is a chance for the AI to get it wrong.
+- Every word must be spelled correctly, in plain English, appearing once — no invented words, no filler
+  adjectives ("amazing", "powerful", "revolutionary"), no repeated syllables.
+- This is the exact, final text — it will be handed to the image generator to render verbatim, not re-derived
+  or reinterpreted at that stage. Get it right here.
+
+For each of the {photo_count} photos, in order, output:
+- "role_text": one dense paragraph of technical photography direction (per the CRITICAL rule above) combining (a) this photo's specific narrative purpose within the overall story, stated as a shot goal not a story blurb, (b) the exact camera angle/framing/lighting, (c) the environment/setting, and (d) an explicit line reminding that the product must be clearly, prominently visible and in sharp focus in this shot.
+- "environment_label": a short 5-10 word description of just this photo's setting/background (used only to detect accidental repeats).
+- "headline": this photo's exact on-image headline text, per the rules above.
+- "subtext": this photo's exact on-image subtext text, per the rules above, or "" if this photo doesn't need one.
+
+Return ONLY a JSON object with this exact shape, no markdown fences, no commentary:
+{{"photos": [{{"role_text": "...", "environment_label": "...", "headline": "...", "subtext": "..."}}, ...]}} with exactly {photo_count} entries."""
+
+
+async def _generate_campaign_story_arc(
+    campaign_brief: str,
+    photo_count: int,
+    brand_kit,
+    platform: str,
+) -> list[dict] | None:
+    """Plans a bespoke narrative arc for the campaign's N photos via LLM, rather than forcing
+    every campaign through the same fixed problem->product->use->resolution template. Falls back
+    to None (caller uses _CAMPAIGN_ROLES) on any failure so campaign generation never breaks."""
+    if photo_count <= 1 or settings.MOCK_MODE:
+        return None
+    try:
+        brand_parts: list[str] = []
+        if brand_kit:
+            if brand_kit.company_name:
+                brand_parts.append(f"brand: {brand_kit.company_name}")
+            if getattr(brand_kit, "company_description", None):
+                brand_parts.append(f"what they do: {brand_kit.company_description[:200]}")
+            if brand_kit.brand_voice:
+                brand_parts.append(f"brand voice: {brand_kit.brand_voice}")
+            if brand_kit.target_audience:
+                brand_parts.append(f"target audience: {brand_kit.target_audience}")
+        brand_context = "; ".join(brand_parts)
+
+        prompt = (
+            f"Campaign brief: {campaign_brief}\n"
+            f"Platform: {platform}\n"
+            + (f"Brand context: {brand_context}\n" if brand_context else "")
+        )
+        raw = await _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=_STORY_ARC_SYSTEM.format(photo_count=photo_count),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        from core.utils import safe_json_loads
+        data = safe_json_loads(raw)
+        photos = data.get("photos", [])
+        if len(photos) != photo_count:
+            logger.warning("story arc returned %d photos, expected %d — falling back", len(photos), photo_count)
+            return None
+        for p in photos:
+            if not p.get("role_text") or not p.get("environment_label") or not p.get("headline"):
+                logger.warning("story arc entry missing role_text/environment_label/headline — falling back")
+                return None
+        logger.info("story arc generated | photo_count=%d", photo_count)
+        return photos
+    except Exception as exc:
+        logger.warning("story arc generation failed, falling back to fixed template | error=%s", exc)
+        return None
 
 
 class CampaignRequest(BaseModel):
@@ -1493,7 +1649,25 @@ async def create_campaign(request: CampaignRequest):
         except Exception as bk_err:
             logger.warning("campaign brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
 
-    roles = _CAMPAIGN_ROLES.get(request.photo_count, _CAMPAIGN_ROLES[4])
+    # Let the model plan a bespoke narrative arc for this specific brief rather than forcing
+    # every campaign through the same fixed "problem first" template — falls back to the
+    # fixed template only if the planner call fails.
+    story_arc = await _generate_campaign_story_arc(
+        request.campaign_brief, request.photo_count, brand_kit, request.platform,
+    )
+    if story_arc:
+        roles = [p["role_text"] for p in story_arc]
+        role_environments = [p["environment_label"] for p in story_arc]
+        # Pre-written by the planner (which sees all photos at once, so it naturally avoids
+        # repeating the same words across headlines) — handed to image generation as exact text
+        # to render, not something for it to invent itself per photo.
+        text_specs: list[dict | None] = [
+            {"headline": p["headline"], "subtext": p.get("subtext") or ""} for p in story_arc
+        ]
+    else:
+        roles = _CAMPAIGN_ROLES.get(request.photo_count, _CAMPAIGN_ROLES[4])
+        role_environments = None  # computed below via _env_label fallback
+        text_specs = [None] * len(roles)
 
     # Build a shared style description from brand kit data — gives all photos the same
     # colour/mood/energy without the carousel anchor that locks composition too tightly.
@@ -1504,13 +1678,15 @@ async def create_campaign(request: CampaignRequest):
 
     total_photos = len(roles)
 
-    # Pre-assign a distinct environment label to each role so concurrent photos
-    # never independently choose the same background (e.g., marble/marble/marble).
+    # Pre-assign a distinct environment label to each role so concurrent photos never
+    # independently choose the same background (e.g., marble/marble/marble). Skipped when the
+    # story-arc planner already supplied real per-photo environment_label values above.
     def _env_label(role: str) -> str:
         role_key = role.split(" — ")[0].strip() if " — " in role else role.split("\n")[0].strip()
         return _ROLE_ENVIRONMENT_LABEL.get(role_key, "distinct background unique to this shot")
 
-    role_environments = [_env_label(r) for r in roles]
+    if role_environments is None:
+        role_environments = [_env_label(r) for r in roles]
 
     def _make_hints(role: str, photo_index: int) -> str:
         this_env = role_environments[photo_index]
@@ -1525,10 +1701,18 @@ async def create_campaign(request: CampaignRequest):
             + "\n"
         ) if forbidden_envs else ""
 
+        story_arc_note = (
+            f"THIS CAMPAIGN TELLS ONE CONTINUOUS STORY across all {total_photos} photos, in this exact order — "
+            f"it is NOT {total_photos} independent, unrelated product shots. This photo's beat builds on the "
+            f"photo(s) before it and sets up the one(s) after. Depict ONLY this photo's specific beat below — do "
+            f"not pull forward a later beat's content or repeat an earlier beat's content.\n\n"
+            if total_photos > 1 else ""
+        )
         return (
             f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
             f"{style_lock}\n\n"
             f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n\n"
+            f"{story_arc_note}"
             f"COMPOSITION ROLE — this defines the camera angle AND how the product is oriented/framed for this specific photo:\n"
             f"{role}\n\n"
             f"ASSIGNED ENVIRONMENT FOR THIS PHOTO: {this_env}\n"
@@ -1549,17 +1733,16 @@ async def create_campaign(request: CampaignRequest):
             f"  BRIEF TEXT: {request.campaign_brief}"
         )
 
-    async def _gen_photo(
-        role: str,
-        photo_index: int,
-        anchor_b64: str | None = None,
-    ) -> CampaignPhoto | None:
+    async def _gen_photo(role: str, photo_index: int) -> CampaignPhoto | None:
         hints = _make_hints(role, photo_index)
-        # Photo 1 (anchor=None):  refs = product URL + logo  (2 refs)
-        # Photo 2+ (anchor=b64):  refs = anchor + logo       (2 refs)
-        #   anchor already shows the product correctly rendered, so it acts as
-        #   both the style lock and product identity — no separate URL needed.
-        product_urls = [] if anchor_b64 else request.product_image_urls
+        # Every photo goes through the same product-reference path (product URLs + logo/mascot).
+        # An earlier version fed photo 1's own AI-generated output back in as a "style anchor"
+        # for photos 2+, but that reliably triggers Gemini's IMAGE_OTHER safety policy (it flags
+        # its own generation watermark) — in production every anchor-mode photo hit IMAGE_OTHER
+        # on attempt 1 and only succeeded after the anchor was dropped, so the anchor was pure
+        # overhead with zero benefit. Consistency across photos instead comes from the shared
+        # style_lock (vision-derived from the real product photo) injected into every hint.
+        product_urls = request.product_image_urls
         last_err: BaseException | None = None
         for attempt in range(3):
             if attempt and last_err:
@@ -1583,8 +1766,8 @@ async def create_campaign(request: CampaignRequest):
                     concept_hint=request.campaign_brief,
                     reference_urls=product_urls,
                     campaign_mode=True,
-                    campaign_anchor_b64=anchor_b64,
                     campaign_shot_type=role,
+                    text_spec=text_specs[photo_index],
                     brand_images=request.brand_images or [],
                     use_brand_colors=request.use_brand_colors,
                 )
@@ -1598,27 +1781,18 @@ async def create_campaign(request: CampaignRequest):
                     logger.error("campaign image_gen failed after 3 attempts | role=%s error=%s", role, err)
         return None
 
-    # Photo 1 is generated first (no anchor) — its output becomes the visual
-    # anchor for all remaining photos, which are generated in parallel.
-    photo_1 = await _gen_photo(roles[0], 0, anchor_b64=None)
-    anchor_b64 = photo_1.image.image_base64 if photo_1 else None
+    async def _gen_photo_with_timeout(role: str, photo_index: int) -> CampaignPhoto | None:
+        try:
+            return await asyncio.wait_for(_gen_photo(role, photo_index), timeout=120)
+        except asyncio.TimeoutError:
+            logger.error("campaign image_gen timed out (120s) | role=%s photo=%d", role, photo_index + 1)
+            return None
 
-    if len(roles) > 1:
-        async def _gen_photo_with_timeout(role: str, photo_index: int, anchor_b64: str | None) -> CampaignPhoto | None:
-            try:
-                return await asyncio.wait_for(_gen_photo(role, photo_index, anchor_b64), timeout=120)
-            except asyncio.TimeoutError:
-                logger.error("campaign image_gen timed out (120s) | role=%s photo=%d", role, photo_index + 1)
-                return None
-
-        rest = await asyncio.gather(
-            *[_gen_photo_with_timeout(role, i + 1, anchor_b64=anchor_b64) for i, role in enumerate(roles[1:])],
-            return_exceptions=True,
-        )
-    else:
-        rest = []
-
-    all_results = ([photo_1] if photo_1 else []) + list(rest)
+    # All photos generate in parallel now — no sequential anchor step needed.
+    all_results = await asyncio.gather(
+        *[_gen_photo_with_timeout(role, i) for i, role in enumerate(roles)],
+        return_exceptions=True,
+    )
     photos = [p for p in all_results if p is not None and not isinstance(p, Exception)]
 
     logger.info(

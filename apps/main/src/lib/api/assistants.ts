@@ -61,11 +61,11 @@ export async function expandCampaignBrief(
   organizationId: string,
   brief: string,
   platform: string,
-  productImageBase64?: string
+  productImageUrl?: string
 ): Promise<string> {
   const result = await apiFetch<{ expanded: string }>("/agents/maya/expand-brief", {
     method: "POST",
-    body: { organizationId, brief, platform, product_image_base64: productImageBase64 },
+    body: { organizationId, brief, platform, productImageUrl },
   })
   return result.expanded
 }

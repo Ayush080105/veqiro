@@ -745,6 +745,7 @@ export const expandBrief = async (
     brief: input.brief,
     platform: input.platform,
     product_image_base64: input.productImageBase64,
+    product_image_url: input.productImageUrl,
   });
   return data;
 };
