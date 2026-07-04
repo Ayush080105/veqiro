@@ -140,7 +140,7 @@ export function ActionResultRenderer({ actionId, result, input, agentColor, onFo
     case "scout:trending-topics":
       return <TrendsBoardCard result={r} onFollowUpAction={onFollowUpAction} />
     case "scout:discover-competitors":
-      return <DiscoverCompetitorsCard result={r} />
+      return <DiscoverCompetitorsCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "rex:analyze-metrics":
       return <MetricsAnalysisCard result={r} onFollowUpAction={onFollowUpAction} />

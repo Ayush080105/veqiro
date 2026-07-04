@@ -16,7 +16,12 @@ export const researchTopicSchema = z.object({
 
 export const researchCompanySchema = z.object({
   companyName: z.string().min(1).max(120),
-  companyUrl: z.string().url().nullable().optional().default(null),
+  // Empty string is a common "no URL known" signal from the client — normalize to null
+  // before validating so it never trips .url().
+  companyUrl: z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.string().url().nullable().optional().default(null)
+  ),
 });
 
 export const trendingTopicsSchema = z.object({

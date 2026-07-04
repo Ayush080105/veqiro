@@ -88,6 +88,11 @@ class ResearchCompanyRequest(BaseModel):
     )
 
 
+class SourceLink(BaseModel):
+    title: str
+    url: str
+
+
 class CompanyProfile(BaseModel):
     name: str
     description: str
@@ -100,6 +105,8 @@ class CompanyProfile(BaseModel):
     strengths: list[str]
     weaknesses: list[str]
     recent_news: list[str]
+    # Clean, code-derived citation list — never populated by the LLM.
+    sources: list[SourceLink] = []
 
 
 class ResearchCompanyResponse(BaseModel):
@@ -325,7 +332,9 @@ async def research_topic(request: ResearchTopicRequest) -> ResearchTopicResponse
                 "opportunities (array of strings), risks (array of strings), "
                 "key_stats (array of {label, value}), emerging_trends (array of strings), "
                 "target_customers, recommended_actions (array of strings).\n"
-                "Label facts [FACT], inferences [INFERRED], estimates [ESTIMATED]. Return ONLY the JSON, no markdown fences."
+                "Every field value must be clean plain text — NO [FACT]/[INFERRED]/[ESTIMATED] tags, NO inline "
+                "citation markup, NO raw URLs pasted into field values. This is structured data bound directly to "
+                "UI, not prose; sources are already tracked separately. Return ONLY the JSON, no markdown fences."
             )}],
         )
         tokens_used = _llm.count_tokens(raw)
@@ -406,6 +415,11 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
                     "Raised $12M Series A (Feb 2025)",
                     "Expanded to EU market (Mar 2025)",
                 ],
+                sources=[
+                    SourceLink(title=f"{request.company_name} — Official Website", url=f"https://{request.company_name.lower().replace(' ', '')}.com"),
+                    SourceLink(title=f"{request.company_name} raises $12M Series A", url="https://techcrunch.com/example-funding-announcement"),
+                    SourceLink(title=f"{request.company_name} Reviews", url="https://www.g2.com/products/example/reviews"),
+                ],
             ),
             scraped_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -418,6 +432,7 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
     year = datetime.now(timezone.utc).year
     url = request.company_url or f"https://{request.company_name.lower().replace(' ', '')}.com"
     company_name = request.company_name
+    homepage_is_real = bool(request.company_url)
 
     (
         results_features,
@@ -452,6 +467,22 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
         + _fmt(results_vs, "Competitors & Alternatives search")
     )
 
+    # Clean citation list for the profile — code-derived, never LLM-generated.
+    # Each entry keeps the search result's own title so the UI can show what a
+    # source is about instead of a bare URL.
+    all_search_results = (
+        results_features + results_funding + results_reviews
+        + results_news + results_jobs + results_vs
+    )
+    seen_urls: dict[str, str] = {}
+    if homepage_is_real:
+        seen_urls[url] = f"{company_name} — Official Website"
+    for r in all_search_results:
+        link = r.get("link")
+        if link and link not in seen_urls:
+            seen_urls[link] = r.get("title") or link
+    source_urls = [SourceLink(title=title, url=link) for link, title in list(seen_urls.items())[:8]]
+
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=True)
     raw = await _llm.complete(
         provider=_agent.default_provider, model=_agent.default_model,
@@ -460,7 +491,6 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
             f"Today is {today}. Build a comprehensive, structured company intelligence profile for: **{company_name}**\n\n"
             f"Homepage content:\n{scraped_content[:2500]}"
             f"{search_context}\n\n"
-            "Label every fact as [FACT], every inference as [INFERRED], every estimate as [ESTIMATED].\n\n"
             "Return JSON with exactly these fields:\n"
             "- name (string)\n"
             "- description (string — 2-3 sentence overview)\n"
@@ -468,18 +498,27 @@ async def research_company(request: ResearchCompanyRequest) -> ResearchCompanyRe
             "- team_size (string)\n"
             "- funding (string — total raised, stage, lead investors if known)\n"
             "- key_features (list of strings — 5-8 core product capabilities)\n"
-            "- pricing (dict of tier→price, e.g. {\"free\": \"$0\", \"pro\": \"$X/mo\"})\n"
+            "- pricing (dict of tier→price, e.g. {\"free\": \"$0\", \"pro\": \"$X/mo\"} — ONLY include this if "
+            "actual, real pricing was found in the homepage content or search results above. Many businesses "
+            "(retail chains, pharmacies, physical services, B2B without public pricing, etc.) do NOT have public "
+            "tiered pricing — do NOT invent typical SaaS-style tiers ('free'/'pro'/'enterprise') for them just to "
+            "fill the field. If no real pricing was found, return an empty object {}.)\n"
             "- target_market (string — ICP description)\n"
             "- strengths (list of strings — 3-5 competitive advantages)\n"
             "- weaknesses (list of strings — 3-5 gaps or vulnerabilities)\n"
             "- recent_news (list of strings — 3-5 most recent developments as of today)\n\n"
+            "IMPORTANT: every field value above must be clean plain text — NO [FACT]/[INFERRED]/[ESTIMATED] tags, "
+            "NO inline citation markup like brackets, NO raw URLs pasted inside a value (e.g. founded should read "
+            "like '2019', not '2019 [FACT] (https://...)'). This JSON is bound directly to UI display fields, not "
+            "prose. Do NOT include a 'sources' field — source tracking is handled separately by the caller.\n\n"
             "Return ONLY the JSON, no markdown fences."
         )}],
     )
     tokens_used = _llm.count_tokens(raw)
     try:
         data = safe_json_loads(raw)
-        profile = CompanyProfile(**data)
+        data.pop("sources", None)  # defense-in-depth: never trust LLM-provided sources
+        profile = CompanyProfile(**data, sources=source_urls)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to parse company profile — retry. ({exc})")
     return ResearchCompanyResponse(
@@ -562,7 +601,8 @@ async def trending_topics(request: TrendingTopicsRequest) -> TrendingTopicsRespo
                 "- content_angle: string — 2-3 sentences on a specific content angle: format, audience pain point, unique perspective\n"
                 "- content_hook: string — a punchy, ready-to-post headline or opening line (max 15 words)\n"
                 "- next_steps: array of 3–5 strings, each a concrete actionable step a founder should take THIS WEEK to act on this trend\n"
-                "Return ONLY the JSON array, no markdown fences."
+                "Every field value must be clean plain text — no [FACT]/[INFERRED]/[ESTIMATED] tags and no inline "
+                "URLs. Return ONLY the JSON array, no markdown fences."
             )}],
         )
         tokens_used = _llm.count_tokens(raw)
@@ -676,6 +716,8 @@ async def discover_competitors(request: DiscoverCompetitorsRequest) -> DiscoverC
             "- url: company website URL (string, must be a real, working URL)\n"
             "- why_competitive: 1 sentence explaining how they compete with the described business (string)\n"
             "- pricing_model: their pricing approach e.g. 'Freemium, $X/mo', 'Enterprise only', 'Usage-based' (string)\n\n"
+            "Keep why_competitive and pricing_model as clean plain text — no [FACT]/[INFERRED]/[ESTIMATED] tags and "
+            "no inline URLs; the url field above is the only citation needed per competitor. "
             "Prioritise real competitors a customer in the same market would actually consider. "
             "Do NOT default to US SaaS if a local or regional competitor exists. "
             "Only include real, verifiable companies. Return ONLY the JSON array, no markdown fences."

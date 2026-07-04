@@ -390,15 +390,6 @@ export interface MayaContentRegenResult {
 
 // ─── Scout ───────────────────────────────────────────────────────────────────
 
-export interface ScoutCompetitorWatch {
-  id: string
-  name: string
-  url: string
-  latestHash: string | null
-  lastScannedAt: string | null
-  createdAt: string
-}
-
 export interface ScoutResearchTopicRequest {
   topic: string
   depth?: "quick" | "standard" | "deep"
@@ -425,6 +416,11 @@ export interface ScoutResearchCompanyRequest {
   company_url?: string
 }
 
+export interface ScoutSourceLink {
+  title: string
+  url: string
+}
+
 export interface CompanyProfile {
   name: string
   description: string
@@ -437,6 +433,7 @@ export interface CompanyProfile {
   strengths: string[]
   weaknesses: string[]
   recent_news: string[]
+  sources?: ScoutSourceLink[]
 }
 
 export interface ScoutResearchCompanyResult {

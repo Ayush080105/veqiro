@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Bookmark, Brain, MapPin, Plus, X } from "lucide-react"
+import { Brain, MapPin, Plus, X } from "lucide-react"
 import { useFieldArray } from "react-hook-form"
 
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,6 @@ import { StringListInput, FormRow } from "@/components/chat/ActionForm/fields"
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
 import { cn } from "@/lib/utils"
-import { useCompetitorWatches } from "@/lib/api/scout"
 import type {
   ScoutDiscoverCompetitorsRequest,
 } from "@/lib/types/agents"
@@ -270,8 +269,6 @@ export function ScoutDiscoverCompetitorsForm({
   value: ScoutDiscoverCompetitorsRequest
   onChange: (patch: Partial<ScoutDiscoverCompetitorsRequest>) => void
 }) {
-  const { data: saved = [] } = useCompetitorWatches()
-
   return (
     <>
       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -293,12 +290,6 @@ export function ScoutDiscoverCompetitorsForm({
           onChange={(e) => onChange({ count: Number(e.target.value) })}
         />
       </FormRow>
-      {saved.length > 0 && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Bookmark className="size-3" />
-          {saved.length} competitor{saved.length !== 1 ? "s" : ""} already in your watchlist
-        </p>
-      )}
     </>
   )
 }

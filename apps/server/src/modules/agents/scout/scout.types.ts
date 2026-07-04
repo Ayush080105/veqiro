@@ -51,6 +51,11 @@ export interface ResearchTopicResponse {
   model_used?: string;
 }
 
+export interface SourceLink {
+  title: string;
+  url: string;
+}
+
 export interface CompanyProfile {
   name: string;
   description: string;
@@ -63,6 +68,7 @@ export interface CompanyProfile {
   strengths: string[];
   weaknesses: string[];
   recent_news: string[];
+  sources: SourceLink[];
 }
 
 export interface ResearchCompanyResponse {
