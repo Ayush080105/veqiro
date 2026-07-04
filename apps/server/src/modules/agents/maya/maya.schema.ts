@@ -112,10 +112,25 @@ export const publishSchema = z
     hashtags: z.array(z.string()).max(30).optional().default([]),
     imageUrl: z.string().url().optional(),
     imageBase64: z.string().optional(),
+    videoUrl: z.string().url().optional(),
+    videoBase64: z.string().optional(),
+    postType: z.enum(["post", "reel"]).optional(),
   })
   .refine(
     (v) => !(v.imageBase64 && v.imageUrl),
     "Provide either imageUrl or imageBase64, not both"
+  )
+  .refine(
+    (v) => !(v.videoBase64 && v.videoUrl),
+    "Provide either videoUrl or videoBase64, not both"
+  )
+  .refine(
+    (v) => !((v.imageUrl || v.imageBase64) && (v.videoUrl || v.videoBase64)),
+    "Provide either an image or a video, not both"
+  )
+  .refine(
+    (v) => Boolean(v.imageUrl || v.imageBase64 || v.videoUrl || v.videoBase64),
+    "Provide an image or a video to publish"
   );
 
 export const publishCarouselSchema = z.object({

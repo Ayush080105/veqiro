@@ -121,15 +121,16 @@ interface InstagramMetadata {
 
 // Polls the container's status_code until IG has finished ingesting the
 // staged media. Returns once status is FINISHED; throws on EXPIRED/ERROR
-// or after the timeout. Image containers usually settle in <5s; we cap at
-// 60s to stay well under Meta's 24h container TTL while not hanging on
-// hot-loop failures.
+// or after the timeout. Image containers usually settle in <5s, so the
+// default 60s cap stays well under Meta's 24h container TTL without hanging
+// on hot-loop failures. Video/Reels ingestion is much slower, so callers pass
+// a longer timeoutMs for those.
 const waitForContainerReady = async (
   containerId: string,
   accessToken: string,
+  timeoutMs = 60_000,
 ): Promise<void> => {
   const start = Date.now();
-  const timeoutMs = 60_000;
   const intervalMs = 1500;
   while (Date.now() - start < timeoutMs) {
     const res = await fetch(
@@ -176,7 +177,12 @@ const signCloudinaryParams = (
   return createHash("sha1").update(sorted + apiSecret).digest("hex");
 };
 
-const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
+const stageMediaForMeta = async (
+  sourceUrl: string,
+  resourceType: "image" | "video",
+  defaultContentType: string,
+  defaultFilename: string,
+): Promise<string> => {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
@@ -189,12 +195,12 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   const sourceRes = await fetch(sourceUrl);
   if (!sourceRes.ok) {
     throw new Error(
-      `Failed to fetch image for IG staging: ${sourceRes.status} ${sourceUrl}`,
+      `Failed to fetch ${resourceType} for IG staging: ${sourceRes.status} ${sourceUrl}`,
     );
   }
   const buffer = Buffer.from(await sourceRes.arrayBuffer());
-  const contentType = sourceRes.headers.get("content-type") ?? "image/jpeg";
-  const filename = new URL(sourceUrl).pathname.split("/").pop() || "image.jpg";
+  const contentType = sourceRes.headers.get("content-type") ?? defaultContentType;
+  const filename = new URL(sourceUrl).pathname.split("/").pop() || defaultFilename;
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const signedParams: Record<string, string> = {
@@ -215,7 +221,7 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   form.append("signature", signature);
 
   const uploadRes = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     { method: "POST", body: form },
   );
   if (!uploadRes.ok) {
@@ -229,6 +235,14 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   }
   return json.secure_url;
 };
+
+const stageImageForMeta = (sourceUrl: string): Promise<string> =>
+  stageMediaForMeta(sourceUrl, "image", "image/jpeg", "image.jpg");
+
+// Video ingestion is much slower than image ingestion on Meta's side, so
+// callers must pass a longer waitForContainerReady timeout after staging.
+const stageVideoForMeta = (sourceUrl: string): Promise<string> =>
+  stageMediaForMeta(sourceUrl, "video", "video/mp4", "video.mp4");
 
 export const instagram: SocialProvider = {
   platform: SocialPlatform.INSTAGRAM,
@@ -352,9 +366,9 @@ export const instagram: SocialProvider = {
     };
   },
 
-  async publish({ account, caption, imageUrl }: PublishArgs): Promise<PublishResult> {
-    if (!imageUrl) {
-      throw new Error("Instagram publishing requires an image URL");
+  async publish({ account, caption, imageUrl, videoUrl, postType }: PublishArgs): Promise<PublishResult> {
+    if (!imageUrl && !videoUrl) {
+      throw new Error("Instagram publishing requires an image or video URL");
     }
 
     const meta = (account.metadata ?? {}) as InstagramMetadata;
@@ -367,17 +381,32 @@ export const instagram: SocialProvider = {
     // *.ngrok-free.app, *.trycloudflare.com. Combinations that succeed:
     // images.unsplash.com, cdnjs.cloudflare.com, files.catbox.moe.
     //
-    // Workaround: stage the image to a Meta-trusted host (catbox.moe is free,
-    // anonymous, and accepts the bytes our R2 hosts) right before publish.
-    // Catbox auto-cleans unused uploads, so no GC needed on our side.
-    const stagedUrl = await stageImageForMeta(imageUrl);
+    // Workaround: stage the media to a Meta-trusted host right before publish
+    // (Cloudinary accepts the bytes our R2 hosts). No GC needed — Cloudinary
+    // keeps the staged copy, unlike the catbox/litterbox hosts tried earlier.
+    let createBody: URLSearchParams;
+    let containerTimeoutMs: number | undefined;
+    if (videoUrl) {
+      const stagedUrl = await stageVideoForMeta(videoUrl);
+      createBody = new URLSearchParams({
+        video_url: stagedUrl,
+        media_type: postType === "post" ? "VIDEO" : "REELS",
+        caption,
+        access_token: account.accessToken,
+      });
+      // Video ingestion is much slower than image ingestion — give it 5
+      // minutes instead of the 60s image default.
+      containerTimeoutMs = 300_000;
+    } else {
+      const stagedUrl = await stageImageForMeta(imageUrl!);
+      createBody = new URLSearchParams({
+        image_url: stagedUrl,
+        caption,
+        access_token: account.accessToken,
+      });
+    }
 
     // 1. Create media container
-    const createBody = new URLSearchParams({
-      image_url: stagedUrl,
-      caption,
-      access_token: account.accessToken,
-    });
     const createRes = await fetch(MEDIA_URL(igUserId), {
       method: "POST",
       body: createBody,
@@ -388,11 +417,11 @@ export const instagram: SocialProvider = {
     }
     const { id: creationId } = (await createRes.json()) as { id: string };
 
-    // 2. Wait for IG to finish ingesting the staged image. Calling
+    // 2. Wait for IG to finish ingesting the staged media. Calling
     //    /media_publish too soon returns code 9007 / subcode 2207027
     //    "Media ID is not available". Per Meta docs, poll
     //    /<container-id>?fields=status_code until FINISHED.
-    await waitForContainerReady(creationId, account.accessToken);
+    await waitForContainerReady(creationId, account.accessToken, containerTimeoutMs);
 
     // 3. Publish container
     const publishBody = new URLSearchParams({

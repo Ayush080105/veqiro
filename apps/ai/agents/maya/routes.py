@@ -1750,6 +1750,36 @@ async def generate_video_endpoint(request: GenerateVideoRequest):
     return GenerateVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
 
 
+def _build_campaign_video_concept(
+    campaign_brief: str,
+    brand_kit,
+    num_images: int,
+) -> str:
+    """Build the video concept for a campaign video. Unlike _build_campaign_style_lock
+    (a photography lighting/consistency spec built for N still photos sharing one look),
+    this keeps the campaign brief front and center so the narrative-planning LLM grounds
+    its visual metaphor and reveal in what the brief actually asks for, and is told to use
+    every reference image — not a rigid lighting/grading template that biases the result
+    toward a generic "product floating in a clean studio" shot."""
+    parts = [
+        f"Turn these {num_images} reference product image(s) into a short cinematic "
+        f"product campaign video. Ground every part of the narrative — the visual "
+        f"metaphor and the product reveal — in specific, real details drawn from ALL of "
+        f"the reference images provided, not just one of them.",
+        f"CAMPAIGN BRIEF (the narrative and visual metaphor must be built around exactly "
+        f"what this asks for): {campaign_brief}",
+    ]
+    if brand_kit and brand_kit.brand_voice:
+        parts.append(f"Brand voice: {brand_kit.brand_voice}.")
+    if brand_kit and brand_kit.brand_colors:
+        color_parts = [f"{k}: {v}" for k, v in brand_kit.brand_colors.items() if v]
+        if color_parts:
+            parts.append(f"Brand colour palette (reflect in grading where it fits the category): {', '.join(color_parts)}.")
+    if brand_kit and brand_kit.target_audience:
+        parts.append(f"Target audience: {brand_kit.target_audience}.")
+    return "\n\n".join(parts)
+
+
 @router.post("/campaign-video", response_model=CampaignVideoResponse)
 async def campaign_video_endpoint(request: CampaignVideoRequest):
     brand_kit = None
@@ -1759,14 +1789,8 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
         except Exception as bk_err:
             logger.warning("campaign-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
 
-    style_lock = await _build_campaign_style_lock(
-        request.campaign_brief, brand_kit, request.platform,
-        product_image_url=request.product_image_urls[0],
-    )
-    concept = (
-        f"Turn these product photos into a short cinematic product campaign video.\n\n"
-        f"{style_lock}\n\n"
-        f"CAMPAIGN BRIEF: {request.campaign_brief}"
+    concept = _build_campaign_video_concept(
+        request.campaign_brief, brand_kit, len(request.product_image_urls),
     )
 
     product_images: list[tuple[bytes, str]] = []

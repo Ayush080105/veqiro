@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { AgentCard } from "@/components/ui/agent-card"
 import { ChatImage } from "@/components/chat/ChatImage"
 import { ActionRow } from "@/components/ui/action-row"
@@ -1048,11 +1049,15 @@ export function CampaignResultCard({
 export function VideoResultCard({
   result,
   title,
+  platform,
 }: {
   result: MayaGenerateVideoResult | MayaCampaignVideoResult
   title?: string
+  platform?: ContentPlatform | string | null
 }) {
   const src = videoSrc(result?.video)
+  const [captionBody, setCaptionBody] = React.useState(result?.caption?.body ?? "")
+
   if (!src) return null
 
   return (
@@ -1066,11 +1071,12 @@ export function VideoResultCard({
           className="w-full rounded"
           style={{ maxHeight: 480, background: "#000" }}
         />
-        {result.video?.prompt_used && (
-          <p className="text-[10px] italic text-muted-foreground">
-            Prompt: {result.video.prompt_used}
-          </p>
-        )}
+        <Textarea
+          value={captionBody}
+          onChange={(e) => setCaptionBody(e.target.value)}
+          placeholder="Write a caption for this video…"
+          className="text-xs"
+        />
       </AgentCard.Body>
       <AgentCard.Footer>
         <Button variant="chat-utility" asChild>
@@ -1078,6 +1084,12 @@ export function VideoResultCard({
             <Download className="size-3" /> Download
           </a>
         </Button>
+        <PublishDialog
+          platform={platform}
+          caption={captionBody}
+          hashtags={result.caption?.hashtags ?? []}
+          video={result.video}
+        />
       </AgentCard.Footer>
     </AgentCard>
   )

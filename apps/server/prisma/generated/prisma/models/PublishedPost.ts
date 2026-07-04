@@ -33,6 +33,7 @@ export type PublishedPostMinAggregateOutputType = {
   platformPostId: string | null
   caption: string | null
   imageUrl: string | null
+  videoUrl: string | null
   status: string | null
   error: string | null
   publishedAt: Date | null
@@ -48,6 +49,7 @@ export type PublishedPostMaxAggregateOutputType = {
   platformPostId: string | null
   caption: string | null
   imageUrl: string | null
+  videoUrl: string | null
   status: string | null
   error: string | null
   publishedAt: Date | null
@@ -64,6 +66,7 @@ export type PublishedPostCountAggregateOutputType = {
   caption: number
   hashtags: number
   imageUrl: number
+  videoUrl: number
   status: number
   error: number
   publishedAt: number
@@ -81,6 +84,7 @@ export type PublishedPostMinAggregateInputType = {
   platformPostId?: true
   caption?: true
   imageUrl?: true
+  videoUrl?: true
   status?: true
   error?: true
   publishedAt?: true
@@ -96,6 +100,7 @@ export type PublishedPostMaxAggregateInputType = {
   platformPostId?: true
   caption?: true
   imageUrl?: true
+  videoUrl?: true
   status?: true
   error?: true
   publishedAt?: true
@@ -112,6 +117,7 @@ export type PublishedPostCountAggregateInputType = {
   caption?: true
   hashtags?: true
   imageUrl?: true
+  videoUrl?: true
   status?: true
   error?: true
   publishedAt?: true
@@ -201,6 +207,7 @@ export type PublishedPostGroupByOutputType = {
   caption: string
   hashtags: string[]
   imageUrl: string | null
+  videoUrl: string | null
   status: string
   error: string | null
   publishedAt: Date | null
@@ -238,6 +245,7 @@ export type PublishedPostWhereInput = {
   caption?: Prisma.StringFilter<"PublishedPost"> | string
   hashtags?: Prisma.StringNullableListFilter<"PublishedPost">
   imageUrl?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
+  videoUrl?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   status?: Prisma.StringFilter<"PublishedPost"> | string
   error?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
@@ -255,6 +263,7 @@ export type PublishedPostOrderByWithRelationInput = {
   caption?: Prisma.SortOrder
   hashtags?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  videoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -275,6 +284,7 @@ export type PublishedPostWhereUniqueInput = Prisma.AtLeast<{
   caption?: Prisma.StringFilter<"PublishedPost"> | string
   hashtags?: Prisma.StringNullableListFilter<"PublishedPost">
   imageUrl?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
+  videoUrl?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   status?: Prisma.StringFilter<"PublishedPost"> | string
   error?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
@@ -292,6 +302,7 @@ export type PublishedPostOrderByWithAggregationInput = {
   caption?: Prisma.SortOrder
   hashtags?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  videoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -314,6 +325,7 @@ export type PublishedPostScalarWhereWithAggregatesInput = {
   caption?: Prisma.StringWithAggregatesFilter<"PublishedPost"> | string
   hashtags?: Prisma.StringNullableListFilter<"PublishedPost">
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"PublishedPost"> | string | null
+  videoUrl?: Prisma.StringNullableWithAggregatesFilter<"PublishedPost"> | string | null
   status?: Prisma.StringWithAggregatesFilter<"PublishedPost"> | string
   error?: Prisma.StringNullableWithAggregatesFilter<"PublishedPost"> | string | null
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"PublishedPost"> | Date | string | null
@@ -329,6 +341,7 @@ export type PublishedPostCreateInput = {
   caption: string
   hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
   imageUrl?: string | null
+  videoUrl?: string | null
   status?: string
   error?: string | null
   publishedAt?: Date | string | null
@@ -346,6 +359,7 @@ export type PublishedPostUncheckedCreateInput = {
   caption: string
   hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
   imageUrl?: string | null
+  videoUrl?: string | null
   status?: string
   error?: string | null
   publishedAt?: Date | string | null
@@ -361,6 +375,7 @@ export type PublishedPostUpdateInput = {
   caption?: Prisma.StringFieldUpdateOperationsInput | string
   hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -378,6 +393,7 @@ export type PublishedPostUncheckedUpdateInput = {
   caption?: Prisma.StringFieldUpdateOperationsInput | string
   hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -394,6 +410,7 @@ export type PublishedPostCreateManyInput = {
   caption: string
   hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
   imageUrl?: string | null
+  videoUrl?: string | null
   status?: string
   error?: string | null
   publishedAt?: Date | string | null
@@ -409,6 +426,7 @@ export type PublishedPostUpdateManyMutationInput = {
   caption?: Prisma.StringFieldUpdateOperationsInput | string
   hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -425,6 +443,7 @@ export type PublishedPostUncheckedUpdateManyInput = {
   caption?: Prisma.StringFieldUpdateOperationsInput | string
   hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -459,6 +478,7 @@ export type PublishedPostCountOrderByAggregateInput = {
   caption?: Prisma.SortOrder
   hashtags?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  videoUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
@@ -474,6 +494,7 @@ export type PublishedPostMaxOrderByAggregateInput = {
   platformPostId?: Prisma.SortOrder
   caption?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  videoUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
@@ -489,6 +510,7 @@ export type PublishedPostMinOrderByAggregateInput = {
   platformPostId?: Prisma.SortOrder
   caption?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  videoUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
@@ -555,6 +577,7 @@ export type PublishedPostCreateWithoutSocialAccountInput = {
   caption: string
   hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
   imageUrl?: string | null
+  videoUrl?: string | null
   status?: string
   error?: string | null
   publishedAt?: Date | string | null
@@ -570,6 +593,7 @@ export type PublishedPostUncheckedCreateWithoutSocialAccountInput = {
   caption: string
   hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
   imageUrl?: string | null
+  videoUrl?: string | null
   status?: string
   error?: string | null
   publishedAt?: Date | string | null
@@ -615,6 +639,7 @@ export type PublishedPostScalarWhereInput = {
   caption?: Prisma.StringFilter<"PublishedPost"> | string
   hashtags?: Prisma.StringNullableListFilter<"PublishedPost">
   imageUrl?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
+  videoUrl?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   status?: Prisma.StringFilter<"PublishedPost"> | string
   error?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
@@ -630,6 +655,7 @@ export type PublishedPostCreateManySocialAccountInput = {
   caption: string
   hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
   imageUrl?: string | null
+  videoUrl?: string | null
   status?: string
   error?: string | null
   publishedAt?: Date | string | null
@@ -645,6 +671,7 @@ export type PublishedPostUpdateWithoutSocialAccountInput = {
   caption?: Prisma.StringFieldUpdateOperationsInput | string
   hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -660,6 +687,7 @@ export type PublishedPostUncheckedUpdateWithoutSocialAccountInput = {
   caption?: Prisma.StringFieldUpdateOperationsInput | string
   hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -675,6 +703,7 @@ export type PublishedPostUncheckedUpdateManyWithoutSocialAccountInput = {
   caption?: Prisma.StringFieldUpdateOperationsInput | string
   hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -693,6 +722,7 @@ export type PublishedPostSelect<ExtArgs extends runtime.Types.Extensions.Interna
   caption?: boolean
   hashtags?: boolean
   imageUrl?: boolean
+  videoUrl?: boolean
   status?: boolean
   error?: boolean
   publishedAt?: boolean
@@ -710,6 +740,7 @@ export type PublishedPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   caption?: boolean
   hashtags?: boolean
   imageUrl?: boolean
+  videoUrl?: boolean
   status?: boolean
   error?: boolean
   publishedAt?: boolean
@@ -727,6 +758,7 @@ export type PublishedPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   caption?: boolean
   hashtags?: boolean
   imageUrl?: boolean
+  videoUrl?: boolean
   status?: boolean
   error?: boolean
   publishedAt?: boolean
@@ -744,13 +776,14 @@ export type PublishedPostSelectScalar = {
   caption?: boolean
   hashtags?: boolean
   imageUrl?: boolean
+  videoUrl?: boolean
   status?: boolean
   error?: boolean
   publishedAt?: boolean
   createdAt?: boolean
 }
 
-export type PublishedPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "socialAccountId" | "platform" | "platformPostId" | "caption" | "hashtags" | "imageUrl" | "status" | "error" | "publishedAt" | "createdAt", ExtArgs["result"]["publishedPost"]>
+export type PublishedPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "socialAccountId" | "platform" | "platformPostId" | "caption" | "hashtags" | "imageUrl" | "videoUrl" | "status" | "error" | "publishedAt" | "createdAt", ExtArgs["result"]["publishedPost"]>
 export type PublishedPostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   socialAccount?: boolean | Prisma.PublishedPost$socialAccountArgs<ExtArgs>
 }
@@ -806,6 +839,10 @@ export type $PublishedPostPayload<ExtArgs extends runtime.Types.Extensions.Inter
      * Optional image URL used in the post.
      */
     imageUrl: string | null
+    /**
+     * Optional video URL used in the post.
+     */
+    videoUrl: string | null
     /**
      * Publish status such as pending, success, or failed.
      */
@@ -1255,6 +1292,7 @@ export interface PublishedPostFieldRefs {
   readonly caption: Prisma.FieldRef<"PublishedPost", 'String'>
   readonly hashtags: Prisma.FieldRef<"PublishedPost", 'String[]'>
   readonly imageUrl: Prisma.FieldRef<"PublishedPost", 'String'>
+  readonly videoUrl: Prisma.FieldRef<"PublishedPost", 'String'>
   readonly status: Prisma.FieldRef<"PublishedPost", 'String'>
   readonly error: Prisma.FieldRef<"PublishedPost", 'String'>
   readonly publishedAt: Prisma.FieldRef<"PublishedPost", 'DateTime'>

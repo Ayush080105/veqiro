@@ -1254,8 +1254,15 @@ export interface MayaGenerateVideoRequest {
   use_logo: boolean
 }
 
+export interface VideoCaption {
+  body: string
+  hashtags: string[]
+  cta?: string
+}
+
 export interface MayaGenerateVideoResult {
   video: VideoResult
+  caption?: VideoCaption | null
   tokens_used?: number
   model_used?: string
 }
@@ -1271,6 +1278,7 @@ export interface MayaCampaignVideoRequest {
 
 export interface MayaCampaignVideoResult {
   video: VideoResult
+  caption?: VideoCaption | null
   tokens_used?: number
   model_used?: string
 }

@@ -25,29 +25,80 @@ _PRODUCT_FIDELITY_GUARDRAIL = (
 )
 
 _SCENE_PLAN_SYSTEM = f"""\
-You are a professional short-form video director planning shots for an AI video generator.
-Output ONLY a timestamped shot list — no preamble, no markdown fences, no commentary.
+You are an award-winning commercial director and cinematographer writing a single
+continuous action description for a world-class, premium AI-generated video advertisement.
+Output ONLY that description — no preamble, no markdown, no headings, no shot numbers, and
+NEVER any timestamps or time ranges (do not write things like "0-2s:", "first half", "at
+the 3 second mark", etc.).
 
-Format: one line per shot, e.g. "0-2s: <what happens, camera move, framing>".
+Write it as one flowing, richly specific passage of natural language — the way a skilled
+director would narrate a continuous take to a cinematographer. Use concrete, vivid
+production vocabulary throughout: specific camera work, specific lighting, specific
+texture/material detail, and specific color and mood. Always choose the most vivid,
+concrete word available — never vague or generic language.
+
+Choose the visual style, lighting, mood, and pacing that genuinely fit THIS product/
+category and brief — do not default to one fixed "luxury/glamour" look for everything.
+For example: a pharmaceutical or health product calls for clinical precision, trustworthy
+scientific visualization, and calm reassurance, not perfume-ad glamour or opulent jewelry
+lighting. A fragrance or luxury good calls for glamour and opulence. A tech product calls
+for clean, minimal, futuristic precision. A food product calls for warm, appetizing,
+tactile detail. Infer the right register from the concept below and commit to it fully —
+never let one generic "premium cinematic" template override what the concept actually
+calls for.
+
+Where the concept describes a specific problem, benefit, or process (e.g. a health
+condition, a use case, an emotional pain point), invent one clear visual metaphor that
+dramatizes exactly that — grounded in what the concept literally asks for, not a generic
+substitute (e.g. if the concept is about a digestive or internal process, show that
+process and the product visibly resolving it — do not fall back to a generic "product
+floating in a clean studio" shot instead). Ground the metaphor in plausible physical
+imagery; never depict impossible effects or make exaggerated, false, or misleading claims
+about what the product/service actually does — symbolize the benefit, don't overstate it.
+
+Always build toward a clear reveal of the product/subject, in whatever register fits its
+category and mood, ending on a sharp, well-composed final shot. If reference images are
+provided, every detail of the real subject's appearance, packaging, logo, typography,
+color, and proportions — drawn from ALL of the images provided, not just one — must be
+reproduced with total fidelity, never redesigned, simplified, or altered.
+
+DIALOGUE & ON-SCREEN SPEECH: Only include spoken dialogue or on-screen speech if the
+concept genuinely calls for it — never invent a line just to have one. When you do include
+one, keep it to a single short, natural line — a handful of words, not a full sentence — so
+it can be spoken completely and land before the video ends, with clear time left on either
+side for the visual setup and the closing/reveal beat. Natural speech runs roughly 2-3
+words per second, so a 4-6 second video only has room for a very short phrase (about 3-6
+words); even at 8-10 seconds, keep it to one short sentence at most — never a full
+paragraph or multiple exchanges. Fold the line into the flowing narrative exactly as a
+director would describe it being delivered in the moment (e.g. "...she exhales and says,
+'Relief, finally.'") — never introduce it as a separate timed cue (no "at 3 seconds she
+says..." phrasing).
 
 Rules:
-- Shots must sum EXACTLY to the target duration — no gaps, no overrun.
-- Structure: one opening establishing beat, one or two development beats, and a clear
-  closing beat that deliberately resolves the action (a settle, a hold, a button moment).
-  The video must never end mid-action or feel like it was cut off abruptly — it must play
-  like a complete, self-contained ad with a beginning, middle, and end.
-- Each shot description must be concrete and filmable: camera position/move, subject
-  action, framing. No abstract language.
-- Keep continuity — the subject, setting, and style stay consistent across shots unless
-  the concept explicitly calls for a scene change.
+- The video must feel like a complete, self-contained piece with a clear beginning, a
+  middle development, and a deliberate closing beat that resolves the action (a settle, a
+  hold, a button moment, dialogue reaching its final line). It must never end mid-action,
+  mid-sentence, or feel cut off, no matter how short the target duration is.
+- Any dialogue or on-screen speech must be short enough to finish completely and
+  naturally within the runtime — never trail off, get cut short, or leave a line
+  unfinished.
+- Keep continuity — the subject, setting, and style stay consistent throughout unless the
+  concept explicitly calls for a scene change.
+- End your description with one final line starting with "Style:" listing comma-separated
+  production/technical descriptors that match THIS concept's actual category and mood (not
+  a fixed luxury template) — e.g. clinical and trustworthy medical visualization for a
+  health product, or hyper-realistic glamour lighting for a fragrance — plus any fidelity
+  constraints that apply (e.g. preserve every logo, color, texture, and design element
+  exactly as provided, across all reference images; no misleading or exaggerated claims).
 
 {_TEXT_ACCURACY_GUARDRAIL}
 """
 
 _SCENE_PLAN_SYSTEM_WITH_IMAGE = _SCENE_PLAN_SYSTEM + f"""
 You are given one or more reference images of the actual product/subject, optionally from
-different angles. Ground every shot in exactly what you see — do not invent or guess at
-details the images don't clearly show.
+different angles. Ground every part of the narrative in exactly what you see — across ALL
+of the images provided, not just the first one — and do not invent or guess at details
+none of the images clearly show.
 
 {_PRODUCT_FIDELITY_GUARDRAIL}
 """
@@ -73,7 +124,8 @@ def build_video_prompt(
     """Enrich a raw user prompt with brand voice/tone context for text-to-video generation."""
     tone = get_platform_tone(brand_kit, platform) if brand_kit else None
     parts = [
-        "Cinematic short-form social video, smooth camera motion, professional lighting.",
+        "Professional short-form commercial video. Camera work, lighting, and mood should "
+        "match the product category and concept described below — not a fixed template.",
         f"Scene: {prompt}",
     ]
     if tone:
@@ -102,25 +154,25 @@ async def plan_video_scenes(
     aspect_ratio: str,
     platform: str,
 ) -> str:
-    """Break a video concept into a timed shot list so the generated video fills the
-    full target duration with a deliberate ending instead of cutting off abruptly."""
+    """Turn a video concept into one continuous natural-language narrative (no
+    timestamps or shot labels) so the generated video fills the full target duration
+    with a deliberate ending instead of cutting off abruptly."""
     prompt = (
         f"Video concept: {concept}\n"
-        f"Target duration: exactly {duration_seconds} seconds.\n"
+        f"This video will run for exactly {duration_seconds} seconds — write a narrative "
+        f"that naturally fills that time and reaches a satisfying, resolved conclusion by "
+        f"the end. Do not mention seconds, timestamps, or any timing markers anywhere in "
+        f"your description.\n"
         f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
     )
-    shot_list = await llm.complete(
+    narrative = await llm.complete(
         *GEMINI_FLASH,
         system=_SCENE_PLAN_SYSTEM,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7,
-        max_tokens=500,
+        max_tokens=1000,
     )
-    return (
-        f"{concept}\n\n"
-        f"Shot-by-shot timeline (follow exactly, total runtime {duration_seconds}s):\n"
-        f"{shot_list.strip()}"
-    )
+    return f"{concept}\n\n{narrative.strip()}"
 
 
 async def plan_video_scenes_with_images(
@@ -131,29 +183,28 @@ async def plan_video_scenes_with_images(
     aspect_ratio: str,
     platform: str,
 ) -> str:
-    """Same as plan_video_scenes, but grounds the shot list in one or more reference
-    images (e.g. product photos from different angles) so shots describe the real
-    subject, not a guessed one. Do not pass the brand logo here — this is for the
+    """Same as plan_video_scenes, but grounds the narrative in one or more reference
+    images (e.g. product photos from different angles) so the description matches the
+    real subject, not a guessed one. Do not pass the brand logo here — this is for the
     product/subject references only; logo compositing is handled separately."""
     prompt = (
         f"Video concept: {concept}\n"
-        f"Target duration: exactly {duration_seconds} seconds.\n"
+        f"This video will run for exactly {duration_seconds} seconds — write a narrative "
+        f"that naturally fills that time and reaches a satisfying, resolved conclusion by "
+        f"the end. Do not mention seconds, timestamps, or any timing markers anywhere in "
+        f"your description.\n"
         f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
     )
     full_prompt = f"{_SCENE_PLAN_SYSTEM_WITH_IMAGE}\n\n{prompt}"
     if len(images) == 1:
-        shot_list = await llm.complete_with_vision(
+        narrative = await llm.complete_with_vision(
             file_bytes=images[0][0],
             prompt=full_prompt,
             mime_type=images[0][1],
         )
     else:
-        shot_list = await llm.complete_with_vision_multi(files=images, prompt=full_prompt)
-    return (
-        f"{concept}\n\n"
-        f"Shot-by-shot timeline (follow exactly, total runtime {duration_seconds}s):\n"
-        f"{shot_list.strip()}"
-    )
+        narrative = await llm.complete_with_vision_multi(files=images, prompt=full_prompt)
+    return f"{concept}\n\n{narrative.strip()}"
 
 
 async def generate_maya_video(

@@ -554,12 +554,30 @@ export const publish = async (
     imageUrl = uploaded.url;
   }
 
+  let videoUrl = input.videoUrl;
+  if (!videoUrl && input.videoBase64) {
+    if (!isR2Configured()) {
+      throw new BadRequestError(
+        "Video hosting is not configured. Set R2_* env vars or pass videoUrl directly."
+      );
+    }
+    const uploaded = await uploadBuffer({
+      organizationId,
+      name: "maya-publish",
+      buffer: Buffer.from(input.videoBase64, "base64"),
+      contentType: "video/mp4",
+      extension: "mp4",
+      category: "videos",
+    });
+    videoUrl = uploaded.url;
+  }
+
   let { account: activeAccount, provider, platform } =
     await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
 
-  // Pre-flight: some platforms demand an image
-  if (activeAccount.platform === SocialPlatform.INSTAGRAM && !imageUrl) {
-    throw new BadRequestError("Instagram publishing requires an image");
+  // Pre-flight: every platform demands some media to publish
+  if (!imageUrl && !videoUrl) {
+    throw new BadRequestError("Publishing requires an image or video");
   }
 
   // Hashtags can arrive from the LLM with or without a leading `#`, with stray
@@ -584,6 +602,7 @@ export const publish = async (
       caption,
       hashtags: input.hashtags ?? [],
       imageUrl,
+      videoUrl,
       status: "pending",
     },
   });
@@ -596,6 +615,8 @@ export const publish = async (
         account: activeAccount,
         caption,
         imageUrl,
+        videoUrl,
+        postType: input.postType,
       });
       platformPostId = result.platformPostId;
       url = result.url;
@@ -609,6 +630,8 @@ export const publish = async (
         account: activeAccount,
         caption,
         imageUrl,
+        videoUrl,
+        postType: input.postType,
       });
       platformPostId = result.platformPostId;
       url = result.url;
@@ -902,6 +925,35 @@ export const createCampaign = async (
   return result;
 };
 
+const draftVideoCaption = async (
+  userId: string,
+  organizationId: string,
+  topic: string,
+  platform: GenerateVideoInput["platform"]
+): Promise<CampaignCaption | null> => {
+  try {
+    const { data: d } = await aiService.post<DraftResponse>("/ai/maya/draft-content", {
+      user_id: userId,
+      organization_id: organizationId,
+      topic: topic.slice(0, 490),
+      platform,
+      tone_override: null,
+      word_count_target: 150,
+      include_image: false,
+      use_logo: false,
+      use_mascot: false,
+      additional_context: topic.length > 490 ? topic.slice(0, 1000) : null,
+      from_rex: false,
+      use_reference: false,
+      reference_images: [],
+      brand_images: [],
+    });
+    return { body: d.draft.body, hashtags: d.draft.hashtags, cta: d.draft.cta || undefined };
+  } catch {
+    return null;
+  }
+};
+
 export const generateVideo = async (
   userId: string,
   organizationId: string,
@@ -915,27 +967,31 @@ export const generateVideo = async (
     customInput: { actionId: "maya:generate-video", input },
   });
 
-  const data = await callAgentWithContext<GenerateVideoResponse>({
-    agentApiPath: "/ai/maya/generate-video",
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    userId,
-    organizationId,
-    conversationId: userMsg.id,
-    userMessage: `Generate video on ${input.platform}: ${input.prompt.slice(0, 120)}`,
-    rawHistory: history,
-    topLevelPayload: {
-      prompt: input.prompt,
-      platform: input.platform,
-      aspect_ratio: input.aspectRatio,
-      duration_seconds: input.durationSeconds,
-      use_logo: input.useLogo,
-    },
-  });
+  const [data, caption] = await Promise.all([
+    callAgentWithContext<GenerateVideoResponse>({
+      agentApiPath: "/ai/maya/generate-video",
+      agentEnum: Agent.MAYA,
+      agentRole: "Maya: Social media content creation assistant",
+      userId,
+      organizationId,
+      conversationId: userMsg.id,
+      userMessage: `Generate video on ${input.platform}: ${input.prompt.slice(0, 120)}`,
+      rawHistory: history,
+      topLevelPayload: {
+        prompt: input.prompt,
+        platform: input.platform,
+        aspect_ratio: input.aspectRatio,
+        duration_seconds: input.durationSeconds,
+        use_logo: input.useLogo,
+      },
+    }),
+    draftVideoCaption(userId, organizationId, input.prompt, input.platform),
+  ]);
 
   const result: GenerateVideoResponse = {
     ...data,
     video: (await hostVideo(organizationId, data.video)) ?? data.video,
+    caption,
   };
 
   await mayaRepository.createAssistantMessage({
@@ -963,28 +1019,32 @@ export const createCampaignVideo = async (
     customInput: { actionId: "maya:campaign-video", input },
   });
 
-  const data = await callAgentWithContext<CampaignVideoResponse>({
-    agentApiPath: "/ai/maya/campaign-video",
-    agentEnum: Agent.MAYA,
-    agentRole: "Maya: Social media content creation assistant",
-    userId,
-    organizationId,
-    conversationId: userMsg.id,
-    userMessage: `Product campaign video on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
-    rawHistory: history,
-    topLevelPayload: {
-      product_image_urls: input.productImageUrls,
-      campaign_brief: input.campaignBrief,
-      platform: input.platform,
-      aspect_ratio: input.aspectRatio,
-      duration_seconds: input.durationSeconds,
-      use_logo: input.useLogo,
-    },
-  });
+  const [data, caption] = await Promise.all([
+    callAgentWithContext<CampaignVideoResponse>({
+      agentApiPath: "/ai/maya/campaign-video",
+      agentEnum: Agent.MAYA,
+      agentRole: "Maya: Social media content creation assistant",
+      userId,
+      organizationId,
+      conversationId: userMsg.id,
+      userMessage: `Product campaign video on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+      rawHistory: history,
+      topLevelPayload: {
+        product_image_urls: input.productImageUrls,
+        campaign_brief: input.campaignBrief,
+        platform: input.platform,
+        aspect_ratio: input.aspectRatio,
+        duration_seconds: input.durationSeconds,
+        use_logo: input.useLogo,
+      },
+    }),
+    draftVideoCaption(userId, organizationId, input.campaignBrief, input.platform),
+  ]);
 
   const result: CampaignVideoResponse = {
     ...data,
     video: (await hostVideo(organizationId, data.video)) ?? data.video,
+    caption,
   };
 
   await mayaRepository.createAssistantMessage({

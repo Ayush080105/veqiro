@@ -238,6 +238,7 @@ function ChatMessageComponent({
             <ActionResultRenderer
               actionId={actionId}
               result={message.customInput.result}
+              input={message.customInput.input}
               agentColor={agentColor}
               onFollowUpAction={onFollowUpAction}
               onRevertImage={onRevertImage}

@@ -189,12 +189,14 @@ export interface CampaignResponse {
 
 export interface GenerateVideoResponse {
   video: VideoResult;
+  caption?: CampaignCaption | null;
   tokens_used: number;
   model_used: string;
 }
 
 export interface CampaignVideoResponse {
   video: VideoResult;
+  caption?: CampaignCaption | null;
   tokens_used: number;
   model_used: string;
 }

@@ -36,6 +36,8 @@ export interface PublishArgs {
   account: SocialAccount;
   caption: string;
   imageUrl?: string;
+  videoUrl?: string;
+  postType?: "post" | "reel";
 }
 
 export interface PublishCarouselArgs {

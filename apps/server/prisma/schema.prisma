@@ -574,6 +574,8 @@ model PublishedPost {
   hashtags        String[]
   /// Optional image URL used in the post.
   imageUrl        String?
+  /// Optional video URL used in the post.
+  videoUrl        String?
   /// Publish status such as pending, success, or failed.
   status          String         @default("pending")
   /// Publish error message when failed.

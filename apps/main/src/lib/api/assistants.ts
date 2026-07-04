@@ -76,6 +76,9 @@ export interface PublishPostInput {
   hashtags?: string[]
   imageUrl?: string
   imageBase64?: string
+  videoUrl?: string
+  videoBase64?: string
+  postType?: "post" | "reel"
 }
 
 export interface PublishPostResult {
