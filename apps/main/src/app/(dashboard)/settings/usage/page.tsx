@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useSession } from "@/lib/auth-client"
+import { authClient, useSession } from "@/lib/auth-client"
 import { useMayaUsage, type MayaUsageTier, type UsageResource } from "@/lib/api/billing"
 import { PageHeader } from "@/components/ui/page-header"
 import { SettingsNav } from "@/components/settings/SettingsNav"
@@ -79,8 +79,9 @@ function UsageBar({
 
 export default function UsagePage() {
   const { data: session } = useSession()
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const augmented = session as (AugmentedSession & typeof session) | null
-  const organizationId = augmented?.activeOrganization?.id
+  const organizationId = activeOrg?.id ?? augmented?.activeOrganization?.id
 
   const { data, isLoading } = useMayaUsage(organizationId)
   const atLimit = data && (data.images.remaining === 0 || data.videoSeconds.remaining === 0)

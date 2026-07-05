@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { PageHeader } from "@/components/ui/page-header"
-import { useSession } from "@/lib/auth-client"
+import { authClient, useSession } from "@/lib/auth-client"
 import {
   BillingAgent,
   SubscriptionPlan,
@@ -116,8 +116,9 @@ export default function BillingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { data: session } = useSession()
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const augmented = session as (AugmentedSession & typeof session) | null
-  const organizationId = augmented?.activeOrganization?.id
+  const organizationId = activeOrg?.id ?? augmented?.activeOrganization?.id
   const { data: billing, refetch } = useBillingStatus(organizationId)
   const sub = billing?.subscription
 
@@ -186,6 +187,8 @@ export default function BillingPage() {
     sub?.status === "ACTIVE" || sub?.status === "CANCELLED" || sub?.status === "PAST_DUE"
   const canCheckout = checkoutAgents.length > 0 && total != null && !checkingOut && !hasPortalManagedSubscription
   const isPaidOrTrial = sub?.status === "ACTIVE" || sub?.status === "TRIALING" || sub?.status === "CANCELLED"
+  const isPurchasedPlan =
+    hasPortalManagedSubscription && sub?.entitlementMode === (crew ? "CREW" : "CUSTOM")
 
   function toggleAgent(agent: BillingAgent) {
     if (isPaidOrTrial && currentAgents.has(agent)) return
@@ -351,7 +354,13 @@ export default function BillingPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">Crew plan</span>
                     <Badge variant="secondary">Best value</Badge>
-                    {crew && <Badge>Selected</Badge>}
+                    {crew && (
+                      isPurchasedPlan ? (
+                        <Badge className="bg-green-600 text-white [a]:hover:bg-green-600">Purchased</Badge>
+                      ) : (
+                        <Badge>Selected</Badge>
+                      )
+                    )}
                   </div>
                   <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
                     Unlock Maya, Sage, Lex, Rex, Scout, and Vega together with monthly or annual billing.
@@ -402,7 +411,13 @@ export default function BillingPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-semibold">Monthly agent cart</h3>
-                {!crew && <Badge>Selected</Badge>}
+                {!crew && (
+                  isPurchasedPlan ? (
+                    <Badge className="bg-green-600 text-white [a]:hover:bg-green-600">Purchased</Badge>
+                  ) : (
+                    <Badge>Selected</Badge>
+                  )
+                )}
                 <Badge variant="outline">Monthly only</Badge>
               </div>
               <p className="text-xs text-muted-foreground">Choose this if you only want specific agents.</p>
@@ -470,7 +485,9 @@ export default function BillingPage() {
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   {crew ? <Sparkles className="size-4 text-primary" /> : <Zap className="size-4 text-primary" />}
-                  {crew ? "Crew plan selected" : `${selected.length} agent${selected.length === 1 ? "" : "s"} selected`}
+                  {crew
+                    ? isPurchasedPlan ? "Crew plan purchased" : "Crew plan selected"
+                    : `${selected.length} agent${selected.length === 1 ? "" : "s"} ${isPurchasedPlan ? "purchased" : "selected"}`}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {crew

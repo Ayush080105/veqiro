@@ -254,9 +254,9 @@ export function MayaPublishedPostsTab() {
         </span>
       </div>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
         {/* Calendar grid */}
-        <div className="flex flex-col flex-1 min-w-0 border-r-2 border-[#111] overflow-y-auto">
+        <div className="flex flex-col md:flex-1 min-w-0 border-b-2 md:border-b-0 md:border-r-2 border-[#111] md:overflow-y-auto">
           {/* Day labels */}
           <div className="grid grid-cols-7 border-b-2 border-[#111]">
             {DAYS.map((d) => (
@@ -337,7 +337,7 @@ export function MayaPublishedPostsTab() {
         </div>
 
         {/* Side panel — selected day posts */}
-        <div className="w-72 flex flex-col flex-shrink-0 overflow-y-auto">
+        <div className="w-full md:w-72 flex flex-col md:flex-shrink-0 md:overflow-y-auto">
           {selectedDay ? (
             <>
               <div className="sticky top-0 px-4 py-3 border-b-2 border-[#111] bg-[#FFF9ED] z-10">
