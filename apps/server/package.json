@@ -15,7 +15,8 @@
     "seed:admin": "tsx prisma/seed-admin.ts",
     "seed:upcoming-agents": "tsx prisma/seed-upcoming-agents.ts",
     "test": "vitest run \"src/modules/agents/scout/scout.test.ts\" \"src/tests/unit/*.test.ts\"",
-    "seed:tasks": "tsx prisma/seed-tasks.ts"
+    "seed:tasks": "tsx prisma/seed-tasks.ts",
+    "backfill:maya-usage": "tsx prisma/backfill-maya-usage.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",

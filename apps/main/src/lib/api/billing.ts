@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
+import { qk } from "@/lib/query-keys";
 
 export type SubscriptionStatus = "TRIALING" | "ACTIVE" | "CANCELLED" | "PAST_DUE" | "EXPIRED";
 export type SubscriptionPlan = "MONTHLY" | "ANNUAL";
@@ -66,4 +67,35 @@ export function createCheckout(input: {
 
 export function openBillingPortal() {
   return apiFetch<{ url: string }>("/billing/portal", { method: "POST" });
+}
+
+// ─── Maya usage ───────────────────────────────────────────────────────────────
+
+export type MayaUsageTier = "TRIAL" | "MONTHLY_CUSTOM" | "MONTHLY_CREW" | "ANNUAL_CREW";
+
+export type UsageResource = {
+  used: number;
+  limit: number;
+  remaining: number;
+};
+
+export type MayaUsageResponse = {
+  tier: MayaUsageTier;
+  periodStart: string;
+  periodEnd: string;
+  images: UsageResource;
+  videoSeconds: UsageResource;
+};
+
+export function getMayaUsage() {
+  return apiFetch<MayaUsageResponse>("/agents/maya/usage");
+}
+
+export function useMayaUsage(organizationId?: string | null) {
+  return useQuery({
+    queryKey: qk.mayaUsage(organizationId ?? ""),
+    queryFn: getMayaUsage,
+    enabled: Boolean(organizationId),
+    staleTime: 30_000,
+  });
 }

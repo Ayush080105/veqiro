@@ -230,6 +230,8 @@ model Organization {
   orgMemory            OrgMemory?
   /// Scheduled tasks owned by this organization.
   tasks                Task[]
+  /// Maya per-billing-period usage records.
+  mayaUsages           MayaUsage[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -1241,6 +1243,32 @@ model ExpenseSplit {
   @@index([expenseId])
   @@index([memberId])
   @@map("expense_split")
+}
+
+/// Per-billing-period image and video generation usage for the Maya agent.
+model MayaUsage {
+  /// Record id.
+  id             String       @id @default(cuid())
+  /// Owning organization id.
+  organizationId String
+  /// Inclusive start of the billing period (UTC).
+  periodStart    DateTime
+  /// Exclusive end of the billing period (UTC).
+  periodEnd      DateTime
+  /// Total images generated this period.
+  imageCount     Int          @default(0)
+  /// Total video seconds generated this period.
+  videoSeconds   Int          @default(0)
+  /// Record creation timestamp.
+  createdAt      DateTime     @default(now())
+  /// Record update timestamp.
+  updatedAt      DateTime     @updatedAt
+  /// Owning organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, periodStart])
+  @@index([organizationId])
+  @@map("maya_usage")
 }
 
 /// A recorded debt payment between two group members.

@@ -89,6 +89,7 @@ export const ModelName = {
   ExpenseGroupMember: 'ExpenseGroupMember',
   Expense: 'Expense',
   ExpenseSplit: 'ExpenseSplit',
+  MayaUsage: 'MayaUsage',
   Settlement: 'Settlement'
 } as const
 
@@ -698,6 +699,20 @@ export const ExpenseSplitScalarFieldEnum = {
 } as const
 
 export type ExpenseSplitScalarFieldEnum = (typeof ExpenseSplitScalarFieldEnum)[keyof typeof ExpenseSplitScalarFieldEnum]
+
+
+export const MayaUsageScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  periodStart: 'periodStart',
+  periodEnd: 'periodEnd',
+  imageCount: 'imageCount',
+  videoSeconds: 'videoSeconds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MayaUsageScalarFieldEnum = (typeof MayaUsageScalarFieldEnum)[keyof typeof MayaUsageScalarFieldEnum]
 
 
 export const SettlementScalarFieldEnum = {
