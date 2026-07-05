@@ -152,6 +152,14 @@ export async function handleSubscriptionActive(payload: WebhookPayload) {
     pendingProductId: null,
     pendingCheckoutCreatedAt: null,
   });
+  // Create a fresh Maya usage period for the new paid billing cycle.
+  // Trial credits do not carry over — this is always a clean start.
+  const activePeriodEnd = parsePeriodEnd(payload.data);
+  if (activePeriodEnd) {
+    await prisma.mayaUsage.create({
+      data: { organizationId: orgId, periodStart: new Date(), periodEnd: activePeriodEnd },
+    });
+  }
   await finishWebhookEvent(payload, "applied-active", orgId);
 }
 
@@ -169,6 +177,13 @@ export async function handleSubscriptionRenewed(payload: WebhookPayload) {
     currentPeriodEnd: parsePeriodEnd(payload.data),
     cancelAtPeriodEnd: false,
   });
+  // Create a fresh Maya usage period for the renewed billing cycle.
+  const renewedPeriodEnd = parsePeriodEnd(payload.data);
+  if (renewedPeriodEnd) {
+    await prisma.mayaUsage.create({
+      data: { organizationId: orgId, periodStart: new Date(), periodEnd: renewedPeriodEnd },
+    });
+  }
   await finishWebhookEvent(payload, "applied-renewed", orgId);
 }
 

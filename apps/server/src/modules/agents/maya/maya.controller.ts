@@ -18,6 +18,7 @@ import {
   campaignVideoStoryboardSchema,
 } from "./maya.schema.js";
 import * as mayaService from "./maya.service.js";
+import * as mayaUsageService from "./maya.usage.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { UnauthenticatedError } from "../../../common/errors/unauthenticated.js";
 
@@ -150,4 +151,10 @@ export const expandBrief = async (req: Request, res: Response) => {
   const input = expandBriefSchema.parse(req.body);
   const result = await mayaService.expandBrief(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
+};
+
+export const getMayaUsage = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const usage = await mayaUsageService.getCurrentUsage(organizationId);
+  res.status(StatusCodes.OK).json(usage);
 };

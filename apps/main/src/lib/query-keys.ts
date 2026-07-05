@@ -10,6 +10,8 @@ export const qk = {
   lexSources: () => ["lex", "sources"] as const,
   mayaPublishedPosts: (organizationId: string) =>
     ["maya", "published-posts", organizationId] as const,
+  mayaUsage: (organizationId: string) =>
+    ["maya", "usage", organizationId] as const,
   vegaInbox: (organizationId: string) => ["vega", "inbox", organizationId] as const,
   vegaThread: (organizationId: string, emailId: string) =>
     ["vega", "thread", organizationId, emailId] as const,

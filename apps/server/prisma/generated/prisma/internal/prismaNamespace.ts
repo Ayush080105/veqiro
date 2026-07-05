@@ -422,6 +422,7 @@ export const ModelName = {
   ExpenseGroupMember: 'ExpenseGroupMember',
   Expense: 'Expense',
   ExpenseSplit: 'ExpenseSplit',
+  MayaUsage: 'MayaUsage',
   Settlement: 'Settlement'
 } as const
 
@@ -438,7 +439,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "billingWebhookEvent" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "billingWebhookEvent" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3254,6 +3255,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MayaUsage: {
+      payload: Prisma.$MayaUsagePayload<ExtArgs>
+      fields: Prisma.MayaUsageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MayaUsageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MayaUsageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>
+        }
+        findFirst: {
+          args: Prisma.MayaUsageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MayaUsageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>
+        }
+        findMany: {
+          args: Prisma.MayaUsageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>[]
+        }
+        create: {
+          args: Prisma.MayaUsageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>
+        }
+        createMany: {
+          args: Prisma.MayaUsageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MayaUsageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>[]
+        }
+        delete: {
+          args: Prisma.MayaUsageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>
+        }
+        update: {
+          args: Prisma.MayaUsageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>
+        }
+        deleteMany: {
+          args: Prisma.MayaUsageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MayaUsageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MayaUsageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>[]
+        }
+        upsert: {
+          args: Prisma.MayaUsageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaUsagePayload>
+        }
+        aggregate: {
+          args: Prisma.MayaUsageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMayaUsage>
+        }
+        groupBy: {
+          args: Prisma.MayaUsageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MayaUsageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MayaUsageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MayaUsageCountAggregateOutputType> | number
+        }
+      }
+    }
     Settlement: {
       payload: Prisma.$SettlementPayload<ExtArgs>
       fields: Prisma.SettlementFieldRefs
@@ -3955,6 +4030,20 @@ export const ExpenseSplitScalarFieldEnum = {
 export type ExpenseSplitScalarFieldEnum = (typeof ExpenseSplitScalarFieldEnum)[keyof typeof ExpenseSplitScalarFieldEnum]
 
 
+export const MayaUsageScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  periodStart: 'periodStart',
+  periodEnd: 'periodEnd',
+  imageCount: 'imageCount',
+  videoSeconds: 'videoSeconds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MayaUsageScalarFieldEnum = (typeof MayaUsageScalarFieldEnum)[keyof typeof MayaUsageScalarFieldEnum]
+
+
 export const SettlementScalarFieldEnum = {
   id: 'id',
   groupId: 'groupId',
@@ -4402,6 +4491,7 @@ export type GlobalOmitConfig = {
   expenseGroupMember?: Prisma.ExpenseGroupMemberOmit
   expense?: Prisma.ExpenseOmit
   expenseSplit?: Prisma.ExpenseSplitOmit
+  mayaUsage?: Prisma.MayaUsageOmit
   settlement?: Prisma.SettlementOmit
 }
 
