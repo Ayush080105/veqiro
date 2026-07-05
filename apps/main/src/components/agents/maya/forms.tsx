@@ -13,6 +13,7 @@ import {
 } from "@/components/chat/ActionForm/fields"
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
+import type { ActionStage } from "@/components/chat/ActionDialog"
 import {
   mayaIdeationSchema,
   type MayaIdeationValues,
@@ -1105,9 +1106,16 @@ export function MayaGenerateVideoForm({
 export function MayaCampaignVideoForm({
   value,
   onChange,
+  submitting,
+  stage,
+  hideDuration,
 }: {
   value: MayaCampaignVideoValues
   onChange: (patch: Partial<MayaCampaignVideoValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
+  /** Hide the duration picker — it has no visible effect on a still storyboard image. */
+  hideDuration?: boolean
 }) {
   const form = useAgentForm({
     schema: mayaCampaignVideoSchema,
@@ -1150,8 +1158,24 @@ export function MayaCampaignVideoForm({
     )
   }
 
+  const stageStoryboardUrl = (stage?.data as { storyboardImageUrl?: string } | undefined)?.storyboardImageUrl
+
   return (
     <FieldGroup>
+      {submitting && stage && (
+        <div className="flex flex-col items-center gap-2 rounded border border-border bg-muted/40 p-3">
+          {stageStoryboardUrl ? (
+            <img
+              src={stageStoryboardUrl}
+              alt="Storyboard preview"
+              className="max-h-40 rounded border border-border object-contain"
+            />
+          ) : (
+            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          )}
+          <span className="text-xs text-muted-foreground">{stage.label}</span>
+        </div>
+      )}
       {/* Product Image Upload */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
@@ -1234,16 +1258,18 @@ export function MayaCampaignVideoForm({
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium">Duration</span>
-        <Controller
-          control={form.control}
-          name="duration_seconds"
-          render={({ field }) => (
-            <DurationPicker value={field.value as number} onChange={field.onChange} />
-          )}
-        />
-      </div>
+      {!hideDuration && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium">Duration</span>
+          <Controller
+            control={form.control}
+            name="duration_seconds"
+            render={({ field }) => (
+              <DurationPicker value={field.value as number} onChange={field.onChange} />
+            )}
+          />
+        </div>
+      )}
 
       <Controller
         control={form.control}
@@ -1266,4 +1292,13 @@ export function MayaCampaignVideoForm({
       </RhfField>
     </FieldGroup>
   )
+}
+
+export function MayaCampaignVideoStoryboardForm(props: {
+  value: MayaCampaignVideoValues
+  onChange: (patch: Partial<MayaCampaignVideoValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
+}) {
+  return <MayaCampaignVideoForm {...props} hideDuration />
 }

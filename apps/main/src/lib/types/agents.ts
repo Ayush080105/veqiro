@@ -1278,6 +1278,14 @@ export interface MayaCampaignVideoResult {
   caption?: VideoCaption | null
   tokens_used?: number
   model_used?: string
+  storyboard_image_url?: string
+}
+
+export interface MayaCampaignVideoStoryboardResult {
+  storyboard_image_url?: string
+  storyboard_image_base64?: string
+  beats: string[]
+  model_used?: string
 }
 
 export type AgentActionId =
@@ -1298,6 +1306,7 @@ export type AgentActionId =
   | "maya:campaign"
   | "maya:generate-video"
   | "maya:campaign-video"
+  | "maya:campaign-video-storyboard"
   | "scout:research-topic"
   | "scout:research-company"
   | "scout:trending-topics"

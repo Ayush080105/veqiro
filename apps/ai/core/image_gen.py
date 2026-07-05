@@ -66,6 +66,39 @@ _HUE_STOPS: list[tuple[float, str]] = [
 ]
 
 
+def product_identity_instructions(count: int) -> str:
+    """Shared product-fidelity/identity-lock instruction block for any reference-image-driven
+    generation (campaign photos, video storyboards). Kept in one place so image, storyboard, and
+    video prompts describe product fidelity identically instead of drifting apart."""
+    multi_ref_note = (
+        f"Reference images 1-{count} are different photos/materials the user uploaded "
+        f"of this real product — do NOT assume they are simply the same physical object seen from "
+        f"different camera angles if they visually look like different things (e.g. one may show the "
+        f"loose item itself, another may show its packaging, box, or printed label art). Study each: "
+        f"from whichever reference(s) show the physical item, take its exact color, shape, material, "
+        f"and surface details; from whichever reference(s) show packaging/label/box art, take its "
+        f"exact brand name, logo, and any printed text/colors verbatim and reflect them faithfully. "
+        f"Never drop the real brand name or packaging identity just because one reference shows the "
+        f"item without it. "
+        if count > 1 else ""
+    )
+    return multi_ref_note + "\n".join(
+        f"Reference image {i + 1} contains the product — treat it as a possibly rough, hand-taken "
+        f"snapshot: study it carefully to separate the TRUE PRODUCT (exact shape, colors, materials, "
+        f"proportions, any visible brand name/logo/printed text) from incidental artifacts of how it "
+        f"was casually captured (poor lighting, an awkward angle, blur, glare, clutter). Preserve the "
+        f"former faithfully — including any visible brand name, logo, or printed text, reproduced "
+        f"verbatim, never invented or substituted — while ignoring the latter entirely. If the label "
+        f"is visible but would naturally be too small/distant to read at this shot's scale, render it "
+        f"soft and out-of-focus with the right colors/layout rather than inventing legible-looking "
+        f"but fake or garbled characters — fabricated label text is never acceptable. "
+        f"Keep the product clearly recognizable as the same product from the reference. "
+        f"DO NOT recreate the reference image's composition, camera angle, pose, lighting quality, background, or framing. "
+        f"Generate a fresh campaign image where the product is confidently and competently rendered from a noticeably different pose, orientation, and camera perspective — inferring its plausible full form even where the reference only shows one side — while maintaining the same product identity."
+        for i in range(count)
+    )
+
+
 def _hex_to_color_name(hex_code: str) -> str:
     """Convert a CSS hex color code to a human-readable name for safe prompt injection."""
     if not hex_code:
@@ -895,46 +928,7 @@ async def generate_social_image(
             extra_instructions: list[str] = []
 
             if campaign_mode:
-                # Photo 1: product URL is the only product reference
-                # product_instructions = "\n".join(
-                #     f"Reference image {i + 1}: This is the campaign subject — study it with extreme detail.\n"
-                #     f"  CATALOG: exact colours (every hue and gradient), surface materials and textures "
-                #     f"(glossy/matte/metallic/fabric), shape and silhouette (proportions, edges, curves), "
-                #     f"any logos/text/markings on the subject, distinctive features.\n"
-                #     f"  REPRODUCE: Every one of these attributes must appear with faithful accuracy — "
-                #     f"exact colors, correct proportions, all distinctive surface markings preserved. "
-                #     f"The subject must be immediately recognisable as the EXACT same subject from this reference. "
-                #     f"Create a completely original scene — new pose, new background, new angle — but the subject itself is unchanged.\n"
-                #     f"  DO NOT copy the reference image's background, framing, or pose — only the subject's identity."
-                #     for i in range(len(ref_images_ext))
-                # )
-                _multi_ref_note = (
-                    f"Reference images 1-{len(ref_images_ext)} are different photos/materials the user uploaded "
-                    f"of this real product — do NOT assume they are simply the same physical object seen from "
-                    f"different camera angles if they visually look like different things (e.g. one may show the "
-                    f"loose item itself, another may show its packaging, box, or printed label art). Study each: "
-                    f"from whichever reference(s) show the physical item, take its exact color, shape, material, "
-                    f"and surface details; from whichever reference(s) show packaging/label/box art, take its "
-                    f"exact brand name, logo, and any printed text/colors verbatim and reflect them faithfully. "
-                    f"Never drop the real brand name or packaging identity just because one reference shows the "
-                    f"item without it. "
-                    if len(ref_images_ext) > 1 else ""
-                )
-                product_instructions = _multi_ref_note + "\n".join(
-                    f"Reference image {i + 1} contains the product — treat it as a possibly rough, hand-taken "
-                    f"snapshot: study it carefully to separate the TRUE PRODUCT (exact shape, colors, materials, "
-                    f"proportions, any visible brand name/logo/printed text) from incidental artifacts of how it "
-                    f"was casually captured (poor lighting, an awkward angle, blur, glare, clutter). Preserve the "
-                    f"former faithfully — including any visible brand name, logo, or printed text, reproduced "
-                    f"verbatim, never invented or substituted — while ignoring the latter entirely. If the label "
-                    f"is visible but would naturally be too small/distant to read at this shot's scale, render it "
-                    f"soft and out-of-focus with the right colors/layout rather than inventing legible-looking "
-                    f"but fake or garbled characters — fabricated label text is never acceptable. "
-                    f"Keep the product clearly recognizable as the same product from the reference. "
-                    f"DO NOT recreate the reference image's composition, camera angle, pose, lighting quality, background, or framing. "
-                    f"Generate a fresh campaign image where the product is confidently and competently rendered from a noticeably different pose, orientation, and camera perspective — inferring its plausible full form even where the reference only shows one side — while maintaining the same product identity."
-                    for i in range(len(ref_images_ext))
-                )
+                product_instructions = product_identity_instructions(len(ref_images_ext))
 
                 if use_mascot and brand_kit and brand_kit.mascot_url:
                     mascot_bytes = await _fetch_asset(brand_kit.mascot_url)

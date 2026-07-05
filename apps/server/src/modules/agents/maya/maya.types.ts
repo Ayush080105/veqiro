@@ -14,6 +14,7 @@ import {
   expandBriefSchema,
   generateVideoSchema,
   campaignVideoSchema,
+  campaignVideoStoryboardSchema,
 } from "./maya.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
@@ -30,6 +31,7 @@ export type CampaignInput = z.infer<typeof campaignSchema>;
 export type ExpandBriefInput = z.infer<typeof expandBriefSchema>;
 export type GenerateVideoInput = z.infer<typeof generateVideoSchema>;
 export type CampaignVideoInput = z.infer<typeof campaignVideoSchema>;
+export type CampaignVideoStoryboardInput = z.infer<typeof campaignVideoStoryboardSchema>;
 
 export type ContentPlatform = "linkedin" | "twitter" | "instagram";
 
@@ -198,5 +200,13 @@ export interface CampaignVideoResponse {
   video: VideoResult;
   caption?: CampaignCaption | null;
   tokens_used: number;
+  model_used: string;
+  storyboard_image_url?: string;
+}
+
+export interface CampaignVideoStoryboardResponse {
+  storyboard_image_url?: string;
+  storyboard_image_base64?: string;
+  beats: string[];
   model_used: string;
 }

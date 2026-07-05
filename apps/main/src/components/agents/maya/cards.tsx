@@ -17,6 +17,7 @@ import {
   Clapperboard,
   Film,
   Lock,
+  LayoutGrid,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,6 +46,7 @@ import type {
   MayaCampaignResult,
   MayaGenerateVideoResult,
   MayaCampaignVideoResult,
+  MayaCampaignVideoStoryboardResult,
   ContentIdea,
   ContentPlatform,
   ImageResult,
@@ -1029,6 +1031,8 @@ export function VideoResultCard({
 }) {
   const src = videoSrc(result?.video)
   const [captionBody, setCaptionBody] = React.useState(result?.caption?.body ?? "")
+  const [showStoryboard, setShowStoryboard] = React.useState(false)
+  const storyboardUrl = (result as MayaCampaignVideoResult)?.storyboard_image_url
 
   if (!src) return null
 
@@ -1036,6 +1040,24 @@ export function VideoResultCard({
     <AgentCard size="sm">
       <AgentCard.Header icon={<Clapperboard />} title={title ?? "Generated video"} />
       <AgentCard.Body className="flex flex-col gap-2">
+        {storyboardUrl && (
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowStoryboard((v) => !v)}
+              className="self-start text-[10px] font-medium text-muted-foreground underline-offset-2 hover:underline"
+            >
+              {showStoryboard ? "Hide storyboard" : "View storyboard"}
+            </button>
+            {showStoryboard && (
+              <img
+                src={storyboardUrl}
+                alt="Storyboard"
+                className="max-h-48 rounded border border-border object-contain"
+              />
+            )}
+          </div>
+        )}
         <video
           src={src}
           controls
@@ -1062,6 +1084,76 @@ export function VideoResultCard({
           hashtags={result.caption?.hashtags ?? []}
           video={result.video}
         />
+      </AgentCard.Footer>
+    </AgentCard>
+  )
+}
+
+// ─── Storyboard result card ───────────────────────────────────────────────────
+
+export function StoryboardResultCard({
+  result,
+  input,
+  onFollowUpAction,
+}: {
+  result: MayaCampaignVideoStoryboardResult
+  input?: {
+    product_image_urls?: string[]
+    campaign_brief?: string
+    platform?: string
+    aspect_ratio?: string
+    duration_seconds?: number
+    use_logo?: boolean
+  }
+  onFollowUpAction?: FollowUpHandler
+}) {
+  const src =
+    result?.storyboard_image_url ??
+    (result?.storyboard_image_base64 ? `data:image/png;base64,${result.storyboard_image_base64}` : undefined)
+
+  if (!src) return null
+
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header icon={<LayoutGrid />} title="Storyboard" />
+      <AgentCard.Body className="flex flex-col gap-2">
+        <img
+          src={src}
+          alt="Storyboard"
+          className="w-full rounded border border-border object-contain"
+        />
+        {result.beats?.length > 0 && (
+          <ol className="flex flex-col gap-1 pl-4 text-xs text-muted-foreground list-decimal">
+            {result.beats.map((beat, i) => (
+              <li key={i}>{beat}</li>
+            ))}
+          </ol>
+        )}
+      </AgentCard.Body>
+      <AgentCard.Footer>
+        <Button variant="chat-utility" asChild>
+          <a href={src} download="maya-storyboard.png">
+            <Download className="size-3" /> Download
+          </a>
+        </Button>
+        {onFollowUpAction && input?.product_image_urls?.length && input?.campaign_brief && (
+          <Button
+            variant="chat-action"
+            disabled={VIDEO_FEATURES_LOCKED}
+            title={VIDEO_FEATURES_LOCKED ? "Video generation is coming soon" : undefined}
+            onClick={() => {
+              if (VIDEO_FEATURES_LOCKED) return
+              onFollowUpAction("maya:campaign-video", {
+                ...input,
+                storyboard_beats: result.beats,
+                storyboard_image_url: result.storyboard_image_url,
+              })
+            }}
+          >
+            {VIDEO_FEATURES_LOCKED ? <Lock className="size-3" /> : <Film className="size-3" />}
+            Turn into video
+          </Button>
+        )}
       </AgentCard.Footer>
     </AgentCard>
   )

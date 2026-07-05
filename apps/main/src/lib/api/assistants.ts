@@ -57,6 +57,32 @@ export async function runAgentAction<TInput, TResult>(
   })
 }
 
+export interface CampaignVideoStoryboardResult {
+  storyboard_image_url?: string
+  storyboard_image_base64?: string
+  beats: string[]
+  model_used: string
+}
+
+export async function generateCampaignVideoStoryboard(
+  organizationId: string,
+  input: {
+    product_image_urls: string[]
+    campaign_brief: string
+    platform: string
+    aspect_ratio: string
+    duration_seconds: number
+    use_logo: boolean
+  },
+  conversationId?: string
+): Promise<CampaignVideoStoryboardResult> {
+  return apiFetch<CampaignVideoStoryboardResult>("/agents/maya/campaign-video/storyboard", {
+    method: "POST",
+    body: { organizationId, conversationId, ...input },
+    agentSlugForNotFound: "maya",
+  })
+}
+
 export async function expandCampaignBrief(
   organizationId: string,
   brief: string,

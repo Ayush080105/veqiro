@@ -5,9 +5,10 @@ import {
   ActionDialog,
   type ActionResultContext,
   type ActionStartContext,
+  type ActionStage,
 } from "@/components/chat/ActionDialog"
 import { findAction } from "@/lib/agents/actions"
-import { runAgentAction } from "@/lib/api/assistants"
+import { runAgentAction, generateCampaignVideoStoryboard } from "@/lib/api/assistants"
 import type { AgentActionId, ContentPlatform } from "@/lib/types/agents"
 
 // Sage forms
@@ -31,6 +32,7 @@ import {
   MayaCampaignForm,
   MayaGenerateVideoForm,
   MayaCampaignVideoForm,
+  MayaCampaignVideoStoryboardForm,
 } from "@/components/agents/maya/forms"
 // Scout forms
 import {
@@ -84,14 +86,22 @@ import {
 type FormComponent = React.ComponentType<{
   value: any
   onChange: (patch: any) => void
+  submitting?: boolean
+  stage?: ActionStage | null
 }>
 
 interface ActionSpec {
   defaultValue: unknown
   Form: FormComponent
   validate?: (v: any) => string | null
-  /** Override the default JSON `runAgentAction` submit, e.g. for file uploads. */
-  customSubmit?: (value: any, organizationId: string, conversationId?: string) => Promise<unknown>
+  /** Override the default JSON `runAgentAction` submit, e.g. for file uploads. `onStage` lets
+   * multi-step submits report interim progress (e.g. a storyboard before the final video). */
+  customSubmit?: (
+    value: any,
+    organizationId: string,
+    conversationId?: string,
+    onStage?: (stage: ActionStage | null) => void
+  ) => Promise<unknown>
   /** Dynamically resolve action ID from current form value (e.g. carousel routing). */
   resolveActionId?: (v: any) => AgentActionId
   /** Override the footer submit button label. */
@@ -219,6 +229,61 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
         : !v.campaign_brief?.trim()
           ? "Campaign brief is required."
           : null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customSubmit: async (v: any, organizationId: string, conversationId?: string, onStage?: (stage: ActionStage | null) => void) => {
+      // If a storyboard was already generated for this exact input (e.g. "Turn into video"
+      // from an existing Storyboard result card), reuse it instead of regenerating.
+      let storyboardBeats: string[] | undefined = v.storyboard_beats
+      let storyboardImageUrl: string | undefined = v.storyboard_image_url
+
+      if (!storyboardImageUrl || !storyboardBeats?.length) {
+        onStage?.({ label: "Generating storyboard for you…" })
+        try {
+          const storyboard = await generateCampaignVideoStoryboard(
+            organizationId,
+            {
+              product_image_urls: v.product_image_urls,
+              campaign_brief: v.campaign_brief,
+              platform: v.platform,
+              aspect_ratio: v.aspect_ratio,
+              duration_seconds: v.duration_seconds,
+              use_logo: v.use_logo,
+            },
+            conversationId
+          )
+          storyboardBeats = storyboard.beats
+          storyboardImageUrl = storyboard.storyboard_image_url
+        } catch {
+          // Storyboard generation is a nice-to-have preview — fall back silently to a
+          // plain video generation if it fails, rather than blocking the user.
+        }
+      }
+      onStage?.({ label: "Generating video…", data: { storyboardImageUrl } })
+      return runAgentAction(
+        "maya:campaign-video",
+        organizationId,
+        { ...v, storyboard_beats: storyboardBeats, storyboard_image_url: storyboardImageUrl },
+        conversationId
+      )
+    },
+  },
+  "maya:campaign-video-storyboard": {
+    defaultValue: {
+      product_image_urls: [],
+      campaign_brief: "",
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      duration_seconds: 10,
+      use_logo: false,
+    },
+    Form: MayaCampaignVideoStoryboardForm,
+    validate: (v) =>
+      !v.product_image_urls?.length
+        ? "Upload at least one product image."
+        : !v.campaign_brief?.trim()
+          ? "Campaign brief is required."
+          : null,
+    submitLabel: "Generate storyboard",
   },
   "maya:generate-ideas": {
     defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },
@@ -641,8 +706,8 @@ export function RunActionDialog({
       submitLabel={submitLabel}
       resolveActionId={resolveActionId}
       onSubmittingChange={onSubmittingChange}
-      renderForm={({ value, onChange }) => (
-        <Form value={value} onChange={onChange} />
+      renderForm={({ value, onChange, submitting, stage }) => (
+        <Form value={value} onChange={onChange} submitting={submitting} stage={stage} />
       )}
       onStart={onStart}
       onSettled={onSettled}

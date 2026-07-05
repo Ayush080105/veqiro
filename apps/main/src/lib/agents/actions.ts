@@ -109,6 +109,15 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       locked: VIDEO_FEATURES_LOCKED,
     },
     {
+      id: "maya:campaign-video-storyboard",
+      agent: "maya",
+      endpoint: "campaign-video/storyboard",
+      label: "Generate Storyboard",
+      description: "Preview a 4-beat storyboard collage for a product video before generating the full video.",
+      icon: "LayoutGrid",
+      locked: VIDEO_FEATURES_LOCKED,
+    },
+    {
       id: "maya:generate-ideas",
       agent: "maya",
       endpoint: "generate-ideas",

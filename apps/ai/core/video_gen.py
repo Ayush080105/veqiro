@@ -1,6 +1,7 @@
 import logging
 
 from core.brand_kit import BrandKit, get_platform_tone
+from core.image_gen import product_identity_instructions
 from core.llm import LLMClient, GEMINI_FLASH
 from core.models import VideoResult
 
@@ -103,6 +104,62 @@ none of the images clearly show.
 {_PRODUCT_FIDELITY_GUARDRAIL}
 """
 
+_STORYBOARD_SYSTEM = f"""\
+You are an award-winning commercial director breaking a short video concept into a 4-beat
+storyboard for a real advertisement — the kind that runs on TV or social, not a set of product
+photography variations. A storyboard where every panel is just another angle on the same static
+plate/bottle/box is a FAILURE, no matter how well-lit. Real ads sell a feeling: they put a person
+in the frame — reaching for the product, preparing it, tasting it, reacting to it — because
+audiences connect with a moment, not a still life.
+
+Beat 1 (hook): an opening that earns attention — an intriguing detail, an establishing shot of the
+setting, or the anticipation just before the moment (a hand reaching in, a plate being set down,
+an ingredient in motion). Beat 2 (escalation/build): the process, service, or interaction that
+builds toward the payoff — a chef finishing a plate, a server presenting it, someone picking it
+up. Beat 3 (hero/product moment): the product's defining moment, usually the instant a person
+engages with it directly — taking a bite, pouring, applying, unboxing — shown with total clarity.
+Beat 4 (closing/CTA/payoff): the emotional payoff — a satisfied reaction, a genuine smile, a
+close-up of pure enjoyment, or a clean final hero shot if the category calls for restraint instead.
+
+For food, drink, hospitality, beauty, or any product meant to be used on or by a person, at least
+one beat — usually Beat 3 or 4 — MUST show a real person genuinely interacting with it (eating,
+drinking, holding, applying, wearing) in a believable setting (e.g. a restaurant table, a kitchen,
+a bathroom counter) — do not default to four variations of the product sitting alone on a surface.
+Only skip the human moment if the category genuinely doesn't call for one (e.g. an industrial part,
+enterprise software). If a person appears in more than one beat, keep them the same person across
+those beats for narrative continuity.
+
+Each beat is one still frame a storyboard artist could draw — describe it as a single vivid,
+concrete visual: framing/camera angle, who or what is in frame and what they're doing, the
+setting, and mood/lighting. Describe a frozen moment, not a shot with camera movement or duration.
+Vary the framing and setting meaningfully across the 4 beats — do not repeat the same composition,
+angle, or crop with only minor changes.
+
+Match the register the concept actually calls for (clinical precision for a health product, warm
+tactile detail for food, glamour for fragrance/luxury, clean futurism for tech, etc.) — never
+default to one fixed "premium cinematic" look for everything.
+
+If reference images of the real product are provided, the product itself must be reproduced
+exactly as shown in them — same shape, color, materials, proportions, logo, and packaging — in
+every beat where it appears. Never redesign or reimagine the product. This fidelity requirement is
+about the product only — it does not mean every beat must be a repeat product shot; people, hands,
+settings, and framing should still change beat to beat to tell a real story.
+
+Output EXACTLY 4 beats. Write each beat as one paragraph. Separate the 4 paragraphs with a line
+containing only three dashes (---) and nothing else. Do not number the beats, and do not add
+headings, labels, or any text other than the 4 beat paragraphs and the dash separators.
+
+{_PRODUCT_FIDELITY_GUARDRAIL}
+"""
+
+_STORYBOARD_MATCH_INSTRUCTION = (
+    "This storyboard image and the beats below are the APPROVED plan for this video — do not "
+    "invent a different concept, setting, or product treatment. Write ONE continuous cinematic "
+    "narrative (no timestamps, no shot labels) that depicts these exact 4 beats in this exact "
+    "order, evenly paced across the full runtime, using the same product, styling, setting, and "
+    "mood shown in the storyboard image."
+)
+
 # Mirrors the wording used for logo compositing in image generation (core/image_gen.py) —
 # same "mandatory, faithful reproduction, corner placement" pattern, adapted for video.
 _LOGO_INSTRUCTION = (
@@ -204,6 +261,125 @@ async def plan_video_scenes_with_images(
         )
     else:
         narrative = await llm.complete_with_vision_multi(files=images, prompt=full_prompt)
+    return f"{concept}\n\n{narrative.strip()}"
+
+
+async def plan_storyboard_beats(
+    llm: LLMClient,
+    concept: str,
+    images: list[tuple[bytes, str]],
+    duration_seconds: int,
+    aspect_ratio: str,
+    platform: str,
+) -> list[str]:
+    """Break a campaign video concept into exactly 4 storyboard beats (hook, escalation,
+    hero/product moment, closing/CTA), grounded in the product reference images so the
+    storyboard image and the later video narrative both depict the same real product."""
+    prompt = (
+        f"Video concept: {concept}\n"
+        f"This video will run for exactly {duration_seconds} seconds, split across these 4 beats "
+        f"roughly evenly — pace each beat's content accordingly.\n"
+        f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
+    )
+    full_prompt = f"{_STORYBOARD_SYSTEM}\n\n{prompt}"
+    if images:
+        if len(images) == 1:
+            raw = await llm.complete_with_vision(file_bytes=images[0][0], prompt=full_prompt, mime_type=images[0][1])
+        else:
+            raw = await llm.complete_with_vision_multi(files=images, prompt=full_prompt)
+    else:
+        raw = await llm.complete(
+            *GEMINI_FLASH,
+            system=_STORYBOARD_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=900,
+        )
+
+    beats = [b.strip() for b in raw.split("---") if b.strip()]
+    if len(beats) != 4:
+        beats = [b.strip() for b in raw.split("\n\n") if b.strip()]
+    if not beats:
+        beats = [raw.strip()]
+    if len(beats) < 4:
+        beats = beats + [beats[-1]] * (4 - len(beats))
+    return beats[:4]
+
+
+def _build_storyboard_image_prompt(beats: list[str], concept: str, num_product_images: int) -> str:
+    panel_labels = ["top-left", "top-right", "bottom-left", "bottom-right"]
+    panel_lines = "\n".join(
+        f"Panel {i + 1} ({panel_labels[i]}): {beat}" for i, beat in enumerate(beats)
+    )
+    return (
+        "Generate ONE single image only: a 2x2 grid storyboard collage on a plain neutral "
+        "background, divided into 4 equal panels by a thin clean divider line, like a film "
+        "director's storyboard sheet. Each panel is a separate, self-contained illustration of "
+        "one beat of the same commercial — same product, same characters, same overall visual "
+        "style and color grade across all 4 panels, just a different pose, angle, or moment in "
+        "each. Do not add any text, captions, numbers, or labels inside the image — the 4 panels "
+        "alone tell the story.\n\n"
+        f"{panel_lines}\n\n"
+        f"Overall concept for continuity: {concept}\n\n"
+        f"{product_identity_instructions(num_product_images)}"
+    )
+
+
+async def generate_video_storyboard(
+    llm: LLMClient,
+    concept: str,
+    product_images: list[tuple[bytes, str]],
+    duration_seconds: int,
+    aspect_ratio: str,
+    platform: str,
+    logo_image: tuple[bytes, str] | None = None,
+) -> tuple[str, list[str]]:
+    """Generate a single 2x2-grid storyboard collage image (one panel per beat) plus the 4 beat
+    descriptions used to plan it, so the beats can be reused afterward to keep the actual video
+    narrative in sync with what the storyboard shows. Returns (storyboard_image_base64, beats)."""
+    beats = await plan_storyboard_beats(llm, concept, product_images, duration_seconds, aspect_ratio, platform)
+    image_prompt = _build_storyboard_image_prompt(beats, concept, len(product_images))
+
+    image_bytes_only = [b for b, _ in product_images]
+    if logo_image:
+        image_bytes_only.append(logo_image[0])
+        image_prompt += (
+            "\n\nMANDATORY: The LAST reference image is the brand logo. Composite it as a small "
+            "corner watermark in every panel, reproduced with exact accuracy — do not simplify or "
+            "redraw it."
+        )
+
+    storyboard_b64 = await llm.generate_image_with_image_bytes(
+        image_prompt, image_bytes_only, aspect_ratio=aspect_ratio,
+    )
+    return storyboard_b64, beats
+
+
+async def plan_video_scenes_from_storyboard(
+    llm: LLMClient,
+    concept: str,
+    beats: list[str],
+    storyboard_image: tuple[bytes, str],
+    product_images: list[tuple[bytes, str]],
+    duration_seconds: int,
+    aspect_ratio: str,
+    platform: str,
+) -> str:
+    """Same as plan_video_scenes_with_images, but anchors the narrative to an already-generated
+    storyboard (image + 4 beats) instead of freely reinventing one, so the final video visually
+    and narratively matches what the user saw in the storyboard step."""
+    beats_block = "\n".join(f"Beat {i + 1}: {b}" for i, b in enumerate(beats))
+    prompt = (
+        f"Video concept: {concept}\n\n"
+        f"{_STORYBOARD_MATCH_INSTRUCTION}\n\n"
+        f"{beats_block}\n\n"
+        f"This video will run for exactly {duration_seconds} seconds — write a narrative that "
+        f"naturally fills that time and reaches a satisfying, resolved conclusion by the end. Do "
+        f"not mention seconds, timestamps, or any timing markers anywhere in your description.\n"
+        f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
+    )
+    full_prompt = f"{_SCENE_PLAN_SYSTEM_WITH_IMAGE}\n\n{prompt}"
+    narrative = await llm.complete_with_vision_multi(files=[storyboard_image] + product_images, prompt=full_prompt)
     return f"{concept}\n\n{narrative.strip()}"
 
 

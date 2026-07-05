@@ -39,6 +39,8 @@ import type {
   GenerateVideoResponse,
   CampaignVideoInput,
   CampaignVideoResponse,
+  CampaignVideoStoryboardInput,
+  CampaignVideoStoryboardResponse,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
@@ -1007,6 +1009,58 @@ export const generateVideo = async (
   return result;
 };
 
+export const createCampaignVideoStoryboard = async (
+  userId: string,
+  organizationId: string,
+  input: CampaignVideoStoryboardInput
+): Promise<CampaignVideoStoryboardResponse> => {
+  await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Storyboard for ${input.platform}: ${input.campaignBrief.slice(0, 120)}`,
+    customInput: { actionId: "maya:campaign-video-storyboard", input },
+  });
+
+  const { data } = await aiService.post<{
+    storyboard_image_base64: string;
+    beats: string[];
+    model_used: string;
+  }>("/ai/maya/campaign-video/storyboard", {
+    user_id: userId,
+    organization_id: organizationId,
+    product_image_urls: input.productImageUrls,
+    campaign_brief: input.campaignBrief,
+    platform: input.platform,
+    aspect_ratio: input.aspectRatio,
+    duration_seconds: input.durationSeconds,
+    use_logo: input.useLogo,
+  });
+
+  const hosted = await hostImage(organizationId, {
+    image_base64: data.storyboard_image_base64,
+    content_type: "image/png",
+    prompt_used: "",
+  });
+
+  const result: CampaignVideoStoryboardResponse = {
+    storyboard_image_url: hosted?.image_url,
+    storyboard_image_base64: hosted?.image_url ? undefined : hosted?.image_base64,
+    beats: data.beats,
+    model_used: data.model_used,
+  };
+
+  await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Storyboard generated for ${input.platform}`,
+    tokensUsed: 0,
+    model: result.model_used,
+    customInput: { actionId: "maya:campaign-video-storyboard", input, result },
+  });
+
+  return result;
+};
+
 export const createCampaignVideo = async (
   userId: string,
   organizationId: string,
@@ -1037,6 +1091,8 @@ export const createCampaignVideo = async (
         aspect_ratio: input.aspectRatio,
         duration_seconds: input.durationSeconds,
         use_logo: input.useLogo,
+        storyboard_beats: input.storyboardBeats,
+        storyboard_image_url: input.storyboardImageUrl,
       },
     }),
     draftVideoCaption(userId, organizationId, input.campaignBrief, input.platform),
@@ -1046,6 +1102,7 @@ export const createCampaignVideo = async (
     ...data,
     video: (await hostVideo(organizationId, data.video)) ?? data.video,
     caption,
+    storyboard_image_url: input.storyboardImageUrl,
   };
 
   await mayaRepository.createAssistantMessage({

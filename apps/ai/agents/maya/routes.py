@@ -15,8 +15,10 @@ from core.models import ChatRequest, ChatSyncResponse, ImageResult, VideoResult
 from core.video_gen import (
     build_video_prompt,
     generate_maya_video,
+    generate_video_storyboard,
     plan_video_scenes,
     plan_video_scenes_with_images,
+    plan_video_scenes_from_storyboard,
     add_logo_instruction,
     add_product_fidelity_guardrail,
 )
@@ -1836,12 +1838,45 @@ class CampaignVideoRequest(BaseModel):
     aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
     duration_seconds: int = Field(8, ge=4, le=10)
     use_logo: bool = False
+    storyboard_beats: list[str] | None = Field(None, max_length=4)
+    storyboard_image_url: str | None = None
 
 
 class CampaignVideoResponse(BaseModel):
     video: VideoResult
     tokens_used: int
     model_used: str
+
+
+class StoryboardRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    product_image_urls: list[str] = Field(..., min_length=1, max_length=5)
+    campaign_brief: str = Field(..., min_length=1, max_length=5000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    duration_seconds: int = Field(8, ge=4, le=10)
+    use_logo: bool = False
+
+
+class StoryboardResponse(BaseModel):
+    storyboard_image_base64: str
+    beats: list[str]
+    model_used: str
+
+
+async def _fetch_image_with_mime(url: str) -> tuple[bytes, str] | None:
+    """Fetch a URL as (bytes, mime_type), used for any reference image the video/storyboard
+    pipeline needs alongside its content type (product photos, storyboard, logo)."""
+    try:
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=10.0) as _client:
+            _resp = await _client.get(url)
+            _resp.raise_for_status()
+            return _resp.content, _resp.headers.get("content-type", "image/jpeg").split(";")[0]
+    except Exception as fetch_err:
+        logger.warning("image fetch failed | url=%s error=%s", url, fetch_err)
+        return None
 
 
 async def _fetch_logo_image(brand_kit) -> tuple[bytes, str] | None:
@@ -1968,22 +2003,23 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
     )
 
     product_images: list[tuple[bytes, str]] = []
+    storyboard_image: tuple[bytes, str] | None = None
     if not settings.MOCK_MODE:
-        async def _fetch_one(url: str) -> tuple[bytes, str] | None:
-            try:
-                import httpx as _httpx
-                async with _httpx.AsyncClient(timeout=10.0) as _client:
-                    _resp = await _client.get(url)
-                    _resp.raise_for_status()
-                    return _resp.content, _resp.headers.get("content-type", "image/jpeg").split(";")[0]
-            except Exception as fetch_err:
-                logger.warning("campaign-video product image fetch failed | url=%s error=%s", url, fetch_err)
-                return None
-
-        fetched = await asyncio.gather(*[_fetch_one(u) for u in request.product_image_urls])
+        fetched = await asyncio.gather(
+            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
+        )
         product_images = [f for f in fetched if f is not None]
+        if request.storyboard_image_url:
+            storyboard_image = await _fetch_image_with_mime(request.storyboard_image_url)
 
-    if product_images:
+    has_storyboard = bool(storyboard_image and request.storyboard_beats)
+    if has_storyboard:
+        prompt = await plan_video_scenes_from_storyboard(
+            _llm, concept, request.storyboard_beats, storyboard_image, product_images,
+            request.duration_seconds, request.aspect_ratio, request.platform,
+        )
+        prompt = add_product_fidelity_guardrail(prompt)
+    elif product_images:
         prompt = await plan_video_scenes_with_images(
             _llm, concept, product_images,
             request.duration_seconds, request.aspect_ratio, request.platform,
@@ -1995,6 +2031,8 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
         )
 
     images = list(product_images)
+    if has_storyboard:
+        images.append(storyboard_image)
     if request.use_logo:
         logo = await _fetch_logo_image(brand_kit)
         if logo:
@@ -2010,3 +2048,46 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
 
     logger.info("campaign-video done | user=%s platform=%s", request.user_id, request.platform)
     return CampaignVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
+
+
+@router.post("/campaign-video/storyboard", response_model=StoryboardResponse)
+async def campaign_video_storyboard_endpoint(request: StoryboardRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("campaign-video-storyboard brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    concept = _build_campaign_video_concept(
+        request.campaign_brief, brand_kit, len(request.product_image_urls),
+    )
+
+    product_images: list[tuple[bytes, str]] = []
+    if not settings.MOCK_MODE:
+        fetched = await asyncio.gather(
+            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
+        )
+        product_images = [f for f in fetched if f is not None]
+
+    logo_image: tuple[bytes, str] | None = None
+    if request.use_logo:
+        logo_image = await _fetch_logo_image(brand_kit)
+
+    try:
+        storyboard_b64, beats = await asyncio.wait_for(
+            generate_video_storyboard(
+                _llm, concept, product_images,
+                request.duration_seconds, request.aspect_ratio, request.platform,
+                logo_image=logo_image,
+            ),
+            timeout=90,
+        )
+    except Exception as err:
+        logger.warning("campaign-video-storyboard generation failed | user=%s error=%s", request.user_id, err)
+        raise HTTPException(status_code=502, detail=f"Storyboard generation failed: {err}")
+
+    logger.info("campaign-video-storyboard done | user=%s platform=%s", request.user_id, request.platform)
+    return StoryboardResponse(
+        storyboard_image_base64=storyboard_b64, beats=beats, model_used=_agent.default_model,
+    )

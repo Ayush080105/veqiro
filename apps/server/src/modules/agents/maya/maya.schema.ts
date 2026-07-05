@@ -104,6 +104,17 @@ export const campaignVideoSchema = z.object({
   aspectRatio: videoAspectRatioEnum.default("9:16"),
   durationSeconds: z.number().int().min(4).max(10).optional().default(8),
   useLogo: z.boolean().optional().default(false),
+  storyboardBeats: z.array(z.string()).max(4).optional(),
+  storyboardImageUrl: z.string().url().optional(),
+});
+
+export const campaignVideoStoryboardSchema = z.object({
+  productImageUrls: z.array(z.string().url()).min(1).max(5),
+  campaignBrief: z.string().min(1).max(5000),
+  platform: platformEnum.default("instagram"),
+  aspectRatio: videoAspectRatioEnum.default("9:16"),
+  durationSeconds: z.number().int().min(4).max(10).optional().default(8),
+  useLogo: z.boolean().optional().default(false),
 });
 
 export const publishSchema = z
