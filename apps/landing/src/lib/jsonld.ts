@@ -84,7 +84,7 @@ export function softwareApplicationJsonLd(): object {
 // ---------------------------------------------------------------------------
 
 export function productJsonLd(tiers: PricingTier[]): object {
-  const offers = tiers.flatMap((tier) => [
+  const offers = tiers.filter((tier) => !tier.custom).flatMap((tier) => [
     {
       '@type': 'Offer',
       name: `${tier.name} — Monthly`,

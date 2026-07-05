@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT, Button } from '@/components/veqiro/shared';
-import { agentPricing, pricingTiers, consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
+import { agentPricing, pricingTiers, consoleUrl, isPreLaunch, waitlistUrl, contact } from '@/lib/site-config';
 import { EMPLOYEES } from '@/components/veqiro/data';
 import { CHARACTER_COMPONENTS } from '@/components/veqiro/characters';
 import { ContactModal } from '@/components/veqiro/contact-modal';
@@ -48,6 +48,7 @@ function cartTotal(selected: string[], yearly: boolean, crewMonthly: number, cre
 
 export default function PricingPageContent() {
   const tier = pricingTiers[0];
+  const custom = pricingTiers.find(t => t.custom);
   const [yearly, setYearly] = useState(false);
   const price = yearly ? tier.yearly : tier.monthly;
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -119,7 +120,7 @@ export default function PricingPageContent() {
 
       {/* ── PRICING CARD ── */}
       <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
-        <div style={{ maxWidth: 580, margin: '0 auto' }}>
+        <div style={{ maxWidth: 980, margin: '0 auto' }}>
           {/* Billing toggle */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
             <div style={{
@@ -144,79 +145,150 @@ export default function PricingPageContent() {
             </div>
           </div>
 
-          {/* Card */}
-          <div style={{
-            border: '3px solid #111', borderRadius: 20,
-            overflow: 'hidden', boxShadow: '10px 10px 0 #111',
-          }}>
-            {/* Header */}
-            <div style={{ background: tier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
-              <div style={{
-                display: 'inline-block', background: '#111', color: tier.color,
-                fontFamily: FONT.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: 2,
-                padding: '5px 12px', borderRadius: 999, marginBottom: 16,
-              }}>
-                Most hired
-              </div>
-              <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 8vw, 64px)', margin: 0, lineHeight: 1, color: '#111' }}>
-                {tier.name}
-              </h2>
-              <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
-                {tier.tag}
-              </p>
-            </div>
-
-            {/* Price */}
-            <div style={{ background: '#fff', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 12vw, 72px)', color: '#111', lineHeight: 1 }}>
-                  ${price}
-                </div>
-                <div style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#888', paddingBottom: 8 }}>
-                  /mo{yearly ? ' · billed annually' : ''}
-                </div>
-              </div>
-              {yearly && (
+          {/* Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'stretch' }}>
+            <div style={{
+              border: '3px solid #111', borderRadius: 20,
+              overflow: 'hidden', boxShadow: '10px 10px 0 #111',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              {/* Header */}
+              <div style={{ background: tier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
                 <div style={{
-                  display: 'inline-block', background: '#F5C518', border: '2px solid #111',
-                  borderRadius: 999, padding: '4px 12px', fontFamily: FONT.mono,
-                  fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10,
+                  display: 'inline-block', background: '#111', color: tier.color,
+                  fontFamily: FONT.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: 2,
+                  padding: '5px 12px', borderRadius: 999, marginBottom: 16,
                 }}>
-                  You save ${(tier.monthly - tier.yearly) * 12}/yr
+                  Most hired
                 </div>
-              )}
+                <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 8vw, 64px)', margin: 0, lineHeight: 1, color: '#111' }}>
+                  {tier.name}
+                </h2>
+                <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
+                  {tier.tag}
+                </p>
+              </div>
+
+              {/* Price */}
+              <div style={{ background: '#fff', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 12vw, 72px)', color: '#111', lineHeight: 1 }}>
+                    ${price}
+                  </div>
+                  <div style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#888', paddingBottom: 8 }}>
+                    /mo{yearly ? ' · billed annually' : ''}
+                  </div>
+                </div>
+                {yearly && (
+                  <div style={{
+                    display: 'inline-block', background: '#F5C518', border: '2px solid #111',
+                    borderRadius: 999, padding: '4px 12px', fontFamily: FONT.mono,
+                    fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10,
+                  }}>
+                    You save ${(tier.monthly - tier.yearly) * 12}/yr
+                  </div>
+                )}
+              </div>
+
+              {/* Features */}
+              <div style={{ background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111', flexGrow: 1 }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 14 }}>
+                  {tier.includes.map(f => (
+                    <li key={f} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <span style={{ color: '#1DBC87', fontFamily: FONT.head, fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
+                      <span style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', lineHeight: 1.4 }}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* CTA */}
+              <div style={{ background: '#fff', padding: 'clamp(18px, 4vw, 24px) clamp(20px, 5vw, 36px)', textAlign: 'center' }}>
+                <a
+                  href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'center',
+                    padding: '16px 26px', background: '#111', color: '#EFE7D6',
+                    fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
+                    border: '3px solid #111', borderRadius: 10, textDecoration: 'none',
+                    boxShadow: '5px 5px 0 #F5C518', boxSizing: 'border-box',
+                  } as React.CSSProperties}
+                >
+                  Start 7-day free trial →
+                </a>
+                <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 12, marginBottom: 0 }}>
+                  No credit card · Cancel anytime
+                </p>
+              </div>
             </div>
 
-            {/* Features */}
-            <div style={{ background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 14 }}>
-                {tier.includes.map(f => (
-                  <li key={f} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <span style={{ color: '#1DBC87', fontFamily: FONT.head, fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
-                    <span style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', lineHeight: 1.4 }}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {custom && (
+              <div style={{
+                border: '3px solid #111', borderRadius: 20,
+                overflow: 'hidden', boxShadow: `10px 10px 0 ${custom.color}`,
+                display: 'flex', flexDirection: 'column',
+              }}>
+                {/* Header */}
+                <div style={{ background: custom.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
+                  <div style={{
+                    display: 'inline-block', background: '#111', color: custom.color,
+                    fontFamily: FONT.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: 2,
+                    padding: '5px 12px', borderRadius: 999, marginBottom: 16, visibility: 'hidden',
+                  }}>
+                    Most hired
+                  </div>
+                  <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 8vw, 64px)', margin: 0, lineHeight: 1, color: '#111' }}>
+                    {custom.name}
+                  </h2>
+                  <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
+                    {custom.tag}
+                  </p>
+                </div>
 
-            {/* CTA */}
-            <div style={{ background: '#fff', padding: 'clamp(18px, 4vw, 24px) clamp(20px, 5vw, 36px)', textAlign: 'center' }}>
-              <a
-                href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
-                style={{
-                  display: 'block', width: '100%', textAlign: 'center',
-                  padding: '16px 26px', background: '#111', color: '#EFE7D6',
-                  fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-                  border: '3px solid #111', borderRadius: 10, textDecoration: 'none',
-                  boxShadow: '5px 5px 0 #F5C518', boxSizing: 'border-box',
-                } as React.CSSProperties}
-              >
-                Start 7-day free trial →
-              </a>
-              <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 12, marginBottom: 0 }}>
-                No credit card · Cancel anytime
-              </p>
-            </div>
+                {/* Price */}
+                <div style={{ background: '#fff', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 12vw, 72px)', color: '#111', lineHeight: 1 }}>
+                      ${custom.monthly}+
+                    </div>
+                    <div style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#888', paddingBottom: 8 }}>
+                      /mo and up
+                    </div>
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div style={{ background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111', flexGrow: 1 }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 14 }}>
+                    {custom.includes.map(f => (
+                      <li key={f} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                        <span style={{ color: '#1DBC87', fontFamily: FONT.head, fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
+                        <span style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', lineHeight: 1.4 }}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* CTA */}
+                <div style={{ background: '#fff', padding: 'clamp(18px, 4vw, 24px) clamp(20px, 5vw, 36px)', textAlign: 'center' }}>
+                  <a
+                    href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'center',
+                      padding: '16px 26px', background: '#111', color: '#EFE7D6',
+                      fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
+                      border: '3px solid #111', borderRadius: 10, textDecoration: 'none',
+                      boxShadow: `5px 5px 0 ${custom.color}`, boxSizing: 'border-box',
+                    } as React.CSSProperties}
+                  >
+                    Talk to sales →
+                  </a>
+                  <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 12, marginBottom: 0 }}>
+                    Response within 1 business day
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -260,8 +332,19 @@ export default function PricingPageContent() {
                     padding: 0,
                   }}
                 >
-                  <div style={{ height: 110, overflow: 'hidden', background: emp.color, borderBottom: '3px solid #111' }}>
+                  <div style={{ position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', background: emp.color, borderBottom: '3px solid #111' }}>
                     <Comp size="100%" />
+                    <div style={{
+                      position: 'absolute', top: 8, right: 8,
+                      width: 26, height: 26, borderRadius: '50%',
+                      background: selected ? '#111' : '#fff',
+                      border: '2px solid #111',
+                      display: 'grid', placeItems: 'center',
+                      fontFamily: FONT.head, fontSize: 14, color: '#fff',
+                      boxShadow: '2px 2px 0 #111',
+                    }}>
+                      {selected && '✓'}
+                    </div>
                   </div>
                   <div style={{ padding: 14 }}>
                     <div style={{ fontFamily: FONT.display, fontSize: 25, lineHeight: 1, color: selected ? '#111' : emp.color }}>

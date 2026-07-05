@@ -94,6 +94,7 @@ export interface PricingTier {
   color: string;
   includes: string[];
   popular?: boolean;
+  custom?: boolean;
 }
 
 export interface AgentPricing {
@@ -141,6 +142,22 @@ export const pricingTiers: PricingTier[] = [
       'Works With Your Existing Tools',
     ],
     popular: true,
+  },
+  {
+    name: 'Enterprise',
+    monthly: 99,
+    yearly: 0,
+    tag: 'built around your team',
+    color: '#8A8AF0',
+    includes: [
+      'Custom SLAs',
+      'Dedicated onboarding & support',
+      'Custom integrations',
+      'Volume / seat-based pricing',
+      'Priority support channel',
+      'Dedicated account manager',
+    ],
+    custom: true,
   },
 ];
 

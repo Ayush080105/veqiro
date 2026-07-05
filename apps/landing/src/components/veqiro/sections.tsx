@@ -12,6 +12,7 @@ import {
   footerColumns,
   social,
   footerBottom,
+  contact,
 } from '@/lib/site-config';
 import { ContactModal } from './contact-modal';
 
@@ -57,6 +58,7 @@ export function Pricing() {
   const [yearly, setYearly] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'out' | 'in'>('idle');
   const p = pricingTiers[0];
+  const custom = pricingTiers.find(t => t.custom);
   const price = yearly ? p.yearly : p.monthly;
 
   // Monthly: red card, yellow shadow/badge
@@ -78,7 +80,7 @@ export function Pricing() {
 
   return (
     <section id="pricing" className="vq-section-pad" style={{ background: '#111', color: '#EFE7D6' }}>
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, color: '#F5C518' }}>
             [ PRICING ]
@@ -99,49 +101,92 @@ export function Pricing() {
           </div>
         </div>
 
-        <div style={{
-          background: cardBg, color: '#111',
-          border: '3px solid #EFE7D6', borderRadius: 20,
-          padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
-          position: 'relative', boxShadow: `10px 10px 0 ${shadowClr}`,
-          transform: cardTransform, transition: cardTransition,
-          willChange: 'transform',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'stretch' }}>
           <div style={{
-            position: 'absolute', top: -14, right: 24,
-            background: badgeBg, color: badgeTxt,
-            border: '3px solid #111', borderRadius: 999, padding: '4px 14px',
-            fontFamily: FONT.head, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
-            transform: 'rotate(4deg)', boxShadow: '3px 3px 0 #111',
-          }}>most hired ✦</div>
+            background: cardBg, color: '#111',
+            border: '3px solid #EFE7D6', borderRadius: 20,
+            padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
+            position: 'relative', boxShadow: `10px 10px 0 ${shadowClr}`,
+            transform: cardTransform, transition: cardTransition,
+            willChange: 'transform',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{
+              position: 'absolute', top: -14, right: 24,
+              background: badgeBg, color: badgeTxt,
+              border: '3px solid #111', borderRadius: 999, padding: '4px 14px',
+              fontFamily: FONT.head, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
+              transform: 'rotate(4deg)', boxShadow: '3px 3px 0 #111',
+            }}>most hired ✦</div>
 
-          <div style={{ fontFamily: FONT.head, fontSize: 28 }}>{p.name}</div>
-          <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{p.tag}</div>
+            <div style={{ fontFamily: FONT.head, fontSize: 28 }}>{p.name}</div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{p.tag}</div>
 
-          <div style={{ marginTop: 24, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 14vw, 88px)', lineHeight: 1 }}>${price}</span>
-            <span style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)' }}>/{yearly ? 'mo, billed yearly' : 'month'}</span>
+            <div style={{ marginTop: 24, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 14vw, 88px)', lineHeight: 1 }}>${price}</span>
+              <span style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)' }}>/{yearly ? 'mo, billed yearly' : 'month'}</span>
+            </div>
+
+            <ul style={{ listStyle: 'none', padding: 0, margin: '28px 0', display: 'grid', gap: 12 }}>
+              {p.includes.map(it => (
+                <li key={it} style={{ fontFamily: FONT.body, fontSize: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ width: 22, height: 22, background: '#111', color: cardBg, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontFamily: FONT.head, flexShrink: 0 }}>✓</span>
+                  {it}
+                </li>
+              ))}
+            </ul>
+
+            <a href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`} style={{
+              display: 'block', textAlign: 'center', textDecoration: 'none',
+              background: '#111', color: '#EFE7D6', padding: '16px',
+              border: '3px solid #111', borderRadius: 12, boxShadow: '5px 5px 0 #111',
+              fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
+              marginTop: 'auto',
+            }}>{isPreLaunch ? 'Join the waitlist →' : 'Start hiring — free 7 days →'}</a>
+
+            <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
+              {isPreLaunch ? 'Free for early members · 30% off first month' : 'No credit card needed · Cancel anytime'}
+            </p>
           </div>
 
-          <ul style={{ listStyle: 'none', padding: 0, margin: '28px 0', display: 'grid', gap: 12 }}>
-            {p.includes.map(it => (
-              <li key={it} style={{ fontFamily: FONT.body, fontSize: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ width: 22, height: 22, background: '#111', color: cardBg, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontFamily: FONT.head, flexShrink: 0 }}>✓</span>
-                {it}
-              </li>
-            ))}
-          </ul>
+          {custom && (
+            <div style={{
+              background: '#1a1a1a', color: '#EFE7D6',
+              border: `3px solid ${custom.color}`, borderRadius: 20,
+              padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
+              boxShadow: `10px 10px 0 ${custom.color}`,
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{ fontFamily: FONT.head, fontSize: 28 }}>{custom.name}</div>
+              <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{custom.tag}</div>
 
-          <a href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`} style={{
-            display: 'block', textAlign: 'center', textDecoration: 'none',
-            background: '#111', color: '#EFE7D6', padding: '16px',
-            border: '3px solid #111', borderRadius: 12, boxShadow: '5px 5px 0 #111',
-            fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-          }}>{isPreLaunch ? 'Join the waitlist →' : 'Start hiring — free 7 days →'}</a>
+              <div style={{ marginTop: 24, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 14vw, 88px)', lineHeight: 1, color: custom.color }}>${custom.monthly}+</span>
+                <span style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)' }}>/month and up</span>
+              </div>
 
-          <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
-            {isPreLaunch ? 'Free for early members · 30% off first month' : 'No credit card needed · Cancel anytime'}
-          </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '28px 0', display: 'grid', gap: 12 }}>
+                {custom.includes.map(it => (
+                  <li key={it} style={{ fontFamily: FONT.body, fontSize: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ width: 22, height: 22, background: custom.color, color: '#111', borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontFamily: FONT.head, flexShrink: 0 }}>✓</span>
+                    {it}
+                  </li>
+                ))}
+              </ul>
+
+              <a href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`} style={{
+                display: 'block', textAlign: 'center', textDecoration: 'none',
+                background: '#EFE7D6', color: '#111', padding: '16px',
+                border: '3px solid #111', borderRadius: 12, boxShadow: `5px 5px 0 ${custom.color}`,
+                fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
+                marginTop: 'auto',
+              }}>Talk to sales →</a>
+
+              <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
+                Response within 1 business day
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </section>
