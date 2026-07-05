@@ -10,8 +10,7 @@ import {
 } from "./billing.types.js";
 
 type WebhookPayload = {
-  event_id: string;
-  event_type: string;
+  type: string;
   timestamp?: string | Date;
   data: {
     customer?: { customer_id?: string };
@@ -58,8 +57,7 @@ function parsePeriodEnd(p: WebhookPayload["data"]): Date | null {
 }
 
 function eventId(payload: WebhookPayload) {
-  return payload.event_id
-    || `${payload.event_type}:${payload.data.subscription_id ?? "none"}:${payload.timestamp?.toString() ?? "no-ts"}`;
+  return `${payload.type}:${payload.data.subscription_id ?? "none"}:${payload.timestamp?.toString() ?? "no-ts"}`;
 }
 
 async function claimWebhookEvent(payload: WebhookPayload, organizationId: string | null) {
@@ -67,7 +65,7 @@ async function claimWebhookEvent(payload: WebhookPayload, organizationId: string
     await prisma.billingWebhookEvent.create({
       data: {
         eventId: eventId(payload),
-        eventType: payload.event_type,
+        eventType: payload.type,
         subscriptionId: payload.data.subscription_id,
         organizationId,
         result: "processing",
