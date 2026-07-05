@@ -30,15 +30,6 @@ export function useTasks(type?: TaskType) {
   })
 }
 
-export function useCreateTask() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: { name: string; description?: string | null; cronExpression?: string | null; timezone?: string }) =>
-      apiFetch<Task>("/tasks", { method: "POST", body: data }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
-  })
-}
-
 export function useUpdateTask() {
   const qc = useQueryClient()
   return useMutation({

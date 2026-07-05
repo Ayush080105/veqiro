@@ -105,22 +105,63 @@ export const findAllMayaMessages = (
     .then((rows) => rows.reverse());
 };
 
+const publishedPostSelect = {
+  id: true,
+  platform: true,
+  caption: true,
+  hashtags: true,
+  imageUrl: true,
+  status: true,
+  error: true,
+  publishedAt: true,
+  scheduledAt: true,
+  createdAt: true,
+  platformPostId: true,
+} as const;
+
 export const findPublishedPosts = (organizationId: string) =>
   prisma.publishedPost.findMany({
     where: { organizationId },
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      platform: true,
-      caption: true,
-      hashtags: true,
-      imageUrl: true,
-      status: true,
-      publishedAt: true,
-      createdAt: true,
-      platformPostId: true,
-    },
+    select: publishedPostSelect,
   });
+
+export const findPublishedPostById = (id: string, organizationId: string) =>
+  prisma.publishedPost.findFirst({ where: { id, organizationId } });
+
+// Atomically claims scheduled posts whose fire time has passed, across
+// concurrent server instances — mirrors tasks.repository.ts::claimDueTasks.
+// "publishing" is a transient status that only exists between the claim and
+// firePublishedPost/firePublishedCarousel's success/failed update moments later.
+export async function claimDueScheduledPosts() {
+  return prisma.$queryRaw<
+    Array<{
+      id: string;
+      organizationId: string;
+      userId: string;
+      socialAccountId: string | null;
+      platform: string;
+      caption: string;
+      imageUrl: string | null;
+      videoUrl: string | null;
+      imageUrls: string[];
+      postType: string | null;
+      failureNotifiedAt: Date | null;
+    }>
+  >`
+    UPDATE "published_post"
+    SET status = 'publishing'
+    WHERE id IN (
+      SELECT id FROM "published_post"
+      WHERE status = 'scheduled' AND "scheduledAt" <= NOW()
+      FOR UPDATE SKIP LOCKED
+    )
+    RETURNING id, "organizationId", "userId", "socialAccountId", platform, caption, "imageUrl", "videoUrl", "imageUrls", "postType", "failureNotifiedAt"
+  `;
+}
+
+export const findRecipientEmail = (userId: string) =>
+  prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
 
 export const getRecentIdeas = (
   organizationId: string,

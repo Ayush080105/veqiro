@@ -6,7 +6,6 @@ import {
   Clock,
   Edit2,
   Play,
-  Plus,
   Trash2,
 } from "lucide-react"
 import { PageHeader } from "@/components/ui/page-header"
@@ -17,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TaskEditSheet } from "@/components/tasks/TaskEditSheet"
-import { CreateTaskSheet } from "@/components/tasks/CreateTaskSheet"
 import { useTasks, useUpdateTask, useDeleteTask, useRunTask, type Task, type AgentSlug } from "@/lib/api/tasks"
 import { FONT } from "@/lib/fonts"
 import { toast } from "sonner"
@@ -170,7 +168,6 @@ export default function TasksPage() {
   const runTask = useRunTask()
 
   const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
 
   const agentTasks = allTasks?.filter((t) => t.type === "AGENT") ?? []
   const generalTasks = allTasks?.filter((t) => t.type === "GENERAL") ?? []
@@ -227,23 +224,6 @@ export default function TasksPage() {
               GENERAL
             </TabsTrigger>
           </TabsList>
-
-          <Button
-            onClick={() => setCreateOpen(true)}
-            size="sm"
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 10,
-              letterSpacing: 1,
-              background: "#111",
-              color: "#fff",
-              border: "2px solid #111",
-              boxShadow: "2px 2px 0 #555",
-            }}
-          >
-            <Plus size={12} className="mr-1" />
-            NEW TASK
-          </Button>
         </div>
 
         <TabsContent value="agent" className="mt-0">
@@ -297,16 +277,8 @@ export default function TasksPage() {
               <Clock size={28} style={{ color: "#ccc" }} />
               <p style={{ fontFamily: FONT.head, fontSize: 15, color: "#555" }}>No general tasks yet</p>
               <p style={{ fontFamily: FONT.mono, fontSize: 11, color: "#888" }}>
-                Create tasks to track recurring work items, reminders, or one-offs.
+                General tasks will appear here once created.
               </p>
-              <Button
-                onClick={() => setCreateOpen(true)}
-                size="sm"
-                style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1, background: "#111", color: "#fff", border: "2px solid #111", boxShadow: "2px 2px 0 #555" }}
-              >
-                <Plus size={12} className="mr-1" />
-                CREATE FIRST TASK
-              </Button>
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -330,8 +302,6 @@ export default function TasksPage() {
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
       />
-
-      <CreateTaskSheet open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   )
 }

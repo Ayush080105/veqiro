@@ -143,6 +143,50 @@ export async function publishCarousel(
   })
 }
 
+export interface SchedulePostInput extends PublishPostInput {
+  scheduledAt: string
+}
+
+export interface ScheduleCarouselInput extends PublishCarouselInput {
+  scheduledAt: string
+}
+
+export interface ScheduleResult {
+  id: string
+  scheduledAt: string
+  platform: "twitter" | "linkedin" | "instagram"
+}
+
+export async function schedulePost(
+  organizationId: string,
+  input: SchedulePostInput
+): Promise<ScheduleResult> {
+  return apiFetch<ScheduleResult>("/agents/maya/schedule", {
+    method: "POST",
+    body: { organizationId, ...input },
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export async function scheduleCarousel(
+  organizationId: string,
+  input: ScheduleCarouselInput
+): Promise<ScheduleResult> {
+  return apiFetch<ScheduleResult>("/agents/maya/schedule-carousel", {
+    method: "POST",
+    body: { organizationId, ...input },
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export async function cancelScheduledPost(organizationId: string, id: string): Promise<void> {
+  await apiFetch<unknown>(`/agents/maya/scheduled-posts/${id}/cancel`, {
+    method: "POST",
+    body: { organizationId },
+    agentSlugForNotFound: "maya",
+  })
+}
+
 // ─── Status (mock-fallback) ───────────────────────────────────────────────────
 
 export async function getAssistantStatuses(
@@ -307,6 +351,16 @@ export function usePublishPost(organizationId: string) {
   })
 }
 
+export function useCancelScheduledPost(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => cancelScheduledPost(organizationId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.mayaPublishedPosts(organizationId) })
+    },
+  })
+}
+
 export interface PublishedPost {
   id: string
   platform: "LINKEDIN" | "TWITTER" | "INSTAGRAM"
@@ -314,7 +368,9 @@ export interface PublishedPost {
   hashtags: string[]
   imageUrl: string | null
   status: string
+  error: string | null
   publishedAt: string | null
+  scheduledAt: string | null
   createdAt: string
   platformPostId: string | null
 }

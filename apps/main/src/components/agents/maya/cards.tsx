@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils"
 import { VIDEO_FEATURES_LOCKED } from "@/lib/config/features"
 import { PublishDialog, CampaignPublishDialog } from "./publish-dialog"
+import { ScheduleDialog, CampaignScheduleDialog } from "./schedule-dialog"
 import type { AgentActionId } from "@/lib/types/agents"
 import type {
   MayaIdeationResult,
@@ -484,6 +485,12 @@ export function DraftPreview({
             hashtags={hashtags}
             image={image}
           />
+          <ScheduleDialog
+            platform={platform}
+            caption={`${body}${cta ? `\n\n${cta}` : ""}`}
+            hashtags={hashtags}
+            image={image}
+          />
         </ActionRow>
       </div>
     </div>
@@ -615,6 +622,12 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
           hashtags={result.revised.hashtags}
           image={undefined}
         />
+        <ScheduleDialog
+          platform={result.platform}
+          caption={`${result.revised.body}${result.revised.cta ? `\n\n${result.revised.cta}` : ""}`}
+          hashtags={result.revised.hashtags}
+          image={undefined}
+        />
       </AgentCard.Footer>
     </AgentCard>
   )
@@ -692,6 +705,12 @@ export function ContentRegenCard({ result }: { result: MayaContentRegenResult })
       <AgentCard.Footer>
         <CopyButton text={fullText} />
         <PublishDialog
+          platform={result.platform}
+          caption={result.caption}
+          hashtags={result.hashtags}
+          image={undefined}
+        />
+        <ScheduleDialog
           platform={result.platform}
           caption={result.caption}
           hashtags={result.hashtags}
@@ -832,6 +851,12 @@ export function CarouselDraftCard({
                 </Button>
               )}
               <PublishDialog
+                platform={result.platform}
+                caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
+                hashtags={d.hashtags ?? []}
+                image={currentSlide.image}
+              />
+              <ScheduleDialog
                 platform={result.platform}
                 caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
                 hashtags={d.hashtags ?? []}
@@ -1012,6 +1037,11 @@ export function CampaignResultCard({
             photoCount={photos.length}
             caption={captionBody}
           />
+          <CampaignScheduleDialog
+            imageUrls={publishableUrls}
+            photoCount={photos.length}
+            caption={captionBody}
+          />
         </div>
       </AgentCard.Body>
     </AgentCard>
@@ -1079,6 +1109,12 @@ export function VideoResultCard({
           </a>
         </Button>
         <PublishDialog
+          platform={platform}
+          caption={captionBody}
+          hashtags={result.caption?.hashtags ?? []}
+          video={result.video}
+        />
+        <ScheduleDialog
           platform={platform}
           caption={captionBody}
           hashtags={result.caption?.hashtags ?? []}

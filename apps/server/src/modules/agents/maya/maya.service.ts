@@ -29,6 +29,9 @@ import type {
   PublishResponse,
   PublishCarouselInput,
   PublishCarouselResponse,
+  ScheduleInput,
+  ScheduleCarouselInput,
+  ScheduleResponse,
   ImageResult,
   VideoResult,
   CampaignInput,
@@ -43,7 +46,9 @@ import type {
   CampaignVideoStoryboardResponse,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
-import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
+import { SocialPlatform, SocialAccount } from "../../../../prisma/generated/prisma/client.js";
+import { NotFoundError } from "../../../common/errors/notFound.js";
+import type { PlatformSlug, SocialProvider } from "../../integrations/integrations.types.js";
 
 const platformToEnum: Record<string, SocialPlatform> = {
   twitter: SocialPlatform.TWITTER,
@@ -536,6 +541,114 @@ export const regenerateContent = async (
   return data;
 };
 
+// Hashtags can arrive from the LLM with or without a leading `#`, with stray
+// whitespace, or as empty strings. IG/LinkedIn only render `#token` (no
+// spaces) as a tappable tag, so normalise here rather than at every call
+// site or trust the model.
+const normalizeCaption = (caption: string, hashtags?: string[]): string => {
+  const normalizedHashtags = (hashtags ?? [])
+    .map((raw) => raw.trim().replace(/^#+/, "").replace(/\s+/g, ""))
+    .filter((tag) => tag.length > 0)
+    .map((tag) => `#${tag}`);
+  return normalizedHashtags.length ? `${caption}\n\n${normalizedHashtags.join(" ")}` : caption;
+};
+
+export interface FirablePost {
+  id: string;
+  organizationId: string;
+  userId: string;
+  socialAccountId: string | null;
+  caption: string;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  postType: string | null;
+}
+
+interface ResolvedAccount {
+  account: SocialAccount;
+  provider: SocialProvider;
+  platform: PlatformSlug;
+}
+
+// Calls the provider (with one retry on auth-token expiry) and updates the
+// PublishedPost row to success/failed. Shared by the synchronous publish path
+// (which already has a freshly-resolved account) and the scheduled-post cron
+// (which resolves the account itself, since the token may have gone stale
+// while the post sat waiting to fire).
+export const firePublishedPost = async (
+  post: FirablePost,
+  resolved?: ResolvedAccount
+): Promise<PublishResponse> => {
+  if (!post.socialAccountId) throw new BadRequestError("No social account associated with this post");
+  let { account: activeAccount, provider, platform } =
+    resolved ?? await integrationsService.getUsableSocialAccount(post.organizationId, post.socialAccountId);
+
+  try {
+    let platformPostId: string;
+    let url: string | undefined;
+    try {
+      const result = await provider.publish({
+        account: activeAccount,
+        caption: post.caption,
+        imageUrl: post.imageUrl ?? undefined,
+        videoUrl: post.videoUrl ?? undefined,
+        postType: post.postType as "post" | "reel" | undefined,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    } catch (err) {
+      if (!integrationsService.isAuthTokenError(err)) throw err;
+      ({ account: activeAccount, provider, platform } =
+        await integrationsService.getUsableSocialAccount(post.organizationId, post.socialAccountId, {
+          forceRefresh: true,
+        }));
+      const result = await provider.publish({
+        account: activeAccount,
+        caption: post.caption,
+        imageUrl: post.imageUrl ?? undefined,
+        videoUrl: post.videoUrl ?? undefined,
+        postType: post.postType as "post" | "reel" | undefined,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    }
+
+    await prisma.publishedPost.update({
+      where: { id: post.id },
+      data: {
+        status: "success",
+        platformPostId,
+        publishedAt: new Date(),
+      },
+    });
+
+    await mayaRepository.createAssistantMessage({
+      organizationId: post.organizationId,
+      userId: post.userId,
+      content: `Published to ${platform}${url ? `: ${url}` : ""}`,
+      imageUrl: post.imageUrl ?? undefined,
+      customInput: {
+        actionId: "maya:publish",
+        result: { platform, platformPostId, url },
+      },
+    });
+
+    return {
+      platform,
+      platformPostId,
+      url,
+      publishedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await prisma.publishedPost.update({
+      where: { id: post.id },
+      data: { status: "failed", error: message },
+    });
+    throw err;
+  }
+};
+
 export const publish = async (
   userId: string,
   organizationId: string,
@@ -574,106 +687,124 @@ export const publish = async (
     videoUrl = uploaded.url;
   }
 
-  let { account: activeAccount, provider, platform } =
-    await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
+  const resolved = await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
 
   // Pre-flight: every platform demands some media to publish
   if (!imageUrl && !videoUrl) {
     throw new BadRequestError("Publishing requires an image or video");
   }
 
-  // Hashtags can arrive from the LLM with or without a leading `#`, with stray
-  // whitespace, or as empty strings. IG/LinkedIn only render `#token` (no
-  // spaces) as a tappable tag, so normalise here rather than at every call
-  // site or trust the model.
-  const normalizedHashtags = (input.hashtags ?? [])
-    .map((raw) => raw.trim().replace(/^#+/, "").replace(/\s+/g, ""))
-    .filter((tag) => tag.length > 0)
-    .map((tag) => `#${tag}`);
-
-  const caption = normalizedHashtags.length
-    ? `${input.caption}\n\n${normalizedHashtags.join(" ")}`
-    : input.caption;
+  const caption = normalizeCaption(input.caption, input.hashtags);
 
   const pending = await prisma.publishedPost.create({
     data: {
       organizationId,
       userId,
-      socialAccountId: activeAccount.id,
-      platform: activeAccount.platform,
+      socialAccountId: resolved.account.id,
+      platform: resolved.account.platform,
       caption,
       hashtags: input.hashtags ?? [],
       imageUrl,
       videoUrl,
+      postType: input.postType ?? null,
       status: "pending",
     },
   });
 
   try {
-    let platformPostId: string;
-    let url: string | undefined;
-    try {
-      const result = await provider.publish({
-        account: activeAccount,
+    return await firePublishedPost(
+      {
+        id: pending.id,
+        organizationId,
+        userId,
+        socialAccountId: pending.socialAccountId,
         caption,
-        imageUrl,
-        videoUrl,
-        postType: input.postType,
-      });
-      platformPostId = result.platformPostId;
-      url = result.url;
-    } catch (err) {
-      if (!integrationsService.isAuthTokenError(err)) throw err;
-      ({ account: activeAccount, provider, platform } =
-        await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId, {
-          forceRefresh: true,
-        }));
-      const result = await provider.publish({
-        account: activeAccount,
-        caption,
-        imageUrl,
-        videoUrl,
-        postType: input.postType,
-      });
-      platformPostId = result.platformPostId;
-      url = result.url;
-    }
-
-    await prisma.publishedPost.update({
-      where: { id: pending.id },
-      data: {
-        status: "success",
-        platformPostId,
-        publishedAt: new Date(),
+        imageUrl: imageUrl ?? null,
+        videoUrl: videoUrl ?? null,
+        postType: input.postType ?? null,
       },
-    });
-
-    await mayaRepository.createAssistantMessage({
-      organizationId,
-      userId,
-      content: `Published to ${platform}${url ? `: ${url}` : ""}`,
-      imageUrl,
-      customInput: {
-        actionId: "maya:publish",
-        input,
-        result: { platform, platformPostId, url },
-      },
-    });
-
-    return {
-      platform,
-      platformPostId,
-      url,
-      publishedAt: new Date().toISOString(),
-    };
+      resolved
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await prisma.publishedPost.update({
-      where: { id: pending.id },
-      data: { status: "failed", error: message },
-    });
     throw new BadRequestError(`Publish failed: ${message}`);
   }
+};
+
+export const schedulePost = async (
+  userId: string,
+  organizationId: string,
+  input: ScheduleInput
+): Promise<ScheduleResponse> => {
+  let imageUrl = input.imageUrl;
+  if (!imageUrl && input.imageBase64) {
+    if (!isR2Configured()) {
+      throw new BadRequestError(
+        "Image hosting is not configured. Set R2_* env vars or pass imageUrl directly."
+      );
+    }
+    const uploaded = await uploadImageBase64({
+      organizationId,
+      name: "maya-schedule",
+      base64: input.imageBase64,
+    });
+    imageUrl = uploaded.url;
+  }
+
+  let videoUrl = input.videoUrl;
+  if (!videoUrl && input.videoBase64) {
+    if (!isR2Configured()) {
+      throw new BadRequestError(
+        "Video hosting is not configured. Set R2_* env vars or pass videoUrl directly."
+      );
+    }
+    const uploaded = await uploadBuffer({
+      organizationId,
+      name: "maya-schedule",
+      buffer: Buffer.from(input.videoBase64, "base64"),
+      contentType: "video/mp4",
+      extension: "mp4",
+      category: "videos",
+    });
+    videoUrl = uploaded.url;
+  }
+
+  if (!imageUrl && !videoUrl) {
+    throw new BadRequestError("Scheduling requires an image or video");
+  }
+
+  const { account, platform } = await integrationsService.getUsableSocialAccount(
+    organizationId,
+    input.socialAccountId
+  );
+  const caption = normalizeCaption(input.caption, input.hashtags);
+
+  const row = await prisma.publishedPost.create({
+    data: {
+      organizationId,
+      userId,
+      socialAccountId: account.id,
+      platform: account.platform,
+      caption,
+      hashtags: input.hashtags ?? [],
+      imageUrl,
+      videoUrl,
+      postType: input.postType ?? null,
+      status: "scheduled",
+      scheduledAt: new Date(input.scheduledAt),
+    },
+  });
+
+  return { id: row.id, scheduledAt: row.scheduledAt!.toISOString(), platform };
+};
+
+export const cancelScheduledPost = async (organizationId: string, id: string) => {
+  const post = await mayaRepository.findPublishedPostById(id, organizationId);
+  if (!post) throw new NotFoundError("Scheduled post not found");
+  if (post.status !== "scheduled") {
+    throw new BadRequestError("Only scheduled posts can be cancelled");
+  }
+  return prisma.publishedPost.update({ where: { id }, data: { status: "cancelled" } });
 };
 
 export const draftCarousel = async (
@@ -752,12 +883,135 @@ export const expandBrief = async (
   return data;
 };
 
+export interface FirableCarouselPost {
+  id: string;
+  organizationId: string;
+  userId: string;
+  socialAccountId: string | null;
+  caption: string;
+  imageUrls: string[];
+}
+
+// Carousel counterpart to firePublishedPost — see that function's comment.
+export const firePublishedCarousel = async (
+  post: FirableCarouselPost,
+  resolved?: { account: SocialAccount; provider: SocialProvider }
+): Promise<PublishCarouselResponse> => {
+  if (!post.socialAccountId) throw new BadRequestError("No social account associated with this post");
+  let { account, provider } =
+    resolved ?? await integrationsService.getUsableSocialAccount(post.organizationId, post.socialAccountId);
+  if (!provider.publishCarousel) {
+    throw new BadRequestError("Carousel publishing not supported by this provider");
+  }
+
+  try {
+    let platformPostId: string;
+    let url: string | undefined;
+    try {
+      const result = await provider.publishCarousel({
+        account,
+        caption: post.caption,
+        imageUrls: post.imageUrls,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    } catch (err) {
+      if (!integrationsService.isAuthTokenError(err)) throw err;
+      const refreshed = await integrationsService.getUsableSocialAccount(
+        post.organizationId,
+        post.socialAccountId,
+        { forceRefresh: true }
+      );
+      account = refreshed.account;
+      provider = refreshed.provider;
+      if (!provider.publishCarousel) {
+        throw new BadRequestError("Carousel publishing not supported by this provider");
+      }
+      const result = await provider.publishCarousel({
+        account,
+        caption: post.caption,
+        imageUrls: post.imageUrls,
+      });
+      platformPostId = result.platformPostId;
+      url = result.url;
+    }
+
+    await prisma.publishedPost.update({
+      where: { id: post.id },
+      data: { status: "success", platformPostId, publishedAt: new Date() },
+    });
+
+    await mayaRepository.createAssistantMessage({
+      organizationId: post.organizationId,
+      userId: post.userId,
+      content: `Campaign carousel (${post.imageUrls.length} photos) published to Instagram${url ? `: ${url}` : ""}`,
+      customInput: { actionId: "maya:publish-carousel", result: { platformPostId, url } },
+    });
+
+    return { platform: "instagram", platformPostId, url, publishedAt: new Date().toISOString() };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await prisma.publishedPost.update({
+      where: { id: post.id },
+      data: { status: "failed", error: message },
+    });
+    throw err;
+  }
+};
+
 export const publishCarousel = async (
   userId: string,
   organizationId: string,
   input: PublishCarouselInput
 ): Promise<PublishCarouselResponse> => {
-  let { account, provider } = await integrationsService.getUsableSocialAccount(
+  const resolved = await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
+  if (resolved.account.platform !== SocialPlatform.INSTAGRAM) {
+    throw new BadRequestError("Carousel publishing is only supported for Instagram");
+  }
+  if (!resolved.provider.publishCarousel) {
+    throw new BadRequestError("Carousel publishing not supported by this provider");
+  }
+
+  const caption = normalizeCaption(input.caption, input.hashtags);
+
+  const pending = await prisma.publishedPost.create({
+    data: {
+      organizationId,
+      userId,
+      socialAccountId: resolved.account.id,
+      platform: SocialPlatform.INSTAGRAM,
+      caption,
+      hashtags: input.hashtags ?? [],
+      imageUrl: input.imageUrls[0],
+      imageUrls: input.imageUrls,
+      status: "pending",
+    },
+  });
+
+  try {
+    return await firePublishedCarousel(
+      {
+        id: pending.id,
+        organizationId,
+        userId,
+        socialAccountId: pending.socialAccountId,
+        caption,
+        imageUrls: input.imageUrls,
+      },
+      resolved
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new BadRequestError(`Carousel publish failed: ${message}`);
+  }
+};
+
+export const scheduleCarousel = async (
+  userId: string,
+  organizationId: string,
+  input: ScheduleCarouselInput
+): Promise<ScheduleResponse> => {
+  const { account, provider } = await integrationsService.getUsableSocialAccount(
     organizationId,
     input.socialAccountId
   );
@@ -768,16 +1022,9 @@ export const publishCarousel = async (
     throw new BadRequestError("Carousel publishing not supported by this provider");
   }
 
-  const normalizedHashtags = (input.hashtags ?? [])
-    .map((raw) => raw.trim().replace(/^#+/, "").replace(/\s+/g, ""))
-    .filter((tag) => tag.length > 0)
-    .map((tag) => `#${tag}`);
+  const caption = normalizeCaption(input.caption ?? "", input.hashtags);
 
-  const caption = normalizedHashtags.length
-    ? `${input.caption}\n\n${normalizedHashtags.join(" ")}`
-    : input.caption;
-
-  const pending = await prisma.publishedPost.create({
+  const row = await prisma.publishedPost.create({
     data: {
       organizationId,
       userId,
@@ -786,63 +1033,13 @@ export const publishCarousel = async (
       caption,
       hashtags: input.hashtags ?? [],
       imageUrl: input.imageUrls[0],
-      status: "pending",
+      imageUrls: input.imageUrls,
+      status: "scheduled",
+      scheduledAt: new Date(input.scheduledAt),
     },
   });
 
-  try {
-    let platformPostId: string;
-    let url: string | undefined;
-    try {
-      const result = await provider.publishCarousel({
-        account,
-        caption,
-        imageUrls: input.imageUrls,
-      });
-      platformPostId = result.platformPostId;
-      url = result.url;
-    } catch (err) {
-      if (!integrationsService.isAuthTokenError(err)) throw err;
-      const refreshed = await integrationsService.getUsableSocialAccount(
-        organizationId,
-        input.socialAccountId,
-        { forceRefresh: true }
-      );
-      account = refreshed.account;
-      provider = refreshed.provider;
-      if (!provider.publishCarousel) {
-        throw new BadRequestError("Carousel publishing not supported by this provider");
-      }
-      const result = await provider.publishCarousel({
-        account,
-        caption,
-        imageUrls: input.imageUrls,
-      });
-      platformPostId = result.platformPostId;
-      url = result.url;
-    }
-
-    await prisma.publishedPost.update({
-      where: { id: pending.id },
-      data: { status: "success", platformPostId, publishedAt: new Date() },
-    });
-
-    await mayaRepository.createAssistantMessage({
-      organizationId,
-      userId,
-      content: `Campaign carousel (${input.imageUrls.length} photos) published to Instagram${url ? `: ${url}` : ""}`,
-      customInput: { actionId: "maya:publish-carousel", input, result: { platformPostId, url } },
-    });
-
-    return { platform: "instagram", platformPostId, url, publishedAt: new Date().toISOString() };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await prisma.publishedPost.update({
-      where: { id: pending.id },
-      data: { status: "failed", error: message },
-    });
-    throw new BadRequestError(`Carousel publish failed: ${message}`);
-  }
+  return { id: row.id, scheduledAt: row.scheduledAt!.toISOString(), platform: "instagram" };
 };
 
 export const createCampaign = async (

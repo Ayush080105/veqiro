@@ -19,7 +19,7 @@ import type { ContentPlatform, ImageResult, VideoResult } from "@/lib/types/agen
 
 const CONTENT_PLATFORMS = ["linkedin", "twitter", "instagram"] as const
 
-function normalizePlatform(platform?: ContentPlatform | string | null): ContentPlatform | null {
+export function normalizePlatform(platform?: ContentPlatform | string | null): ContentPlatform | null {
   const normalized = platform?.toLowerCase()
   return CONTENT_PLATFORMS.find((p) => p === normalized) ?? null
 }
@@ -29,7 +29,7 @@ const POST_TYPES = [
   { value: "post" as const, label: "Post" },
 ]
 
-function PostTypeToggle({ value, onChange }: { value: "post" | "reel"; onChange: (v: "post" | "reel") => void }) {
+export function PostTypeToggle({ value, onChange }: { value: "post" | "reel"; onChange: (v: "post" | "reel") => void }) {
   return (
     <div className="flex gap-1.5">
       {POST_TYPES.map((opt) => (
@@ -56,7 +56,7 @@ function PostTypeToggle({ value, onChange }: { value: "post" | "reel"; onChange:
   )
 }
 
-interface PublishDialogProps {
+export interface PublishDialogProps {
   platform?: ContentPlatform | string | null
   caption: string
   hashtags: string[]
@@ -64,7 +64,7 @@ interface PublishDialogProps {
   video?: VideoResult | null
 }
 
-interface CampaignPublishDialogProps {
+export interface CampaignPublishDialogProps {
   imageUrls: string[]
   photoCount: number
   caption?: string

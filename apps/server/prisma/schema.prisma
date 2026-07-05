@@ -576,12 +576,20 @@ model PublishedPost {
   imageUrl        String?
   /// Optional video URL used in the post.
   videoUrl        String?
-  /// Publish status such as pending, success, or failed.
+  /// Additional carousel image URLs (Instagram carousels only); imageUrl holds the first.
+  imageUrls       String[]       @default([])
+  /// Instagram post-vs-reel selection, preserved for scheduled video posts.
+  postType        String?
+  /// Publish status: pending, scheduled, publishing, success, failed, or cancelled.
   status          String         @default("pending")
   /// Publish error message when failed.
   error           String?
   /// Provider publish timestamp.
   publishedAt     DateTime?
+  /// When set (status = "scheduled"), the time the post should be auto-published.
+  scheduledAt     DateTime?
+  /// Set once a scheduled post's failure has been emailed/toasted, to avoid duplicate notifications.
+  failureNotifiedAt DateTime?
   /// Local creation timestamp.
   createdAt       DateTime       @default(now())
 
@@ -590,6 +598,7 @@ model PublishedPost {
   @@index([organizationId, status, createdAt])
   @@index([organizationId, platform, createdAt])
   @@index([socialAccountId])
+  @@index([status, scheduledAt])
   @@map("published_post")
 }
 

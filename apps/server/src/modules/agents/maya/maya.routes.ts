@@ -11,6 +11,9 @@ import {
   regenerateContent,
   publish,
   publishCarousel,
+  schedulePost,
+  scheduleCarousel,
+  cancelScheduledPost,
   getPublishedPosts,
   createCampaign,
   expandBrief,
@@ -32,6 +35,9 @@ router.post("/regenerate-image", regenerateImage);
 router.post("/regenerate-content", regenerateContent);
 router.post("/publish", publish);
 router.post("/publish-carousel", publishCarousel);
+router.post("/schedule", schedulePost);
+router.post("/schedule-carousel", scheduleCarousel);
+router.post("/scheduled-posts/:id/cancel", cancelScheduledPost);
 router.get("/published-posts", getPublishedPosts);
 router.post("/campaign", createCampaign);
 router.post("/expand-brief", expandBrief);

@@ -11,6 +11,8 @@ import {
   regenerateContentSchema,
   publishSchema,
   publishCarouselSchema,
+  scheduleSchema,
+  scheduleCarouselSchema,
   campaignSchema,
   expandBriefSchema,
   generateVideoSchema,
@@ -114,6 +116,26 @@ export const publishCarousel = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = publishCarouselSchema.parse(req.body);
   const result = await mayaService.publishCarousel(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const schedulePost = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = scheduleSchema.parse(req.body);
+  const result = await mayaService.schedulePost(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const scheduleCarousel = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = scheduleCarouselSchema.parse(req.body);
+  const result = await mayaService.scheduleCarousel(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const cancelScheduledPost = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const result = await mayaService.cancelScheduledPost(organizationId, req.params.id as string);
   res.status(StatusCodes.OK).json(result);
 };
 

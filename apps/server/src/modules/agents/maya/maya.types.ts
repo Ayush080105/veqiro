@@ -10,6 +10,8 @@ import {
   regenerateContentSchema,
   publishSchema,
   publishCarouselSchema,
+  scheduleSchema,
+  scheduleCarouselSchema,
   campaignSchema,
   expandBriefSchema,
   generateVideoSchema,
@@ -27,6 +29,8 @@ export type RegenerateImageInput = z.infer<typeof regenerateImageSchema>;
 export type RegenerateContentInput = z.infer<typeof regenerateContentSchema>;
 export type PublishInput = z.infer<typeof publishSchema>;
 export type PublishCarouselInput = z.infer<typeof publishCarouselSchema>;
+export type ScheduleInput = z.infer<typeof scheduleSchema>;
+export type ScheduleCarouselInput = z.infer<typeof scheduleCarouselSchema>;
 export type CampaignInput = z.infer<typeof campaignSchema>;
 export type ExpandBriefInput = z.infer<typeof expandBriefSchema>;
 export type GenerateVideoInput = z.infer<typeof generateVideoSchema>;
@@ -169,6 +173,12 @@ export interface PublishCarouselResponse {
   platformPostId: string;
   url?: string;
   publishedAt: string;
+}
+
+export interface ScheduleResponse {
+  id: string;
+  scheduledAt: string;
+  platform: ContentPlatform;
 }
 
 export interface CampaignPhoto {

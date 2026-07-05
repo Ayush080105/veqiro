@@ -15,9 +15,10 @@ import {
   parseISO,
   isToday,
 } from "date-fns"
-import { ChevronLeft, ChevronRight, ImageIcon, ExternalLink } from "lucide-react"
+import { ChevronLeft, ChevronRight, ImageIcon, ExternalLink, X } from "lucide-react"
+import { toast } from "sonner"
 import { authClient } from "@/lib/auth-client"
-import { usePublishedPosts } from "@/lib/api/assistants"
+import { usePublishedPosts, useCancelScheduledPost } from "@/lib/api/assistants"
 import type { PublishedPost } from "@/lib/api/assistants"
 
 // ─── Platform config ─────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function postDate(p: PublishedPost): Date {
-  return parseISO(p.publishedAt ?? p.createdAt)
+  return parseISO(p.publishedAt ?? p.scheduledAt ?? p.createdAt)
 }
 
 function groupByDay(posts: PublishedPost[]): Map<string, PublishedPost[]> {
@@ -61,10 +62,23 @@ function calendarDays(month: Date): Date[] {
 // ─── Post card ────────────────────────────────────────────────────────────────
 
 function PostCard({ post }: { post: PublishedPost }) {
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const organizationId = activeOrg?.id ?? ""
+  const cancelScheduledPost = useCancelScheduledPost(organizationId)
+
   const cfg = PLATFORM[post.platform] ?? { label: post.platform, color: "#888", dot: "bg-gray-400" }
   const date = postDate(post)
   const isSuccess = post.status === "success"
   const isFailed = post.status === "failed"
+  const isScheduled = post.status === "scheduled"
+  const isCancelled = post.status === "cancelled"
+
+  const handleCancel = () => {
+    cancelScheduledPost.mutate(post.id, {
+      onSuccess: () => toast.success("Scheduled post cancelled"),
+      onError: (err) => toast.error(err.message),
+    })
+  }
 
   return (
     <div
@@ -93,11 +107,13 @@ function PostCard({ post }: { post: PublishedPost }) {
           >
             {cfg.label}
           </span>
-          <span className="text-[10px] text-[#666]">{format(date, "h:mm a")}</span>
+          <span className="text-[10px] text-[#666]">
+            {isScheduled ? `Scheduled ${format(date, "h:mm a")}` : format(date, "h:mm a")}
+          </span>
         </div>
 
         {/* caption */}
-        <p className="text-xs text-[#111] line-clamp-3 leading-relaxed">
+        <p className={`text-xs text-[#111] line-clamp-3 leading-relaxed ${isCancelled ? "line-through text-[#999]" : ""}`}>
           {post.caption}
         </p>
 
@@ -109,6 +125,13 @@ function PostCard({ post }: { post: PublishedPost }) {
           </p>
         )}
 
+        {/* error message */}
+        {isFailed && post.error && (
+          <p className="text-[10px] text-red-600 line-clamp-2" title={post.error}>
+            {post.error}
+          </p>
+        )}
+
         {/* status + link row */}
         <div className="flex items-center justify-between pt-0.5">
           <span
@@ -117,12 +140,35 @@ function PostCard({ post }: { post: PublishedPost }) {
                 ? "border-green-600 text-green-700 bg-green-50"
                 : isFailed
                 ? "border-red-500 text-red-600 bg-red-50"
+                : isScheduled
+                ? "border-blue-500 text-blue-700 bg-blue-50"
+                : isCancelled
+                ? "border-gray-400 text-gray-500 bg-gray-50"
                 : "border-yellow-500 text-yellow-700 bg-yellow-50"
             }`}
           >
-            {isSuccess ? "Published" : isFailed ? "Failed" : "Pending"}
+            {isSuccess
+              ? "Published"
+              : isFailed
+              ? "Failed"
+              : isScheduled
+              ? "Scheduled"
+              : isCancelled
+              ? "Cancelled"
+              : "Pending"}
           </span>
-          {post.platformPostId && (
+          {isScheduled && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelScheduledPost.isPending}
+              className="flex items-center gap-0.5 text-[10px] text-[#666] hover:text-red-600 disabled:opacity-60"
+              title="Cancel scheduled post"
+            >
+              <X className="size-3" /> Cancel
+            </button>
+          )}
+          {!isScheduled && post.platformPostId && (
             <a
               href={`#`}
               className="flex items-center gap-0.5 text-[10px] text-[#666] hover:text-[#111]"

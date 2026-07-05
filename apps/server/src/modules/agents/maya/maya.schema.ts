@@ -151,3 +151,45 @@ export const publishCarouselSchema = z.object({
   hashtags: z.array(z.string()).max(30).optional().default([]),
   imageUrls: z.array(z.string().url()).min(1).max(10),
 });
+
+const futureDatetime = z.string().datetime().refine(
+  (v) => new Date(v).getTime() > Date.now(),
+  "scheduledAt must be in the future"
+);
+
+export const scheduleSchema = z
+  .object({
+    socialAccountId: z.string().min(1),
+    caption: z.string().min(1).max(5000),
+    hashtags: z.array(z.string()).max(30).optional().default([]),
+    imageUrl: z.string().url().optional(),
+    imageBase64: z.string().optional(),
+    videoUrl: z.string().url().optional(),
+    videoBase64: z.string().optional(),
+    postType: z.enum(["post", "reel"]).optional(),
+    scheduledAt: futureDatetime,
+  })
+  .refine(
+    (v) => !(v.imageBase64 && v.imageUrl),
+    "Provide either imageUrl or imageBase64, not both"
+  )
+  .refine(
+    (v) => !(v.videoBase64 && v.videoUrl),
+    "Provide either videoUrl or videoBase64, not both"
+  )
+  .refine(
+    (v) => !((v.imageUrl || v.imageBase64) && (v.videoUrl || v.videoBase64)),
+    "Provide either an image or a video, not both"
+  )
+  .refine(
+    (v) => Boolean(v.imageUrl || v.imageBase64 || v.videoUrl || v.videoBase64),
+    "Provide an image or a video to schedule"
+  );
+
+export const scheduleCarouselSchema = z.object({
+  socialAccountId: z.string().min(1),
+  caption: z.string().max(2200).optional().default(""),
+  hashtags: z.array(z.string()).max(30).optional().default([]),
+  imageUrls: z.array(z.string().url()).min(1).max(10),
+  scheduledAt: futureDatetime,
+});
