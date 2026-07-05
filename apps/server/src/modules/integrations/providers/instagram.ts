@@ -26,6 +26,91 @@ const MEDIA_URL = (igUserId: string) =>
 const PUBLISH_URL = (igUserId: string) =>
   `https://graph.instagram.com/${GRAPH_VERSION}/${igUserId}/media_publish`;
 
+const instagramEnvHint =
+  "Set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET from the Meta app's Instagram product setup. Do not use META_APP_ID / META_APP_SECRET or Facebook Login credentials for this direct Instagram Login flow.";
+
+const getInstagramAppId = (): string => {
+  const appId = process.env.INSTAGRAM_APP_ID;
+  if (!appId) {
+    throw new Error(`INSTAGRAM_APP_ID not configured. ${instagramEnvHint}`);
+  }
+  return appId;
+};
+
+const getInstagramCredentials = (): { appId: string; appSecret: string } => {
+  const appId = process.env.INSTAGRAM_APP_ID;
+  const appSecret = process.env.INSTAGRAM_APP_SECRET;
+  if (!appId || !appSecret) {
+    throw new Error(`INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET not configured. ${instagramEnvHint}`);
+  }
+  return { appId, appSecret };
+};
+
+const parseMetaErrorMessage = (raw: string): string | undefined => {
+  try {
+    const json = JSON.parse(raw) as { error?: { message?: unknown } };
+    return typeof json.error?.message === "string" ? json.error.message : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const longTokenExchangeError = (status: number, raw: string): Error => {
+  const message = parseMetaErrorMessage(raw);
+  const flowHint = message?.includes("Unsupported request - method type: get")
+    ? " This usually means the OAuth code/token or app credentials are for the Facebook Login/Page flow instead of Instagram API with Instagram Login. Configure Instagram-specific app credentials and reconnect the account."
+    : "";
+  return new Error(
+    `Instagram long-token exchange failed (${status}): ${message ?? raw}.${flowHint} Meta response: ${raw}`,
+  );
+};
+
+interface ShortTokenPayload {
+  access_token?: unknown;
+  user_id?: unknown;
+  permissions?: unknown;
+}
+
+const responseShape = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(responseShape);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nested]) => [key, responseShape(nested)]),
+    );
+  }
+  return typeof value;
+};
+
+const normalizeShortToken = (json: unknown): {
+  accessToken: string;
+  userId: string;
+  permissions?: string | string[];
+} => {
+  const payload =
+    json && typeof json === "object" && "data" in json && Array.isArray(json.data)
+      ? json.data[0] as ShortTokenPayload | undefined
+      : json as ShortTokenPayload | undefined;
+
+  const accessToken = payload?.access_token;
+  const userId = payload?.user_id;
+  if (typeof accessToken !== "string" || !accessToken || userId === undefined || userId === null) {
+    throw new Error(
+      `Instagram short-token exchange returned no access token/user id. Response shape: ${JSON.stringify(responseShape(json))}`,
+    );
+  }
+
+  const permissions = payload?.permissions;
+  return {
+    accessToken,
+    userId: String(userId),
+    permissions: Array.isArray(permissions)
+      ? permissions.filter((permission): permission is string => typeof permission === "string")
+      : typeof permissions === "string"
+        ? permissions
+        : undefined,
+  };
+};
+
 interface InstagramMetadata {
   igUserId?: string;
   /** The IG-Scoped User ID returned by OAuth — kept for reference only;
@@ -36,15 +121,16 @@ interface InstagramMetadata {
 
 // Polls the container's status_code until IG has finished ingesting the
 // staged media. Returns once status is FINISHED; throws on EXPIRED/ERROR
-// or after the timeout. Image containers usually settle in <5s; we cap at
-// 60s to stay well under Meta's 24h container TTL while not hanging on
-// hot-loop failures.
+// or after the timeout. Image containers usually settle in <5s, so the
+// default 60s cap stays well under Meta's 24h container TTL without hanging
+// on hot-loop failures. Video/Reels ingestion is much slower, so callers pass
+// a longer timeoutMs for those.
 const waitForContainerReady = async (
   containerId: string,
   accessToken: string,
+  timeoutMs = 60_000,
 ): Promise<void> => {
   const start = Date.now();
-  const timeoutMs = 60_000;
   const intervalMs = 1500;
   while (Date.now() - start < timeoutMs) {
     const res = await fetch(
@@ -91,7 +177,12 @@ const signCloudinaryParams = (
   return createHash("sha1").update(sorted + apiSecret).digest("hex");
 };
 
-const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
+const stageMediaForMeta = async (
+  sourceUrl: string,
+  resourceType: "image" | "video",
+  defaultContentType: string,
+  defaultFilename: string,
+): Promise<string> => {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
@@ -104,12 +195,12 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   const sourceRes = await fetch(sourceUrl);
   if (!sourceRes.ok) {
     throw new Error(
-      `Failed to fetch image for IG staging: ${sourceRes.status} ${sourceUrl}`,
+      `Failed to fetch ${resourceType} for IG staging: ${sourceRes.status} ${sourceUrl}`,
     );
   }
   const buffer = Buffer.from(await sourceRes.arrayBuffer());
-  const contentType = sourceRes.headers.get("content-type") ?? "image/jpeg";
-  const filename = new URL(sourceUrl).pathname.split("/").pop() || "image.jpg";
+  const contentType = sourceRes.headers.get("content-type") ?? defaultContentType;
+  const filename = new URL(sourceUrl).pathname.split("/").pop() || defaultFilename;
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const signedParams: Record<string, string> = {
@@ -130,7 +221,7 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   form.append("signature", signature);
 
   const uploadRes = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     { method: "POST", body: form },
   );
   if (!uploadRes.ok) {
@@ -145,6 +236,14 @@ const stageImageForMeta = async (sourceUrl: string): Promise<string> => {
   return json.secure_url;
 };
 
+const stageImageForMeta = (sourceUrl: string): Promise<string> =>
+  stageMediaForMeta(sourceUrl, "image", "image/jpeg", "image.jpg");
+
+// Video ingestion is much slower than image ingestion on Meta's side, so
+// callers must pass a longer waitForContainerReady timeout after staging.
+const stageVideoForMeta = (sourceUrl: string): Promise<string> =>
+  stageMediaForMeta(sourceUrl, "video", "video/mp4", "video.mp4");
+
 export const instagram: SocialProvider = {
   platform: SocialPlatform.INSTAGRAM,
   slug: "instagram",
@@ -154,8 +253,7 @@ export const instagram: SocialProvider = {
   usesPkce: false,
 
   buildAuthorizeUrl({ state, redirectUri }: AuthorizeContext) {
-    const appId = process.env.INSTAGRAM_APP_ID;
-    if (!appId) throw new Error("INSTAGRAM_APP_ID not configured");
+    const appId = getInstagramAppId();
     const params = new URLSearchParams({
       response_type: "code",
       client_id: appId,
@@ -167,20 +265,15 @@ export const instagram: SocialProvider = {
   },
 
   async exchangeCode({ code, redirectUri }: ExchangeContext): Promise<ExchangeResult> {
-    const appId = process.env.INSTAGRAM_APP_ID;
-    const appSecret = process.env.INSTAGRAM_APP_SECRET;
-    if (!appId || !appSecret) {
-      throw new Error("INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET not configured");
-    }
+    const { appId, appSecret } = getInstagramCredentials();
 
     // 1. Short-lived token (~1 hour) — POST form-data, NOT query string
-    const shortBody = new URLSearchParams({
-      client_id: appId,
-      client_secret: appSecret,
-      grant_type: "authorization_code",
-      redirect_uri: redirectUri,
-      code,
-    });
+    const shortBody = new FormData();
+    shortBody.append("client_id", appId);
+    shortBody.append("client_secret", appSecret);
+    shortBody.append("grant_type", "authorization_code");
+    shortBody.append("redirect_uri", redirectUri);
+    shortBody.append("code", code);
     const shortRes = await fetch(SHORT_TOKEN_URL, {
       method: "POST",
       body: shortBody,
@@ -189,14 +282,8 @@ export const instagram: SocialProvider = {
       const err = await shortRes.text();
       throw new Error(`Instagram short-token exchange failed (${shortRes.status}): ${err}`);
     }
-    const shortTok = (await shortRes.json()) as {
-      access_token: string;
-      user_id: number | string;
-      // Newer IG Login returns this as an array; older docs show a CSV
-      // string. Normalise to a single CSV string for the DB column.
-      permissions?: string | string[];
-    };
-    const igUserId = String(shortTok.user_id);
+    const shortTok = normalizeShortToken(await shortRes.json());
+    const igUserId = shortTok.userId;
     const grantedScopes = Array.isArray(shortTok.permissions)
       ? shortTok.permissions.join(",")
       : shortTok.permissions;
@@ -205,12 +292,12 @@ export const instagram: SocialProvider = {
     const longParams = new URLSearchParams({
       grant_type: "ig_exchange_token",
       client_secret: appSecret,
-      access_token: shortTok.access_token,
+      access_token: shortTok.accessToken,
     });
     const longRes = await fetch(`${LONG_TOKEN_URL}?${longParams.toString()}`);
     if (!longRes.ok) {
       const err = await longRes.text();
-      throw new Error(`Instagram long-token exchange failed (${longRes.status}): ${err}`);
+      throw longTokenExchangeError(longRes.status, err);
     }
     const longTok = (await longRes.json()) as {
       access_token: string;
@@ -279,9 +366,9 @@ export const instagram: SocialProvider = {
     };
   },
 
-  async publish({ account, caption, imageUrl }: PublishArgs): Promise<PublishResult> {
-    if (!imageUrl) {
-      throw new Error("Instagram publishing requires an image URL");
+  async publish({ account, caption, imageUrl, videoUrl, postType }: PublishArgs): Promise<PublishResult> {
+    if (!imageUrl && !videoUrl) {
+      throw new Error("Instagram publishing requires an image or video URL");
     }
 
     const meta = (account.metadata ?? {}) as InstagramMetadata;
@@ -294,17 +381,32 @@ export const instagram: SocialProvider = {
     // *.ngrok-free.app, *.trycloudflare.com. Combinations that succeed:
     // images.unsplash.com, cdnjs.cloudflare.com, files.catbox.moe.
     //
-    // Workaround: stage the image to a Meta-trusted host (catbox.moe is free,
-    // anonymous, and accepts the bytes our R2 hosts) right before publish.
-    // Catbox auto-cleans unused uploads, so no GC needed on our side.
-    const stagedUrl = await stageImageForMeta(imageUrl);
+    // Workaround: stage the media to a Meta-trusted host right before publish
+    // (Cloudinary accepts the bytes our R2 hosts). No GC needed — Cloudinary
+    // keeps the staged copy, unlike the catbox/litterbox hosts tried earlier.
+    let createBody: URLSearchParams;
+    let containerTimeoutMs: number | undefined;
+    if (videoUrl) {
+      const stagedUrl = await stageVideoForMeta(videoUrl);
+      createBody = new URLSearchParams({
+        video_url: stagedUrl,
+        media_type: postType === "post" ? "VIDEO" : "REELS",
+        caption,
+        access_token: account.accessToken,
+      });
+      // Video ingestion is much slower than image ingestion — give it 5
+      // minutes instead of the 60s image default.
+      containerTimeoutMs = 300_000;
+    } else {
+      const stagedUrl = await stageImageForMeta(imageUrl!);
+      createBody = new URLSearchParams({
+        image_url: stagedUrl,
+        caption,
+        access_token: account.accessToken,
+      });
+    }
 
     // 1. Create media container
-    const createBody = new URLSearchParams({
-      image_url: stagedUrl,
-      caption,
-      access_token: account.accessToken,
-    });
     const createRes = await fetch(MEDIA_URL(igUserId), {
       method: "POST",
       body: createBody,
@@ -315,11 +417,11 @@ export const instagram: SocialProvider = {
     }
     const { id: creationId } = (await createRes.json()) as { id: string };
 
-    // 2. Wait for IG to finish ingesting the staged image. Calling
+    // 2. Wait for IG to finish ingesting the staged media. Calling
     //    /media_publish too soon returns code 9007 / subcode 2207027
     //    "Media ID is not available". Per Meta docs, poll
     //    /<container-id>?fields=status_code until FINISHED.
-    await waitForContainerReady(creationId, account.accessToken);
+    await waitForContainerReady(creationId, account.accessToken, containerTimeoutMs);
 
     // 3. Publish container
     const publishBody = new URLSearchParams({

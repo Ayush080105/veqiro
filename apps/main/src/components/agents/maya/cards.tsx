@@ -14,9 +14,14 @@ import {
   GalleryHorizontal,
   Rocket,
   Download,
+  Clapperboard,
+  Film,
+  Lock,
+  LayoutGrid,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { AgentCard } from "@/components/ui/agent-card"
 import { ChatImage } from "@/components/chat/ChatImage"
 import { ActionRow } from "@/components/ui/action-row"
@@ -27,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { VIDEO_FEATURES_LOCKED } from "@/lib/config/features"
 import { PublishDialog, CampaignPublishDialog } from "./publish-dialog"
 import type { AgentActionId } from "@/lib/types/agents"
 import type {
@@ -38,9 +44,13 @@ import type {
   MayaContentRegenResult,
   MayaCarouselDraftResult,
   MayaCampaignResult,
+  MayaGenerateVideoResult,
+  MayaCampaignVideoResult,
+  MayaCampaignVideoStoryboardResult,
   ContentIdea,
   ContentPlatform,
   ImageResult,
+  VideoResult,
 } from "@/lib/types/agents"
 
 export type FollowUpHandler = (
@@ -53,6 +63,14 @@ function imageSrc(img?: ImageResult | null): string | undefined {
   if (img.image_url) return img.image_url
   if (img.image_base64)
     return `data:${img.content_type || "image/png"};base64,${img.image_base64}`
+  return undefined
+}
+
+function videoSrc(video?: VideoResult | null): string | undefined {
+  if (!video) return undefined
+  if (video.video_url) return video.video_url
+  if (video.video_base64)
+    return `data:${video.content_type || "video/mp4"};base64,${video.video_base64}`
   return undefined
 }
 
@@ -220,10 +238,10 @@ function ContentIdeaCard({
       )}
 
       {onFollowUpAction && (
-        <div className="pt-0.5">
+        <div className="flex gap-1.5 pt-0.5">
           <Button
             variant="chat-action"
-            className="w-full"
+            className="flex-1"
             onClick={() =>
               onFollowUpAction("maya:draft-content", {
                 topic: idea.title,
@@ -235,6 +253,21 @@ function ContentIdeaCard({
           >
             <PenLine className="size-3" />
             Generate post
+          </Button>
+          <Button
+            variant="chat-action"
+            className="flex-1"
+            disabled={VIDEO_FEATURES_LOCKED}
+            title={VIDEO_FEATURES_LOCKED ? "Video generation is coming soon" : undefined}
+            onClick={() =>
+              onFollowUpAction("maya:generate-video", {
+                prompt: idea.visual_description || idea.hook || idea.title,
+                platform: idea.platform,
+              })
+            }
+          >
+            {VIDEO_FEATURES_LOCKED ? <Lock className="size-3" /> : <Clapperboard className="size-3" />}
+            Generate video
           </Button>
         </div>
       )}
@@ -824,6 +857,15 @@ export function CampaignResultCard({
   const photos = result?.photos ?? []
   const rawSrcs = photos.map((p) => imageSrc(p.image))
   const blobUrls = useBlobUrls(rawSrcs)
+  const [captionBody, setCaptionBody] = React.useState(() =>
+    [
+      result?.caption?.body,
+      result?.caption?.cta,
+      result?.caption?.hashtags?.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+  )
 
   if (!photos.length) return null
 
@@ -856,7 +898,6 @@ export function CampaignResultCard({
             {visiblePhotos.map((photo, i) => {
               const src = blobUrls[i] ?? rawSrcs[i]
               const rawSrc = rawSrcs[i]
-              const label = photo.composition_role.split("—")[0].trim()
               const isLast = i === MAX_VISIBLE - 1 && overflow > 0
               const spansFullWidth = fullWidthIndices.has(i)
 
@@ -892,16 +933,6 @@ export function CampaignResultCard({
                          style={{ background: "rgba(0,0,0,0.45)" }}>
                       +{overflow}
                     </div>
-                  )}
-
-                  {/* Label badge — bottom-left */}
-                  {label && (
-                    <span
-                      className="absolute bottom-1.5 left-1.5 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-white leading-none"
-                      style={{ background: "rgba(0,0,0,0.55)" }}
-                    >
-                      {label}
-                    </span>
                   )}
 
                   {/* Action icons — bottom-right, revealed on hover */}
@@ -948,39 +979,182 @@ export function CampaignResultCard({
           <div className="mt-2 mb-2 rounded-none border-t border-border/50 p-3 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Caption</p>
-              <CopyButton
-                text={[
-                  result.caption.body,
-                  result.caption.cta,
-                  result.caption.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
-                ]
-                  .filter(Boolean)
-                  .join("\n\n")}
-                label="Copy caption"
-              />
+              <CopyButton text={captionBody} label="Copy caption" />
             </div>
-            <p className="text-sm leading-relaxed text-foreground">{result.caption.body}</p>
-            {result.caption.cta && (
-              <p className="text-xs italic text-muted-foreground">{result.caption.cta}</p>
-            )}
-            {result.caption.hashtags.length > 0 && (
-              <p className="text-xs leading-relaxed text-primary/80">
-                {[...new Set(result.caption.hashtags)]
-                  .map((h) => (h.startsWith("#") ? h : `#${h}`))
-                  .join(" ")}
-              </p>
-            )}
+            <Textarea
+              value={captionBody}
+              onChange={(e) => setCaptionBody(e.target.value)}
+              placeholder="Write a caption for this campaign…"
+              className="min-h-32 text-sm leading-relaxed"
+            />
           </div>
         )}
-        <div className="flex justify-end px-3 pb-3 pt-2">
+        <div className="flex justify-end gap-2 px-3 pb-3 pt-2">
+          {publishableUrls.length > 0 && publishableUrls.length <= 5 && onFollowUpAction && (
+            <Button
+              variant="chat-action"
+              disabled={VIDEO_FEATURES_LOCKED}
+              title={VIDEO_FEATURES_LOCKED ? "Video generation is coming soon" : undefined}
+              onClick={() => {
+                if (VIDEO_FEATURES_LOCKED) return
+                onFollowUpAction("maya:campaign-video", {
+                  product_image_urls: publishableUrls,
+                  campaign_brief: "",
+                })
+              }}
+            >
+              {VIDEO_FEATURES_LOCKED ? <Lock className="size-3" /> : <Film className="size-3" />}
+              Turn into video
+            </Button>
+          )}
           <CampaignPublishDialog
             imageUrls={publishableUrls}
             photoCount={photos.length}
-            caption={result.caption?.body}
-            hashtags={result.caption?.hashtags}
+            caption={captionBody}
           />
         </div>
       </AgentCard.Body>
+    </AgentCard>
+  )
+}
+
+// ─── Video result card ────────────────────────────────────────────────────────
+
+export function VideoResultCard({
+  result,
+  title,
+  platform,
+}: {
+  result: MayaGenerateVideoResult | MayaCampaignVideoResult
+  title?: string
+  platform?: ContentPlatform | string | null
+}) {
+  const src = videoSrc(result?.video)
+  const [captionBody, setCaptionBody] = React.useState(result?.caption?.body ?? "")
+  const [showStoryboard, setShowStoryboard] = React.useState(false)
+  const storyboardUrl = (result as MayaCampaignVideoResult)?.storyboard_image_url
+
+  if (!src) return null
+
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header icon={<Clapperboard />} title={title ?? "Generated video"} />
+      <AgentCard.Body className="flex flex-col gap-2">
+        {storyboardUrl && (
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowStoryboard((v) => !v)}
+              className="self-start text-[10px] font-medium text-muted-foreground underline-offset-2 hover:underline"
+            >
+              {showStoryboard ? "Hide storyboard" : "View storyboard"}
+            </button>
+            {showStoryboard && (
+              <img
+                src={storyboardUrl}
+                alt="Storyboard"
+                className="max-h-48 rounded border border-border object-contain"
+              />
+            )}
+          </div>
+        )}
+        <video
+          src={src}
+          controls
+          playsInline
+          className="w-full rounded"
+          style={{ maxHeight: 480, background: "#000" }}
+        />
+        <Textarea
+          value={captionBody}
+          onChange={(e) => setCaptionBody(e.target.value)}
+          placeholder="Write a caption for this video…"
+          className="text-xs"
+        />
+      </AgentCard.Body>
+      <AgentCard.Footer>
+        <Button variant="chat-utility" asChild>
+          <a href={src} download="maya-video.mp4">
+            <Download className="size-3" /> Download
+          </a>
+        </Button>
+        <PublishDialog
+          platform={platform}
+          caption={captionBody}
+          hashtags={result.caption?.hashtags ?? []}
+          video={result.video}
+        />
+      </AgentCard.Footer>
+    </AgentCard>
+  )
+}
+
+// ─── Storyboard result card ───────────────────────────────────────────────────
+
+export function StoryboardResultCard({
+  result,
+  input,
+  onFollowUpAction,
+}: {
+  result: MayaCampaignVideoStoryboardResult
+  input?: {
+    product_image_urls?: string[]
+    campaign_brief?: string
+    platform?: string
+    aspect_ratio?: string
+    duration_seconds?: number
+    use_logo?: boolean
+  }
+  onFollowUpAction?: FollowUpHandler
+}) {
+  const src =
+    result?.storyboard_image_url ??
+    (result?.storyboard_image_base64 ? `data:image/png;base64,${result.storyboard_image_base64}` : undefined)
+
+  if (!src) return null
+
+  return (
+    <AgentCard size="sm">
+      <AgentCard.Header icon={<LayoutGrid />} title="Storyboard" />
+      <AgentCard.Body className="flex flex-col gap-2">
+        <img
+          src={src}
+          alt="Storyboard"
+          className="w-full rounded border border-border object-contain"
+        />
+        {result.beats?.length > 0 && (
+          <ol className="flex flex-col gap-1 pl-4 text-xs text-muted-foreground list-decimal">
+            {result.beats.map((beat, i) => (
+              <li key={i}>{beat}</li>
+            ))}
+          </ol>
+        )}
+      </AgentCard.Body>
+      <AgentCard.Footer>
+        <Button variant="chat-utility" asChild>
+          <a href={src} download="maya-storyboard.png">
+            <Download className="size-3" /> Download
+          </a>
+        </Button>
+        {onFollowUpAction && input?.product_image_urls?.length && input?.campaign_brief && (
+          <Button
+            variant="chat-action"
+            disabled={VIDEO_FEATURES_LOCKED}
+            title={VIDEO_FEATURES_LOCKED ? "Video generation is coming soon" : undefined}
+            onClick={() => {
+              if (VIDEO_FEATURES_LOCKED) return
+              onFollowUpAction("maya:campaign-video", {
+                ...input,
+                storyboard_beats: result.beats,
+                storyboard_image_url: result.storyboard_image_url,
+              })
+            }}
+          >
+            {VIDEO_FEATURES_LOCKED ? <Lock className="size-3" /> : <Film className="size-3" />}
+            Turn into video
+          </Button>
+        )}
+      </AgentCard.Footer>
     </AgentCard>
   )
 }

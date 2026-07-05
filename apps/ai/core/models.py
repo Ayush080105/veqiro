@@ -59,6 +59,12 @@ class ImageResult(BaseModel):
     prompt_used: str
 
 
+class VideoResult(BaseModel):
+    video_base64: str
+    content_type: str = "video/mp4"
+    prompt_used: str
+
+
 class DataPoint(BaseModel):
     date: str
     value: float

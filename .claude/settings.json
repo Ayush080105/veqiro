@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(MOCK_MODE=true INTERNAL_API_KEY=test ./venv/Scripts/python -c ' *)"
     ]
   },
   "enabledPlugins": {

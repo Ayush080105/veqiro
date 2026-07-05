@@ -13,6 +13,7 @@ import {
 } from "@/components/chat/ActionForm/fields"
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
+import type { ActionStage } from "@/components/chat/ActionDialog"
 import {
   mayaIdeationSchema,
   type MayaIdeationValues,
@@ -28,10 +29,15 @@ import {
   type MayaContentRegenValues,
   mayaCampaignSchema,
   type MayaCampaignValues,
+  mayaGenerateVideoSchema,
+  type MayaGenerateVideoValues,
+  mayaCampaignVideoSchema,
+  type MayaCampaignVideoValues,
 } from "@/lib/schemas/agents/maya"
-import type { ContentPlatform } from "@/lib/types/agents"
+import type { ContentPlatform, VideoAspectRatio } from "@/lib/types/agents"
 import { uploadToR2 } from "@/lib/api/uploads"
 import { expandCampaignBrief } from "@/lib/api/assistants"
+import { toast } from "sonner"
 import { BrandImagesSelector } from "@/components/agents/maya/BrandImagesSelector"
 
 const limitHint: Record<ContentPlatform, string> = {
@@ -269,7 +275,7 @@ export function MayaDraftForm({
           render={({ field }) => (
             <label className="flex items-center gap-2 text-xs">
               <Switch
-                checked={field.value ?? false}
+                checked={field.value ?? true}
                 onCheckedChange={field.onChange}
               />
               Overlay logo
@@ -692,13 +698,38 @@ export function MayaCampaignForm({
   })
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
+  const [uploading, setUploading] = React.useState(false)
+  const [uploadError, setUploadError] = React.useState<string | null>(null)
+  const productImages = form.watch("product_image_urls") ?? []
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null
-    form.setValue("product_image" as never, file as never)
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setPreviewUrl(file ? URL.createObjectURL(file) : null)
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setUploading(true)
+    setUploadError(null)
+    const urls: string[] = []
+    for (const file of files) {
+      if (productImages.length + urls.length >= 5) break
+      const result = await uploadToR2("inspiration", file)
+      if (result.ok) {
+        urls.push(result.publicUrl)
+      } else {
+        setUploadError(result.message)
+        break
+      }
+    }
+    if (urls.length) {
+      form.setValue("product_image_urls" as never, [...productImages, ...urls] as never)
+    }
+    setUploading(false)
+    e.target.value = ""
+  }
+
+  function removeProductImage(url: string) {
+    form.setValue(
+      "product_image_urls" as never,
+      productImages.filter((u) => u !== url) as never
+    )
   }
 
   const photoCount = form.watch("photo_count")
@@ -709,25 +740,28 @@ export function MayaCampaignForm({
   const handleExpand = async () => {
     const brief = form.getValues("campaign_brief" as never) as unknown as string
     const platform = form.getValues("platform" as never) as unknown as string
-    const productImageFile = form.getValues("product_image" as never) as unknown as File | null
     const orgId = (value as Record<string, unknown>).organization_id as string
-    if (!brief?.trim() || !orgId) return
+    if (!brief?.trim()) {
+      toast.error("Write a campaign brief first.")
+      return
+    }
+    if (!orgId) {
+      toast.error("Missing organization context — try reopening this dialog.")
+      return
+    }
+    if (brief.length > 500) {
+      toast.error("Brief is too long to expand (500 char max) — shorten it first.")
+      return
+    }
     setExpanding(true)
     try {
-      let productImageBase64: string | undefined
-      if (productImageFile instanceof File) {
-        productImageBase64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve((reader.result as string).split(",")[1])
-          reader.onerror = reject
-          reader.readAsDataURL(productImageFile)
-        })
-      }
-      const expanded = await expandCampaignBrief(orgId, brief, platform ?? "instagram", productImageBase64)
+      // Pass the R2 URL directly — the backend fetches it server-side, avoiding the
+      // browser CORS failures that block client-side fetches of R2-hosted images.
+      const expanded = await expandCampaignBrief(orgId, brief, platform ?? "instagram", productImages[0])
       form.setValue("campaign_brief" as never, expanded as never)
       onChange({ campaign_brief: expanded } as never)
-    } catch {
-      // silently fail — user still has their original brief
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to expand brief — try again.")
     } finally {
       setExpanding(false)
     }
@@ -737,34 +771,46 @@ export function MayaCampaignForm({
     <FieldGroup>
       {/* Product Image Upload */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium">Upload Your Product Image</span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium">Product Images <span className="text-destructive">*</span></span>
+          <button
+            type="button"
+            disabled={uploading || productImages.length >= 5}
+            onClick={() => fileInputRef.current?.click()}
+            className="text-xs text-primary underline-offset-2 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {uploading ? "Uploading…" : "Add images"}
+          </button>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
-          accept=".jpg,.jpeg,.png,.webp"
+          accept="image/png,image/jpeg,image/webp"
+          multiple
           className="hidden"
-          onChange={handleFileChange}
+          onChange={handleFiles}
         />
-        {previewUrl ? (
-          <div className="relative w-full">
-            <img
-              src={previewUrl}
-              alt="Product preview"
-              className="w-full max-h-40 object-cover rounded"
-              style={{ border: "2px solid var(--border)", borderRadius: 6 }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                form.setValue("product_image" as never, null as never)
-                if (previewUrl) URL.revokeObjectURL(previewUrl)
-                setPreviewUrl(null)
-                if (fileInputRef.current) fileInputRef.current.value = ""
-              }}
-              className="absolute top-1 right-1 text-xs bg-background border border-border rounded px-1.5 py-0.5 hover:bg-muted"
-            >
-              Remove
-            </button>
+        <span className="text-[10px] text-muted-foreground opacity-60">Up to 5 photos — different angles help the model get the product right.</span>
+        {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+        {productImages.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {productImages.map((url) => (
+              <div key={url} className="relative group">
+                <img
+                  src={url}
+                  alt="Product"
+                  className="h-16 w-16 rounded object-cover border border-border"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeProductImage(url)}
+                  className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-none"
+                  aria-label="Remove"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <button
@@ -917,4 +963,342 @@ export function MayaCampaignForm({
       </RhfField>
     </FieldGroup>
   )
+}
+
+// ─── Video ──────────────────────────────────────────────────────────────────
+
+const ASPECT_RATIO_OPTIONS: { value: VideoAspectRatio; label: string }[] = [
+  { value: "9:16", label: "Portrait (9:16)" },
+  { value: "16:9", label: "Landscape (16:9)" },
+]
+
+function AspectRatioPicker({
+  value,
+  onChange,
+}: {
+  value: VideoAspectRatio
+  onChange: (v: VideoAspectRatio) => void
+}) {
+  return (
+    <div className="flex gap-1.5">
+      {ASPECT_RATIO_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className="flex-1 py-1.5 text-xs rounded transition-colors"
+          style={{
+            border: "2px solid var(--border)",
+            background: value === opt.value ? "var(--foreground)" : "transparent",
+            color: value === opt.value ? "var(--background)" : "var(--foreground)",
+            fontWeight: value === opt.value ? 700 : 400,
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const DURATION_OPTIONS = [4, 6, 8, 10] as const
+
+function DurationPicker({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (v: number) => void
+}) {
+  return (
+    <div className="flex gap-1.5">
+      {DURATION_OPTIONS.map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          className="flex-1 py-1.5 text-xs rounded transition-colors"
+          style={{
+            border: "2px solid var(--border)",
+            background: value === n ? "var(--foreground)" : "transparent",
+            color: value === n ? "var(--background)" : "var(--foreground)",
+            fontWeight: value === n ? 700 : 400,
+          }}
+        >
+          {n}s
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function MayaGenerateVideoForm({
+  value,
+  onChange,
+}: {
+  value: MayaGenerateVideoValues
+  onChange: (patch: Partial<MayaGenerateVideoValues>) => void
+}) {
+  const form = useAgentForm({
+    schema: mayaGenerateVideoSchema,
+    defaultValue: value,
+    onChange,
+  })
+
+  return (
+    <FieldGroup>
+      <RhfField control={form.control} name="prompt" label="Video prompt" required>
+        {({ field }) => (
+          <CountedTextarea
+            value={field.value}
+            rows={4}
+            onChange={field.onChange}
+            placeholder="Describe the video you want (e.g. 'A barista pouring latte art in a cozy morning café, warm light, slow motion')"
+          />
+        )}
+      </RhfField>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Aspect ratio</span>
+        <Controller
+          control={form.control}
+          name="aspect_ratio"
+          render={({ field }) => (
+            <AspectRatioPicker value={field.value as VideoAspectRatio} onChange={field.onChange} />
+          )}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Duration</span>
+        <Controller
+          control={form.control}
+          name="duration_seconds"
+          render={({ field }) => (
+            <DurationPicker value={field.value as number} onChange={field.onChange} />
+          )}
+        />
+      </div>
+
+      <Controller
+        control={form.control}
+        name="use_logo"
+        render={({ field }) => (
+          <label className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              Overlay logo
+              <span className="ml-1 text-[10px] opacity-60">from brand kit</span>
+            </span>
+            <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+          </label>
+        )}
+      />
+
+      <RhfField control={form.control} name="platform" label="Platform" required>
+        {({ field }) => (
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
+        )}
+      </RhfField>
+    </FieldGroup>
+  )
+}
+
+export function MayaCampaignVideoForm({
+  value,
+  onChange,
+  submitting,
+  stage,
+  hideDuration,
+}: {
+  value: MayaCampaignVideoValues
+  onChange: (patch: Partial<MayaCampaignVideoValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
+  /** Hide the duration picker — it has no visible effect on a still storyboard image. */
+  hideDuration?: boolean
+}) {
+  const form = useAgentForm({
+    schema: mayaCampaignVideoSchema,
+    defaultValue: value,
+    onChange,
+  })
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = React.useState(false)
+  const [uploadError, setUploadError] = React.useState<string | null>(null)
+  const productImages = form.watch("product_image_urls") ?? []
+
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setUploading(true)
+    setUploadError(null)
+    const urls: string[] = []
+    for (const file of files) {
+      if (productImages.length + urls.length >= 5) break
+      const result = await uploadToR2("inspiration", file)
+      if (result.ok) {
+        urls.push(result.publicUrl)
+      } else {
+        setUploadError(result.message)
+        break
+      }
+    }
+    if (urls.length) {
+      form.setValue("product_image_urls" as never, [...productImages, ...urls] as never)
+    }
+    setUploading(false)
+    e.target.value = ""
+  }
+
+  function removeProductImage(url: string) {
+    form.setValue(
+      "product_image_urls" as never,
+      productImages.filter((u) => u !== url) as never
+    )
+  }
+
+  const stageStoryboardUrl = (stage?.data as { storyboardImageUrl?: string } | undefined)?.storyboardImageUrl
+
+  return (
+    <FieldGroup>
+      {submitting && stage && (
+        <div className="flex flex-col items-center gap-2 rounded border border-border bg-muted/40 p-3">
+          {stageStoryboardUrl ? (
+            <img
+              src={stageStoryboardUrl}
+              alt="Storyboard preview"
+              className="max-h-40 rounded border border-border object-contain"
+            />
+          ) : (
+            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          )}
+          <span className="text-xs text-muted-foreground">{stage.label}</span>
+        </div>
+      )}
+      {/* Product Image Upload */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium">Product Images <span className="text-destructive">*</span></span>
+          <button
+            type="button"
+            disabled={uploading || productImages.length >= 5}
+            onClick={() => fileInputRef.current?.click()}
+            className="text-xs text-primary underline-offset-2 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {uploading ? "Uploading…" : "Add images"}
+          </button>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          multiple
+          className="hidden"
+          onChange={handleFiles}
+        />
+        <span className="text-[10px] text-muted-foreground opacity-60">Up to 5 photos — different angles help the model get the product right.</span>
+        {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+        {productImages.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {productImages.map((url) => (
+              <div key={url} className="relative group">
+                <img
+                  src={url}
+                  alt="Product"
+                  className="h-16 w-16 rounded object-cover border border-border"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeProductImage(url)}
+                  className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-none"
+                  aria-label="Remove"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex flex-col items-center justify-center gap-1.5 rounded py-6 text-xs text-muted-foreground hover:bg-muted transition-colors"
+            style={{ border: "2px dashed var(--border)" }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <span>Click to upload — JPG, PNG, or WEBP</span>
+          </button>
+        )}
+      </div>
+
+      <RhfField control={form.control} name="campaign_brief" label="Campaign brief" required>
+        {({ field }) => (
+          <CountedTextarea
+            value={field.value}
+            rows={4}
+            onChange={field.onChange}
+            placeholder="Describe your product, campaign goal, target audience, or vibe"
+          />
+        )}
+      </RhfField>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Aspect ratio</span>
+        <Controller
+          control={form.control}
+          name="aspect_ratio"
+          render={({ field }) => (
+            <AspectRatioPicker value={field.value as VideoAspectRatio} onChange={field.onChange} />
+          )}
+        />
+      </div>
+
+      {!hideDuration && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium">Duration</span>
+          <Controller
+            control={form.control}
+            name="duration_seconds"
+            render={({ field }) => (
+              <DurationPicker value={field.value as number} onChange={field.onChange} />
+            )}
+          />
+        </div>
+      )}
+
+      <Controller
+        control={form.control}
+        name="use_logo"
+        render={({ field }) => (
+          <label className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              Overlay logo
+              <span className="ml-1 text-[10px] opacity-60">from brand kit</span>
+            </span>
+            <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+          </label>
+        )}
+      />
+
+      <RhfField control={form.control} name="platform" label="Platform" required>
+        {({ field }) => (
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
+        )}
+      </RhfField>
+    </FieldGroup>
+  )
+}
+
+export function MayaCampaignVideoStoryboardForm(props: {
+  value: MayaCampaignVideoValues
+  onChange: (patch: Partial<MayaCampaignVideoValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
+}) {
+  return <MayaCampaignVideoForm {...props} hideDuration />
 }

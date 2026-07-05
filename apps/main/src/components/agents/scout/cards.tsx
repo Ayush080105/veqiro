@@ -10,8 +10,6 @@ import {
   Minus,
   Crosshair,
   ExternalLink,
-  BookmarkPlus,
-  Check,
   PenLine,
   Sparkles,
   Search,
@@ -23,7 +21,6 @@ import { Kicker } from "@/components/ui/kicker"
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useAddCompetitorWatch } from "@/lib/api/scout"
 import type {
   ScoutResearchTopicResult,
   ScoutResearchCompanyResult,
@@ -41,6 +38,44 @@ function ResearchSection({ label, children }: { label: string; children: React.R
     <div className="flex flex-col gap-1.5">
       <Kicker prefix="//">{label}</Kicker>
       <div className="text-[11px] leading-relaxed">{children}</div>
+    </div>
+  )
+}
+
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return url
+  }
+}
+
+type SourceEntry = string | { title: string; url: string }
+
+function SourcesList({ sources }: { sources: SourceEntry[] }) {
+  if (sources.length === 0) return null
+  return (
+    <div className="flex flex-col gap-1.5 border-t border-border/50 pt-3">
+      <Kicker prefix="//">sources</Kicker>
+      <div className="flex flex-wrap gap-1.5">
+        {sources.map((s) => {
+          const url = typeof s === "string" ? s : s.url
+          const label = typeof s === "string" ? hostnameOf(s) : s.title || hostnameOf(s.url)
+          return (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={url}
+              className="group inline-flex max-w-55 items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-foreground"
+            >
+              <span className="truncate">{label}</span>
+              <ExternalLink className="size-2.5 shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
+            </a>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -181,6 +216,9 @@ export function ResearchReportCard({
           </div>
         )}
 
+        {/* Sources */}
+        {result.sources_scraped?.length > 0 && <SourcesList sources={result.sources_scraped} />}
+
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             <Button
@@ -235,7 +273,7 @@ export function CompanyProfileCard({
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           {c.description}
         </p>
-        <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2">
           {c.founded && (
             <FactCell label="Founded" value={c.founded} />
           )}
@@ -279,6 +317,8 @@ export function CompanyProfileCard({
           </div>
         )}
 
+        {c.sources && c.sources.length > 0 && <SourcesList sources={c.sources} />}
+
         {onFollowUpAction && (
           <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
             <Button
@@ -300,33 +340,30 @@ export function CompanyProfileCard({
 
 function FactCell({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div>
-      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+    <div className="flex flex-col gap-1 border border-border bg-muted/20 p-2.5">
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </p>
-      <p className="text-xs text-foreground">{value}</p>
+      <p className="text-xs leading-relaxed text-foreground">{value}</p>
     </div>
   )
 }
 
 // ─── Discover competitors ─────────────────────────────────────────────────────
 
-export function DiscoverCompetitorsCard({ result }: { result: ScoutDiscoverCompetitorsResult }) {
-  const addCompetitor = useAddCompetitorWatch()
-  const [saved, setSaved] = React.useState<Set<string>>(new Set())
-
-  const handleSave = async (name: string, url: string) => {
-    await addCompetitor.mutateAsync({ name, url })
-    setSaved((prev) => new Set([...prev, url]))
-  }
-
+export function DiscoverCompetitorsCard({
+  result,
+  onFollowUpAction,
+}: {
+  result: ScoutDiscoverCompetitorsResult
+  onFollowUpAction?: FollowUp
+}) {
   return (
     <AgentCard size="sm">
       <AgentCard.Header icon={<Crosshair />} title={`${result.competitors.length} competitors found`} />
       <AgentCard.Body>
         <div className="flex flex-col gap-2">
           {result.competitors.map((c) => {
-            const isSaved = saved.has(c.url)
             return (
               <div
                 key={c.url}
@@ -342,20 +379,22 @@ export function DiscoverCompetitorsCard({ result }: { result: ScoutDiscoverCompe
                   >
                     <ExternalLink className="size-3" />
                   </a>
-                  <Button
-                    type="button"
-                    variant={isSaved ? "default" : "outline"}
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-[10px]"
-                    disabled={isSaved || addCompetitor.isPending}
-                    onClick={() => handleSave(c.name, c.url)}
-                  >
-                    {isSaved ? (
-                      <><Check className="size-3" /> Saved</>
-                    ) : (
-                      <><BookmarkPlus className="size-3" /> Save</>
-                    )}
-                  </Button>
+                  {onFollowUpAction && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-[10px]"
+                      onClick={() =>
+                        onFollowUpAction("scout:research-company", {
+                          company_name: c.name,
+                          ...(c.url ? { company_url: c.url } : {}),
+                        })
+                      }
+                    >
+                      <Building2 className="size-3" /> Research
+                    </Button>
+                  )}
                 </div>
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
                   {c.why_competitive}

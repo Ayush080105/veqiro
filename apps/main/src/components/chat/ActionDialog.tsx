@@ -25,6 +25,11 @@ export interface ActionStartContext<TInput> {
   input: TInput
 }
 
+export interface ActionStage {
+  label: string
+  data?: unknown
+}
+
 export interface ActionFormProps<TInput, TResult> {
   /** Current form state */
   value: TInput
@@ -33,6 +38,8 @@ export interface ActionFormProps<TInput, TResult> {
   /** Submit the form. Returns the API result, throws on error. */
   submit: () => Promise<TResult>
   submitting: boolean
+  /** Interim progress reported by a multi-step customSubmit (e.g. "Generating storyboard…"). */
+  stage?: ActionStage | null
 }
 
 export interface ActionDialogProps<TInput, TResult> {
@@ -54,8 +61,15 @@ export interface ActionDialogProps<TInput, TResult> {
   onStart?: (ctx: ActionStartContext<TInput>) => void
   /** Called when the API request settles, successfully or with an error. */
   onSettled?: (ctx: ActionStartContext<TInput>) => void
-  /** Override the default JSON `runAgentAction` submit (e.g. for multipart uploads). */
-  customSubmit?: (value: TInput, organizationId: string, conversationId?: string) => Promise<TResult>
+  /** Override the default JSON `runAgentAction` submit (e.g. for multipart uploads). Receives
+   * an `onStage` callback for multi-step submits to report interim progress (e.g. a storyboard
+   * step before the final result) — call it with `null` to clear the banner. */
+  customSubmit?: (
+    value: TInput,
+    organizationId: string,
+    conversationId?: string,
+    onStage?: (stage: ActionStage | null) => void
+  ) => Promise<TResult>
   submitLabel?: string
   /** Optionally resolve a different actionId based on current form value (e.g. carousel routing). */
   resolveActionId?: (value: TInput) => AgentActionId
@@ -84,6 +98,7 @@ export function ActionDialog<TInput, TResult>({
 }: ActionDialogProps<TInput, TResult>) {
   const [value, setValue] = React.useState<TInput>(defaultValue)
   const [submitting, setSubmitting] = React.useState(false)
+  const [stage, setStage] = React.useState<ActionStage | null>(null)
 
   // Reset on open
   React.useEffect(() => {
@@ -114,20 +129,21 @@ export function ActionDialog<TInput, TResult>({
     }
     
     setSubmittingWithNotify(true)
+    setStage(null)
     const effectiveActionId = resolveActionId ? resolveActionId(submittedValue) : actionId
-    
+
     onStart?.({ actionId: effectiveActionId, input: submittedValue })
-    
+
     try {
       const result = customSubmit
-        ? await customSubmit(submittedValue, organizationId, conversationId)
+        ? await customSubmit(submittedValue, organizationId, conversationId, setStage)
         : await runAgentAction<TInput, TResult>(
             effectiveActionId,
             organizationId,
             submittedValue,
             conversationId
           )
-          
+
       onComplete({ actionId: effectiveActionId, input: submittedValue, result })
       onOpenChange(false) // Modal closes only after a successful completion
       return result
@@ -141,17 +157,18 @@ export function ActionDialog<TInput, TResult>({
     } finally {
       onSettled?.({ actionId: effectiveActionId, input: submittedValue })
       setSubmittingWithNotify(false)
+      setStage(null)
     }
   }, [
-    value, 
-    actionId, 
-    resolveActionId, 
-    organizationId, 
-    conversationId, 
-    validate, 
-    onComplete, 
-    onOpenChange, 
-    customSubmit, 
+    value,
+    actionId,
+    resolveActionId,
+    organizationId,
+    conversationId,
+    validate,
+    onComplete,
+    onOpenChange,
+    customSubmit,
     setSubmittingWithNotify,
     onStart,
     onSettled
@@ -179,7 +196,7 @@ export function ActionDialog<TInput, TResult>({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <div className="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0 pr-1">
-          {renderForm({ value, onChange, submit, submitting })}
+          {renderForm({ value, onChange, submit, submitting, stage })}
         </div>
         <DialogFooter className="flex-shrink-0">
           <Button

@@ -12,6 +12,9 @@ import {
   publishCarouselSchema,
   campaignSchema,
   expandBriefSchema,
+  generateVideoSchema,
+  campaignVideoSchema,
+  campaignVideoStoryboardSchema,
 } from "./maya.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
@@ -26,12 +29,22 @@ export type PublishInput = z.infer<typeof publishSchema>;
 export type PublishCarouselInput = z.infer<typeof publishCarouselSchema>;
 export type CampaignInput = z.infer<typeof campaignSchema>;
 export type ExpandBriefInput = z.infer<typeof expandBriefSchema>;
+export type GenerateVideoInput = z.infer<typeof generateVideoSchema>;
+export type CampaignVideoInput = z.infer<typeof campaignVideoSchema>;
+export type CampaignVideoStoryboardInput = z.infer<typeof campaignVideoStoryboardSchema>;
 
 export type ContentPlatform = "linkedin" | "twitter" | "instagram";
 
 export interface ImageResult {
   image_base64?: string;
   image_url?: string;
+  content_type: string;
+  prompt_used: string;
+}
+
+export interface VideoResult {
+  video_base64?: string;
+  video_url?: string;
   content_type: string;
   prompt_used: string;
 }
@@ -173,5 +186,27 @@ export interface CampaignResponse {
   photos: CampaignPhoto[];
   caption?: CampaignCaption | null;
   tokens_used: number;
+  model_used: string;
+}
+
+export interface GenerateVideoResponse {
+  video: VideoResult;
+  caption?: CampaignCaption | null;
+  tokens_used: number;
+  model_used: string;
+}
+
+export interface CampaignVideoResponse {
+  video: VideoResult;
+  caption?: CampaignCaption | null;
+  tokens_used: number;
+  model_used: string;
+  storyboard_image_url?: string;
+}
+
+export interface CampaignVideoStoryboardResponse {
+  storyboard_image_url?: string;
+  storyboard_image_base64?: string;
+  beats: string[];
   model_used: string;
 }

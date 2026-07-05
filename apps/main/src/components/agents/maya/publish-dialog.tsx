@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { useIntegrations } from "@/lib/api/integrations"
 import { publishPost, publishCarousel } from "@/lib/api/assistants"
-import type { ContentPlatform, ImageResult } from "@/lib/types/agents"
+import type { ContentPlatform, ImageResult, VideoResult } from "@/lib/types/agents"
 
 const CONTENT_PLATFORMS = ["linkedin", "twitter", "instagram"] as const
 
@@ -24,11 +24,44 @@ function normalizePlatform(platform?: ContentPlatform | string | null): ContentP
   return CONTENT_PLATFORMS.find((p) => p === normalized) ?? null
 }
 
+const POST_TYPES = [
+  { value: "reel" as const, label: "Reel" },
+  { value: "post" as const, label: "Post" },
+]
+
+function PostTypeToggle({ value, onChange }: { value: "post" | "reel"; onChange: (v: "post" | "reel") => void }) {
+  return (
+    <div className="flex gap-1.5">
+      {POST_TYPES.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          style={{
+            flex: 1,
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: `1px solid ${value === opt.value ? "#1A1A1A" : "#D4C9B0"}`,
+            background: value === opt.value ? "#1A1A1A" : "#FFF9ED",
+            color: value === opt.value ? "#FFF9ED" : "#1A1A1A",
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 interface PublishDialogProps {
   platform?: ContentPlatform | string | null
   caption: string
   hashtags: string[]
   image?: ImageResult | null
+  video?: VideoResult | null
 }
 
 interface CampaignPublishDialogProps {
@@ -145,12 +178,13 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
   )
 }
 
-export function PublishDialog({ platform, caption, hashtags, image }: PublishDialogProps) {
+export function PublishDialog({ platform, caption, hashtags, image, video }: PublishDialogProps) {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
   const [open, setOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [postType, setPostType] = useState<"post" | "reel">("reel")
 
   // useIntegrations auto-fetches on mount and revalidates on focus, so a
   // freshly-connected account appears next time the dialog opens without
@@ -185,8 +219,11 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
         socialAccountId: accountId,
         caption,
         hashtags,
-        imageUrl: image?.image_url,
-        imageBase64: image?.image_url ? undefined : image?.image_base64,
+        imageUrl: video ? undefined : image?.image_url,
+        imageBase64: video ? undefined : image?.image_url ? undefined : image?.image_base64,
+        videoUrl: video?.video_url,
+        videoBase64: video?.video_url ? undefined : video?.video_base64,
+        postType: video ? postType : undefined,
       })
       toast.success(
         result.url ? (
@@ -218,6 +255,10 @@ export function PublishDialog({ platform, caption, hashtags, image }: PublishDia
             Choose a connected {platformLabel} account to publish this post.
           </DialogDescription>
         </DialogHeader>
+
+        {video && normalizedPlatform === "instagram" && (
+          <PostTypeToggle value={postType} onChange={setPostType} />
+        )}
 
         {loading ? (
           <p className="text-xs text-muted-foreground">Loading accounts…</p>

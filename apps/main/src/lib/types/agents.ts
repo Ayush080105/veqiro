@@ -278,6 +278,13 @@ export interface ImageResult {
   prompt_used: string
 }
 
+export interface VideoResult {
+  video_base64?: string
+  video_url?: string
+  content_type: string
+  prompt_used: string
+}
+
 export interface MayaDraftResult {
   draft: {
     title?: string
@@ -383,15 +390,6 @@ export interface MayaContentRegenResult {
 
 // ─── Scout ───────────────────────────────────────────────────────────────────
 
-export interface ScoutCompetitorWatch {
-  id: string
-  name: string
-  url: string
-  latestHash: string | null
-  lastScannedAt: string | null
-  createdAt: string
-}
-
 export interface ScoutResearchTopicRequest {
   topic: string
   depth?: "quick" | "standard" | "deep"
@@ -418,6 +416,11 @@ export interface ScoutResearchCompanyRequest {
   company_url?: string
 }
 
+export interface ScoutSourceLink {
+  title: string
+  url: string
+}
+
 export interface CompanyProfile {
   name: string
   description: string
@@ -430,6 +433,7 @@ export interface CompanyProfile {
   strengths: string[]
   weaknesses: string[]
   recent_news: string[]
+  sources?: ScoutSourceLink[]
 }
 
 export interface ScoutResearchCompanyResult {
@@ -1210,7 +1214,7 @@ export interface SageSavedKeyword {
 // ─── Union result type (discriminated by action id) ─────────────────────────
 
 export interface MayaCampaignRequest {
-  product_image_url: string
+  product_image_urls: string[]
   campaign_brief: string
   photo_count: 1 | 2 | 3 | 4 | 6
   use_logo: boolean
@@ -1237,6 +1241,53 @@ export interface MayaCampaignResult {
   model_used?: string
 }
 
+export type VideoAspectRatio = "16:9" | "9:16"
+
+export interface MayaGenerateVideoRequest {
+  prompt: string
+  platform: ContentPlatform
+  aspect_ratio: VideoAspectRatio
+  duration_seconds: number
+  use_logo: boolean
+}
+
+export interface VideoCaption {
+  body: string
+  hashtags: string[]
+  cta?: string
+}
+
+export interface MayaGenerateVideoResult {
+  video: VideoResult
+  caption?: VideoCaption | null
+  tokens_used?: number
+  model_used?: string
+}
+
+export interface MayaCampaignVideoRequest {
+  product_image_urls: string[]
+  campaign_brief: string
+  platform: ContentPlatform
+  aspect_ratio: VideoAspectRatio
+  duration_seconds: number
+  use_logo: boolean
+}
+
+export interface MayaCampaignVideoResult {
+  video: VideoResult
+  caption?: VideoCaption | null
+  tokens_used?: number
+  model_used?: string
+  storyboard_image_url?: string
+}
+
+export interface MayaCampaignVideoStoryboardResult {
+  storyboard_image_url?: string
+  storyboard_image_base64?: string
+  beats: string[]
+  model_used?: string
+}
+
 export type AgentActionId =
   | "sage:keyword-research"
   | "sage:generate-blog"
@@ -1253,6 +1304,9 @@ export type AgentActionId =
   | "maya:regenerate-image"
   | "maya:regenerate-content"
   | "maya:campaign"
+  | "maya:generate-video"
+  | "maya:campaign-video"
+  | "maya:campaign-video-storyboard"
   | "scout:research-topic"
   | "scout:research-company"
   | "scout:trending-topics"

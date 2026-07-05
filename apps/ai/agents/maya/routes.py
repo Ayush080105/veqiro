@@ -11,7 +11,17 @@ from core.brand_kit import load_brand_kit, get_platform_tone
 from core.image_gen import generate_social_image, _fetch_asset
 from core.llm import LLMClient
 from core.rag import RAGService
-from core.models import ChatRequest, ChatSyncResponse, ImageResult
+from core.models import ChatRequest, ChatSyncResponse, ImageResult, VideoResult
+from core.video_gen import (
+    build_video_prompt,
+    generate_maya_video,
+    generate_video_storyboard,
+    plan_video_scenes,
+    plan_video_scenes_with_images,
+    plan_video_scenes_from_storyboard,
+    add_logo_instruction,
+    add_product_fidelity_guardrail,
+)
 from core.config import settings
 from agents.maya.agent import MayaAgent, PLATFORM_RULES
 
@@ -474,6 +484,17 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
         f"{dedupe_block}\n"
         "IMPORTANT: Only generate ideas for static image posts (linkedin_post, instagram_post, tweet). "
         "Do NOT suggest videos, reels, infographics, carousels, threads, or blog posts.\n\n"
+        f"IDEA DIVERSITY — the {request.count} ideas in THIS batch must each take a genuinely different angle from "
+        "one another, not just a different topic wrapped around the same shape. Draw from distinct archetypes such "
+        "as: a contrarian/unpopular take, a data- or result-led claim, a short anecdote or behind-the-scenes moment, "
+        "a practical how-to, a bold opinion stated as fact, a customer-voice or testimonial angle, a trend-jack tied "
+        "to something happening now, or a direct question that starts a real conversation. No two ideas in the batch "
+        "should share the same hook shape or the same emotional register.\n"
+        "Reject any idea that reads as generic — if it could be posted by any competitor with the brand name swapped "
+        "out, it's not specific enough. Each idea should be traceable to something true about this company, its "
+        "audience, or its differentiators.\n"
+        "Vary the 'hook' field's opening style across ideas (blunt fact, scene, direct address, opinion, question) — "
+        "never default every hook to the same stat-led or question-led pattern.\n\n"
         "Return a JSON array. Each idea must have:\n"
         "- title: post headline\n"
         "- platform: target platform\n"
@@ -587,11 +608,18 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         f"{website_line}\n\n"
         "STRICT RULES:\n"
         f"- {platform_limits.get(request.platform, 'Keep it concise and platform-native.')}\n"
-        "- Start with a specific fact, number, or bold statement. NOT with 'As a founder' or any generic opener.\n"
+        "- Pick ONE opener style and commit to it — do not default to the same shape every time: "
+        "a blunt fact or number, a counterintuitive claim, a one-line scene/story, a direct 'you' address, "
+        "or a flat opinion stated as fact. NOT 'As a founder' or any generic opener.\n"
         "- Write about the BUSINESS VALUE and REAL IMPACT. Never mention mascots, characters, visuals, or image descriptions.\n"
-        "- Sound like the founder typed it themselves — direct, confident, no filler.\n"
+        "- Sound like the founder typed it themselves — direct, confident, no filler. Let personality and humor show "
+        "where the tone allows it — this should read like a specific person wrote it, not a template.\n"
         "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
-        "- CTA: a direct question or action, not vague 'share your thoughts'.\n\n"
+        "- CTA: vary the form — a specific question, a direct action (try/click/reply), a mini-challenge, an opinion "
+        "prompt, or no CTA at all if the post lands better without one. "
+        "NEVER use the generic survey template '[stat/number] of people feel/do X — how do you feel? Let us know' "
+        "or any close variant ('what about you?', 'do you agree?', 'share your thoughts below') — it reads as "
+        "AI-generated engagement bait, not a real CTA.\n\n"
         "Return JSON with these exact fields: title, body, hashtags (list of strings WITHOUT the # symbol), cta, meta_description, word_count, platform, tone_used.\n"
         "CRITICAL FIELD RULES:\n"
         "- `body`: the post text ONLY — do NOT append the CTA or hashtags here. Body ends before the CTA.\n"
@@ -630,6 +658,14 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
                 user_id=request.user_id, organization_id=request.organization_id,
                 brand_kit=brand_kit,
                 context_hints=_caption_context,
+                # User-authored additional_context carries the most specific, non-negotiable
+                # instructions (explicit subjects, props, themes). Put it first so it survives
+                # the concept/elaboration truncation window even when the caption is long.
+                concept_hint="\n".join(filter(None, [
+                    request.additional_context or "",
+                    draft.title,
+                    draft.body[:300],
+                ])),
                 reference_urls=request.reference_images if request.use_reference else [],
                 brand_images=request.brand_images or [],
                 use_brand_colors=request.use_brand_colors,
@@ -1004,6 +1040,15 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
             request.additional_context or "",
         ] if p and p.strip()]
         _context_hints = ". ".join(_hint_parts)
+        # additional_context first: it carries the user's explicit, non-negotiable asks
+        # (specific subjects, props, themes) — protect it from the concept-step truncation
+        # window instead of leaving it last behind topic/caption/context_note.
+        _concept_hint_parts = [p.strip().strip(".") for p in [
+            request.additional_context or "",
+            prompt_data.context_note,
+            request.topic,
+        ] if p and p.strip()]
+        _concept_hint = ". ".join(_concept_hint_parts)
         last_err: BaseException | None = None
         current_anchor = anchor_b64
         for attempt in range(3):
@@ -1027,6 +1072,7 @@ async def draft_carousel(request: CarouselDraftRequest) -> CarouselDraftResponse
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
                     context_hints=_context_hints,
+                    concept_hint=_concept_hint,
                     text_spec=text_spec,
                     carousel_anchor_b64=current_anchor,
                     brand_images=request.brand_images or [],
@@ -1081,6 +1127,7 @@ class ExpandBriefRequest(BaseModel):
     brief: str = Field(..., min_length=1, max_length=500)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     product_image_base64: str | None = None
+    product_image_url: str | None = None
     metadata: dict = Field(default_factory=dict)
 
 
@@ -1119,6 +1166,11 @@ _EXPAND_USER_TMPL = (
     "details, time of day, props and styling elements.\n"
     "9. PRODUCT TREATMENT: How does the product appear — hero-centered, integrated "
     "naturally, held/used, pristine studio, in-motion, etc.\n\n"
+    "10. MANDATORY LITERAL INSTRUCTIONS: If the original idea explicitly requests specific elements — "
+    "human models/people, a specific action, specific props, or a named theme/wordplay the product is built "
+    "around — state them plainly and concretely (e.g. 'a model wears the shoe mid-stride') somewhere in the "
+    "brief. Do not let an explicit request dissolve into only atmospheric or color language — name the literal "
+    "thing that was asked for.\n\n"
     "Write this as one flowing creative brief paragraph (200-250 words). "
     "No numbered lists, no headers — dense, vivid, professional prose that a "
     "photographer or AI model can execute immediately."
@@ -1155,6 +1207,11 @@ _EXPAND_VISION_PROMPT_TMPL = (
     "9. PRODUCT TREATMENT: Describe how the product should appear using its actual visual "
     "traits (e.g., 'the matte black cylindrical bottle with a brushed-gold cap, label-side "
     "facing camera') — hero-centered, integrated naturally, held/used, pristine studio, etc.\n\n"
+    "10. MANDATORY LITERAL INSTRUCTIONS: If the original campaign idea explicitly requests specific elements — "
+    "human models/people, a specific action, specific props, or a named theme/wordplay the product is built "
+    "around — state them plainly and concretely (e.g. 'a model wears the shoe mid-stride') somewhere in the "
+    "brief. Do not let an explicit request dissolve into only atmospheric or color language — name the literal "
+    "thing that was asked for.\n\n"
     "Write this as one flowing creative brief paragraph (200-250 words). "
     "No numbered lists, no headers — dense, vivid, professional prose that a "
     "photographer or AI model can execute immediately."
@@ -1172,8 +1229,17 @@ async def expand_brief(request: ExpandBriefRequest):
 
     _BRIEF_CHAR_LIMIT = 4800
 
+    image_bytes: bytes | None = None
     if request.product_image_base64:
         image_bytes = _b64.b64decode(request.product_image_base64)
+    elif request.product_image_url:
+        # Fetched server-side to avoid the browser CORS failures that block
+        # client-side fetches of R2-hosted product images.
+        image_bytes = await _fetch_asset(request.product_image_url)
+        if image_bytes is None:
+            logger.warning("expand-brief: product_image_url fetch failed | url=%s", request.product_image_url)
+
+    if image_bytes:
         vision_prompt = _EXPAND_VISION_PROMPT_TMPL.format(
             platform=request.platform,
             brief=request.brief,
@@ -1217,7 +1283,7 @@ Brand voice: {brand_voice}
 Brand color palette: {brand_colors}
 Target audience: {target_audience}
 
-Analyse the product in the image carefully — its category, materials, colours, finish, price-point signals, and intended use. Then write a campaign visual style that is bespoke to THIS specific product AND brand personality. The brand voice and color palette must be reflected in the grading, lighting character, and mood — not ignored.
+Analyse the product in the image carefully — its category, materials, colours, finish, price-point signals, and intended use. The image itself may be an ordinary hand-taken snapshot with mediocre lighting, a rough angle, or a cluttered background — look past all of that to study the product on its own merits; do not let a poor-quality reference photo drag down the style you design. Then write a campaign visual style that is bespoke to THIS specific product AND brand personality, at full professional/editorial production quality regardless of how the reference itself was captured. The brand voice and color palette must be reflected in the grading, lighting character, and mood — not ignored.
 
 Output exactly this block (replace the bracketed descriptions with your values):
 
@@ -1272,32 +1338,87 @@ STEP 3: Apply the Campaign Style Lock for consistent color grading and lighting 
 
 Sameness across photos is a failure. Each shot must be unmistakably a different photograph."""
 
+_PROBLEM_BEAT = (
+    "THE PROBLEM — Camera close and intimate, eye-level or slightly above, natural candid feel — not stiff or "
+    "posed. Show a real, relatable person genuinely experiencing the specific problem or discomfort this product "
+    "solves — infer the exact problem from the BRIEF TEXT below and depict it honestly through facial expression "
+    "and body language, a believable everyday moment of struggle. This is the story's opening hook. THE PRODUCT "
+    "MUST STILL BE CLEARLY, PROMINENTLY VISIBLE AND IN SHARP FOCUS SOMEWHERE IN THIS FRAME — held in the "
+    "person's hand, resting on a nearby table/nightstand/counter within clear view — it is never blurred, tiny, "
+    "cropped out, or absent. The emotional focus is the person's struggle, but the product is always identifiable "
+    "as part of the same frame, foreshadowing the solution. ENVIRONMENT: an authentic everyday real-world setting "
+    "where this problem would actually occur (home, desk, kitchen, bedroom, commute — infer the best fit from the "
+    "brief), natural available light, nothing staged or studio-like."
+)
+_PRODUCT_BEAT = (
+    "THE PRODUCT — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered "
+    "with equal negative space left and right. Single hard key light from 45° above-left casting a clean "
+    "directional shadow on the surface beneath the product. This is the story's turning point — the reveal of "
+    "the product as the definitive solution to the problem shown earlier. ENVIRONMENT: Clean studio — pure "
+    "white or polished light grey surface, seamless white background. Magazine-cover quality — razor-sharp "
+    "product, zero clutter."
+)
+_MOMENT_OF_USE_BEAT = (
+    "THE MOMENT OF USE — Camera at a 35-45° angle, slightly elevated, natural candid framing. Show a real person "
+    "actually using, holding, or taking the product in a believable everyday moment — genuine, mid-action. The "
+    "product must be clearly visible and identifiable in the person's hand or immediate context — this beat "
+    "proves the product in real use. ENVIRONMENT: warm, natural lifestyle setting (kitchen counter, bedside "
+    "table, desk) with soft natural side-light."
+)
+_RESOLUTION_BEAT = (
+    "THE RESOLUTION — Camera at eye-level or slightly low, warm intimate framing. Show the aftermath: a real "
+    "person now relieved, calm, or at ease — genuine relaxed body language and expression, having used the "
+    "product. This is the story's emotional payoff. THE PRODUCT MUST BE CLEARLY, PROMINENTLY VISIBLE AND IN "
+    "SHARP FOCUS in the frame — in hand or clearly placed on the nightstand/counter beside the person, not a "
+    "small or blurred afterthought. The person's relief is the emotional beat, but the product stays a "
+    "recognisable, unmistakable presence in the same shot, closing the story as the reason for the relief. "
+    "ENVIRONMENT: comfortable, warm, lived-in setting — soft natural light, aspirational but real."
+)
+_DAILY_STRUGGLE_BEAT = (
+    "THE DAILY STRUGGLE — Camera at a slightly wider, observational angle, natural candid feel. Show the SAME "
+    "problem from the opening photo recurring or impacting daily life more broadly — a different moment and "
+    "setting that raises the story's emotional stakes. THE PRODUCT MUST STILL BE CLEARLY, PROMINENTLY VISIBLE "
+    "AND IN SHARP FOCUS somewhere in this frame (in hand, on a desk/bag/counter within clear view) — never "
+    "blurred, tiny, cropped out, or absent. ENVIRONMENT: a different everyday real-world setting than the "
+    "opening problem shot (e.g. work, commute, or a social moment), reinforcing how often this problem gets in "
+    "the way."
+)
+_DETAIL_BEAT = (
+    "THE DETAIL — Camera extremely close: 15-20cm from the product surface. One specific detail fills the "
+    "entire frame — texture, label, imprint, material, or mechanism — proving the product's quality and "
+    "craftsmanship. This beat builds confidence in the product right after its reveal. ENVIRONMENT: single-color "
+    "or near-black background; single side-rim light that reveals micro-texture."
+)
+
+# Fixed FALLBACK narrative arc — problem, then product, then proof/use, then resolution — used
+# only if the dynamic per-campaign story-arc planner below fails. The planner decides the real
+# structure per campaign (it does NOT have to open with "the problem"); this is just a safety net.
 _CAMPAIGN_ROLES: dict[int, list[str]] = {
     1: [
         "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered with equal negative space left and right. Single hard key light from 45° above-left casting a clean directional shadow on the surface beneath the product. ENVIRONMENT: Clean studio — pure white or polished light grey surface, seamless white background. This is a magazine cover shot — razor-sharp product, zero clutter.",
     ],
     2: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Single hard key light from 45° above-left. ENVIRONMENT: Clean studio — white or very light neutral surface, seamless gradient background. Negative space on left third for editorial text overlay. Magazine cover quality.",
-        "LIFESTYLE SCENE — Camera at 45° to the product's right side, slightly above eye-level. Product rests naturally in its real-world environment. ENVIRONMENT: Warm lived-in setting — wooden table or oak shelf with soft natural light from a nearby window. Depth of field f/2.0: background softly blurred. Aspirational and editorial — like Kinfolk or Vogue Living.",
+        _PROBLEM_BEAT,
+        _PRODUCT_BEAT,
     ],
     3: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left, clean shadow line on surface. ENVIRONMENT: Clean studio — white or very light neutral surface, zero distracting elements.",
-        "LIFESTYLE SIDE PROFILE — Camera at the product's side, 90° from the front, slightly elevated at 20° above horizon. Product in profile — reveals depth, thickness, material layers. ENVIRONMENT: Tactile surface — raw linen tablecloth or rough slate, with soft natural window light rimming the product edge. Background: softly blurred interior setting at f/2.0.",
-        "EDITORIAL FLATLAY — Camera directly overhead, 90° pointing straight down. Product is the centerpiece placed in the lower-center third. Organic ingredients or botanicals arranged with deliberate negative space. ENVIRONMENT: Textured dark surface — dark slate or charcoal-toned stone. Directional side light from the top-left reveals surface texture.",
+        _PROBLEM_BEAT,
+        _PRODUCT_BEAT,
+        _RESOLUTION_BEAT,
     ],
     4: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame. Hard key light 45° above-left, clean shadow on surface. ENVIRONMENT: Clean studio — pure white or light neutral seamless background. This is the anchor shot — everything else references this quality.",
-        "LIFESTYLE ENVIRONMENT SCENE — Camera at 35-45° angle to the product's right, slightly above eye-level. Product sits naturally with lifestyle context around it: a ceramic bowl, cut ingredients, folded cloth. ENVIRONMENT: Warm natural setting — kitchen counter with terracotta or cream-toned tiles, warm golden-hour side light. Background depth softly blurred at f/2.0.",
-        "EDITORIAL FLATLAY — Camera 90° directly overhead pointing straight down. Product centered in the lower third. Organic props arranged with intentional breathing room. ENVIRONMENT: Warm wood surface — pale oak or walnut grain with one directional window-quality side light from the frame's top-left casting gentle shadows.",
-        "DRAMATIC LOW ANGLE — Camera at ground level (10-15cm height) pointing upward at 15-20°. Product occupies the bottom-center third, towering upward. ENVIRONMENT: Outdoor or architectural — dramatic sky with volumetric light, or a large interior space with high ceilings. Everything above the product falls into bokeh.",
+        _PROBLEM_BEAT,
+        _PRODUCT_BEAT,
+        _MOMENT_OF_USE_BEAT,
+        _RESOLUTION_BEAT,
     ],
     6: [
-        "EDITORIAL HERO — Camera at exact eye-level, straight-on front face. Product fills 65-70% of frame, centered. Hard key light 45° above-left. ENVIRONMENT: Clean studio — pure white or light neutral seamless. Magazine cover quality.",
-        "LIFESTYLE ENVIRONMENT — Camera at 40° right angle, slightly elevated. Product in real-world scene with contextual props. ENVIRONMENT: Warm kitchen or living space — terracotta tiles or cream linen surface, warm natural side-light.",
-        "EDITORIAL FLATLAY — Camera 90° directly overhead. Product centered with organic props arranged intentionally. ENVIRONMENT: Warm wood surface — pale oak or walnut grain, directional side-light from top-left.",
-        "DRAMATIC LOW ANGLE — Camera at ground level (10cm height) pointing upward. Product towers in bottom-center. ENVIRONMENT: Outdoor sky or dramatic architectural space — background blurs into epic bokeh.",
-        "MACRO DETAIL — Camera extremely close: 15-20cm from the product surface. One specific detail fills the entire frame — a texture, label, material surface, or cap mechanism. ENVIRONMENT: Single-color or near-black background; single side-rim light that reveals micro-texture.",
-        "WIDE ESTABLISHING — Camera pulled back, product occupies 20-25% of frame in the rule-of-thirds lower-right. ENVIRONMENT: Large dramatic real-world space — a natural landscape, architectural interior, or lush outdoor scene. The product is small but unmistakable within a world-building setting.",
+        _PROBLEM_BEAT,
+        _DAILY_STRUGGLE_BEAT,
+        _PRODUCT_BEAT,
+        _DETAIL_BEAT,
+        _MOMENT_OF_USE_BEAT,
+        _RESOLUTION_BEAT,
     ],
 }
 
@@ -1305,21 +1426,112 @@ _CAMPAIGN_ROLES: dict[int, list[str]] = {
 # Used by _make_hints to pre-assign environments and list forbidden ones for sibling photos.
 _ROLE_ENVIRONMENT_LABEL: dict[str, str] = {
     "EDITORIAL HERO": "clean studio (white/neutral seamless surface)",
-    "LIFESTYLE SCENE": "warm lived-in setting (wooden table, oak shelf, natural window light)",
-    "LIFESTYLE SIDE PROFILE": "tactile surface (linen tablecloth, raw slate, soft window rim light)",
-    "LIFESTYLE ENVIRONMENT SCENE": "warm natural setting (kitchen counter, terracotta tiles, golden-hour light)",
-    "LIFESTYLE ENVIRONMENT": "warm kitchen or living space (terracotta or cream linen, warm side-light)",
-    "EDITORIAL FLATLAY": "warm wood surface (pale oak or walnut, overhead directional side-light)",
-    "DRAMATIC LOW ANGLE": "outdoor sky or architectural space (dramatic bokeh background)",
-    "MACRO DETAIL": "near-black or single-color close-up (side-rim light)",
-    "WIDE ESTABLISHING": "large real-world landscape or interior (world-building environment)",
+    "THE PROBLEM": "authentic everyday setting where the problem occurs (home/desk/kitchen — natural light, unstaged)",
+    "THE PRODUCT": "clean studio (white/neutral seamless surface)",
+    "THE MOMENT OF USE": "warm lifestyle setting where the product is actually used (kitchen counter, bedside, desk)",
+    "THE RESOLUTION": "comfortable, warm, lived-in setting — relief/payoff mood",
+    "THE DAILY STRUGGLE": "a different everyday real-world setting than the opening problem shot (e.g. work, commute, social moment)",
+    "THE DETAIL": "near-black or single-color macro close-up (side-rim light)",
 }
+
+_STORY_ARC_SYSTEM = """You are a world-class creative director planning a {photo_count}-photo product campaign as ONE continuous, coherent story — not {photo_count} independent shots.
+
+You decide the narrative structure yourself, based on whatever best serves THIS specific product and brief. There is NO fixed template — the sequence does NOT have to open with "the problem". It could open with the product itself, a lifestyle moment, a demonstration, a transformation, a problem, or any other structure you judge is the strongest story for this brief. Use your judgment as a director, not a formula.
+
+Non-negotiable rules:
+1. All {photo_count} photos form ONE throughline where each beat builds on the one before it — never independent, unrelated shots grouped together after the fact.
+2. THE PRODUCT MUST BE CLEARLY, PROMINENTLY VISIBLE AND IN SHARP FOCUS IN EVERY SINGLE PHOTO, with zero exceptions. Regardless of a beat's emotional or narrative content, the product itself is never blurred, tiny, cropped out, or absent. If a person appears in a shot, the product must still be an unmistakable, deliberate part of the same frame (in hand, on a nearby surface, being used, etc.) — never sidelined for atmosphere alone.
+3. Camera angle, framing, and environment must be genuinely different photo to photo for visual variety — draw on a range like: eye-level studio hero shot, overhead flatlay, low dramatic upward angle, extreme macro detail, wide lifestyle establishing shot, 35-45° lifestyle angle, side profile. Pick whichever fit each beat best; you don't need to use all of them.
+4. Each photo's environment/background must be visually distinct from every other photo in the sequence — never repeat a setting.
+
+CRITICAL — "role_text" IS AN INTERNAL PHOTOGRAPHY BRIEF, NEVER ON-IMAGE TEXT: it is read only by the
+photographer/AI generator to know what to shoot. It is NOT a caption, headline, or ad copy, and none of its
+wording will ever appear printed, captioned, or overlaid in the finished photo. Write it like a working
+photographer's shot list — short, technical, imperative sentences (e.g. "Camera at eye-level, 45mm equivalent.
+Product held in right hand, label facing camera. ENVIRONMENT: sunlit kitchen counter, warm morning light from
+the left.") — NOT flowing marketing prose or narration a reader would enjoy reading as copy. If it reads like
+something you'd put in an ad, rewrite it as terse camera/lighting/staging instructions instead.
+
+You also write the exact on-image text for each photo, up front, for all {photo_count} photos together — this
+matters because you can see the whole set at once and must keep every photo's text genuinely distinct, unlike
+generating each one blind to the others (which causes repeated words like "calm", "relief", "gentle" across
+every photo). Rules for this text:
+- "headline": 2-4 words, punchy, matching this photo's specific beat — never reuse a word (not even a
+  synonym-adjacent one) that another photo's headline in this set already used.
+- "subtext" (optional): 3-6 words, only if it adds something the headline doesn't; omit it (empty string) for
+  photos where the headline alone is stronger — not every photo needs a subtext line.
+- Keep it SHORT and SIMPLE. Longer or more complex text is harder for the image generator to render correctly
+  and causes visible spelling/rendering mistakes — every extra word is a chance for the AI to get it wrong.
+- Every word must be spelled correctly, in plain English, appearing once — no invented words, no filler
+  adjectives ("amazing", "powerful", "revolutionary"), no repeated syllables.
+- This is the exact, final text — it will be handed to the image generator to render verbatim, not re-derived
+  or reinterpreted at that stage. Get it right here.
+
+For each of the {photo_count} photos, in order, output:
+- "role_text": one dense paragraph of technical photography direction (per the CRITICAL rule above) combining (a) this photo's specific narrative purpose within the overall story, stated as a shot goal not a story blurb, (b) the exact camera angle/framing/lighting, (c) the environment/setting, and (d) an explicit line reminding that the product must be clearly, prominently visible and in sharp focus in this shot.
+- "environment_label": a short 5-10 word description of just this photo's setting/background (used only to detect accidental repeats).
+- "headline": this photo's exact on-image headline text, per the rules above.
+- "subtext": this photo's exact on-image subtext text, per the rules above, or "" if this photo doesn't need one.
+
+Return ONLY a JSON object with this exact shape, no markdown fences, no commentary:
+{{"photos": [{{"role_text": "...", "environment_label": "...", "headline": "...", "subtext": "..."}}, ...]}} with exactly {photo_count} entries."""
+
+
+async def _generate_campaign_story_arc(
+    campaign_brief: str,
+    photo_count: int,
+    brand_kit,
+    platform: str,
+) -> list[dict] | None:
+    """Plans a bespoke narrative arc for the campaign's N photos via LLM, rather than forcing
+    every campaign through the same fixed problem->product->use->resolution template. Falls back
+    to None (caller uses _CAMPAIGN_ROLES) on any failure so campaign generation never breaks."""
+    if photo_count <= 1 or settings.MOCK_MODE:
+        return None
+    try:
+        brand_parts: list[str] = []
+        if brand_kit:
+            if brand_kit.company_name:
+                brand_parts.append(f"brand: {brand_kit.company_name}")
+            if getattr(brand_kit, "company_description", None):
+                brand_parts.append(f"what they do: {brand_kit.company_description[:200]}")
+            if brand_kit.brand_voice:
+                brand_parts.append(f"brand voice: {brand_kit.brand_voice}")
+            if brand_kit.target_audience:
+                brand_parts.append(f"target audience: {brand_kit.target_audience}")
+        brand_context = "; ".join(brand_parts)
+
+        prompt = (
+            f"Campaign brief: {campaign_brief}\n"
+            f"Platform: {platform}\n"
+            + (f"Brand context: {brand_context}\n" if brand_context else "")
+        )
+        raw = await _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=_STORY_ARC_SYSTEM.format(photo_count=photo_count),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        from core.utils import safe_json_loads
+        data = safe_json_loads(raw)
+        photos = data.get("photos", [])
+        if len(photos) != photo_count:
+            logger.warning("story arc returned %d photos, expected %d — falling back", len(photos), photo_count)
+            return None
+        for p in photos:
+            if not p.get("role_text") or not p.get("environment_label") or not p.get("headline"):
+                logger.warning("story arc entry missing role_text/environment_label/headline — falling back")
+                return None
+        logger.info("story arc generated | photo_count=%d", photo_count)
+        return photos
+    except Exception as exc:
+        logger.warning("story arc generation failed, falling back to fixed template | error=%s", exc)
+        return None
 
 
 class CampaignRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     organization_id: str = Field("", max_length=128)
-    product_image_url: str = Field(..., min_length=1)
+    product_image_urls: list[str] = Field(..., min_length=1, max_length=5)
     campaign_brief: str = Field(..., min_length=1, max_length=5000)
     photo_count: int = Field(4)
     use_logo: bool = True
@@ -1439,24 +1651,44 @@ async def create_campaign(request: CampaignRequest):
         except Exception as bk_err:
             logger.warning("campaign brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
 
-    roles = _CAMPAIGN_ROLES.get(request.photo_count, _CAMPAIGN_ROLES[4])
+    # Let the model plan a bespoke narrative arc for this specific brief rather than forcing
+    # every campaign through the same fixed "problem first" template — falls back to the
+    # fixed template only if the planner call fails.
+    story_arc = await _generate_campaign_story_arc(
+        request.campaign_brief, request.photo_count, brand_kit, request.platform,
+    )
+    if story_arc:
+        roles = [p["role_text"] for p in story_arc]
+        role_environments = [p["environment_label"] for p in story_arc]
+        # Pre-written by the planner (which sees all photos at once, so it naturally avoids
+        # repeating the same words across headlines) — handed to image generation as exact text
+        # to render, not something for it to invent itself per photo.
+        text_specs: list[dict | None] = [
+            {"headline": p["headline"], "subtext": p.get("subtext") or ""} for p in story_arc
+        ]
+    else:
+        roles = _CAMPAIGN_ROLES.get(request.photo_count, _CAMPAIGN_ROLES[4])
+        role_environments = None  # computed below via _env_label fallback
+        text_specs = [None] * len(roles)
 
     # Build a shared style description from brand kit data — gives all photos the same
     # colour/mood/energy without the carousel anchor that locks composition too tightly.
     style_lock = await _build_campaign_style_lock(
         request.campaign_brief, brand_kit, request.platform,
-        product_image_url=request.product_image_url,
+        product_image_url=request.product_image_urls[0],
     )
 
     total_photos = len(roles)
 
-    # Pre-assign a distinct environment label to each role so concurrent photos
-    # never independently choose the same background (e.g., marble/marble/marble).
+    # Pre-assign a distinct environment label to each role so concurrent photos never
+    # independently choose the same background (e.g., marble/marble/marble). Skipped when the
+    # story-arc planner already supplied real per-photo environment_label values above.
     def _env_label(role: str) -> str:
         role_key = role.split(" — ")[0].strip() if " — " in role else role.split("\n")[0].strip()
         return _ROLE_ENVIRONMENT_LABEL.get(role_key, "distinct background unique to this shot")
 
-    role_environments = [_env_label(r) for r in roles]
+    if role_environments is None:
+        role_environments = [_env_label(r) for r in roles]
 
     def _make_hints(role: str, photo_index: int) -> str:
         this_env = role_environments[photo_index]
@@ -1471,10 +1703,18 @@ async def create_campaign(request: CampaignRequest):
             + "\n"
         ) if forbidden_envs else ""
 
+        story_arc_note = (
+            f"THIS CAMPAIGN TELLS ONE CONTINUOUS STORY across all {total_photos} photos, in this exact order — "
+            f"it is NOT {total_photos} independent, unrelated product shots. This photo's beat builds on the "
+            f"photo(s) before it and sets up the one(s) after. Depict ONLY this photo's specific beat below — do "
+            f"not pull forward a later beat's content or repeat an earlier beat's content.\n\n"
+            if total_photos > 1 else ""
+        )
         return (
             f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
             f"{style_lock}\n\n"
             f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n\n"
+            f"{story_arc_note}"
             f"COMPOSITION ROLE — this defines the camera angle AND how the product is oriented/framed for this specific photo:\n"
             f"{role}\n\n"
             f"ASSIGNED ENVIRONMENT FOR THIS PHOTO: {this_env}\n"
@@ -1484,24 +1724,27 @@ async def create_campaign(request: CampaignRequest):
             f"• Keep the product's colors, design style, and element count exactly the same as the reference.\n"
             f"• Do NOT add or remove any characters, objects, or elements from the product.\n"
             f"• The camera angle, orientation, and framing of the product MUST follow the composition role above — this is what makes each photo different.\n\n"
-            f"CAMPAIGN BRIEF — extract and apply ONLY the following from this brief:\n"
+            f"CAMPAIGN BRIEF — apply the following from this brief:\n"
             f"  • LIGHTING FEEL: What quality of light does the brief suggest? Align with the Style Lock above.\n"
             f"  • COLOR STORY: What dominant hues does this brief imply? Use them in background and props, not the product.\n"
             f"  • EMOTIONAL REGISTER: What emotion should the viewer feel? Encode it through the environment mood.\n"
+            f"  • MANDATORY SUBJECT/PROP/THEME: If the brief explicitly requests a specific subject (e.g. a human "
+            f"model wearing/using the product), a specific prop, or a named theme/motif the product is built "
+            f"around, that element is REQUIRED in this photo — do not drop it just because it isn't lighting, "
+            f"color, or mood. Stage it within the composition role above; never omit it.\n"
             f"  BRIEF TEXT: {request.campaign_brief}"
         )
 
-    async def _gen_photo(
-        role: str,
-        photo_index: int,
-        anchor_b64: str | None = None,
-    ) -> CampaignPhoto | None:
+    async def _gen_photo(role: str, photo_index: int) -> CampaignPhoto | None:
         hints = _make_hints(role, photo_index)
-        # Photo 1 (anchor=None):  refs = product URL + logo  (2 refs)
-        # Photo 2+ (anchor=b64):  refs = anchor + logo       (2 refs)
-        #   anchor already shows the product correctly rendered, so it acts as
-        #   both the style lock and product identity — no separate URL needed.
-        product_urls = [] if anchor_b64 else [request.product_image_url]
+        # Every photo goes through the same product-reference path (product URLs + logo/mascot).
+        # An earlier version fed photo 1's own AI-generated output back in as a "style anchor"
+        # for photos 2+, but that reliably triggers Gemini's IMAGE_OTHER safety policy (it flags
+        # its own generation watermark) — in production every anchor-mode photo hit IMAGE_OTHER
+        # on attempt 1 and only succeeded after the anchor was dropped, so the anchor was pure
+        # overhead with zero benefit. Consistency across photos instead comes from the shared
+        # style_lock (vision-derived from the real product photo) injected into every hint.
+        product_urls = request.product_image_urls
         last_err: BaseException | None = None
         for attempt in range(3):
             if attempt and last_err:
@@ -1522,10 +1765,11 @@ async def create_campaign(request: CampaignRequest):
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
                     context_hints=hints,
+                    concept_hint=request.campaign_brief,
                     reference_urls=product_urls,
                     campaign_mode=True,
-                    campaign_anchor_b64=anchor_b64,
                     campaign_shot_type=role,
+                    text_spec=text_specs[photo_index],
                     brand_images=request.brand_images or [],
                     use_brand_colors=request.use_brand_colors,
                 )
@@ -1539,27 +1783,18 @@ async def create_campaign(request: CampaignRequest):
                     logger.error("campaign image_gen failed after 3 attempts | role=%s error=%s", role, err)
         return None
 
-    # Photo 1 is generated first (no anchor) — its output becomes the visual
-    # anchor for all remaining photos, which are generated in parallel.
-    photo_1 = await _gen_photo(roles[0], 0, anchor_b64=None)
-    anchor_b64 = photo_1.image.image_base64 if photo_1 else None
+    async def _gen_photo_with_timeout(role: str, photo_index: int) -> CampaignPhoto | None:
+        try:
+            return await asyncio.wait_for(_gen_photo(role, photo_index), timeout=120)
+        except asyncio.TimeoutError:
+            logger.error("campaign image_gen timed out (120s) | role=%s photo=%d", role, photo_index + 1)
+            return None
 
-    if len(roles) > 1:
-        async def _gen_photo_with_timeout(role: str, photo_index: int, anchor_b64: str | None) -> CampaignPhoto | None:
-            try:
-                return await asyncio.wait_for(_gen_photo(role, photo_index, anchor_b64), timeout=120)
-            except asyncio.TimeoutError:
-                logger.error("campaign image_gen timed out (120s) | role=%s photo=%d", role, photo_index + 1)
-                return None
-
-        rest = await asyncio.gather(
-            *[_gen_photo_with_timeout(role, i + 1, anchor_b64=anchor_b64) for i, role in enumerate(roles[1:])],
-            return_exceptions=True,
-        )
-    else:
-        rest = []
-
-    all_results = ([photo_1] if photo_1 else []) + list(rest)
+    # All photos generate in parallel now — no sequential anchor step needed.
+    all_results = await asyncio.gather(
+        *[_gen_photo_with_timeout(role, i) for i, role in enumerate(roles)],
+        return_exceptions=True,
+    )
     photos = [p for p in all_results if p is not None and not isinstance(p, Exception)]
 
     logger.info(
@@ -1570,4 +1805,289 @@ async def create_campaign(request: CampaignRequest):
         photos=photos,
         tokens_used=0,
         model_used=_agent.default_model,
+    )
+
+
+# ── Video Generation ──────────────────────────────────────────────────────────
+
+_VIDEO_ASPECT_RATIOS = "^(16:9|9:16)$"
+
+
+class GenerateVideoRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    prompt: str = Field(..., min_length=1, max_length=2000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    duration_seconds: int = Field(8, ge=4, le=10)
+    use_logo: bool = False
+
+
+class GenerateVideoResponse(BaseModel):
+    video: VideoResult
+    tokens_used: int
+    model_used: str
+
+
+class CampaignVideoRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    product_image_urls: list[str] = Field(..., min_length=1, max_length=5)
+    campaign_brief: str = Field(..., min_length=1, max_length=5000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    duration_seconds: int = Field(8, ge=4, le=10)
+    use_logo: bool = False
+    storyboard_beats: list[str] | None = Field(None, max_length=4)
+    storyboard_image_url: str | None = None
+
+
+class CampaignVideoResponse(BaseModel):
+    video: VideoResult
+    tokens_used: int
+    model_used: str
+
+
+class StoryboardRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    product_image_urls: list[str] = Field(..., min_length=1, max_length=5)
+    campaign_brief: str = Field(..., min_length=1, max_length=5000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    duration_seconds: int = Field(8, ge=4, le=10)
+    use_logo: bool = False
+
+
+class StoryboardResponse(BaseModel):
+    storyboard_image_base64: str
+    beats: list[str]
+    model_used: str
+
+
+async def _fetch_image_with_mime(url: str) -> tuple[bytes, str] | None:
+    """Fetch a URL as (bytes, mime_type), used for any reference image the video/storyboard
+    pipeline needs alongside its content type (product photos, storyboard, logo)."""
+    try:
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=10.0) as _client:
+            _resp = await _client.get(url)
+            _resp.raise_for_status()
+            return _resp.content, _resp.headers.get("content-type", "image/jpeg").split(";")[0]
+    except Exception as fetch_err:
+        logger.warning("image fetch failed | url=%s error=%s", url, fetch_err)
+        return None
+
+
+async def _fetch_logo_image(brand_kit) -> tuple[bytes, str] | None:
+    """Fetch the org's brand logo as (bytes, mime_type), or None if unavailable."""
+    if not brand_kit or not brand_kit.logo_url:
+        return None
+    try:
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=10.0) as _client:
+            _resp = await _client.get(brand_kit.logo_url)
+            _resp.raise_for_status()
+            return _resp.content, _resp.headers.get("content-type", "image/png").split(";")[0]
+    except Exception as fetch_err:
+        logger.warning("logo image fetch failed | error=%s", fetch_err)
+        return None
+
+
+async def _generate_video_with_retry(
+    prompt: str,
+    images: list[tuple[bytes, str]] | None,
+    aspect_ratio: str,
+    duration_seconds: int,
+) -> VideoResult:
+    last_err: BaseException | None = None
+    for attempt in range(3):
+        if attempt and last_err:
+            last_err_str = str(last_err)
+            if "429" in last_err_str or "RESOURCE_EXHAUSTED" in last_err_str.upper():
+                await asyncio.sleep(30 + attempt * 30)
+            else:
+                await asyncio.sleep(2 * attempt)
+        try:
+            return await asyncio.wait_for(
+                generate_maya_video(
+                    _llm,
+                    prompt=prompt,
+                    images=images,
+                    aspect_ratio=aspect_ratio,
+                    duration_seconds=duration_seconds,
+                ),
+                timeout=300,
+            )
+        except Exception as err:
+            last_err = err
+            logger.warning("generate_video attempt %d/3 failed | error=%s", attempt + 1, err)
+            if attempt == 2:
+                logger.error("generate_video failed after 3 attempts | error=%s", err)
+    raise HTTPException(status_code=502, detail=f"Video generation failed: {last_err}")
+
+
+@router.post("/generate-video", response_model=GenerateVideoResponse)
+async def generate_video_endpoint(request: GenerateVideoRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("generate-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    concept = build_video_prompt(request.prompt, request.platform, brand_kit)
+    prompt = await plan_video_scenes(
+        _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
+    )
+
+    images: list[tuple[bytes, str]] = []
+    if request.use_logo:
+        logo = await _fetch_logo_image(brand_kit)
+        if logo:
+            images.append(logo)
+            prompt = add_logo_instruction(prompt)
+
+    video = await _generate_video_with_retry(
+        prompt=prompt,
+        images=images or None,
+        aspect_ratio=request.aspect_ratio,
+        duration_seconds=request.duration_seconds,
+    )
+
+    logger.info("generate-video done | user=%s platform=%s", request.user_id, request.platform)
+    return GenerateVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
+
+
+def _build_campaign_video_concept(
+    campaign_brief: str,
+    brand_kit,
+    num_images: int,
+) -> str:
+    """Build the video concept for a campaign video. Unlike _build_campaign_style_lock
+    (a photography lighting/consistency spec built for N still photos sharing one look),
+    this keeps the campaign brief front and center so the narrative-planning LLM grounds
+    its visual metaphor and reveal in what the brief actually asks for, and is told to use
+    every reference image — not a rigid lighting/grading template that biases the result
+    toward a generic "product floating in a clean studio" shot."""
+    parts = [
+        f"Turn these {num_images} reference product image(s) into a short cinematic "
+        f"product campaign video. Ground every part of the narrative — the visual "
+        f"metaphor and the product reveal — in specific, real details drawn from ALL of "
+        f"the reference images provided, not just one of them.",
+        f"CAMPAIGN BRIEF (the narrative and visual metaphor must be built around exactly "
+        f"what this asks for): {campaign_brief}",
+    ]
+    if brand_kit and brand_kit.brand_voice:
+        parts.append(f"Brand voice: {brand_kit.brand_voice}.")
+    if brand_kit and brand_kit.brand_colors:
+        color_parts = [f"{k}: {v}" for k, v in brand_kit.brand_colors.items() if v]
+        if color_parts:
+            parts.append(f"Brand colour palette (reflect in grading where it fits the category): {', '.join(color_parts)}.")
+    if brand_kit and brand_kit.target_audience:
+        parts.append(f"Target audience: {brand_kit.target_audience}.")
+    return "\n\n".join(parts)
+
+
+@router.post("/campaign-video", response_model=CampaignVideoResponse)
+async def campaign_video_endpoint(request: CampaignVideoRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("campaign-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    concept = _build_campaign_video_concept(
+        request.campaign_brief, brand_kit, len(request.product_image_urls),
+    )
+
+    product_images: list[tuple[bytes, str]] = []
+    storyboard_image: tuple[bytes, str] | None = None
+    if not settings.MOCK_MODE:
+        fetched = await asyncio.gather(
+            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
+        )
+        product_images = [f for f in fetched if f is not None]
+        if request.storyboard_image_url:
+            storyboard_image = await _fetch_image_with_mime(request.storyboard_image_url)
+
+    has_storyboard = bool(storyboard_image and request.storyboard_beats)
+    if has_storyboard:
+        prompt = await plan_video_scenes_from_storyboard(
+            _llm, concept, request.storyboard_beats, storyboard_image, product_images,
+            request.duration_seconds, request.aspect_ratio, request.platform,
+        )
+        prompt = add_product_fidelity_guardrail(prompt)
+    elif product_images:
+        prompt = await plan_video_scenes_with_images(
+            _llm, concept, product_images,
+            request.duration_seconds, request.aspect_ratio, request.platform,
+        )
+        prompt = add_product_fidelity_guardrail(prompt)
+    else:
+        prompt = await plan_video_scenes(
+            _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
+        )
+
+    images = list(product_images)
+    if has_storyboard:
+        images.append(storyboard_image)
+    if request.use_logo:
+        logo = await _fetch_logo_image(brand_kit)
+        if logo:
+            images.append(logo)
+            prompt = add_logo_instruction(prompt)
+
+    video = await _generate_video_with_retry(
+        prompt=prompt,
+        images=images or None,
+        aspect_ratio=request.aspect_ratio,
+        duration_seconds=request.duration_seconds,
+    )
+
+    logger.info("campaign-video done | user=%s platform=%s", request.user_id, request.platform)
+    return CampaignVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
+
+
+@router.post("/campaign-video/storyboard", response_model=StoryboardResponse)
+async def campaign_video_storyboard_endpoint(request: StoryboardRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("campaign-video-storyboard brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    concept = _build_campaign_video_concept(
+        request.campaign_brief, brand_kit, len(request.product_image_urls),
+    )
+
+    product_images: list[tuple[bytes, str]] = []
+    if not settings.MOCK_MODE:
+        fetched = await asyncio.gather(
+            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
+        )
+        product_images = [f for f in fetched if f is not None]
+
+    logo_image: tuple[bytes, str] | None = None
+    if request.use_logo:
+        logo_image = await _fetch_logo_image(brand_kit)
+
+    try:
+        storyboard_b64, beats = await asyncio.wait_for(
+            generate_video_storyboard(
+                _llm, concept, product_images,
+                request.duration_seconds, request.aspect_ratio, request.platform,
+                logo_image=logo_image,
+            ),
+            timeout=90,
+        )
+    except Exception as err:
+        logger.warning("campaign-video-storyboard generation failed | user=%s error=%s", request.user_id, err)
+        raise HTTPException(status_code=502, detail=f"Storyboard generation failed: {err}")
+
+    logger.info("campaign-video-storyboard done | user=%s platform=%s", request.user_id, request.platform)
+    return StoryboardResponse(
+        storyboard_image_base64=storyboard_b64, beats=beats, model_used=_agent.default_model,
     )

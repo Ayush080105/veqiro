@@ -14,6 +14,9 @@ import {
   getPublishedPosts,
   createCampaign,
   expandBrief,
+  generateVideo,
+  createCampaignVideo,
+  createCampaignVideoStoryboard,
 } from "./maya.controller.js";
 
 const router = Router();
@@ -32,5 +35,8 @@ router.post("/publish-carousel", publishCarousel);
 router.get("/published-posts", getPublishedPosts);
 router.post("/campaign", createCampaign);
 router.post("/expand-brief", expandBrief);
+router.post("/generate-video", generateVideo);
+router.post("/campaign-video", createCampaignVideo);
+router.post("/campaign-video/storyboard", createCampaignVideoStoryboard);
 
 export default router;

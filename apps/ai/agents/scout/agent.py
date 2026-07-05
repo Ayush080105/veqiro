@@ -92,12 +92,17 @@ class ScoutAgent(BaseAgent):
         prompt += (
             "\n## Research Standards\n"
             "1. **BLUF first** — open every response with a 1-2 sentence bottom line. Evidence follows.\n"
-            "2. **Label every claim**: [FACT] for verified data, [INFERRED] for logical conclusions, [ESTIMATED] for approximations.\n"
-            "3. **Cite inline** — link source URLs directly after any claim that came from the web.\n"
+            "2. **Label every claim in free-text prose**: [FACT] for verified data, [INFERRED] for logical conclusions, [ESTIMATED] for approximations.\n"
+            "3. **Cite inline in free-text prose** — link source URLs directly after any claim that came from the web.\n"
             "4. **Use tables** for any comparison of 2+ companies or data points.\n"
             f"5. **Strategic implications** — end every competitive analysis with a 'So what for {company_name}?' block.\n"
             "6. **Highlight gaps** — competitor weaknesses are the founder's opportunities; call them out explicitly.\n"
-            f"7. **Recency matters** — today is {today}. Flag data older than 6 months. Always prefer the most recent sources.\n\n"
+            f"7. **Recency matters** — today is {today}. Flag data older than 6 months. Always prefer the most recent sources.\n"
+            "8. **Structured JSON output is different** — when a tool call asks you to return a JSON object/array as "
+            "the entire response, field values are clean display text bound directly to UI, NOT prose. In that case: "
+            "do NOT include [FACT]/[INFERRED]/[ESTIMATED] tags, do NOT embed citation markup like brackets, and do NOT "
+            "paste raw URLs inside any field value. Write plain, clean sentences or short phrases only. Citations for "
+            "structured output are collected separately by the caller — never inline them.\n\n"
             "## Output Format\n"
             "For competitive analyses:\n"
             "  - Bottom line (1-2 sentences)\n"
@@ -150,8 +155,9 @@ class ScoutAgent(BaseAgent):
             "'Lex handles legal matters.'\n"
             "- Email, calendar, scheduling → "
             "'Vega manages inbox and scheduling. That's Vega's domain.'\n"
-            "RULE: Only report what is verifiable. Label inferences [INFERRED] and estimates [ESTIMATED]. "
-            "Never fabricate market size numbers or funding figures — cite sources or label as [ESTIMATED].\n"
+            "RULE: Only report what is verifiable. In free-text prose, label inferences [INFERRED] and estimates "
+            "[ESTIMATED]. In structured JSON output, keep field values clean — no tags or citations (see Research "
+            "Standards #8). Never fabricate market size numbers or funding figures.\n"
         )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
@@ -340,7 +346,9 @@ class ScoutAgent(BaseAgent):
                         "emerging_trends (array of strings), "
                         "target_customers (2-3 sentences), "
                         "recommended_actions (array of strings). "
-                        "Label facts [FACT], inferences [INFERRED], estimates [ESTIMATED]."
+                        "Every field value must be clean plain text — NO [FACT]/[INFERRED]/[ESTIMATED] tags, "
+                        "NO inline citation markup, NO raw URLs pasted into field values. This is structured "
+                        "data bound directly to UI, not prose."
                     )}],
                 )
                 parsed = safe_json_loads(raw)
@@ -354,6 +362,7 @@ class ScoutAgent(BaseAgent):
             try:
                 company_name = arguments.get("company_name", "")
                 url = arguments.get("company_url") or f"https://{company_name.lower().replace(' ', '')}.com"
+                homepage_is_real = bool(arguments.get("company_url"))
 
                 # 6 parallel searches + homepage scrape
                 (
@@ -396,13 +405,38 @@ class ScoutAgent(BaseAgent):
                         "Return a single JSON object (no markdown fences) with EXACTLY these fields:\n"
                         "name (string), description (string), founded (string), team_size (string), "
                         "funding (string), key_features (array of strings), "
-                        "pricing (object with tier names as keys and price strings as values), "
+                        "pricing (object with tier names as keys and price strings as values — ONLY include this "
+                        "if actual, real pricing was found in the homepage content or search results above. Many "
+                        "businesses (retail chains, pharmacies, physical services, B2B without public pricing, "
+                        "etc.) do NOT have public tiered pricing — do NOT invent typical SaaS-style tiers "
+                        "'free'/'pro'/'enterprise' for them just to fill the field. If no real pricing was found, "
+                        "return an empty object {}), "
                         "target_market (string), strengths (array of strings), "
                         "weaknesses (array of strings), recent_news (array of strings). "
-                        "Label facts [FACT], inferences [INFERRED], estimates [ESTIMATED]."
+                        "Every field value must be clean plain text — NO [FACT]/[INFERRED]/[ESTIMATED] tags, "
+                        "NO inline citation markup, NO raw URLs pasted into field values (e.g. founded, team_size, "
+                        "funding must be short clean strings like '2019' or '$12M Series A, led by X'). "
+                        "Source URLs are tracked separately — do not repeat them here."
                     )}],
                 )
                 parsed = safe_json_loads(raw)
+                parsed.pop("sources", None)  # defense-in-depth: never trust LLM-provided sources
+
+                all_search_results = (
+                    results_features + results_funding + results_reviews
+                    + results_news + results_jobs + results_vs
+                )
+                seen_urls: dict[str, str] = {}
+                if homepage_is_real:
+                    seen_urls[url] = f"{company_name} — Official Website"
+                for r in all_search_results:
+                    link = r.get("link")
+                    if link and link not in seen_urls:
+                        seen_urls[link] = r.get("title") or link
+                parsed["sources"] = [
+                    {"title": title, "url": link} for link, title in list(seen_urls.items())[:8]
+                ]
+
                 return json.dumps({
                     "company": parsed,
                     "scraped_at": today,
@@ -439,7 +473,9 @@ class ScoutAgent(BaseAgent):
                         '"relevance_score": 0.9, "search_volume_estimate": "...", '
                         '"why_trending": "...", "content_angle": "...", "content_hook": "...", '
                         '"opportunity": "...", "time_horizon": "...", '
-                        '"next_steps": ["action 1", "action 2"]}]}'
+                        '"next_steps": ["action 1", "action 2"]}]}. '
+                        "Keep every field value clean plain text — no [FACT]/[INFERRED]/[ESTIMATED] tags and no "
+                        "inline URLs."
                     )}],
                 )
                 parsed = safe_json_loads(raw)
@@ -483,6 +519,8 @@ class ScoutAgent(BaseAgent):
                         f"Return ONLY a JSON object (no markdown fences): "
                         '{"competitors": [{"name": "...", "url": "https://...", '
                         '"why_competitive": "1 sentence", "pricing_model": "..."}]}. '
+                        "Keep why_competitive and pricing_model as clean plain text — no [FACT]/[INFERRED]/[ESTIMATED] "
+                        "tags and no inline URLs; the url field above is the only citation needed per competitor. "
                         "Prioritise real competitors a customer in the same market would actually consider. "
                         "Do NOT default to US SaaS if a local or regional competitor exists. "
                         "Only real, verifiable companies."

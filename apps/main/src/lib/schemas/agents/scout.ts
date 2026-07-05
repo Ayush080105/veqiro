@@ -12,11 +12,12 @@ export type ScoutResearchTopicValues = z.infer<typeof scoutResearchTopicSchema>
 
 export const scoutResearchCompanySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  company_url: z
-    .string()
-    .url("Use a valid URL")
-    .optional()
-    .or(z.literal("")),
+  // Empty/missing URLs are expected — not every competitor has a known site.
+  // Normalize "" to undefined before validating so it never trips .url().
+  company_url: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z.string().url("Use a valid URL").optional()
+  ),
 })
 export type ScoutResearchCompanyValues = z.infer<typeof scoutResearchCompanySchema>
 

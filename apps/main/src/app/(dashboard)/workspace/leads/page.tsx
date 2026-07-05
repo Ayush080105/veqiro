@@ -4,12 +4,8 @@ import Link from "next/link"
 import {
   Building2,
   User,
-  Globe,
-  ExternalLink,
   TrendingUp,
   Mail,
-  Trash2,
-  Crosshair,
 } from "lucide-react"
 
 import { type Lead, type LeadStatus } from "@/lib/types"
@@ -19,7 +15,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/page-header"
-import { useCompetitorWatches, useRemoveCompetitorWatch } from "@/lib/api/scout"
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 // TODO: Connect to GET /api/v1/leads?organizationId=xxx (via Scout)
@@ -205,94 +200,6 @@ function PipelineTab() {
   )
 }
 
-// ─── Competitors Tab ──────────────────────────────────────────────────────────
-
-function CompetitorsTab() {
-  const { data: competitors = [], isLoading } = useCompetitorWatches()
-  const remove = useRemoveCompetitorWatch()
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="pb-2">
-              <div className="h-4 w-32 rounded bg-muted" />
-              <div className="h-3 w-24 rounded bg-muted" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-3 w-full rounded bg-muted" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
-
-  if (competitors.length === 0) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-12">
-          <Crosshair className="size-8 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">No competitors saved yet</p>
-          <p className="text-xs text-muted-foreground text-center max-w-sm">
-            Ask Scout to discover competitors in your market, then save them to your watchlist.
-          </p>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/assistants/scout">Discover competitors with Scout</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {competitors.map((c) => (
-          <Card key={c.id}>
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-sm font-semibold">{c.name}</CardTitle>
-                <div className="flex items-center gap-1">
-                  <a
-                    href={c.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title={c.url}
-                  >
-                    <ExternalLink className="size-3.5" />
-                  </a>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="text-muted-foreground hover:text-destructive"
-                    title="Remove from watchlist"
-                    disabled={remove.isPending}
-                    onClick={() => remove.mutate(c.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
-              </div>
-              <CardDescription className="flex items-center gap-1 truncate">
-                <Globe className="size-3 shrink-0" />
-                <span className="truncate">{c.url.replace(/^https?:\/\//, "")}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-[10px] text-muted-foreground">
-                Added {formatDate(c.createdAt)}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ─── Trends Tab ───────────────────────────────────────────────────────────────
 
 function TrendsTab() {
@@ -345,19 +252,12 @@ export default function LeadsPage() {
       <Tabs defaultValue="pipeline">
         <TabsList>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-          <TabsTrigger value="competitors">Competitors</TabsTrigger>
           <TabsTrigger value="trends">Market Trends</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pipeline">
           <div className="pt-4">
             <PipelineTab />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="competitors">
-          <div className="pt-4">
-            <CompetitorsTab />
           </div>
         </TabsContent>
 

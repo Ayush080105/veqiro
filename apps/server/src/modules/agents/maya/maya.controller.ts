@@ -13,6 +13,9 @@ import {
   publishCarouselSchema,
   campaignSchema,
   expandBriefSchema,
+  generateVideoSchema,
+  campaignVideoSchema,
+  campaignVideoStoryboardSchema,
 } from "./maya.schema.js";
 import * as mayaService from "./maya.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
@@ -118,6 +121,27 @@ export const createCampaign = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = campaignSchema.parse(req.body);
   const result = await mayaService.createCampaign(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const generateVideo = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = generateVideoSchema.parse(req.body);
+  const result = await mayaService.generateVideo(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const createCampaignVideo = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = campaignVideoSchema.parse(req.body);
+  const result = await mayaService.createCampaignVideo(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const createCampaignVideoStoryboard = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = campaignVideoStoryboardSchema.parse(req.body);
+  const result = await mayaService.createCampaignVideoStoryboard(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

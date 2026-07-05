@@ -5,10 +5,10 @@ import {
   ActionDialog,
   type ActionResultContext,
   type ActionStartContext,
+  type ActionStage,
 } from "@/components/chat/ActionDialog"
 import { findAction } from "@/lib/agents/actions"
-import { runAgentAction } from "@/lib/api/assistants"
-import { uploadToR2 } from "@/lib/api/uploads"
+import { runAgentAction, generateCampaignVideoStoryboard } from "@/lib/api/assistants"
 import type { AgentActionId, ContentPlatform } from "@/lib/types/agents"
 
 // Sage forms
@@ -30,6 +30,9 @@ import {
   MayaImageRegenForm,
   MayaContentRegenForm,
   MayaCampaignForm,
+  MayaGenerateVideoForm,
+  MayaCampaignVideoForm,
+  MayaCampaignVideoStoryboardForm,
 } from "@/components/agents/maya/forms"
 // Scout forms
 import {
@@ -83,14 +86,22 @@ import {
 type FormComponent = React.ComponentType<{
   value: any
   onChange: (patch: any) => void
+  submitting?: boolean
+  stage?: ActionStage | null
 }>
 
 interface ActionSpec {
   defaultValue: unknown
   Form: FormComponent
   validate?: (v: any) => string | null
-  /** Override the default JSON `runAgentAction` submit, e.g. for file uploads. */
-  customSubmit?: (value: any, organizationId: string, conversationId?: string) => Promise<unknown>
+  /** Override the default JSON `runAgentAction` submit, e.g. for file uploads. `onStage` lets
+   * multi-step submits report interim progress (e.g. a storyboard before the final video). */
+  customSubmit?: (
+    value: any,
+    organizationId: string,
+    conversationId?: string,
+    onStage?: (stage: ActionStage | null) => void
+  ) => Promise<unknown>
   /** Dynamically resolve action ID from current form value (e.g. carousel routing). */
   resolveActionId?: (v: any) => AgentActionId
   /** Override the footer submit button label. */
@@ -175,7 +186,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
 
   "maya:campaign": {
     defaultValue: {
-      product_image: null,
+      product_image_urls: [],
       campaign_brief: "",
       photo_count: 4,
       use_logo: true,
@@ -185,25 +196,94 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     },
     Form: MayaCampaignForm,
     validate: (v) =>
-      !v.product_image
-        ? "Upload a product image."
+      !v.product_image_urls?.length
+        ? "Upload at least one product image."
+        : !v.campaign_brief?.trim()
+          ? "Campaign brief is required."
+          : null,
+  },
+  "maya:generate-video": {
+    defaultValue: {
+      prompt: "",
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      duration_seconds: 8,
+      use_logo: false,
+    },
+    Form: MayaGenerateVideoForm,
+    validate: (v) => (!v.prompt?.trim() ? "Video prompt is required." : null),
+  },
+  "maya:campaign-video": {
+    defaultValue: {
+      product_image_urls: [],
+      campaign_brief: "",
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      duration_seconds: 8,
+      use_logo: false,
+    },
+    Form: MayaCampaignVideoForm,
+    validate: (v) =>
+      !v.product_image_urls?.length
+        ? "Upload at least one product image."
         : !v.campaign_brief?.trim()
           ? "Campaign brief is required."
           : null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    customSubmit: async (v: any, organizationId: string) => {
-      const uploaded = await uploadToR2("inspiration", v.product_image as File)
-      if (!uploaded.ok) throw new Error(uploaded.message ?? "Image upload failed")
-      return runAgentAction("maya:campaign", organizationId, {
-        product_image_url: uploaded.publicUrl,
-        campaign_brief: v.campaign_brief,
-        photo_count: v.photo_count,
-        use_logo: v.use_logo,
-        use_mascot: v.use_mascot,
-        use_brand_colors: v.use_brand_colors ?? true,
-        platform: v.platform,
-      })
+    customSubmit: async (v: any, organizationId: string, conversationId?: string, onStage?: (stage: ActionStage | null) => void) => {
+      // If a storyboard was already generated for this exact input (e.g. "Turn into video"
+      // from an existing Storyboard result card), reuse it instead of regenerating.
+      let storyboardBeats: string[] | undefined = v.storyboard_beats
+      let storyboardImageUrl: string | undefined = v.storyboard_image_url
+
+      if (!storyboardImageUrl || !storyboardBeats?.length) {
+        onStage?.({ label: "Generating storyboard for you…" })
+        try {
+          const storyboard = await generateCampaignVideoStoryboard(
+            organizationId,
+            {
+              product_image_urls: v.product_image_urls,
+              campaign_brief: v.campaign_brief,
+              platform: v.platform,
+              aspect_ratio: v.aspect_ratio,
+              duration_seconds: v.duration_seconds,
+              use_logo: v.use_logo,
+            },
+            conversationId
+          )
+          storyboardBeats = storyboard.beats
+          storyboardImageUrl = storyboard.storyboard_image_url
+        } catch {
+          // Storyboard generation is a nice-to-have preview — fall back silently to a
+          // plain video generation if it fails, rather than blocking the user.
+        }
+      }
+      onStage?.({ label: "Generating video…", data: { storyboardImageUrl } })
+      return runAgentAction(
+        "maya:campaign-video",
+        organizationId,
+        { ...v, storyboard_beats: storyboardBeats, storyboard_image_url: storyboardImageUrl },
+        conversationId
+      )
     },
+  },
+  "maya:campaign-video-storyboard": {
+    defaultValue: {
+      product_image_urls: [],
+      campaign_brief: "",
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      duration_seconds: 10,
+      use_logo: false,
+    },
+    Form: MayaCampaignVideoStoryboardForm,
+    validate: (v) =>
+      !v.product_image_urls?.length
+        ? "Upload at least one product image."
+        : !v.campaign_brief?.trim()
+          ? "Campaign brief is required."
+          : null,
+    submitLabel: "Generate storyboard",
   },
   "maya:generate-ideas": {
     defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },
@@ -215,7 +295,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       platforms: ["linkedin"],
       word_count_target: 200,
       include_image: true,
-      use_logo: false,
+      use_logo: true,
       use_mascot: false,
       use_brand_colors: true,
       make_carousel: false,
@@ -247,7 +327,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       topic: "",
       platforms: ["linkedin"],
       include_image: true,
-      use_logo: false,
+      use_logo: true,
       use_mascot: false,
       make_carousel: true,
       carousel_count: 3,
@@ -626,8 +706,8 @@ export function RunActionDialog({
       submitLabel={submitLabel}
       resolveActionId={resolveActionId}
       onSubmittingChange={onSubmittingChange}
-      renderForm={({ value, onChange }) => (
-        <Form value={value} onChange={onChange} />
+      renderForm={({ value, onChange, submitting, stage }) => (
+        <Form value={value} onChange={onChange} submitting={submitting} stage={stage} />
       )}
       onStart={onStart}
       onSettled={onSettled}

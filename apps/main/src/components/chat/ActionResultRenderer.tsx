@@ -24,6 +24,8 @@ import {
   ImageRegenCard,
   ContentRegenCard,
   CampaignResultCard,
+  VideoResultCard,
+  StoryboardResultCard,
 } from "@/components/agents/maya/cards"
 // Scout
 import {
@@ -72,6 +74,7 @@ import {
 export interface ActionResultRendererProps {
   actionId: AgentActionId
   result: unknown
+  input?: unknown
   agentColor?: string
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
   onRevertImage?: () => void
@@ -80,9 +83,10 @@ export interface ActionResultRendererProps {
 /** Dispatches an action result to its matching card. Results are untyped at
  * the boundary (they come back from JSON); each card validates shape at runtime
  * by reading the fields it expects. */
-export function ActionResultRenderer({ actionId, result, agentColor, onFollowUpAction, onRevertImage }: ActionResultRendererProps) {
+export function ActionResultRenderer({ actionId, result, input, agentColor, onFollowUpAction, onRevertImage }: ActionResultRendererProps) {
   // Use any-cast into typed cards - each card declares the precise type.
   const r = result as never
+  const platform = (input as { platform?: string } | undefined)?.platform
 
   const card = (() => { switch (actionId) {
     case "sage:keyword-research":
@@ -125,6 +129,12 @@ export function ActionResultRenderer({ actionId, result, agentColor, onFollowUpA
       return <ContentRegenCard result={r} />
     case "maya:campaign":
       return <CampaignResultCard result={r} onFollowUpAction={onFollowUpAction} />
+    case "maya:generate-video":
+      return <VideoResultCard result={r} title="Generated video" platform={platform} />
+    case "maya:campaign-video":
+      return <VideoResultCard result={r} title="Product video" platform={platform} />
+    case "maya:campaign-video-storyboard":
+      return <StoryboardResultCard result={r} input={input as never} onFollowUpAction={onFollowUpAction} />
 
     case "scout:research-topic":
       return <ResearchReportCard result={r} onFollowUpAction={onFollowUpAction} />
@@ -133,7 +143,7 @@ export function ActionResultRenderer({ actionId, result, agentColor, onFollowUpA
     case "scout:trending-topics":
       return <TrendsBoardCard result={r} onFollowUpAction={onFollowUpAction} />
     case "scout:discover-competitors":
-      return <DiscoverCompetitorsCard result={r} />
+      return <DiscoverCompetitorsCard result={r} onFollowUpAction={onFollowUpAction} />
 
     case "rex:analyze-metrics":
       return <MetricsAnalysisCard result={r} onFollowUpAction={onFollowUpAction} />

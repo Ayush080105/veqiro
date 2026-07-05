@@ -3626,6 +3626,7 @@ export const PublishedPostScalarFieldEnum = {
   caption: 'caption',
   hashtags: 'hashtags',
   imageUrl: 'imageUrl',
+  videoUrl: 'videoUrl',
   status: 'status',
   error: 'error',
   publishedAt: 'publishedAt',

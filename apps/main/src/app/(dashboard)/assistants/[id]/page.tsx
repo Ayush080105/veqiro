@@ -26,7 +26,6 @@ import { HelpSheet } from "@/components/chat/HelpSheet"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
-import { ScoutWatchlistTab } from "@/components/agents/scout/watchlist-tab"
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
 import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
@@ -430,7 +429,6 @@ export default function AssistantChatPage() {
   const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
   const [actionSubmitting, setActionSubmitting] = useState(false)
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
-  const [scoutTab, setScoutTab] = useState<"chat" | "watchlist">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
   const [mayaTab, setMayaTab] = useState<"chat" | "published">("chat")
@@ -1034,7 +1032,6 @@ export default function AssistantChatPage() {
   }
 
   const isLex = agent.id === "lex"
-  const isScout = agent.id === "scout"
   const isSage = agent.id === "sage"
   const isRex = agent.id === "rex"
   const isMaya = agent.id === "maya"
@@ -1096,41 +1093,6 @@ export default function AssistantChatPage() {
         </div>
       )}
 
-      {isScout && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            borderBottom: "1px solid #E5E5E5",
-            background: "#FFF9ED",
-          }}
-        >
-          <button
-            suppressHydrationWarning
-            type="button"
-            onClick={() => setScoutTab("chat")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              scoutTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
-            }`}
-          >
-            <MessageSquare className="size-3" /> Chat
-          </button>
-          <button
-            suppressHydrationWarning
-            type="button"
-            onClick={() => setScoutTab("watchlist")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              scoutTab === "watchlist"
-                ? "bg-[#111] text-white"
-                : "bg-transparent text-[#111]"
-            }`}
-          >
-            <FolderOpen className="size-3" /> Watchlist
-          </button>
-        </div>
-      )}
 
       {isSage && (
         <div
@@ -1262,19 +1224,6 @@ export default function AssistantChatPage() {
             onUpload={openUploadAction}
             onAnalyze={openAnalyzeForSource}
             onQuery={openQueryForSource}
-          />
-        </div>
-      ) : isScout && scoutTab === "watchlist" ? (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <ScoutWatchlistTab
-            onDiscover={() => {
-              setScoutTab("chat")
-              openAction("scout:discover-competitors", discoverCompetitorsPrefill)
-            }}
-            onResearch={(name, url) => {
-              setScoutTab("chat")
-              openAction("scout:research-company", { company_name: name, company_url: url })
-            }}
           />
         </div>
       ) : isSage && sageTab === "favourites" ? (
@@ -1442,7 +1391,6 @@ export default function AssistantChatPage() {
         )}
 
         {!(isLex && lexTab === "documents") &&
-          !(isScout && scoutTab === "watchlist") &&
           !(isSage && sageTab === "favourites") &&
           !(isRex && rexTab === "data") &&
           !(isMaya && mayaTab === "published") && (
