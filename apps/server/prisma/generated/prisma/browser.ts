@@ -208,6 +208,11 @@ export type Expense = Prisma.ExpenseModel
  */
 export type ExpenseSplit = Prisma.ExpenseSplitModel
 /**
+ * Model MayaUsage
+ * Per-billing-period image and video generation usage for the Maya agent.
+ */
+export type MayaUsage = Prisma.MayaUsageModel
+/**
  * Model Settlement
  * A recorded debt payment between two group members.
  */

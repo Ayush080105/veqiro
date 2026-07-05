@@ -158,6 +158,14 @@ export async function startTrialForOrg(organizationId: string, inputAgents?: unk
         unlockedAgents: selectedAgents,
       },
     });
+    // Create the trial usage period for Maya; starts now, ends when trial expires.
+    await tx.mayaUsage.create({
+      data: {
+        organizationId,
+        periodStart: new Date(),
+        periodEnd: trialEndsAt,
+      },
+    });
     return sub;
   });
 }

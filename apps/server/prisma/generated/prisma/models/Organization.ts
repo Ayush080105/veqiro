@@ -224,6 +224,7 @@ export type OrganizationWhereInput = {
   agentMemory?: Prisma.AgentMemoryListRelationFilter
   orgMemory?: Prisma.XOR<Prisma.OrgMemoryNullableScalarRelationFilter, Prisma.OrgMemoryWhereInput> | null
   tasks?: Prisma.TaskListRelationFilter
+  mayaUsages?: Prisma.MayaUsageListRelationFilter
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -243,6 +244,7 @@ export type OrganizationOrderByWithRelationInput = {
   agentMemory?: Prisma.AgentMemoryOrderByRelationAggregateInput
   orgMemory?: Prisma.OrgMemoryOrderByWithRelationInput
   tasks?: Prisma.TaskOrderByRelationAggregateInput
+  mayaUsages?: Prisma.MayaUsageOrderByRelationAggregateInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -265,6 +267,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   agentMemory?: Prisma.AgentMemoryListRelationFilter
   orgMemory?: Prisma.XOR<Prisma.OrgMemoryNullableScalarRelationFilter, Prisma.OrgMemoryWhereInput> | null
   tasks?: Prisma.TaskListRelationFilter
+  mayaUsages?: Prisma.MayaUsageListRelationFilter
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -316,6 +319,7 @@ export type OrganizationCreateInput = {
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -335,6 +339,7 @@ export type OrganizationUncheckedCreateInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -354,6 +359,7 @@ export type OrganizationUpdateInput = {
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -373,6 +379,7 @@ export type OrganizationUncheckedUpdateInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -561,6 +568,20 @@ export type OrganizationUpdateOneRequiredWithoutTasksNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutTasksInput, Prisma.OrganizationUpdateWithoutTasksInput>, Prisma.OrganizationUncheckedUpdateWithoutTasksInput>
 }
 
+export type OrganizationCreateNestedOneWithoutMayaUsagesInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutMayaUsagesInput, Prisma.OrganizationUncheckedCreateWithoutMayaUsagesInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutMayaUsagesInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutMayaUsagesNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutMayaUsagesInput, Prisma.OrganizationUncheckedCreateWithoutMayaUsagesInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutMayaUsagesInput
+  upsert?: Prisma.OrganizationUpsertWithoutMayaUsagesInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutMayaUsagesInput, Prisma.OrganizationUpdateWithoutMayaUsagesInput>, Prisma.OrganizationUncheckedUpdateWithoutMayaUsagesInput>
+}
+
 export type OrganizationCreateWithoutSubscriptionInput = {
   id: string
   name: string
@@ -577,6 +598,7 @@ export type OrganizationCreateWithoutSubscriptionInput = {
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
@@ -595,6 +617,7 @@ export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutSubscriptionInput = {
@@ -629,6 +652,7 @@ export type OrganizationUpdateWithoutSubscriptionInput = {
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
@@ -647,6 +671,7 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutMembersInput = {
@@ -665,6 +690,7 @@ export type OrganizationCreateWithoutMembersInput = {
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -683,6 +709,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -717,6 +744,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -735,6 +763,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -753,6 +782,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -771,6 +801,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -805,6 +836,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -823,6 +855,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutAgentMemoryInput = {
@@ -841,6 +874,7 @@ export type OrganizationCreateWithoutAgentMemoryInput = {
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
@@ -859,6 +893,7 @@ export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutAgentMemoryInput = {
@@ -893,6 +928,7 @@ export type OrganizationUpdateWithoutAgentMemoryInput = {
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
@@ -911,6 +947,7 @@ export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutOrgMemoryInput = {
@@ -929,6 +966,7 @@ export type OrganizationCreateWithoutOrgMemoryInput = {
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
@@ -947,6 +985,7 @@ export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutOrgMemoryInput = {
@@ -981,6 +1020,7 @@ export type OrganizationUpdateWithoutOrgMemoryInput = {
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
@@ -999,6 +1039,7 @@ export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutTasksInput = {
@@ -1017,6 +1058,7 @@ export type OrganizationCreateWithoutTasksInput = {
   subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutTasksInput = {
@@ -1035,6 +1077,7 @@ export type OrganizationUncheckedCreateWithoutTasksInput = {
   subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
   agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutTasksInput = {
@@ -1069,6 +1112,7 @@ export type OrganizationUpdateWithoutTasksInput = {
   subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutTasksInput = {
@@ -1087,6 +1131,99 @@ export type OrganizationUncheckedUpdateWithoutTasksInput = {
   subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
   agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutMayaUsagesInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutMayaUsagesInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutMayaUsagesInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutMayaUsagesInput, Prisma.OrganizationUncheckedCreateWithoutMayaUsagesInput>
+}
+
+export type OrganizationUpsertWithoutMayaUsagesInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutMayaUsagesInput, Prisma.OrganizationUncheckedUpdateWithoutMayaUsagesInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutMayaUsagesInput, Prisma.OrganizationUncheckedCreateWithoutMayaUsagesInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutMayaUsagesInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutMayaUsagesInput, Prisma.OrganizationUncheckedUpdateWithoutMayaUsagesInput>
+}
+
+export type OrganizationUpdateWithoutMayaUsagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutMayaUsagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 
@@ -1099,6 +1236,7 @@ export type OrganizationCountOutputType = {
   invitations: number
   agentMemory: number
   tasks: number
+  mayaUsages: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1106,6 +1244,7 @@ export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   invitations?: boolean | OrganizationCountOutputTypeCountInvitationsArgs
   agentMemory?: boolean | OrganizationCountOutputTypeCountAgentMemoryArgs
   tasks?: boolean | OrganizationCountOutputTypeCountTasksArgs
+  mayaUsages?: boolean | OrganizationCountOutputTypeCountMayaUsagesArgs
 }
 
 /**
@@ -1146,6 +1285,13 @@ export type OrganizationCountOutputTypeCountTasksArgs<ExtArgs extends runtime.Ty
   where?: Prisma.TaskWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountMayaUsagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MayaUsageWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1164,6 +1310,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   agentMemory?: boolean | Prisma.Organization$agentMemoryArgs<ExtArgs>
   orgMemory?: boolean | Prisma.Organization$orgMemoryArgs<ExtArgs>
   tasks?: boolean | Prisma.Organization$tasksArgs<ExtArgs>
+  mayaUsages?: boolean | Prisma.Organization$mayaUsagesArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -1214,6 +1361,7 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   agentMemory?: boolean | Prisma.Organization$agentMemoryArgs<ExtArgs>
   orgMemory?: boolean | Prisma.Organization$orgMemoryArgs<ExtArgs>
   tasks?: boolean | Prisma.Organization$tasksArgs<ExtArgs>
+  mayaUsages?: boolean | Prisma.Organization$mayaUsagesArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1246,6 +1394,10 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * Scheduled tasks owned by this organization.
      */
     tasks: Prisma.$TaskPayload<ExtArgs>[]
+    /**
+     * Maya per-billing-period usage records.
+     */
+    mayaUsages: Prisma.$MayaUsagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
@@ -1688,6 +1840,7 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   agentMemory<T extends Prisma.Organization$agentMemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$agentMemoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   orgMemory<T extends Prisma.Organization$orgMemoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$orgMemoryArgs<ExtArgs>>): Prisma.Prisma__OrgMemoryClient<runtime.Types.Result.GetResult<Prisma.$OrgMemoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   tasks<T extends Prisma.Organization$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  mayaUsages<T extends Prisma.Organization$mayaUsagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$mayaUsagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MayaUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2251,6 +2404,30 @@ export type Organization$tasksArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.TaskScalarFieldEnum | Prisma.TaskScalarFieldEnum[]
+}
+
+/**
+ * Organization.mayaUsages
+ */
+export type Organization$mayaUsagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MayaUsage
+   */
+  select?: Prisma.MayaUsageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MayaUsage
+   */
+  omit?: Prisma.MayaUsageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MayaUsageInclude<ExtArgs> | null
+  where?: Prisma.MayaUsageWhereInput
+  orderBy?: Prisma.MayaUsageOrderByWithRelationInput | Prisma.MayaUsageOrderByWithRelationInput[]
+  cursor?: Prisma.MayaUsageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MayaUsageScalarFieldEnum | Prisma.MayaUsageScalarFieldEnum[]
 }
 
 /**

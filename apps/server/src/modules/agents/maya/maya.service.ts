@@ -42,6 +42,12 @@ import type {
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
 import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
+import {
+  checkAndIncrementImages,
+  checkAndIncrementVideoSeconds,
+  rollbackImages,
+  rollbackVideoSeconds,
+} from "./maya.usage.service.js";
 
 const platformToEnum: Record<string, SocialPlatform> = {
   twitter: SocialPlatform.TWITTER,
@@ -239,6 +245,10 @@ export const generateIdeas = async (
   organizationId: string,
   input: GenerateIdeasInput
 ): Promise<IdeationResponse> => {
+  const imageCount = input.includeImage ? 1 : 0;
+  await checkAndIncrementImages(organizationId, imageCount);
+
+  try {
   const platformEnum = platformToEnum[input.platform];
   const [pastIdeas, history] = await Promise.all([
     mayaRepository.getRecentIdeas(organizationId, platformEnum, 100),
@@ -297,6 +307,10 @@ export const generateIdeas = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackImages(organizationId, imageCount);
+    throw err;
+  }
 };
 
 export const draftContent = async (
@@ -304,6 +318,10 @@ export const draftContent = async (
   organizationId: string,
   input: DraftContentInput
 ): Promise<DraftResponse> => {
+  const imageCount = input.includeImage ? 1 : 0;
+  await checkAndIncrementImages(organizationId, imageCount);
+
+  try {
   const [history, brandImagesBase] = await Promise.all([
     mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT),
     getBrandImagesForGeneration(organizationId, input.brandImageIds ?? []),
@@ -360,6 +378,10 @@ export const draftContent = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackImages(organizationId, imageCount);
+    throw err;
+  }
 };
 
 export const generateVariants = async (
@@ -463,6 +485,9 @@ export const regenerateImage = async (
   organizationId: string,
   input: RegenerateImageInput
 ): Promise<ImageRegenResponse> => {
+  await checkAndIncrementImages(organizationId, 1);
+
+  try {
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -497,6 +522,10 @@ export const regenerateImage = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackImages(organizationId, 1);
+    throw err;
+  }
 };
 
 export const regenerateContent = async (
@@ -679,6 +708,10 @@ export const draftCarousel = async (
   organizationId: string,
   input: DraftCarouselInput
 ): Promise<CarouselDraftResponse> => {
+  const imageCount = input.includeImages ? input.carouselCount : 0;
+  await checkAndIncrementImages(organizationId, imageCount);
+
+  try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
@@ -728,6 +761,10 @@ export const draftCarousel = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackImages(organizationId, imageCount);
+    throw err;
+  }
 };
 
 export const listPublishedPosts = async (organizationId: string) => {
@@ -848,6 +885,9 @@ export const createCampaign = async (
   organizationId: string,
   input: CampaignInput
 ): Promise<CampaignResponse> => {
+  await checkAndIncrementImages(organizationId, input.photoCount);
+
+  try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
@@ -924,6 +964,10 @@ export const createCampaign = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackImages(organizationId, input.photoCount);
+    throw err;
+  }
 };
 
 const draftVideoCaption = async (
@@ -960,6 +1004,9 @@ export const generateVideo = async (
   organizationId: string,
   input: GenerateVideoInput
 ): Promise<GenerateVideoResponse> => {
+  await checkAndIncrementVideoSeconds(organizationId, input.durationSeconds);
+
+  try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
@@ -1005,6 +1052,10 @@ export const generateVideo = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackVideoSeconds(organizationId, input.durationSeconds);
+    throw err;
+  }
 };
 
 export const createCampaignVideo = async (
@@ -1012,6 +1063,9 @@ export const createCampaignVideo = async (
   organizationId: string,
   input: CampaignVideoInput
 ): Promise<CampaignVideoResponse> => {
+  await checkAndIncrementVideoSeconds(organizationId, input.durationSeconds);
+
+  try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
@@ -1058,4 +1112,8 @@ export const createCampaignVideo = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackVideoSeconds(organizationId, input.durationSeconds);
+    throw err;
+  }
 };

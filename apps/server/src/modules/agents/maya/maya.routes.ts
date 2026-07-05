@@ -16,10 +16,12 @@ import {
   expandBrief,
   generateVideo,
   createCampaignVideo,
+  getMayaUsage,
 } from "./maya.controller.js";
 
 const router = Router();
 
+router.get("/usage", getMayaUsage);
 router.post("/chat", msgMaya);
 router.get("/chat", getMayaMessages);
 router.post("/generate-ideas", generateIdeas);
