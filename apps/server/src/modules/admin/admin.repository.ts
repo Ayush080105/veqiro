@@ -2,6 +2,7 @@ import { prisma } from "../../config/prisma.js";
 import { buildSignupBuckets, buildHealthBuckets, buildTokenBuckets } from "./admin.charts.js";
 import { estimateCost, PLAN_MONTHLY_REVENUE } from "./admin.costs.js";
 import { computeOrgHealth } from "./admin.health.js";
+import { startOrExtendTrial } from "../billing/billing.service.js";
 import {
   FeedbackStatus,
   FeedbackCategory,
@@ -540,13 +541,11 @@ export async function getOrganizationById(id: string) {
 }
 
 export async function extendTrial(id: string, days = 7) {
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + days);
-  return prisma.organization.update({
-    where: { id },
-    data: { subscriptionStatus: "TRIALING", entitlementExpiresAt: expiresAt },
-    select: { id: true, subscriptionStatus: true, entitlementExpiresAt: true },
-  });
+  // Delegates to the shared trial helper so this always keeps the real
+  // Subscription row (source of truth) in sync with the Organization cache —
+  // creating a Subscription for legacy orgs that never had one, instead of
+  // only patching the denormalized Organization fields.
+  return startOrExtendTrial(id, days);
 }
 
 export async function setSubscriptionStatus(orgId: string, status: string) {

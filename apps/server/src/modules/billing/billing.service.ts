@@ -15,6 +15,8 @@ import {
   normalizeAgents,
   normalizePlan,
 } from "./billing.catalog.js";
+import { getActivePeriod } from "../agents/maya/maya.usage.service.js";
+import type { Agent } from "../../../prisma/generated/prisma/client.js";
 
 class ForbiddenError extends CustomApiError {
   constructor(message: string) {
@@ -119,25 +121,29 @@ export async function ensureBillingCustomerForOrg(organizationId: string) {
 }
 
 /**
- * Creates the org-level Dodo customer + Subscription row + flips Organization
- * entitlement columns. One-shot: errors if a Subscription already exists.
+ * Shared "no Subscription yet -> create one in TRIALING state" core. Creates
+ * the Dodo customer, the Subscription row, flips the Organization cache
+ * fields, and opens the initial MayaUsage period, all in one transaction
+ * (the Dodo customer create is an external API call so it happens first).
+ *
+ * Used by both `startTrialForOrg` (owner-initiated, agent selection comes
+ * from the request) and `startOrExtendTrial` (admin/migration-initiated, no
+ * request context) so there is exactly one implementation of this branch.
  */
-export async function startTrialForOrg(organizationId: string, inputAgents?: unknown) {
-  const existing = await prisma.subscription.findUnique({ where: { organizationId } });
-  if (existing) throw new ConflictError("trial-already-started");
-
+async function createTrialSubscription(
+  organizationId: string,
+  days: number,
+  selectedAgents: Agent[],
+  entitlementMode: "CREW" | "CUSTOM",
+) {
   const owner = await findOrgOwner(organizationId);
-  const selectedAgents = inputAgents === undefined ? ALL_AGENTS : normalizeAgents(inputAgents);
-  if (selectedAgents.length === 0) throw new BadRequestError("select-at-least-one-agent");
-  const entitlementMode = isCrewSelection(selectedAgents) ? "CREW" : "CUSTOM";
-
   const customer = await dodoClient.customers.create({
     email: owner.user.email,
     name: owner.user.name,
     metadata: { organizationId, type: "organization" },
   });
 
-  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
   return prisma.$transaction(async (tx) => {
     const sub = await tx.subscription.create({
@@ -168,6 +174,62 @@ export async function startTrialForOrg(organizationId: string, inputAgents?: unk
     });
     return sub;
   });
+}
+
+/**
+ * Creates the org-level Dodo customer + Subscription row + flips Organization
+ * entitlement columns. One-shot: errors if a Subscription already exists.
+ */
+export async function startTrialForOrg(organizationId: string, inputAgents?: unknown) {
+  const existing = await prisma.subscription.findUnique({ where: { organizationId } });
+  if (existing) throw new ConflictError("trial-already-started");
+
+  const selectedAgents = inputAgents === undefined ? ALL_AGENTS : normalizeAgents(inputAgents);
+  if (selectedAgents.length === 0) throw new BadRequestError("select-at-least-one-agent");
+  const entitlementMode = isCrewSelection(selectedAgents) ? "CREW" : "CUSTOM";
+
+  return createTrialSubscription(organizationId, 7, selectedAgents, entitlementMode);
+}
+
+/**
+ * Gives an org a trial without requiring owner-authenticated request context
+ * — callable from admin actions (`extendTrial`) and the legacy-org migration
+ * script. Fixes the drift bug where those callers used to only patch the
+ * denormalized `Organization` cache: this always keeps `Subscription` (the
+ * source of truth) and `Organization` in sync, and creates either if missing.
+ *
+ * - No Subscription row yet: creates one from scratch via
+ *   `createTrialSubscription`, same shape as `startTrialForOrg`, defaulting
+ *   to full CREW access since there's no owner-supplied agent selection in
+ *   this context.
+ * - Subscription row exists: updates status/trialEndsAt on Subscription +
+ *   Organization together via `syncOrgEntitlement` (so `deriveEntitlementFields`
+ *   stays the single source of truth for the cache), preserving whatever
+ *   entitlementMode/selectedAgents the org already had, then ensures there's
+ *   an active MayaUsage period covering the new trial window.
+ */
+export async function startOrExtendTrial(organizationId: string, days = 7) {
+  const existing = await prisma.subscription.findUnique({ where: { organizationId } });
+
+  if (!existing) {
+    return createTrialSubscription(organizationId, days, ALL_AGENTS, "CREW");
+  }
+
+  const trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  const updated = await syncOrgEntitlement(organizationId, { status: "TRIALING", trialEndsAt });
+
+  const activePeriod = await getActivePeriod(organizationId);
+  if (!activePeriod) {
+    await prisma.mayaUsage.create({
+      data: {
+        organizationId,
+        periodStart: new Date(),
+        periodEnd: trialEndsAt,
+      },
+    });
+  }
+
+  return updated;
 }
 
 export async function createCheckoutForOrg(
