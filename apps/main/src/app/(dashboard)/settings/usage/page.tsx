@@ -2,11 +2,14 @@
 
 import Link from "next/link"
 import { authClient, useSession } from "@/lib/auth-client"
-import { useMayaUsage, type MayaUsageTier, type UsageResource } from "@/lib/api/billing"
+import { useBillingStatus, useMayaUsage, type MayaUsageTier } from "@/lib/api/billing"
+import { ApiError } from "@/lib/api/client"
 import { PageHeader } from "@/components/ui/page-header"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { UsageBar } from "@/components/billing/UsageBar"
 import { ImageIcon, Video } from "lucide-react"
 
 type AugmentedSession = {
@@ -28,63 +31,28 @@ function formatDate(iso: string) {
   })
 }
 
-function UsageBar({
-  label,
-  icon: Icon,
-  resource,
-  unit,
-}: {
-  label: string
-  icon: typeof ImageIcon
-  resource: UsageResource
-  unit?: string
-}) {
-  const pct = resource.limit === 0 ? 0 : Math.min(100, Math.round((resource.used / resource.limit) * 100))
-  const isNearLimit = pct >= 80
-  const isExhausted = resource.remaining === 0
-
-  let barColor = "var(--primary)"
-  if (isExhausted) barColor = "var(--destructive)"
-  else if (isNearLimit) barColor = "#f59e0b"
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2 text-sm">
-        <span className="flex items-center gap-1.5 font-medium">
-          <Icon className="size-3.5 shrink-0" />
-          {label}
-        </span>
-        <span className="text-muted-foreground tabular-nums">
-          {resource.used}{unit ? ` ${unit}` : ""} / {resource.limit}{unit ? ` ${unit}` : ""}
-          {isExhausted && (
-            <Badge variant="destructive" className="ml-2 text-[10px]">Exhausted</Badge>
-          )}
-          {!isExhausted && isNearLimit && (
-            <Badge variant="secondary" className="ml-2 text-[10px]">Running low</Badge>
-          )}
-        </span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${pct}%`, background: barColor }}
-        />
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {resource.remaining}{unit ? ` ${unit}` : ""} remaining this period
-      </p>
-    </div>
-  )
-}
-
 export default function UsagePage() {
   const { data: session } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const augmented = session as (AugmentedSession & typeof session) | null
   const organizationId = activeOrg?.id ?? augmented?.activeOrganization?.id
 
-  const { data, isLoading } = useMayaUsage(organizationId)
+  const { data, isLoading, error, refetch } = useMayaUsage(organizationId)
+  const { data: billing } = useBillingStatus(organizationId)
+  const sub = billing?.subscription
   const atLimit = data && (data.images.remaining === 0 || data.videoSeconds.remaining === 0)
+  const isNoSubscription = error instanceof ApiError && error.message === "no-subscription"
+
+  const billingCycleLabel =
+    !sub ? null
+    : sub.status === "TRIALING" ? `Trial · ${sub.daysRemaining ?? 0} days left`
+    : sub.status === "ACTIVE" ? (sub.plan === "ANNUAL" ? "Annual plan" : "Monthly plan")
+    : sub.status === "PAST_DUE" ? "Payment failed"
+    : sub.status === "CANCELLED" ? "Cancelled"
+    : sub.status === "EXPIRED" ? "Expired"
+    : null
+
+  const billingCycleDate = sub?.status === "TRIALING" ? sub.trialEndsAt : sub?.currentPeriodEnd
 
   return (
     <div className="flex flex-col gap-6 pb-8">
@@ -105,7 +73,26 @@ export default function UsagePage() {
         </Card>
       )}
 
-      {!isLoading && !data && (
+      {!isLoading && isNoSubscription && (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            No active usage period. Start your trial or subscribe to see your limits.
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && error && !isNoSubscription && (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground">
+            <p>We couldn&apos;t load your usage. Please try again.</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !error && !data && (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No active usage period. Start your trial or subscribe to see your limits.
@@ -122,6 +109,14 @@ export default function UsagePage() {
                 <CardDescription>
                   {formatDate(data.periodStart)} – {formatDate(data.periodEnd)}
                 </CardDescription>
+                {billingCycleLabel && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {billingCycleLabel}
+                    {billingCycleDate && (
+                      <> · {sub?.status === "TRIALING" ? "Ends" : "Renews"} {formatDate(billingCycleDate)}</>
+                    )}
+                  </p>
+                )}
               </div>
               <Badge variant="secondary">{TIER_LABELS[data.tier]}</Badge>
             </div>
