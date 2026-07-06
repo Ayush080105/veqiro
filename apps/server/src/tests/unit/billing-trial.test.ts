@@ -15,6 +15,7 @@ const mockPrisma = {
   },
   mayaUsage: {
     create: vi.fn(),
+    update: vi.fn(),
     findFirst: vi.fn(),
   },
   member: {
@@ -160,14 +161,17 @@ describe("startOrExtendTrial", () => {
     assert.equal((result as { status: string }).status, "TRIALING");
   });
 
-  test("existing Subscription with an already-active MayaUsage period: does not create a duplicate period", async () => {
+  test("existing Subscription with an already-active MayaUsage period: extends its periodEnd instead of creating a duplicate", async () => {
+    const originalPeriodStart = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const originalPeriodEnd = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
     mockPrisma.subscription.findUnique.mockResolvedValue({
       id: "sub_2",
       organizationId: "org_active_trial",
       status: "TRIALING",
       entitlementMode: "CREW",
       selectedAgents: ALL_AGENTS,
-      trialEndsAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      trialEndsAt: originalPeriodEnd,
       currentPeriodEnd: null,
     });
     mockPrisma.subscription.update.mockImplementation(async ({ data }: { data: unknown }) => ({
@@ -180,12 +184,60 @@ describe("startOrExtendTrial", () => {
     }));
     mockPrisma.mayaUsage.findFirst.mockResolvedValue({
       id: "usage_existing",
-      periodEnd: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      organizationId: "org_active_trial",
+      periodStart: originalPeriodStart,
+      periodEnd: originalPeriodEnd,
     });
 
     const { startOrExtendTrial } = await import("../../modules/billing/billing.service.js");
-    await startOrExtendTrial("org_active_trial", 7);
+    const result = await startOrExtendTrial("org_active_trial", 30);
 
+    // No brand-new period created...
     assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
+
+    // ...instead the existing active period's periodEnd is pushed out to the
+    // new (extended) trialEndsAt, keyed on its original periodStart.
+    assert.equal(mockPrisma.mayaUsage.update.mock.calls.length, 1);
+    const updateCall = mockPrisma.mayaUsage.update.mock.calls[0]![0];
+    assert.deepEqual(updateCall.where, {
+      organizationId_periodStart: {
+        organizationId: "org_active_trial",
+        periodStart: originalPeriodStart,
+      },
+    });
+    const newTrialEndsAt: Date = (mockPrisma.subscription.update.mock.calls[0]![0] as { data: { trialEndsAt: Date } }).data.trialEndsAt;
+    assert.equal(updateCall.data.periodEnd.getTime(), newTrialEndsAt.getTime());
+    assert.ok(newTrialEndsAt.getTime() > originalPeriodEnd.getTime());
+
+    assert.equal((result as { status: string }).status, "TRIALING");
+  });
+
+  test("existing-subscription branch runs as a single transaction", async () => {
+    mockPrisma.subscription.findUnique.mockResolvedValue({
+      id: "sub_3",
+      organizationId: "org_tx",
+      status: "EXPIRED",
+      entitlementMode: "CREW",
+      selectedAgents: ALL_AGENTS,
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+    });
+    mockPrisma.subscription.update.mockImplementation(async ({ data }: { data: unknown }) => ({
+      id: "sub_3",
+      organizationId: "org_tx",
+      entitlementMode: "CREW",
+      selectedAgents: ALL_AGENTS,
+      currentPeriodEnd: null,
+      ...(data as object),
+    }));
+    mockPrisma.mayaUsage.findFirst.mockResolvedValue(null);
+
+    const { startOrExtendTrial } = await import("../../modules/billing/billing.service.js");
+    await startOrExtendTrial("org_tx", 7);
+
+    // The Subscription update, Organization update, and MayaUsage
+    // ensure/extend all happened inside the single $transaction callback
+    // (not a separate top-level call after the transaction committed).
+    assert.equal(mockPrisma.$transaction.mock.calls.length, 1);
   });
 });

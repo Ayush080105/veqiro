@@ -15,8 +15,9 @@ import {
   normalizeAgents,
   normalizePlan,
 } from "./billing.catalog.js";
-import { getActivePeriod } from "../agents/maya/maya.usage.service.js";
-import type { Agent } from "../../../prisma/generated/prisma/client.js";
+import type { Agent, Prisma } from "../../../prisma/generated/prisma/client.js";
+
+type TxClient = Prisma.TransactionClient;
 
 class ForbiddenError extends CustomApiError {
   constructor(message: string) {
@@ -56,23 +57,32 @@ export async function requireOrgOwner(req: Request): Promise<string> {
  * Updates Subscription + Organization in one transaction so the denormalized
  * Org columns never drift from the Subscription row. Returns the updated
  * Subscription row.
+ *
+ * Pass an existing transaction client as `tx` to fold this into a larger
+ * atomic operation (e.g. `startOrExtendTrial`'s existing-subscription branch,
+ * which also needs to touch MayaUsage in the same transaction). When `tx` is
+ * omitted, this opens and commits its own transaction as before — existing
+ * callers (billing.webhooks.ts) are unaffected.
  */
 export async function syncOrgEntitlement(
   organizationId: string,
   subscriptionUpdate: Parameters<typeof prisma.subscription.update>[0]["data"],
+  tx?: TxClient,
 ) {
-  return prisma.$transaction(async (tx) => {
-    const updated = await tx.subscription.update({
+  const run = async (client: TxClient | typeof prisma) => {
+    const updated = await client.subscription.update({
       where: { organizationId },
       data: subscriptionUpdate,
     });
     const fields = deriveEntitlementFields(updated as unknown as SubscriptionLike);
-    await tx.organization.update({
+    await client.organization.update({
       where: { id: organizationId },
       data: fields,
     });
     return updated;
-  });
+  };
+  if (tx) return run(tx);
+  return prisma.$transaction(run);
 }
 
 async function findOrgOwner(organizationId: string) {
@@ -202,11 +212,16 @@ export async function startTrialForOrg(organizationId: string, inputAgents?: unk
  *   `createTrialSubscription`, same shape as `startTrialForOrg`, defaulting
  *   to full CREW access since there's no owner-supplied agent selection in
  *   this context.
- * - Subscription row exists: updates status/trialEndsAt on Subscription +
- *   Organization together via `syncOrgEntitlement` (so `deriveEntitlementFields`
- *   stays the single source of truth for the cache), preserving whatever
- *   entitlementMode/selectedAgents the org already had, then ensures there's
- *   an active MayaUsage period covering the new trial window.
+ * - Subscription row exists: in a single transaction, updates status/
+ *   trialEndsAt on Subscription + Organization together via
+ *   `syncOrgEntitlement` (so `deriveEntitlementFields` stays the single
+ *   source of truth for the cache, preserving whatever entitlementMode/
+ *   selectedAgents the org already had), then either extends the org's
+ *   currently-active MayaUsage period's `periodEnd` to match the new
+ *   `trialEndsAt` (so a mid-trial extension actually extends the usage
+ *   window, not just the entitlement) or creates a fresh period if none is
+ *   active. All three writes (Subscription, Organization, MayaUsage) commit
+ *   or roll back together — never left half-applied.
  */
 export async function startOrExtendTrial(organizationId: string, days = 7) {
   const existing = await prisma.subscription.findUnique({ where: { organizationId } });
@@ -216,20 +231,41 @@ export async function startOrExtendTrial(organizationId: string, days = 7) {
   }
 
   const trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-  const updated = await syncOrgEntitlement(organizationId, { status: "TRIALING", trialEndsAt });
 
-  const activePeriod = await getActivePeriod(organizationId);
-  if (!activePeriod) {
-    await prisma.mayaUsage.create({
-      data: {
-        organizationId,
-        periodStart: new Date(),
-        periodEnd: trialEndsAt,
-      },
+  return prisma.$transaction(async (tx) => {
+    const updated = await syncOrgEntitlement(organizationId, { status: "TRIALING", trialEndsAt }, tx);
+
+    const activePeriod = await tx.mayaUsage.findFirst({
+      where: { organizationId, periodEnd: { gt: new Date() } },
+      orderBy: { periodStart: "desc" },
     });
-  }
 
-  return updated;
+    if (activePeriod) {
+      // Mid-trial extension: push the existing period's end out to match the
+      // new trialEndsAt instead of leaving it pointing at the old, shorter
+      // window (which would otherwise make usage checks fail with
+      // "no-active-usage-period" before the (now-later) trial actually ends).
+      await tx.mayaUsage.update({
+        where: {
+          organizationId_periodStart: {
+            organizationId,
+            periodStart: activePeriod.periodStart,
+          },
+        },
+        data: { periodEnd: trialEndsAt },
+      });
+    } else {
+      await tx.mayaUsage.create({
+        data: {
+          organizationId,
+          periodStart: new Date(),
+          periodEnd: trialEndsAt,
+        },
+      });
+    }
+
+    return updated;
+  });
 }
 
 export async function createCheckoutForOrg(
