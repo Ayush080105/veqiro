@@ -100,7 +100,7 @@ export default function UsagePage() {
         </Card>
       )}
 
-      {data && (
+      {data && !error && (
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
