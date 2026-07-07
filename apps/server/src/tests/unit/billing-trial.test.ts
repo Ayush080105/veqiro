@@ -212,6 +212,61 @@ describe("startOrExtendTrial", () => {
     assert.equal((result as { status: string }).status, "TRIALING");
   });
 
+  test("existing Subscription with a lapsed MayaUsage period: extends it in place instead of creating a fresh zero-usage period", async () => {
+    const originalPeriodStart = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
+    const originalPeriodEnd = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000); // already lapsed
+
+    mockPrisma.subscription.findUnique.mockResolvedValue({
+      id: "sub_lapsed",
+      organizationId: "org_lapsed",
+      status: "TRIALING",
+      entitlementMode: "CREW",
+      selectedAgents: ALL_AGENTS,
+      trialEndsAt: originalPeriodEnd,
+      currentPeriodEnd: null,
+    });
+    mockPrisma.subscription.update.mockImplementation(async ({ data }: { data: unknown }) => ({
+      id: "sub_lapsed",
+      organizationId: "org_lapsed",
+      entitlementMode: "CREW",
+      selectedAgents: ALL_AGENTS,
+      currentPeriodEnd: null,
+      ...(data as object),
+    }));
+    // The org spent 15 of its 30 trial credits before the trial lapsed.
+    mockPrisma.mayaUsage.findFirst.mockResolvedValue({
+      id: "usage_lapsed",
+      organizationId: "org_lapsed",
+      periodStart: originalPeriodStart,
+      periodEnd: originalPeriodEnd,
+      creditsUsed: 15,
+    });
+
+    const { startOrExtendTrial } = await import("../../modules/billing/billing.service.js");
+    const result = await startOrExtendTrial("org_lapsed", 7);
+
+    // No brand-new (zero-usage) period created...
+    assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
+
+    // ...instead the existing (lapsed) period's periodEnd is pushed out to
+    // the new trialEndsAt, keyed on its original periodStart — creditsUsed on
+    // that row is never touched, so the org's spent credits are preserved.
+    assert.equal(mockPrisma.mayaUsage.update.mock.calls.length, 1);
+    const updateCall = mockPrisma.mayaUsage.update.mock.calls[0]![0];
+    assert.deepEqual(updateCall.where, {
+      organizationId_periodStart: {
+        organizationId: "org_lapsed",
+        periodStart: originalPeriodStart,
+      },
+    });
+    assert.ok(!("creditsUsed" in updateCall.data));
+    const newTrialEndsAt: Date = (mockPrisma.subscription.update.mock.calls[0]![0] as { data: { trialEndsAt: Date } }).data.trialEndsAt;
+    assert.equal(updateCall.data.periodEnd.getTime(), newTrialEndsAt.getTime());
+    assert.ok(newTrialEndsAt.getTime() > originalPeriodEnd.getTime());
+
+    assert.equal((result as { status: string }).status, "TRIALING");
+  });
+
   test("existing-subscription branch runs as a single transaction", async () => {
     mockPrisma.subscription.findUnique.mockResolvedValue({
       id: "sub_3",

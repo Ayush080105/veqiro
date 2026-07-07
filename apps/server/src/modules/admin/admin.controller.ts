@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import * as repo from "./admin.repository.js";
+import { BadRequestError } from "../../common/errors/badRequest.js";
 
 const requireParam = (value: string | string[] | undefined): string => {
   if (Array.isArray(value)) return value[0] ?? "";
@@ -47,6 +48,15 @@ export const setSubscriptionStatus = async (req: Request, res: Response) => {
 export const bulkExtendTrial = async (req: Request, res: Response) => {
   const { orgIds, days } = req.body as { orgIds: string[]; days?: number };
   const data = await repo.bulkExtendTrial(orgIds, days ?? 7);
+  res.status(StatusCodes.OK).json(data);
+};
+
+export const grantCredits = async (req: Request, res: Response) => {
+  const credits = Number(req.body?.credits);
+  if (!Number.isInteger(credits) || credits <= 0) {
+    throw new BadRequestError("credits must be a positive integer");
+  }
+  const data = await repo.grantCredits(requireParam(req.params.id), credits);
   res.status(StatusCodes.OK).json(data);
 };
 

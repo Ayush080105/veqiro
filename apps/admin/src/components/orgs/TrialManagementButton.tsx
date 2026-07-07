@@ -75,51 +75,57 @@ export function TrialManagementButton({ orgId, currentStatus }: { orgId: string;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* Extend Trial Section */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-[var(--muted-foreground)]">Extend trial:</span>
-        {([7, 14, 30] as const).map((d) => (
+      {/* Extend Trial Section — only meaningful for orgs currently trialing */}
+      {currentStatus === "TRIALING" ? (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[var(--muted-foreground)]">Extend trial:</span>
+          {([7, 14, 30] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setExtendDays(d)}
+              className={cn(
+                "rounded border px-2 py-0.5 text-xs font-medium",
+                extendDays === d
+                  ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "border-[var(--border)] hover:bg-[var(--muted)]"
+              )}
+            >
+              {d}d
+            </button>
+          ))}
           <button
-            key={d}
-            onClick={() => setExtendDays(d)}
+            onClick={() => setExtendDays("custom")}
             className={cn(
               "rounded border px-2 py-0.5 text-xs font-medium",
-              extendDays === d
+              extendDays === "custom"
                 ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
                 : "border-[var(--border)] hover:bg-[var(--muted)]"
             )}
           >
-            {d}d
+            Custom
           </button>
-        ))}
-        <button
-          onClick={() => setExtendDays("custom")}
-          className={cn(
-            "rounded border px-2 py-0.5 text-xs font-medium",
-            extendDays === "custom"
-              ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
-              : "border-[var(--border)] hover:bg-[var(--muted)]"
+          {extendDays === "custom" && (
+            <input
+              type="number"
+              value={customDays}
+              onChange={(e) => setCustomDays(Math.max(1, Number(e.target.value)))}
+              className="w-16 rounded border border-[var(--border)] bg-[var(--card)] px-2 py-0.5 text-xs"
+              min={1}
+            />
           )}
-        >
-          Custom
-        </button>
-        {extendDays === "custom" && (
-          <input
-            type="number"
-            value={customDays}
-            onChange={(e) => setCustomDays(Math.max(1, Number(e.target.value)))}
-            className="w-16 rounded border border-[var(--border)] bg-[var(--card)] px-2 py-0.5 text-xs"
-            min={1}
-          />
-        )}
-        <button
-          onClick={handleExtend}
-          disabled={extending}
-          className="rounded border border-[var(--border)] bg-white px-3 py-1 text-xs font-medium hover:bg-[var(--muted)] disabled:opacity-50"
-        >
-          {extending ? "Extending…" : `Extend +${actualDays}d`}
-        </button>
-      </div>
+          <button
+            onClick={handleExtend}
+            disabled={extending}
+            className="rounded border border-[var(--border)] bg-white px-3 py-1 text-xs font-medium hover:bg-[var(--muted)] disabled:opacity-50"
+          >
+            {extending ? "Extending…" : `Extend +${actualDays}d`}
+          </button>
+        </div>
+      ) : (
+        <span className="text-xs text-[var(--muted-foreground)]">
+          Extend trial is only available for trialing organizations.
+        </span>
+      )}
 
       {/* Divider */}
       <span className="text-[var(--border)]">|</span>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TrialManagementButton } from "@/components/orgs/TrialManagementButton";
+import { GrantCreditsButton } from "@/components/orgs/GrantCreditsButton";
 import { OrgTokenChart } from "@/components/orgs/OrgTokenChart";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,10 @@ type OrgDetail = {
     dodoSubscriptionId: string | null;
   } | null;
   members: Member[];
+  mayaCredits: {
+    tier: string;
+    credits: { used: number; limit: number; remaining: number };
+  } | null;
   agentActivity: Array<{ agent: string; messages: number }>;
   connectedPlatforms: string[];
   tokenUsage: TokenUsage;
@@ -187,6 +192,22 @@ export default async function OrgDetailPage({
           <p className="text-sm text-[var(--muted-foreground)]">No subscription record.</p>
         )}
       </section>
+
+      {/* Maya Credits */}
+      {org.mayaCredits && (
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
+          <h2 className="mb-4 text-sm font-semibold">Maya Credits</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Detail label="Tier" value={org.mayaCredits.tier} />
+            <Detail label="Used" value={org.mayaCredits.credits.used} />
+            <Detail label="Limit" value={org.mayaCredits.credits.limit} />
+            <Detail label="Remaining" value={org.mayaCredits.credits.remaining} />
+          </div>
+          <div className="mt-4 border-t border-[var(--border)] pt-4">
+            <GrantCreditsButton orgId={org.id} />
+          </div>
+        </section>
+      )}
 
       {/* Members */}
       <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">

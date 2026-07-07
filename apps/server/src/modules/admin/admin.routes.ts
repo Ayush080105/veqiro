@@ -7,6 +7,7 @@ import {
   getUsage,
   setSubscriptionStatus,
   bulkExtendTrial,
+  grantCredits,
   getIntegrations,
   getAgents,
   exportOrgs,
@@ -42,6 +43,7 @@ router.get("/organizations/:id", getOrg);
 router.patch("/organizations/:id/extend-trial", extendTrial);
 router.patch("/organizations/:id/subscription-status", setSubscriptionStatus);
 router.post("/organizations/:id/subscription-sync", setSubscriptionStatus);
+router.post("/organizations/:id/grant-credits", grantCredits);
 
 // User routes
 router.get("/users/export", exportUsers);

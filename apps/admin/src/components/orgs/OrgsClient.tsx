@@ -132,11 +132,18 @@ export function OrgsClient() {
   const bulkExtendTrial = async () => {
     setBulkExtending(true);
     try {
-      await apiFetch("/admin/organizations/bulk-extend-trial", {
-        method: "POST",
-        body: JSON.stringify({ orgIds: [...selectedOrgIds], days: bulkDays }),
-      });
-      toast.success(`Trial extended for ${selectedOrgIds.size} orgs`);
+      const data = await apiFetch<{ extended: number; skipped: string[] }>(
+        "/admin/organizations/bulk-extend-trial",
+        {
+          method: "POST",
+          body: JSON.stringify({ orgIds: [...selectedOrgIds], days: bulkDays }),
+        },
+      );
+      toast.success(
+        data.skipped.length > 0
+          ? `Trial extended for ${data.extended} orgs (${data.skipped.length} skipped — not trialing)`
+          : `Trial extended for ${data.extended} orgs`,
+      );
       setSelectedOrgIds(new Set());
       setRefetchKey((k) => k + 1);
     } catch {
@@ -149,6 +156,11 @@ export function OrgsClient() {
   const visibleIds = data?.orgs.map((o) => o.id) ?? [];
   const allVisibleSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selectedOrgIds.has(id));
+
+  const selectedOrgs = data?.orgs.filter((o) => selectedOrgIds.has(o.id)) ?? [];
+  const nonTrialingSelectedCount = selectedOrgs.filter(
+    (o) => o.subscriptionStatus !== "TRIALING",
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -295,32 +307,42 @@ export function OrgsClient() {
         </div>
       )}
 
-      {selectedOrgIds.size >= 2 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] px-5 py-3 shadow-lg">
-          <span className="text-sm font-medium">{selectedOrgIds.size} orgs selected</span>
-          <span className="text-sm text-[var(--muted-foreground)]">—</span>
-          <span className="text-sm">Extend trial by</span>
-          <input
-            type="number"
-            value={bulkDays}
-            onChange={(e) => setBulkDays(Math.max(1, Math.min(90, Number(e.target.value))))}
-            className="w-16 rounded border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-sm text-center"
-            min={1} max={90}
-          />
-          <span className="text-sm">days</span>
-          <button
-            onClick={bulkExtendTrial}
-            disabled={bulkExtending}
-            className="rounded bg-[var(--primary)] px-3 py-1 text-sm font-medium text-[var(--primary-foreground)] disabled:opacity-50"
-          >
-            {bulkExtending ? "Extending…" : "Extend"}
-          </button>
-          <button
-            onClick={() => setSelectedOrgIds(new Set())}
-            className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-          >
-            Clear
-          </button>
+      {selectedOrgIds.size >= 1 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-5 py-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">
+              {selectedOrgIds.size} {selectedOrgIds.size === 1 ? "org" : "orgs"} selected
+            </span>
+            <span className="text-sm text-[var(--muted-foreground)]">—</span>
+            <span className="text-sm">Extend trial by</span>
+            <input
+              type="number"
+              value={bulkDays}
+              onChange={(e) => setBulkDays(Math.max(1, Math.min(90, Number(e.target.value))))}
+              className="w-16 rounded border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-sm text-center"
+              min={1} max={90}
+            />
+            <span className="text-sm">days</span>
+            <button
+              onClick={bulkExtendTrial}
+              disabled={bulkExtending || nonTrialingSelectedCount > 0}
+              className="rounded bg-[var(--primary)] px-3 py-1 text-sm font-medium text-[var(--primary-foreground)] disabled:opacity-50"
+            >
+              {bulkExtending ? "Extending…" : "Extend"}
+            </button>
+            <button
+              onClick={() => setSelectedOrgIds(new Set())}
+              className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            >
+              Clear
+            </button>
+          </div>
+          {nonTrialingSelectedCount > 0 && (
+            <p className="text-xs text-red-600">
+              {nonTrialingSelectedCount} selected {nonTrialingSelectedCount === 1 ? "org isn't" : "orgs aren't"} trialing —
+              deselect {nonTrialingSelectedCount === 1 ? "it" : "them"} to extend trial.
+            </p>
+          )}
         </div>
       )}
     </div>

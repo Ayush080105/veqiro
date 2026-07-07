@@ -216,12 +216,12 @@ export async function startTrialForOrg(organizationId: string, inputAgents?: unk
  *   trialEndsAt on Subscription + Organization together via
  *   `syncOrgEntitlement` (so `deriveEntitlementFields` stays the single
  *   source of truth for the cache, preserving whatever entitlementMode/
- *   selectedAgents the org already had), then either extends the org's
- *   currently-active MayaUsage period's `periodEnd` to match the new
- *   `trialEndsAt` (so a mid-trial extension actually extends the usage
- *   window, not just the entitlement) or creates a fresh period if none is
- *   active. All three writes (Subscription, Organization, MayaUsage) commit
- *   or roll back together — never left half-applied.
+ *   selectedAgents the org already had), then extends the org's most recent
+ *   MayaUsage period's `periodEnd` to match the new `trialEndsAt` — even if
+ *   that period already lapsed, so `creditsUsed` is always preserved rather
+ *   than reset — or creates a fresh period only if the org has no MayaUsage
+ *   row at all yet. All three writes (Subscription, Organization, MayaUsage)
+ *   commit or roll back together — never left half-applied.
  */
 export async function startOrExtendTrial(organizationId: string, days = 7) {
   const existing = await prisma.subscription.findUnique({ where: { organizationId } });
@@ -235,21 +235,27 @@ export async function startOrExtendTrial(organizationId: string, days = 7) {
   return prisma.$transaction(async (tx) => {
     const updated = await syncOrgEntitlement(organizationId, { status: "TRIALING", trialEndsAt }, tx);
 
-    const activePeriod = await tx.mayaUsage.findFirst({
-      where: { organizationId, periodEnd: { gt: new Date() } },
+    // Always reuse the org's most recent usage period when one exists — even
+    // if its periodEnd has already lapsed — so extending an *expired* trial
+    // preserves whatever credits were already spent instead of silently
+    // resetting creditsUsed to 0 via a fresh row (which would hand back
+    // "free" credits an admin never intended to grant). Only create a
+    // brand-new period when the org genuinely has no MayaUsage row yet.
+    const latestPeriod = await tx.mayaUsage.findFirst({
+      where: { organizationId },
       orderBy: { periodStart: "desc" },
     });
 
-    if (activePeriod) {
-      // Mid-trial extension: push the existing period's end out to match the
-      // new trialEndsAt instead of leaving it pointing at the old, shorter
-      // window (which would otherwise make usage checks fail with
-      // "no-active-usage-period" before the (now-later) trial actually ends).
+    if (latestPeriod) {
+      // Push the period's end out to match the new trialEndsAt instead of
+      // leaving it pointing at the old window (which would otherwise make
+      // usage checks fail with "no-active-usage-period" before the
+      // (now-later) trial actually ends).
       await tx.mayaUsage.update({
         where: {
           organizationId_periodStart: {
             organizationId,
-            periodStart: activePeriod.periodStart,
+            periodStart: latestPeriod.periodStart,
           },
         },
         data: { periodEnd: trialEndsAt },

@@ -136,7 +136,9 @@ export function ChurnRiskTable({ orgs }: { orgs: ChurnRiskOrg[] }) {
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <ExtendButton orgId={org.id} />
+                  {org.subscriptionStatus === "TRIALING" && (
+                    <ExtendButton orgId={org.id} />
+                  )}
                   <Link
                     href={`/organizations/${org.id}`}
                     className="rounded border border-[var(--border)] bg-white px-3 py-1 text-xs hover:bg-[var(--muted)]"
