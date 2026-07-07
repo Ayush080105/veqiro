@@ -115,7 +115,8 @@
       "Bash(echo \"exit:$?\")",
       "Bash(git checkout *)",
       "Bash(bash \"C:/Users/NARESH/.claude/plugins/cache/claude-plugins-official/superpowers/6.1.1/skills/subagent-driven-development/scripts/review-package\" aa3f747 HEAD)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in d['scripts'].items\\(\\)\\)\\)\")"
     ]
   },
   "enableAllProjectMcpServers": true,

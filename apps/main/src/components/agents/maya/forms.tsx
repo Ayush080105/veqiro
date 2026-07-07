@@ -39,6 +39,7 @@ import { uploadToR2 } from "@/lib/api/uploads"
 import { expandCampaignBrief } from "@/lib/api/assistants"
 import { toast } from "sonner"
 import { BrandImagesSelector } from "@/components/agents/maya/BrandImagesSelector"
+import { useMayaRemainingCredits } from "@/lib/api/billing"
 
 const limitHint: Record<ContentPlatform, string> = {
   linkedin: "Max 3000 chars, 3-5 hashtags.",
@@ -133,9 +134,11 @@ export function MayaIdeationForm({
 export function MayaDraftForm({
   value,
   onChange,
+  onDisableSubmit,
 }: {
   value: MayaDraftValues
   onChange: (patch: Partial<MayaDraftValues>) => void
+  onDisableSubmit?: (disabled: boolean) => void
 }) {
   const form = useAgentForm({
     schema: mayaDraftSchema,
@@ -146,6 +149,22 @@ export function MayaDraftForm({
   const platforms = form.watch("platforms") as ContentPlatform[]
   const includeImage = form.watch("include_image") ?? true
   const makeCarousel = form.watch("make_carousel") ?? false
+  const carouselCount = form.watch("carousel_count") ?? 3
+
+  const orgId = (value as Record<string, unknown>).organization_id as string
+  const { imagesRemaining } = useMayaRemainingCredits(orgId)
+  const noImagesLeft = imagesRemaining === 0
+  const requestedImages = includeImage ? (makeCarousel ? carouselCount : 1) : 0
+  const overImageLimit = imagesRemaining !== null && requestedImages > imagesRemaining
+
+  React.useLayoutEffect(() => {
+    onDisableSubmit?.(overImageLimit)
+  }, [overImageLimit, onDisableSubmit])
+
+  React.useEffect(() => {
+    if (noImagesLeft && includeImage) form.setValue("include_image", false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noImagesLeft])
 
   const [uploading, setUploading] = React.useState(false)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
@@ -260,10 +279,11 @@ export function MayaDraftForm({
           control={form.control}
           name="include_image"
           render={({ field }) => (
-            <label className="flex items-center gap-2 text-xs">
+            <label className={`flex items-center gap-2 text-xs ${noImagesLeft ? "opacity-50 cursor-not-allowed" : ""}`}>
               <Switch
-                checked={field.value ?? true}
+                checked={noImagesLeft ? false : (field.value ?? true)}
                 onCheckedChange={field.onChange}
+                disabled={noImagesLeft}
               />
               Generate image
             </label>
@@ -338,6 +358,12 @@ export function MayaDraftForm({
           />
           <span className="text-[10px] text-muted-foreground opacity-60">max 8</span>
         </div>
+      )}
+
+      {overImageLimit && (
+        <p className="text-xs text-destructive">
+          {`This would use ${requestedImages} image credits, but only ${imagesRemaining} remain this period.`}
+        </p>
       )}
 
       {includeImage && (
@@ -430,9 +456,11 @@ const PLATFORM_LABEL: Record<string, string> = {
 export function MayaVariantsForm({
   value,
   onChange,
+  onDisableSubmit,
 }: {
   value: MayaVariantsValues
   onChange: (patch: Partial<MayaVariantsValues>) => void
+  onDisableSubmit?: (disabled: boolean) => void
 }) {
   const form = useAgentForm({
     schema: mayaVariantsSchema,
@@ -452,6 +480,23 @@ export function MayaVariantsForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [originalPlatform])
+
+  const orgId = (value as Record<string, unknown>).organization_id as string
+  const { imagesRemaining } = useMayaRemainingCredits(orgId)
+  const noImagesLeft = imagesRemaining === 0
+  const targetPlatforms = form.watch("target_platforms") ?? []
+  const includeImages = form.watch("include_images") ?? false
+  const requestedImages = includeImages ? targetPlatforms.length : 0
+  const overImageLimit = imagesRemaining !== null && requestedImages > imagesRemaining
+
+  React.useLayoutEffect(() => {
+    onDisableSubmit?.(overImageLimit)
+  }, [overImageLimit, onDisableSubmit])
+
+  React.useEffect(() => {
+    if (noImagesLeft && includeImages) form.setValue("include_images", false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noImagesLeft])
 
   return (
     <FieldGroup>
@@ -490,15 +535,22 @@ export function MayaVariantsForm({
         control={form.control}
         name="include_images"
         render={({ field }) => (
-          <label className="flex items-center gap-2 text-xs">
+          <label className={`flex items-center gap-2 text-xs ${noImagesLeft ? "opacity-50 cursor-not-allowed" : ""}`}>
             <Switch
-              checked={field.value ?? false}
+              checked={noImagesLeft ? false : (field.value ?? false)}
               onCheckedChange={field.onChange}
+              disabled={noImagesLeft}
             />
             Generate per-platform images
           </label>
         )}
       />
+
+      {overImageLimit && (
+        <p className="text-xs text-destructive">
+          {`This would use ${requestedImages} image credits, but only ${imagesRemaining} remain this period.`}
+        </p>
+      )}
     </FieldGroup>
   )
 }
@@ -687,15 +739,20 @@ const PHOTO_COUNT_OPTIONS = [1, 2, 3, 4, 6] as const
 export function MayaCampaignForm({
   value,
   onChange,
+  onDisableSubmit,
 }: {
   value: MayaCampaignValues
   onChange: (patch: Partial<MayaCampaignValues>) => void
+  onDisableSubmit?: (disabled: boolean) => void
 }) {
   const form = useAgentForm({
     schema: mayaCampaignSchema,
     defaultValue: value,
     onChange,
   })
+
+  const orgId = (value as Record<string, unknown>).organization_id as string
+  const { imagesRemaining } = useMayaRemainingCredits(orgId)
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = React.useState(false)
@@ -737,10 +794,14 @@ export function MayaCampaignForm({
   const useMascot = form.watch("use_mascot")
   const [expanding, setExpanding] = React.useState(false)
 
+  const overImageLimit = imagesRemaining !== null && photoCount > imagesRemaining
+  React.useLayoutEffect(() => {
+    onDisableSubmit?.(overImageLimit)
+  }, [overImageLimit, onDisableSubmit])
+
   const handleExpand = async () => {
     const brief = form.getValues("campaign_brief" as never) as unknown as string
     const platform = form.getValues("platform" as never) as unknown as string
-    const orgId = (value as Record<string, unknown>).organization_id as string
     if (!brief?.trim()) {
       toast.error("Write a campaign brief first.")
       return
@@ -877,23 +938,32 @@ export function MayaCampaignForm({
       <div className="flex flex-col gap-1.5">
         <span className="text-xs font-medium">Number of Campaign Photos</span>
         <div className="flex gap-1.5">
-          {PHOTO_COUNT_OPTIONS.map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => form.setValue("photo_count" as never, n as never)}
-              className="flex-1 py-1.5 text-xs rounded transition-colors"
-              style={{
-                border: "2px solid var(--border)",
-                background: photoCount === n ? "var(--foreground)" : "transparent",
-                color: photoCount === n ? "var(--background)" : "var(--foreground)",
-                fontWeight: photoCount === n ? 700 : 400,
-              }}
-            >
-              {n}
-            </button>
-          ))}
+          {PHOTO_COUNT_OPTIONS.map((n) => {
+            const exceedsRemaining = imagesRemaining !== null && n > imagesRemaining
+            return (
+              <button
+                key={n}
+                type="button"
+                disabled={exceedsRemaining}
+                onClick={() => form.setValue("photo_count" as never, n as never)}
+                className={`flex-1 py-1.5 text-xs rounded transition-colors ${exceedsRemaining ? "opacity-40 cursor-not-allowed" : ""}`}
+                style={{
+                  border: "2px solid var(--border)",
+                  background: photoCount === n ? "var(--foreground)" : "transparent",
+                  color: photoCount === n ? "var(--background)" : "var(--foreground)",
+                  fontWeight: photoCount === n ? 700 : 400,
+                }}
+              >
+                {n}
+              </button>
+            )
+          })}
         </div>
+        {overImageLimit && (
+          <p className="text-xs text-destructive">
+            {`This would use ${photoCount} image credits, but only ${imagesRemaining} remain this period.`}
+          </p>
+        )}
       </div>
 
       {/* Logo overlay */}
@@ -1006,28 +1076,35 @@ const DURATION_OPTIONS = [4, 6, 8, 10] as const
 function DurationPicker({
   value,
   onChange,
+  maxAllowed,
 }: {
   value: number
   onChange: (v: number) => void
+  /** Durations above this remaining-seconds ceiling render disabled. */
+  maxAllowed?: number
 }) {
   return (
     <div className="flex gap-1.5">
-      {DURATION_OPTIONS.map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          className="flex-1 py-1.5 text-xs rounded transition-colors"
-          style={{
-            border: "2px solid var(--border)",
-            background: value === n ? "var(--foreground)" : "transparent",
-            color: value === n ? "var(--background)" : "var(--foreground)",
-            fontWeight: value === n ? 700 : 400,
-          }}
-        >
-          {n}s
-        </button>
-      ))}
+      {DURATION_OPTIONS.map((n) => {
+        const exceedsRemaining = maxAllowed !== undefined && n > maxAllowed
+        return (
+          <button
+            key={n}
+            type="button"
+            disabled={exceedsRemaining}
+            onClick={() => onChange(n)}
+            className={`flex-1 py-1.5 text-xs rounded transition-colors ${exceedsRemaining ? "opacity-40 cursor-not-allowed" : ""}`}
+            style={{
+              border: "2px solid var(--border)",
+              background: value === n ? "var(--foreground)" : "transparent",
+              color: value === n ? "var(--background)" : "var(--foreground)",
+              fontWeight: value === n ? 700 : 400,
+            }}
+          >
+            {n}s
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -1035,15 +1112,26 @@ function DurationPicker({
 export function MayaGenerateVideoForm({
   value,
   onChange,
+  onDisableSubmit,
 }: {
   value: MayaGenerateVideoValues
   onChange: (patch: Partial<MayaGenerateVideoValues>) => void
+  onDisableSubmit?: (disabled: boolean) => void
 }) {
   const form = useAgentForm({
     schema: mayaGenerateVideoSchema,
     defaultValue: value,
     onChange,
   })
+
+  const orgId = (value as Record<string, unknown>).organization_id as string
+  const { videoSecondsRemaining } = useMayaRemainingCredits(orgId)
+  const durationSeconds = form.watch("duration_seconds")
+  const overVideoLimit = videoSecondsRemaining !== null && durationSeconds > videoSecondsRemaining
+
+  React.useLayoutEffect(() => {
+    onDisableSubmit?.(overVideoLimit)
+  }, [overVideoLimit, onDisableSubmit])
 
   return (
     <FieldGroup>
@@ -1075,9 +1163,18 @@ export function MayaGenerateVideoForm({
           control={form.control}
           name="duration_seconds"
           render={({ field }) => (
-            <DurationPicker value={field.value as number} onChange={field.onChange} />
+            <DurationPicker
+              value={field.value as number}
+              onChange={field.onChange}
+              maxAllowed={videoSecondsRemaining ?? undefined}
+            />
           )}
         />
+        {overVideoLimit && (
+          <p className="text-xs text-destructive">
+            {`This would use ${durationSeconds}s of video, but only ${videoSecondsRemaining}s remain this period.`}
+          </p>
+        )}
       </div>
 
       <Controller
@@ -1109,6 +1206,7 @@ export function MayaCampaignVideoForm({
   submitting,
   stage,
   hideDuration,
+  onDisableSubmit,
 }: {
   value: MayaCampaignVideoValues
   onChange: (patch: Partial<MayaCampaignVideoValues>) => void
@@ -1116,12 +1214,28 @@ export function MayaCampaignVideoForm({
   stage?: ActionStage | null
   /** Hide the duration picker — it has no visible effect on a still storyboard image. */
   hideDuration?: boolean
+  onDisableSubmit?: (disabled: boolean) => void
 }) {
   const form = useAgentForm({
     schema: mayaCampaignVideoSchema,
     defaultValue: value,
     onChange,
   })
+
+  const orgId = (value as Record<string, unknown>).organization_id as string
+  const { imagesRemaining, videoSecondsRemaining } = useMayaRemainingCredits(orgId)
+  const storyboardImageUrl = (value as Record<string, unknown>).storyboard_image_url as string | undefined
+  const durationSeconds = form.watch("duration_seconds")
+
+  // A storyboard image still needs to be generated unless this form was prefilled
+  // from a "Turn into video" reuse flow that already has one.
+  const needsStoryboardImage = hideDuration === true || !storyboardImageUrl
+  const overImageLimit = needsStoryboardImage && imagesRemaining !== null && imagesRemaining < 1
+  const overVideoLimit = !hideDuration && videoSecondsRemaining !== null && durationSeconds > videoSecondsRemaining
+
+  React.useLayoutEffect(() => {
+    onDisableSubmit?.(overImageLimit || overVideoLimit)
+  }, [overImageLimit, overVideoLimit, onDisableSubmit])
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = React.useState(false)
@@ -1234,6 +1348,11 @@ export function MayaCampaignVideoForm({
             <span>Click to upload — JPG, PNG, or WEBP</span>
           </button>
         )}
+        {overImageLimit && (
+          <p className="text-xs text-destructive">
+            No image credits remain this period — a storyboard image can&apos;t be generated.
+          </p>
+        )}
       </div>
 
       <RhfField control={form.control} name="campaign_brief" label="Campaign brief" required>
@@ -1265,9 +1384,18 @@ export function MayaCampaignVideoForm({
             control={form.control}
             name="duration_seconds"
             render={({ field }) => (
-              <DurationPicker value={field.value as number} onChange={field.onChange} />
+              <DurationPicker
+                value={field.value as number}
+                onChange={field.onChange}
+                maxAllowed={videoSecondsRemaining ?? undefined}
+              />
             )}
           />
+          {overVideoLimit && (
+            <p className="text-xs text-destructive">
+              {`This would use ${durationSeconds}s of video, but only ${videoSecondsRemaining}s remain this period.`}
+            </p>
+          )}
         </div>
       )}
 
@@ -1299,6 +1427,7 @@ export function MayaCampaignVideoStoryboardForm(props: {
   onChange: (patch: Partial<MayaCampaignVideoValues>) => void
   submitting?: boolean
   stage?: ActionStage | null
+  onDisableSubmit?: (disabled: boolean) => void
 }) {
   return <MayaCampaignVideoForm {...props} hideDuration />
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { AgentNotAvailableError, runAgentAction } from "@/lib/api/assistants"
 import { toastFriendlyError } from "@/lib/api/error-message"
 import type { AgentActionId } from "@/lib/types/agents"
+import { qk } from "@/lib/query-keys"
 
 export interface ActionResultContext<TInput, TResult> {
   actionId: AgentActionId
@@ -41,6 +43,8 @@ export interface ActionFormProps<TInput, TResult> {
   submitting: boolean
   /** Interim progress reported by a multi-step customSubmit (e.g. "Generating storyboard…"). */
   stage?: ActionStage | null
+  /** Let the form disable the dialog's shared submit button (e.g. selection exceeds remaining credits). */
+  onDisableSubmit?: (disabled: boolean) => void
 }
 
 export interface ActionDialogProps<TInput, TResult> {
@@ -100,10 +104,15 @@ export function ActionDialog<TInput, TResult>({
   const [value, setValue] = React.useState<TInput>(defaultValue)
   const [submitting, setSubmitting] = React.useState(false)
   const [stage, setStage] = React.useState<ActionStage | null>(null)
+  const [formBlocked, setFormBlocked] = React.useState(false)
+  const queryClient = useQueryClient()
 
   // Reset on open
   React.useEffect(() => {
-    if (open) setValue(defaultValue)
+    if (open) {
+      setValue(defaultValue)
+      setFormBlocked(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, actionId])
 
@@ -146,6 +155,7 @@ export function ActionDialog<TInput, TResult>({
           )
 
       onComplete({ actionId: effectiveActionId, input: submittedValue, result })
+      queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
       onOpenChange(false) // Modal closes only after a successful completion
       return result
     } catch (err) {
@@ -172,7 +182,8 @@ export function ActionDialog<TInput, TResult>({
     customSubmit,
     setSubmittingWithNotify,
     onStart,
-    onSettled
+    onSettled,
+    queryClient
   ])
 
   const handleSubmit = () => {
@@ -197,7 +208,7 @@ export function ActionDialog<TInput, TResult>({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <div className="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0 pr-1">
-          {renderForm({ value, onChange, submit, submitting, stage })}
+          {renderForm({ value, onChange, submit, submitting, stage, onDisableSubmit: setFormBlocked })}
         </div>
         <DialogFooter className="flex-shrink-0">
           <Button
@@ -207,7 +218,7 @@ export function ActionDialog<TInput, TResult>({
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button onClick={handleSubmit} disabled={submitting || formBlocked}>
             {submitting ? "Running…" : submitLabel}
           </Button>
         </DialogFooter>

@@ -99,3 +99,14 @@ export function useMayaUsage(organizationId?: string | null) {
     staleTime: 30_000,
   });
 }
+
+// null means "unknown" (loading/no data yet) — callers should treat that as
+// "don't block", not as zero remaining.
+export function useMayaRemainingCredits(organizationId?: string | null) {
+  const { data, isPending } = useMayaUsage(organizationId);
+  return {
+    imagesRemaining: data ? data.images.remaining : null,
+    videoSecondsRemaining: data ? data.videoSeconds.remaining : null,
+    isLoading: isPending,
+  };
+}

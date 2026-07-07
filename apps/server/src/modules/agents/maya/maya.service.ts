@@ -396,6 +396,10 @@ export const generateVariants = async (
   organizationId: string,
   input: GenerateVariantsInput
 ): Promise<VariantResponse> => {
+  const imageCount = input.includeImages ? input.targetPlatforms.length : 0;
+  await checkAndIncrementImages(organizationId, imageCount);
+
+  try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
   const userMsg = await mayaRepository.createUserMessage({
     organizationId,
@@ -421,6 +425,11 @@ export const generateVariants = async (
     },
   });
 
+  const actualImageCount = input.includeImages ? data.variants.filter((v) => v.image).length : 0;
+  if (actualImageCount < imageCount) {
+    await rollbackImages(organizationId, imageCount - actualImageCount);
+  }
+
   const hostedVariants = await Promise.all(
     data.variants.map(async (v) => ({
       ...v,
@@ -443,6 +452,10 @@ export const generateVariants = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackImages(organizationId, imageCount);
+    throw err;
+  }
 };
 
 export const revise = async (
@@ -875,6 +888,13 @@ export const draftCarousel = async (
     },
   });
 
+  if (imageCount > 0) {
+    const actualImageCount = data.slides.filter((s) => s.image).length;
+    if (actualImageCount < imageCount) {
+      await rollbackImages(organizationId, imageCount - actualImageCount);
+    }
+  }
+
   const hostedSlides: CarouselSlide[] = await Promise.all(
     data.slides.map(async (slide) => ({
       slide_number: slide.slide_number,
@@ -1114,6 +1134,11 @@ export const createCampaign = async (
     },
   });
 
+  const actualPhotoCount = data.photos.filter((p) => p.image).length;
+  if (actualPhotoCount < input.photoCount) {
+    await rollbackImages(organizationId, input.photoCount - actualPhotoCount);
+  }
+
   const [hostedPhotos, caption] = await Promise.all([
     Promise.all(
       data.photos.map(async (photo) => ({
@@ -1262,6 +1287,9 @@ export const createCampaignVideoStoryboard = async (
   organizationId: string,
   input: CampaignVideoStoryboardInput
 ): Promise<CampaignVideoStoryboardResponse> => {
+  await checkAndIncrementImages(organizationId, 1);
+
+  try {
   await mayaRepository.createUserMessage({
     organizationId,
     userId,
@@ -1307,6 +1335,10 @@ export const createCampaignVideoStoryboard = async (
   });
 
   return result;
+  } catch (err) {
+    await rollbackImages(organizationId, 1);
+    throw err;
+  }
 };
 
 export const createCampaignVideo = async (

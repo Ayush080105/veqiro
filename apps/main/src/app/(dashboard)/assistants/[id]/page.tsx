@@ -1215,7 +1215,7 @@ export default function AssistantChatPage() {
           </button>
           <div className="flex items-center gap-1.5" style={{ marginLeft: "auto" }}>
             <MayaCreditsPill organizationId={organizationId} />
-            <MayaTopUpButton />
+            <MayaTopUpButton organizationId={organizationId} />
           </div>
         </div>
       )}

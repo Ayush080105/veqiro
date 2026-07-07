@@ -15,11 +15,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useBillingStatus } from "@/lib/api/billing"
 
 type TopUpResource = "images" | "video"
 
-// $1 = 20 image credits, $1 = 20 video seconds.
-const CREDITS_PER_DOLLAR: Record<TopUpResource, number> = { images: 20, video: 20 }
+// $1 = 10 image credits, $1 = 10 video seconds.
+const CREDITS_PER_DOLLAR: Record<TopUpResource, number> = { images: 10, video: 10 }
 const RESOURCE_LABEL: Record<TopUpResource, string> = { images: "image credits", video: "video seconds" }
 
 // STUB: no backend call yet — confirm just shows a "coming soon" toast.
@@ -30,10 +31,13 @@ const RESOURCE_LABEL: Record<TopUpResource, string> = { images: "image credits",
 // needs a new mechanism to raise the limit for the current period (e.g.
 // bonus columns on `MayaUsage`), plus a real one-off Dodo purchase flow —
 // billing today is subscription-only (apps/server/.../billing.routes.ts).
-export function MayaTopUpButton() {
+export function MayaTopUpButton({ organizationId }: { organizationId: string }) {
   const [open, setOpen] = useState(false)
   const [resource, setResource] = useState<TopUpResource>("images")
   const [amount, setAmount] = useState("5")
+
+  const { data: billing } = useBillingStatus(organizationId)
+  const isActiveSubscriber = billing?.subscription?.status === "ACTIVE"
 
   const dollars = Number(amount) > 0 ? Number(amount) : 0
   const credits = dollars * CREDITS_PER_DOLLAR[resource]
@@ -63,10 +67,10 @@ export function MayaTopUpButton() {
 
           <RadioGroup value={resource} onValueChange={(v) => setResource(v as TopUpResource)}>
             <label className="flex items-center gap-2 text-xs">
-              <RadioGroupItem value="images" /> Images — $1 = 20 credits
+              <RadioGroupItem value="images" /> Images — $1 = 10 credits
             </label>
             <label className="flex items-center gap-2 text-xs">
-              <RadioGroupItem value="video" /> Video — $1 = 20 seconds
+              <RadioGroupItem value="video" /> Video — $1 = 10 seconds
             </label>
           </RadioGroup>
 
@@ -87,11 +91,17 @@ export function MayaTopUpButton() {
             You&apos;ll get {credits} {RESOURCE_LABEL[resource]}.
           </p>
 
+          {!isActiveSubscriber && (
+            <p className="text-xs text-destructive">
+              Top-ups are available for active Maya subscribers. Upgrade your plan to unlock this.
+            </p>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleConfirm} disabled={dollars <= 0}>
+            <Button onClick={handleConfirm} disabled={!isActiveSubscriber || dollars <= 0}>
               Top Up
             </Button>
           </DialogFooter>

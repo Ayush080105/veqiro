@@ -88,6 +88,7 @@ type FormComponent = React.ComponentType<{
   onChange: (patch: any) => void
   submitting?: boolean
   stage?: ActionStage | null
+  onDisableSubmit?: (disabled: boolean) => void
 }>
 
 interface ActionSpec {
@@ -706,8 +707,8 @@ export function RunActionDialog({
       submitLabel={submitLabel}
       resolveActionId={resolveActionId}
       onSubmittingChange={onSubmittingChange}
-      renderForm={({ value, onChange, submitting, stage }) => (
-        <Form value={value} onChange={onChange} submitting={submitting} stage={stage} />
+      renderForm={({ value, onChange, submitting, stage, onDisableSubmit }) => (
+        <Form value={value} onChange={onChange} submitting={submitting} stage={stage} onDisableSubmit={onDisableSubmit} />
       )}
       onStart={onStart}
       onSettled={onSettled}
