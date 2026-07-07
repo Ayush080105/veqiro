@@ -10,13 +10,13 @@ import "dotenv/config";
 import { Client } from "pg";
 
 const BACKFILL_TRIALING = `
-  INSERT INTO maya_usage (id, "organizationId", "periodStart", "periodEnd", "imageCount", "videoSeconds", "createdAt", "updatedAt")
+  INSERT INTO maya_usage (id, "organizationId", "periodStart", "periodEnd", "creditsUsed", "createdAt", "updatedAt")
   SELECT
     gen_random_uuid()::text,
     s."organizationId",
     NOW(),
     s."trialEndsAt",
-    0, 0, NOW(), NOW()
+    0, NOW(), NOW()
   FROM subscription s
   WHERE s.status = 'TRIALING'
     AND s."trialEndsAt" > NOW()
@@ -27,13 +27,13 @@ const BACKFILL_TRIALING = `
 `;
 
 const BACKFILL_ACTIVE = `
-  INSERT INTO maya_usage (id, "organizationId", "periodStart", "periodEnd", "imageCount", "videoSeconds", "createdAt", "updatedAt")
+  INSERT INTO maya_usage (id, "organizationId", "periodStart", "periodEnd", "creditsUsed", "createdAt", "updatedAt")
   SELECT
     gen_random_uuid()::text,
     s."organizationId",
     NOW(),
     s."currentPeriodEnd",
-    0, 0, NOW(), NOW()
+    0, NOW(), NOW()
   FROM subscription s
   WHERE s.status = 'ACTIVE'
     AND s."currentPeriodEnd" > NOW()

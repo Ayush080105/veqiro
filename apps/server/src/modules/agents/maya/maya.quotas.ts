@@ -1,16 +1,40 @@
 export type QuotaTier = "TRIAL" | "MONTHLY_CUSTOM" | "MONTHLY_CREW" | "ANNUAL_CREW";
-export type PlanQuota = { images: number; videoSeconds: number };
 
-// Edit these values directly to change per-plan limits.
-const QUOTA: Record<QuotaTier, PlanQuota> = {
-  TRIAL:          { images: 20,  videoSeconds: 30  },
-  MONTHLY_CUSTOM: { images: 100, videoSeconds: 60  },
-  MONTHLY_CREW:   { images: 200, videoSeconds: 120 },
-  ANNUAL_CREW:    { images: 300, videoSeconds: 180 },
+// Edit these values directly to change per-plan credit budgets.
+const QUOTA: Record<QuotaTier, number> = {
+  TRIAL:          30,
+  MONTHLY_CUSTOM: 300,
+  MONTHLY_CREW:   300,
+  ANNUAL_CREW:    400,
 };
 
-export function getQuotaForTier(tier: QuotaTier): PlanQuota {
+export function getQuotaForTier(tier: QuotaTier): number {
   return QUOTA[tier];
+}
+
+// ─── Credit conversion factors ─────────────────────────────────────────────
+export const CREDITS_PER_IMAGE = 2;
+export const CREDITS_PER_VIDEO_SECOND = 4;
+
+export function imageCreditsFor(count: number): number {
+  return count * CREDITS_PER_IMAGE;
+}
+export function videoCreditsFor(seconds: number): number {
+  return seconds * CREDITS_PER_VIDEO_SECOND;
+}
+
+// ─── Top-up conversion (frontend stub only today — no purchase flow yet;
+// kept here so backend/frontend never drift once a real purchase flow ships) ──
+export const TOPUP_DOLLAR_UNIT = 3;
+export const TOPUP_CREDITS_PER_UNIT = 50;
+
+// Throws on non-multiples so a future backend purchase handler fails loudly
+// on bad input rather than silently truncating/rounding.
+export function creditsForTopUpDollars(dollars: number): number {
+  if (dollars <= 0 || dollars % TOPUP_DOLLAR_UNIT !== 0) {
+    throw new Error(`Top-up amount must be a positive multiple of $${TOPUP_DOLLAR_UNIT}`);
+  }
+  return (dollars / TOPUP_DOLLAR_UNIT) * TOPUP_CREDITS_PER_UNIT;
 }
 
 // ANNUAL is always CREW by design — CUSTOM plans are MONTHLY-only.

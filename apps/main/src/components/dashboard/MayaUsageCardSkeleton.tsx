@@ -13,7 +13,6 @@ export function MayaUsageCardSkeleton() {
       </div>
       <div className="flex flex-col gap-4">
         <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
         <Skeleton className="h-4 w-32" />
       </div>
     </div>

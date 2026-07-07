@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ImageIcon, Video } from "lucide-react"
+import { Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
@@ -82,19 +82,18 @@ export function MayaUsageCard() {
   }
 
   const remaining = daysLeftInPeriod(data.periodEnd)
-  const atLimit = data.images.remaining === 0 || data.videoSeconds.remaining === 0
-  const imagesNear = data.images.limit > 0 && data.images.used / data.images.limit >= 0.8
-  const videoNear =
-    data.videoSeconds.limit > 0 && data.videoSeconds.used / data.videoSeconds.limit >= 0.8
-  const nearLimit = !atLimit && (imagesNear || videoNear)
+  const atLimit = data.credits.remaining === 0
+  const nearLimit = !atLimit && data.credits.limit > 0 && data.credits.used / data.credits.limit >= 0.8
 
   return (
     <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
       <ShellHeader />
 
       <div className="flex flex-col gap-4">
-        <UsageBar label="Images" icon={ImageIcon} resource={data.images} />
-        <UsageBar label="Video" icon={Video} resource={data.videoSeconds} unit="sec" />
+        <UsageBar label="Credits" icon={Sparkles} resource={data.credits} />
+        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+          1 img = 2cr · 1s video = 4cr
+        </span>
 
         <div className="flex items-center justify-between gap-2 pt-3.5 border-t-2 border-foreground/10">
           <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">

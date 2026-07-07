@@ -1245,7 +1245,7 @@ model ExpenseSplit {
   @@map("expense_split")
 }
 
-/// Per-billing-period image and video generation usage for the Maya agent.
+/// Per-billing-period credit usage for the Maya agent.
 model MayaUsage {
   /// Record id.
   id             String       @id @default(cuid())
@@ -1255,10 +1255,8 @@ model MayaUsage {
   periodStart    DateTime
   /// Exclusive end of the billing period (UTC).
   periodEnd      DateTime
-  /// Total images generated this period.
-  imageCount     Int          @default(0)
-  /// Total video seconds generated this period.
-  videoSeconds   Int          @default(0)
+  /// Total credits consumed this period (1 image = 2 credits, 1 video-second = 4 credits).
+  creditsUsed    Int          @default(0)
   /// Record creation timestamp.
   createdAt      DateTime     @default(now())
   /// Record update timestamp.

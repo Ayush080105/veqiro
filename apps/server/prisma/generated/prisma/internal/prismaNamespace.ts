@@ -4039,8 +4039,7 @@ export const MayaUsageScalarFieldEnum = {
   organizationId: 'organizationId',
   periodStart: 'periodStart',
   periodEnd: 'periodEnd',
-  imageCount: 'imageCount',
-  videoSeconds: 'videoSeconds',
+  creditsUsed: 'creditsUsed',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

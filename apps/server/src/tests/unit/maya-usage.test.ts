@@ -9,8 +9,7 @@ type Row = {
   organizationId: string;
   periodStart: Date;
   periodEnd: Date;
-  imageCount: number;
-  videoSeconds: number;
+  creditsUsed: number;
 };
 
 let row: Row | null = null;
@@ -32,7 +31,7 @@ vi.mock("../../config/prisma.js", () => ({
 
 function applyUpdate(data: Record<string, unknown>) {
   if (!row) return;
-  for (const key of ["imageCount", "videoSeconds", "periodEnd"] as const) {
+  for (const key of ["creditsUsed", "periodEnd"] as const) {
     const v = data[key];
     if (v === undefined) continue;
     if (v && typeof v === "object" && "increment" in (v as object)) {
@@ -92,8 +91,8 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
       if (row && row.periodEnd.getTime() > Date.now()) return row;
       return null;
     });
-    mockPrisma.mayaUsage.create.mockImplementation(async ({ data }: { data: Omit<Row, "imageCount" | "videoSeconds"> }) => {
-      row = { ...data, imageCount: 0, videoSeconds: 0 };
+    mockPrisma.mayaUsage.create.mockImplementation(async ({ data }: { data: Omit<Row, "creditsUsed"> }) => {
+      row = { ...data, creditsUsed: 0 };
       return row;
     });
     mockPrisma.mayaUsage.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
@@ -101,7 +100,7 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
       return row;
     });
     mockPrisma.$queryRaw.mockImplementation(async () => {
-      return row ? [{ imageCount: row.imageCount, videoSeconds: row.videoSeconds }] : [];
+      return row ? [{ creditsUsed: row.creditsUsed }] : [];
     });
     mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma));
   });
@@ -120,7 +119,8 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
       assert.equal(createArgs.data.periodEnd.getTime(), trialEndsAt.getTime());
 
       assert.equal(result.tier, "TRIAL");
-      assert.equal(result.images.used, 0);
+      assert.equal(result.credits.used, 0);
+      assert.equal(result.credits.limit, 30);
       assert.equal(result.periodEnd, trialEndsAt.toISOString());
     });
 
@@ -132,8 +132,7 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
       const result = await getCurrentUsage("org_2");
 
       assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
-      assert.equal(result.images.used, 0);
-      assert.equal(result.videoSeconds.used, 0);
+      assert.equal(result.credits.used, 0);
       assert.ok(new Date(result.periodEnd).getTime() >= before);
     });
 
@@ -145,7 +144,7 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
       const result = await getCurrentUsage("org_3");
 
       assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
-      assert.equal(result.images.used, 0);
+      assert.equal(result.credits.used, 0);
     });
 
     test("throws no-subscription when the Subscription row is missing", async () => {
@@ -155,68 +154,68 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
     });
   });
 
-  describe("checkAndIncrementImages", () => {
+  describe("checkAndDeductCredits", () => {
     test("happy path: an existing active period increments without invoking self-heal", async () => {
       const periodEnd = new Date(Date.now() + 10 * DAY);
       row = {
         organizationId: "org_4",
         periodStart: new Date(Date.now() - 5 * DAY),
         periodEnd,
-        imageCount: 3,
-        videoSeconds: 0,
+        creditsUsed: 6,
       };
       mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
 
-      const { checkAndIncrementImages } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndIncrementImages("org_4", 2);
+      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_4", 4);
 
       assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
-      assert.equal(row!.imageCount, 5);
+      assert.equal(row!.creditsUsed, 10);
     });
 
     test("self-heals when period missing but subscription is ACTIVE with a future currentPeriodEnd", async () => {
       const periodEnd = new Date(Date.now() + 30 * DAY);
       mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
 
-      const { checkAndIncrementImages } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndIncrementImages("org_5", 4);
+      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_5", 8);
 
       assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 1);
-      assert.equal(row!.imageCount, 4);
+      assert.equal(row!.creditsUsed, 8);
       assert.equal(row!.periodEnd.getTime(), periodEnd.getTime());
     });
 
     test("still throws no-active-usage-period when a CANCELLED sub's currentPeriodEnd has already lapsed", async () => {
       mockPrisma.subscription.findUnique.mockResolvedValue(cancelledSub(new Date(Date.now() - 1000)));
 
-      const { checkAndIncrementImages } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(checkAndIncrementImages("org_6", 1)).rejects.toThrow("no-active-usage-period");
+      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(checkAndDeductCredits("org_6", 2)).rejects.toThrow("no-active-usage-period");
       assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
     });
 
     test("still throws QuotaExceededError when over quota — self-heal branch doesn't change happy-path enforcement", async () => {
       const periodEnd = new Date(Date.now() + 10 * DAY);
-      row = { organizationId: "org_7", periodStart: new Date(), periodEnd, imageCount: 19, videoSeconds: 0 };
-      mockPrisma.subscription.findUnique.mockResolvedValue(trialingSub(periodEnd)); // TRIAL images limit = 20
+      row = { organizationId: "org_7", periodStart: new Date(), periodEnd, creditsUsed: 25 };
+      mockPrisma.subscription.findUnique.mockResolvedValue(trialingSub(periodEnd)); // TRIAL credit limit = 30
 
-      const { checkAndIncrementImages } = await import("../../modules/agents/maya/maya.usage.service.js");
-      const error = await checkAndIncrementImages("org_7", 5).catch((e) => e);
+      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      const error = await checkAndDeductCredits("org_7", 10).catch((e) => e);
       expect(error).toBeInstanceOf(QuotaExceededError);
-      assert.equal((error as QuotaExceededError).resource, "images");
-      assert.equal(row!.imageCount, 19); // unchanged — the increment never committed
+      assert.equal((error as QuotaExceededError).used, 25);
+      assert.equal((error as QuotaExceededError).limit, 30);
+      assert.equal(row!.creditsUsed, 25); // unchanged — the increment never committed
     });
 
     test("still throws no-subscription when the Subscription row is missing", async () => {
       mockPrisma.subscription.findUnique.mockResolvedValue(null);
-      const { checkAndIncrementImages } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(checkAndIncrementImages("org_8", 1)).rejects.toThrow("no-subscription");
+      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(checkAndDeductCredits("org_8", 1)).rejects.toThrow("no-subscription");
     });
 
     test("race safety: a unique-constraint collision on create refetches the concurrently-created period instead of failing", async () => {
       const periodEnd = new Date(Date.now() + 10 * DAY);
       mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
 
-      // First getActivePeriod call (top of checkAndIncrementImages) sees nothing yet.
+      // First getActivePeriod call (top of checkAndDeductCredits) sees nothing yet.
       mockPrisma.mayaUsage.findFirst.mockImplementationOnce(async () => null);
       // Our create() races with a concurrent request that inserted the row first.
       mockPrisma.mayaUsage.create.mockImplementationOnce(async () => {
@@ -224,8 +223,7 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
           organizationId: "org_15",
           periodStart: new Date(),
           periodEnd,
-          imageCount: 1,
-          videoSeconds: 0,
+          creditsUsed: 2,
         };
         throw new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
           code: "P2002",
@@ -233,53 +231,30 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
         });
       });
 
-      const { checkAndIncrementImages } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndIncrementImages("org_15", 2);
+      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_15", 4);
 
       // Refetch (via the default findFirst impl, now that `row` exists) found the
       // concurrently-created period and incremented onto it — no error surfaced.
-      assert.equal(row!.imageCount, 3);
-    });
-  });
-
-  describe("checkAndIncrementVideoSeconds", () => {
-    test("self-heals when period missing but subscription is TRIALING with a future trialEndsAt", async () => {
-      const trialEndsAt = new Date(Date.now() + 5 * DAY);
-      mockPrisma.subscription.findUnique.mockResolvedValue(trialingSub(trialEndsAt));
-
-      const { checkAndIncrementVideoSeconds } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndIncrementVideoSeconds("org_9", 10);
-
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 1);
-      assert.equal(row!.videoSeconds, 10);
-      assert.equal(row!.periodEnd.getTime(), trialEndsAt.getTime());
-    });
-
-    test("still throws no-active-usage-period when nothing valid to self-heal from", async () => {
-      mockPrisma.subscription.findUnique.mockResolvedValue(expiredSub());
-      const { checkAndIncrementVideoSeconds } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(checkAndIncrementVideoSeconds("org_9b", 5)).rejects.toThrow("no-active-usage-period");
+      assert.equal(row!.creditsUsed, 6);
     });
   });
 
   describe("adjustCurrentPeriodUsage", () => {
-    test("adjusts only the fields passed and clamps the floor at 0", async () => {
+    test("adjusts creditsUsed by delta and clamps the floor at 0", async () => {
       const periodEnd = new Date(Date.now() + 10 * DAY);
-      row = { organizationId: "org_10", periodStart: new Date(), periodEnd, imageCount: 2, videoSeconds: 5 };
+      row = { organizationId: "org_10", periodStart: new Date(), periodEnd, creditsUsed: 4 };
       mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
 
       const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
 
-      // Grant credits: negative delta decrements `used`, clamped at 0 (2 - 10 -> 0, not -8).
-      await adjustCurrentPeriodUsage("org_10", { images: -10 });
-      assert.equal(row!.imageCount, 0);
-      assert.equal(row!.videoSeconds, 5); // untouched — only `images` was passed
+      // Grant credits: negative delta decrements `used`, clamped at 0 (4 - 10 -> 0, not -6).
+      await adjustCurrentPeriodUsage("org_10", -10);
+      assert.equal(row!.creditsUsed, 0);
 
-      // Revoke credits: positive delta increments `used`; videoSeconds-only call
-      // leaves imageCount alone.
-      await adjustCurrentPeriodUsage("org_10", { videoSeconds: 3 });
-      assert.equal(row!.videoSeconds, 8);
-      assert.equal(row!.imageCount, 0);
+      // Revoke credits: positive delta increments `used`.
+      await adjustCurrentPeriodUsage("org_10", 3);
+      assert.equal(row!.creditsUsed, 3);
     });
 
     test("self-heals when no active period exists but the subscription is legitimately active", async () => {
@@ -287,28 +262,28 @@ describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
       mockPrisma.subscription.findUnique.mockResolvedValue(trialingSub(trialEndsAt));
 
       const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await adjustCurrentPeriodUsage("org_11", { images: -5 });
+      await adjustCurrentPeriodUsage("org_11", -5);
 
       assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 1);
-      assert.equal(row!.imageCount, 0); // fresh row starts at 0, clamped after -5
+      assert.equal(row!.creditsUsed, 0); // fresh row starts at 0, clamped after -5
       assert.equal(row!.periodEnd.getTime(), trialEndsAt.getTime());
     });
 
     test("throws no-subscription when the Subscription row is missing", async () => {
       mockPrisma.subscription.findUnique.mockResolvedValue(null);
       const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(adjustCurrentPeriodUsage("org_12", { images: 1 })).rejects.toThrow("no-subscription");
+      await expect(adjustCurrentPeriodUsage("org_12", 1)).rejects.toThrow("no-subscription");
     });
 
     test("throws no-active-usage-period when there is nothing valid to self-heal from", async () => {
       mockPrisma.subscription.findUnique.mockResolvedValue(expiredSub());
       const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(adjustCurrentPeriodUsage("org_13", { images: 1 })).rejects.toThrow("no-active-usage-period");
+      await expect(adjustCurrentPeriodUsage("org_13", 1)).rejects.toThrow("no-active-usage-period");
     });
 
-    test("no-op when neither field is passed — never touches the Subscription or MayaUsage tables", async () => {
+    test("no-op when delta is 0 — never touches the Subscription or MayaUsage tables", async () => {
       const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await adjustCurrentPeriodUsage("org_14", {});
+      await adjustCurrentPeriodUsage("org_14", 0);
       assert.equal(mockPrisma.subscription.findUnique.mock.calls.length, 0);
       assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
     });

@@ -6,7 +6,6 @@ import { Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Dialog,
   DialogContent,
@@ -17,11 +16,12 @@ import {
 } from "@/components/ui/dialog"
 import { useBillingStatus } from "@/lib/api/billing"
 
-type TopUpResource = "images" | "video"
-
-// $1 = 10 image credits, $1 = 10 video seconds.
-const CREDITS_PER_DOLLAR: Record<TopUpResource, number> = { images: 10, video: 10 }
-const RESOURCE_LABEL: Record<TopUpResource, string> = { images: "image credits", video: "video seconds" }
+// $3 = 50 credits. Mirrors apps/server/.../maya.quotas.ts's
+// TOPUP_DOLLAR_UNIT/TOPUP_CREDITS_PER_UNIT — keep both in sync manually,
+// there's no shared package across the Next/Express boundary.
+const DOLLAR_UNIT = 3
+const CREDITS_PER_UNIT = 50
+const PRESET_AMOUNTS = [3, 6, 9, 12, 15]
 
 // STUB: no backend call yet — confirm just shows a "coming soon" toast.
 // When this is wired up, it can't reuse `adjustCurrentPeriodUsage`
@@ -33,14 +33,14 @@ const RESOURCE_LABEL: Record<TopUpResource, string> = { images: "image credits",
 // billing today is subscription-only (apps/server/.../billing.routes.ts).
 export function MayaTopUpButton({ organizationId }: { organizationId: string }) {
   const [open, setOpen] = useState(false)
-  const [resource, setResource] = useState<TopUpResource>("images")
-  const [amount, setAmount] = useState("5")
+  const [amount, setAmount] = useState(String(DOLLAR_UNIT))
 
   const { data: billing } = useBillingStatus(organizationId)
   const isActiveSubscriber = billing?.subscription?.status === "ACTIVE"
 
   const dollars = Number(amount) > 0 ? Number(amount) : 0
-  const credits = dollars * CREDITS_PER_DOLLAR[resource]
+  const isValidAmount = dollars > 0 && dollars % DOLLAR_UNIT === 0
+  const credits = isValidAmount ? (dollars / DOLLAR_UNIT) * CREDITS_PER_UNIT : 0
 
   function handleConfirm() {
     toast("Top-ups are coming soon — check back shortly.")
@@ -61,34 +61,46 @@ export function MayaTopUpButton({ organizationId }: { organizationId: string }) 
           <DialogHeader>
             <DialogTitle>Top up Maya credits</DialogTitle>
             <DialogDescription>
-              Add extra image or video credits for this billing period.
+              Add extra credits for this billing period — use them on images or video, however you like.
             </DialogDescription>
           </DialogHeader>
 
-          <RadioGroup value={resource} onValueChange={(v) => setResource(v as TopUpResource)}>
-            <label className="flex items-center gap-2 text-xs">
-              <RadioGroupItem value="images" /> Images — $1 = 10 credits
-            </label>
-            <label className="flex items-center gap-2 text-xs">
-              <RadioGroupItem value="video" /> Video — $1 = 10 seconds
-            </label>
-          </RadioGroup>
-
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Amount (USD)
+              {`Amount (multiples of $${DOLLAR_UNIT})`}
             </label>
+            <div className="flex gap-1.5">
+              {PRESET_AMOUNTS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setAmount(String(n))}
+                  className="flex-1 py-1.5 text-xs rounded transition-colors"
+                  style={{
+                    border: "2px solid var(--border)",
+                    background: dollars === n ? "var(--foreground)" : "transparent",
+                    color: dollars === n ? "var(--background)" : "var(--foreground)",
+                    fontWeight: dollars === n ? 700 : 400,
+                  }}
+                >
+                  ${n}
+                </button>
+              ))}
+            </div>
             <Input
               type="number"
-              min="1"
-              step="1"
+              min={DOLLAR_UNIT}
+              step={DOLLAR_UNIT}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
+            {!isValidAmount && dollars > 0 && (
+              <p className="text-xs text-destructive">{`Amount must be a multiple of $${DOLLAR_UNIT}.`}</p>
+            )}
           </div>
 
           <p className="text-xs text-muted-foreground">
-            You&apos;ll get {credits} {RESOURCE_LABEL[resource]}.
+            You&apos;ll get {credits} credits.
           </p>
 
           {!isActiveSubscriber && (
@@ -101,7 +113,7 @@ export function MayaTopUpButton({ organizationId }: { organizationId: string }) 
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleConfirm} disabled={!isActiveSubscriber || dollars <= 0}>
+            <Button onClick={handleConfirm} disabled={!isActiveSubscriber || !isValidAmount}>
               Top Up
             </Button>
           </DialogFooter>

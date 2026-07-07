@@ -50,11 +50,10 @@ import { SocialPlatform, SocialAccount } from "../../../../prisma/generated/pris
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import type { PlatformSlug, SocialProvider } from "../../integrations/integrations.types.js";
 import {
-  checkAndIncrementImages,
-  checkAndIncrementVideoSeconds,
-  rollbackImages,
-  rollbackVideoSeconds,
+  checkAndDeductCredits,
+  rollbackCredits,
 } from "./maya.usage.service.js";
+import { imageCreditsFor, videoCreditsFor } from "./maya.quotas.js";
 
 const platformToEnum: Record<string, SocialPlatform> = {
   twitter: SocialPlatform.TWITTER,
@@ -252,8 +251,8 @@ export const generateIdeas = async (
   organizationId: string,
   input: GenerateIdeasInput
 ): Promise<IdeationResponse> => {
-  const imageCount = input.includeImage ? 1 : 0;
-  await checkAndIncrementImages(organizationId, imageCount);
+  const imageCredits = imageCreditsFor(input.includeImage ? 1 : 0);
+  await checkAndDeductCredits(organizationId, imageCredits);
 
   try {
   const platformEnum = platformToEnum[input.platform];
@@ -315,7 +314,7 @@ export const generateIdeas = async (
 
   return result;
   } catch (err) {
-    await rollbackImages(organizationId, imageCount);
+    await rollbackCredits(organizationId, imageCredits);
     throw err;
   }
 };
@@ -325,8 +324,8 @@ export const draftContent = async (
   organizationId: string,
   input: DraftContentInput
 ): Promise<DraftResponse> => {
-  const imageCount = input.includeImage ? 1 : 0;
-  await checkAndIncrementImages(organizationId, imageCount);
+  const imageCredits = imageCreditsFor(input.includeImage ? 1 : 0);
+  await checkAndDeductCredits(organizationId, imageCredits);
 
   try {
   const [history, brandImagesBase] = await Promise.all([
@@ -386,7 +385,7 @@ export const draftContent = async (
 
   return result;
   } catch (err) {
-    await rollbackImages(organizationId, imageCount);
+    await rollbackCredits(organizationId, imageCredits);
     throw err;
   }
 };
@@ -397,7 +396,8 @@ export const generateVariants = async (
   input: GenerateVariantsInput
 ): Promise<VariantResponse> => {
   const imageCount = input.includeImages ? input.targetPlatforms.length : 0;
-  await checkAndIncrementImages(organizationId, imageCount);
+  const imageCredits = imageCreditsFor(imageCount);
+  await checkAndDeductCredits(organizationId, imageCredits);
 
   try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
@@ -427,7 +427,7 @@ export const generateVariants = async (
 
   const actualImageCount = input.includeImages ? data.variants.filter((v) => v.image).length : 0;
   if (actualImageCount < imageCount) {
-    await rollbackImages(organizationId, imageCount - actualImageCount);
+    await rollbackCredits(organizationId, imageCreditsFor(imageCount - actualImageCount));
   }
 
   const hostedVariants = await Promise.all(
@@ -453,7 +453,7 @@ export const generateVariants = async (
 
   return result;
   } catch (err) {
-    await rollbackImages(organizationId, imageCount);
+    await rollbackCredits(organizationId, imageCredits);
     throw err;
   }
 };
@@ -505,7 +505,7 @@ export const regenerateImage = async (
   organizationId: string,
   input: RegenerateImageInput
 ): Promise<ImageRegenResponse> => {
-  await checkAndIncrementImages(organizationId, 1);
+  await checkAndDeductCredits(organizationId, imageCreditsFor(1));
 
   try {
   await mayaRepository.createUserMessage({
@@ -543,7 +543,7 @@ export const regenerateImage = async (
 
   return result;
   } catch (err) {
-    await rollbackImages(organizationId, 1);
+    await rollbackCredits(organizationId, imageCreditsFor(1));
     throw err;
   }
 };
@@ -855,7 +855,8 @@ export const draftCarousel = async (
   input: DraftCarouselInput
 ): Promise<CarouselDraftResponse> => {
   const imageCount = input.includeImages ? input.carouselCount : 0;
-  await checkAndIncrementImages(organizationId, imageCount);
+  const imageCredits = imageCreditsFor(imageCount);
+  await checkAndDeductCredits(organizationId, imageCredits);
 
   try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
@@ -891,7 +892,7 @@ export const draftCarousel = async (
   if (imageCount > 0) {
     const actualImageCount = data.slides.filter((s) => s.image).length;
     if (actualImageCount < imageCount) {
-      await rollbackImages(organizationId, imageCount - actualImageCount);
+      await rollbackCredits(organizationId, imageCreditsFor(imageCount - actualImageCount));
     }
   }
 
@@ -915,7 +916,7 @@ export const draftCarousel = async (
 
   return result;
   } catch (err) {
-    await rollbackImages(organizationId, imageCount);
+    await rollbackCredits(organizationId, imageCredits);
     throw err;
   }
 };
@@ -1104,7 +1105,8 @@ export const createCampaign = async (
   organizationId: string,
   input: CampaignInput
 ): Promise<CampaignResponse> => {
-  await checkAndIncrementImages(organizationId, input.photoCount);
+  const campaignImageCredits = imageCreditsFor(input.photoCount);
+  await checkAndDeductCredits(organizationId, campaignImageCredits);
 
   try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
@@ -1136,7 +1138,7 @@ export const createCampaign = async (
 
   const actualPhotoCount = data.photos.filter((p) => p.image).length;
   if (actualPhotoCount < input.photoCount) {
-    await rollbackImages(organizationId, input.photoCount - actualPhotoCount);
+    await rollbackCredits(organizationId, imageCreditsFor(input.photoCount - actualPhotoCount));
   }
 
   const [hostedPhotos, caption] = await Promise.all([
@@ -1189,7 +1191,7 @@ export const createCampaign = async (
 
   return result;
   } catch (err) {
-    await rollbackImages(organizationId, input.photoCount);
+    await rollbackCredits(organizationId, campaignImageCredits);
     throw err;
   }
 };
@@ -1228,7 +1230,8 @@ export const generateVideo = async (
   organizationId: string,
   input: GenerateVideoInput
 ): Promise<GenerateVideoResponse> => {
-  await checkAndIncrementVideoSeconds(organizationId, input.durationSeconds);
+  const videoCredits = videoCreditsFor(input.durationSeconds);
+  await checkAndDeductCredits(organizationId, videoCredits);
 
   try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
@@ -1277,7 +1280,7 @@ export const generateVideo = async (
 
   return result;
   } catch (err) {
-    await rollbackVideoSeconds(organizationId, input.durationSeconds);
+    await rollbackCredits(organizationId, videoCredits);
     throw err;
   }
 };
@@ -1287,7 +1290,7 @@ export const createCampaignVideoStoryboard = async (
   organizationId: string,
   input: CampaignVideoStoryboardInput
 ): Promise<CampaignVideoStoryboardResponse> => {
-  await checkAndIncrementImages(organizationId, 1);
+  await checkAndDeductCredits(organizationId, imageCreditsFor(1));
 
   try {
   await mayaRepository.createUserMessage({
@@ -1336,7 +1339,7 @@ export const createCampaignVideoStoryboard = async (
 
   return result;
   } catch (err) {
-    await rollbackImages(organizationId, 1);
+    await rollbackCredits(organizationId, imageCreditsFor(1));
     throw err;
   }
 };
@@ -1346,7 +1349,8 @@ export const createCampaignVideo = async (
   organizationId: string,
   input: CampaignVideoInput
 ): Promise<CampaignVideoResponse> => {
-  await checkAndIncrementVideoSeconds(organizationId, input.durationSeconds);
+  const campaignVideoCredits = videoCreditsFor(input.durationSeconds);
+  await checkAndDeductCredits(organizationId, campaignVideoCredits);
 
   try {
   const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
@@ -1399,7 +1403,7 @@ export const createCampaignVideo = async (
 
   return result;
   } catch (err) {
-    await rollbackVideoSeconds(organizationId, input.durationSeconds);
+    await rollbackCredits(organizationId, campaignVideoCredits);
     throw err;
   }
 };

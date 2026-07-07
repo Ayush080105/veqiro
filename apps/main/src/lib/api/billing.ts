@@ -83,8 +83,7 @@ export type MayaUsageResponse = {
   tier: MayaUsageTier;
   periodStart: string;
   periodEnd: string;
-  images: UsageResource;
-  videoSeconds: UsageResource;
+  credits: UsageResource;
 };
 
 export function getMayaUsage() {
@@ -105,8 +104,7 @@ export function useMayaUsage(organizationId?: string | null) {
 export function useMayaRemainingCredits(organizationId?: string | null) {
   const { data, isPending } = useMayaUsage(organizationId);
   return {
-    imagesRemaining: data ? data.images.remaining : null,
-    videoSecondsRemaining: data ? data.videoSeconds.remaining : null,
+    creditsRemaining: data ? data.credits.remaining : null,
     isLoading: isPending,
   };
 }

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { UsageBar } from "@/components/billing/UsageBar"
-import { ImageIcon, Video } from "lucide-react"
+import { Info, Sparkles } from "lucide-react"
 
 type AugmentedSession = {
   activeOrganization?: { id?: string } | null
@@ -40,7 +40,7 @@ export default function UsagePage() {
   const { data, isLoading, error, refetch } = useMayaUsage(organizationId)
   const { data: billing } = useBillingStatus(organizationId)
   const sub = billing?.subscription
-  const atLimit = data && (data.images.remaining === 0 || data.videoSeconds.remaining === 0)
+  const atLimit = data && data.credits.remaining === 0
   const isNoSubscription = error instanceof ApiError && error.message === "no-subscription"
 
   const billingCycleLabel =
@@ -123,16 +123,14 @@ export default function UsagePage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
             <UsageBar
-              label="Images generated"
-              icon={ImageIcon}
-              resource={data.images}
+              label="Credits used"
+              icon={Sparkles}
+              resource={data.credits}
             />
-            <UsageBar
-              label="Video generated"
-              icon={Video}
-              resource={data.videoSeconds}
-              unit="sec"
-            />
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Info className="size-3.5 shrink-0" />
+              1 image = 2 credits · 1 second of video = 4 credits
+            </p>
 
             {atLimit && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

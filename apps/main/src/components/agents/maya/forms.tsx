@@ -152,19 +152,20 @@ export function MayaDraftForm({
   const carouselCount = form.watch("carousel_count") ?? 3
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { imagesRemaining } = useMayaRemainingCredits(orgId)
-  const noImagesLeft = imagesRemaining === 0
+  const { creditsRemaining } = useMayaRemainingCredits(orgId)
+  const noCreditsLeft = creditsRemaining === 0
   const requestedImages = includeImage ? (makeCarousel ? carouselCount : 1) : 0
-  const overImageLimit = imagesRemaining !== null && requestedImages > imagesRemaining
+  const requestedCredits = requestedImages * 2
+  const overLimit = creditsRemaining !== null && requestedCredits > creditsRemaining
 
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overImageLimit)
-  }, [overImageLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit)
+  }, [overLimit, onDisableSubmit])
 
   React.useEffect(() => {
-    if (noImagesLeft && includeImage) form.setValue("include_image", false)
+    if (noCreditsLeft && includeImage) form.setValue("include_image", false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [noImagesLeft])
+  }, [noCreditsLeft])
 
   const [uploading, setUploading] = React.useState(false)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
@@ -279,11 +280,11 @@ export function MayaDraftForm({
           control={form.control}
           name="include_image"
           render={({ field }) => (
-            <label className={`flex items-center gap-2 text-xs ${noImagesLeft ? "opacity-50 cursor-not-allowed" : ""}`}>
+            <label className={`flex items-center gap-2 text-xs ${noCreditsLeft ? "opacity-50 cursor-not-allowed" : ""}`}>
               <Switch
-                checked={noImagesLeft ? false : (field.value ?? true)}
+                checked={noCreditsLeft ? false : (field.value ?? true)}
                 onCheckedChange={field.onChange}
-                disabled={noImagesLeft}
+                disabled={noCreditsLeft}
               />
               Generate image
             </label>
@@ -360,9 +361,9 @@ export function MayaDraftForm({
         </div>
       )}
 
-      {overImageLimit && (
+      {overLimit && (
         <p className="text-xs text-destructive">
-          {`This would use ${requestedImages} image credits, but only ${imagesRemaining} remain this period.`}
+          {`This would use ${requestedCredits} credits, but only ${creditsRemaining} remain this period.`}
         </p>
       )}
 
@@ -482,21 +483,22 @@ export function MayaVariantsForm({
   }, [originalPlatform])
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { imagesRemaining } = useMayaRemainingCredits(orgId)
-  const noImagesLeft = imagesRemaining === 0
+  const { creditsRemaining } = useMayaRemainingCredits(orgId)
+  const noCreditsLeft = creditsRemaining === 0
   const targetPlatforms = form.watch("target_platforms") ?? []
   const includeImages = form.watch("include_images") ?? false
   const requestedImages = includeImages ? targetPlatforms.length : 0
-  const overImageLimit = imagesRemaining !== null && requestedImages > imagesRemaining
+  const requestedCredits = requestedImages * 2
+  const overLimit = creditsRemaining !== null && requestedCredits > creditsRemaining
 
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overImageLimit)
-  }, [overImageLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit)
+  }, [overLimit, onDisableSubmit])
 
   React.useEffect(() => {
-    if (noImagesLeft && includeImages) form.setValue("include_images", false)
+    if (noCreditsLeft && includeImages) form.setValue("include_images", false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [noImagesLeft])
+  }, [noCreditsLeft])
 
   return (
     <FieldGroup>
@@ -535,20 +537,20 @@ export function MayaVariantsForm({
         control={form.control}
         name="include_images"
         render={({ field }) => (
-          <label className={`flex items-center gap-2 text-xs ${noImagesLeft ? "opacity-50 cursor-not-allowed" : ""}`}>
+          <label className={`flex items-center gap-2 text-xs ${noCreditsLeft ? "opacity-50 cursor-not-allowed" : ""}`}>
             <Switch
-              checked={noImagesLeft ? false : (field.value ?? false)}
+              checked={noCreditsLeft ? false : (field.value ?? false)}
               onCheckedChange={field.onChange}
-              disabled={noImagesLeft}
+              disabled={noCreditsLeft}
             />
             Generate per-platform images
           </label>
         )}
       />
 
-      {overImageLimit && (
+      {overLimit && (
         <p className="text-xs text-destructive">
-          {`This would use ${requestedImages} image credits, but only ${imagesRemaining} remain this period.`}
+          {`This would use ${requestedCredits} credits, but only ${creditsRemaining} remain this period.`}
         </p>
       )}
     </FieldGroup>
@@ -752,7 +754,7 @@ export function MayaCampaignForm({
   })
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { imagesRemaining } = useMayaRemainingCredits(orgId)
+  const { creditsRemaining } = useMayaRemainingCredits(orgId)
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = React.useState(false)
@@ -794,10 +796,10 @@ export function MayaCampaignForm({
   const useMascot = form.watch("use_mascot")
   const [expanding, setExpanding] = React.useState(false)
 
-  const overImageLimit = imagesRemaining !== null && photoCount > imagesRemaining
+  const overLimit = creditsRemaining !== null && photoCount * 2 > creditsRemaining
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overImageLimit)
-  }, [overImageLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit)
+  }, [overLimit, onDisableSubmit])
 
   const handleExpand = async () => {
     const brief = form.getValues("campaign_brief" as never) as unknown as string
@@ -939,7 +941,7 @@ export function MayaCampaignForm({
         <span className="text-xs font-medium">Number of Campaign Photos</span>
         <div className="flex gap-1.5">
           {PHOTO_COUNT_OPTIONS.map((n) => {
-            const exceedsRemaining = imagesRemaining !== null && n > imagesRemaining
+            const exceedsRemaining = creditsRemaining !== null && n * 2 > creditsRemaining
             return (
               <button
                 key={n}
@@ -959,9 +961,9 @@ export function MayaCampaignForm({
             )
           })}
         </div>
-        {overImageLimit && (
+        {overLimit && (
           <p className="text-xs text-destructive">
-            {`This would use ${photoCount} image credits, but only ${imagesRemaining} remain this period.`}
+            {`This would use ${photoCount * 2} credits, but only ${creditsRemaining} remain this period.`}
           </p>
         )}
       </div>
@@ -1125,13 +1127,14 @@ export function MayaGenerateVideoForm({
   })
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { videoSecondsRemaining } = useMayaRemainingCredits(orgId)
+  const { creditsRemaining } = useMayaRemainingCredits(orgId)
   const durationSeconds = form.watch("duration_seconds")
-  const overVideoLimit = videoSecondsRemaining !== null && durationSeconds > videoSecondsRemaining
+  const requestedCredits = durationSeconds * 4
+  const overLimit = creditsRemaining !== null && requestedCredits > creditsRemaining
 
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overVideoLimit)
-  }, [overVideoLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit)
+  }, [overLimit, onDisableSubmit])
 
   return (
     <FieldGroup>
@@ -1166,13 +1169,13 @@ export function MayaGenerateVideoForm({
             <DurationPicker
               value={field.value as number}
               onChange={field.onChange}
-              maxAllowed={videoSecondsRemaining ?? undefined}
+              maxAllowed={creditsRemaining === null ? undefined : Math.floor(creditsRemaining / 4)}
             />
           )}
         />
-        {overVideoLimit && (
+        {overLimit && (
           <p className="text-xs text-destructive">
-            {`This would use ${durationSeconds}s of video, but only ${videoSecondsRemaining}s remain this period.`}
+            {`This would use ${requestedCredits} credits (${durationSeconds}s of video), but only ${creditsRemaining} remain this period.`}
           </p>
         )}
       </div>
@@ -1223,19 +1226,24 @@ export function MayaCampaignVideoForm({
   })
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { imagesRemaining, videoSecondsRemaining } = useMayaRemainingCredits(orgId)
+  const { creditsRemaining } = useMayaRemainingCredits(orgId)
   const storyboardImageUrl = (value as Record<string, unknown>).storyboard_image_url as string | undefined
   const durationSeconds = form.watch("duration_seconds")
 
   // A storyboard image still needs to be generated unless this form was prefilled
-  // from a "Turn into video" reuse flow that already has one.
+  // from a "Turn into video" reuse flow that already has one. Both costs draw
+  // from the same shared credit pool, so they must be checked together — a
+  // duration that looks affordable on its own could still blow the combined
+  // budget once the storyboard cost is added.
   const needsStoryboardImage = hideDuration === true || !storyboardImageUrl
-  const overImageLimit = needsStoryboardImage && imagesRemaining !== null && imagesRemaining < 1
-  const overVideoLimit = !hideDuration && videoSecondsRemaining !== null && durationSeconds > videoSecondsRemaining
+  const storyboardCredits = needsStoryboardImage ? 2 : 0
+  const videoCredits = !hideDuration ? durationSeconds * 4 : 0
+  const requestedCredits = storyboardCredits + videoCredits
+  const overLimit = creditsRemaining !== null && requestedCredits > creditsRemaining
 
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overImageLimit || overVideoLimit)
-  }, [overImageLimit, overVideoLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit)
+  }, [overLimit, onDisableSubmit])
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = React.useState(false)
@@ -1348,9 +1356,9 @@ export function MayaCampaignVideoForm({
             <span>Click to upload — JPG, PNG, or WEBP</span>
           </button>
         )}
-        {overImageLimit && (
+        {overLimit && (
           <p className="text-xs text-destructive">
-            No image credits remain this period — a storyboard image can&apos;t be generated.
+            {`This would use ${requestedCredits} credits total (storyboard image${!hideDuration ? " + video" : ""}), but only ${creditsRemaining} remain this period.`}
           </p>
         )}
       </div>
@@ -1387,15 +1395,14 @@ export function MayaCampaignVideoForm({
               <DurationPicker
                 value={field.value as number}
                 onChange={field.onChange}
-                maxAllowed={videoSecondsRemaining ?? undefined}
+                maxAllowed={
+                  creditsRemaining === null
+                    ? undefined
+                    : Math.floor(Math.max(0, creditsRemaining - storyboardCredits) / 4)
+                }
               />
             )}
           />
-          {overVideoLimit && (
-            <p className="text-xs text-destructive">
-              {`This would use ${durationSeconds}s of video, but only ${videoSecondsRemaining}s remain this period.`}
-            </p>
-          )}
         </div>
       )}
 

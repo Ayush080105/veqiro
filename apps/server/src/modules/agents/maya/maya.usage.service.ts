@@ -93,37 +93,31 @@ export async function getCurrentUsage(organizationId: string) {
   const resolvedPeriod = period ?? (await ensurePeriod(organizationId, sub));
 
   const tier = getTierFromSubscription(sub);
-  const quota = getQuotaForTier(tier);
+  const limit = getQuotaForTier(tier);
 
-  const imageCount   = resolvedPeriod?.imageCount   ?? 0;
-  const videoSeconds = resolvedPeriod?.videoSeconds ?? 0;
-  const periodStart  = resolvedPeriod?.periodStart  ?? new Date();
+  const used       = resolvedPeriod?.creditsUsed ?? 0;
+  const periodStart = resolvedPeriod?.periodStart  ?? new Date();
   const periodEnd    = resolvedPeriod?.periodEnd    ?? new Date();
 
   return {
     tier,
     periodStart: periodStart.toISOString(),
     periodEnd:   periodEnd.toISOString(),
-    images: {
-      used:      imageCount,
-      limit:     quota.images,
-      remaining: Math.max(0, quota.images - imageCount),
-    },
-    videoSeconds: {
-      used:      videoSeconds,
-      limit:     quota.videoSeconds,
-      remaining: Math.max(0, quota.videoSeconds - videoSeconds),
+    credits: {
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
     },
   };
 }
 
-// ─── Public: checkAndIncrementImages ─────────────────────────────────────────
+// ─── Public: checkAndDeductCredits ────────────────────────────────────────────
 
-export async function checkAndIncrementImages(
+export async function checkAndDeductCredits(
   organizationId: string,
-  count: number,
+  credits: number,
 ): Promise<void> {
-  if (count <= 0) return;
+  if (credits <= 0) return;
 
   const [sub, period] = await Promise.all([
     prisma.subscription.findUnique({
@@ -141,19 +135,19 @@ export async function checkAndIncrementImages(
   if (!resolvedPeriod) throw new BadRequestError("no-active-usage-period");
 
   const tier = getTierFromSubscription(sub);
-  const quota = getQuotaForTier(tier);
+  const limit = getQuotaForTier(tier);
 
   await prisma.$transaction(async (tx) => {
     // Lock the row to serialize concurrent requests for the same org.
-    const rows = await tx.$queryRaw<Array<{ imageCount: number }>>`
-      SELECT "imageCount" FROM "maya_usage"
+    const rows = await tx.$queryRaw<Array<{ creditsUsed: number }>>`
+      SELECT "creditsUsed" FROM "maya_usage"
       WHERE "organizationId" = ${organizationId} AND "periodStart" = ${resolvedPeriod.periodStart}
       FOR UPDATE
     `;
-    const current = rows[0]?.imageCount ?? 0;
+    const current = rows[0]?.creditsUsed ?? 0;
 
-    if (current + count > quota.images) {
-      throw new QuotaExceededError("images", current, quota.images);
+    if (current + credits > limit) {
+      throw new QuotaExceededError(current, limit);
     }
 
     await tx.mayaUsage.update({
@@ -163,53 +157,7 @@ export async function checkAndIncrementImages(
           periodStart: resolvedPeriod.periodStart,
         },
       },
-      data: { imageCount: { increment: count } },
-    });
-  });
-}
-
-// ─── Public: checkAndIncrementVideoSeconds ────────────────────────────────────
-
-export async function checkAndIncrementVideoSeconds(
-  organizationId: string,
-  seconds: number,
-): Promise<void> {
-  if (seconds <= 0) return;
-
-  const [sub, period] = await Promise.all([
-    prisma.subscription.findUnique({
-      where: { organizationId },
-      select: { status: true, plan: true, entitlementMode: true, trialEndsAt: true, currentPeriodEnd: true },
-    }),
-    getActivePeriod(organizationId),
-  ]);
-  if (!sub) throw new BadRequestError("no-subscription");
-  const resolvedPeriod = period ?? (await ensurePeriod(organizationId, sub));
-  if (!resolvedPeriod) throw new BadRequestError("no-active-usage-period");
-
-  const tier = getTierFromSubscription(sub);
-  const quota = getQuotaForTier(tier);
-
-  await prisma.$transaction(async (tx) => {
-    const rows = await tx.$queryRaw<Array<{ videoSeconds: number }>>`
-      SELECT "videoSeconds" FROM "maya_usage"
-      WHERE "organizationId" = ${organizationId} AND "periodStart" = ${resolvedPeriod.periodStart}
-      FOR UPDATE
-    `;
-    const current = rows[0]?.videoSeconds ?? 0;
-
-    if (current + seconds > quota.videoSeconds) {
-      throw new QuotaExceededError("video_seconds", current, quota.videoSeconds);
-    }
-
-    await tx.mayaUsage.update({
-      where: {
-        organizationId_periodStart: {
-          organizationId,
-          periodStart: resolvedPeriod.periodStart,
-        },
-      },
-      data: { videoSeconds: { increment: seconds } },
+      data: { creditsUsed: { increment: credits } },
     });
   });
 }
@@ -218,18 +166,17 @@ export async function checkAndIncrementVideoSeconds(
 // Foundation primitive for a future admin "add/remove N credits" action:
 // grant credits by passing a negative delta (decrements `used`), revoke by
 // passing a positive delta (increments `used`). No schema change — this just
-// nudges the counters on the org's active MayaUsage period. Unlike
-// checkAndIncrement*, this does NOT enforce the quota ceiling (an admin
+// nudges the counter on the org's active MayaUsage period. Unlike
+// checkAndDeductCredits, this does NOT enforce the quota ceiling (an admin
 // override is allowed to push `used` above the plan limit), but it does
 // clamp the floor at 0 so a revoke-then-grant sequence (or an overzealous
 // grant) can never leave a negative count.
 
 export async function adjustCurrentPeriodUsage(
   organizationId: string,
-  delta: { images?: number; videoSeconds?: number },
+  delta: number,
 ): Promise<void> {
-  const { images, videoSeconds } = delta;
-  if (images === undefined && videoSeconds === undefined) return;
+  if (delta === 0) return;
 
   const [sub, period] = await Promise.all([
     prisma.subscription.findUnique({
@@ -244,21 +191,13 @@ export async function adjustCurrentPeriodUsage(
 
   await prisma.$transaction(async (tx) => {
     // Lock the row to serialize concurrent adjustments for the same org.
-    const rows = await tx.$queryRaw<Array<{ imageCount: number; videoSeconds: number }>>`
-      SELECT "imageCount", "videoSeconds" FROM "maya_usage"
+    const rows = await tx.$queryRaw<Array<{ creditsUsed: number }>>`
+      SELECT "creditsUsed" FROM "maya_usage"
       WHERE "organizationId" = ${organizationId} AND "periodStart" = ${resolvedPeriod.periodStart}
       FOR UPDATE
     `;
     const current = rows[0];
     if (!current) return;
-
-    const data: { imageCount?: number; videoSeconds?: number } = {};
-    if (images !== undefined) {
-      data.imageCount = Math.max(0, current.imageCount + images);
-    }
-    if (videoSeconds !== undefined) {
-      data.videoSeconds = Math.max(0, current.videoSeconds + videoSeconds);
-    }
 
     await tx.mayaUsage.update({
       where: {
@@ -267,17 +206,17 @@ export async function adjustCurrentPeriodUsage(
           periodStart: resolvedPeriod.periodStart,
         },
       },
-      data,
+      data: { creditsUsed: Math.max(0, current.creditsUsed + delta) },
     });
   });
 }
 
-// ─── Public: rollbacks ────────────────────────────────────────────────────────
-// Called when an AI generation fails AFTER the quota was reserved.
+// ─── Public: rollback ─────────────────────────────────────────────────────────
+// Called when an AI generation fails AFTER credits were reserved.
 // Failures are logged but never surfaced to the caller — the original error wins.
 
-export async function rollbackImages(organizationId: string, count: number): Promise<void> {
-  if (count <= 0) return;
+export async function rollbackCredits(organizationId: string, credits: number): Promise<void> {
+  if (credits <= 0) return;
   const period = await getActivePeriod(organizationId);
   if (!period) return;
   await prisma.mayaUsage
@@ -288,24 +227,7 @@ export async function rollbackImages(organizationId: string, count: number): Pro
           periodStart: period.periodStart,
         },
       },
-      data: { imageCount: { decrement: count } },
+      data: { creditsUsed: { decrement: credits } },
     })
-    .catch((e) => console.error("[maya] image quota rollback failed", e));
-}
-
-export async function rollbackVideoSeconds(organizationId: string, seconds: number): Promise<void> {
-  if (seconds <= 0) return;
-  const period = await getActivePeriod(organizationId);
-  if (!period) return;
-  await prisma.mayaUsage
-    .update({
-      where: {
-        organizationId_periodStart: {
-          organizationId,
-          periodStart: period.periodStart,
-        },
-      },
-      data: { videoSeconds: { decrement: seconds } },
-    })
-    .catch((e) => console.error("[maya] video quota rollback failed", e));
+    .catch((e) => console.error("[maya] credits rollback failed", e));
 }

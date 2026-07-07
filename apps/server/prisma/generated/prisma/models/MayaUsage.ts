@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model MayaUsage
- * Per-billing-period image and video generation usage for the Maya agent.
+ * Per-billing-period credit usage for the Maya agent.
  */
 export type MayaUsageModel = runtime.Types.Result.DefaultSelection<Prisma.$MayaUsagePayload>
 
@@ -27,13 +27,11 @@ export type AggregateMayaUsage = {
 }
 
 export type MayaUsageAvgAggregateOutputType = {
-  imageCount: number | null
-  videoSeconds: number | null
+  creditsUsed: number | null
 }
 
 export type MayaUsageSumAggregateOutputType = {
-  imageCount: number | null
-  videoSeconds: number | null
+  creditsUsed: number | null
 }
 
 export type MayaUsageMinAggregateOutputType = {
@@ -41,8 +39,7 @@ export type MayaUsageMinAggregateOutputType = {
   organizationId: string | null
   periodStart: Date | null
   periodEnd: Date | null
-  imageCount: number | null
-  videoSeconds: number | null
+  creditsUsed: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -52,8 +49,7 @@ export type MayaUsageMaxAggregateOutputType = {
   organizationId: string | null
   periodStart: Date | null
   periodEnd: Date | null
-  imageCount: number | null
-  videoSeconds: number | null
+  creditsUsed: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -63,8 +59,7 @@ export type MayaUsageCountAggregateOutputType = {
   organizationId: number
   periodStart: number
   periodEnd: number
-  imageCount: number
-  videoSeconds: number
+  creditsUsed: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -72,13 +67,11 @@ export type MayaUsageCountAggregateOutputType = {
 
 
 export type MayaUsageAvgAggregateInputType = {
-  imageCount?: true
-  videoSeconds?: true
+  creditsUsed?: true
 }
 
 export type MayaUsageSumAggregateInputType = {
-  imageCount?: true
-  videoSeconds?: true
+  creditsUsed?: true
 }
 
 export type MayaUsageMinAggregateInputType = {
@@ -86,8 +79,7 @@ export type MayaUsageMinAggregateInputType = {
   organizationId?: true
   periodStart?: true
   periodEnd?: true
-  imageCount?: true
-  videoSeconds?: true
+  creditsUsed?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -97,8 +89,7 @@ export type MayaUsageMaxAggregateInputType = {
   organizationId?: true
   periodStart?: true
   periodEnd?: true
-  imageCount?: true
-  videoSeconds?: true
+  creditsUsed?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -108,8 +99,7 @@ export type MayaUsageCountAggregateInputType = {
   organizationId?: true
   periodStart?: true
   periodEnd?: true
-  imageCount?: true
-  videoSeconds?: true
+  creditsUsed?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -206,8 +196,7 @@ export type MayaUsageGroupByOutputType = {
   organizationId: string
   periodStart: Date
   periodEnd: Date
-  imageCount: number
-  videoSeconds: number
+  creditsUsed: number
   createdAt: Date
   updatedAt: Date
   _count: MayaUsageCountAggregateOutputType | null
@@ -240,8 +229,7 @@ export type MayaUsageWhereInput = {
   organizationId?: Prisma.StringFilter<"MayaUsage"> | string
   periodStart?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
-  imageCount?: Prisma.IntFilter<"MayaUsage"> | number
-  videoSeconds?: Prisma.IntFilter<"MayaUsage"> | number
+  creditsUsed?: Prisma.IntFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -252,8 +240,7 @@ export type MayaUsageOrderByWithRelationInput = {
   organizationId?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
-  imageCount?: Prisma.SortOrder
-  videoSeconds?: Prisma.SortOrder
+  creditsUsed?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   organization?: Prisma.OrganizationOrderByWithRelationInput
@@ -268,8 +255,7 @@ export type MayaUsageWhereUniqueInput = Prisma.AtLeast<{
   organizationId?: Prisma.StringFilter<"MayaUsage"> | string
   periodStart?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
-  imageCount?: Prisma.IntFilter<"MayaUsage"> | number
-  videoSeconds?: Prisma.IntFilter<"MayaUsage"> | number
+  creditsUsed?: Prisma.IntFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -280,8 +266,7 @@ export type MayaUsageOrderByWithAggregationInput = {
   organizationId?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
-  imageCount?: Prisma.SortOrder
-  videoSeconds?: Prisma.SortOrder
+  creditsUsed?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.MayaUsageCountOrderByAggregateInput
@@ -299,8 +284,7 @@ export type MayaUsageScalarWhereWithAggregatesInput = {
   organizationId?: Prisma.StringWithAggregatesFilter<"MayaUsage"> | string
   periodStart?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
-  imageCount?: Prisma.IntWithAggregatesFilter<"MayaUsage"> | number
-  videoSeconds?: Prisma.IntWithAggregatesFilter<"MayaUsage"> | number
+  creditsUsed?: Prisma.IntWithAggregatesFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
 }
@@ -309,8 +293,7 @@ export type MayaUsageCreateInput = {
   id?: string
   periodStart: Date | string
   periodEnd: Date | string
-  imageCount?: number
-  videoSeconds?: number
+  creditsUsed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutMayaUsagesInput
@@ -321,8 +304,7 @@ export type MayaUsageUncheckedCreateInput = {
   organizationId: string
   periodStart: Date | string
   periodEnd: Date | string
-  imageCount?: number
-  videoSeconds?: number
+  creditsUsed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -331,8 +313,7 @@ export type MayaUsageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  imageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  videoSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutMayaUsagesNestedInput
@@ -343,8 +324,7 @@ export type MayaUsageUncheckedUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  imageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  videoSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -354,8 +334,7 @@ export type MayaUsageCreateManyInput = {
   organizationId: string
   periodStart: Date | string
   periodEnd: Date | string
-  imageCount?: number
-  videoSeconds?: number
+  creditsUsed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -364,8 +343,7 @@ export type MayaUsageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  imageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  videoSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -375,8 +353,7 @@ export type MayaUsageUncheckedUpdateManyInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  imageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  videoSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -401,15 +378,13 @@ export type MayaUsageCountOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
-  imageCount?: Prisma.SortOrder
-  videoSeconds?: Prisma.SortOrder
+  creditsUsed?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type MayaUsageAvgOrderByAggregateInput = {
-  imageCount?: Prisma.SortOrder
-  videoSeconds?: Prisma.SortOrder
+  creditsUsed?: Prisma.SortOrder
 }
 
 export type MayaUsageMaxOrderByAggregateInput = {
@@ -417,8 +392,7 @@ export type MayaUsageMaxOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
-  imageCount?: Prisma.SortOrder
-  videoSeconds?: Prisma.SortOrder
+  creditsUsed?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -428,15 +402,13 @@ export type MayaUsageMinOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
-  imageCount?: Prisma.SortOrder
-  videoSeconds?: Prisma.SortOrder
+  creditsUsed?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type MayaUsageSumOrderByAggregateInput = {
-  imageCount?: Prisma.SortOrder
-  videoSeconds?: Prisma.SortOrder
+  creditsUsed?: Prisma.SortOrder
 }
 
 export type MayaUsageCreateNestedManyWithoutOrganizationInput = {
@@ -485,8 +457,7 @@ export type MayaUsageCreateWithoutOrganizationInput = {
   id?: string
   periodStart: Date | string
   periodEnd: Date | string
-  imageCount?: number
-  videoSeconds?: number
+  creditsUsed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -495,8 +466,7 @@ export type MayaUsageUncheckedCreateWithoutOrganizationInput = {
   id?: string
   periodStart: Date | string
   periodEnd: Date | string
-  imageCount?: number
-  videoSeconds?: number
+  creditsUsed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -535,8 +505,7 @@ export type MayaUsageScalarWhereInput = {
   organizationId?: Prisma.StringFilter<"MayaUsage"> | string
   periodStart?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
-  imageCount?: Prisma.IntFilter<"MayaUsage"> | number
-  videoSeconds?: Prisma.IntFilter<"MayaUsage"> | number
+  creditsUsed?: Prisma.IntFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
 }
@@ -545,8 +514,7 @@ export type MayaUsageCreateManyOrganizationInput = {
   id?: string
   periodStart: Date | string
   periodEnd: Date | string
-  imageCount?: number
-  videoSeconds?: number
+  creditsUsed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -555,8 +523,7 @@ export type MayaUsageUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  imageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  videoSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -565,8 +532,7 @@ export type MayaUsageUncheckedUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  imageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  videoSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -575,8 +541,7 @@ export type MayaUsageUncheckedUpdateManyWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  imageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  videoSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -588,8 +553,7 @@ export type MayaUsageSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   organizationId?: boolean
   periodStart?: boolean
   periodEnd?: boolean
-  imageCount?: boolean
-  videoSeconds?: boolean
+  creditsUsed?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -600,8 +564,7 @@ export type MayaUsageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   organizationId?: boolean
   periodStart?: boolean
   periodEnd?: boolean
-  imageCount?: boolean
-  videoSeconds?: boolean
+  creditsUsed?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -612,8 +575,7 @@ export type MayaUsageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   organizationId?: boolean
   periodStart?: boolean
   periodEnd?: boolean
-  imageCount?: boolean
-  videoSeconds?: boolean
+  creditsUsed?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -624,13 +586,12 @@ export type MayaUsageSelectScalar = {
   organizationId?: boolean
   periodStart?: boolean
   periodEnd?: boolean
-  imageCount?: boolean
-  videoSeconds?: boolean
+  creditsUsed?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MayaUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "periodStart" | "periodEnd" | "imageCount" | "videoSeconds" | "createdAt" | "updatedAt", ExtArgs["result"]["mayaUsage"]>
+export type MayaUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "periodStart" | "periodEnd" | "creditsUsed" | "createdAt" | "updatedAt", ExtArgs["result"]["mayaUsage"]>
 export type MayaUsageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }
@@ -667,13 +628,9 @@ export type $MayaUsagePayload<ExtArgs extends runtime.Types.Extensions.InternalA
      */
     periodEnd: Date
     /**
-     * Total images generated this period.
+     * Total credits consumed this period (1 image = 2 credits, 1 video-second = 4 credits).
      */
-    imageCount: number
-    /**
-     * Total video seconds generated this period.
-     */
-    videoSeconds: number
+    creditsUsed: number
     /**
      * Record creation timestamp.
      */
@@ -1110,8 +1067,7 @@ export interface MayaUsageFieldRefs {
   readonly organizationId: Prisma.FieldRef<"MayaUsage", 'String'>
   readonly periodStart: Prisma.FieldRef<"MayaUsage", 'DateTime'>
   readonly periodEnd: Prisma.FieldRef<"MayaUsage", 'DateTime'>
-  readonly imageCount: Prisma.FieldRef<"MayaUsage", 'Int'>
-  readonly videoSeconds: Prisma.FieldRef<"MayaUsage", 'Int'>
+  readonly creditsUsed: Prisma.FieldRef<"MayaUsage", 'Int'>
   readonly createdAt: Prisma.FieldRef<"MayaUsage", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"MayaUsage", 'DateTime'>
 }
