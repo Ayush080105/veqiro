@@ -1228,14 +1228,17 @@ export function MayaCampaignVideoForm({
   const orgId = (value as Record<string, unknown>).organization_id as string
   const { creditsRemaining } = useMayaRemainingCredits(orgId)
   const storyboardImageUrl = (value as Record<string, unknown>).storyboard_image_url as string | undefined
+  const storyboardBeats = (value as Record<string, unknown>).storyboard_beats as string[] | undefined
   const durationSeconds = form.watch("duration_seconds")
 
   // A storyboard image still needs to be generated unless this form was prefilled
-  // from a "Turn into video" reuse flow that already has one. Both costs draw
-  // from the same shared credit pool, so they must be checked together — a
-  // duration that looks affordable on its own could still blow the combined
-  // budget once the storyboard cost is added.
-  const needsStoryboardImage = hideDuration === true || !storyboardImageUrl
+  // from a "Turn into video" reuse flow that already has both a URL and beats —
+  // matches RunActionDialog's customSubmit regeneration condition exactly, so
+  // the credit estimate here never under-predicts what actually gets charged.
+  // Both costs draw from the same shared credit pool, so they must be checked
+  // together — a duration that looks affordable on its own could still blow
+  // the combined budget once the storyboard cost is added.
+  const needsStoryboardImage = hideDuration === true || !storyboardImageUrl || !storyboardBeats?.length
   const storyboardCredits = needsStoryboardImage ? 2 : 0
   const videoCredits = !hideDuration ? durationSeconds * 4 : 0
   const requestedCredits = storyboardCredits + videoCredits
