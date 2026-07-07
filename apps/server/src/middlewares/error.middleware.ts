@@ -22,12 +22,15 @@ const errorHandler = (
   _next: NextFunction
 ) => {
   let statusCode: number = StatusCodes.INTERNAL_SERVER_ERROR;
-  let message = err.message || "Something went wrong, try again later";
+  let message = "Something went wrong, try again later";
   let issues: Array<{ path: (string | number)[]; message: string }> = [];
 
   if (err instanceof CustomApiError) {
     statusCode = err.statusCode;
-    message = err.message;
+    // Only trust the message for intentional 4xx-class errors. An
+    // unexpected error (or a CustomApiError misused with a 5xx code) must
+    // never leak internal detail (e.g. raw Prisma text) to the client.
+    if (statusCode < 500) message = err.message;
   } else if (err instanceof ZodError) {
     statusCode = StatusCodes.BAD_REQUEST;
     issues = err.issues.map((i) => ({
@@ -48,7 +51,7 @@ const errorHandler = (
     method: req.method,
     path: req.originalUrl,
     statusCode,
-    message,
+    message: statusCode >= 500 ? err.message : message,
     userId: (req as Request & { userId?: string }).userId,
     organizationId: (req as Request & { organizationId?: string }).organizationId,
     ...(statusCode >= 500 && err.stack ? { stack: err.stack } : {}),

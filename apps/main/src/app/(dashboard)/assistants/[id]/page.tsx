@@ -31,6 +31,8 @@ import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
+import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
+import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
@@ -1211,6 +1213,10 @@ export default function AssistantChatPage() {
           >
             <FolderOpen className="size-3" /> Published Posts
           </button>
+          <div className="flex items-center gap-1.5" style={{ marginLeft: "auto" }}>
+            <MayaCreditsPill organizationId={organizationId} />
+            <MayaTopUpButton />
+          </div>
         </div>
       )}
 

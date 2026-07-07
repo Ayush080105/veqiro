@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { AgentNotAvailableError, runAgentAction } from "@/lib/api/assistants"
+import { toastFriendlyError } from "@/lib/api/error-message"
 import type { AgentActionId } from "@/lib/types/agents"
 
 export interface ActionResultContext<TInput, TResult> {
@@ -151,7 +152,7 @@ export function ActionDialog<TInput, TResult>({
       if (err instanceof AgentNotAvailableError) {
         toast.error(err.message)
       } else {
-        toast.error(err instanceof Error ? err.message : "Action failed.")
+        toastFriendlyError(err, "Action failed.")
       }
       throw err
     } finally {

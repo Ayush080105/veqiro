@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 
 import { type OrgRole } from "@/lib/types"
 import { authClient } from "@/lib/auth-client"
+import { toastFriendlyError } from "@/lib/api/error-message"
 import { Card } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -134,7 +135,7 @@ function InviteDialog({
       onInvited()
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send invitation")
+      toastFriendlyError(err, "Failed to send invitation")
     }
   }
 
@@ -263,7 +264,7 @@ export default function MembersPage() {
       toast.success(`${removeTarget.user.name} removed`)
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove member")
+      toastFriendlyError(err, "Failed to remove member")
     } finally {
       setRemoveTarget(null)
     }
@@ -281,7 +282,7 @@ export default function MembersPage() {
       toast.success(`Invitation to ${inv.email} canceled`)
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to cancel invitation")
+      toastFriendlyError(err, "Failed to cancel invitation")
     }
   }
 

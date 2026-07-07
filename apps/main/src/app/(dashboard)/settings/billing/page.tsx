@@ -21,6 +21,7 @@ import {
   useBillingStatus,
 } from "@/lib/api/billing"
 import { ApiError } from "@/lib/api/client"
+import { friendlyErrorMessage } from "@/lib/api/error-message"
 import { AGENTS } from "@/lib/config/agents"
 
 const ALL_AGENTS: BillingAgent[] = ["MAYA", "SAGE", "LEX", "REX", "SCOUT", "VEGA"]
@@ -105,11 +106,11 @@ function formatDate(iso: string | null | undefined): string {
   })
 }
 
-function checkoutErrorMessage(err: unknown) {
+function checkoutErrorMessage(err: unknown): string | null {
   if (err instanceof ApiError && err.message.startsWith("missing-dodo_custom_")) {
     return "Custom agent checkout is not configured yet. Add the Dodo custom monthly product ID on the server."
   }
-  return err instanceof Error ? err.message : "Failed to start checkout"
+  return friendlyErrorMessage(err, "Failed to start checkout")
 }
 
 export default function BillingPage() {
@@ -218,7 +219,8 @@ export default function BillingPage() {
       const result = await createCheckout({ agents: checkoutAgents, cadence: checkoutCadence })
       window.location.href = result.url
     } catch (err) {
-      toast.error(checkoutErrorMessage(err))
+      const message = checkoutErrorMessage(err)
+      if (message) toast.error(message)
     } finally {
       setCheckingOut(false)
     }
