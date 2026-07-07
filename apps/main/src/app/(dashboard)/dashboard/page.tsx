@@ -11,6 +11,7 @@ import { CrewLeaderboard } from "@/components/dashboard/CrewLeaderboard"
 import { ContentPipeline } from "@/components/dashboard/ContentPipeline"
 import { IntegrationHealth } from "@/components/dashboard/IntegrationHealth"
 import { BrandSnapshot } from "@/components/dashboard/BrandSnapshot"
+import { MayaUsageCard } from "@/components/dashboard/MayaUsageCard"
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters"
 import { DashboardProgressBar } from "@/components/dashboard/DashboardProgressBar"
 import { MetricCardSkeleton } from "@/components/dashboard/MetricCardSkeleton"
@@ -241,6 +242,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         {showSkeletons ? <CrewLeaderboardSkeleton /> : <CrewLeaderboard data={leaderboard} range={range} />}
         <div className="flex min-w-0 flex-col gap-4">
+          <MayaUsageCard />
           <IntegrationHealth />
           <BrandSnapshot />
         </div>
