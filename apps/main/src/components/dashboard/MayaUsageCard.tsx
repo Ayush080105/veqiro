@@ -91,9 +91,10 @@ export function MayaUsageCard() {
 
       <div className="flex flex-col gap-4">
         <UsageBar label="Credits" icon={Sparkles} resource={data.credits} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-          1 img = 2cr · 1s video = 4cr
-        </span>
+        <div className="flex flex-col gap-0.5 font-mono text-[10px] tracking-[0.02em] text-muted-foreground">
+          <span>Image: 2 credits/image</span>
+          <span>Video: 4 credits/second</span>
+        </div>
 
         <div className="flex items-center justify-between gap-2 pt-3.5 border-t-2 border-foreground/10">
           <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">

@@ -24,11 +24,15 @@ const LABELS: Record<string, string> = {
   "/settings/members": "Members",
   "/settings/notifications": "Notifications",
   "/settings/vega": "Email Settings",
-  "/workspace": "Workspace",
   "/workspace/briefing": "Briefing",
   "/workspace/content": "Content",
   "/workspace/leads": "Leads",
 }
+
+// `/workspace` is just a grouping prefix (briefing/calendar/content/inbox/leads
+// all live under it) — it isn't a page a user thinks of as a destination, so
+// it's dropped from the trail entirely rather than shown as a crumb.
+const HIDDEN_SEGMENTS = new Set(["/workspace"])
 
 function titleCase(segment: string): string {
   return segment
@@ -50,11 +54,15 @@ export function AutoBreadcrumb() {
 
   if (segments.length === 0) return null
 
-  const crumbs = segments.map((segment, i) => {
-    const href = "/" + segments.slice(0, i + 1).join("/")
-    const parents = segments.slice(0, i)
-    return { segment, href, label: resolveLabel(segment, href, parents) }
-  })
+  const crumbs = segments
+    .map((segment, i) => {
+      const href = "/" + segments.slice(0, i + 1).join("/")
+      const parents = segments.slice(0, i)
+      return { segment, href, label: resolveLabel(segment, href, parents) }
+    })
+    .filter((crumb) => !HIDDEN_SEGMENTS.has(crumb.href))
+
+  if (crumbs.length === 0) return null
 
   return (
     <Breadcrumb>
