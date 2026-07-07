@@ -33,7 +33,7 @@ function daysLeftInPeriod(periodEnd: string): number {
 export function MayaUsageCard() {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
-  const { data, isPending, error } = useMayaUsage(organizationId)
+  const { data, isPending, error, refetch } = useMayaUsage(organizationId)
 
   if (isPending) {
     return <MayaUsageCardSkeleton />
@@ -41,7 +41,7 @@ export function MayaUsageCard() {
 
   const isNoSubscription = error instanceof ApiError && error.message === "no-subscription"
 
-  if (!data || isNoSubscription) {
+  if (isNoSubscription || (!error && !data)) {
     return (
       <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
         <ShellHeader />
@@ -58,6 +58,27 @@ export function MayaUsageCard() {
         </div>
       </div>
     )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+        <ShellHeader />
+        <div className="px-3.5 py-4 bg-white border-2 border-dashed border-foreground rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
+          <span className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground">
+            {"// couldn't load usage"}
+          </span>
+          <span>We couldn&apos;t load Maya&apos;s usage right now.</span>
+          <Button variant="brand-dark" size="brand-sm" onClick={() => refetch()}>
+            retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return null
   }
 
   const remaining = daysLeftInPeriod(data.periodEnd)
