@@ -8,6 +8,7 @@ import { BadRequestError } from "../../common/errors/badRequest.js";
 import {
   FeedbackStatus,
   FeedbackCategory,
+  ActivityAction,
 } from "../../../prisma/generated/prisma/client.js";
 
 const PAGE_SIZE = 25;
@@ -1300,6 +1301,63 @@ export async function listWaitlistEntries(params: {
       ...(params.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
     }),
     prisma.waitlistEntry.count({ where }),
+  ]);
+
+  const hasMore = entries.length > limit;
+  const pageEntries = hasMore ? entries.slice(0, limit) : entries;
+  const nextCursor = hasMore ? pageEntries.at(-1)?.id ?? null : null;
+
+  return {
+    entries: pageEntries,
+    nextCursor,
+    hasMore,
+    total,
+    pageSize: limit,
+  };
+}
+
+export async function listActivity(params: {
+  cursor?: string;
+  limit?: number;
+  userId?: string;
+  action?: ActivityAction;
+  search?: string;
+}) {
+  const limit = Math.min(Math.max(params.limit ?? 25, 1), 100);
+
+  const where: {
+    userId?: string;
+    action?: ActivityAction;
+    user?: { OR: { name?: object; email?: object }[] };
+  } = {};
+  if (params.userId) where.userId = params.userId;
+  if (params.action) where.action = params.action;
+  if (params.search) {
+    where.user = {
+      OR: [
+        { name: { contains: params.search, mode: "insensitive" } },
+        { email: { contains: params.search, mode: "insensitive" } },
+      ],
+    };
+  }
+
+  const [entries, total] = await Promise.all([
+    prisma.activityLog.findMany({
+      where,
+      select: {
+        id: true,
+        action: true,
+        summary: true,
+        metadata: true,
+        organizationId: true,
+        createdAt: true,
+        user: { select: { id: true, name: true, email: true, image: true } },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(params.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
+    }),
+    prisma.activityLog.count({ where }),
   ]);
 
   const hasMore = entries.length > limit;

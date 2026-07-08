@@ -84,6 +84,17 @@ export const BriefingType = {
 export type BriefingType = (typeof BriefingType)[keyof typeof BriefingType]
 
 
+export const ActivityAction = {
+  LOGIN: 'LOGIN',
+  PUBLISHED_POST: 'PUBLISHED_POST',
+  GENERATED_VIDEO: 'GENERATED_VIDEO',
+  GENERATED_STORYBOARD: 'GENERATED_STORYBOARD',
+  CREDITS_USED: 'CREDITS_USED'
+} as const
+
+export type ActivityAction = (typeof ActivityAction)[keyof typeof ActivityAction]
+
+
 export const FeedbackStatus = {
   NEW: 'NEW',
   UNDER_REVIEW: 'UNDER_REVIEW',

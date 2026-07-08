@@ -238,6 +238,7 @@ export type UserWhereInput = {
   feedbackVotes?: Prisma.FeedbackVoteListRelationFilter
   feedbackComments?: Prisma.FeedbackCommentListRelationFilter
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteListRelationFilter
+  activityLogs?: Prisma.ActivityLogListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -260,6 +261,7 @@ export type UserOrderByWithRelationInput = {
   feedbackVotes?: Prisma.FeedbackVoteOrderByRelationAggregateInput
   feedbackComments?: Prisma.FeedbackCommentOrderByRelationAggregateInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteOrderByRelationAggregateInput
+  activityLogs?: Prisma.ActivityLogOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -285,6 +287,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   feedbackVotes?: Prisma.FeedbackVoteListRelationFilter
   feedbackComments?: Prisma.FeedbackCommentListRelationFilter
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteListRelationFilter
+  activityLogs?: Prisma.ActivityLogListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -341,6 +344,7 @@ export type UserCreateInput = {
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -363,6 +367,7 @@ export type UserUncheckedCreateInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -385,6 +390,7 @@ export type UserUpdateInput = {
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -407,6 +413,7 @@ export type UserUncheckedUpdateInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -550,6 +557,20 @@ export type UserUpdateOneRequiredWithoutAccountsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAccountsInput, Prisma.UserUpdateWithoutAccountsInput>, Prisma.UserUncheckedUpdateWithoutAccountsInput>
 }
 
+export type UserCreateNestedOneWithoutActivityLogsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutActivityLogsInput, Prisma.UserUncheckedCreateWithoutActivityLogsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutActivityLogsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutActivityLogsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutActivityLogsInput, Prisma.UserUncheckedCreateWithoutActivityLogsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutActivityLogsInput
+  upsert?: Prisma.UserUpsertWithoutActivityLogsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutActivityLogsInput, Prisma.UserUpdateWithoutActivityLogsInput>, Prisma.UserUncheckedUpdateWithoutActivityLogsInput>
+}
+
 export type UserCreateNestedOneWithoutMembersInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutMembersInput, Prisma.UserUncheckedCreateWithoutMembersInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutMembersInput
@@ -653,6 +674,7 @@ export type UserCreateWithoutSessionsInput = {
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -674,6 +696,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -711,6 +734,7 @@ export type UserUpdateWithoutSessionsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -732,6 +756,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -753,6 +778,7 @@ export type UserCreateWithoutAccountsInput = {
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -774,6 +800,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -811,6 +838,7 @@ export type UserUpdateWithoutAccountsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -826,6 +854,111 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
+  feedbackPosts?: Prisma.FeedbackPostUncheckedUpdateManyWithoutCreatedByNestedInput
+  feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
+  feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
+  upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutActivityLogsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
+  feedbackPosts?: Prisma.FeedbackPostCreateNestedManyWithoutCreatedByInput
+  feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
+  feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
+  upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutActivityLogsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
+  feedbackPosts?: Prisma.FeedbackPostUncheckedCreateNestedManyWithoutCreatedByInput
+  feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
+  feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
+  upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutActivityLogsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutActivityLogsInput, Prisma.UserUncheckedCreateWithoutActivityLogsInput>
+}
+
+export type UserUpsertWithoutActivityLogsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutActivityLogsInput, Prisma.UserUncheckedUpdateWithoutActivityLogsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutActivityLogsInput, Prisma.UserUncheckedCreateWithoutActivityLogsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutActivityLogsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutActivityLogsInput, Prisma.UserUncheckedUpdateWithoutActivityLogsInput>
+}
+
+export type UserUpdateWithoutActivityLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
+  feedbackPosts?: Prisma.FeedbackPostUpdateManyWithoutCreatedByNestedInput
+  feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
+  feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
+  upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutActivityLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
   feedbackPosts?: Prisma.FeedbackPostUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -853,6 +986,7 @@ export type UserCreateWithoutMembersInput = {
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMembersInput = {
@@ -874,6 +1008,7 @@ export type UserUncheckedCreateWithoutMembersInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMembersInput = {
@@ -911,6 +1046,7 @@ export type UserUpdateWithoutMembersInput = {
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMembersInput = {
@@ -932,6 +1068,7 @@ export type UserUncheckedUpdateWithoutMembersInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutInvitationsInput = {
@@ -953,6 +1090,7 @@ export type UserCreateWithoutInvitationsInput = {
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutInvitationsInput = {
@@ -974,6 +1112,7 @@ export type UserUncheckedCreateWithoutInvitationsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutInvitationsInput = {
@@ -1011,6 +1150,7 @@ export type UserUpdateWithoutInvitationsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutInvitationsInput = {
@@ -1032,6 +1172,7 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutFeedbackPostsInput = {
@@ -1053,6 +1194,7 @@ export type UserCreateWithoutFeedbackPostsInput = {
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFeedbackPostsInput = {
@@ -1074,6 +1216,7 @@ export type UserUncheckedCreateWithoutFeedbackPostsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFeedbackPostsInput = {
@@ -1111,6 +1254,7 @@ export type UserUpdateWithoutFeedbackPostsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFeedbackPostsInput = {
@@ -1132,6 +1276,7 @@ export type UserUncheckedUpdateWithoutFeedbackPostsInput = {
   feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutFeedbackVotesInput = {
@@ -1153,6 +1298,7 @@ export type UserCreateWithoutFeedbackVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostCreateNestedManyWithoutCreatedByInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFeedbackVotesInput = {
@@ -1174,6 +1320,7 @@ export type UserUncheckedCreateWithoutFeedbackVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostUncheckedCreateNestedManyWithoutCreatedByInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFeedbackVotesInput = {
@@ -1211,6 +1358,7 @@ export type UserUpdateWithoutFeedbackVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostUpdateManyWithoutCreatedByNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFeedbackVotesInput = {
@@ -1232,6 +1380,7 @@ export type UserUncheckedUpdateWithoutFeedbackVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostUncheckedUpdateManyWithoutCreatedByNestedInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutFeedbackCommentsInput = {
@@ -1253,6 +1402,7 @@ export type UserCreateWithoutFeedbackCommentsInput = {
   feedbackPosts?: Prisma.FeedbackPostCreateNestedManyWithoutCreatedByInput
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFeedbackCommentsInput = {
@@ -1274,6 +1424,7 @@ export type UserUncheckedCreateWithoutFeedbackCommentsInput = {
   feedbackPosts?: Prisma.FeedbackPostUncheckedCreateNestedManyWithoutCreatedByInput
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFeedbackCommentsInput = {
@@ -1311,6 +1462,7 @@ export type UserUpdateWithoutFeedbackCommentsInput = {
   feedbackPosts?: Prisma.FeedbackPostUpdateManyWithoutCreatedByNestedInput
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFeedbackCommentsInput = {
@@ -1332,6 +1484,7 @@ export type UserUncheckedUpdateWithoutFeedbackCommentsInput = {
   feedbackPosts?: Prisma.FeedbackPostUncheckedUpdateManyWithoutCreatedByNestedInput
   feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
   upcomingAgentVotes?: Prisma.UpcomingAgentVoteUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutUpcomingAgentVotesInput = {
@@ -1353,6 +1506,7 @@ export type UserCreateWithoutUpcomingAgentVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostCreateNestedManyWithoutCreatedByInput
   feedbackVotes?: Prisma.FeedbackVoteCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutUpcomingAgentVotesInput = {
@@ -1374,6 +1528,7 @@ export type UserUncheckedCreateWithoutUpcomingAgentVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostUncheckedCreateNestedManyWithoutCreatedByInput
   feedbackVotes?: Prisma.FeedbackVoteUncheckedCreateNestedManyWithoutUserInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedCreateNestedManyWithoutUserInput
+  activityLogs?: Prisma.ActivityLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutUpcomingAgentVotesInput = {
@@ -1411,6 +1566,7 @@ export type UserUpdateWithoutUpcomingAgentVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostUpdateManyWithoutCreatedByNestedInput
   feedbackVotes?: Prisma.FeedbackVoteUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUpcomingAgentVotesInput = {
@@ -1432,6 +1588,7 @@ export type UserUncheckedUpdateWithoutUpcomingAgentVotesInput = {
   feedbackPosts?: Prisma.FeedbackPostUncheckedUpdateManyWithoutCreatedByNestedInput
   feedbackVotes?: Prisma.FeedbackVoteUncheckedUpdateManyWithoutUserNestedInput
   feedbackComments?: Prisma.FeedbackCommentUncheckedUpdateManyWithoutUserNestedInput
+  activityLogs?: Prisma.ActivityLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1448,6 +1605,7 @@ export type UserCountOutputType = {
   feedbackVotes: number
   feedbackComments: number
   upcomingAgentVotes: number
+  activityLogs: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1459,6 +1617,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   feedbackVotes?: boolean | UserCountOutputTypeCountFeedbackVotesArgs
   feedbackComments?: boolean | UserCountOutputTypeCountFeedbackCommentsArgs
   upcomingAgentVotes?: boolean | UserCountOutputTypeCountUpcomingAgentVotesArgs
+  activityLogs?: boolean | UserCountOutputTypeCountActivityLogsArgs
 }
 
 /**
@@ -1527,6 +1686,13 @@ export type UserCountOutputTypeCountUpcomingAgentVotesArgs<ExtArgs extends runti
   where?: Prisma.UpcomingAgentVoteWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountActivityLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ActivityLogWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1548,6 +1714,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   feedbackVotes?: boolean | Prisma.User$feedbackVotesArgs<ExtArgs>
   feedbackComments?: boolean | Prisma.User$feedbackCommentsArgs<ExtArgs>
   upcomingAgentVotes?: boolean | Prisma.User$upcomingAgentVotesArgs<ExtArgs>
+  activityLogs?: boolean | Prisma.User$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1603,6 +1770,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   feedbackVotes?: boolean | Prisma.User$feedbackVotesArgs<ExtArgs>
   feedbackComments?: boolean | Prisma.User$feedbackCommentsArgs<ExtArgs>
   upcomingAgentVotes?: boolean | Prisma.User$upcomingAgentVotesArgs<ExtArgs>
+  activityLogs?: boolean | Prisma.User$activityLogsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1643,6 +1811,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
      * Upvotes cast by this user on upcoming agents.
      */
     upcomingAgentVotes: Prisma.$UpcomingAgentVotePayload<ExtArgs>[]
+    /**
+     * Activity log entries recorded for this user.
+     */
+    activityLogs: Prisma.$ActivityLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
@@ -2091,6 +2263,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   feedbackVotes<T extends Prisma.User$feedbackVotesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$feedbackVotesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FeedbackVotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   feedbackComments<T extends Prisma.User$feedbackCommentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$feedbackCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FeedbackCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   upcomingAgentVotes<T extends Prisma.User$upcomingAgentVotesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$upcomingAgentVotesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UpcomingAgentVotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  activityLogs<T extends Prisma.User$activityLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$activityLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ActivityLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2713,6 +2886,30 @@ export type User$upcomingAgentVotesArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.UpcomingAgentVoteScalarFieldEnum | Prisma.UpcomingAgentVoteScalarFieldEnum[]
+}
+
+/**
+ * User.activityLogs
+ */
+export type User$activityLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ActivityLog
+   */
+  select?: Prisma.ActivityLogSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ActivityLog
+   */
+  omit?: Prisma.ActivityLogOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ActivityLogInclude<ExtArgs> | null
+  where?: Prisma.ActivityLogWhereInput
+  orderBy?: Prisma.ActivityLogOrderByWithRelationInput | Prisma.ActivityLogOrderByWithRelationInput[]
+  cursor?: Prisma.ActivityLogWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ActivityLogScalarFieldEnum | Prisma.ActivityLogScalarFieldEnum[]
 }
 
 /**

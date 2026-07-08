@@ -7,6 +7,7 @@ import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64, uploadBuffer } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsService from "../../integrations/integrations.service.js";
+import { logActivity, ActivityAction } from "../../activity/activity.service.js";
 import type {
   SendMessageInput,
   AssistantMessagePayload,
@@ -312,6 +313,16 @@ export const generateIdeas = async (
     customInput: { actionId: "maya:generate-ideas", input, result },
   });
 
+  if (imageCredits > 0) {
+    await logActivity({
+      userId,
+      organizationId,
+      action: ActivityAction.CREDITS_USED,
+      summary: `Generated ${input.platform} content ideas`,
+      metadata: { type: "generate-ideas", platform: input.platform, creditsUsed: imageCredits },
+    });
+  }
+
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, imageCredits);
@@ -383,6 +394,16 @@ export const draftContent = async (
     customInput: { actionId: "maya:draft-content", input, result },
   });
 
+  if (imageCredits > 0) {
+    await logActivity({
+      userId,
+      organizationId,
+      action: ActivityAction.CREDITS_USED,
+      summary: `Drafted a ${input.platform} post`,
+      metadata: { type: "draft-content", platform: input.platform, creditsUsed: imageCredits },
+    });
+  }
+
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, imageCredits);
@@ -450,6 +471,17 @@ export const generateVariants = async (
     model: data.model_used,
     customInput: { actionId: "maya:generate-variants", input, result },
   });
+
+  const variantCreditsUsed = imageCreditsFor(actualImageCount);
+  if (variantCreditsUsed > 0) {
+    await logActivity({
+      userId,
+      organizationId,
+      action: ActivityAction.CREDITS_USED,
+      summary: `Adapted content for ${input.targetPlatforms.join(", ")}`,
+      metadata: { type: "generate-variants", targetPlatforms: input.targetPlatforms, creditsUsed: variantCreditsUsed },
+    });
+  }
 
   return result;
   } catch (err) {
@@ -539,6 +571,14 @@ export const regenerateImage = async (
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:regenerate-image", input, result },
+  });
+
+  await logActivity({
+    userId,
+    organizationId,
+    action: ActivityAction.CREDITS_USED,
+    summary: "Regenerated an image",
+    metadata: { type: "regenerate-image", creditsUsed: imageCreditsFor(1) },
   });
 
   return result;
@@ -754,7 +794,7 @@ export const publish = async (
   });
 
   try {
-    return await firePublishedPost(
+    const result = await firePublishedPost(
       {
         id: pending.id,
         organizationId,
@@ -767,6 +807,16 @@ export const publish = async (
       },
       resolved
     );
+
+    await logActivity({
+      userId,
+      organizationId,
+      action: ActivityAction.PUBLISHED_POST,
+      summary: `Published a ${result.platform.toLowerCase()} post`,
+      metadata: { postId: pending.id, platform: result.platform, url: result.url ?? null },
+    });
+
+    return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new BadRequestError(`Publish failed: ${message}`);
@@ -913,6 +963,19 @@ export const draftCarousel = async (
     model: data.model_used,
     customInput: { actionId: "maya:draft-carousel", input, result },
   });
+
+  const carouselCreditsUsed = imageCount > 0
+    ? imageCreditsFor(data.slides.filter((s) => s.image).length)
+    : 0;
+  if (carouselCreditsUsed > 0) {
+    await logActivity({
+      userId,
+      organizationId,
+      action: ActivityAction.CREDITS_USED,
+      summary: `Drafted a ${input.platform} carousel post`,
+      metadata: { type: "draft-carousel", platform: input.platform, creditsUsed: carouselCreditsUsed },
+    });
+  }
 
   return result;
   } catch (err) {
@@ -1189,6 +1252,17 @@ export const createCampaign = async (
     customInput: { actionId: "maya:campaign", input, result },
   });
 
+  const campaignCreditsUsed = imageCreditsFor(actualPhotoCount);
+  if (campaignCreditsUsed > 0) {
+    await logActivity({
+      userId,
+      organizationId,
+      action: ActivityAction.CREDITS_USED,
+      summary: `Generated a product campaign for ${input.platform}`,
+      metadata: { type: "campaign", platform: input.platform, creditsUsed: campaignCreditsUsed },
+    });
+  }
+
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, campaignImageCredits);
@@ -1278,6 +1352,14 @@ export const generateVideo = async (
     customInput: { actionId: "maya:generate-video", input, result },
   });
 
+  await logActivity({
+    userId,
+    organizationId,
+    action: ActivityAction.GENERATED_VIDEO,
+    summary: `Generated a video for ${input.platform}`,
+    metadata: { platform: input.platform, creditsUsed: videoCredits },
+  });
+
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, videoCredits);
@@ -1335,6 +1417,14 @@ export const createCampaignVideoStoryboard = async (
     tokensUsed: 0,
     model: result.model_used,
     customInput: { actionId: "maya:campaign-video-storyboard", input, result },
+  });
+
+  await logActivity({
+    userId,
+    organizationId,
+    action: ActivityAction.GENERATED_STORYBOARD,
+    summary: `Generated a campaign video storyboard for ${input.platform}`,
+    metadata: { platform: input.platform, creditsUsed: imageCreditsFor(1) },
   });
 
   return result;
@@ -1399,6 +1489,14 @@ export const createCampaignVideo = async (
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "maya:campaign-video", input, result },
+  });
+
+  await logActivity({
+    userId,
+    organizationId,
+    action: ActivityAction.GENERATED_VIDEO,
+    summary: `Generated a campaign video for ${input.platform}`,
+    metadata: { platform: input.platform, creditsUsed: campaignVideoCredits },
   });
 
   return result;

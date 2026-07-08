@@ -15,6 +15,7 @@ import {
   handlePaymentFailed,
 } from "../modules/billing/billing.webhooks.js";
 import { seedDefaultTasks } from "../modules/tasks/tasks.service.js";
+import { logActivity, ActivityAction } from "../modules/activity/activity.service.js";
 
 const auth = betterAuth({
 
@@ -34,6 +35,20 @@ const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session: { userId: string; activeOrganizationId?: string | null }) => {
+          await logActivity({
+            userId: session.userId,
+            organizationId: session.activeOrganizationId ?? null,
+            action: ActivityAction.LOGIN,
+            summary: "Logged in",
+          });
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

@@ -53,6 +53,11 @@ export type Subscription = Prisma.SubscriptionModel
  */
 export type BillingWebhookEvent = Prisma.BillingWebhookEventModel
 /**
+ * Model ActivityLog
+ * Append-only log of notable end-user actions, surfaced in the admin Activity tab.
+ */
+export type ActivityLog = Prisma.ActivityLogModel
+/**
  * Model Member
  * User membership in an organization.
  */

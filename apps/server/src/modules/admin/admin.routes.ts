@@ -17,6 +17,7 @@ import {
   deleteUser,
   listUsers,
   listWaitlistEntries,
+  listActivity,
   listFeedbackAdmin,
   getFeedbackStats,
   getFeedbackComments,
@@ -34,6 +35,7 @@ router.get("/usage", getUsage);
 router.get("/integrations", getIntegrations);
 router.get("/agents", getAgents);
 router.get("/waitlist", listWaitlistEntries);
+router.get("/activity", listActivity);
 
 // Static org routes before :id param routes
 router.get("/organizations/export", exportOrgs);

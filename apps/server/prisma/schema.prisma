@@ -66,6 +66,15 @@ enum BriefingType {
   WEEKLY
 }
 
+/// Notable end-user action types surfaced in the admin activity feed.
+enum ActivityAction {
+  LOGIN
+  PUBLISHED_POST
+  GENERATED_VIDEO
+  GENERATED_STORYBOARD
+  CREDITS_USED
+}
+
 /// Better Auth user plus admin flags.
 model User {
   /// Better Auth user id.
@@ -106,6 +115,8 @@ model User {
   feedbackComments     FeedbackComment[]    @relation("FeedbackCommentUser")
   /// Upvotes cast by this user on upcoming agents.
   upcomingAgentVotes   UpcomingAgentVote[]  @relation("UpcomingAgentVoteUser")
+  /// Activity log entries recorded for this user.
+  activityLogs         ActivityLog[]
   @@unique([email])
   @@map("user")
 }
@@ -304,6 +315,31 @@ model BillingWebhookEvent {
   @@index([organizationId, processedAt])
   @@index([subscriptionId])
   @@map("billing_webhook_event")
+}
+
+/// Append-only log of notable end-user actions, surfaced in the admin Activity tab.
+model ActivityLog {
+  /// Local activity log id.
+  id             String         @id @default(cuid())
+  /// Acting user id.
+  userId         String
+  /// Acting user relation.
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Organization the action occurred in, if any.
+  organizationId String?
+  /// What the user did.
+  action         ActivityAction
+  /// Short human-readable description shown in the feed, e.g. "Published a LinkedIn post".
+  summary        String
+  /// Extra structured context (platform, creditsUsed, postId, etc).
+  metadata       Json?
+  /// Action timestamp.
+  createdAt      DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
+  @@map("activity_log")
 }
 
 /// User membership in an organization.

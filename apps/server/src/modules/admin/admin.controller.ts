@@ -122,6 +122,18 @@ export const listWaitlistEntries = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(data);
 };
 
+export const listActivity = async (req: Request, res: Response) => {
+  const q = req.query as Record<string, string | undefined>;
+  const data = await repo.listActivity({
+    cursor: q.cursor || undefined,
+    limit: q.limit ? Number(q.limit) : undefined,
+    userId: q.userId || undefined,
+    action: q.action as Parameters<typeof repo.listActivity>[0]["action"],
+    search: q.search?.trim() || undefined,
+  });
+  res.status(StatusCodes.OK).json(data);
+};
+
 export const listFeedbackAdmin = async (req: Request, res: Response) => {
   const q = req.query as Record<string, string | undefined>;
   const data = await repo.listFeedbackAdmin({
