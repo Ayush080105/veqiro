@@ -5,6 +5,7 @@ import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64, uploadBuffer } from "../../../common/utils/r2.js";
+import { concatVideos } from "../../../common/utils/videoMerge.js";
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsService from "../../integrations/integrations.service.js";
 import type {
@@ -44,6 +45,8 @@ import type {
   CampaignVideoResponse,
   CampaignVideoStoryboardInput,
   CampaignVideoStoryboardResponse,
+  CampaignVideoLongInput,
+  CampaignVideoLongResponse,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
 import { SocialPlatform, SocialAccount } from "../../../../prisma/generated/prisma/client.js";
@@ -1404,6 +1407,130 @@ export const createCampaignVideo = async (
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, campaignVideoCredits);
+    throw err;
+  }
+};
+
+// Generates a longer video (e.g. 20s) as numParts sequential segments, turn-chained on
+// Gemini Omni's previous_interaction_id so each part continues the last one's generation
+// context, then stitches the resulting clips into one file. partDurationSeconds is kept
+// low-end-testable so the pipeline can be validated cheaply before a full-length run.
+export const createLongCampaignVideo = async (
+  userId: string,
+  organizationId: string,
+  input: CampaignVideoLongInput
+): Promise<CampaignVideoLongResponse> => {
+  const totalSeconds = input.numParts * input.partDurationSeconds;
+  const videoCredits = videoCreditsFor(totalSeconds);
+  await checkAndDeductCredits(organizationId, videoCredits);
+
+  try {
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMessage = `Product campaign video (${totalSeconds}s, ${input.numParts} parts) on ${input.platform}: ${input.campaignBrief.slice(0, 120)}`;
+  const userMsg = await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: userMessage,
+    customInput: { actionId: "maya:campaign-video-long", input },
+  });
+
+  const { data: storyboardData } = await aiService.post<{
+    storyboard_image_base64: string;
+    beats: string[];
+    model_used: string;
+  }>("/ai/maya/campaign-video/storyboard", {
+    user_id: userId,
+    organization_id: organizationId,
+    product_image_urls: input.productImageUrls,
+    campaign_brief: input.campaignBrief,
+    platform: input.platform,
+    aspect_ratio: input.aspectRatio,
+    duration_seconds: input.partDurationSeconds,
+    use_logo: input.useLogo,
+    num_parts: input.numParts,
+  });
+
+  const hostedStoryboard = await hostImage(organizationId, {
+    image_base64: storyboardData.storyboard_image_base64,
+    content_type: "image/png",
+    prompt_used: "",
+  });
+  const storyboardImageUrl = hostedStoryboard?.image_url;
+
+  const segmentVideos: Buffer[] = [];
+  let previousInteractionId: string | undefined;
+  let lastModelUsed = storyboardData.model_used;
+  let tokensUsed = 0;
+
+  for (let segmentIndex = 0; segmentIndex < input.numParts; segmentIndex++) {
+    const segmentData = await callAgentWithContext<CampaignVideoResponse>({
+      agentApiPath: "/ai/maya/campaign-video",
+      agentEnum: Agent.MAYA,
+      agentRole: "Maya: Social media content creation assistant",
+      userId,
+      organizationId,
+      conversationId: userMsg.id,
+      userMessage,
+      rawHistory: history,
+      topLevelPayload: {
+        product_image_urls: input.productImageUrls,
+        campaign_brief: input.campaignBrief,
+        platform: input.platform,
+        aspect_ratio: input.aspectRatio,
+        duration_seconds: input.partDurationSeconds,
+        use_logo: input.useLogo,
+        storyboard_beats: storyboardData.beats,
+        storyboard_image_url: storyboardImageUrl,
+        segment_index: segmentIndex,
+        total_segments: input.numParts,
+        previous_interaction_id: previousInteractionId,
+      },
+    });
+
+    if (!segmentData.video.video_base64) {
+      throw new Error(`Video segment ${segmentIndex + 1} of ${input.numParts} returned no video data`);
+    }
+    segmentVideos.push(Buffer.from(segmentData.video.video_base64, "base64"));
+    previousInteractionId = segmentData.interaction_id ?? undefined;
+    lastModelUsed = segmentData.model_used;
+    tokensUsed += segmentData.tokens_used;
+  }
+
+  const [mergedBuffer, caption] = await Promise.all([
+    concatVideos(segmentVideos),
+    draftVideoCaption(userId, organizationId, input.campaignBrief, input.platform),
+  ]);
+
+  const hostedVideo = await hostVideo(organizationId, {
+    video_base64: mergedBuffer.toString("base64"),
+    content_type: "video/mp4",
+    prompt_used: input.campaignBrief,
+  });
+
+  const result: CampaignVideoLongResponse = {
+    video: hostedVideo ?? {
+      video_base64: mergedBuffer.toString("base64"),
+      content_type: "video/mp4",
+      prompt_used: input.campaignBrief,
+    },
+    caption,
+    tokens_used: tokensUsed,
+    model_used: lastModelUsed,
+    storyboard_image_url: storyboardImageUrl,
+  };
+
+  await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Campaign video generated for ${input.platform} (${totalSeconds}s, ${input.numParts} parts)`,
+    tokensUsed: result.tokens_used,
+    model: result.model_used,
+    customInput: { actionId: "maya:campaign-video-long", input, result },
+  });
+
+  return result;
+  } catch (err) {
+    await rollbackCredits(organizationId, videoCredits);
     throw err;
   }
 };

@@ -99,7 +99,9 @@ export const mayaCampaignVideoSchema = z.object({
   campaign_brief: z.string().min(1, "Campaign brief is required").max(5000),
   platform: platformSchema,
   aspect_ratio: videoAspectRatioSchema,
-  duration_seconds: z.number().int().min(4).max(10),
+  // 20 is a longer, two-part video (see maya:campaign-video-long) — everything else is a
+  // normal single-call generation.
+  duration_seconds: z.union([z.number().int().min(4).max(10), z.literal(20)]),
   use_logo: z.boolean(),
 })
 export type MayaCampaignVideoValues = z.infer<typeof mayaCampaignVideoSchema>

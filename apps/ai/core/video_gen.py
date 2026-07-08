@@ -104,36 +104,67 @@ none of the images clearly show.
 {_PRODUCT_FIDELITY_GUARDRAIL}
 """
 
-_STORYBOARD_SYSTEM = f"""\
-You are an award-winning commercial director breaking a short video concept into a 4-beat
-storyboard for a real advertisement — the kind that runs on TV or social, not a set of product
-photography variations. A storyboard where every panel is just another angle on the same static
-plate/bottle/box is a FAILURE, no matter how well-lit. Real ads sell a feeling: they put a person
-in the frame — reaching for the product, preparing it, tasting it, reacting to it — because
-audiences connect with a moment, not a still life.
+def _distribute_beats(num_beats: int) -> tuple[int, int, int, int]:
+    """Split num_beats across the 4-act arc (hook, escalation, hero, closing), keeping
+    each act at least 1 beat and putting any extra weight on the middle two acts."""
+    base = num_beats // 4
+    remainder = num_beats % 4
+    counts = [base, base, base, base]
+    # Distribute remainder to escalation/hero first (acts 1, 2), then hook, then closing —
+    # keeps the arc's shape (a tight hook/closing, a fuller build/payoff) as it scales up.
+    order = [1, 2, 0, 3]
+    for i in range(remainder):
+        counts[order[i]] += 1
+    return tuple(counts)  # type: ignore[return-value]
 
-Beat 1 (hook): an opening that earns attention — an intriguing detail, an establishing shot of the
-setting, or the anticipation just before the moment (a hand reaching in, a plate being set down,
-an ingredient in motion). Beat 2 (escalation/build): the process, service, or interaction that
-builds toward the payoff — a chef finishing a plate, a server presenting it, someone picking it
-up. Beat 3 (hero/product moment): the product's defining moment, usually the instant a person
-engages with it directly — taking a bite, pouring, applying, unboxing — shown with total clarity.
-Beat 4 (closing/CTA/payoff): the emotional payoff — a satisfied reaction, a genuine smile, a
-close-up of pure enjoyment, or a clean final hero shot if the category calls for restraint instead.
+
+def _storyboard_system(num_beats: int) -> str:
+    """Build the storyboard-planning system prompt for an arbitrary beat count, keeping the
+    same 4-act structure (hook / escalation / hero / closing) used at num_beats == 4, just
+    mapping multiple beats onto each act when num_beats is larger (e.g. for a multi-part
+    video that needs a richer storyboard, like 8-10 beats split across two segments)."""
+    hook_n, esc_n, hero_n, close_n = _distribute_beats(num_beats)
+
+    def _range(start: int, count: int) -> str:
+        return f"Beat {start}" if count == 1 else f"Beats {start}-{start + count - 1}"
+
+    hook_start = 1
+    esc_start = hook_start + hook_n
+    hero_start = esc_start + esc_n
+    close_start = hero_start + hero_n
+
+    return f"""\
+You are an award-winning commercial director breaking a short video concept into a
+{num_beats}-beat storyboard for a real advertisement — the kind that runs on TV or social, not a
+set of product photography variations. A storyboard where every panel is just another angle on the
+same static plate/bottle/box is a FAILURE, no matter how well-lit. Real ads sell a feeling: they
+put a person in the frame — reaching for the product, preparing it, tasting it, reacting to it —
+because audiences connect with a moment, not a still life.
+
+{_range(hook_start, hook_n)} (hook): an opening that earns attention — an intriguing detail, an
+establishing shot of the setting, or the anticipation just before the moment (a hand reaching in, a
+plate being set down, an ingredient in motion). {_range(esc_start, esc_n)} (escalation/build): the
+process, service, or interaction that builds toward the payoff — a chef finishing a plate, a server
+presenting it, someone picking it up. {_range(hero_start, hero_n)} (hero/product moment): the
+product's defining moment, usually the instant a person engages with it directly — taking a bite,
+pouring, applying, unboxing — shown with total clarity. {_range(close_start, close_n)}
+(closing/CTA/payoff): the emotional payoff — a satisfied reaction, a genuine smile, a close-up of
+pure enjoyment, or a clean final hero shot if the category calls for restraint instead.
+{"Where an act spans multiple beats, treat them as consecutive moments a fraction of a second apart within that act — not repeats of the same instant." if num_beats > 4 else ""}
 
 For food, drink, hospitality, beauty, or any product meant to be used on or by a person, at least
-one beat — usually Beat 3 or 4 — MUST show a real person genuinely interacting with it (eating,
-drinking, holding, applying, wearing) in a believable setting (e.g. a restaurant table, a kitchen,
-a bathroom counter) — do not default to four variations of the product sitting alone on a surface.
-Only skip the human moment if the category genuinely doesn't call for one (e.g. an industrial part,
-enterprise software). If a person appears in more than one beat, keep them the same person across
-those beats for narrative continuity.
+one beat — usually in the hero or closing act — MUST show a real person genuinely interacting with
+it (eating, drinking, holding, applying, wearing) in a believable setting (e.g. a restaurant table,
+a kitchen, a bathroom counter) — do not default to variations of the product sitting alone on a
+surface. Only skip the human moment if the category genuinely doesn't call for one (e.g. an
+industrial part, enterprise software). If a person appears in more than one beat, keep them the
+same person across those beats for narrative continuity.
 
 Each beat is one still frame a storyboard artist could draw — describe it as a single vivid,
 concrete visual: framing/camera angle, who or what is in frame and what they're doing, the
 setting, and mood/lighting. Describe a frozen moment, not a shot with camera movement or duration.
-Vary the framing and setting meaningfully across the 4 beats — do not repeat the same composition,
-angle, or crop with only minor changes.
+Vary the framing and setting meaningfully across the {num_beats} beats — do not repeat the same
+composition, angle, or crop with only minor changes.
 
 Match the register the concept actually calls for (clinical precision for a health product, warm
 tactile detail for food, glamour for fragrance/luxury, clean futurism for tech, etc.) — never
@@ -145,9 +176,9 @@ every beat where it appears. Never redesign or reimagine the product. This fidel
 about the product only — it does not mean every beat must be a repeat product shot; people, hands,
 settings, and framing should still change beat to beat to tell a real story.
 
-Output EXACTLY 4 beats. Write each beat as one paragraph. Separate the 4 paragraphs with a line
-containing only three dashes (---) and nothing else. Do not number the beats, and do not add
-headings, labels, or any text other than the 4 beat paragraphs and the dash separators.
+Output EXACTLY {num_beats} beats. Write each beat as one paragraph. Separate the paragraphs with a
+line containing only three dashes (---) and nothing else. Do not number the beats, and do not add
+headings, labels, or any text other than the beat paragraphs and the dash separators.
 
 {_PRODUCT_FIDELITY_GUARDRAIL}
 """
@@ -271,17 +302,19 @@ async def plan_storyboard_beats(
     duration_seconds: int,
     aspect_ratio: str,
     platform: str,
+    num_beats: int = 4,
 ) -> list[str]:
-    """Break a campaign video concept into exactly 4 storyboard beats (hook, escalation,
+    """Break a campaign video concept into exactly num_beats storyboard beats (hook, escalation,
     hero/product moment, closing/CTA), grounded in the product reference images so the
     storyboard image and the later video narrative both depict the same real product."""
+    system = _storyboard_system(num_beats)
     prompt = (
         f"Video concept: {concept}\n"
-        f"This video will run for exactly {duration_seconds} seconds, split across these 4 beats "
-        f"roughly evenly — pace each beat's content accordingly.\n"
+        f"This video will run for exactly {duration_seconds} seconds, split across these "
+        f"{num_beats} beats roughly evenly — pace each beat's content accordingly.\n"
         f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
     )
-    full_prompt = f"{_STORYBOARD_SYSTEM}\n\n{prompt}"
+    full_prompt = f"{system}\n\n{prompt}"
     if images:
         if len(images) == 1:
             raw = await llm.complete_with_vision(file_bytes=images[0][0], prompt=full_prompt, mime_type=images[0][1])
@@ -290,35 +323,41 @@ async def plan_storyboard_beats(
     else:
         raw = await llm.complete(
             *GEMINI_FLASH,
-            system=_STORYBOARD_SYSTEM,
+            system=system,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=900,
+            max_tokens=min(900 * ((num_beats + 3) // 4), 3600),
         )
 
     beats = [b.strip() for b in raw.split("---") if b.strip()]
-    if len(beats) != 4:
+    if len(beats) != num_beats:
         beats = [b.strip() for b in raw.split("\n\n") if b.strip()]
     if not beats:
         beats = [raw.strip()]
-    if len(beats) < 4:
-        beats = beats + [beats[-1]] * (4 - len(beats))
-    return beats[:4]
+    if len(beats) < num_beats:
+        beats = beats + [beats[-1]] * (num_beats - len(beats))
+    return beats[:num_beats]
 
 
 def _build_storyboard_image_prompt(beats: list[str], concept: str, num_product_images: int) -> str:
-    panel_labels = ["top-left", "top-right", "bottom-left", "bottom-right"]
+    num_beats = len(beats)
+    cols = 2
+    rows = (num_beats + 1) // 2
+    col_labels = ["left", "right"]
+    panel_labels = [
+        f"row {i // cols + 1} {col_labels[i % cols]}" for i in range(num_beats)
+    ]
     panel_lines = "\n".join(
         f"Panel {i + 1} ({panel_labels[i]}): {beat}" for i, beat in enumerate(beats)
     )
     return (
-        "Generate ONE single image only: a 2x2 grid storyboard collage on a plain neutral "
-        "background, divided into 4 equal panels by a thin clean divider line, like a film "
-        "director's storyboard sheet. Each panel is a separate, self-contained illustration of "
-        "one beat of the same commercial — same product, same characters, same overall visual "
-        "style and color grade across all 4 panels, just a different pose, angle, or moment in "
-        "each. Do not add any text, captions, numbers, or labels inside the image — the 4 panels "
-        "alone tell the story.\n\n"
+        f"Generate ONE single image only: a {cols}x{rows} grid storyboard collage on a plain "
+        f"neutral background, divided into {num_beats} equal panels by a thin clean divider line, "
+        "like a film director's storyboard sheet. Each panel is a separate, self-contained "
+        "illustration of one beat of the same commercial — same product, same characters, same "
+        f"overall visual style and color grade across all {num_beats} panels, just a different "
+        "pose, angle, or moment in each. Do not add any text, captions, numbers, or labels inside "
+        f"the image — the {num_beats} panels alone tell the story.\n\n"
         f"{panel_lines}\n\n"
         f"Overall concept for continuity: {concept}\n\n"
         f"{product_identity_instructions(num_product_images)}"
@@ -333,11 +372,14 @@ async def generate_video_storyboard(
     aspect_ratio: str,
     platform: str,
     logo_image: tuple[bytes, str] | None = None,
+    num_beats: int = 4,
 ) -> tuple[str, list[str]]:
-    """Generate a single 2x2-grid storyboard collage image (one panel per beat) plus the 4 beat
+    """Generate a single grid storyboard collage image (one panel per beat) plus the beat
     descriptions used to plan it, so the beats can be reused afterward to keep the actual video
     narrative in sync with what the storyboard shows. Returns (storyboard_image_base64, beats)."""
-    beats = await plan_storyboard_beats(llm, concept, product_images, duration_seconds, aspect_ratio, platform)
+    beats = await plan_storyboard_beats(
+        llm, concept, product_images, duration_seconds, aspect_ratio, platform, num_beats=num_beats,
+    )
     image_prompt = _build_storyboard_image_prompt(beats, concept, len(product_images))
 
     image_bytes_only = [b for b, _ in product_images]
@@ -383,28 +425,132 @@ async def plan_video_scenes_from_storyboard(
     return f"{concept}\n\n{narrative.strip()}"
 
 
+_SEGMENT_OPEN_INSTRUCTION = (
+    "This is the FIRST part of a multi-part video — write a narrative that naturally fills the "
+    "target duration but ends on a natural mid-action beat, NOT a resolved closing shot. Do not "
+    "write a button moment, a final settle, or any sense of ending — the action should clearly "
+    "still be in motion at the final frame, ready to continue into the next part, which picks up "
+    "exactly where this leaves off."
+)
+
+_SEGMENT_CONTINUATION_INSTRUCTION = (
+    "This part is generated as a direct continuation of an earlier video clip via the model's own "
+    "generation context — you are not being shown that clip, but the model generating this one "
+    "already has it as context. Write a narrative that picks up exactly where that earlier clip "
+    "left off: do not restart, replay, re-establish, or re-introduce the scene, subject, or "
+    "setting from the beginning. Continue the same continuous action forward."
+)
+
+
+def _segment_match_instruction(num_beats: int) -> str:
+    beat_word = "beat" if num_beats == 1 else "beats"
+    return (
+        "This storyboard image and the beats below are the APPROVED plan for this part of the "
+        "video — do not invent a different concept, setting, or product treatment. Write ONE "
+        f"continuous cinematic narrative (no timestamps, no shot labels) that depicts these exact "
+        f"{num_beats} {beat_word} in this exact order, evenly paced across this part's runtime, "
+        "using the same product, styling, setting, and mood shown in the storyboard image."
+    )
+
+
+async def plan_video_scenes_for_segment(
+    llm: LLMClient,
+    concept: str,
+    segment_beats: list[str],
+    storyboard_image: tuple[bytes, str] | None,
+    product_images: list[tuple[bytes, str]],
+    duration_seconds: int,
+    aspect_ratio: str,
+    platform: str,
+    segment_index: int,
+    total_segments: int,
+) -> str:
+    """Plan the narrative for one segment of a multi-part video, anchored to that segment's
+    storyboard beats. Non-final segments are instructed to end mid-action (no closing beat) so
+    the next segment can continue seamlessly; the final segment is instructed to resolve; any
+    segment after the first is told it continues from prior generation context (see
+    previous_interaction_id in LLMClient.generate_video)."""
+    is_final = segment_index == total_segments - 1
+    is_continuation = segment_index > 0
+
+    position_instructions = []
+    if is_continuation:
+        position_instructions.append(_SEGMENT_CONTINUATION_INSTRUCTION)
+    if not is_final:
+        position_instructions.append(_SEGMENT_OPEN_INSTRUCTION)
+
+    ending_instruction = (
+        "reaches a satisfying, resolved conclusion by the end"
+        if is_final
+        else "ends on a natural mid-action beat rather than a resolved conclusion — a later part "
+        "continues from here"
+    )
+    beats_block = "\n".join(f"Beat {i + 1}: {b}" for i, b in enumerate(segment_beats))
+    prompt = (
+        f"Video concept: {concept}\n\n"
+        f"{_segment_match_instruction(len(segment_beats))}\n\n"
+        f"{beats_block}\n\n"
+        f"This part will run for exactly {duration_seconds} seconds — write a narrative that "
+        f"naturally fills that time and {ending_instruction}. Do not mention seconds, timestamps, "
+        f"or any timing markers anywhere in your description.\n"
+        f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
+    )
+    if position_instructions:
+        prompt = "\n\n".join(position_instructions) + f"\n\n{prompt}"
+
+    full_prompt = f"{_SCENE_PLAN_SYSTEM_WITH_IMAGE}\n\n{prompt}"
+    reference_files = list(product_images)
+    if storyboard_image:
+        reference_files = [storyboard_image] + reference_files
+
+    if reference_files:
+        narrative = await llm.complete_with_vision_multi(files=reference_files, prompt=full_prompt)
+    else:
+        narrative = await llm.complete(
+            *GEMINI_FLASH,
+            system=_SCENE_PLAN_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=1000,
+        )
+    return f"{concept}\n\n{narrative.strip()}"
+
+
 async def generate_maya_video(
     llm: LLMClient,
     prompt: str,
     images: list[tuple[bytes, str]] | None = None,
     aspect_ratio: str = "16:9",
     duration_seconds: int = 8,
-) -> VideoResult:
-    """Call Gemini Omni and wrap the result as a VideoResult (base64-encoded, ready for the API response)."""
+    previous_interaction_id: str | None = None,
+    return_interaction_id: bool = False,
+) -> VideoResult | tuple[VideoResult, str | None]:
+    """Call Gemini Omni and wrap the result as a VideoResult (base64-encoded, ready for the API
+    response). When previous_interaction_id is set, this turn continues that prior interaction's
+    generation context (see LLMClient.generate_video) instead of starting a fresh one. When
+    return_interaction_id is True, returns (VideoResult, interaction_id) so a caller can chain a
+    subsequent segment off this one."""
     import base64
 
     # Applied directly to the final generation prompt (not just the planning-stage system
     # prompt) so the model that actually renders the video sees the hard constraint too.
     final_prompt = f"{prompt}\n\n{_TEXT_ACCURACY_GUARDRAIL}"
 
-    video_bytes = await llm.generate_video(
+    result = await llm.generate_video(
         prompt=final_prompt,
         images=images,
         aspect_ratio=aspect_ratio,
         duration_seconds=duration_seconds,
+        previous_interaction_id=previous_interaction_id,
+        return_interaction_id=return_interaction_id,
     )
-    return VideoResult(
+    video_bytes, interaction_id = result if return_interaction_id else (result, None)
+
+    video_result = VideoResult(
         video_base64=base64.b64encode(video_bytes).decode(),
         content_type="video/mp4",
         prompt_used=prompt,
     )
+    if return_interaction_id:
+        return video_result, interaction_id
+    return video_result

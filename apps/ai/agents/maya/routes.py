@@ -19,6 +19,7 @@ from core.video_gen import (
     plan_video_scenes,
     plan_video_scenes_with_images,
     plan_video_scenes_from_storyboard,
+    plan_video_scenes_for_segment,
     add_logo_instruction,
     add_product_fidelity_guardrail,
 )
@@ -1836,16 +1837,26 @@ class CampaignVideoRequest(BaseModel):
     campaign_brief: str = Field(..., min_length=1, max_length=5000)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
-    duration_seconds: int = Field(8, ge=4, le=10)
+    # Floor is 4 for a normal single-part video; multi-part callers (segment_index/
+    # total_segments > 1) may request down to 2 for cheap end-to-end pipeline testing.
+    duration_seconds: int = Field(8, ge=2, le=10)
     use_logo: bool = False
-    storyboard_beats: list[str] | None = Field(None, max_length=4)
+    storyboard_beats: list[str] | None = Field(None, max_length=10)
     storyboard_image_url: str | None = None
+    # Multi-part video fields — segment_index/total_segments > 1 means this call is one part
+    # of a longer video (e.g. a 20s video generated as two 10s segments and merged
+    # afterward). storyboard_beats is expected to contain ALL parts' beats when
+    # total_segments > 1; this endpoint slices out this segment's share itself.
+    segment_index: int = Field(0, ge=0, le=1)
+    total_segments: int = Field(1, ge=1, le=2)
+    previous_interaction_id: str | None = None
 
 
 class CampaignVideoResponse(BaseModel):
     video: VideoResult
     tokens_used: int
     model_used: str
+    interaction_id: str | None = None
 
 
 class StoryboardRequest(BaseModel):
@@ -1855,8 +1866,13 @@ class StoryboardRequest(BaseModel):
     campaign_brief: str = Field(..., min_length=1, max_length=5000)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
-    duration_seconds: int = Field(8, ge=4, le=10)
+    # Floor is 4 for a normal single-part storyboard; num_parts > 1 callers may request
+    # down to 2 for cheap end-to-end pipeline testing.
+    duration_seconds: int = Field(8, ge=2, le=10)
     use_logo: bool = False
+    # Number of video parts this storyboard is being planned for — scales the beat count
+    # (5 beats/part) so a multi-part video gets a richer storyboard than a single 4-beat one.
+    num_parts: int = Field(1, ge=1, le=2)
 
 
 class StoryboardResponse(BaseModel):
@@ -1899,7 +1915,9 @@ async def _generate_video_with_retry(
     images: list[tuple[bytes, str]] | None,
     aspect_ratio: str,
     duration_seconds: int,
-) -> VideoResult:
+    previous_interaction_id: str | None = None,
+    return_interaction_id: bool = False,
+) -> VideoResult | tuple[VideoResult, str | None]:
     last_err: BaseException | None = None
     for attempt in range(3):
         if attempt and last_err:
@@ -1916,6 +1934,8 @@ async def _generate_video_with_retry(
                     images=images,
                     aspect_ratio=aspect_ratio,
                     duration_seconds=duration_seconds,
+                    previous_interaction_id=previous_interaction_id,
+                    return_interaction_id=return_interaction_id,
                 ),
                 timeout=300,
             )
@@ -2013,7 +2033,28 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
             storyboard_image = await _fetch_image_with_mime(request.storyboard_image_url)
 
     has_storyboard = bool(storyboard_image and request.storyboard_beats)
-    if has_storyboard:
+    is_multi_part = request.total_segments > 1
+    # A continuation segment relies on previous_interaction_id for scene/product/logo context
+    # (per Gemini Omni's documented multi-turn pattern — the sample continuation call was
+    # text-only) rather than re-attaching reference images, keeping the call lean.
+    is_continuation = is_multi_part and request.segment_index > 0
+
+    if is_multi_part and has_storyboard:
+        beats_per_segment = len(request.storyboard_beats) // request.total_segments
+        start = request.segment_index * beats_per_segment
+        end = (
+            start + beats_per_segment
+            if request.segment_index < request.total_segments - 1
+            else len(request.storyboard_beats)
+        )
+        segment_beats = request.storyboard_beats[start:end]
+        prompt = await plan_video_scenes_for_segment(
+            _llm, concept, segment_beats, storyboard_image, product_images,
+            request.duration_seconds, request.aspect_ratio, request.platform,
+            segment_index=request.segment_index, total_segments=request.total_segments,
+        )
+        prompt = add_product_fidelity_guardrail(prompt)
+    elif has_storyboard:
         prompt = await plan_video_scenes_from_storyboard(
             _llm, concept, request.storyboard_beats, storyboard_image, product_images,
             request.duration_seconds, request.aspect_ratio, request.platform,
@@ -2030,24 +2071,40 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
             _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
         )
 
-    images = list(product_images)
-    if has_storyboard:
+    images = [] if is_continuation else list(product_images)
+    if has_storyboard and not is_continuation:
         images.append(storyboard_image)
-    if request.use_logo:
+    if request.use_logo and not is_continuation:
         logo = await _fetch_logo_image(brand_kit)
         if logo:
             images.append(logo)
             prompt = add_logo_instruction(prompt)
 
-    video = await _generate_video_with_retry(
-        prompt=prompt,
-        images=images or None,
-        aspect_ratio=request.aspect_ratio,
-        duration_seconds=request.duration_seconds,
-    )
+    if is_multi_part:
+        video, interaction_id = await _generate_video_with_retry(
+            prompt=prompt,
+            images=images or None,
+            aspect_ratio=request.aspect_ratio,
+            duration_seconds=request.duration_seconds,
+            previous_interaction_id=request.previous_interaction_id,
+            return_interaction_id=True,
+        )
+    else:
+        video = await _generate_video_with_retry(
+            prompt=prompt,
+            images=images or None,
+            aspect_ratio=request.aspect_ratio,
+            duration_seconds=request.duration_seconds,
+        )
+        interaction_id = None
 
-    logger.info("campaign-video done | user=%s platform=%s", request.user_id, request.platform)
-    return CampaignVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
+    logger.info(
+        "campaign-video done | user=%s platform=%s segment=%s/%s",
+        request.user_id, request.platform, request.segment_index + 1, request.total_segments,
+    )
+    return CampaignVideoResponse(
+        video=video, tokens_used=0, model_used=_agent.default_model, interaction_id=interaction_id,
+    )
 
 
 @router.post("/campaign-video/storyboard", response_model=StoryboardResponse)
@@ -2080,6 +2137,7 @@ async def campaign_video_storyboard_endpoint(request: StoryboardRequest):
                 _llm, concept, product_images,
                 request.duration_seconds, request.aspect_ratio, request.platform,
                 logo_image=logo_image,
+                num_beats=5 * request.num_parts,
             ),
             timeout=90,
         )

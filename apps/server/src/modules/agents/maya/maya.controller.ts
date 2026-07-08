@@ -18,6 +18,7 @@ import {
   generateVideoSchema,
   campaignVideoSchema,
   campaignVideoStoryboardSchema,
+  campaignVideoLongSchema,
 } from "./maya.schema.js";
 import * as mayaService from "./maya.service.js";
 import * as mayaUsageService from "./maya.usage.service.js";
@@ -165,6 +166,13 @@ export const createCampaignVideoStoryboard = async (req: Request, res: Response)
   const { userId, organizationId } = requireAuthContext(req);
   const input = campaignVideoStoryboardSchema.parse(req.body);
   const result = await mayaService.createCampaignVideoStoryboard(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const createLongCampaignVideo = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = campaignVideoLongSchema.parse(req.body);
+  const result = await mayaService.createLongCampaignVideo(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

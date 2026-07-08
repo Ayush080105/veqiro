@@ -37,7 +37,7 @@ RUN rm -rf /standalone/dist /standalone/prisma && \
 
 # ── runner ─────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl ffmpeg
 WORKDIR /app
 ENV NODE_ENV=production
 

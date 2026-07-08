@@ -20,6 +20,7 @@ import {
   generateVideo,
   createCampaignVideo,
   createCampaignVideoStoryboard,
+  createLongCampaignVideo,
   getMayaUsage,
 } from "./maya.controller.js";
 
@@ -46,5 +47,6 @@ router.post("/expand-brief", expandBrief);
 router.post("/generate-video", generateVideo);
 router.post("/campaign-video", createCampaignVideo);
 router.post("/campaign-video/storyboard", createCampaignVideoStoryboard);
+router.post("/campaign-video/long", createLongCampaignVideo);
 
 export default router;

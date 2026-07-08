@@ -17,6 +17,7 @@ import {
   generateVideoSchema,
   campaignVideoSchema,
   campaignVideoStoryboardSchema,
+  campaignVideoLongSchema,
 } from "./maya.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
@@ -34,6 +35,7 @@ export type ScheduleCarouselInput = z.infer<typeof scheduleCarouselSchema>;
 export type CampaignInput = z.infer<typeof campaignSchema>;
 export type ExpandBriefInput = z.infer<typeof expandBriefSchema>;
 export type GenerateVideoInput = z.infer<typeof generateVideoSchema>;
+export type CampaignVideoLongInput = z.infer<typeof campaignVideoLongSchema>;
 export type CampaignVideoInput = z.infer<typeof campaignVideoSchema>;
 export type CampaignVideoStoryboardInput = z.infer<typeof campaignVideoStoryboardSchema>;
 
@@ -212,6 +214,7 @@ export interface CampaignVideoResponse {
   tokens_used: number;
   model_used: string;
   storyboard_image_url?: string;
+  interaction_id?: string | null;
 }
 
 export interface CampaignVideoStoryboardResponse {
@@ -219,4 +222,12 @@ export interface CampaignVideoStoryboardResponse {
   storyboard_image_base64?: string;
   beats: string[];
   model_used: string;
+}
+
+export interface CampaignVideoLongResponse {
+  video: VideoResult;
+  caption?: CampaignCaption | null;
+  tokens_used: number;
+  model_used: string;
+  storyboard_image_url?: string;
 }

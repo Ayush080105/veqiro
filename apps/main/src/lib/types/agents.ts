@@ -1307,6 +1307,7 @@ export type AgentActionId =
   | "maya:generate-video"
   | "maya:campaign-video"
   | "maya:campaign-video-storyboard"
+  | "maya:campaign-video-long"
   | "scout:research-topic"
   | "scout:research-company"
   | "scout:trending-topics"

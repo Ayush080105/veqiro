@@ -118,6 +118,18 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       locked: VIDEO_FEATURES_LOCKED,
     },
     {
+      id: "maya:campaign-video-long",
+      agent: "maya",
+      endpoint: "campaign-video/long",
+      label: "Product Video (20s)",
+      description: "Turn a product photo into a longer, two-part campaign video.",
+      icon: "Film",
+      locked: VIDEO_FEATURES_LOCKED,
+      // Invoked programmatically from maya:campaign-video's customSubmit when 20s is
+      // selected — not a standalone dialog a user picks directly from the menu.
+      hideFromMenu: true,
+    },
+    {
       id: "maya:generate-ideas",
       agent: "maya",
       endpoint: "generate-ideas",

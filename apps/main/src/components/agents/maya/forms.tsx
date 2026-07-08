@@ -1074,20 +1074,25 @@ function AspectRatioPicker({
 }
 
 const DURATION_OPTIONS = [4, 6, 8, 10] as const
+// Campaign videos can also run 20s, generated as two 10s parts turn-chained together and
+// stitched into one file — see maya:campaign-video-long.
+const CAMPAIGN_DURATION_OPTIONS = [4, 6, 8, 10, 20] as const
 
 function DurationPicker({
   value,
   onChange,
   maxAllowed,
+  options = DURATION_OPTIONS,
 }: {
   value: number
   onChange: (v: number) => void
   /** Durations above this remaining-seconds ceiling render disabled. */
   maxAllowed?: number
+  options?: readonly number[]
 }) {
   return (
     <div className="flex gap-1.5">
-      {DURATION_OPTIONS.map((n) => {
+      {options.map((n) => {
         const exceedsRemaining = maxAllowed !== undefined && n > maxAllowed
         return (
           <button
@@ -1398,6 +1403,7 @@ export function MayaCampaignVideoForm({
               <DurationPicker
                 value={field.value as number}
                 onChange={field.onChange}
+                options={CAMPAIGN_DURATION_OPTIONS}
                 maxAllowed={
                   creditsRemaining === null
                     ? undefined
@@ -1406,6 +1412,7 @@ export function MayaCampaignVideoForm({
               />
             )}
           />
+          {durationSeconds === 20}
         </div>
       )}
 

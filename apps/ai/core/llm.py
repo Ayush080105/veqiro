@@ -978,13 +978,23 @@ class LLMClient:
         aspect_ratio: str = "16:9",
         duration_seconds: int = 8,
         generate_audio: bool = True,
-    ) -> bytes:
+        previous_interaction_id: str | None = None,
+        return_interaction_id: bool = False,
+    ) -> bytes | tuple[bytes, str | None]:
         """Video generation via Gemini Omni (`interactions.create`). `images` (list of
         (bytes, mime_type) pairs, up to 5 + an optional logo) present = image-to-video,
-        absent = text-to-video."""
+        absent = text-to-video.
+
+        `previous_interaction_id`, when set, chains this call onto a prior interaction's
+        server-side generation context (Gemini Omni's documented multi-turn edit/continuation
+        mechanism) instead of starting a fresh one — used to extend/continue a previously
+        generated video rather than re-conditioning on a re-uploaded clip. `return_interaction_id`
+        returns `(video_bytes, interaction.id)` so a caller can chain a further segment off this
+        one; the id is threaded through opaquely and never inspected here."""
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
-            return base64.b64decode(_MOCK_VIDEO_MP4_B64)
+            mock_bytes = base64.b64decode(_MOCK_VIDEO_MP4_B64)
+            return (mock_bytes, None) if return_interaction_id else mock_bytes
 
         import time
         from langfuse import Langfuse as _Langfuse
@@ -1016,6 +1026,7 @@ class LLMClient:
                         "aspect_ratio": aspect_ratio,
                         "duration_seconds": duration_seconds,
                         "generate_audio": generate_audio,
+                        "previous_interaction_id": previous_interaction_id,
                     },
                 )
             except Exception:
@@ -1025,10 +1036,11 @@ class LLMClient:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
             logger.info(
-                "generate_video | num_images=%s prompt_len=%s duration=%s",
+                "generate_video | num_images=%s prompt_len=%s duration=%s continuation=%s",
                 len(images) if images else 0,
                 len(prompt),
                 duration_seconds,
+                bool(previous_interaction_id),
             )
 
             full_prompt = (
@@ -1047,10 +1059,11 @@ class LLMClient:
             ]
             omni_input.append({"type": "text", "text": full_prompt})
 
-            interaction = await client.aio.interactions.create(
-                model=_OMNI_VIDEO_MODEL,
-                input=omni_input,
-            )
+            create_kwargs: dict = {"model": _OMNI_VIDEO_MODEL, "input": omni_input}
+            if previous_interaction_id:
+                create_kwargs["previous_interaction_id"] = previous_interaction_id
+
+            interaction = await client.aio.interactions.create(**create_kwargs)
 
             if interaction.status not in ("completed", "incomplete"):
                 raise LLMError(f"Gemini Omni interaction did not complete: status={interaction.status}")
@@ -1085,12 +1098,15 @@ class LLMClient:
                             "duration_seconds": duration_seconds,
                             "org_id": obs_ctx.org_id,
                             "agent": obs_ctx.agent_slug,
+                            "interaction_id": getattr(interaction, "id", None),
                         },
                     )
                     generation.end()
                 except Exception:
                     pass
 
+            if return_interaction_id:
+                return video_bytes, getattr(interaction, "id", None)
             return video_bytes
 
         except Exception as e:

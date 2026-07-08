@@ -117,6 +117,20 @@ export const campaignVideoStoryboardSchema = z.object({
   useLogo: z.boolean().optional().default(false),
 });
 
+// A 20s video, generated as two sequential parts (turn-chained on Gemini Omni's
+// previous_interaction_id) and stitched into one file. numParts is capped at 2 for now;
+// partDurationSeconds is kept low-end-testable (min 2) so the pipeline can be validated
+// cheaply (e.g. a 2+2s run) before spending credits on a full 10+10s video.
+export const campaignVideoLongSchema = z.object({
+  productImageUrls: z.array(z.string().url()).min(1).max(5),
+  campaignBrief: z.string().min(1).max(5000),
+  platform: platformEnum.default("instagram"),
+  aspectRatio: videoAspectRatioEnum.default("9:16"),
+  useLogo: z.boolean().optional().default(false),
+  numParts: z.number().int().min(2).max(2).optional().default(2),
+  partDurationSeconds: z.number().int().min(2).max(10).optional().default(10),
+});
+
 export const publishSchema = z
   .object({
     socialAccountId: z.string().min(1),

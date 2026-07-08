@@ -11,6 +11,10 @@ import { findAction } from "@/lib/agents/actions"
 import { runAgentAction, generateCampaignVideoStoryboard } from "@/lib/api/assistants"
 import type { AgentActionId, ContentPlatform } from "@/lib/types/agents"
 
+// TEMPORARY — testing the two-part turn-chained video pipeline cheaply before trusting it
+// at full cost/duration. Set back to 10 (or drop the override entirely) once confirmed.
+const TESTING_LONG_VIDEO_PART_DURATION_SECONDS = 2
+
 // Sage forms
 import {
   SageKeywordResearchForm,
@@ -237,6 +241,35 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       let storyboardBeats: string[] | undefined = v.storyboard_beats
       let storyboardImageUrl: string | undefined = v.storyboard_image_url
 
+      if (v.duration_seconds === 20) {
+        // A 20s video is generated server-side as two turn-chained parts and merged into
+        // one file (see maya:campaign-video-long) — the storyboard step happens inside
+        // that same call, with no server push for interim progress, so approximate it with
+        // a timed heartbeat and clear it as soon as the real call settles.
+        onStage?.({ label: "Generating storyboard for you…" })
+        const part1Timer = setTimeout(() => onStage?.({ label: "Generating part 1 of 2…" }), 6000)
+        const part2Timer = setTimeout(() => onStage?.({ label: "Generating part 2 of 2…" }), 60000)
+        try {
+          return await runAgentAction(
+            "maya:campaign-video-long",
+            organizationId,
+            {
+              product_image_urls: v.product_image_urls,
+              campaign_brief: v.campaign_brief,
+              platform: v.platform,
+              aspect_ratio: v.aspect_ratio,
+              use_logo: v.use_logo,
+              // TEMPORARY testing override — see const above.
+              part_duration_seconds: TESTING_LONG_VIDEO_PART_DURATION_SECONDS,
+            },
+            conversationId
+          )
+        } finally {
+          clearTimeout(part1Timer)
+          clearTimeout(part2Timer)
+        }
+      }
+
       if (!storyboardImageUrl || !storyboardBeats?.length) {
         onStage?.({ label: "Generating storyboard for you…" })
         try {
@@ -285,6 +318,25 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
           ? "Campaign brief is required."
           : null,
     submitLabel: "Generate storyboard",
+  },
+  // Never opened as its own dialog (hideFromMenu in actions.ts) — dispatched
+  // programmatically from maya:campaign-video's customSubmit above when 20s is
+  // selected. This entry only exists to satisfy the SPECS/AgentActionId record.
+  "maya:campaign-video-long": {
+    defaultValue: {
+      product_image_urls: [],
+      campaign_brief: "",
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      use_logo: false,
+    },
+    Form: MayaCampaignVideoForm,
+    validate: (v) =>
+      !v.product_image_urls?.length
+        ? "Upload at least one product image."
+        : !v.campaign_brief?.trim()
+          ? "Campaign brief is required."
+          : null,
   },
   "maya:generate-ideas": {
     defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },
