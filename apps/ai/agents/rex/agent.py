@@ -6,7 +6,7 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
-from core.utils import strip_json_fences, safe_json_loads, downsample_points
+from core.utils import downsample_points
 
 
 class RexAgent(BaseAgent):
@@ -252,7 +252,9 @@ class RexAgent(BaseAgent):
         from agents.rex.forecasting import forecast_metric
         from core.models import DataPoint
 
-        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
+        # Brand kit is 5-min cached (already loaded by the chat turn), so including it here
+        # is free — and the deliverable-generating calls need brand voice/industry/audience.
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=True)
 
         if name == "analyze_metrics":
             try:
@@ -296,28 +298,27 @@ class RexAgent(BaseAgent):
                 if isinstance(v, list) else v
                 for k, v in metrics_raw.items()
             })
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": (
-                    f"Analyze these {period} metrics and provide insights:\n{metrics_summary}\n\n"
-                    "Return ONLY a JSON object (no markdown fences) with keys:\n"
-                    "summary (2-3 sentence narrative), "
-                    "trend (up/down/flat — based on most recent data direction), "
-                    "insights (array of 3-5 specific insight strings), "
-                    f"health_indicator ({health}), "
-                    "anomalies (array of {{date, metric, direction, severity: low/medium/high, root_cause_hypothesis}})"
-                )}],
-            )
             try:
-                analysis = safe_json_loads(raw)
+                analysis = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system,
+                    messages=[{"role": "user", "content": (
+                        f"Analyze these {period} metrics and provide insights:\n{metrics_summary}\n\n"
+                        "Return ONLY a JSON object (no markdown fences) with keys:\n"
+                        "summary (2-3 sentence narrative), "
+                        "trend (up/down/flat — based on most recent data direction), "
+                        "insights (array of 3-5 specific insight strings), "
+                        f"health_indicator ({health}), "
+                        "anomalies (array of {{date, metric, direction, severity: low/medium/high, root_cause_hypothesis}})"
+                    )}],
+                )
                 # Merge algorithm-detected anomalies with LLM insights
                 if all_anomalies and not analysis.get("anomalies"):
                     analysis["anomalies"] = all_anomalies
                 analysis.setdefault("health_indicator", health)
             except Exception:
                 analysis = {
-                    "summary": raw[:400],
+                    "summary": "Metric analysis unavailable — the model returned unparseable output.",
                     "trend": "flat",
                     "insights": [],
                     "health_indicator": health,
@@ -367,17 +368,16 @@ class RexAgent(BaseAgent):
                 "narrative (string, 2-4 sentences), "
                 "recommendations (list of 3-5 specific actionable strings)"
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": prompt}],
-            )
             try:
-                parsed = safe_json_loads(raw)
-                narrative = parsed.get("narrative", raw[:600])
+                parsed = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                narrative = parsed.get("narrative", "")
                 recommendations = parsed.get("recommendations", [])
             except Exception:
-                narrative = raw[:600]
+                narrative = ""
                 recommendations = []
 
             result = {
@@ -421,21 +421,20 @@ class RexAgent(BaseAgent):
                             summaries[slug] = summary
 
             context = f"Date: {date}\nMetrics: {json.dumps(metrics)}\nAgent summaries: {json.dumps(summaries)}"
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": (
-                    f"Compile an executive briefing for {date}:\n{context}\n\n"
-                    "Return ONLY a JSON object (no markdown fences) with keys:\n"
-                    "headline (1 sentence — the single most important thing the founder must know today), "
-                    "sections (object where each key is a section title and each value is a 2-4 sentence body string — "
-                    "include: Financial Health, Content & Growth, Competitive Intelligence, Priority Actions), "
-                    f"date ('{date}'), "
-                    "generated_at (ISO datetime string)"
-                )}],
-            )
             try:
-                parsed = safe_json_loads(raw)
+                parsed = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system,
+                    messages=[{"role": "user", "content": (
+                        f"Compile an executive briefing for {date}:\n{context}\n\n"
+                        "Return ONLY a JSON object (no markdown fences) with keys:\n"
+                        "headline (1 sentence — the single most important thing the founder must know today), "
+                        "sections (object where each key is a section title and each value is a 2-4 sentence body string — "
+                        "include: Financial Health, Content & Growth, Competitive Intelligence, Priority Actions), "
+                        f"date ('{date}'), "
+                        "generated_at (ISO datetime string)"
+                    )}],
+                )
                 parsed.setdefault("date", date)
                 from datetime import datetime as _dt
                 parsed.setdefault("generated_at", _dt.utcnow().isoformat())
@@ -443,7 +442,7 @@ class RexAgent(BaseAgent):
                 from datetime import datetime as _dt
                 parsed = {
                     "headline": "Executive briefing compiled.",
-                    "sections": {"Summary": raw[:600]},
+                    "sections": {"Summary": "Briefing generation failed — please retry."},
                     "date": date,
                     "generated_at": _dt.utcnow().isoformat(),
                 }
@@ -476,22 +475,22 @@ class RexAgent(BaseAgent):
                 "asks_section (list of strings), "
                 "full_email_body (string, ready to send)"
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": prompt}],
-            )
             try:
-                data = safe_json_loads(raw)
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.5,
+                )
             except Exception:
                 data = {
                     "subject_line": f"Investor Update — {period}",
-                    "executive_summary": raw[:300],
+                    "executive_summary": "Update generation failed — please retry.",
                     "metrics_section": metrics,
                     "highlights_section": highlights,
                     "challenges_section": [],
                     "asks_section": asks,
-                    "full_email_body": raw,
+                    "full_email_body": "",
                 }
             return json.dumps(data, default=str)
 
@@ -627,17 +626,16 @@ class RexAgent(BaseAgent):
                 "focus_this_week (array of exactly 3 action item strings), "
                 "generated_at (ISO datetime string)"
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": prompt}],
-            )
             try:
-                data = safe_json_loads(raw)
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system,
+                    messages=[{"role": "user", "content": prompt}],
+                )
             except Exception:
                 data = {
                     "period": "This week",
-                    "headline": raw[:200],
+                    "headline": "Weekly digest generation failed — please retry.",
                     "wow_changes": [],
                     "alerts": [],
                     "green_flags": [],

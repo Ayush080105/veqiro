@@ -9,7 +9,6 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
-from core.utils import strip_json_fences
 
 _log = logging.getLogger(__name__)
 
@@ -379,7 +378,9 @@ class SageAgent(BaseAgent):
         if name in ("page_seo_audit", "site_audit"):
             return await self._execute_audit_tool(name, arguments, user_id, organization_id)
 
-        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
+        # Brand kit is 5-min cached (already loaded by the chat turn), so including it here
+        # is free — and the deliverable-generating calls need brand voice/industry/audience.
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=True)
 
         if name == "web_search":
             try:
@@ -416,16 +417,14 @@ class SageAgent(BaseAgent):
                     "Return as JSON with keys: 'keywords' (array) and 'clusters' (array). "
                     "Return ONLY the JSON, no markdown fences."
                 )
-                raw = await self.llm.complete(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system, messages=[{"role": "user", "content": prompt}],
-                )
-                cleaned = strip_json_fences(raw)
                 try:
-                    parsed = json.loads(cleaned)
+                    parsed = await self.llm.complete_json(
+                        provider=self.default_provider, model=self.default_model,
+                        system=system, messages=[{"role": "user", "content": prompt}],
+                    )
                     return json.dumps(parsed)
                 except Exception:
-                    return json.dumps({"keywords": [], "clusters": [], "raw": raw[:500]})
+                    return json.dumps({"keywords": [], "clusters": []})
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -549,11 +548,11 @@ class SageAgent(BaseAgent):
                     "- keyword_density: estimated keyword density %\n"
                     "Return ONLY the JSON, no markdown fences."
                 )
-                raw = await self.llm.complete(
+                data = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return strip_json_fences(raw)
+                return json.dumps(data)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -601,16 +600,12 @@ class SageAgent(BaseAgent):
                     "- estimated_traffic_potential: realistic monthly traffic estimate\n"
                     "Return as structured JSON. Return ONLY the JSON, no markdown fences."
                 )
-                raw = await self.llm.complete(
+                raw_data = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                try:
-                    raw_data = json.loads(strip_json_fences(raw))
-                    wrapped = raw_data if "brief" in raw_data else {"brief": raw_data}
-                    return json.dumps(wrapped)
-                except Exception:
-                    return strip_json_fences(raw)
+                wrapped = raw_data if "brief" in raw_data else {"brief": raw_data}
+                return json.dumps(wrapped)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -650,11 +645,11 @@ class SageAgent(BaseAgent):
                     "- content_angle: a distinctive angle to differentiate from what's ranking\n"
                     "Return ONLY JSON, no markdown fences."
                 )
-                raw = await self.llm.complete(
+                data = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return strip_json_fences(raw)
+                return json.dumps(data)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -698,12 +693,12 @@ class SageAgent(BaseAgent):
                     "- quick_win_page: the single cluster page to write first for fastest results (full page object)\n"
                     "Return ONLY JSON, no markdown fences."
                 )
-                raw = await self.llm.complete(
+                data = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                     max_tokens=3000,
                 )
-                return strip_json_fences(raw)
+                return json.dumps(data)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 
@@ -744,11 +739,11 @@ class SageAgent(BaseAgent):
                     "- ctr_tips: array of 3 strings\n"
                     "Return ONLY JSON, no markdown fences."
                 )
-                raw = await self.llm.complete(
+                data = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
                 )
-                return strip_json_fences(raw)
+                return json.dumps(data)
             except Exception as e:
                 return json.dumps({"error": str(e), "tool": name})
 

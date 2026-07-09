@@ -176,17 +176,23 @@ async def _elaborate_prompt_5component(
             "linkedin": (
                 "B2B corporate editorial: controlled studio or office lighting, authoritative typography "
                 "using sans-serif at bold weight, restrained 2-color palette, subject positioned right-of-center "
-                "with text block anchored left, neutral 5000K color temperature"
+                "with text block anchored left, neutral 5000K color temperature. "
+                "TEXT SAFE ZONE: compose so the LEFT THIRD of the frame stays visually quiet (clean tone, "
+                "soft falloff, no busy detail) — that is where the headline will sit"
             ),
             "instagram": (
                 "lifestyle photography: shallow focus f/1.8-2.8 feel, natural or golden-hour light, "
                 "vivid saturated palette with vibrance pushed +20-30%, subject slightly off-center at "
-                "a rule-of-thirds intersection, minimal headline text overlay"
+                "a rule-of-thirds intersection, minimal headline text overlay. "
+                "TEXT SAFE ZONE: keep either the upper third or lower third visually quiet — even tone, "
+                "out-of-focus or negative space — so the headline reads without fighting the subject"
             ),
             "twitter": (
                 "bold graphic design: maximum contrast, large typographic element occupying 35-45% of frame, "
                 "single dominant brand color at full saturation, strong diagonal or left-to-right visual flow, "
-                "16:9 landscape with immediate visual impact"
+                "16:9 landscape with immediate visual impact. "
+                "TEXT SAFE ZONE: the typographic block IS the composition — plan the photographic/graphic "
+                "elements around it, never behind it"
             ),
         }.get(platform.lower(), "professional social media editorial, clean neutral lighting, clear visual hierarchy")
 
@@ -238,6 +244,10 @@ async def _elaborate_prompt_5component(
             "- If the input concept is already specific, make it MORE specific — add materials, surface qualities, light direction\n"
             "- Do NOT invent brand names or details not provided in the input\n"
             "- NEVER use these words: beautiful, stunning, amazing, professional, modern, elegant — show it, don't label it\n"
+            "- BANNED VISUAL CLICHÉS — never write these into any component: glowing holograms or floating "
+            "translucent UI, blue-tinted 'tech' light washes, robot hands, brains made of circuits, "
+            "lightbulbs standing for ideas, rockets standing for growth, chess pieces standing for strategy, "
+            "handshake close-ups, generic diverse teams high-fiving at laptops\n"
             "- If the content context below explicitly names a specific subject (e.g. a human model, a person doing "
             "something), a specific prop, or a named theme/motif, that element MUST be written explicitly into the "
             "'subject' and/or 'setting' field in concrete visual detail — do not translate it into an abstract mood, "
@@ -288,43 +298,58 @@ async def _elaborate_prompt_5component(
         )
 
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.6,
-                max_output_tokens=1024,
-                # Disable thinking — pure JSON extraction needs no reasoning chain,
-                # and thinking tokens would consume the output budget before the JSON starts.
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
-            ),
-        )
-        text = (response.text or "").strip()
-        if not text:
-            return None
-        # Strip code fences if the model added them despite instructions
-        if text.startswith("```"):
-            text = text.split("```", 2)[1]
-            if text.startswith("json"):
-                text = text[4:]
-            text = text.rstrip("```").strip()
-        components = _json.loads(text)
         required = {"subject", "setting", "style", "lighting", "camera_angle"}
-        if not required.issubset(components.keys()):
-            logger.warning("5-component response missing keys: %s", components.keys())
-            return None
-        # Depth check — reject shallow components that would downgrade the original prompt.
-        # Any component under 30 chars is likely a placeholder ("a product", "natural light")
-        # that overrides the richer original description without adding value.
-        min_len = min(len(v) for v in components.values() if isinstance(v, str))
-        if min_len < 60:
-            logger.warning("5-component elaboration too shallow (min_component_len=%d) — falling back", min_len)
-            return None
-        logger.info("5-component elaboration done | platform=%s min_len=%d", platform, min_len)
-        return components
+        attempt_prompt = user_prompt
+        last_reason = "unknown"
+        for attempt in range(2):
+            try:
+                response = await client.aio.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=attempt_prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.5,
+                        max_output_tokens=1024,
+                        response_mime_type="application/json",
+                        # Disable thinking — pure JSON extraction needs no reasoning chain,
+                        # and thinking tokens would consume the output budget before the JSON starts.
+                        thinking_config=types.ThinkingConfig(thinking_budget=0),
+                    ),
+                )
+                text = (response.text or "").strip()
+                if not text:
+                    last_reason = "empty response"
+                    continue
+                # Strip code fences if the model added them despite instructions
+                if text.startswith("```"):
+                    text = text.split("```", 2)[1]
+                    if text.startswith("json"):
+                        text = text[4:]
+                    text = text.rstrip("```").strip()
+                components = _json.loads(text)
+                if not required.issubset(components.keys()):
+                    last_reason = f"missing keys: {set(components.keys())}"
+                    continue
+                # Depth check — reject shallow components that would downgrade the original prompt.
+                # Any component under 60 chars is likely a placeholder ("a product", "natural light")
+                # that overrides the richer original description without adding value.
+                min_len = min(len(v) for v in components.values() if isinstance(v, str))
+                if min_len < 60:
+                    last_reason = f"too shallow (min_component_len={min_len})"
+                    attempt_prompt = (
+                        user_prompt
+                        + "\n\nYour previous output was too shallow — EVERY field must be 2-3 full, "
+                        "richly specific sentences with materials, light direction, and surface detail."
+                    )
+                    continue
+                logger.info("5-component elaboration done | platform=%s min_len=%d attempt=%d", platform, min_len, attempt + 1)
+                return components
+            except Exception as exc:
+                last_reason = str(exc)
+        logger.error("image_pipeline_degraded=elaboration | falling back to plain prompt after retry | reason=%s", last_reason)
+        return None
     except Exception as exc:
-        logger.warning("6-component elaboration failed (fallback to plain prompt): %s", exc)
+        logger.error("image_pipeline_degraded=elaboration | setup failed: %s", exc)
         return None
 
 
@@ -365,6 +390,10 @@ async def _generate_creative_concept(
                 brand_parts.append(f"value prop: {brand_kit.value_proposition[:150]}")
             if brand_kit.brand_voice:
                 brand_parts.append(f"brand voice: {brand_kit.brand_voice}")
+            if brand_kit.industry:
+                brand_parts.append(f"industry: {brand_kit.industry}")
+            if brand_kit.target_audience:
+                brand_parts.append(f"target audience: {brand_kit.target_audience}")
             if getattr(brand_kit, "key_differentiators", None):
                 brand_parts.append(f"differentiator: {brand_kit.key_differentiators[:120]}")
         brand_context = "; ".join(brand_parts)
@@ -378,7 +407,13 @@ async def _generate_creative_concept(
             "her reflection perfectly mirrored below, holding a glowing vial that casts teal light across her face'\n"
             "2. UNEXPECTED — reject your first idea, it is the cliché. Push past it to something that earns genuine "
             "attention in a feed of thousands. Ask yourself: what is the LAST image anyone would expect for this brief? "
-            "Now make it feel inevitable.\n"
+            "Now make it feel inevitable. Think of it as a single frame from an award-winning print campaign: "
+            "one focal subject, one idea, one twist.\n"
+            "2b. FORBIDDEN CLICHÉS — these are instant failures, never propose them: glowing holograms or "
+            "floating translucent UI, blue-tinted 'tech' lighting washes, robot hands, brains made of circuits, "
+            "a lightbulb standing for an idea, a rocket standing for growth, chess pieces standing for strategy, "
+            "a handshake close-up, a generic diverse team high-fiving around laptops, a maze standing for "
+            "complexity, climbing a mountain standing for ambition.\n"
             "3. ONE concept only — no alternatives, no lists, no 'or you could...'\n"
             "4. Describe THE IMAGE — the exact scene. Not a direction, not a mood board. Paint the specific moment.\n"
             "5. ACHIEVABLE — must be possible for an AI image generator to produce in a single shot.\n"
@@ -439,24 +474,35 @@ async def _generate_creative_concept(
         )
 
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=1.0,
-                max_output_tokens=512,
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
-            ),
-        )
-        concept = (response.text or "").strip()
-        if not concept or len(concept) < 60:
-            logger.warning("creative concept too short or empty — falling back to raw topic")
-            return None
-        logger.info("creative concept generated | platform=%s len=%d", platform, len(concept))
-        return concept
+        attempt_prompt = user_prompt
+        last_reason = "unknown"
+        for attempt in range(2):
+            try:
+                response = await client.aio.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=attempt_prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=1.0,
+                        max_output_tokens=512,
+                        thinking_config=types.ThinkingConfig(thinking_budget=0),
+                    ),
+                )
+                concept = (response.text or "").strip()
+                if concept and len(concept) >= 60:
+                    logger.info("creative concept generated | platform=%s len=%d attempt=%d", platform, len(concept), attempt + 1)
+                    return concept
+                last_reason = f"too short or empty (len={len(concept)})"
+                attempt_prompt = (
+                    user_prompt
+                    + "\n\nYour previous output was too short. Paint the full scene in 2-3 complete sentences."
+                )
+            except Exception as exc:
+                last_reason = str(exc)
+        logger.error("image_pipeline_degraded=concept | falling back to raw topic after retry | reason=%s", last_reason)
+        return None
     except Exception as exc:
-        logger.warning("creative concept generation failed (fallback to raw topic): %s", exc)
+        logger.error("image_pipeline_degraded=concept | setup failed: %s", exc)
         return None
 
 
@@ -499,27 +545,25 @@ def _font_to_style(font_name: str) -> str:
 def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "", use_brand_colors: bool = True, product_locked: bool = False) -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
-    # Colors — kept as hex for accuracy; framed as design values so the model never prints them as text
+    # Colors — exact hex + human name for fidelity; framed as design values so the
+    # model never prints them as text (guardrails below name the exact codes too)
     colors = ""
+    injected_hexes: list[str] = []
     if use_brand_colors and brand_kit and brand_kit.brand_colors:
         c = brand_kit.brand_colors
-        primary = c.get("primary", "")
-        secondary = c.get("secondary", "")
-        accent = c.get("accent", "")
         color_parts = []
-        if primary:
-            color_parts.append(f"primary {_hex_to_color_name(primary)}")
-        if secondary:
-            color_parts.append(f"secondary {_hex_to_color_name(secondary)}")
-        if accent:
-            color_parts.append(f"accent {_hex_to_color_name(accent)}")
+        for role in ("primary", "secondary", "accent"):
+            hex_code = c.get(role, "")
+            if hex_code:
+                hex_norm = hex_code if hex_code.startswith("#") else f"#{hex_code}"
+                injected_hexes.append(hex_norm)
+                color_parts.append(f"{role} {hex_norm} ({_hex_to_color_name(hex_code)})")
         if color_parts:
             colors = (
-                f"BRAND COLOR VALUES (apply to design only — NEVER print these codes as text): "
+                f"BRAND COLOR VALUES (apply as exact color values in the design only — NEVER print these codes as text): "
                 f"{', '.join(color_parts)}. "
-                f"Primary color must occupy at least 40% of the visual canvas. "
-                f"Secondary color as the supporting tone in 20-30% of the frame. "
-                f"Accent color for highlights and focal accents only. "
+                f"Match these hex values precisely. The primary color dominates the palette; "
+                f"the secondary supports it; the accent is used sparingly for ONE focal element only. "
             )
 
     # Fonts — inject style descriptors, not font names, since Gemini can't render specific typefaces
@@ -603,7 +647,10 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
                 "EXACT TEXT TO RENDER — copy these strings letter-for-letter, zero changes:\n"
                 + "\n".join(lines)
                 + "\nDO NOT paraphrase, abbreviate, or alter any word or character. "
-                "Render the text exactly as written.\n"
+                "Render the text exactly as written. "
+                "Before finalizing, verify every rendered word character-by-character against the strings above — "
+                "a single wrong, swapped, or dropped letter in any word is a total failure of the image. "
+                "Render all text in a clean, highly legible typeface at a size where every letter is unambiguous.\n"
             )
 
     # Typography instruction differs based on whether text is pre-specified
@@ -622,6 +669,8 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
             "the TOPIC using this method: "
             "identify the single strongest ACTION or BENEFIT the topic implies, then express it as a verb-first imperative OR a 2-3 noun power phrase "
             "(follow this PATTERN — not these words: 'Build Faster.', 'Own The Room.', 'Less Effort. More Impact.'). "
+            "The headline must express a BENEFIT or a TENSION — never a label of what the image literally shows "
+            "and never a generic category name ('Morning Routine', 'The Product', 'Our Team' are failures). "
             "Do NOT copy the topic text verbatim. "
             "Do NOT use generic adjectives like amazing, great, powerful, incredible, innovative, revolutionary. "
             "Do NOT lift phrases from the brand atmosphere or audience context sections. "
@@ -637,10 +686,18 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         if text_spec else
         "  ✗ Internal instructions, prompt fragments, meta commentary, or analytical summaries\n"
     )
+    injected_hex_note = (
+        f" — including the exact brand values {', '.join(injected_hexes)} given above"
+        if injected_hexes else ""
+    )
     guardrails = (
         "=== TEXT GUARDRAILS ===\n"
         "ABSOLUTELY NEVER render any of the following as visible text in the image:\n"
-        "  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225) — apply as color values only, never print them\n"
+        f"  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225){injected_hex_note} — apply as color values only, never print them\n"
+        "  ✗ Gibberish, pseudo-text, or lorem-ipsum ANYWHERE in the frame — laptop/phone screens, notebooks, "
+        "documents, packaging, signage, or background surfaces. Any surface that would carry text too small "
+        "to render correctly must instead show it soft, out-of-focus, or as abstract non-letter shapes — "
+        "fabricated letter-like scribbles read as AI artifacts and are a failure\n"
         "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [BRAND ATMOSPHERE], [AUDIENCE CONTEXT], [PLATFORM ENERGY], [EXACT TEXT TO RENDER]\n"
         "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb, elaborate, describe, component, 5-component, pixel-perfect — these are internal workflow terms\n"
         "  ✗ Any JSON-like syntax, field names, key-value pairs, or schema fragments\n"
@@ -741,11 +798,19 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
             f"CAMERA ANGLE: {components.get('camera_angle', '')}\n\n"
         )
 
+    # Campaign/product-locked shots are photographs; everything else is a designed graphic.
+    # The old unconditional "graphic" opener contradicted the shot mandate's
+    # "this is a PHOTOGRAPH, not a poster" and pushed campaign shots toward poster layouts.
+    if product_locked or campaign_shot_type:
+        opener = f"Photograph a premium {platform} product campaign image ({aspect_ratio}). "
+    else:
+        opener = f"Design a premium {platform} social media graphic ({aspect_ratio}). "
+
     return (
         f"{product_lock_mandate}"
         f"{shot_mandate}"
         f"{composition_block}"
-        f"Design a premium {platform} social media graphic ({aspect_ratio}). "
+        f"{opener}"
         f"Main topic: \"{topic}\". "
         f"{composition_context}"
         f"{brand}"

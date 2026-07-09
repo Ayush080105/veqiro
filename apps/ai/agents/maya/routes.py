@@ -478,55 +478,35 @@ async def generate_ideas(request: IdeationRequest) -> IdeationResponse:
             f"from the list above.\n"
         )
 
+    from agents.maya.agent import build_ideas_prompt
     prompt = (
-        f"{topic_line}\n\n"
-        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n"
-        f"{dedupe_block}\n"
-        "IMPORTANT: Only generate ideas for static image posts (linkedin_post, instagram_post, tweet). "
-        "Do NOT suggest videos, reels, infographics, carousels, threads, or blog posts.\n\n"
-        f"IDEA DIVERSITY — the {request.count} ideas in THIS batch must each take a genuinely different angle from "
-        "one another, not just a different topic wrapped around the same shape. Draw from distinct archetypes such "
-        "as: a contrarian/unpopular take, a data- or result-led claim, a short anecdote or behind-the-scenes moment, "
-        "a practical how-to, a bold opinion stated as fact, a customer-voice or testimonial angle, a trend-jack tied "
-        "to something happening now, or a direct question that starts a real conversation. No two ideas in the batch "
-        "should share the same hook shape or the same emotional register.\n"
-        "Reject any idea that reads as generic — if it could be posted by any competitor with the brand name swapped "
-        "out, it's not specific enough. Each idea should be traceable to something true about this company, its "
-        "audience, or its differentiators.\n"
-        "Vary the 'hook' field's opening style across ideas (blunt fact, scene, direct address, opinion, question) — "
-        "never default every hook to the same stat-led or question-led pattern.\n\n"
-        "Return a JSON array. Each idea must have:\n"
-        "- title: post headline\n"
-        "- platform: target platform\n"
-        "- content_type: one of linkedin_post, instagram_post, tweet\n"
-        "- hook: opening line\n"
-        "- predicted_engagement: short engagement prediction\n"
-        "- reasoning: why this idea works\n"
-        "- suggested_hashtags: array of hashtag strings\n"
-        "- visual_description: a detailed image generation prompt describing exactly what the "
-        "post image should look like — layout, colors, text overlays, mood, style, what elements "
-        "to include. This will be fed directly to an image generator, so be specific and vivid.\n\n"
-        "Return ONLY the JSON array, no markdown fences."
+        build_ideas_prompt(request.platform, request.count, rules, topic_line, dedupe_block)
+        + '\nReturn ONLY a JSON object of the shape {"ideas": [ ... ]} with the fields above per idea.'
     )
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system, messages=[{"role": "user", "content": prompt}],
-    )
-    tokens_used = _llm.count_tokens(raw)
     try:
-        from core.utils import safe_json_loads
-        ideas_data = safe_json_loads(raw)
+        data = await _llm.complete_json(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system, messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+        )
+        ideas_data = data.get("ideas", data) if isinstance(data, dict) else data
         ideas = [ContentIdea(**i) for i in ideas_data]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Idea generation returned unparseable data — retry. ({exc})")
+    tokens_used = sum(_llm.count_tokens(i.model_dump_json()) for i in ideas)
 
     image = None
     if request.include_image:
         try:
+            top = ideas[0] if ideas else None
             image = await generate_social_image(
-                request.topic_hint or ideas[0].title if ideas else "content", request.platform,
+                request.topic_hint or (top.title if top else "content"), request.platform,
                 use_logo=request.use_logo, use_mascot=request.use_mascot,
                 user_id=request.user_id, organization_id=request.organization_id,
+                # visual_description is authored as the image prompt for this idea —
+                # use it to drive the concept/elaboration steps instead of ignoring it.
+                concept_hint=(top.visual_description if top else "") or "",
+                context_hints=(f"hook: {top.hook}" if top and top.hook else ""),
             )
         except Exception:
             pass
@@ -568,11 +548,6 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
 
     rules = PLATFORM_RULES.get(request.platform, PLATFORM_RULES["linkedin"])
     website_line = f"Include this website link in the CTA where natural: {brand_kit.website_url}" if brand_kit.website_url else ""
-    platform_limits = {
-        "linkedin": "Under 150 words. Short paragraphs only — no bullet points, no bold headers.",
-        "twitter": "Under 280 characters total. One punchy sentence or short thread opener.",
-        "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome. Hashtags at the end.",
-    }
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
@@ -600,26 +575,14 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
             messages=[{"role": "user", "content": distill_prompt}],
         )
 
+    from agents.maya.agent import build_draft_rules
     prompt = (
         f"Write a ready-to-publish {request.platform} post about this topic: {request.topic}\n"
         f"Tone: {tone}\n"
         f"Additional context: {effective_context or 'None'}\n"
         f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n"
         f"{website_line}\n\n"
-        "STRICT RULES:\n"
-        f"- {platform_limits.get(request.platform, 'Keep it concise and platform-native.')}\n"
-        "- Pick ONE opener style and commit to it — do not default to the same shape every time: "
-        "a blunt fact or number, a counterintuitive claim, a one-line scene/story, a direct 'you' address, "
-        "or a flat opinion stated as fact. NOT 'As a founder' or any generic opener.\n"
-        "- Write about the BUSINESS VALUE and REAL IMPACT. Never mention mascots, characters, visuals, or image descriptions.\n"
-        "- Sound like the founder typed it themselves — direct, confident, no filler. Let personality and humor show "
-        "where the tone allows it — this should read like a specific person wrote it, not a template.\n"
-        "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
-        "- CTA: vary the form — a specific question, a direct action (try/click/reply), a mini-challenge, an opinion "
-        "prompt, or no CTA at all if the post lands better without one. "
-        "NEVER use the generic survey template '[stat/number] of people feel/do X — how do you feel? Let us know' "
-        "or any close variant ('what about you?', 'do you agree?', 'share your thoughts below') — it reads as "
-        "AI-generated engagement bait, not a real CTA.\n\n"
+        f"{build_draft_rules(request.platform)}\n"
         "Return JSON with these exact fields: title, body, hashtags (list of strings WITHOUT the # symbol), cta, meta_description, word_count, platform, tone_used.\n"
         "CRITICAL FIELD RULES:\n"
         "- `body`: the post text ONLY — do NOT append the CTA or hashtags here. Body ends before the CTA.\n"
@@ -627,18 +590,17 @@ async def draft_content(request: DraftRequest) -> DraftResponse:
         "- `hashtags`: list of tag strings only, e.g. [\"Veqiro\", \"AI\"] — do NOT include them in body.\n"
         "Return ONLY the JSON object, no markdown fences."
     )
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system, messages=[{"role": "user", "content": prompt}],
-    )
-    tokens_used = _llm.count_tokens(raw)
     try:
-        from core.utils import safe_json_loads
-        data = safe_json_loads(raw)
+        data = await _llm.complete_json(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system, messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+        )
         draft = DraftContent(**data)
         draft = _strip_duplicate_cta_hashtags(draft)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Draft generation failed — retry. ({exc})")
+    tokens_used = _llm.count_tokens(draft.model_dump_json())
 
     image = None
     logger.info("draft_content | include_image=%s user=%s", request.include_image, request.user_id)
@@ -722,24 +684,30 @@ async def generate_variants(request: VariantRequest) -> VariantResponse:
     async def _adapt(platform: str) -> tuple[ContentVariant, int]:
         rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
         prompt = (
-            f"Adapt this {request.original_platform} content for {platform}:\n\n"
+            f"Re-imagine this {request.original_platform} content as a NATIVE {platform} post:\n\n"
             f"{request.original_content}\n\n"
             f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
             f"tone: {rules['tone']}, format: {rules['format']}\n"
             f"{website_line}\n\n"
+            "RE-IMAGINE, DON'T SHORTEN: keep the core insight and any exact numbers, but rebuild the post "
+            "the way a native creator on that platform would write it — never just compress or truncate the "
+            "original. Twitter: distill to the single sharpest line or claim, punchy and quotable. "
+            "Instagram: lead with the feeling or moment, conversational, hashtags in a block at the end. "
+            "LinkedIn: lead with the professional stake or lesson. "
+            "The hook must be rebuilt natively for the platform — never reuse the original's opening line verbatim.\n\n"
             "Return JSON with: platform, title, body, hashtags (list), char_count. "
             "Return ONLY the JSON object, no markdown fences."
         )
-        raw = await _llm.complete(
-            provider=_agent.default_provider, model=_agent.default_model,
-            system=system, messages=[{"role": "user", "content": prompt}],
-        )
-        _tokens = _llm.count_tokens(raw)
         try:
-            from core.utils import safe_json_loads
-            data = safe_json_loads(raw)
+            data = await _llm.complete_json(
+                provider=_agent.default_provider, model=_agent.default_model,
+                system=system, messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+            )
+            _tokens = _llm.count_tokens(str(data))
             return ContentVariant(**data), _tokens
         except Exception:
+            _tokens = 0
             return ContentVariant(
                 platform=platform,
                 title=f"{platform.capitalize()} variant",
@@ -795,19 +763,24 @@ async def revise_content(request: ReviseRequest) -> ReviseResponse:
         f"Feedback: {request.feedback}\n"
         f"Specific instructions: {request.specific_instructions or 'None'}\n\n"
         f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n\n"
+        "SURGICAL REVISION: change ONLY what the feedback requires — preserve every phrase, hook, and "
+        "structural choice that already works. A revision that rewrites the whole post when the feedback "
+        "asked for one change is a failure.\n"
+        "Each entry in changes_made must quote the actual edit as a before → after fragment "
+        "(e.g. 'hook: \"We launched today\" → \"10 hours back, every week\"') — never a vague description "
+        "like 'improved the hook'.\n\n"
         "Return JSON with: revised (object with title (string), body (string), "
         "hashtags (array of strings, e.g. [\"#AI\", \"#Productivity\"]), cta (string)), "
         "changes_made (array of strings). "
         "Return ONLY the JSON object, no markdown fences."
     )
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system, messages=[{"role": "user", "content": prompt}],
-    )
-    tokens_used = _llm.count_tokens(raw)
     try:
-        from core.utils import safe_json_loads
-        data = safe_json_loads(raw)
+        data = await _llm.complete_json(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system, messages=[{"role": "user", "content": prompt}],
+            temperature=0.6,
+        )
+        tokens_used = _llm.count_tokens(str(data))
         return ReviseResponse(**data, platform=request.platform, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content revision failed — retry. ({exc})")
@@ -892,7 +865,9 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
                     f"Based on reference image 1, produce an updated version that applies this specific change: {request.prompt}\n\n"
                     "Preserve the original composition, visual style, colour palette, typography, and all existing elements. "
                     "The output should look identical to the reference image except for the requested change. "
-                    "If the change involves text, reproduce every word exactly as specified."
+                    "If the change involves text, reproduce every word exactly as specified. "
+                    "TEXT FIDELITY: any text in the reference image that is not itself being changed must be "
+                    "reproduced letter-for-letter — never re-typeset, respell, paraphrase, or drop it."
                 )
                 b64 = await _llm.generate_image_with_image_bytes(edit_prompt, [source_bytes])
             else:
@@ -908,14 +883,19 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
         try:
             brand_kit = await load_brand_kit(request.organization_id)
             from core.image_gen import generate_social_image
+            # The user's text is an EDIT instruction ("make the background more vibrant"),
+            # not a topic — passing it as the topic makes the fallback image literally
+            # about that instruction. Use a neutral topic and pass the instruction as
+            # style/composition guidance instead.
             fallback = await generate_social_image(
-                request.prompt,
+                f"a fresh {request.platform} brand image",
                 request.platform,
                 use_logo=request.use_logo,
                 use_mascot=request.use_mascot,
                 user_id=request.user_id,
                 organization_id=request.organization_id,
                 brand_kit=brand_kit,
+                context_hints=f"apply this style direction: {request.prompt}",
             )
             image = fallback
         except Exception as fallback_err:
@@ -948,18 +928,19 @@ async def regenerate_content(request: ContentRegenRequest) -> ContentRegenRespon
         f"Instruction: {request.prompt}\n\n"
         f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
         f"tone: {rules['tone']}\n\n"
+        "SURGICAL REVISION: change ONLY what the instruction requires — preserve every phrase and "
+        "structural choice that already works. Do not rewrite the whole caption for a one-line instruction.\n\n"
         "Return JSON with exactly these fields: "
         '"caption" (updated text, ready to publish), "hashtags" (array), "cta" (string). '
         "Return ONLY the JSON object, no markdown fences."
     )
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system, messages=[{"role": "user", "content": prompt}],
-    )
-    tokens_used = _llm.count_tokens(raw)
     try:
-        from core.utils import safe_json_loads
-        data = safe_json_loads(raw)
+        data = await _llm.complete_json(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system, messages=[{"role": "user", "content": prompt}],
+            temperature=0.6,
+        )
+        tokens_used = _llm.count_tokens(str(data))
         return ContentRegenResponse(**data, platform=request.platform, tokens_used=tokens_used, model_used=_agent.default_model)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Content regeneration failed — retry. ({exc})")
@@ -1285,6 +1266,8 @@ Target audience: {target_audience}
 
 Analyse the product in the image carefully — its category, materials, colours, finish, price-point signals, and intended use. The image itself may be an ordinary hand-taken snapshot with mediocre lighting, a rough angle, or a cluttered background — look past all of that to study the product on its own merits; do not let a poor-quality reference photo drag down the style you design. Then write a campaign visual style that is bespoke to THIS specific product AND brand personality, at full professional/editorial production quality regardless of how the reference itself was captured. The brand voice and color palette must be reflected in the grading, lighting character, and mood — not ignored.
 
+The style must be executable consistently across BOTH clean studio shots AND real-world lifestyle environments (homes, desks, kitchens, outdoors) — never lock a look that only works on a seamless studio backdrop, because most of the campaign's photos happen in lived-in settings.
+
 Output exactly this block (replace the bracketed descriptions with your values):
 
 Visual theme: [2-4 word label that captures the aesthetic, e.g. "DARK SPA LUXURY" or "BOLD STREET ENERGY"]
@@ -1439,6 +1422,9 @@ _STORY_ARC_SYSTEM = """You are a world-class creative director planning a {photo
 You decide the narrative structure yourself, based on whatever best serves THIS specific product and brief. There is NO fixed template — the sequence does NOT have to open with "the problem". It could open with the product itself, a lifestyle moment, a demonstration, a transformation, a problem, or any other structure you judge is the strongest story for this brief. Use your judgment as a director, not a formula.
 
 Non-negotiable rules:
+0. PHOTO 1 IS THE COVER — it must work as a standalone scroll-stopper even before the story is understood.
+   A viewer who sees only photo 1 in a feed must stop. Never open on a quiet establishing beat or slow build-up;
+   the strongest single image opens the sequence, and the story is structured around that.
 1. All {photo_count} photos form ONE throughline where each beat builds on the one before it — never independent, unrelated shots grouped together after the fact.
 2. THE PRODUCT MUST BE CLEARLY, PROMINENTLY VISIBLE AND IN SHARP FOCUS IN EVERY SINGLE PHOTO, with zero exceptions. Regardless of a beat's emotional or narrative content, the product itself is never blurred, tiny, cropped out, or absent. If a person appears in a shot, the product must still be an unmistakable, deliberate part of the same frame (in hand, on a nearby surface, being used, etc.) — never sidelined for atmosphere alone.
 3. Camera angle, framing, and environment must be genuinely different photo to photo for visual variety — draw on a range like: eye-level studio hero shot, overhead flatlay, low dramatic upward angle, extreme macro detail, wide lifestyle establishing shot, 35-45° lifestyle angle, side profile. Pick whichever fit each beat best; you don't need to use all of them.
@@ -1457,7 +1443,9 @@ matters because you can see the whole set at once and must keep every photo's te
 generating each one blind to the others (which causes repeated words like "calm", "relief", "gentle" across
 every photo). Rules for this text:
 - "headline": 2-4 words, punchy, matching this photo's specific beat — never reuse a word (not even a
-  synonym-adjacent one) that another photo's headline in this set already used.
+  synonym-adjacent one) that another photo's headline in this set already used. Every headline expresses a
+  BENEFIT or a TENSION — never a literal label of what the photo shows ("The Product", "In Use", "The
+  Result" are failures).
 - "subtext" (optional): 3-6 words, only if it adds something the headline doesn't; omit it (empty string) for
   photos where the headline alone is stronger — not every photo needs a subtext line.
 - Keep it SHORT and SIMPLE. Longer or more complex text is harder for the image generator to render correctly
@@ -1506,25 +1494,24 @@ async def _generate_campaign_story_arc(
             f"Platform: {platform}\n"
             + (f"Brand context: {brand_context}\n" if brand_context else "")
         )
-        raw = await _llm.complete(
+        data = await _llm.complete_json(
             provider=_agent.default_provider, model=_agent.default_model,
             system=_STORY_ARC_SYSTEM.format(photo_count=photo_count),
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
         )
-        from core.utils import safe_json_loads
-        data = safe_json_loads(raw)
         photos = data.get("photos", [])
         if len(photos) != photo_count:
-            logger.warning("story arc returned %d photos, expected %d — falling back", len(photos), photo_count)
+            logger.error("image_pipeline_degraded=story_arc | returned %d photos, expected %d — using fixed template", len(photos), photo_count)
             return None
         for p in photos:
             if not p.get("role_text") or not p.get("environment_label") or not p.get("headline"):
-                logger.warning("story arc entry missing role_text/environment_label/headline — falling back")
+                logger.error("image_pipeline_degraded=story_arc | entry missing role_text/environment_label/headline — using fixed template")
                 return None
         logger.info("story arc generated | photo_count=%d", photo_count)
         return photos
     except Exception as exc:
-        logger.warning("story arc generation failed, falling back to fixed template | error=%s", exc)
+        logger.error("image_pipeline_degraded=story_arc | generation failed, using fixed template | error=%s", exc)
         return None
 
 

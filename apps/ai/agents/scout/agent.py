@@ -280,7 +280,9 @@ class ScoutAgent(BaseAgent):
 
         today = datetime.now(timezone.utc).strftime("%B %d, %Y")
         year = datetime.now(timezone.utc).year
-        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
+        # Brand kit is 5-min cached (already loaded by the chat turn), so including it here
+        # is free — and the deliverable-generating calls need brand voice/industry/audience.
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=True)
 
         if name == "web_search":
             try:
@@ -295,7 +297,6 @@ class ScoutAgent(BaseAgent):
 
         elif name == "research_topic":
             try:
-                from core.utils import safe_json_loads
                 topic = arguments.get("topic", "")
                 loc = (arguments.get("location") or "").strip()
                 sources = arguments.get("sources_hint", []) or []
@@ -329,7 +330,7 @@ class ScoutAgent(BaseAgent):
 
                 source_urls = [r["link"] for r in (search_results + news_results)[:8] if r.get("link")]
 
-                raw = await self.llm.complete(
+                parsed = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
@@ -351,7 +352,6 @@ class ScoutAgent(BaseAgent):
                         "data bound directly to UI, not prose."
                     )}],
                 )
-                parsed = safe_json_loads(raw)
                 parsed["keywords_found"] = keywords[:10]
                 parsed["sources_scraped"] = source_urls[:8]
                 return json.dumps(parsed, default=str)
@@ -389,8 +389,7 @@ class ScoutAgent(BaseAgent):
                     lines = "\n".join(f"- {r['title']}: {r['snippet']} ({r['link']})" for r in results[:n])
                     return f"\n\n### {label}\n{lines}"
 
-                from core.utils import safe_json_loads
-                raw = await self.llm.complete(
+                parsed = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
@@ -419,7 +418,6 @@ class ScoutAgent(BaseAgent):
                         "Source URLs are tracked separately — do not repeat them here."
                     )}],
                 )
-                parsed = safe_json_loads(raw)
                 parsed.pop("sources", None)  # defense-in-depth: never trust LLM-provided sources
 
                 all_search_results = (
@@ -446,7 +444,6 @@ class ScoutAgent(BaseAgent):
 
         elif name == "trending_topics":
             try:
-                from core.utils import safe_json_loads
                 industry = arguments.get("industry", "")
                 count = arguments.get("count", 5)
 
@@ -461,7 +458,7 @@ class ScoutAgent(BaseAgent):
                         f"- {r['title']}: {r['snippet']}" for r in news_results[:8]
                     )
 
-                raw = await self.llm.complete(
+                parsed = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
@@ -478,7 +475,6 @@ class ScoutAgent(BaseAgent):
                         "inline URLs."
                     )}],
                 )
-                parsed = safe_json_loads(raw)
                 if isinstance(parsed, list):
                     parsed = {"trends": parsed}
                 return json.dumps(parsed, default=str)
@@ -508,8 +504,7 @@ class ScoutAgent(BaseAgent):
                 ) if all_results else ""
 
                 loc_clause = f" operating in or targeting {loc}" if loc else ""
-                from core.utils import safe_json_loads
-                raw = await self.llm.complete(
+                parsed = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system,
                     messages=[{"role": "user", "content": (
@@ -526,7 +521,6 @@ class ScoutAgent(BaseAgent):
                         "Only real, verifiable companies."
                     )}],
                 )
-                parsed = safe_json_loads(raw)
                 if isinstance(parsed, list):
                     parsed = {"competitors": parsed}
                 return json.dumps(parsed, default=str)

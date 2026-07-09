@@ -38,6 +38,21 @@ production vocabulary throughout: specific camera work, specific lighting, speci
 texture/material detail, and specific color and mood. Always choose the most vivid,
 concrete word available — never vague or generic language.
 
+THE FIRST FRAME IS THE HOOK: social feeds decide in half a second. The very first frame
+must already be visually magnetic — motion in progress, a striking detail, a face, light
+doing something deliberate. Never open on an empty establishing beat, a blank surface, or
+a slow fade-in from nothing; the video starts mid-life, not at rest.
+
+CAMERA MOTION: name at least one deliberate, specific camera move in the narrative — a
+slow push-in, an orbital drift, a rack focus pull, a rise or descend, a whip-cut settle,
+a handheld drift — rather than implying a static tripod. The camera is a storyteller, not
+a security camera; but keep the movement motivated and smooth, never frantic.
+
+SOUND SIGNATURE: the video is generated WITH audio. Include one short clause describing
+the ambient/sync sound world — the fizz, the pour, the room tone, the fabric rustle, a
+low warm score — folded naturally into the narrative, matching the register of the
+concept. Never leave the soundscape unplanned.
+
 Choose the visual style, lighting, mood, and pacing that genuinely fit THIS product/
 category and brief — do not default to one fixed "luxury/glamour" look for everything.
 For example: a pharmaceutical or health product calls for clinical precision, trustworthy
@@ -80,6 +95,10 @@ Rules:
   middle development, and a deliberate closing beat that resolves the action (a settle, a
   hold, a button moment, dialogue reaching its final line). It must never end mid-action,
   mid-sentence, or feel cut off, no matter how short the target duration is.
+- If the aspect ratio is 9:16 (vertical), compose for vertical viewing: keep the subject
+  and key action in the middle band of the frame, with clean headroom at the top and
+  bottom thirds where platform UI (captions, buttons) overlays — never place critical
+  detail at the extreme top or bottom edge.
 - Any dialogue or on-screen speech must be short enough to finish completely and
   naturally within the runtime — never trail off, get cut short, or leave a line
   unfinished.
@@ -406,5 +425,7 @@ async def generate_maya_video(
     return VideoResult(
         video_base64=base64.b64encode(video_bytes).decode(),
         content_type="video/mp4",
-        prompt_used=prompt,
+        # Return the prompt actually sent to the model (incl. guardrails) so
+        # before/after debugging sees the real input, not a truncated one.
+        prompt_used=final_prompt,
     )

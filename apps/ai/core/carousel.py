@@ -1,8 +1,7 @@
 import re
 import logging
 from pydantic import BaseModel
-from core.utils import safe_json_loads
-from core.image_gen import _hex_to_color_name
+from core.image_gen import _hex_to_color_name, _font_to_style
 
 logger = logging.getLogger("carousel")
 
@@ -122,10 +121,16 @@ def _build_carousel_prompt(
         primary = brand_colors.get("primary", "")
         secondary = brand_colors.get("secondary", "")
         accent = brand_colors.get("accent", "")
+        def _hex_pair(role: str, hex_code: str) -> str:
+            if not hex_code:
+                return ""
+            hex_norm = hex_code if hex_code.startswith("#") else f"#{hex_code}"
+            return f"{role} {hex_norm} ({_hex_to_color_name(hex_code)})"
+
         parts = [
-            f"primary {_hex_to_color_name(primary)}" if primary else "",
-            f"secondary {_hex_to_color_name(secondary)}" if secondary else "",
-            f"accent {_hex_to_color_name(accent)}" if accent else "",
+            _hex_pair("primary", primary),
+            _hex_pair("secondary", secondary),
+            _hex_pair("accent", accent),
         ]
         color_str = ", ".join(p for p in parts if p)
         if color_str:
@@ -135,10 +140,12 @@ def _build_carousel_prompt(
     if brand_fonts:
         heading = brand_fonts.get("heading") or brand_fonts.get("primary") or brand_fonts.get("display") or ""
         body = brand_fonts.get("body") or brand_fonts.get("secondary") or ""
+        # Image models can't render named typefaces — describe the typographic
+        # personality instead of injecting raw font names like "Poppins".
         if heading:
-            brand_visual += f"Heading font style: {heading}. "
+            brand_visual += f"Heading typography style: {_font_to_style(heading)}. "
         if body:
-            brand_visual += f"Body font style: {body}. "
+            brand_visual += f"Body typography style: {_font_to_style(body)}. "
 
     # Locked numbers block — injected when numeric facts are extracted from topic
     locked_block = ""
@@ -174,6 +181,10 @@ def _build_carousel_prompt(
         f"  * Typography treatment: how text overlays appear across all slides "
         f"(e.g. 'large bold white headline bottom-left, semi-transparent dark gradient behind text area')\n"
         f"  * Logo position: 'logo mark bottom-right corner' — NEVER 'brand name as text'\n"
+        f"  * Recurring protagonist: if the slides share a human story, cast ONE consistent protagonist and "
+        f"describe them concretely in the visual DNA (age range, hair, clothing) — the SAME person must appear "
+        f"across those slides with the same face, hair, and outfit, only their pose, action, and emotion "
+        f"changing per slide. Never swap in a different-looking person mid-carousel.\n"
         f"- This visual_dna string gets embedded verbatim at the start of every image_prompt.\n\n"
         f"Image prompt rules:\n"
         f"- Start every image_prompt with 'VISUAL DNA: [the exact visual_dna text above]. '\n"
@@ -275,18 +286,17 @@ async def build_carousel_content(
 
     logger.info("carousel build start | topic=%s platform=%s count=%d", topic, platform, count)
 
-    raw = await llm.complete(
-        provider="openai",
-        model="gpt-4.1-mini",
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
     try:
-        data = safe_json_loads(raw)
+        data = await llm.complete_json(
+            provider="openai",
+            model="gpt-4.1-mini",
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.6,
+        )
         content = CarouselContent(**data)
         logger.info("carousel build done | slides=%d", len(content.image_prompts))
         return content
     except Exception as exc:
-        logger.error("carousel build parse failed | raw=%s error=%s", raw[:200], exc)
+        logger.error("carousel build parse failed | error=%s", exc)
         raise ValueError(f"Carousel generation returned unparseable data — retry. ({exc})")

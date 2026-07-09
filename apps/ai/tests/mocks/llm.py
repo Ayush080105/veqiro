@@ -11,6 +11,14 @@ class MockLLM:
         if self.responses:
             response = self.responses.pop(0)
             return response() if callable(response) else response
+        return self._default_response()
+
+    async def complete_json(self, **kwargs):
+        # Mirrors LLMClient.complete_json: same call, parsed result.
+        raw = await self.complete(**kwargs)
+        return json.loads(raw)
+
+    def _default_response(self):
         return json.dumps(
             {
                 "bottom_line": "[FACT] Mock bottom line.",

@@ -6,7 +6,7 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
-from core.utils import strip_json_fences, safe_json_loads
+from core.utils import safe_json_loads
 
 class LexAgent(BaseAgent):
     slug = "lex"
@@ -223,7 +223,9 @@ class LexAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
     ) -> str:
-        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=False)
+        # Brand kit is 5-min cached (already loaded by the chat turn), so including it here
+        # is free — and the deliverable-generating calls need brand voice/industry/audience.
+        system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=True)
 
         if name == "list_documents":
             sources = await self.rag.list_sources(user_id, source_agent="lex")
@@ -273,18 +275,17 @@ class LexAgent(BaseAgent):
                 "overall_assessment (string), "
                 "recommended_action (sign/negotiate/reject/legal_review_required)"
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
-                max_tokens=8000,
-            )
             try:
-                data = safe_json_loads(raw)
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                    max_tokens=8000,
+                )
             except Exception:
                 data = {
                     "document_type": "Unknown", "parties": [], "effective_date": "",
                     "governing_law": "", "jurisdiction": "",
-                    "executive_summary": raw[:500],
+                    "executive_summary": "Automated analysis failed — manual review required.",
                     "risk_level": "unknown", "risk_score": 0,
                     "risks": [], "unusual_clauses": [], "missing_protections": [],
                     "clause_breakdown": [], "key_terms": {}, "obligations": {},
@@ -332,15 +333,14 @@ class LexAgent(BaseAgent):
                 "explanation (string), key_terms (dict of string->string), "
                 "related_concepts (list of strings), practical_implications (list of strings)"
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
-            )
             try:
-                data = safe_json_loads(raw)
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                )
             except Exception:
                 data = {
-                    "explanation": raw,
+                    "explanation": "Explanation generation failed — please retry.",
                     "key_terms": {},
                     "related_concepts": [],
                     "practical_implications": [],
@@ -386,13 +386,12 @@ class LexAgent(BaseAgent):
                 "Empty string if no specific caveat is needed.\n\n"
                 "\"confidence_level\": exactly one word — high, medium, or low."
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
-                max_tokens=3000,
-            )
             try:
-                data = safe_json_loads(raw)
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                    max_tokens=3000,
+                )
                 # Guard: if answer field itself looks like nested JSON, re-parse it
                 if isinstance(data.get("answer"), str) and data["answer"].strip().startswith("{"):
                     try:
@@ -403,7 +402,7 @@ class LexAgent(BaseAgent):
                         pass
             except Exception:
                 data = {
-                    "answer": raw[:800] if raw else "Legal research completed.",
+                    "answer": "Legal research failed — please retry.",
                     "sections": [],
                     "references": [],
                     "relevant_cases": [],
@@ -452,12 +451,11 @@ class LexAgent(BaseAgent):
                 "remediation_steps (list of {priority: high/medium/low, action: string}), "
                 "estimated_effort (string)"
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
-            )
             try:
-                data = safe_json_loads(raw)
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                )
             except Exception:
                 data = {
                     "overall_status": "unknown",

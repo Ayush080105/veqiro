@@ -7,7 +7,6 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
-from core.utils import strip_json_fences, safe_json_loads
 
 DEFAULT_LABEL_DEFINITIONS = [
     {"name": "Investors", "rationale": "Investor, fundraising, diligence, metrics, deck, term sheet, VC, angel, shareholder, or board-related communication."},
@@ -288,10 +287,7 @@ class VegaAgent(BaseAgent):
             label_rationales = self._label_prompt()
 
             for email in emails[:max_emails]:
-                raw = await self.llm.complete(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system,
-                    messages=[{"role": "user", "content": (
+                _email_prompt = [{"role": "user", "content": (
                         "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys:\n"
                         "priority (urgent/high/medium/low), summary (1-2 sentences), "
                         f"suggested_action (string), label (exactly one of: {label_list}), "
@@ -304,12 +300,14 @@ class VegaAgent(BaseAgent):
                         f"From: {email.get('from', '')}\n"
                         f"Subject: {email.get('subject', '')}\n"
                         f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
-                    )}],
-                )
+                    )}]
                 try:
-                    analysis = safe_json_loads(raw)
+                    analysis = await self.llm.complete_json(
+                        provider=self.default_provider, model=self.default_model,
+                        system=system, messages=_email_prompt,
+                    )
                     priority = analysis.get("priority", "medium")
-                    summary = analysis.get("summary", raw[:200])
+                    summary = analysis.get("summary", "")
                     suggested_action = analysis.get("suggested_action", "review")
                     label = self._normalize_label(analysis.get("label", "Other"))
                     hidden_tasks = analysis.get("hidden_tasks", [])
@@ -317,7 +315,7 @@ class VegaAgent(BaseAgent):
                     meeting_request = analysis.get("meeting_request", None)
                 except Exception:
                     priority = "medium"
-                    summary = raw[:200]
+                    summary = email.get("snippet", "")[:200]
                     suggested_action = "review"
                     label = self._normalize_label("Other")
                     hidden_tasks = []
@@ -457,19 +455,21 @@ class VegaAgent(BaseAgent):
             now = datetime.now(timezone.utc)
             next_day = (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": (
-                    f"Today is {now.strftime('%A, %Y-%m-%d')} UTC.\n"
-                    f"Parse this event description into structured data:\n{description}\n\n"
-                    "Return ONLY a JSON object (no markdown fences) with keys: "
-                    "title (string), start (ISO 8601 UTC datetime), end (ISO 8601 UTC datetime), "
-                    "attendees (list of email strings), description (string)"
-                )}],
-            )
             try:
-                event_data = safe_json_loads(raw)
+                # Date/time extraction must be deterministic and machine-readable —
+                # JSON mode + low temperature, with one corrective retry built in.
+                event_data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system,
+                    messages=[{"role": "user", "content": (
+                        f"Today is {now.strftime('%A, %Y-%m-%d')} UTC.\n"
+                        f"Parse this event description into structured data:\n{description}\n\n"
+                        "Return ONLY a JSON object (no markdown fences) with keys: "
+                        "title (string), start (ISO 8601 UTC datetime), end (ISO 8601 UTC datetime), "
+                        "attendees (list of email strings), description (string)"
+                    )}],
+                    temperature=0.1,
+                )
             except Exception:
                 event_data = {
                     "title": description[:50],
@@ -529,10 +529,7 @@ class VegaAgent(BaseAgent):
             )
             now_iso = datetime.now(timezone.utc).isoformat()
             today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": (
+            _briefing_messages = [{"role": "user", "content": (
                     f"Generate a comprehensive executive briefing for today ({today_date}):\n{context}\n\n"
                     "Return ONLY a JSON object (no markdown fences) with keys:\n"
                     "good_morning (1 personalized greeting sentence), "
@@ -543,10 +540,12 @@ class VegaAgent(BaseAgent):
                     "email_summary (1-2 sentence string summary of email situation), "
                     "focus_recommendation (string — single most important thing to do today), "
                     "free_time_today (string estimate e.g. '2 hours')"
-                )}],
-            )
+                )}]
             try:
-                data = safe_json_loads(raw)
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=_briefing_messages,
+                )
             except Exception:
                 data = {
                     "good_morning": "Good morning! Here's your briefing.",
@@ -554,7 +553,7 @@ class VegaAgent(BaseAgent):
                     "urgent_actions": [],
                     "today_schedule": [],
                     "upcoming_this_week": [],
-                    "email_summary": raw[:300],
+                    "email_summary": "Briefing generation failed — please retry.",
                     "focus_recommendation": "",
                     "free_time_today": "",
                 }

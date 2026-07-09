@@ -6,7 +6,6 @@ from core.llm import LLMClient
 from core.models import ChatRequest, ChatSyncResponse
 from core.rag import RAGService
 from core.tools import ToolDefinition, ToolParameter
-from core.utils import strip_json_fences
 
 # Platform constraints for prompt injection
 PLATFORM_RULES = {
@@ -29,6 +28,88 @@ PLATFORM_RULES = {
         "format": "short paragraphs, line breaks, emojis, CTA at end",
     },
 }
+
+
+def build_ideas_prompt(
+    platform: str,
+    count: int,
+    rules: dict,
+    topic_line: str,
+    dedupe_block: str = "",
+) -> str:
+    """Shared ideation prompt body used by BOTH the chat `generate_ideas` tool and the
+    /generate-ideas endpoint, so the two paths produce the same idea quality.
+
+    Callers append their own return-shape instruction (both use a JSON object with an
+    "ideas" array so provider JSON mode can be enforced).
+    """
+    return (
+        f"{topic_line}\n\n"
+        f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, tone: {rules['tone']}\n"
+        f"{dedupe_block}\n"
+        "IMPORTANT: Only generate ideas for static image posts (linkedin_post, instagram_post, tweet). "
+        "Do NOT suggest videos, reels, infographics, carousels, threads, or blog posts.\n\n"
+        f"IDEA DIVERSITY — the {count} ideas in THIS batch must each take a genuinely different angle from "
+        "one another, not just a different topic wrapped around the same shape. Draw from distinct archetypes such "
+        "as: a contrarian/unpopular take, a data- or result-led claim, a short anecdote or behind-the-scenes moment, "
+        "a practical how-to, a bold opinion stated as fact, a customer-voice or testimonial angle, a trend-jack tied "
+        "to something happening now, or a direct question that starts a real conversation. No two ideas in the batch "
+        "should share the same hook shape or the same emotional register.\n"
+        "Reject any idea that reads as generic — if it could be posted by any competitor with the brand name swapped "
+        "out, it's not specific enough. Each idea must be traceable to something TRUE and SPECIFIC about this "
+        "company: a differentiator, a real audience pain point, or an insight only this brand can credibly claim.\n\n"
+        "HOOK CRAFT — the 'hook' is the single highest-leverage line of the post:\n"
+        "- The first 8 words must either open a curiosity gap, state a concrete number/outcome, or make a claim "
+        "the reader instinctively wants to argue with. A hook that merely introduces the topic is a failure.\n"
+        "- Vary the hook's opening style across ideas (blunt fact, scene, direct address, opinion, question) — "
+        "never default every hook to the same stat-led or question-led pattern.\n\n"
+        "Field requirements per idea:\n"
+        "- title: post headline\n"
+        f"- platform: \"{platform}\"\n"
+        "- content_type: one of linkedin_post, instagram_post, tweet\n"
+        "- hook: opening line (per HOOK CRAFT above)\n"
+        "- predicted_engagement: short engagement prediction\n"
+        "- reasoning: name the specific engagement MECHANISM this idea triggers — saves, shares, comments, "
+        "debate, or profile visits — and why THIS audience responds to it. 'It's relatable' is not a mechanism.\n"
+        "- suggested_hashtags: array of hashtag strings\n"
+        "- visual_description: a detailed image generation prompt describing exactly what the post image should "
+        "look like — the specific scene, subject, environment, lighting, mood, composition, and any text overlay. "
+        "This is fed directly to an image generator, so be concrete and vivid; never a vague mood statement.\n"
+    )
+
+
+DRAFT_PLATFORM_LIMITS = {
+    "linkedin": "Under 150 words. Short paragraphs, no bullet points, no headers.",
+    "twitter": "Under 280 characters total. One punchy sentence or short thread opener.",
+    "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome, hashtags at the end.",
+}
+
+
+def build_draft_rules(platform: str) -> str:
+    """Canonical copywriting rules for drafting a post — shared by the chat
+    `draft_content` tool and the /draft-content endpoint so both paths write
+    at the same quality bar."""
+    return (
+        "STRICT RULES:\n"
+        f"- {DRAFT_PLATFORM_LIMITS.get(platform, 'Keep it concise and platform-native.')}\n"
+        "- Pick ONE opener style and commit to it — do not default to the same shape every time: "
+        "a blunt fact or number, a counterintuitive claim, a one-line scene/story, a direct 'you' address, "
+        "or a flat opinion stated as fact. NOT 'As a founder' or any generic opener.\n"
+        "- SPECIFICITY GATE: every claim must carry a number, a named outcome, or a concrete scene. "
+        "Reread each sentence — if it carries none of those and could sit in any competitor's post, "
+        "delete or rewrite it.\n"
+        "- RHYTHM: vary sentence length deliberately. One-word sentences are allowed. Never write three "
+        "consecutive sentences of similar length — the post should read aloud with a pulse, not a drone.\n"
+        "- Write about the BUSINESS VALUE and REAL IMPACT. Never mention mascots, characters, visuals, or image descriptions.\n"
+        "- Sound like the founder typed it themselves — direct, confident, no filler. Let personality and humor show "
+        "where the tone allows it — this should read like a specific person wrote it, not a template.\n"
+        "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating', 'transform the chaos'.\n"
+        "- CTA: vary the form — a specific question, a direct action (try/click/reply), a mini-challenge, an opinion "
+        "prompt, or no CTA at all if the post lands better without one. "
+        "NEVER use the generic survey template '[stat/number] of people feel/do X — how do you feel? Let us know' "
+        "or any close variant ('what about you?', 'do you agree?', 'share your thoughts below') — it reads as "
+        "AI-generated engagement bait, not a real CTA.\n"
+    )
 
 
 class MayaAgent(BaseAgent):
@@ -260,14 +341,20 @@ class MayaAgent(BaseAgent):
                     if draft.get("body"):
                         _ctx_parts.append(f"post excerpt: {str(draft['body'])[:250]}")
                     ideas = response.action_result.get("ideas") or []
+                    _visual_desc = ""
                     if ideas and isinstance(ideas, list):
                         idea = ideas[0]
                         if idea.get("hook"):
                             _ctx_parts.append(f"hook: {idea['hook']}")
-                        if idea.get("rationale"):
-                            _ctx_parts.append(f"angle: {str(idea['rationale'])[:150]}")
-                        if idea.get("engagement_prediction"):
-                            _ctx_parts.append(f"audience note: {str(idea['engagement_prediction'])[:100]}")
+                        _angle = idea.get("reasoning") or idea.get("rationale")
+                        if _angle:
+                            _ctx_parts.append(f"angle: {str(_angle)[:150]}")
+                        _pred = idea.get("predicted_engagement") or idea.get("engagement_prediction")
+                        if _pred:
+                            _ctx_parts.append(f"audience note: {str(_pred)[:100]}")
+                        # visual_description is authored specifically as an image prompt —
+                        # feed it to the concept/elaboration steps instead of dropping it.
+                        _visual_desc = str(idea.get("visual_description") or "")[:600]
                 _ctx_parts.append(request.message)
                 _ctx = "; ".join(filter(None, _ctx_parts))[:600]
                 image_result = await generate_social_image(
@@ -277,6 +364,7 @@ class MayaAgent(BaseAgent):
                     organization_id=request.organization_id,
                     brand_kit=brand_kit,
                     context_hints=_ctx,
+                    concept_hint=_visual_desc,
                 )
 
                 response.image = image_result
@@ -358,7 +446,9 @@ class MayaAgent(BaseAgent):
                         "Based on reference image 1, produce an updated version that applies ALL of the following changes:\n"
                         + "\n".join(f"- {p}" for p in changes_parts)
                         + "\n\nPreserve the original composition, typography, colour palette, layout, and all other "
-                        "existing visual elements. The output should look like reference image 1 with only these additions applied."
+                        "existing visual elements. The output should look like reference image 1 with only these additions applied. "
+                        "TEXT FIDELITY: any text present in reference image 1 that is not itself being changed must be "
+                        "reproduced letter-for-letter — never re-typeset, respell, paraphrase, or drop it."
                     )
                     b64 = await self.llm.generate_image_with_image_bytes(edit_prompt, edit_images, aspect_ratio=aspect_ratio)
                     response.image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=edit_prompt)
@@ -494,27 +584,21 @@ class MayaAgent(BaseAgent):
             count = arguments.get("count", 3)
             rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
             now_iso = datetime.now(timezone.utc).isoformat()
+            topic_line = f"Generate {count} high-performing content ideas for {platform} about: {topic_hint}"
             prompt = (
-                f"Generate {count} {platform} content ideas about: {topic_hint}\n\n"
-                f"Tone: {rules['tone']}. {rules['hashtag_count']} hashtags per post.\n\n"
-                "Return ONLY a JSON object (no markdown fences) with this exact structure:\n"
-                '{"ideas": [{"title": "...", "platform": "' + platform + '", '
-                '"hook": "opening line that stops the scroll", '
-                '"predicted_engagement": "high|medium|low", '
-                '"reasoning": "1 sentence why this works", '
-                '"suggested_hashtags": ["#tag1", "#tag2"], '
-                '"visual_description": "brief image concept", '
-                '"content_type": "single-post|carousel|thread"}], '
-                '"generated_at": "' + now_iso + '"}'
-            )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
+                build_ideas_prompt(platform, count, rules, topic_line)
+                + '\nReturn ONLY a JSON object of the shape {"ideas": [ ... ]} with the fields above per idea.'
             )
             try:
-                return json.dumps(json.loads(strip_json_fences(raw)))
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                )
+                ideas = data.get("ideas", data if isinstance(data, list) else [])
+                return json.dumps({"ideas": ideas, "generated_at": now_iso})
             except Exception:
-                return json.dumps({"ideas": [], "generated_at": now_iso, "_raw": raw[:300]})
+                return json.dumps({"ideas": [], "generated_at": now_iso})
 
         elif name == "draft_content":
             topic = arguments.get("topic", "")
@@ -527,23 +611,12 @@ class MayaAgent(BaseAgent):
             website_cta = ""
             if brand_kit.website_url:
                 website_cta = f"\nInclude this link in the CTA where natural: {brand_kit.website_url}"
-            platform_limits = {
-                "linkedin": "Under 150 words. Short paragraphs, no bullet points, no headers.",
-                "twitter": "Under 280 characters total. One punchy sentence or short thread opener.",
-                "instagram": "Under 150 words. Short paragraphs, line breaks, emojis welcome, hashtags at the end.",
-            }
             prompt = (
                 f"Write a {platform} post about this topic: {topic}\n\n"
                 f"Tone: {tone}\n"
                 f"Max {rules['max_chars']} chars. {rules['hashtag_count']} hashtags.\n"
                 f"{website_cta}\n\n"
-                "STRICT RULES:\n"
-                f"- {platform_limits.get(platform, 'Keep it concise and platform-native.')}\n"
-                "- Start with a specific fact, number, or bold statement — NOT with 'As a founder' or any generic opener.\n"
-                "- Write about the BUSINESS VALUE and REAL IMPACT. Never mention visuals or image descriptions.\n"
-                "- Sound like the founder typed it — direct, confident, no filler.\n"
-                "- NO generic phrases: 'whirlwind', 'imagine', 'journey', 'elusive', 'navigating'.\n"
-                "- CTA at the end: a direct question or action.\n\n"
+                f"{build_draft_rules(platform)}\n"
                 "Return ONLY a JSON object (no markdown fences):\n"
                 '{"draft": {"title": "short reference title", "body": "the full post body without hashtags", '
                 '"hashtags": ["tag1", "tag2"], "cta": "the call-to-action text", '
@@ -551,12 +624,12 @@ class MayaAgent(BaseAgent):
                 f'"word_count": 0, "platform": "{platform}", "tone_used": "{tone}", '
                 '"meta_title": ""}}'
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
-            )
             try:
-                parsed = json.loads(strip_json_fences(raw))
+                parsed = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                )
                 # Ensure word_count is computed if LLM left it 0
                 draft = parsed.get("draft", {})
                 if not draft.get("word_count"):
@@ -565,9 +638,9 @@ class MayaAgent(BaseAgent):
                 return json.dumps(parsed)
             except Exception:
                 return json.dumps({"draft": {
-                    "title": topic[:50], "body": raw, "hashtags": [],
+                    "title": topic[:50], "body": "", "hashtags": [],
                     "cta": "", "meta_description": "", "meta_title": "",
-                    "word_count": len(raw.split()), "platform": platform, "tone_used": tone,
+                    "word_count": 0, "platform": platform, "tone_used": tone,
                 }})
 
         elif name == "generate_variants":
@@ -581,25 +654,28 @@ class MayaAgent(BaseAgent):
             async def _adapt(platform: str) -> dict:
                 rules = PLATFORM_RULES.get(platform, PLATFORM_RULES["linkedin"])
                 prompt = (
-                    f"Adapt this {original_platform} content for {platform}:\n\n"
+                    f"Re-imagine this {original_platform} content as a NATIVE {platform} post:\n\n"
                     f"{original}\n\n"
                     f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags, "
                     f"tone: {rules['tone']}\n"
                     f"{website_cta}\n\n"
+                    "RE-IMAGINE, DON'T SHORTEN: keep the core insight and any exact numbers, but rebuild the post "
+                    "the way a native creator on that platform would write it — never just compress or truncate. "
+                    "The hook must be rebuilt natively for the platform, never reused verbatim.\n\n"
                     "Return ONLY a JSON object (no markdown fences):\n"
                     '{"platform": "' + platform + '", "body": "adapted post body without hashtags", '
                     '"hashtags": ["tag1"], "char_count": 0, "title": ""}'
                 )
-                inner_raw = await self.llm.complete(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system, messages=[{"role": "user", "content": prompt}],
-                )
                 try:
-                    obj = json.loads(strip_json_fences(inner_raw))
+                    obj = await self.llm.complete_json(
+                        provider=self.default_provider, model=self.default_model,
+                        system=system, messages=[{"role": "user", "content": prompt}],
+                        temperature=0.7,
+                    )
                     obj["char_count"] = len(obj.get("body", ""))
                     return obj
                 except Exception:
-                    return {"platform": platform, "body": inner_raw, "hashtags": [], "char_count": len(inner_raw), "title": ""}
+                    return {"platform": platform, "body": "", "hashtags": [], "char_count": 0, "title": ""}
 
             import asyncio as _asyncio
             variant_dicts = await _asyncio.gather(*[_adapt(p) for p in targets])
@@ -615,21 +691,25 @@ class MayaAgent(BaseAgent):
                 f"Original:\n{original}\n\n"
                 f"Feedback: {feedback}\n\n"
                 f"Platform rules — max {rules['max_chars']} chars, {rules['hashtag_count']} hashtags\n\n"
+                "SURGICAL REVISION: change ONLY what the feedback requires — preserve every phrase, hook, and "
+                "structural choice that already works. Each changes_made entry must quote the actual edit as a "
+                "before → after fragment, never a vague description.\n\n"
                 "Return ONLY a JSON object (no markdown fences):\n"
                 '{"revised": {"body": "revised post body without hashtags", '
                 '"hashtags": ["tag1"], "cta": "call to action", '
                 f'"platform": "{platform}", "title": ""}}, '
                 '"changes_made": ["change 1", "change 2"]}'
             )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
-            )
             try:
-                return json.dumps(json.loads(strip_json_fences(raw)))
+                data = await self.llm.complete_json(
+                    provider=self.default_provider, model=self.default_model,
+                    system=system, messages=[{"role": "user", "content": prompt}],
+                    temperature=0.6,
+                )
+                return json.dumps(data)
             except Exception:
                 return json.dumps({
-                    "revised": {"body": raw, "hashtags": [], "cta": "", "platform": platform, "title": ""},
+                    "revised": {"body": original, "hashtags": [], "cta": "", "platform": platform, "title": ""},
                     "changes_made": [],
                 })
 

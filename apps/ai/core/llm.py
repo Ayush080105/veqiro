@@ -309,6 +309,44 @@ class LLMClient:
             return _select_mock_response(system, messages)
         return await self._real_complete(provider, model, system, messages, temperature, max_tokens, response_format)
 
+    async def complete_json(
+        self,
+        provider: str,
+        model: str,
+        system: str,
+        messages: list,
+        temperature: float = 0.3,
+        max_tokens: int = 4096,
+    ) -> dict | list:
+        """Structured-output completion: enforces the provider's JSON mode, parses
+        the result, and retries once with corrective feedback on a parse failure.
+
+        Use this instead of `complete` + manual json parsing for any call whose
+        output must be machine-readable. Returns the parsed dict/list; raises
+        LLMError when both attempts fail.
+        """
+        from core.utils import safe_json_loads
+        response_format = {"type": "json_object"}
+        raw = await self.complete(provider, model, system, messages, temperature, max_tokens, response_format)
+        try:
+            return safe_json_loads(raw)
+        except Exception as first_err:
+            if settings.MOCK_MODE:
+                raise LLMError(f"complete_json got unparseable mock response: {first_err}")
+            logger.warning("complete_json parse failed — retrying once | model=%s error=%s", model, first_err)
+            retry_messages = messages + [
+                {"role": "assistant", "content": raw[:2000]},
+                {"role": "user", "content": (
+                    "Your previous response was not valid JSON. Return ONLY the JSON "
+                    "object/array — no prose, no markdown fences, no explanation."
+                )},
+            ]
+            raw = await self.complete(provider, model, system, retry_messages, temperature, max_tokens, response_format)
+            try:
+                return safe_json_loads(raw)
+            except Exception as second_err:
+                raise LLMError(f"complete_json returned unparseable JSON after retry: {second_err}")
+
     async def _real_complete(self, provider, model, system, messages, temperature, max_tokens, response_format):
         import time
         from langfuse import Langfuse as _Langfuse
@@ -342,7 +380,7 @@ class LLMClient:
                 await asyncio.sleep(delay)
             try:
                 if provider == "gemini":
-                    result = await self._gemini_complete(model, system, messages, temperature, max_tokens)
+                    result = await self._gemini_complete(model, system, messages, temperature, max_tokens, json_mode=bool(response_format))
                     input_text = system + " ".join(str(m.get("content", "")) for m in messages)
                     pt, ct = self.count_tokens(input_text), self.count_tokens(result)
                 elif provider == "openai":
@@ -370,7 +408,7 @@ class LLMClient:
                 pass
         raise LLMError(f"LLM call failed after retries: {last_exc}")
 
-    async def _gemini_complete(self, model, system, messages, temperature, max_tokens):
+    async def _gemini_complete(self, model, system, messages, temperature, max_tokens, json_mode=False):
         from google import genai
         from google.genai import types
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -388,6 +426,7 @@ class LLMClient:
                 system_instruction=system,
                 temperature=temperature,
                 max_output_tokens=max_tokens,
+                response_mime_type="application/json" if json_mode else None,
                 # gemini-2.5-* are thinking models: left unbounded, "thinking"
                 # tokens eat into max_output_tokens and can exhaust the whole
                 # budget (finish_reason=MAX_TOKENS), leaving response.text=None.
@@ -843,11 +882,18 @@ class LLMClient:
                     )
                 )
 
+            # aspect_ratio as a real API parameter — the text hint alone is only
+            # advisory and Gemini frequently returns square images for 16:9 requests
+            image_config = None
+            if aspect_ratio in ("1:1", "16:9", "9:16", "4:3", "3:4", "2:3", "3:2", "21:9"):
+                image_config = types.ImageConfig(aspect_ratio=aspect_ratio)
+
             response = await client.aio.models.generate_content(
                 model="gemini-2.5-flash-image",
                 contents=parts,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
+                    image_config=image_config,
                 ),
             )
 
