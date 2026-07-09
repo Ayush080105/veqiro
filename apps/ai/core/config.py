@@ -35,6 +35,10 @@ class Settings(BaseSettings):
 
     SAGE_MODEL: str = Field(default="gpt-4.1-mini")
 
+    # Image generation model — override in .env to A/B test a higher tier
+    # (e.g. GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview, ~3.4x cost per image)
+    GEMINI_IMAGE_MODEL: str = Field(default="gemini-2.5-flash-image")
+
     # Asset fetching (R2 / CDN)
     R2_FETCH_TIMEOUT: int = Field(default=10)
 

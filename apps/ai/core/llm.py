@@ -825,7 +825,7 @@ class LLMClient:
                     trace_context={"trace_id": obs_ctx.trace_id},
                     name="generate_image_with_references",
                     as_type="generation",
-                    model="gemini-2.5-flash-image",
+                    model=settings.GEMINI_IMAGE_MODEL,
                     input={
                         "prompt": prompt[:500],
                         "num_references": len(images),
@@ -889,7 +889,7 @@ class LLMClient:
                 image_config = types.ImageConfig(aspect_ratio=aspect_ratio)
 
             response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash-image",
+                model=settings.GEMINI_IMAGE_MODEL,
                 contents=parts,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],

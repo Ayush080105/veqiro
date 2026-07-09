@@ -903,7 +903,7 @@ async def regenerate_image(request: ImageRegenRequest) -> ImageRegenResponse:
             raise last_err
     else:
         image = ImageResult(image_base64=b64, content_type="image/png", prompt_used=request.prompt)
-    return ImageRegenResponse(image=image, model_used="gemini-2.5-flash-image")
+    return ImageRegenResponse(image=image, model_used=settings.GEMINI_IMAGE_MODEL)
 
 
 @router.post("/regenerate-content", response_model=ContentRegenResponse, summary="Regenerate content")
