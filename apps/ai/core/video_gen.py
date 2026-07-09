@@ -17,6 +17,15 @@ _TEXT_ACCURACY_GUARDRAIL = (
     "clearly and correctly, keep it soft-focus or out of frame rather than guessing at it."
 )
 
+_ENDING_GUARDRAIL = (
+    "ENDING — NON-NEGOTIABLE: The video must end deliberately, never feel cut off. All action, "
+    "camera movement, and any dialogue must fully resolve BEFORE the final moments — the last "
+    "portion of the video (roughly the final second) is a held, settled closing shot: the "
+    "subject at rest, the camera still or drifting to a stop, nothing new beginning. Never end "
+    "mid-motion, mid-gesture, mid-word, or mid-camera-move; the final frame should look like an "
+    "intentional closing frame a viewer could pause on."
+)
+
 _PRODUCT_FIDELITY_GUARDRAIL = (
     "PRODUCT FIDELITY — NON-NEGOTIABLE: Reproduce the product from the reference image(s) "
     "EXACTLY as shown in every shot. Do not alter its shape, proportions, colors, materials, "
@@ -124,7 +133,7 @@ none of the images clearly show.
 """
 
 _STORYBOARD_SYSTEM = f"""\
-You are an award-winning commercial director breaking a short video concept into a 4-beat
+You are an award-winning commercial director breaking a short video concept into a 9-beat
 storyboard for a real advertisement — the kind that runs on TV or social, not a set of product
 photography variations. A storyboard where every panel is just another angle on the same static
 plate/bottle/box is a FAILURE, no matter how well-lit. Real ads sell a feeling: they put a person
@@ -133,25 +142,31 @@ audiences connect with a moment, not a still life.
 
 Beat 1 (hook): an opening that earns attention — an intriguing detail, an establishing shot of the
 setting, or the anticipation just before the moment (a hand reaching in, a plate being set down,
-an ingredient in motion). Beat 2 (escalation/build): the process, service, or interaction that
-builds toward the payoff — a chef finishing a plate, a server presenting it, someone picking it
-up. Beat 3 (hero/product moment): the product's defining moment, usually the instant a person
-engages with it directly — taking a bite, pouring, applying, unboxing — shown with total clarity.
-Beat 4 (closing/CTA/payoff): the emotional payoff — a satisfied reaction, a genuine smile, a
-close-up of pure enjoyment, or a clean final hero shot if the category calls for restraint instead.
+an ingredient in motion). Beats 2-3 (build/context): the world around the product comes alive —
+the setting, the person, the desire or problem the product answers, each beat advancing the story.
+Beats 4-5 (escalation/process): the process, service, or interaction that builds toward the
+payoff — a chef finishing a plate, a server presenting it, someone reaching for it, the product
+being prepared or revealed step by step. Beat 6 (hero/product moment): the product's defining
+moment, usually the instant a person engages with it directly — taking a bite, pouring, applying,
+unboxing — shown with total clarity. Beats 7-8 (payoff/reaction): the emotional payoff unfolding —
+a satisfied reaction, a genuine smile, a close-up of pure enjoyment, the result of using the
+product visible in the person or the scene. Beat 9 (closing/CTA): a calm, resolved final frame —
+a clean settled hero shot of the product (with logo/packaging clearly readable if provided), the
+scene at rest — the frame the video will hold on as it ends, never mid-action.
 
-For food, drink, hospitality, beauty, or any product meant to be used on or by a person, at least
-one beat — usually Beat 3 or 4 — MUST show a real person genuinely interacting with it (eating,
+For food, drink, hospitality, beauty, or any product meant to be used on or by a person, several
+beats — especially Beats 6-8 — MUST show a real person genuinely interacting with it (eating,
 drinking, holding, applying, wearing) in a believable setting (e.g. a restaurant table, a kitchen,
-a bathroom counter) — do not default to four variations of the product sitting alone on a surface.
-Only skip the human moment if the category genuinely doesn't call for one (e.g. an industrial part,
-enterprise software). If a person appears in more than one beat, keep them the same person across
-those beats for narrative continuity.
+a bathroom counter) — do not default to nine variations of the product sitting alone on a surface.
+Only skip the human moments if the category genuinely doesn't call for them (e.g. an industrial
+part, enterprise software). If a person appears in more than one beat, keep them the same person
+across those beats for narrative continuity.
 
 Each beat is one still frame a storyboard artist could draw — describe it as a single vivid,
 concrete visual: framing/camera angle, who or what is in frame and what they're doing, the
 setting, and mood/lighting. Describe a frozen moment, not a shot with camera movement or duration.
-Vary the framing and setting meaningfully across the 4 beats — do not repeat the same composition,
+Keep each beat's paragraph SHORT — 1-2 tight sentences — since there are nine of them.
+Vary the framing and setting meaningfully across the 9 beats — do not repeat the same composition,
 angle, or crop with only minor changes.
 
 Match the register the concept actually calls for (clinical precision for a health product, warm
@@ -164,9 +179,9 @@ every beat where it appears. Never redesign or reimagine the product. This fidel
 about the product only — it does not mean every beat must be a repeat product shot; people, hands,
 settings, and framing should still change beat to beat to tell a real story.
 
-Output EXACTLY 4 beats. Write each beat as one paragraph. Separate the 4 paragraphs with a line
+Output EXACTLY 9 beats. Write each beat as one paragraph. Separate the 9 paragraphs with a line
 containing only three dashes (---) and nothing else. Do not number the beats, and do not add
-headings, labels, or any text other than the 4 beat paragraphs and the dash separators.
+headings, labels, or any text other than the 9 beat paragraphs and the dash separators.
 
 {_PRODUCT_FIDELITY_GUARDRAIL}
 """
@@ -174,9 +189,12 @@ headings, labels, or any text other than the 4 beat paragraphs and the dash sepa
 _STORYBOARD_MATCH_INSTRUCTION = (
     "This storyboard image and the beats below are the APPROVED plan for this video — do not "
     "invent a different concept, setting, or product treatment. Write ONE continuous cinematic "
-    "narrative (no timestamps, no shot labels) that depicts these exact 4 beats in this exact "
-    "order, evenly paced across the full runtime, using the same product, styling, setting, and "
-    "mood shown in the storyboard image."
+    "narrative (no timestamps, no shot labels) that flows through these beats in this exact "
+    "order, using the same product, styling, setting, and mood shown in the storyboard image. "
+    "The beats are the narrative arc, not equal timed slots — early and middle beats may pass "
+    "quickly, but the FINAL beat must be given generous room: all action resolves before the "
+    "end, and the video closes by settling and holding on that final resolved frame in complete "
+    "stillness, so it ends deliberately rather than feeling cut off mid-motion."
 )
 
 # Mirrors the wording used for logo compositing in image generation (core/image_gen.py) —
@@ -236,9 +254,10 @@ async def plan_video_scenes(
     prompt = (
         f"Video concept: {concept}\n"
         f"This video will run for exactly {duration_seconds} seconds — write a narrative "
-        f"that naturally fills that time and reaches a satisfying, resolved conclusion by "
-        f"the end. Do not mention seconds, timestamps, or any timing markers anywhere in "
-        f"your description.\n"
+        f"that naturally fills that time and reaches a satisfying, resolved conclusion "
+        f"BEFORE the end — all action and dialogue finish with time to spare, and the video "
+        f"closes on a held, settled final frame rather than cutting off mid-motion. Do not "
+        f"mention seconds, timestamps, or any timing markers anywhere in your description.\n"
         f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
     )
     narrative = await llm.complete(
@@ -266,9 +285,10 @@ async def plan_video_scenes_with_images(
     prompt = (
         f"Video concept: {concept}\n"
         f"This video will run for exactly {duration_seconds} seconds — write a narrative "
-        f"that naturally fills that time and reaches a satisfying, resolved conclusion by "
-        f"the end. Do not mention seconds, timestamps, or any timing markers anywhere in "
-        f"your description.\n"
+        f"that naturally fills that time and reaches a satisfying, resolved conclusion "
+        f"BEFORE the end — all action and dialogue finish with time to spare, and the video "
+        f"closes on a held, settled final frame rather than cutting off mid-motion. Do not "
+        f"mention seconds, timestamps, or any timing markers anywhere in your description.\n"
         f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
     )
     full_prompt = f"{_SCENE_PLAN_SYSTEM_WITH_IMAGE}\n\n{prompt}"
@@ -291,13 +311,15 @@ async def plan_storyboard_beats(
     aspect_ratio: str,
     platform: str,
 ) -> list[str]:
-    """Break a campaign video concept into exactly 4 storyboard beats (hook, escalation,
-    hero/product moment, closing/CTA), grounded in the product reference images so the
-    storyboard image and the later video narrative both depict the same real product."""
+    """Break a campaign video concept into exactly 9 storyboard beats (hook, build,
+    escalation, hero/product moment, payoff, closing/CTA), grounded in the product reference
+    images so the storyboard image and the later video narrative both depict the same real
+    product."""
     prompt = (
         f"Video concept: {concept}\n"
-        f"This video will run for exactly {duration_seconds} seconds, split across these 4 beats "
-        f"roughly evenly — pace each beat's content accordingly.\n"
+        f"This video will run for exactly {duration_seconds} seconds, flowing through these 9 "
+        f"beats in order — pace each beat's content accordingly, with the final beat as a held, "
+        f"resolved closing frame.\n"
         f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
     )
     full_prompt = f"{_STORYBOARD_SYSTEM}\n\n{prompt}"
@@ -312,32 +334,36 @@ async def plan_storyboard_beats(
             system=_STORYBOARD_SYSTEM,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=900,
+            max_tokens=1800,
         )
 
     beats = [b.strip() for b in raw.split("---") if b.strip()]
-    if len(beats) != 4:
+    if len(beats) != 9:
         beats = [b.strip() for b in raw.split("\n\n") if b.strip()]
     if not beats:
         beats = [raw.strip()]
-    if len(beats) < 4:
-        beats = beats + [beats[-1]] * (4 - len(beats))
-    return beats[:4]
+    if len(beats) < 9:
+        beats = beats + [beats[-1]] * (9 - len(beats))
+    return beats[:9]
 
 
 def _build_storyboard_image_prompt(beats: list[str], concept: str, num_product_images: int) -> str:
-    panel_labels = ["top-left", "top-right", "bottom-left", "bottom-right"]
+    panel_labels = [
+        "top-left", "top-center", "top-right",
+        "middle-left", "center", "middle-right",
+        "bottom-left", "bottom-center", "bottom-right",
+    ]
     panel_lines = "\n".join(
         f"Panel {i + 1} ({panel_labels[i]}): {beat}" for i, beat in enumerate(beats)
     )
     return (
-        "Generate ONE single image only: a 2x2 grid storyboard collage on a plain neutral "
-        "background, divided into 4 equal panels by a thin clean divider line, like a film "
+        "Generate ONE single image only: a 3x3 grid storyboard collage on a plain neutral "
+        "background, divided into 9 equal panels by thin clean divider lines, like a film "
         "director's storyboard sheet. Each panel is a separate, self-contained illustration of "
         "one beat of the same commercial — same product, same characters, same overall visual "
-        "style and color grade across all 4 panels, just a different pose, angle, or moment in "
-        "each. Do not add any text, captions, numbers, or labels inside the image — the 4 panels "
-        "alone tell the story.\n\n"
+        "style and color grade across all 9 panels, just a different pose, angle, or moment in "
+        "each. Panels read left-to-right, top-to-bottom in story order. Do not add any text, "
+        "captions, numbers, or labels inside the image — the 9 panels alone tell the story.\n\n"
         f"{panel_lines}\n\n"
         f"Overall concept for continuity: {concept}\n\n"
         f"{product_identity_instructions(num_product_images)}"
@@ -353,7 +379,7 @@ async def generate_video_storyboard(
     platform: str,
     logo_image: tuple[bytes, str] | None = None,
 ) -> tuple[str, list[str]]:
-    """Generate a single 2x2-grid storyboard collage image (one panel per beat) plus the 4 beat
+    """Generate a single 3x3-grid storyboard collage image (one panel per beat) plus the 9 beat
     descriptions used to plan it, so the beats can be reused afterward to keep the actual video
     narrative in sync with what the storyboard shows. Returns (storyboard_image_base64, beats)."""
     beats = await plan_storyboard_beats(llm, concept, product_images, duration_seconds, aspect_ratio, platform)
@@ -385,7 +411,7 @@ async def plan_video_scenes_from_storyboard(
     platform: str,
 ) -> str:
     """Same as plan_video_scenes_with_images, but anchors the narrative to an already-generated
-    storyboard (image + 4 beats) instead of freely reinventing one, so the final video visually
+    storyboard (image + beats) instead of freely reinventing one, so the final video visually
     and narratively matches what the user saw in the storyboard step."""
     beats_block = "\n".join(f"Beat {i + 1}: {b}" for i, b in enumerate(beats))
     prompt = (
@@ -393,7 +419,8 @@ async def plan_video_scenes_from_storyboard(
         f"{_STORYBOARD_MATCH_INSTRUCTION}\n\n"
         f"{beats_block}\n\n"
         f"This video will run for exactly {duration_seconds} seconds — write a narrative that "
-        f"naturally fills that time and reaches a satisfying, resolved conclusion by the end. Do "
+        f"naturally fills that time and reaches a satisfying, resolved conclusion BEFORE the "
+        f"end, closing on a held, settled final frame rather than cutting off mid-motion. Do "
         f"not mention seconds, timestamps, or any timing markers anywhere in your description.\n"
         f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
     )
@@ -413,8 +440,8 @@ async def generate_maya_video(
     import base64
 
     # Applied directly to the final generation prompt (not just the planning-stage system
-    # prompt) so the model that actually renders the video sees the hard constraint too.
-    final_prompt = f"{prompt}\n\n{_TEXT_ACCURACY_GUARDRAIL}"
+    # prompt) so the model that actually renders the video sees the hard constraints too.
+    final_prompt = f"{prompt}\n\n{_TEXT_ACCURACY_GUARDRAIL}\n\n{_ENDING_GUARDRAIL}"
 
     video_bytes = await llm.generate_video(
         prompt=final_prompt,

@@ -104,7 +104,7 @@ export const campaignVideoSchema = z.object({
   aspectRatio: videoAspectRatioEnum.default("9:16"),
   durationSeconds: z.number().int().min(4).max(10).optional().default(8),
   useLogo: z.boolean().optional().default(false),
-  storyboardBeats: z.array(z.string()).max(4).optional(),
+  storyboardBeats: z.array(z.string()).max(9).optional(),
   storyboardImageUrl: z.string().url().optional(),
 });
 

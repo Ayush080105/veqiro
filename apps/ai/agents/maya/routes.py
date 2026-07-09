@@ -1825,7 +1825,7 @@ class CampaignVideoRequest(BaseModel):
     aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
     duration_seconds: int = Field(8, ge=4, le=10)
     use_logo: bool = False
-    storyboard_beats: list[str] | None = Field(None, max_length=4)
+    storyboard_beats: list[str] | None = Field(None, max_length=9)
     storyboard_image_url: str | None = None
 
 

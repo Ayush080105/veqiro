@@ -113,7 +113,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       agent: "maya",
       endpoint: "campaign-video/storyboard",
       label: "Generate Storyboard",
-      description: "Preview a 4-beat storyboard collage for a product video before generating the full video.",
+      description: "Preview a 9-beat storyboard collage for a product video before generating the full video.",
       icon: "LayoutGrid",
       locked: VIDEO_FEATURES_LOCKED,
     },
