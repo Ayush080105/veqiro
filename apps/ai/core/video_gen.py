@@ -347,7 +347,9 @@ async def plan_storyboard_beats(
     return beats[:9]
 
 
-def _build_storyboard_image_prompt(beats: list[str], concept: str, num_product_images: int) -> str:
+def _build_storyboard_image_prompt(
+    beats: list[str], concept: str, num_product_images: int, video_aspect_ratio: str,
+) -> str:
     panel_labels = [
         "top-left", "top-center", "top-right",
         "middle-left", "center", "middle-right",
@@ -357,12 +359,16 @@ def _build_storyboard_image_prompt(beats: list[str], concept: str, num_product_i
         f"Panel {i + 1} ({panel_labels[i]}): {beat}" for i, beat in enumerate(beats)
     )
     return (
-        "Generate ONE single image only: a 3x3 grid storyboard collage on a plain neutral "
-        "background, divided into 9 equal panels by thin clean divider lines, like a film "
-        "director's storyboard sheet. Each panel is a separate, self-contained illustration of "
+        "Generate ONE single image only: a square storyboard collage on a plain neutral "
+        "background, divided into EXACTLY 9 equal panels — 3 rows of 3 columns — by thin clean "
+        "divider lines, like a film director's storyboard sheet. The grid must contain exactly "
+        "9 panels: never add a fourth row or column, never repeat a panel, and never leave a "
+        "panel empty. Each panel is a separate, self-contained illustration of "
         "one beat of the same commercial — same product, same characters, same overall visual "
-        "style and color grade across all 9 panels, just a different pose, angle, or moment in "
-        "each. Panels read left-to-right, top-to-bottom in story order. Do not add any text, "
+        f"style and color grade across all 9 panels (each panel depicts one frame of a "
+        f"{video_aspect_ratio} video), just a different pose, angle, or moment in "
+        "each. Panels read left-to-right, top-to-bottom in story order, one panel per beat "
+        "below — 9 beats, 9 panels. Do not add any text, "
         "captions, numbers, or labels inside the image — the 9 panels alone tell the story.\n\n"
         f"{panel_lines}\n\n"
         f"Overall concept for continuity: {concept}\n\n"
@@ -383,7 +389,7 @@ async def generate_video_storyboard(
     descriptions used to plan it, so the beats can be reused afterward to keep the actual video
     narrative in sync with what the storyboard shows. Returns (storyboard_image_base64, beats)."""
     beats = await plan_storyboard_beats(llm, concept, product_images, duration_seconds, aspect_ratio, platform)
-    image_prompt = _build_storyboard_image_prompt(beats, concept, len(product_images))
+    image_prompt = _build_storyboard_image_prompt(beats, concept, len(product_images), aspect_ratio)
 
     image_bytes_only = [b for b, _ in product_images]
     if logo_image:
@@ -394,8 +400,11 @@ async def generate_video_storyboard(
             "redraw it."
         )
 
+    # The collage sheet is always rendered square: on a non-square canvas (e.g. 9:16) the
+    # image model pads the 3x3 grid with extra rows of duplicate panels to fill the page.
+    # The video's aspect ratio is conveyed per-panel inside the prompt instead.
     storyboard_b64 = await llm.generate_image_with_image_bytes(
-        image_prompt, image_bytes_only, aspect_ratio=aspect_ratio,
+        image_prompt, image_bytes_only, aspect_ratio="1:1",
     )
     return storyboard_b64, beats
 
