@@ -116,7 +116,12 @@
       "Bash(git checkout *)",
       "Bash(bash \"C:/Users/NARESH/.claude/plugins/cache/claude-plugins-official/superpowers/6.1.1/skills/subagent-driven-development/scripts/review-package\" aa3f747 HEAD)",
       "Bash(git fetch *)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in d['scripts'].items\\(\\)\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in d['scripts'].items\\(\\)\\)\\)\")",
+      "Bash(awk '/^interface SubscriptionUpdateParams/,/^}$/' subscriptions.d.ts)",
+      "Bash(awk '/^interface SubscriptionChargeParams/,/^}$/' subscriptions.d.ts)",
+      "Bash(mkdir -p .superpowers/sdd)",
+      "Bash(mv .superpowers/sdd/progress.md .superpowers/sdd/progress-archived-prior-run.md)",
+      "Bash(cat)"
     ]
   },
   "enableAllProjectMcpServers": true,
