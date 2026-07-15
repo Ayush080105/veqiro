@@ -3,6 +3,8 @@ import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../config/prisma.js";
 import { dodoClient } from "../../lib/dodo.js";
 import { createCheckoutForOrg, requireOrgOwner, startTrialForOrg } from "./billing.service.js";
+import { cancelAgentAutoPay, resumeAgentAutoPay } from "./billing.cancel.js";
+import { normalizeAgents } from "./billing.catalog.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 
 function daysRemaining(date: Date | null): number | null {
@@ -92,4 +94,17 @@ export async function openPortal(req: Request, res: Response) {
     send_email: false,
   });
   res.status(StatusCodes.OK).json({ url: portal.link });
+}
+
+// Billing changes are owner-only — both routes go through requireOrgOwner.
+export async function cancelAgent(req: Request, res: Response) {
+  const orgId = await requireOrgOwner(req);
+  const [agent] = normalizeAgents([req.params.agent]);
+  res.status(StatusCodes.OK).json(await cancelAgentAutoPay(orgId, agent));
+}
+
+export async function resumeAgent(req: Request, res: Response) {
+  const orgId = await requireOrgOwner(req);
+  const [agent] = normalizeAgents([req.params.agent]);
+  res.status(StatusCodes.OK).json(await resumeAgentAutoPay(orgId, agent));
 }
