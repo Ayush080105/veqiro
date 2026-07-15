@@ -392,6 +392,7 @@ export const ModelName = {
   Subscription: 'Subscription',
   Entitlement: 'Entitlement',
   BillingSubscription: 'BillingSubscription',
+  PendingCheckout: 'PendingCheckout',
   BillingWebhookEvent: 'BillingWebhookEvent',
   ActivityLog: 'ActivityLog',
   Member: 'Member',
@@ -442,7 +443,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1035,6 +1036,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.BillingSubscriptionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.BillingSubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    PendingCheckout: {
+      payload: Prisma.$PendingCheckoutPayload<ExtArgs>
+      fields: Prisma.PendingCheckoutFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PendingCheckoutFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PendingCheckoutFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>
+        }
+        findFirst: {
+          args: Prisma.PendingCheckoutFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PendingCheckoutFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>
+        }
+        findMany: {
+          args: Prisma.PendingCheckoutFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>[]
+        }
+        create: {
+          args: Prisma.PendingCheckoutCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>
+        }
+        createMany: {
+          args: Prisma.PendingCheckoutCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PendingCheckoutCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>[]
+        }
+        delete: {
+          args: Prisma.PendingCheckoutDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>
+        }
+        update: {
+          args: Prisma.PendingCheckoutUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>
+        }
+        deleteMany: {
+          args: Prisma.PendingCheckoutDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PendingCheckoutUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PendingCheckoutUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>[]
+        }
+        upsert: {
+          args: Prisma.PendingCheckoutUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingCheckoutPayload>
+        }
+        aggregate: {
+          args: Prisma.PendingCheckoutAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePendingCheckout>
+        }
+        groupBy: {
+          args: Prisma.PendingCheckoutGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PendingCheckoutGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PendingCheckoutCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PendingCheckoutCountAggregateOutputType> | number
         }
       }
     }
@@ -3806,6 +3881,20 @@ export const BillingSubscriptionScalarFieldEnum = {
 export type BillingSubscriptionScalarFieldEnum = (typeof BillingSubscriptionScalarFieldEnum)[keyof typeof BillingSubscriptionScalarFieldEnum]
 
 
+export const PendingCheckoutScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sessionId: 'sessionId',
+  kind: 'kind',
+  agent: 'agent',
+  plan: 'plan',
+  discountCode: 'discountCode',
+  createdAt: 'createdAt'
+} as const
+
+export type PendingCheckoutScalarFieldEnum = (typeof PendingCheckoutScalarFieldEnum)[keyof typeof PendingCheckoutScalarFieldEnum]
+
+
 export const BillingWebhookEventScalarFieldEnum = {
   eventId: 'eventId',
   eventType: 'eventType',
@@ -4523,6 +4612,20 @@ export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'CheckoutKind'
+ */
+export type EnumCheckoutKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CheckoutKind'>
+    
+
+
+/**
+ * Reference to a field of type 'CheckoutKind[]'
+ */
+export type ListEnumCheckoutKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CheckoutKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'ActivityAction'
  */
 export type EnumActivityActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ActivityAction'>
@@ -4778,6 +4881,7 @@ export type GlobalOmitConfig = {
   subscription?: Prisma.SubscriptionOmit
   entitlement?: Prisma.EntitlementOmit
   billingSubscription?: Prisma.BillingSubscriptionOmit
+  pendingCheckout?: Prisma.PendingCheckoutOmit
   billingWebhookEvent?: Prisma.BillingWebhookEventOmit
   activityLog?: Prisma.ActivityLogOmit
   member?: Prisma.MemberOmit

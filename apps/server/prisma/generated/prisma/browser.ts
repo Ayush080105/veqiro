@@ -61,6 +61,12 @@ export type Entitlement = Prisma.EntitlementModel
  */
 export type BillingSubscription = Prisma.BillingSubscriptionModel
 /**
+ * Model PendingCheckout
+ * A checkout awaiting provider confirmation. Replaces Subscription.pending*.
+ * Holds a SINGLE agent: Dodo permits one subscription per checkout.
+ */
+export type PendingCheckout = Prisma.PendingCheckoutModel
+/**
  * Model BillingWebhookEvent
  * Dodo webhook event processing ledger for idempotency.
  */

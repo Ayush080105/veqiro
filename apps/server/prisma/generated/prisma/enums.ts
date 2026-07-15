@@ -115,6 +115,15 @@ export const ActivityAction = {
 export type ActivityAction = (typeof ActivityAction)[keyof typeof ActivityAction]
 
 
+export const CheckoutKind = {
+  AGENT: 'AGENT',
+  CREW: 'CREW',
+  CREW_UPGRADE: 'CREW_UPGRADE'
+} as const
+
+export type CheckoutKind = (typeof CheckoutKind)[keyof typeof CheckoutKind]
+
+
 export const FeedbackStatus = {
   NEW: 'NEW',
   UNDER_REVIEW: 'UNDER_REVIEW',

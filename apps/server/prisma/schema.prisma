@@ -265,6 +265,8 @@ model Organization {
   tasks                Task[]
   /// Maya per-billing-period usage records.
   mayaUsages           MayaUsage[]
+  /// Checkout sessions awaiting provider confirmation.
+  pendingCheckouts     PendingCheckout[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -389,6 +391,39 @@ model BillingSubscription {
 
   @@index([organizationId])
   @@map("billing_subscription")
+}
+
+/// Kind of checkout a PendingCheckout row is waiting on.
+enum CheckoutKind {
+  AGENT
+  CREW
+  CREW_UPGRADE
+}
+
+/// A checkout awaiting provider confirmation. Replaces Subscription.pending*.
+/// Holds a SINGLE agent: Dodo permits one subscription per checkout.
+model PendingCheckout {
+  /// Pending checkout row id.
+  id             String       @id @default(cuid())
+  /// Owning organization id.
+  organizationId String
+  /// Owning organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Dodo checkout session id.
+  sessionId      String       @unique
+  /// What this checkout is for.
+  kind           CheckoutKind
+  /// Agent being purchased. Null for CREW / CREW_UPGRADE.
+  agent          Agent?
+  /// Billing cadence for this checkout.
+  plan           SubscriptionPlan
+  /// Optional discount code applied at checkout.
+  discountCode   String?
+  /// Creation timestamp.
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("pending_checkout")
 }
 
 /// Dodo webhook event processing ledger for idempotency.

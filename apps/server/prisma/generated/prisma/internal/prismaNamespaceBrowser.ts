@@ -59,6 +59,7 @@ export const ModelName = {
   Subscription: 'Subscription',
   Entitlement: 'Entitlement',
   BillingSubscription: 'BillingSubscription',
+  PendingCheckout: 'PendingCheckout',
   BillingWebhookEvent: 'BillingWebhookEvent',
   ActivityLog: 'ActivityLog',
   Member: 'Member',
@@ -249,6 +250,20 @@ export const BillingSubscriptionScalarFieldEnum = {
 } as const
 
 export type BillingSubscriptionScalarFieldEnum = (typeof BillingSubscriptionScalarFieldEnum)[keyof typeof BillingSubscriptionScalarFieldEnum]
+
+
+export const PendingCheckoutScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sessionId: 'sessionId',
+  kind: 'kind',
+  agent: 'agent',
+  plan: 'plan',
+  discountCode: 'discountCode',
+  createdAt: 'createdAt'
+} as const
+
+export type PendingCheckoutScalarFieldEnum = (typeof PendingCheckoutScalarFieldEnum)[keyof typeof PendingCheckoutScalarFieldEnum]
 
 
 export const BillingWebhookEventScalarFieldEnum = {

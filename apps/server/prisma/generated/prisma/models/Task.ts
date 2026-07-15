@@ -577,10 +577,6 @@ export type EnumTaskTypeFieldUpdateOperationsInput = {
   set?: $Enums.TaskType
 }
 
-export type NullableEnumAgentFieldUpdateOperationsInput = {
-  set?: $Enums.Agent | null
-}
-
 export type TaskCreateWithoutOrganizationInput = {
   id?: string
   name: string

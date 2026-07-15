@@ -10,13 +10,13 @@ import { StatusCodes } from "http-status-codes";
 import { deriveEntitlementFields, type SubscriptionLike } from "./billing.types.js";
 import {
   ALL_AGENTS,
-  isCrewSelection,
   normalizeAgents,
   normalizePlan,
-  sumAgentMonthlyPriceCents,
+  agentProductId,
 } from "./billing.catalog.js";
-import { ACCESS_STATUSES } from "./entitlement.service.js";
-import type { Prisma } from "../../../prisma/generated/prisma/client.js";
+import { ACCESS_STATUSES, getActiveEntitlements } from "./entitlement.service.js";
+import { resumeAgentAutoPay } from "./billing.cancel.js";
+import type { Agent, Prisma } from "../../../prisma/generated/prisma/client.js";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -31,8 +31,6 @@ class ConflictError extends CustomApiError {
     super(message, StatusCodes.CONFLICT);
   }
 }
-
-const ACTIVE_BILLING_STATUSES = new Set(["ACTIVE", "PAST_DUE", "CANCELLED"]);
 
 /**
  * Resolves the active org and asserts the caller is its owner.
@@ -225,70 +223,95 @@ export async function extendTrialForOrg(organizationId: string, days = 7) {
   return { trialEndsAt };
 }
 
+type ActiveEntitlement = {
+  agent: Agent;
+  source: "TRIAL" | "AGENT" | "CREW";
+  cancelAtPeriodEnd: boolean;
+};
+
+/**
+ * Rejects purchases that would double-charge. Pure — takes the already-fetched
+ * active entitlements so it can be tested without a database.
+ *
+ * A TRIAL row does not block purchase (that is the conversion path), and an
+ * AGENT row with cancelAtPeriodEnd does not block either — repurchasing is how
+ * the user resumes auto-pay, handled charge-free in createCheckoutForOrg.
+ */
+export function assertAgentPurchasable(active: ActiveEntitlement[], agent: Agent): void {
+  if (active.some((e) => e.source === "CREW")) {
+    throw new ConflictError("crew-covers-all-agents");
+  }
+  const blocking = active.find(
+    (e) => e.agent === agent && e.source === "AGENT" && !e.cancelAtPeriodEnd,
+  );
+  if (blocking) throw new ConflictError(`already-entitled:${agent}`);
+}
+
+/**
+ * Stub — Task 5.2 implements Crew checkout (product selection, discount
+ * quoting via quoteCrewUpgrade/billing.upgrade.ts, and the checkout session
+ * itself). Not in scope for Task 5.1.
+ */
+async function createCrewCheckout(
+  _organizationId: string,
+  _sub: Awaited<ReturnType<typeof ensureBillingCustomerForOrg>>,
+  _active: Awaited<ReturnType<typeof getActiveEntitlements>>,
+  _plan: ReturnType<typeof normalizePlan>,
+): Promise<never> {
+  throw new BadRequestError("crew-checkout-not-implemented");
+}
+
+/**
+ * Buys ONE agent. Dodo rejects multi-product checkouts (422 "Only one
+ * subscription product allowed per checkout"), so there is no cart — buying
+ * several agents is several separate checkouts, one at a time.
+ */
 export async function createCheckoutForOrg(
   organizationId: string,
-  input: { agents?: unknown; cadence?: unknown },
+  input: { agent?: unknown; cadence?: unknown; crew?: boolean },
 ) {
-  const selectedAgents = normalizeAgents(input.agents);
-  if (selectedAgents.length === 0) throw new BadRequestError("select-at-least-one-agent");
-
-  const plan = normalizePlan(input.cadence);
-  const entitlementMode = isCrewSelection(selectedAgents) ? "CREW" : "CUSTOM";
-  if (entitlementMode === "CUSTOM" && plan !== "MONTHLY") {
-    throw new BadRequestError("custom-agents-monthly-only");
-  }
   const sub = await ensureBillingCustomerForOrg(organizationId);
-  if (sub.dodoSubscriptionId && ACTIVE_BILLING_STATUSES.has(sub.status)) {
-    throw new ConflictError("manage-existing-subscription-in-portal");
-  }
-  const productId = checkoutProductId(entitlementMode, plan);
+  const active = await getActiveEntitlements(organizationId);
 
-  if (!productId) {
-    throw new BadRequestError(
-      entitlementMode === "CUSTOM"
-        ? `missing-${customProductEnvKey(plan).toLowerCase()}`
-        : "missing-dodo-product-id",
-    );
+  if (input.crew) {
+    return createCrewCheckout(organizationId, sub, active, normalizePlan(input.cadence));
   }
 
-  const customPriceCents = entitlementMode === "CUSTOM"
-    ? sumAgentMonthlyPriceCents(selectedAgents)
-    : null;
-  const quantity = customPriceCents == null ? 1 : customPriceCents / 100;
-  if (!Number.isInteger(quantity) || quantity <= 0) {
-    throw new BadRequestError("custom-agent-price-must-be-whole-dollar");
+  // normalizeAgents gives slug ("rex") and enum ("REX") handling plus
+  // validation for free; we just require exactly one.
+  const agent = normalizeAgents([input.agent])[0];
+  if (!agent) throw new BadRequestError("agent-required");
+
+  // Resuming a cancelled-but-unexpired agent must NOT create a second
+  // subscription — the user already has one, it is merely flagged to stop.
+  // This runs BEFORE assertAgentPurchasable: the guard deliberately lets a
+  // cancelled-but-unexpired agent through so it can be re-enabled, but
+  // sending them to Dodo would mint a second subscription and double-charge.
+  const resumable = active.find(
+    (e) => e.agent === agent && e.source === "AGENT" && e.cancelAtPeriodEnd,
+  );
+  if (resumable) {
+    await resumeAgentAutoPay(organizationId, agent);
+    return { resumed: true as const, url: null };
   }
+
+  assertAgentPurchasable(active, agent);
 
   const baseUrl = process.env.CLIENT_URL || "http://localhost:3001";
   const session = await dodoClient.checkoutSessions.create({
-    product_cart: [
-      {
-        product_id: productId,
-        quantity,
-      },
-    ],
+    product_cart: [{ product_id: agentProductId(agent), quantity: 1 }],
     customer: { customer_id: sub.dodoCustomerId } as never,
+    // Second and later purchases reuse the card saved on the first, so only
+    // the first checkout requires card entry.
+    show_saved_payment_methods: true,
     return_url: `${baseUrl}/settings/billing?status=success`,
     cancel_url: `${baseUrl}/settings/billing?status=cancelled`,
-    metadata: {
-      organizationId,
-      entitlementMode,
-      plan,
-      agents: selectedAgents.join(","),
-    },
+    metadata: { organizationId, kind: "AGENT", agent },
   });
 
   if (!session.checkout_url) throw new BadRequestError("checkout-url-missing");
-  await prisma.subscription.update({
-    where: { organizationId },
-    data: {
-      pendingCheckoutSessionId: session.session_id,
-      pendingPlan: plan,
-      pendingEntitlementMode: entitlementMode,
-      pendingSelectedAgents: selectedAgents,
-      pendingProductId: productId,
-      pendingCheckoutCreatedAt: new Date(),
-    },
+  await prisma.pendingCheckout.create({
+    data: { organizationId, sessionId: session.session_id, kind: "AGENT", agent, plan: "MONTHLY" },
   });
-  return { url: session.checkout_url };
+  return { resumed: false as const, url: session.checkout_url };
 }

@@ -76,8 +76,9 @@ export async function startTrial(req: Request, res: Response) {
 export async function createCheckout(req: Request, res: Response) {
   const orgId = await requireOrgOwner(req);
   const checkout = await createCheckoutForOrg(orgId, {
-    agents: req.body?.agents,
+    agent: req.body?.agent,
     cadence: req.body?.cadence,
+    crew: req.body?.crew,
   });
   res.status(StatusCodes.OK).json(checkout);
 }
