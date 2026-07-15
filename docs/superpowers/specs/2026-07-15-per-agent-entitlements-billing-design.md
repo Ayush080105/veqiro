@@ -165,7 +165,7 @@ On `subscription.active`: write 6 `CREW` entitlements (now → +30d / +1y); set 
 
 `SUPERSEDED` (not delete) keeps the transition reversible if the Crew payment later fails or is refunded.
 
-**Rounding is exact for every reachable delta** (verified — Dodo rounds to nearest cent):
+**Monthly rounding is exact for every reachable delta** (verified empirically against the implementation, not derived on paper):
 
 | Owned | Credit | bp | Charged |
 |---|---|---|---|
@@ -178,6 +178,18 @@ On `subscription.active`: write 6 `CREW` entitlements (now → +30d / +1y); set 
 | Maya+Rex+Lex $37 | $37 | 9487 | $2.00 |
 
 Baskets ≥ $39 (e.g. Maya+3 = $46) are ineligible by rule, so no delta below $2 is reachable — Dodo's $1 minimum holds.
+
+**Annual upgrades drift by 1–2¢ and that is accepted.** The monthly table above is exact only by arithmetic coincidence; against the $348 annual price, quantising the credit to integer basis points leaves a residue in **either** direction:
+
+| Owned | Ideal | Actual | Drift |
+|---|---|---|---|
+| Rex $9 | $339.00 | $338.99 | −1¢ |
+| 2×$9 | $330.00 | $330.01 | **+1¢** |
+| Maya $19 | $329.00 | $329.00 | 0 |
+| Maya+Rex $28 | $320.00 | $319.99 | −1¢ |
+| 4×$9 | $312.00 | $312.02 | **+2¢** |
+
+`payNowCents` therefore mirrors Dodo's own arithmetic (`crew − round(crew × bp / 10000)`) rather than computing `crew − credit`. The quoted price must equal what the customer is **actually charged**; quoting a clean $320.00 the customer is never billed would be a worse defect than the cent itself. Drift is bounded by a test at ≤5¢ so a future price change producing a real discrepancy fails loudly.
 
 ### Cancel / resume auto-pay
 `POST /billing/agents/:agent/cancel` | `/resume`. Sets `cancelAtPeriodEnd`, calls `subscriptions.update(id, { cancel_at_next_billing_date })`. Access continues to `currentPeriodEnd` — the period is already paid for; only the renewal stops.

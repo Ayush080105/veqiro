@@ -82,11 +82,39 @@ describe("quoteCrewUpgrade — ineligible", () => {
 });
 
 describe("quoteCrewUpgrade — annual", () => {
-  test("credit applies against the annual crew price", () => {
+  // Annual does NOT land on whole dollars the way monthly does, and that is
+  // correct rather than a bug. A $28 credit against $348 is 804.5977 bp, which
+  // quantises UP to 805 bp = $28.01 applied, so the customer pays $319.99 —
+  // one cent less than a naive 34800-2800 = 32000.
+  //
+  // We assert the drifted value on purpose: payNowCents must equal what Dodo
+  // ACTUALLY charges, not what clean arithmetic wishes it charged. Asserting
+  // 32000 here would mean the UI quotes a price the customer is never billed.
+  test("credit applies against the annual crew price, mirroring Dodo's rounding", () => {
     const q = quoteCrewUpgrade([1900, 900], "ANNUAL");
     assert.equal(q.eligible, true);
     if (!q.eligible) return;
     assert.equal(q.creditCents, 2800);
-    assert.equal(q.payNowCents, 31999);
+    assert.equal(q.discountBasisPoints, 805); // round(804.5977)
+    assert.equal(q.payNowCents, 31999); // 34800 - round(34800*805/10000) = 34800 - 2801
+  });
+
+  // Bounds the blast radius of basis-point quantisation. Monthly happens to be
+  // exact for every reachable basket (asserted above); annual drifts by a cent
+  // or two in EITHER direction. This locks that drift to "trivial" so a future
+  // price change producing a large discrepancy fails loudly here.
+  test("annual drift from the ideal credit never exceeds a few cents", () => {
+    const baskets = [[900], [900, 900], [1900], [900, 900, 900], [1900, 900], [900, 900, 900, 900], [1900, 900, 900]];
+    for (const owned of baskets) {
+      const q = quoteCrewUpgrade(owned, "ANNUAL");
+      assert.equal(q.eligible, true);
+      if (!q.eligible) return;
+      const ideal = 34800 - q.creditCents;
+      assert.isAtMost(
+        Math.abs(q.payNowCents - ideal),
+        5,
+        `owned=${owned} drifted ${q.payNowCents - ideal}c from the ideal ${ideal}`,
+      );
+    }
   });
 });
