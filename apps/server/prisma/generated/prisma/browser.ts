@@ -48,6 +48,19 @@ export type Organization = Prisma.OrganizationModel
  */
 export type Subscription = Prisma.SubscriptionModel
 /**
+ * Model Entitlement
+ * Source of truth for agent access. One row per purchase of one agent.
+ * Deliberately NOT unique on [organizationId, agent]: overlapping rows are
+ * legal and load-bearing (during a Crew upgrade an org briefly holds both an
+ * AGENT row and a CREW row for the same agent).
+ */
+export type Entitlement = Prisma.EntitlementModel
+/**
+ * Model BillingSubscription
+ * One row per Dodo subscription. Bills 1..N entitlements.
+ */
+export type BillingSubscription = Prisma.BillingSubscriptionModel
+/**
  * Model BillingWebhookEvent
  * Dodo webhook event processing ledger for idempotency.
  */

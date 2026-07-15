@@ -45,6 +45,22 @@ enum SubscriptionEntitlementMode {
   CUSTOM
 }
 
+/// Where an entitlement came from.
+enum EntitlementSource {
+  TRIAL
+  AGENT
+  CREW
+}
+
+/// Lifecycle of a single agent entitlement.
+enum EntitlementStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  EXPIRED
+  SUPERSEDED
+}
+
 /// Task type: agent-automated vs user-defined general task.
 enum TaskType {
   AGENT
@@ -233,6 +249,12 @@ model Organization {
   entitlementExpiresAt DateTime?
   /// Fast per-agent unlocks used by middleware.
   unlockedAgents       Agent[]              @default([])
+  /// When the org's one-and-only trial was started. Non-null = trial already used.
+  trialStartedAt       DateTime?
+  /// Per-agent entitlements — the source of truth for access.
+  entitlements         Entitlement[]
+  /// Dodo subscriptions billing this org.
+  billingSubscriptions BillingSubscription[]
   /// Source billing subscription row.
   subscription         Subscription?
   /// Per-agent memory summaries.
@@ -295,6 +317,78 @@ model Subscription {
   updatedAt          DateTime     @updatedAt
 
   @@map("subscription")
+}
+
+/// Source of truth for agent access. One row per purchase of one agent.
+/// Deliberately NOT unique on [organizationId, agent]: overlapping rows are
+/// legal and load-bearing (during a Crew upgrade an org briefly holds both an
+/// AGENT row and a CREW row for the same agent).
+model Entitlement {
+  /// Entitlement row id.
+  id                    String               @id @default(cuid())
+  /// Owning organization id.
+  organizationId        String
+  /// Owning organization relation.
+  organization          Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Agent this entitlement grants access to.
+  agent                 Agent
+  /// Where this entitlement came from.
+  source                EntitlementSource
+  /// Current lifecycle status.
+  status                EntitlementStatus
+  /// Inclusive start of the current billing period.
+  currentPeriodStart    DateTime
+  /// End of the current billing period.
+  currentPeriodEnd      DateTime
+  /// Whether cancellation is scheduled for period end.
+  cancelAtPeriodEnd     Boolean              @default(false)
+  /// Cents actually paid for this agent. Drives the Crew upgrade credit, so it
+  /// must be the price paid, not today's list price.
+  priceCents            Int                  @default(0)
+  /// Owning Dodo subscription id, if any.
+  billingSubscriptionId String?
+  /// Owning Dodo subscription relation.
+  billingSubscription   BillingSubscription? @relation(fields: [billingSubscriptionId], references: [id], onDelete: SetNull)
+  /// Creation timestamp.
+  createdAt             DateTime             @default(now())
+  /// Update timestamp.
+  updatedAt             DateTime             @updatedAt
+
+  /// Hot path: the access check.
+  @@index([organizationId, agent, currentPeriodEnd])
+  /// Sweeper: find lapsed rows.
+  @@index([currentPeriodEnd, status])
+  @@index([billingSubscriptionId])
+  @@map("entitlement")
+}
+
+/// One row per Dodo subscription. Bills 1..N entitlements.
+model BillingSubscription {
+  /// Local billing subscription id.
+  id                 String             @id @default(cuid())
+  /// Owning organization id.
+  organizationId     String
+  /// Owning organization relation.
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Dodo subscription id.
+  dodoSubscriptionId String             @unique
+  /// Paid plan cadence.
+  plan               SubscriptionPlan
+  /// Current local billing status.
+  status             SubscriptionStatus
+  /// Current paid period end timestamp.
+  currentPeriodEnd   DateTime
+  /// Whether cancellation is scheduled for period end.
+  cancelAtPeriodEnd  Boolean            @default(false)
+  /// Entitlements billed by this subscription.
+  entitlements       Entitlement[]
+  /// Creation timestamp.
+  createdAt          DateTime           @default(now())
+  /// Update timestamp.
+  updatedAt          DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@map("billing_subscription")
 }
 
 /// Dodo webhook event processing ledger for idempotency.

@@ -390,6 +390,8 @@ export const ModelName = {
   Verification: 'Verification',
   Organization: 'Organization',
   Subscription: 'Subscription',
+  Entitlement: 'Entitlement',
+  BillingSubscription: 'BillingSubscription',
   BillingWebhookEvent: 'BillingWebhookEvent',
   ActivityLog: 'ActivityLog',
   Member: 'Member',
@@ -440,7 +442,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -885,6 +887,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SubscriptionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    Entitlement: {
+      payload: Prisma.$EntitlementPayload<ExtArgs>
+      fields: Prisma.EntitlementFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EntitlementFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EntitlementFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>
+        }
+        findFirst: {
+          args: Prisma.EntitlementFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EntitlementFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>
+        }
+        findMany: {
+          args: Prisma.EntitlementFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>[]
+        }
+        create: {
+          args: Prisma.EntitlementCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>
+        }
+        createMany: {
+          args: Prisma.EntitlementCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EntitlementCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>[]
+        }
+        delete: {
+          args: Prisma.EntitlementDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>
+        }
+        update: {
+          args: Prisma.EntitlementUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>
+        }
+        deleteMany: {
+          args: Prisma.EntitlementDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EntitlementUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EntitlementUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>[]
+        }
+        upsert: {
+          args: Prisma.EntitlementUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntitlementPayload>
+        }
+        aggregate: {
+          args: Prisma.EntitlementAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEntitlement>
+        }
+        groupBy: {
+          args: Prisma.EntitlementGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EntitlementGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EntitlementCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EntitlementCountAggregateOutputType> | number
+        }
+      }
+    }
+    BillingSubscription: {
+      payload: Prisma.$BillingSubscriptionPayload<ExtArgs>
+      fields: Prisma.BillingSubscriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BillingSubscriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BillingSubscriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.BillingSubscriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BillingSubscriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>
+        }
+        findMany: {
+          args: Prisma.BillingSubscriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>[]
+        }
+        create: {
+          args: Prisma.BillingSubscriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>
+        }
+        createMany: {
+          args: Prisma.BillingSubscriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BillingSubscriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.BillingSubscriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>
+        }
+        update: {
+          args: Prisma.BillingSubscriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.BillingSubscriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BillingSubscriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BillingSubscriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.BillingSubscriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BillingSubscriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.BillingSubscriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBillingSubscription>
+        }
+        groupBy: {
+          args: Prisma.BillingSubscriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BillingSubscriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BillingSubscriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BillingSubscriptionCountAggregateOutputType> | number
         }
       }
     }
@@ -3591,7 +3741,8 @@ export const OrganizationScalarFieldEnum = {
   onboarded: 'onboarded',
   subscriptionStatus: 'subscriptionStatus',
   entitlementExpiresAt: 'entitlementExpiresAt',
-  unlockedAgents: 'unlockedAgents'
+  unlockedAgents: 'unlockedAgents',
+  trialStartedAt: 'trialStartedAt'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -3620,6 +3771,39 @@ export const SubscriptionScalarFieldEnum = {
 } as const
 
 export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const EntitlementScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  source: 'source',
+  status: 'status',
+  currentPeriodStart: 'currentPeriodStart',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  priceCents: 'priceCents',
+  billingSubscriptionId: 'billingSubscriptionId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EntitlementScalarFieldEnum = (typeof EntitlementScalarFieldEnum)[keyof typeof EntitlementScalarFieldEnum]
+
+
+export const BillingSubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  dodoSubscriptionId: 'dodoSubscriptionId',
+  plan: 'plan',
+  status: 'status',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingSubscriptionScalarFieldEnum = (typeof BillingSubscriptionScalarFieldEnum)[keyof typeof BillingSubscriptionScalarFieldEnum]
 
 
 export const BillingWebhookEventScalarFieldEnum = {
@@ -4297,6 +4481,48 @@ export type ListEnumSubscriptionEntitlementModeFieldRefInput<$PrismaModel> = Fie
 
 
 /**
+ * Reference to a field of type 'EntitlementSource'
+ */
+export type EnumEntitlementSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EntitlementSource'>
+    
+
+
+/**
+ * Reference to a field of type 'EntitlementSource[]'
+ */
+export type ListEnumEntitlementSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EntitlementSource[]'>
+    
+
+
+/**
+ * Reference to a field of type 'EntitlementStatus'
+ */
+export type EnumEntitlementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EntitlementStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'EntitlementStatus[]'
+ */
+export type ListEnumEntitlementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EntitlementStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'ActivityAction'
  */
 export type EnumActivityActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ActivityAction'>
@@ -4321,20 +4547,6 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -4564,6 +4776,8 @@ export type GlobalOmitConfig = {
   verification?: Prisma.VerificationOmit
   organization?: Prisma.OrganizationOmit
   subscription?: Prisma.SubscriptionOmit
+  entitlement?: Prisma.EntitlementOmit
+  billingSubscription?: Prisma.BillingSubscriptionOmit
   billingWebhookEvent?: Prisma.BillingWebhookEventOmit
   activityLog?: Prisma.ActivityLogOmit
   member?: Prisma.MemberOmit

@@ -57,6 +57,26 @@ export const SubscriptionEntitlementMode = {
 export type SubscriptionEntitlementMode = (typeof SubscriptionEntitlementMode)[keyof typeof SubscriptionEntitlementMode]
 
 
+export const EntitlementSource = {
+  TRIAL: 'TRIAL',
+  AGENT: 'AGENT',
+  CREW: 'CREW'
+} as const
+
+export type EntitlementSource = (typeof EntitlementSource)[keyof typeof EntitlementSource]
+
+
+export const EntitlementStatus = {
+  TRIALING: 'TRIALING',
+  ACTIVE: 'ACTIVE',
+  PAST_DUE: 'PAST_DUE',
+  EXPIRED: 'EXPIRED',
+  SUPERSEDED: 'SUPERSEDED'
+} as const
+
+export type EntitlementStatus = (typeof EntitlementStatus)[keyof typeof EntitlementStatus]
+
+
 export const TaskType = {
   AGENT: 'AGENT',
   GENERAL: 'GENERAL'

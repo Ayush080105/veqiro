@@ -57,6 +57,8 @@ export const ModelName = {
   Verification: 'Verification',
   Organization: 'Organization',
   Subscription: 'Subscription',
+  Entitlement: 'Entitlement',
+  BillingSubscription: 'BillingSubscription',
   BillingWebhookEvent: 'BillingWebhookEvent',
   ActivityLog: 'ActivityLog',
   Member: 'Member',
@@ -184,7 +186,8 @@ export const OrganizationScalarFieldEnum = {
   onboarded: 'onboarded',
   subscriptionStatus: 'subscriptionStatus',
   entitlementExpiresAt: 'entitlementExpiresAt',
-  unlockedAgents: 'unlockedAgents'
+  unlockedAgents: 'unlockedAgents',
+  trialStartedAt: 'trialStartedAt'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -213,6 +216,39 @@ export const SubscriptionScalarFieldEnum = {
 } as const
 
 export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const EntitlementScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  source: 'source',
+  status: 'status',
+  currentPeriodStart: 'currentPeriodStart',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  priceCents: 'priceCents',
+  billingSubscriptionId: 'billingSubscriptionId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EntitlementScalarFieldEnum = (typeof EntitlementScalarFieldEnum)[keyof typeof EntitlementScalarFieldEnum]
+
+
+export const BillingSubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  dodoSubscriptionId: 'dodoSubscriptionId',
+  plan: 'plan',
+  status: 'status',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingSubscriptionScalarFieldEnum = (typeof BillingSubscriptionScalarFieldEnum)[keyof typeof BillingSubscriptionScalarFieldEnum]
 
 
 export const BillingWebhookEventScalarFieldEnum = {
