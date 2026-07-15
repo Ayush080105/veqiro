@@ -151,6 +151,22 @@ describe("product id mapping", () => {
     assert.equal(resolveCrewPlanFromProductId("pdt_bogus"), null);
   });
 
+  // REGRESSION: process.env[k] is undefined when unset, and product_id is
+  // `string | undefined` on the webhook payload. Without a falsy guard,
+  // `undefined === undefined` matches and the resolver returns MAYA (first in
+  // ALL_AGENTS, and the priciest agent) for a malformed webhook.
+  test("undefined product id resolves to null even when env vars are unset", () => {
+    delete process.env.DODO_PRODUCT_AGENT_MAYA;
+    delete process.env.DODO_PRODUCT_CREW_MONTHLY;
+    assert.equal(resolveAgentFromProductId(undefined as never), null);
+    assert.equal(resolveCrewPlanFromProductId(undefined as never), null);
+  });
+
+  test("empty product id resolves to null", () => {
+    assert.equal(resolveAgentFromProductId(""), null);
+    assert.equal(resolveCrewPlanFromProductId(""), null);
+  });
+
   test("missing env for a required product throws a named error", () => {
     delete process.env.DODO_PRODUCT_AGENT_MAYA;
     assert.throws(() => agentProductId("MAYA"), /missing-product-id:MAYA/);
@@ -203,6 +219,7 @@ export function crewProductId(plan: SubscriptionPlan): string {
 }
 
 export function resolveAgentFromProductId(productId: string): Agent | null {
+  if (!productId) return null;
   for (const agent of ALL_AGENTS) {
     if (process.env[AGENT_PRODUCT_ENV_KEYS[agent]] === productId) return agent;
   }
@@ -210,13 +227,21 @@ export function resolveAgentFromProductId(productId: string): Agent | null {
 }
 
 export function resolveCrewPlanFromProductId(productId: string): SubscriptionPlan | null {
-  if (productId && productId === process.env.DODO_PRODUCT_CREW_MONTHLY) return "MONTHLY";
-  if (productId && productId === process.env.DODO_PRODUCT_CREW_ANNUAL)  return "ANNUAL";
+  if (!productId) return null;
+  if (productId === process.env.DODO_PRODUCT_CREW_MONTHLY) return "MONTHLY";
+  if (productId === process.env.DODO_PRODUCT_CREW_ANNUAL)  return "ANNUAL";
   return null;
 }
 ```
 
-> The `productId &&` guard matters: if the env var is unset, `process.env.X === undefined` would make `resolveCrewPlanFromProductId(undefined as never)` match. Guard against the empty case explicitly.
+> **The falsy guard is load-bearing in BOTH resolvers — this is a real bug, not
+> style.** `process.env[k]` is `undefined` when a var is unset, and
+> `payload.data.product_id` is typed `string | undefined`. Without the guard,
+> `undefined === undefined` matches and `resolveAgentFromProductId(undefined)`
+> returns **`"MAYA"`** (first in `ALL_AGENTS`, and the priciest agent) instead
+> of `null` — silently provisioning the wrong agent from a malformed webhook.
+> Verified empirically. Guard once at the top of each function rather than
+> per-comparison, so the two cannot drift apart again.
 
 - [ ] **Step 4: Run test to verify it passes**
 

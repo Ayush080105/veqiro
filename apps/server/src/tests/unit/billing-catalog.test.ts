@@ -1,4 +1,4 @@
-import { assert, beforeEach, describe, test } from "vitest";
+import { afterEach, assert, beforeEach, describe, test } from "vitest";
 import {
   agentProductId,
   crewProductId,
@@ -13,6 +13,13 @@ beforeEach(() => {
   process.env.DODO_PRODUCT_AGENT_REX = "pdt_rex";
   process.env.DODO_PRODUCT_CREW_MONTHLY = "pdt_crew_m";
   process.env.DODO_PRODUCT_CREW_ANNUAL = "pdt_crew_a";
+});
+
+afterEach(() => {
+  delete process.env.DODO_PRODUCT_AGENT_MAYA;
+  delete process.env.DODO_PRODUCT_AGENT_REX;
+  delete process.env.DODO_PRODUCT_CREW_MONTHLY;
+  delete process.env.DODO_PRODUCT_CREW_ANNUAL;
 });
 
 describe("product id mapping", () => {
@@ -47,6 +54,22 @@ describe("product id mapping", () => {
   test("missing env for a required product throws a named error", () => {
     delete process.env.DODO_PRODUCT_AGENT_MAYA;
     assert.throws(() => agentProductId("MAYA"), /missing-product-id:MAYA/);
+  });
+
+  // REGRESSION: process.env[k] is undefined when unset, and product_id is
+  // `string | undefined` on the webhook payload. Without a falsy guard,
+  // `undefined === undefined` matches and the resolver returns MAYA (first in
+  // ALL_AGENTS, and the priciest agent) for a malformed webhook.
+  test("undefined product id resolves to null even when env vars are unset", () => {
+    delete process.env.DODO_PRODUCT_AGENT_MAYA;
+    delete process.env.DODO_PRODUCT_CREW_MONTHLY;
+    assert.equal(resolveAgentFromProductId(undefined as never), null);
+    assert.equal(resolveCrewPlanFromProductId(undefined as never), null);
+  });
+
+  test("empty product id resolves to null", () => {
+    assert.equal(resolveAgentFromProductId(""), null);
+    assert.equal(resolveCrewPlanFromProductId(""), null);
   });
 });
 

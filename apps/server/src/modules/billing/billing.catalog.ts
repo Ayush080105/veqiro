@@ -106,6 +106,7 @@ export function crewProductId(plan: SubscriptionPlan): string {
 }
 
 export function resolveAgentFromProductId(productId: string): Agent | null {
+  if (!productId) return null;
   for (const agent of ALL_AGENTS) {
     if (process.env[AGENT_PRODUCT_ENV_KEYS[agent]] === productId) return agent;
   }
@@ -113,8 +114,9 @@ export function resolveAgentFromProductId(productId: string): Agent | null {
 }
 
 export function resolveCrewPlanFromProductId(productId: string): SubscriptionPlan | null {
-  if (productId && productId === process.env.DODO_PRODUCT_CREW_MONTHLY) return "MONTHLY";
-  if (productId && productId === process.env.DODO_PRODUCT_CREW_ANNUAL) return "ANNUAL";
+  if (!productId) return null;
+  if (productId === process.env.DODO_PRODUCT_CREW_MONTHLY) return "MONTHLY";
+  if (productId === process.env.DODO_PRODUCT_CREW_ANNUAL) return "ANNUAL";
   return null;
 }
 
