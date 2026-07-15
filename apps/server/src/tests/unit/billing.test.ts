@@ -5,7 +5,7 @@ import {
   parsePlanMetadata,
   resolvePlan,
 } from "../../modules/billing/billing.types.js";
-import { calculateAgentSelectionPriceCents } from "../../modules/billing/billing.catalog.js";
+import { sumAgentMonthlyPriceCents } from "../../modules/billing/billing.catalog.js";
 
 describe("deriveEntitlementFields", () => {
   const trialEnd = new Date("2026-05-05");
@@ -104,6 +104,6 @@ describe("agent selection pricing", () => {
   test("defaults Maya to $19 and other agents to $9", () => {
     delete process.env.AGENT_PRICE_MAYA_MONTHLY_CENTS;
     delete process.env.AGENT_PRICE_SAGE_MONTHLY_CENTS;
-    assert.equal(calculateAgentSelectionPriceCents(["MAYA", "SAGE"], "MONTHLY"), 2800);
+    assert.equal(sumAgentMonthlyPriceCents(["MAYA", "SAGE"]), 2800);
   });
 });

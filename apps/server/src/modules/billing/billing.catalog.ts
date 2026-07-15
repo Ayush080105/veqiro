@@ -83,11 +83,49 @@ export function getAgentMonthlyPriceCents(agent: Agent): number {
   return centsFromEnv(AGENT_ENV_KEYS[agent], DEFAULT_AGENT_MONTHLY_CENTS[agent]);
 }
 
-export function calculateAgentSelectionPriceCents(agents: Agent[], plan: SubscriptionPlan): number {
-  if (isCrewSelection(agents)) return getCrewPriceCents(plan);
+const AGENT_PRODUCT_ENV_KEYS: Record<Agent, string> = {
+  MAYA: "DODO_PRODUCT_AGENT_MAYA",
+  SAGE: "DODO_PRODUCT_AGENT_SAGE",
+  LEX: "DODO_PRODUCT_AGENT_LEX",
+  REX: "DODO_PRODUCT_AGENT_REX",
+  SCOUT: "DODO_PRODUCT_AGENT_SCOUT",
+  VEGA: "DODO_PRODUCT_AGENT_VEGA",
+};
 
-  const monthlyTotal = agents.reduce((sum, agent) => sum + getAgentMonthlyPriceCents(agent), 0);
-  if (plan === "MONTHLY") return monthlyTotal;
+export function agentProductId(agent: Agent): string {
+  const value = process.env[AGENT_PRODUCT_ENV_KEYS[agent]];
+  if (!value) throw new BadRequestError(`missing-product-id:${agent}`);
+  return value;
+}
 
-  return Math.round(monthlyTotal * 12 * 0.75);
+export function crewProductId(plan: SubscriptionPlan): string {
+  const key = plan === "ANNUAL" ? "DODO_PRODUCT_CREW_ANNUAL" : "DODO_PRODUCT_CREW_MONTHLY";
+  const value = process.env[key];
+  if (!value) throw new BadRequestError(`missing-product-id:CREW_${plan}`);
+  return value;
+}
+
+export function resolveAgentFromProductId(productId: string): Agent | null {
+  for (const agent of ALL_AGENTS) {
+    if (process.env[AGENT_PRODUCT_ENV_KEYS[agent]] === productId) return agent;
+  }
+  return null;
+}
+
+export function resolveCrewPlanFromProductId(productId: string): SubscriptionPlan | null {
+  if (productId && productId === process.env.DODO_PRODUCT_CREW_MONTHLY) return "MONTHLY";
+  if (productId && productId === process.env.DODO_PRODUCT_CREW_ANNUAL) return "ANNUAL";
+  return null;
+}
+
+/**
+ * Sum of monthly list prices for a set of agents. Individual agents are
+ * MONTHLY-only by design, so there is no cadence argument to get wrong.
+ *
+ * Transitional: this exists only to keep the current quantity-hack call site
+ * compiling until Task 5.1 replaces it with real per-agent products. Phase 12
+ * deletes it.
+ */
+export function sumAgentMonthlyPriceCents(agents: Agent[]): number {
+  return agents.reduce((sum, agent) => sum + getAgentMonthlyPriceCents(agent), 0);
 }

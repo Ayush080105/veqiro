@@ -10,10 +10,10 @@ import { StatusCodes } from "http-status-codes";
 import { deriveEntitlementFields, type SubscriptionLike } from "./billing.types.js";
 import {
   ALL_AGENTS,
-  calculateAgentSelectionPriceCents,
   isCrewSelection,
   normalizeAgents,
   normalizePlan,
+  sumAgentMonthlyPriceCents,
 } from "./billing.catalog.js";
 import type { Agent, Prisma } from "../../../prisma/generated/prisma/client.js";
 
@@ -301,7 +301,7 @@ export async function createCheckoutForOrg(
   }
 
   const customPriceCents = entitlementMode === "CUSTOM"
-    ? calculateAgentSelectionPriceCents(selectedAgents, plan)
+    ? sumAgentMonthlyPriceCents(selectedAgents)
     : null;
   const quantity = customPriceCents == null ? 1 : customPriceCents / 100;
   if (!Number.isInteger(quantity) || quantity <= 0) {
