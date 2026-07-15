@@ -14,7 +14,7 @@
     "seed:brand-kit": "tsx prisma/seed-brand-kit.ts",
     "seed:admin": "tsx prisma/seed-admin.ts",
     "seed:upcoming-agents": "tsx prisma/seed-upcoming-agents.ts",
-    "test": "vitest run \"src/modules/agents/scout/scout.test.ts\" \"src/tests/unit/*.test.ts\"",
+    "test": "vitest run",
     "seed:tasks": "tsx prisma/seed-tasks.ts",
     "backfill:maya-usage": "tsx prisma/backfill-maya-usage.ts",
     "reconcile:subscriptions": "tsx prisma/reconcile-stale-subscriptions.ts",
