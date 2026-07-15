@@ -45,6 +45,9 @@ import type {
   CampaignVideoResponse,
   CampaignVideoStoryboardInput,
   CampaignVideoStoryboardResponse,
+  LogoAnimationInput,
+  LogoAnimationResponse,
+  LogoAnimationStylesResponse,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
 import { SocialPlatform, SocialAccount } from "../../../../prisma/generated/prisma/client.js";
@@ -1502,6 +1505,77 @@ export const createCampaignVideo = async (
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, campaignVideoCredits);
+    throw err;
+  }
+};
+
+const LOGO_ANIMATION_DURATION_SECONDS = 10;
+
+export const getLogoAnimationStyles = async (): Promise<LogoAnimationStylesResponse> => {
+  const { data } = await aiService.get<LogoAnimationStylesResponse>("/ai/maya/logo-animation/styles");
+  return data;
+};
+
+export const createLogoAnimation = async (
+  userId: string,
+  organizationId: string,
+  input: LogoAnimationInput
+): Promise<LogoAnimationResponse> => {
+  const logoAnimationCredits = videoCreditsFor(LOGO_ANIMATION_DURATION_SECONDS);
+  await checkAndDeductCredits(organizationId, logoAnimationCredits);
+
+  try {
+  const history = await mayaRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
+  const userMsg = await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: `Logo animation on ${input.platform}: style #${input.styleId}`,
+    customInput: { actionId: "maya:logo-animation", input },
+  });
+
+  const data = await callAgentWithContext<LogoAnimationResponse>({
+    agentApiPath: "/ai/maya/logo-animation",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: userMsg.id,
+    userMessage: `Logo animation on ${input.platform}: style #${input.styleId}`,
+    rawHistory: history,
+    topLevelPayload: {
+      style_id: input.styleId,
+      platform: input.platform,
+      aspect_ratio: input.aspectRatio,
+      logo_image_url: input.logoImageUrl,
+      use_brand_logo: input.useBrandLogo,
+    },
+  });
+
+  const result: LogoAnimationResponse = {
+    ...data,
+    video: (await hostVideo(organizationId, data.video)) ?? data.video,
+  };
+
+  await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Logo animation generated (${result.style_name}) for ${input.platform}`,
+    tokensUsed: data.tokens_used,
+    model: data.model_used,
+    customInput: { actionId: "maya:logo-animation", input, result },
+  });
+
+  await logActivity({
+    userId,
+    organizationId,
+    action: ActivityAction.GENERATED_VIDEO,
+    summary: `Generated a "${result.style_name}" logo animation for ${input.platform}`,
+    metadata: { platform: input.platform, styleId: input.styleId, creditsUsed: logoAnimationCredits },
+  });
+
+  return result;
+  } catch (err) {
+    await rollbackCredits(organizationId, logoAnimationCredits);
     throw err;
   }
 };

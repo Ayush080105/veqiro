@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { Message, AgentSlug, AgentStatusData, LastMessage } from "@/lib/types"
-import type { AgentActionId } from "@/lib/types/agents"
+import type { AgentActionId, LogoAnimationStylesResult } from "@/lib/types/agents"
 import { apiFetch, AgentNotAvailableError } from "@/lib/api/client"
 import { findAction } from "@/lib/agents/actions"
 import { qk } from "@/lib/query-keys"
@@ -80,6 +80,20 @@ export async function generateCampaignVideoStoryboard(
     method: "POST",
     body: { organizationId, conversationId, ...input },
     agentSlugForNotFound: "maya",
+  })
+}
+
+export async function getLogoAnimationStyles(): Promise<LogoAnimationStylesResult> {
+  return apiFetch<LogoAnimationStylesResult>("/agents/maya/logo-animation/styles", {
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export function useLogoAnimationStyles() {
+  return useQuery({
+    queryKey: qk.mayaLogoAnimationStyles(),
+    queryFn: getLogoAnimationStyles,
+    staleTime: Infinity, // hardcoded catalog on the backend — never changes at runtime
   })
 }
 

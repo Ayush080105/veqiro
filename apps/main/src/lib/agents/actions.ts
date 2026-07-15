@@ -118,6 +118,15 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       locked: VIDEO_FEATURES_LOCKED,
     },
     {
+      id: "maya:logo-animation",
+      agent: "maya",
+      endpoint: "logo-animation",
+      label: "Animate Logo",
+      description: "Turn your logo into a 10-second animated video — pick from 100+ preset styles.",
+      icon: "Sparkles",
+      locked: VIDEO_FEATURES_LOCKED,
+    },
+    {
       id: "maya:generate-ideas",
       agent: "maya",
       endpoint: "generate-ideas",

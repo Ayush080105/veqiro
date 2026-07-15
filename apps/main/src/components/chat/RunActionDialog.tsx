@@ -33,6 +33,7 @@ import {
   MayaGenerateVideoForm,
   MayaCampaignVideoForm,
   MayaCampaignVideoStoryboardForm,
+  MayaLogoAnimationForm,
 } from "@/components/agents/maya/forms"
 // Scout forms
 import {
@@ -285,6 +286,22 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
           ? "Campaign brief is required."
           : null,
     submitLabel: "Generate storyboard",
+  },
+  "maya:logo-animation": {
+    defaultValue: {
+      style_id: 0,
+      platform: "instagram",
+      aspect_ratio: "9:16",
+      logo_image_url: undefined,
+      use_brand_logo: false,
+    },
+    Form: MayaLogoAnimationForm,
+    validate: (v) =>
+      !v.style_id
+        ? "Pick an animation style."
+        : !v.logo_image_url && !v.use_brand_logo
+          ? "Upload a logo or enable your brand kit logo."
+          : null,
   },
   "maya:generate-ideas": {
     defaultValue: { platform: "linkedin", count: 5, topic_hint: "", use_brandkit: false },

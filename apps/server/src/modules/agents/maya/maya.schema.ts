@@ -117,6 +117,19 @@ export const campaignVideoStoryboardSchema = z.object({
   useLogo: z.boolean().optional().default(false),
 });
 
+export const logoAnimationSchema = z
+  .object({
+    styleId: z.number().int().min(1).max(102),
+    platform: platformEnum.default("instagram"),
+    aspectRatio: videoAspectRatioEnum.default("9:16"),
+    logoImageUrl: z.string().url().optional(),
+    useBrandLogo: z.boolean().optional().default(false),
+  })
+  .refine(
+    (v) => Boolean(v.logoImageUrl || v.useBrandLogo),
+    "Upload a logo or enable useBrandLogo"
+  );
+
 export const publishSchema = z
   .object({
     socialAccountId: z.string().min(1),

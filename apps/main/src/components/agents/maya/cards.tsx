@@ -48,6 +48,7 @@ import type {
   MayaGenerateVideoResult,
   MayaCampaignVideoResult,
   MayaCampaignVideoStoryboardResult,
+  MayaLogoAnimationResult,
   ContentIdea,
   ContentPlatform,
   ImageResult,
@@ -1055,7 +1056,7 @@ export function VideoResultCard({
   title,
   platform,
 }: {
-  result: MayaGenerateVideoResult | MayaCampaignVideoResult
+  result: MayaGenerateVideoResult | MayaCampaignVideoResult | MayaLogoAnimationResult
   title?: string
   platform?: ContentPlatform | string | null
 }) {

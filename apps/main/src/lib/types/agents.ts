@@ -1288,6 +1288,34 @@ export interface MayaCampaignVideoStoryboardResult {
   model_used?: string
 }
 
+export interface LogoAnimationStyle {
+  id: number
+  name: string
+  category: string
+}
+
+export interface LogoAnimationStylesResult {
+  styles: LogoAnimationStyle[]
+}
+
+export interface MayaLogoAnimationRequest {
+  style_id: number
+  platform: ContentPlatform
+  aspect_ratio: VideoAspectRatio
+  logo_image_url?: string
+  use_brand_logo: boolean
+}
+
+export interface MayaLogoAnimationResult {
+  video: VideoResult
+  style_name: string
+  // Never populated server-side today — kept optional so this result shape can
+  // share VideoResultCard with the caption-bearing video results.
+  caption?: VideoCaption | null
+  tokens_used?: number
+  model_used?: string
+}
+
 export type AgentActionId =
   | "sage:keyword-research"
   | "sage:generate-blog"
@@ -1307,6 +1335,7 @@ export type AgentActionId =
   | "maya:generate-video"
   | "maya:campaign-video"
   | "maya:campaign-video-storyboard"
+  | "maya:logo-animation"
   | "scout:research-topic"
   | "scout:research-company"
   | "scout:trending-topics"

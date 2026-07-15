@@ -103,3 +103,17 @@ export const mayaCampaignVideoSchema = z.object({
   use_logo: z.boolean(),
 })
 export type MayaCampaignVideoValues = z.infer<typeof mayaCampaignVideoSchema>
+
+export const mayaLogoAnimationSchema = z
+  .object({
+    style_id: z.number().int().min(1, "Pick a style").max(102),
+    platform: platformSchema,
+    aspect_ratio: videoAspectRatioSchema,
+    logo_image_url: z.string().url().optional(),
+    use_brand_logo: z.boolean(),
+  })
+  .refine((v) => Boolean(v.logo_image_url || v.use_brand_logo), {
+    message: "Upload a logo or use your brand kit logo",
+    path: ["logo_image_url"],
+  })
+export type MayaLogoAnimationValues = z.infer<typeof mayaLogoAnimationSchema>

@@ -21,6 +21,8 @@ import {
   createCampaignVideo,
   createCampaignVideoStoryboard,
   getMayaUsage,
+  getLogoAnimationStyles,
+  createLogoAnimation,
 } from "./maya.controller.js";
 
 const router = Router();
@@ -46,5 +48,7 @@ router.post("/expand-brief", expandBrief);
 router.post("/generate-video", generateVideo);
 router.post("/campaign-video", createCampaignVideo);
 router.post("/campaign-video/storyboard", createCampaignVideoStoryboard);
+router.get("/logo-animation/styles", getLogoAnimationStyles);
+router.post("/logo-animation", createLogoAnimation);
 
 export default router;

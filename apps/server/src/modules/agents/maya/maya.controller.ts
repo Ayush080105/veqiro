@@ -18,6 +18,7 @@ import {
   generateVideoSchema,
   campaignVideoSchema,
   campaignVideoStoryboardSchema,
+  logoAnimationSchema,
 } from "./maya.schema.js";
 import * as mayaService from "./maya.service.js";
 import * as mayaUsageService from "./maya.usage.service.js";
@@ -179,4 +180,16 @@ export const getMayaUsage = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
   const usage = await mayaUsageService.getCurrentUsage(organizationId);
   res.status(StatusCodes.OK).json(usage);
+};
+
+export const getLogoAnimationStyles = async (_req: Request, res: Response) => {
+  const result = await mayaService.getLogoAnimationStyles();
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const createLogoAnimation = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = logoAnimationSchema.parse(req.body);
+  const result = await mayaService.createLogoAnimation(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
 };

@@ -135,6 +135,10 @@ export function ActionResultRenderer({ actionId, result, input, agentColor, onFo
       return <VideoResultCard result={r} title="Product video" platform={platform} />
     case "maya:campaign-video-storyboard":
       return <StoryboardResultCard result={r} input={input as never} onFollowUpAction={onFollowUpAction} />
+    case "maya:logo-animation": {
+      const styleName = (result as { style_name?: string } | undefined)?.style_name
+      return <VideoResultCard result={r} title={styleName ? `Logo animation — ${styleName}` : "Logo animation"} platform={platform} />
+    }
 
     case "scout:research-topic":
       return <ResearchReportCard result={r} onFollowUpAction={onFollowUpAction} />

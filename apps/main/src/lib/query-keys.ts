@@ -12,6 +12,7 @@ export const qk = {
     ["maya", "published-posts", organizationId] as const,
   mayaUsage: (organizationId: string) =>
     ["maya", "usage", organizationId] as const,
+  mayaLogoAnimationStyles: () => ["maya", "logo-animation-styles"] as const,
   vegaInbox: (organizationId: string) => ["vega", "inbox", organizationId] as const,
   vegaThread: (organizationId: string, emailId: string) =>
     ["vega", "thread", organizationId, emailId] as const,

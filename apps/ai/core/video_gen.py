@@ -3,6 +3,7 @@ import logging
 from core.brand_kit import BrandKit, get_platform_tone
 from core.image_gen import product_identity_instructions
 from core.llm import LLMClient, GEMINI_FLASH
+from core.logo_animation_styles import LOGO_STYLE_DATA
 from core.models import VideoResult
 
 logger = logging.getLogger("video_gen")
@@ -465,3 +466,61 @@ async def generate_maya_video(
         # before/after debugging sees the real input, not a truncated one.
         prompt_used=final_prompt,
     )
+
+
+# ── Logo Animation (docs/MAYA_LOGO_ANIMATION.md) ────────────────────────────
+# 102 hardcoded styles — no LLM planning step, unlike the campaign/storyboard
+# flows above. style_id is the 1-based position in LOGO_STYLE_DATA, stable
+# across releases since the frontend dropdown references styles by id.
+
+LOGO_ANIMATION_STYLES: list[dict] = [
+    {"id": i + 1, "name": name, "category": category}
+    for i, (category, name, _prompt) in enumerate(LOGO_STYLE_DATA)
+]
+
+_LOGO_ANIMATION_PROMPTS: dict[int, str] = {
+    i + 1: prompt for i, (_category, _name, prompt) in enumerate(LOGO_STYLE_DATA)
+}
+
+_LOGO_ANIM_FIDELITY_GUARDRAIL = (
+    "LOGO FIDELITY — NON-NEGOTIABLE: The uploaded reference image is the ONLY subject of "
+    "this video. Every frame builds toward, or already shows, that exact logo: identical "
+    "shape, colors, and proportions. Do not redesign, restyle, simplify, or reinterpret it. "
+    "If the logo contains text, every character must be spelled exactly as shown and fully "
+    "legible at the moment the logo completes — a misspelled or altered logo is a failure, "
+    "not a stylistic variation."
+)
+
+_LOGO_ANIM_ENDING_GUARDRAIL = (
+    "ENDING — NON-NEGOTIABLE: By roughly the final 1.5-2 seconds, the logo is fully formed, "
+    "centered, sharp, and at rest — camera settled, no new motion beginning. This final hold "
+    "is a clean frame a viewer could pause on and immediately screenshot; never end "
+    "mid-formation or mid-motion."
+)
+
+_LOGO_ANIM_ASPECT_NOTE = {
+    "9:16": (
+        "Compose for vertical viewing: keep the logo centered in the middle band of the "
+        "frame with generous clean space above and below for platform UI overlays."
+    ),
+    "16:9": (
+        "Compose for widescreen viewing: center the logo with balanced negative space on "
+        "both sides, filling the frame with the surrounding scene/effect rather than empty bars."
+    ),
+}
+
+
+def build_logo_animation_prompt(style_id: int, aspect_ratio: str) -> tuple[str, str]:
+    """Return (final_prompt, style_name) for a hardcoded logo-animation style.
+
+    Raises ValueError if style_id is out of range — callers should turn that into a 400.
+    """
+    core_action = _LOGO_ANIMATION_PROMPTS.get(style_id)
+    if core_action is None:
+        raise ValueError(f"Unknown logo animation style_id: {style_id}")
+    style_name = LOGO_ANIMATION_STYLES[style_id - 1]["name"]
+    aspect_note = _LOGO_ANIM_ASPECT_NOTE.get(aspect_ratio, _LOGO_ANIM_ASPECT_NOTE["9:16"])
+    final_prompt = "\n\n".join([
+        core_action, _LOGO_ANIM_FIDELITY_GUARDRAIL, _LOGO_ANIM_ENDING_GUARDRAIL, aspect_note,
+    ])
+    return final_prompt, style_name

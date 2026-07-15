@@ -14,6 +14,7 @@ from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, ImageResult, VideoResult
 from core.video_gen import (
     build_video_prompt,
+    build_logo_animation_prompt,
     generate_maya_video,
     generate_video_storyboard,
     plan_video_scenes,
@@ -21,6 +22,7 @@ from core.video_gen import (
     plan_video_scenes_from_storyboard,
     add_logo_instruction,
     add_product_fidelity_guardrail,
+    LOGO_ANIMATION_STYLES,
 )
 from core.config import settings
 from agents.maya.agent import MayaAgent, PLATFORM_RULES
@@ -2078,3 +2080,77 @@ async def campaign_video_storyboard_endpoint(request: StoryboardRequest):
     return StoryboardResponse(
         storyboard_image_base64=storyboard_b64, beats=beats, model_used=_agent.default_model,
     )
+
+
+# ── Logo Animation ───────────────────────────────────────────────────────────
+
+class LogoAnimationStyle(BaseModel):
+    id: int
+    name: str
+    category: str
+
+
+class LogoAnimationStylesResponse(BaseModel):
+    styles: list[LogoAnimationStyle]
+
+
+@router.get("/logo-animation/styles", response_model=LogoAnimationStylesResponse)
+async def logo_animation_styles_endpoint():
+    """Style catalog for the logo-animation dropdown. Python is the single source of
+    truth (see core/logo_animation_styles.py) so the frontend never has to keep its own
+    copy of 100+ style names/prompts in sync."""
+    return LogoAnimationStylesResponse(styles=[LogoAnimationStyle(**s) for s in LOGO_ANIMATION_STYLES])
+
+
+class LogoAnimationRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    style_id: int = Field(..., ge=1, le=len(LOGO_ANIMATION_STYLES))
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    logo_image_url: str | None = None
+    use_brand_logo: bool = False
+
+
+class LogoAnimationResponse(BaseModel):
+    video: VideoResult
+    style_name: str
+    tokens_used: int = 0
+    model_used: str = ""
+
+
+@router.post("/logo-animation", response_model=LogoAnimationResponse)
+async def logo_animation_endpoint(request: LogoAnimationRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("logo-animation brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    logo_image: tuple[bytes, str] | None = None
+    if request.logo_image_url:
+        logo_image = await _fetch_image_with_mime(request.logo_image_url)
+    elif request.use_brand_logo:
+        logo_image = await _fetch_logo_image(brand_kit)
+
+    if not logo_image:
+        raise HTTPException(
+            status_code=400,
+            detail="No logo image available — upload a logo or enable use_brand_logo with a brand kit logo configured.",
+        )
+
+    try:
+        prompt, style_name = build_logo_animation_prompt(request.style_id, request.aspect_ratio)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    video = await _generate_video_with_retry(
+        prompt=prompt,
+        images=[logo_image],
+        aspect_ratio=request.aspect_ratio,
+        duration_seconds=10,
+    )
+
+    logger.info("logo-animation done | user=%s style_id=%s", request.user_id, request.style_id)
+    return LogoAnimationResponse(video=video, style_name=style_name, model_used=_agent.default_model)

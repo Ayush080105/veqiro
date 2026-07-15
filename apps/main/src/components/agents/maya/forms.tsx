@@ -33,10 +33,12 @@ import {
   type MayaGenerateVideoValues,
   mayaCampaignVideoSchema,
   type MayaCampaignVideoValues,
+  mayaLogoAnimationSchema,
+  type MayaLogoAnimationValues,
 } from "@/lib/schemas/agents/maya"
 import type { ContentPlatform, VideoAspectRatio } from "@/lib/types/agents"
 import { uploadToR2 } from "@/lib/api/uploads"
-import { expandCampaignBrief } from "@/lib/api/assistants"
+import { expandCampaignBrief, useLogoAnimationStyles } from "@/lib/api/assistants"
 import { toast } from "sonner"
 import { BrandImagesSelector } from "@/components/agents/maya/BrandImagesSelector"
 import { useMayaRemainingCredits } from "@/lib/api/billing"
@@ -1440,4 +1442,187 @@ export function MayaCampaignVideoStoryboardForm(props: {
   onDisableSubmit?: (disabled: boolean) => void
 }) {
   return <MayaCampaignVideoForm {...props} hideDuration />
+}
+
+// ─── Logo Animation ─────────────────────────────────────────────────────────
+
+const LOGO_ANIMATION_CREDITS = 40 // fixed 10s video * 4 credits/sec
+
+export function MayaLogoAnimationForm({
+  value,
+  onChange,
+  onDisableSubmit,
+}: {
+  value: MayaLogoAnimationValues
+  onChange: (patch: Partial<MayaLogoAnimationValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
+  onDisableSubmit?: (disabled: boolean) => void
+}) {
+  const form = useAgentForm({
+    schema: mayaLogoAnimationSchema,
+    defaultValue: value,
+    onChange,
+  })
+
+  const orgId = (value as Record<string, unknown>).organization_id as string
+  const { creditsRemaining } = useMayaRemainingCredits(orgId)
+  const { data: stylesData, isLoading: stylesLoading } = useLogoAnimationStyles()
+  const overLimit = creditsRemaining !== null && LOGO_ANIMATION_CREDITS > creditsRemaining
+
+  React.useLayoutEffect(() => {
+    onDisableSubmit?.(overLimit)
+  }, [overLimit, onDisableSubmit])
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = React.useState(false)
+  const [uploadError, setUploadError] = React.useState<string | null>(null)
+  const logoImageUrl = form.watch("logo_image_url")
+  const useBrandLogo = form.watch("use_brand_logo")
+
+  // Group the flat catalog into its categories, preserving the backend's order —
+  // the catalog is already sorted by category (see core/logo_animation_styles.py).
+  const groupedStyles = React.useMemo(() => {
+    const styles = stylesData?.styles ?? []
+    const groups: { category: string; styles: typeof styles }[] = []
+    for (const s of styles) {
+      const last = groups[groups.length - 1]
+      if (last && last.category === s.category) last.styles.push(s)
+      else groups.push({ category: s.category, styles: [s] })
+    }
+    return groups
+  }, [stylesData])
+
+  async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadError(null)
+    const result = await uploadToR2("inspiration", file)
+    if (result.ok) {
+      form.setValue("logo_image_url" as never, result.publicUrl as never)
+      form.setValue("use_brand_logo" as never, false as never)
+    } else {
+      setUploadError(result.message)
+    }
+    setUploading(false)
+    e.target.value = ""
+  }
+
+  return (
+    <FieldGroup>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">
+          Logo <span className="text-destructive">*</span>
+        </span>
+        {logoImageUrl && !useBrandLogo && (
+          <img
+            src={logoImageUrl}
+            alt="Logo"
+            className="h-16 w-16 self-start rounded border border-border bg-white object-contain"
+          />
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="text-xs text-primary underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {uploading ? "Uploading…" : logoImageUrl && !useBrandLogo ? "Replace logo" : "Upload logo"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoFile}
+          />
+        </div>
+        {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+        <Controller
+          control={form.control}
+          name="use_brand_logo"
+          render={({ field }) => (
+            <label className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">Use brand kit logo instead</span>
+              <Switch
+                checked={field.value ?? false}
+                onCheckedChange={(v) => {
+                  field.onChange(v)
+                  if (v) form.setValue("logo_image_url" as never, undefined as never)
+                }}
+              />
+            </label>
+          )}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">
+          Animation style <span className="text-destructive">*</span>
+        </span>
+        {stylesLoading ? (
+          <p className="text-xs text-muted-foreground">Loading styles…</p>
+        ) : (
+          <Controller
+            control={form.control}
+            name="style_id"
+            render={({ field }) => (
+              <div className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded border border-border p-2">
+                {groupedStyles.map((g) => (
+                  <div key={g.category} className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {g.category}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {g.styles.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => field.onChange(s.id)}
+                          className="rounded-full px-2.5 py-1 text-xs transition-colors"
+                          style={{
+                            border: "2px solid var(--border)",
+                            background: field.value === s.id ? "var(--foreground)" : "transparent",
+                            color: field.value === s.id ? "var(--background)" : "var(--foreground)",
+                            fontWeight: field.value === s.id ? 700 : 400,
+                          }}
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Aspect ratio</span>
+        <Controller
+          control={form.control}
+          name="aspect_ratio"
+          render={({ field }) => (
+            <AspectRatioPicker value={field.value as VideoAspectRatio} onChange={field.onChange} />
+          )}
+        />
+      </div>
+
+      {overLimit && (
+        <p className="text-xs text-destructive">
+          {`This uses ${LOGO_ANIMATION_CREDITS} credits (10s of video), but only ${creditsRemaining} remain this period.`}
+        </p>
+      )}
+
+      <RhfField control={form.control} name="platform" label="Platform" required>
+        {({ field }) => (
+          <PlatformPicker value={field.value as ContentPlatform} onChange={field.onChange} />
+        )}
+      </RhfField>
+    </FieldGroup>
+  )
 }
