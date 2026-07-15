@@ -60,15 +60,14 @@ export async function getStatus(req: Request, res: Response) {
   });
 }
 
+// The `agents` body param is gone; trials are all-or-nothing.
 export async function startTrial(req: Request, res: Response) {
   const orgId = await requireOrgOwner(req);
-  const sub = await startTrialForOrg(orgId, req.body?.agents);
+  const result = await startTrialForOrg(orgId);
   res.status(StatusCodes.CREATED).json({
-    status: sub.status,
-    trialEndsAt: sub.trialEndsAt,
-    plan: sub.plan,
-    entitlementMode: sub.entitlementMode,
-    selectedAgents: sub.selectedAgents,
+    status: "TRIALING",
+    trialEndsAt: result.trialEndsAt,
+    agents: result.agents,
   });
 }
 

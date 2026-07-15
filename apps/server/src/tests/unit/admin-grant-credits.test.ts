@@ -26,7 +26,7 @@ vi.mock("../../modules/agents/maya/maya.usage.service.js", () => ({
 // mailer -> Resend chain and crashes on a missing API key. Not exercised by
 // grantCredits itself, so a bare mock is enough to keep the import graph light.
 vi.mock("../../modules/billing/billing.service.js", () => ({
-  startOrExtendTrial: vi.fn(),
+  extendTrialForOrg: vi.fn(),
 }));
 
 describe("admin.repository.grantCredits", () => {

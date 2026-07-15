@@ -2,9 +2,8 @@ import { prisma } from "../../config/prisma.js";
 import { buildSignupBuckets, buildHealthBuckets, buildTokenBuckets } from "./admin.charts.js";
 import { estimateCost, PLAN_MONTHLY_REVENUE } from "./admin.costs.js";
 import { computeOrgHealth } from "./admin.health.js";
-import { startOrExtendTrial } from "../billing/billing.service.js";
+import { extendTrialForOrg } from "../billing/billing.service.js";
 import { getCurrentUsage, adjustCurrentPeriodUsage } from "../agents/maya/maya.usage.service.js";
-import { BadRequestError } from "../../common/errors/badRequest.js";
 import {
   FeedbackStatus,
   FeedbackCategory,
@@ -547,22 +546,12 @@ export async function getOrganizationById(id: string) {
 }
 
 export async function extendTrial(id: string, days = 7) {
-  // Only trialing orgs (or orgs with no subscription yet — the legitimate
-  // "start a trial" case) can have their trial extended. Otherwise an admin
-  // could accidentally flip a paying org's status back to TRIALING.
-  const sub = await prisma.subscription.findUnique({
-    where: { organizationId: id },
-    select: { status: true },
-  });
-  if (sub && sub.status !== "TRIALING") {
-    throw new BadRequestError("only-trialing-orgs-can-extend-trial");
-  }
-
-  // Delegates to the shared trial helper so this always keeps the real
-  // Subscription row (source of truth) in sync with the Organization cache —
-  // creating a Subscription for legacy orgs that never had one, instead of
-  // only patching the denormalized Organization fields.
-  return startOrExtendTrial(id, days);
+  // Delegates entirely to the entitlements-based helper, which only ever
+  // touches TRIAL-sourced Entitlement rows — it can't disturb a paying org's
+  // CREW/AGENT entitlements — and itself throws when the org has no trial
+  // entitlement rows to extend, which is the only eligibility guard needed
+  // now that trial state no longer lives on the denormalized Subscription.
+  return extendTrialForOrg(id, days);
 }
 
 export async function setSubscriptionStatus(orgId: string, status: string) {
@@ -578,22 +567,15 @@ export async function setSubscriptionStatus(orgId: string, status: string) {
 }
 
 export async function bulkExtendTrial(orgIds: string[], days: number) {
-  // Same eligibility rule as the single-org path, but degrade gracefully
-  // instead of rejecting the whole batch: filter up front and report what
-  // got skipped, rather than partially applying mutations then throwing.
-  const subs = await prisma.subscription.findMany({
-    where: { organizationId: { in: orgIds } },
-    select: { organizationId: true, status: true },
-  });
-  const statusById = new Map(subs.map((s) => [s.organizationId, s.status]));
-  const eligible = orgIds.filter((id) => {
-    const status = statusById.get(id);
-    return status === undefined || status === "TRIALING";
-  });
-  const skipped = orgIds.filter((id) => !eligible.includes(id));
+  // Degrade gracefully instead of rejecting the whole batch: each org is
+  // extended independently, and one with no trial entitlement rows (rejected
+  // by extendTrialForOrg) is reported as skipped rather than aborting the
+  // rest.
+  const results = await Promise.allSettled(orgIds.map((id) => extendTrialForOrg(id, days)));
+  const extended = orgIds.filter((_, i) => results[i]!.status === "fulfilled");
+  const skipped = orgIds.filter((_, i) => results[i]!.status === "rejected");
 
-  const results = await Promise.all(eligible.map((id) => startOrExtendTrial(id, days)));
-  return { extended: results.length, orgIds: eligible, skipped };
+  return { extended: extended.length, orgIds: extended, skipped };
 }
 
 export async function grantCredits(organizationId: string, credits: number) {

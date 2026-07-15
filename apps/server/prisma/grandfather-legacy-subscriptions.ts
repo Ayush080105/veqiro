@@ -6,28 +6,26 @@
  * orgs that DO have a Subscription) this script's candidates are orgs
  * missing the row entirely.
  *
- * For each candidate, calls the shared `startOrExtendTrial` helper (see
- * `src/modules/billing/billing.service.ts`), which — for an org with no
- * existing Subscription — creates the Dodo customer, the Subscription row
- * (status TRIALING), flips the Organization entitlement cache, and opens the
- * initial MayaUsage period, all in one transaction.
+ * For each candidate, calls the shared `startTrialForOrg` helper (see
+ * `src/modules/billing/billing.service.ts`) — the same all-six-agents,
+ * 7-day, once-ever trial normal owner-initiated signups get. It is guarded by
+ * `Organization.trialStartedAt`, so a legacy org that was already granted a
+ * trial by any other path (including a previous run of this script) is
+ * skipped with an error logged rather than double-granted.
  *
- * Trial length defaults to 7 days, matching `startTrialForOrg`'s default for
- * consistency with normal owner-initiated trials. If a longer grace window is
- * wanted for these already-established orgs, adjust TRIAL_DAYS below — this
- * is a one-line change, called out here since it wasn't decided as part of
- * this task.
- *
- * Safe to re-run (idempotent): the candidate query is a `subscription: null`
- * filter, so once an org has been given a Subscription row (by this script or
- * any other path), it no longer matches and won't be touched again.
+ * Note this candidate query (`subscription: null`) and the guard
+ * `startTrialForOrg` actually enforces (`trialStartedAt`) are different
+ * fields — an org can in principle have no Subscription row yet already have
+ * `trialStartedAt` stamped. That just means this script's candidate query is
+ * a superset of the true target set; `startTrialForOrg` rejecting those with
+ * "trial-already-used" is the correct, safe outcome, not a bug.
  *
  * Per-org processing is sequential (not `Promise.all`) with its own
- * try/catch, so one Dodo API hiccup logs and moves on instead of aborting the
- * whole run.
+ * try/catch, so one Dodo API hiccup (or an already-trialed org) logs and
+ * moves on instead of aborting the whole run.
  *
  * Migration order: run this script FIRST to give every subscription-less org
- * a Subscription + initial MayaUsage row. Afterwards, re-run
+ * its trial entitlements + initial MayaUsage row. Afterwards, re-run
  * `backfill-maya-usage.ts` as a defensive second pass — it catches any
  * TRIALING/ACTIVE subscriptions from other historical causes (not the
  * "missing Subscription entirely" case this script handles) that are still
@@ -39,10 +37,9 @@
  */
 import "dotenv/config";
 import { prisma } from "../src/config/prisma.js";
-import { startOrExtendTrial } from "../src/modules/billing/billing.service.js";
+import { startTrialForOrg } from "../src/modules/billing/billing.service.js";
 
 const APPLY = process.argv.includes("--apply");
-const TRIAL_DAYS = 7;
 
 async function main() {
   console.log(
@@ -64,7 +61,7 @@ async function main() {
   for (const org of candidates) {
     const orgLabel = `${org.name} (${org.id})`;
 
-    console.log(`  [${APPLY ? "grandfathering" : "would grandfather"}] ${orgLabel} — ${TRIAL_DAYS}-day trial`);
+    console.log(`  [${APPLY ? "grandfathering" : "would grandfather"}] ${orgLabel} — trial`);
 
     if (!APPLY) {
       fixed++;
@@ -72,7 +69,7 @@ async function main() {
     }
 
     try {
-      await startOrExtendTrial(org.id, TRIAL_DAYS);
+      await startTrialForOrg(org.id);
       fixed++;
     } catch (err) {
       console.error(`  [error] ${orgLabel} — failed to grandfather:`, err);
