@@ -21,13 +21,26 @@ export function entitlementMiddlewareForAgent(agent?: Agent) {
 
     if (active.length === 0) {
       // Distinguish "never started" from "lapsed" so the UI can route the user
-      // to the trial CTA vs the billing page.
+      // to the trial CTA vs the billing page. A lapsed org that has only ever
+      // held TRIAL entitlements gets "Trial expired"; one that has held a
+      // paid (AGENT/CREW) entitlement gets "Subscription expired". These are
+      // separate frontend copy paths (see apps/main upgrade-errors.ts).
       const org = await prisma.organization.findUnique({
         where: { id: orgId },
         select: { trialStartedAt: true },
       });
+
+      if (!org?.trialStartedAt) {
+        return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "Trial not started" });
+      }
+
+      const hasHeldPaidEntitlement = await prisma.entitlement.findFirst({
+        where: { organizationId: orgId, source: { in: ["AGENT", "CREW"] } },
+        select: { id: true },
+      });
+
       return res.status(StatusCodes.PAYMENT_REQUIRED).json({
-        error: org?.trialStartedAt ? "Subscription expired" : "Trial not started",
+        error: hasHeldPaidEntitlement ? "Subscription expired" : "Trial expired",
       });
     }
 
@@ -39,7 +52,7 @@ export function entitlementMiddlewareForAgent(agent?: Agent) {
       return res.status(StatusCodes.PAYMENT_REQUIRED).json({ error: "Agent not purchased" });
     }
 
-    if (covering.some((e) => e.status === "PAST_DUE") && !covering.some((e) => e.status !== "PAST_DUE")) {
+    if (covering.every((e) => e.status === "PAST_DUE")) {
       // Still inside the paid period, so allow through, but let the client
       // surface a dunning banner.
       res.setHeader("X-Billing-State", "past_due");
