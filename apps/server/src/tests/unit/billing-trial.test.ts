@@ -7,6 +7,10 @@ import { assert, beforeEach, describe, expect, test, vi } from "vitest";
 const mockPrisma = {
   entitlement: {
     updateMany: vi.fn(),
+    // Default: no active paid entitlement, so the org-has-paid-entitlement
+    // guard in extendTrialForOrg passes through for tests that don't care
+    // about it. Tests exercising the guard itself override this per-case.
+    findFirst: vi.fn(async () => null),
   },
 };
 
@@ -91,5 +95,123 @@ describe("extendTrialForOrg", () => {
     const { extendTrialForOrg } = await import("../../modules/billing/billing.service.js");
 
     await expect(extendTrialForOrg("org_no_trial", 7)).rejects.toThrow(/no-trial-to-extend/);
+  });
+});
+
+// These tests use a real (stateful) in-memory row store for `entitlement`
+// instead of call-count mocks: the whole point of the guard is that stale
+// EXPIRED TRIAL rows must survive untouched when the org is a paying
+// customer, and that's only checkable by inspecting row state after the
+// call, not by asserting which mock functions fired.
+type Row = {
+  id: string;
+  organizationId: string;
+  agent: string;
+  source: "TRIAL" | "AGENT" | "CREW";
+  status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "EXPIRED" | "SUPERSEDED";
+  currentPeriodEnd: Date;
+};
+
+const ACCESS_STATUSES = ["TRIALING", "ACTIVE", "PAST_DUE"];
+let rows: Row[] = [];
+
+function statefulFindFirst({ where }: { where: { organizationId: string; source: { in: string[] }; status: { in: string[] }; currentPeriodEnd: { gt: Date } } }) {
+  const match = rows.find((r) =>
+    r.organizationId === where.organizationId &&
+    where.source.in.includes(r.source) &&
+    where.status.in.includes(r.status) &&
+    r.currentPeriodEnd.getTime() > where.currentPeriodEnd.gt.getTime(),
+  );
+  return Promise.resolve(match ?? null);
+}
+
+function statefulUpdateMany({ where, data }: { where: { organizationId: string; source: string }; data: Partial<Row> }) {
+  const matches = rows.filter((r) => r.organizationId === where.organizationId && r.source === where.source);
+  for (const r of matches) Object.assign(r, data);
+  return Promise.resolve({ count: matches.length });
+}
+
+describe("extendTrialForOrg — org-has-paid-entitlement guard", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rows = [];
+    // Re-point the mocks at the stateful implementations regardless of what
+    // earlier tests in this file left behind via mockResolvedValue.
+    mockPrisma.entitlement.findFirst.mockImplementation(statefulFindFirst as never);
+    mockPrisma.entitlement.updateMany.mockImplementation(statefulUpdateMany as never);
+  });
+
+  test("a genuine expired-trial org (only TRIAL rows) succeeds — rows return to TRIALING with a fresh period", async () => {
+    const staleEnd = new Date(Date.now() - 1000);
+    rows = [
+      { id: "t1", organizationId: "o1", agent: "MAYA", source: "TRIAL", status: "EXPIRED", currentPeriodEnd: staleEnd },
+      { id: "t2", organizationId: "o1", agent: "LEX", source: "TRIAL", status: "EXPIRED", currentPeriodEnd: staleEnd },
+    ];
+
+    const { extendTrialForOrg } = await import("../../modules/billing/billing.service.js");
+    const result = await extendTrialForOrg("o1", 7);
+
+    assert.ok(rows.every((r) => r.status === "TRIALING"));
+    assert.ok(rows.every((r) => r.currentPeriodEnd.getTime() > Date.now()));
+    assert.equal(result.trialEndsAt.getTime(), rows[0]!.currentPeriodEnd.getTime());
+  });
+
+  test("REGRESSION: an org with stale EXPIRED TRIAL rows AND an active AGENT entitlement is refused, and nothing is mutated", async () => {
+    const staleEnd = new Date(Date.now() - 1000);
+    const futureEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    rows = [
+      { id: "t1", organizationId: "o1", agent: "MAYA", source: "TRIAL", status: "EXPIRED", currentPeriodEnd: staleEnd },
+      { id: "a1", organizationId: "o1", agent: "LEX", source: "AGENT", status: "ACTIVE", currentPeriodEnd: futureEnd },
+    ];
+
+    const { extendTrialForOrg } = await import("../../modules/billing/billing.service.js");
+    await extendTrialForOrg("o1", 7).then(
+      () => assert.fail("a paying org's trial rows must not be revivable"),
+      (e) => assert.match(String(e), /org-has-paid-entitlement/),
+    );
+
+    assert.equal(rows[0]!.status, "EXPIRED");
+    assert.equal(rows[0]!.currentPeriodEnd.getTime(), staleEnd.getTime());
+    assert.equal(rows[1]!.status, "ACTIVE");
+  });
+
+  test("an org with an active CREW entitlement + stale TRIAL rows is refused the same way", async () => {
+    const staleEnd = new Date(Date.now() - 1000);
+    const futureEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    rows = [
+      { id: "t1", organizationId: "o1", agent: "SAGE", source: "TRIAL", status: "EXPIRED", currentPeriodEnd: staleEnd },
+      { id: "c1", organizationId: "o1", agent: "SAGE", source: "CREW", status: "ACTIVE", currentPeriodEnd: futureEnd },
+    ];
+
+    const { extendTrialForOrg } = await import("../../modules/billing/billing.service.js");
+    await extendTrialForOrg("o1", 7).then(
+      () => assert.fail("a CREW-covered org's trial rows must not be revivable"),
+      (e) => assert.match(String(e), /org-has-paid-entitlement/),
+    );
+
+    assert.equal(rows[0]!.status, "EXPIRED");
+    assert.equal(rows[1]!.status, "ACTIVE");
+  });
+
+  test("a lapsed ex-customer (paid entitlement itself EXPIRED) may have their trial revived", async () => {
+    const staleEnd = new Date(Date.now() - 1000);
+    rows = [
+      { id: "t1", organizationId: "o1", agent: "MAYA", source: "TRIAL", status: "EXPIRED", currentPeriodEnd: staleEnd },
+      { id: "a1", organizationId: "o1", agent: "LEX", source: "AGENT", status: "EXPIRED", currentPeriodEnd: staleEnd },
+    ];
+
+    const { extendTrialForOrg } = await import("../../modules/billing/billing.service.js");
+    const result = await extendTrialForOrg("o1", 7);
+
+    assert.equal(rows[0]!.status, "TRIALING");
+    assert.equal(rows[1]!.status, "EXPIRED"); // the lapsed paid row is untouched, just no longer blocking
+    assert.ok(result.trialEndsAt instanceof Date);
+  });
+
+  test("an org with no TRIAL rows at all still throws no-trial-to-extend", async () => {
+    rows = [];
+
+    const { extendTrialForOrg } = await import("../../modules/billing/billing.service.js");
+    await expect(extendTrialForOrg("o1", 7)).rejects.toThrow(/no-trial-to-extend/);
   });
 });

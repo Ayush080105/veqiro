@@ -15,6 +15,7 @@ import {
   normalizePlan,
   sumAgentMonthlyPriceCents,
 } from "./billing.catalog.js";
+import { ACCESS_STATUSES } from "./entitlement.service.js";
 import type { Prisma } from "../../../prisma/generated/prisma/client.js";
 
 type TxClient = Prisma.TransactionClient;
@@ -188,7 +189,34 @@ export async function startTrialForOrg(organizationId: string) {
  * on the deleted `startOrExtendTrial`).
  */
 export async function extendTrialForOrg(organizationId: string, days = 7) {
-  const trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  const now = new Date();
+
+  // Guard against reviving a paying customer's trial. A TRIAL row does NOT
+  // expire out of existence: when the trial period lapses the sweeper flips
+  // the six TRIAL rows to EXPIRED, but they are never deleted. When that org
+  // later converts to a paying customer, the purchase inserts new AGENT/CREW
+  // rows alongside the old ones rather than replacing them. So "the org has
+  // TRIAL rows" — even stale EXPIRED ones — is never evidence the org is
+  // currently a trial org; it only proves they trialed at some point in the
+  // past. Without this check, updateMany's unfiltered `source: "TRIAL"`
+  // where-clause would happily flip those stale EXPIRED rows back to
+  // TRIALING with a fresh period, handing a paying customer free access to
+  // agents they never bought. We key on *currently active* paid access
+  // (status in ACCESS_STATUSES AND currentPeriodEnd in the future) rather
+  // than "ever had a paid entitlement", so a lapsed ex-customer's trial can
+  // still be legitimately revived by an admin.
+  const activePaidEntitlement = await prisma.entitlement.findFirst({
+    where: {
+      organizationId,
+      source: { in: ["AGENT", "CREW"] },
+      status: { in: ACCESS_STATUSES },
+      currentPeriodEnd: { gt: now },
+    },
+    select: { id: true },
+  });
+  if (activePaidEntitlement) throw new BadRequestError("org-has-paid-entitlement");
+
+  const trialEndsAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
   const { count } = await prisma.entitlement.updateMany({
     where: { organizationId, source: "TRIAL" },
     data: { status: "TRIALING", currentPeriodEnd: trialEndsAt },
