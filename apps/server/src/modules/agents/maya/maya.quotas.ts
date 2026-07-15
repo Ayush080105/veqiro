@@ -1,3 +1,5 @@
+import { EntitlementSource, SubscriptionPlan } from "../../../../prisma/generated/prisma/client.js";
+
 export type QuotaTier = "TRIAL" | "MONTHLY_CUSTOM" | "MONTHLY_CREW" | "ANNUAL_CREW";
 
 // Edit these values directly to change per-plan credit budgets.
@@ -48,4 +50,20 @@ export function getTierFromSubscription(sub: {
   if (sub.plan === "ANNUAL") return "ANNUAL_CREW";
   if (sub.entitlementMode === "CUSTOM") return "MONTHLY_CUSTOM";
   return "MONTHLY_CREW";
+}
+
+/**
+ * Maya's monthly credit allowance, read live from her entitlement.
+ *
+ * ANNUAL grants 400 *per month*, not per year: the credit period is a fixed
+ * 1-month window decoupled from the billing period (see spec, Decision 6).
+ * The previous code granted 400 for the entire year.
+ */
+export function getQuotaForMayaEntitlement(e: {
+  source: EntitlementSource;
+  plan: SubscriptionPlan | null;
+}): number {
+  if (e.source === "TRIAL") return 30;
+  if (e.source === "CREW" && e.plan === "ANNUAL") return 400;
+  return 300;
 }
