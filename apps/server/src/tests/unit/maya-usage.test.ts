@@ -1,291 +1,434 @@
 import { assert, beforeEach, describe, expect, test, vi } from "vitest";
-import { Prisma } from "../../../prisma/generated/prisma/client.js";
 import { QuotaExceededError } from "../../common/errors/quotaExceeded.js";
 
-// maya.usage.service.ts touches Subscription/MayaUsage via `prisma` only —
-// mock it with a tiny in-memory "row" so assertions check real persisted
-// values (not just "was called").
-type Row = {
+// maya.usage.service.ts now resolves Maya's window from her governing
+// Entitlement row (+ its BillingSubscription, for plan) instead of the
+// legacy Subscription model — mock those two tables plus MayaUsage with a
+// tiny in-memory store so assertions check real persisted values (not just
+// "was called").
+type EntRow = {
+  organizationId: string;
+  agent: string;
+  source: string;
+  status: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  billingSubscriptionId: string | null;
+};
+
+type BsRow = {
+  id: string;
+  plan: string | null;
+};
+
+type UsageRow = {
   organizationId: string;
   periodStart: Date;
   periodEnd: Date;
   creditsUsed: number;
 };
 
-let row: Row | null = null;
+let entitlements: EntRow[] = [];
+let billingSubscriptions: BsRow[] = [];
+let usageRows: UsageRow[] = [];
 
 const mockPrisma = {
-  subscription: { findUnique: vi.fn() },
-  mayaUsage: {
-    findFirst: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
+  entitlement: {
+    findMany: vi.fn(async ({ where }: { where: Record<string, unknown> }) => {
+      return entitlements.filter((e) => {
+        if (where.organizationId !== undefined && e.organizationId !== where.organizationId) return false;
+        if (where.agent !== undefined && e.agent !== where.agent) return false;
+        if (where.status && typeof where.status === "object" && "in" in (where.status as object)) {
+          if (!(where.status as { in: string[] }).in.includes(e.status)) return false;
+        }
+        if (where.currentPeriodEnd && typeof where.currentPeriodEnd === "object" && "gt" in (where.currentPeriodEnd as object)) {
+          const gt = (where.currentPeriodEnd as { gt: Date }).gt;
+          if (!(e.currentPeriodEnd.getTime() > gt.getTime())) return false;
+        }
+        return true;
+      });
+    }),
   },
-  $transaction: vi.fn(),
-  $queryRaw: vi.fn(),
+  billingSubscription: {
+    findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
+      return billingSubscriptions.find((b) => b.id === where.id) ?? null;
+    }),
+  },
+  mayaUsage: {
+    upsert: vi.fn(async ({ where, create }: {
+      where: { organizationId_periodStart: { organizationId: string; periodStart: Date } };
+      create: Omit<UsageRow, "creditsUsed">;
+    }) => {
+      const key = where.organizationId_periodStart;
+      let row = usageRows.find(
+        (r) => r.organizationId === key.organizationId && r.periodStart.getTime() === key.periodStart.getTime(),
+      );
+      if (!row) {
+        row = { ...create, creditsUsed: 0 };
+        usageRows.push(row);
+      }
+      return row;
+    }),
+    update: vi.fn(async ({ where, data }: {
+      where: { organizationId_periodStart: { organizationId: string; periodStart: Date } };
+      data: Record<string, unknown>;
+    }) => {
+      const key = where.organizationId_periodStart;
+      const row = usageRows.find(
+        (r) => r.organizationId === key.organizationId && r.periodStart.getTime() === key.periodStart.getTime(),
+      );
+      if (!row) return null;
+      const v = data.creditsUsed;
+      if (v && typeof v === "object" && "increment" in (v as object)) {
+        row.creditsUsed += (v as { increment: number }).increment;
+      } else if (v && typeof v === "object" && "decrement" in (v as object)) {
+        row.creditsUsed -= (v as { decrement: number }).decrement;
+      } else if (typeof v === "number") {
+        row.creditsUsed = v;
+      }
+      return row;
+    }),
+  },
+  $transaction: vi.fn(async (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma)),
+  $queryRaw: vi.fn(async () => {
+    // Backing the FOR UPDATE lock query — reads whatever row exists for the
+    // (org, periodStart) that the most recent upsert/update touched. Tests
+    // that need a specific row locked call `usageRows` directly beforehand.
+    return usageRows.length ? [{ creditsUsed: usageRows[usageRows.length - 1]!.creditsUsed }] : [];
+  }),
 };
 
 vi.mock("../../config/prisma.js", () => ({
   prisma: mockPrisma,
 }));
 
-function applyUpdate(data: Record<string, unknown>) {
-  if (!row) return;
-  for (const key of ["creditsUsed", "periodEnd"] as const) {
-    const v = data[key];
-    if (v === undefined) continue;
-    if (v && typeof v === "object" && "increment" in (v as object)) {
-      (row as never as Record<string, number>)[key] =
-        (row[key] as number) + (v as { increment: number }).increment;
-    } else if (v && typeof v === "object" && "decrement" in (v as object)) {
-      (row as never as Record<string, number>)[key] =
-        (row[key] as number) - (v as { decrement: number }).decrement;
-    } else {
-      (row as never as Record<string, unknown>)[key] = v;
-    }
-  }
-}
-
-// ─── Subscription fixtures ────────────────────────────────────────────────
-
-const trialingSub = (trialEndsAt: Date | null) => ({
-  status: "TRIALING",
-  plan: null,
-  entitlementMode: "CREW",
-  trialEndsAt,
-  currentPeriodEnd: null,
-});
-
-const activeSub = (currentPeriodEnd: Date | null, plan: string | null = "ANNUAL") => ({
-  status: "ACTIVE",
-  plan,
-  entitlementMode: "CREW",
-  trialEndsAt: null,
-  currentPeriodEnd,
-});
-
-const cancelledSub = (currentPeriodEnd: Date | null) => ({
-  status: "CANCELLED",
-  plan: "MONTHLY",
-  entitlementMode: "CREW",
-  trialEndsAt: null,
-  currentPeriodEnd,
-});
-
-const expiredSub = () => ({
-  status: "EXPIRED",
-  plan: null,
-  entitlementMode: "CUSTOM",
-  trialEndsAt: null,
-  currentPeriodEnd: null,
-});
+// ─── Entitlement fixtures ─────────────────────────────────────────────────
 
 const DAY = 24 * 60 * 60 * 1000;
 
-describe("maya.usage.service self-heal + adjustCurrentPeriodUsage", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    row = null;
+function trialEntitlement(orgId: string, periodStart: Date, periodEnd: Date): EntRow {
+  return {
+    organizationId: orgId,
+    agent: "MAYA",
+    source: "TRIAL",
+    status: "TRIALING",
+    currentPeriodStart: periodStart,
+    currentPeriodEnd: periodEnd,
+    billingSubscriptionId: null,
+  };
+}
 
-    mockPrisma.mayaUsage.findFirst.mockImplementation(async () => {
-      if (row && row.periodEnd.getTime() > Date.now()) return row;
-      return null;
+function crewEntitlement(
+  orgId: string,
+  periodStart: Date,
+  periodEnd: Date,
+  billingSubscriptionId: string,
+  status = "ACTIVE",
+): EntRow {
+  return {
+    organizationId: orgId,
+    agent: "MAYA",
+    source: "CREW",
+    status,
+    currentPeriodStart: periodStart,
+    currentPeriodEnd: periodEnd,
+    billingSubscriptionId,
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  entitlements = [];
+  billingSubscriptions = [];
+  usageRows = [];
+
+  mockPrisma.entitlement.findMany.mockImplementation(async ({ where }: { where: Record<string, unknown> }) => {
+    return entitlements.filter((e) => {
+      if (where.organizationId !== undefined && e.organizationId !== where.organizationId) return false;
+      if (where.agent !== undefined && e.agent !== where.agent) return false;
+      if (where.status && typeof where.status === "object" && "in" in (where.status as object)) {
+        if (!(where.status as { in: string[] }).in.includes(e.status)) return false;
+      }
+      if (where.currentPeriodEnd && typeof where.currentPeriodEnd === "object" && "gt" in (where.currentPeriodEnd as object)) {
+        const gt = (where.currentPeriodEnd as { gt: Date }).gt;
+        if (!(e.currentPeriodEnd.getTime() > gt.getTime())) return false;
+      }
+      return true;
     });
-    mockPrisma.mayaUsage.create.mockImplementation(async ({ data }: { data: Omit<Row, "creditsUsed"> }) => {
-      row = { ...data, creditsUsed: 0 };
-      return row;
-    });
-    mockPrisma.mayaUsage.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
-      applyUpdate(data);
-      return row;
-    });
-    mockPrisma.$queryRaw.mockImplementation(async () => {
-      return row ? [{ creditsUsed: row.creditsUsed }] : [];
-    });
-    mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma));
   });
+  mockPrisma.billingSubscription.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) => {
+    return billingSubscriptions.find((b) => b.id === where.id) ?? null;
+  });
+  mockPrisma.mayaUsage.upsert.mockImplementation(async ({ where, create }: {
+    where: { organizationId_periodStart: { organizationId: string; periodStart: Date } };
+    create: Omit<UsageRow, "creditsUsed">;
+  }) => {
+    const key = where.organizationId_periodStart;
+    let row = usageRows.find(
+      (r) => r.organizationId === key.organizationId && r.periodStart.getTime() === key.periodStart.getTime(),
+    );
+    if (!row) {
+      row = { ...create, creditsUsed: 0 };
+      usageRows.push(row);
+    }
+    return row;
+  });
+  mockPrisma.mayaUsage.update.mockImplementation(async ({ where, data }: {
+    where: { organizationId_periodStart: { organizationId: string; periodStart: Date } };
+    data: Record<string, unknown>;
+  }) => {
+    const key = where.organizationId_periodStart;
+    const row = usageRows.find(
+      (r) => r.organizationId === key.organizationId && r.periodStart.getTime() === key.periodStart.getTime(),
+    );
+    if (!row) return null;
+    const v = data.creditsUsed;
+    if (v && typeof v === "object" && "increment" in (v as object)) {
+      row.creditsUsed += (v as { increment: number }).increment;
+    } else if (v && typeof v === "object" && "decrement" in (v as object)) {
+      row.creditsUsed -= (v as { decrement: number }).decrement;
+    } else if (typeof v === "number") {
+      row.creditsUsed = v;
+    }
+    return row;
+  });
+  mockPrisma.$queryRaw.mockImplementation(async (strings: TemplateStringsArray, orgId: string, periodStart: Date) => {
+    const row = usageRows.find(
+      (r) => r.organizationId === orgId && r.periodStart.getTime() === periodStart.getTime(),
+    );
+    return row ? [{ creditsUsed: row.creditsUsed }] : [];
+  });
+  mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma));
+});
 
+describe("maya.usage.service", () => {
   describe("getCurrentUsage", () => {
-    test("self-heals a missing period for a TRIALING sub with a future trialEndsAt", async () => {
-      const trialEndsAt = new Date(Date.now() + 3 * DAY);
-      mockPrisma.subscription.findUnique.mockResolvedValue(trialingSub(trialEndsAt));
+    test("TRIAL entitlement → tier TRIAL, limit 30", async () => {
+      const periodStart = new Date("2026-01-10T00:00:00Z");
+      const periodEnd = new Date(Date.now() + 20 * DAY); // still-covering entitlement
+      entitlements = [trialEntitlement("org_1", periodStart, periodEnd)];
 
       const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
       const result = await getCurrentUsage("org_1");
 
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 1);
-      const createArgs = mockPrisma.mayaUsage.create.mock.calls[0]![0] as { data: { organizationId: string; periodEnd: Date } };
-      assert.equal(createArgs.data.organizationId, "org_1");
-      assert.equal(createArgs.data.periodEnd.getTime(), trialEndsAt.getTime());
-
       assert.equal(result.tier, "TRIAL");
       assert.equal(result.credits.used, 0);
       assert.equal(result.credits.limit, 30);
-      assert.equal(result.periodEnd, trialEndsAt.toISOString());
+      assert.equal(mockPrisma.mayaUsage.upsert.mock.calls.length, 1);
     });
 
-    test("does not fabricate a period for an EXPIRED subscription (no valid date to derive from)", async () => {
-      mockPrisma.subscription.findUnique.mockResolvedValue(expiredSub());
+    test("CREW + ANNUAL billing subscription → tier ANNUAL_CREW, limit 400 (not the annual billing period)", async () => {
+      const anchor = new Date("2026-01-10T00:00:00Z");
+      entitlements = [crewEntitlement("org_2", anchor, new Date(Date.now() + 300 * DAY), "bs_1")];
+      billingSubscriptions = [{ id: "bs_1", plan: "ANNUAL" }];
 
       const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      const before = Date.now();
       const result = await getCurrentUsage("org_2");
 
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
-      assert.equal(result.credits.used, 0);
-      assert.ok(new Date(result.periodEnd).getTime() >= before);
+      assert.equal(result.tier, "ANNUAL_CREW");
+      assert.equal(result.credits.limit, 400);
+      // The window is a fixed 1-month slice, decoupled from the entitlement's
+      // (yearly) currentPeriodEnd — the bug this whole task exists to fix.
+      const spanDays = (new Date(result.periodEnd).getTime() - new Date(result.periodStart).getTime()) / DAY;
+      assert.ok(spanDays <= 31, `expected a ~1-month window, got ${spanDays} days`);
     });
 
-    test("does not self-heal a CANCELLED sub whose currentPeriodEnd has already lapsed", async () => {
-      const pastEnd = new Date(Date.now() - 1000);
-      mockPrisma.subscription.findUnique.mockResolvedValue(cancelledSub(pastEnd));
+    test("CREW + MONTHLY billing subscription → tier MONTHLY_CREW, limit 300", async () => {
+      const anchor = new Date("2026-01-10T00:00:00Z");
+      entitlements = [crewEntitlement("org_3", anchor, new Date(Date.now() + 20 * DAY), "bs_2")];
+      billingSubscriptions = [{ id: "bs_2", plan: "MONTHLY" }];
 
       const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
       const result = await getCurrentUsage("org_3");
 
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
-      assert.equal(result.credits.used, 0);
+      assert.equal(result.tier, "MONTHLY_CREW");
+      assert.equal(result.credits.limit, 300);
     });
 
-    test("throws no-subscription when the Subscription row is missing", async () => {
-      mockPrisma.subscription.findUnique.mockResolvedValue(null);
+    test("AGENT (individually purchased Maya) → tier MONTHLY_CUSTOM, limit 300", async () => {
+      const anchor = new Date("2026-01-10T00:00:00Z");
+      entitlements = [{
+        organizationId: "org_4", agent: "MAYA", source: "AGENT", status: "ACTIVE",
+        currentPeriodStart: anchor, currentPeriodEnd: new Date(Date.now() + 20 * DAY),
+        billingSubscriptionId: "bs_3",
+      }];
+      billingSubscriptions = [{ id: "bs_3", plan: "MONTHLY" }];
+
+      const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
+      const result = await getCurrentUsage("org_4");
+
+      assert.equal(result.tier, "MONTHLY_CUSTOM");
+      assert.equal(result.credits.limit, 300);
+    });
+
+    test("throws no-subscription when there is no covering Maya entitlement — string is load-bearing for the frontend's empty state", async () => {
+      entitlements = [];
       const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
       await expect(getCurrentUsage("org_none")).rejects.toThrow("no-subscription");
+    });
+
+    test("an EXPIRED-status entitlement (not in ACCESS_STATUSES) is invisible — throws no-subscription", async () => {
+      const anchor = new Date("2026-01-10T00:00:00Z");
+      entitlements = [crewEntitlement("org_5", anchor, new Date(Date.now() + 20 * DAY), "bs_4", "EXPIRED")];
+      billingSubscriptions = [{ id: "bs_4", plan: "MONTHLY" }];
+
+      const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(getCurrentUsage("org_5")).rejects.toThrow("no-subscription");
+    });
+
+    test("mid-period upgrade (AGENT → CREW) raises the ceiling on the SAME open window without resetting usage", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [{
+        organizationId: "org_6", agent: "MAYA", source: "AGENT", status: "ACTIVE",
+        currentPeriodStart: anchor, currentPeriodEnd: new Date(Date.now() + 20 * DAY),
+        billingSubscriptionId: "bs_5",
+      }];
+      billingSubscriptions = [{ id: "bs_5", plan: "MONTHLY" }];
+
+      const { getCurrentUsage, checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_6", 50);
+      const before = await getCurrentUsage("org_6");
+      assert.equal(before.credits.limit, 300);
+      assert.equal(before.credits.used, 50);
+
+      // Org upgrades to Crew (annual) mid-period — a second, more generous
+      // entitlement row is added. getMayaEntitlement ranks CREW above AGENT.
+      entitlements.push(crewEntitlement("org_6", anchor, new Date(Date.now() + 300 * DAY), "bs_6"));
+      billingSubscriptions.push({ id: "bs_6", plan: "ANNUAL" });
+
+      const after = await getCurrentUsage("org_6");
+      assert.equal(after.credits.limit, 400, "ceiling raised by the upgrade");
+      assert.equal(after.credits.used, 50, "usage carries over — no reset");
+      assert.equal(after.periodStart, before.periodStart, "same open window, not a new one");
     });
   });
 
   describe("checkAndDeductCredits", () => {
-    test("happy path: an existing active period increments without invoking self-heal", async () => {
-      const periodEnd = new Date(Date.now() + 10 * DAY);
-      row = {
-        organizationId: "org_4",
-        periodStart: new Date(Date.now() - 5 * DAY),
-        periodEnd,
-        creditsUsed: 6,
-      };
-      mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
+    test("happy path: increments creditsUsed on the resolved window", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [crewEntitlement("org_7", anchor, new Date(Date.now() + 20 * DAY), "bs_7")];
+      billingSubscriptions = [{ id: "bs_7", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndDeductCredits("org_4", 4);
+      await checkAndDeductCredits("org_7", 4);
+      await checkAndDeductCredits("org_7", 6);
 
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
-      assert.equal(row!.creditsUsed, 10);
+      assert.equal(usageRows.length, 1);
+      assert.equal(usageRows[0]!.creditsUsed, 10);
     });
 
-    test("self-heals when period missing but subscription is ACTIVE with a future currentPeriodEnd", async () => {
-      const periodEnd = new Date(Date.now() + 30 * DAY);
-      mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
+    test("throws QuotaExceededError when the deduction would exceed the live-read limit", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [trialEntitlement("org_8", anchor, new Date(Date.now() + 20 * DAY))]; // TRIAL limit = 30
 
       const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndDeductCredits("org_5", 8);
+      await checkAndDeductCredits("org_8", 25);
+      const error = await checkAndDeductCredits("org_8", 10).catch((e) => e);
 
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 1);
-      assert.equal(row!.creditsUsed, 8);
-      assert.equal(row!.periodEnd.getTime(), periodEnd.getTime());
-    });
-
-    test("still throws no-active-usage-period when a CANCELLED sub's currentPeriodEnd has already lapsed", async () => {
-      mockPrisma.subscription.findUnique.mockResolvedValue(cancelledSub(new Date(Date.now() - 1000)));
-
-      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(checkAndDeductCredits("org_6", 2)).rejects.toThrow("no-active-usage-period");
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
-    });
-
-    test("still throws QuotaExceededError when over quota — self-heal branch doesn't change happy-path enforcement", async () => {
-      const periodEnd = new Date(Date.now() + 10 * DAY);
-      row = { organizationId: "org_7", periodStart: new Date(), periodEnd, creditsUsed: 25 };
-      mockPrisma.subscription.findUnique.mockResolvedValue(trialingSub(periodEnd)); // TRIAL credit limit = 30
-
-      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
-      const error = await checkAndDeductCredits("org_7", 10).catch((e) => e);
       expect(error).toBeInstanceOf(QuotaExceededError);
       assert.equal((error as QuotaExceededError).used, 25);
       assert.equal((error as QuotaExceededError).limit, 30);
-      assert.equal(row!.creditsUsed, 25); // unchanged — the increment never committed
+      assert.equal(usageRows[0]!.creditsUsed, 25, "unchanged — the rejected increment never committed");
     });
 
-    test("still throws no-subscription when the Subscription row is missing", async () => {
-      mockPrisma.subscription.findUnique.mockResolvedValue(null);
+    test("throws no-subscription when there is no covering Maya entitlement", async () => {
+      entitlements = [];
       const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(checkAndDeductCredits("org_8", 1)).rejects.toThrow("no-subscription");
+      await expect(checkAndDeductCredits("org_9", 1)).rejects.toThrow("no-subscription");
     });
 
-    test("race safety: a unique-constraint collision on create refetches the concurrently-created period instead of failing", async () => {
-      const periodEnd = new Date(Date.now() + 10 * DAY);
-      mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
+    test("no-op (does not touch the entitlement or MayaUsage tables) when credits <= 0", async () => {
+      const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_10", 0);
+      assert.equal(mockPrisma.entitlement.findMany.mock.calls.length, 0);
+      assert.equal(mockPrisma.mayaUsage.upsert.mock.calls.length, 0);
+    });
 
-      // First getActivePeriod call (top of checkAndDeductCredits) sees nothing yet.
-      mockPrisma.mayaUsage.findFirst.mockImplementationOnce(async () => null);
-      // Our create() races with a concurrent request that inserted the row first.
-      mockPrisma.mayaUsage.create.mockImplementationOnce(async () => {
-        row = {
-          organizationId: "org_15",
-          periodStart: new Date(),
-          periodEnd,
-          creditsUsed: 2,
-        };
-        throw new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
-          code: "P2002",
-          clientVersion: "test",
-        });
-      });
+    test("two concurrent resolutions for the same org converge on one row (upsert, not create-and-catch)", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [crewEntitlement("org_11", anchor, new Date(Date.now() + 20 * DAY), "bs_8")];
+      billingSubscriptions = [{ id: "bs_8", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndDeductCredits("org_15", 4);
+      // Both "requests" resolve the same deterministic periodStart (derived
+      // from the entitlement's currentPeriodStart, not `new Date()`), so the
+      // race that the old create-and-catch-P2002 dance had to defend against
+      // cannot happen here — both upserts target the same row.
+      await Promise.all([
+        checkAndDeductCredits("org_11", 4),
+        checkAndDeductCredits("org_11", 6),
+      ]);
 
-      // Refetch (via the default findFirst impl, now that `row` exists) found the
-      // concurrently-created period and incremented onto it — no error surfaced.
-      assert.equal(row!.creditsUsed, 6);
+      assert.equal(usageRows.length, 1, "exactly one MayaUsage row for the org");
+      assert.equal(usageRows[0]!.creditsUsed, 10);
     });
   });
 
   describe("adjustCurrentPeriodUsage", () => {
-    test("adjusts creditsUsed by delta and clamps the floor at 0", async () => {
-      const periodEnd = new Date(Date.now() + 10 * DAY);
-      row = { organizationId: "org_10", periodStart: new Date(), periodEnd, creditsUsed: 4 };
-      mockPrisma.subscription.findUnique.mockResolvedValue(activeSub(periodEnd));
+    test("grants (negative delta) decrement `used`, clamped at 0", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [crewEntitlement("org_12", anchor, new Date(Date.now() + 20 * DAY), "bs_9")];
+      billingSubscriptions = [{ id: "bs_9", plan: "MONTHLY" }];
 
-      const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
+      const { checkAndDeductCredits, adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_12", 4);
 
-      // Grant credits: negative delta decrements `used`, clamped at 0 (4 - 10 -> 0, not -6).
-      await adjustCurrentPeriodUsage("org_10", -10);
-      assert.equal(row!.creditsUsed, 0);
+      await adjustCurrentPeriodUsage("org_12", -10);
+      assert.equal(usageRows[0]!.creditsUsed, 0, "clamped at 0, not -6");
 
-      // Revoke credits: positive delta increments `used`.
-      await adjustCurrentPeriodUsage("org_10", 3);
-      assert.equal(row!.creditsUsed, 3);
+      await adjustCurrentPeriodUsage("org_12", 3);
+      assert.equal(usageRows[0]!.creditsUsed, 3);
     });
 
-    test("self-heals when no active period exists but the subscription is legitimately active", async () => {
-      const trialEndsAt = new Date(Date.now() + 2 * DAY);
-      mockPrisma.subscription.findUnique.mockResolvedValue(trialingSub(trialEndsAt));
+    test("does NOT enforce the quota ceiling — an admin grant can push `used` above `limit`", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [trialEntitlement("org_13", anchor, new Date(Date.now() + 20 * DAY))]; // limit 30
 
-      const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await adjustCurrentPeriodUsage("org_11", -5);
-
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 1);
-      assert.equal(row!.creditsUsed, 0); // fresh row starts at 0, clamped after -5
-      assert.equal(row!.periodEnd.getTime(), trialEndsAt.getTime());
+      const { checkAndDeductCredits, adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_13", 25);
+      await adjustCurrentPeriodUsage("org_13", 20); // revoke direction, pushes used to 45 > limit 30
+      assert.equal(usageRows[0]!.creditsUsed, 45);
     });
 
-    test("throws no-subscription when the Subscription row is missing", async () => {
-      mockPrisma.subscription.findUnique.mockResolvedValue(null);
+    test("throws no-subscription when there is no covering Maya entitlement", async () => {
+      entitlements = [];
       const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(adjustCurrentPeriodUsage("org_12", 1)).rejects.toThrow("no-subscription");
+      await expect(adjustCurrentPeriodUsage("org_14", 1)).rejects.toThrow("no-subscription");
     });
 
-    test("throws no-active-usage-period when there is nothing valid to self-heal from", async () => {
-      mockPrisma.subscription.findUnique.mockResolvedValue(expiredSub());
+    test("no-op when delta is 0 — never touches the entitlement or MayaUsage tables", async () => {
       const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await expect(adjustCurrentPeriodUsage("org_13", 1)).rejects.toThrow("no-active-usage-period");
+      await adjustCurrentPeriodUsage("org_15", 0);
+      assert.equal(mockPrisma.entitlement.findMany.mock.calls.length, 0);
+      assert.equal(mockPrisma.mayaUsage.upsert.mock.calls.length, 0);
+    });
+  });
+
+  describe("rollbackCredits", () => {
+    test("decrements the resolved window's creditsUsed", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [crewEntitlement("org_16", anchor, new Date(Date.now() + 20 * DAY), "bs_10")];
+      billingSubscriptions = [{ id: "bs_10", plan: "MONTHLY" }];
+
+      const { checkAndDeductCredits, rollbackCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_16", 10);
+      await rollbackCredits("org_16", 4);
+
+      assert.equal(usageRows[0]!.creditsUsed, 6);
     });
 
-    test("no-op when delta is 0 — never touches the Subscription or MayaUsage tables", async () => {
-      const { adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await adjustCurrentPeriodUsage("org_14", 0);
-      assert.equal(mockPrisma.subscription.findUnique.mock.calls.length, 0);
-      assert.equal(mockPrisma.mayaUsage.create.mock.calls.length, 0);
+    test("no-op when credits <= 0", async () => {
+      const { rollbackCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await rollbackCredits("org_17", 0);
+      assert.equal(mockPrisma.entitlement.findMany.mock.calls.length, 0);
+    });
+
+    test("swallows errors instead of throwing — a rollback must never mask the original failure", async () => {
+      // No entitlement at all: resolveMayaWindow throws no-subscription
+      // internally, but rollbackCredits must swallow it, not propagate.
+      entitlements = [];
+      const { rollbackCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(rollbackCredits("org_18", 4)).resolves.toBeUndefined();
     });
   });
 });

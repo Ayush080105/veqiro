@@ -1,103 +1,68 @@
 import { prisma } from "../../../config/prisma.js";
-import { Prisma } from "../../../../prisma/generated/prisma/client.js";
+import { EntitlementSource, SubscriptionPlan } from "../../../../prisma/generated/prisma/client.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { QuotaExceededError } from "../../../common/errors/quotaExceeded.js";
-import { getTierFromSubscription, getQuotaForTier } from "./maya.quotas.js";
+import { getMayaEntitlement } from "../../billing/entitlement.service.js";
+import { getQuotaForMayaEntitlement } from "./maya.quotas.js";
+import { currentCreditWindow } from "./maya.period.js";
 
-// ─── Period lookup ────────────────────────────────────────────────────────────
-// Period boundaries are always set explicitly by billing hooks when a plan
-// starts or renews. This function simply finds the currently active record.
+// ─── Display tier (frontend badge only) ──────────────────────────────────────
+// NOT used for quota lookup — the quota is always read live from the
+// entitlement via getQuotaForMayaEntitlement. This purely maps the governing
+// entitlement onto the four labels the frontend already renders
+// (apps/main/.../settings/usage/page.tsx TIER_LABELS), so that surface keeps
+// working unchanged.
+type DisplayTier = "TRIAL" | "MONTHLY_CUSTOM" | "MONTHLY_CREW" | "ANNUAL_CREW";
 
-export async function getActivePeriod(organizationId: string) {
-  return prisma.mayaUsage.findFirst({
-    where: { organizationId, periodEnd: { gt: new Date() } },
-    orderBy: { periodStart: "desc" },
-  });
+function displayTierFor(source: EntitlementSource, plan: SubscriptionPlan | null): DisplayTier {
+  if (source === "TRIAL") return "TRIAL";
+  if (source === "CREW") return plan === "ANNUAL" ? "ANNUAL_CREW" : "MONTHLY_CREW";
+  return "MONTHLY_CUSTOM"; // source === "AGENT": an individually-purchased agent, always MONTHLY.
 }
 
-// Subset of Subscription fields needed to derive where a legitimately-active
-// org's current MayaUsage period should end, mirroring the convention used by
-// `startTrialForOrg`/`startOrExtendTrial`/the billing webhooks: TRIALING
-// periods end at `trialEndsAt`, paid periods (ACTIVE/PAST_DUE/CANCELLED — the
-// latter two still hold access through the period they already paid for) end
-// at `currentPeriodEnd`. EXPIRED (or any status missing the relevant date)
-// has nothing valid to derive from and is treated as genuinely expired, not
-// a gap to self-heal.
-type SubscriptionPeriodFields = {
-  status: string;
-  trialEndsAt: Date | null;
-  currentPeriodEnd: Date | null;
-};
-
-function deriveExpectedPeriodEnd(sub: SubscriptionPeriodFields): Date | null {
-  if (sub.status === "TRIALING") return sub.trialEndsAt ?? null;
-  if (sub.status === "ACTIVE" || sub.status === "PAST_DUE" || sub.status === "CANCELLED") {
-    return sub.currentPeriodEnd ?? null;
-  }
-  return null;
-}
-
-// Lazily creates the MayaUsage row for an org whose Subscription is
-// legitimately active but has no current period (e.g. a webhook race, or an
-// edge case the backfill migration didn't catch). Returns null (no self-heal)
-// when the subscription has no valid date to derive a period from, or when
-// the derived end date is already in the past — the latter matters because
-// without it, a CANCELLED/PAST_DUE org whose paid period has already lapsed
-// (but hasn't yet received its `subscription.expired` webhook) would get a
-// brand-new already-expired MayaUsage row created on *every* read, since it
-// would never satisfy `getActivePeriod`'s `periodEnd > now` filter.
+// ─── Window resolution ────────────────────────────────────────────────────────
+// Resolves Maya's governing entitlement, the quota it currently implies, and
+// the deterministic 1-month credit window `now` falls in — then upserts the
+// MayaUsage row for that window so a concurrent caller resolving the same
+// window converges on the same row instead of racing to create it.
 //
-// Race safety: two concurrent requests can both observe "no active period"
-// and both attempt to create one. Because `periodStart` is `new Date()` at
-// call time, the two creates will almost never collide on the
-// `organizationId_periodStart` unique key (different millisecond timestamps),
-// so both could succeed, leaving two active-looking rows. That's an accepted,
-// low-stakes risk here (worst case: a rare, temporary double-counted period
-// window that `getActivePeriod`'s `orderBy periodStart desc` will converge on
-// the newer row for) rather than something worth a distributed lock for. We
-// still catch the (rare, same-millisecond) unique-constraint violation case
-// and refetch instead of crashing the caller.
-async function ensurePeriod(organizationId: string, sub: SubscriptionPeriodFields) {
-  const periodEnd = deriveExpectedPeriodEnd(sub);
-  if (!periodEnd || periodEnd.getTime() <= Date.now()) return null;
+// The quota is read LIVE here rather than snapshotted onto the MayaUsage row:
+// a mid-period upgrade (e.g. Maya-custom → Crew-annual) just raises the
+// ceiling on the already-open window. No reset, so the user never loses
+// unused credits, and nobody can refill credits by upgrading mid-period.
+async function resolveMayaWindow(organizationId: string) {
+  const ent = await getMayaEntitlement(organizationId);
+  // Kept as "no-subscription" (not the newer "maya-not-entitled") — three
+  // frontend call sites (settings/usage/page.tsx, MayaUsageCard.tsx,
+  // credits-pill.tsx) match on this exact string to render their empty
+  // state. Changing it would silently break all three.
+  if (!ent) throw new BadRequestError("no-subscription");
 
-  try {
-    return await prisma.mayaUsage.create({
-      data: { organizationId, periodStart: new Date(), periodEnd },
-    });
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      const existing = await getActivePeriod(organizationId);
-      if (existing) return existing;
-    }
-    throw err;
-  }
+  const plan = ent.billingSubscriptionId
+    ? (await prisma.billingSubscription.findUnique({
+        where: { id: ent.billingSubscriptionId },
+        select: { plan: true },
+      }))?.plan ?? null
+    : null;
+
+  const limit = getQuotaForMayaEntitlement({ source: ent.source, plan });
+  const tier = displayTierFor(ent.source, plan);
+  const { periodStart, periodEnd } = currentCreditWindow(ent.currentPeriodStart, new Date());
+
+  const usage = await prisma.mayaUsage.upsert({
+    where: { organizationId_periodStart: { organizationId, periodStart } },
+    create: { organizationId, periodStart, periodEnd },
+    update: {},
+  });
+
+  return { limit, tier, usage, periodStart, periodEnd };
 }
 
 // ─── Public: getCurrentUsage (for GET /maya/usage) ───────────────────────────
 
 export async function getCurrentUsage(organizationId: string) {
-  const [sub, period] = await Promise.all([
-    prisma.subscription.findUnique({
-      where: { organizationId },
-      select: { status: true, plan: true, entitlementMode: true, trialEndsAt: true, currentPeriodEnd: true },
-    }),
-    getActivePeriod(organizationId),
-  ]);
-  if (!sub) throw new BadRequestError("no-subscription");
-
-  // Period missing but subscription legitimately active: self-heal instead of
-  // showing fake zeros for a gap that's really just a missing row. If the sub
-  // has nothing valid to derive a period from, `ensurePeriod` returns null and
-  // we fall back to the previous zeroed-display behavior below.
-  const resolvedPeriod = period ?? (await ensurePeriod(organizationId, sub));
-
-  const tier = getTierFromSubscription(sub);
-  const limit = getQuotaForTier(tier);
-
-  const used       = resolvedPeriod?.creditsUsed ?? 0;
-  const periodStart = resolvedPeriod?.periodStart  ?? new Date();
-  const periodEnd    = resolvedPeriod?.periodEnd    ?? new Date();
+  const { limit, tier, usage, periodStart, periodEnd } = await resolveMayaWindow(organizationId);
+  const used = usage.creditsUsed;
 
   return {
     tier,
@@ -119,29 +84,13 @@ export async function checkAndDeductCredits(
 ): Promise<void> {
   if (credits <= 0) return;
 
-  const [sub, period] = await Promise.all([
-    prisma.subscription.findUnique({
-      where: { organizationId },
-      select: { status: true, plan: true, entitlementMode: true, trialEndsAt: true, currentPeriodEnd: true },
-    }),
-    getActivePeriod(organizationId),
-  ]);
-  if (!sub) throw new BadRequestError("no-subscription");
-  // Period missing but subscription legitimately active: self-heal instead of
-  // hard-failing generation. `ensurePeriod` only returns a row when there's a
-  // valid, still-future date to derive `periodEnd` from — otherwise this
-  // still throws `no-active-usage-period` as before.
-  const resolvedPeriod = period ?? (await ensurePeriod(organizationId, sub));
-  if (!resolvedPeriod) throw new BadRequestError("no-active-usage-period");
-
-  const tier = getTierFromSubscription(sub);
-  const limit = getQuotaForTier(tier);
+  const { limit, periodStart } = await resolveMayaWindow(organizationId);
 
   await prisma.$transaction(async (tx) => {
     // Lock the row to serialize concurrent requests for the same org.
     const rows = await tx.$queryRaw<Array<{ creditsUsed: number }>>`
       SELECT "creditsUsed" FROM "maya_usage"
-      WHERE "organizationId" = ${organizationId} AND "periodStart" = ${resolvedPeriod.periodStart}
+      WHERE "organizationId" = ${organizationId} AND "periodStart" = ${periodStart}
       FOR UPDATE
     `;
     const current = rows[0]?.creditsUsed ?? 0;
@@ -152,10 +101,7 @@ export async function checkAndDeductCredits(
 
     await tx.mayaUsage.update({
       where: {
-        organizationId_periodStart: {
-          organizationId,
-          periodStart: resolvedPeriod.periodStart,
-        },
+        organizationId_periodStart: { organizationId, periodStart },
       },
       data: { creditsUsed: { increment: credits } },
     });
@@ -166,7 +112,7 @@ export async function checkAndDeductCredits(
 // Foundation primitive for a future admin "add/remove N credits" action:
 // grant credits by passing a negative delta (decrements `used`), revoke by
 // passing a positive delta (increments `used`). No schema change — this just
-// nudges the counter on the org's active MayaUsage period. Unlike
+// nudges the counter on the org's current MayaUsage window. Unlike
 // checkAndDeductCredits, this does NOT enforce the quota ceiling (an admin
 // override is allowed to push `used` above the plan limit), but it does
 // clamp the floor at 0 so a revoke-then-grant sequence (or an overzealous
@@ -178,22 +124,13 @@ export async function adjustCurrentPeriodUsage(
 ): Promise<void> {
   if (delta === 0) return;
 
-  const [sub, period] = await Promise.all([
-    prisma.subscription.findUnique({
-      where: { organizationId },
-      select: { status: true, plan: true, entitlementMode: true, trialEndsAt: true, currentPeriodEnd: true },
-    }),
-    getActivePeriod(organizationId),
-  ]);
-  if (!sub) throw new BadRequestError("no-subscription");
-  const resolvedPeriod = period ?? (await ensurePeriod(organizationId, sub));
-  if (!resolvedPeriod) throw new BadRequestError("no-active-usage-period");
+  const { periodStart } = await resolveMayaWindow(organizationId);
 
   await prisma.$transaction(async (tx) => {
     // Lock the row to serialize concurrent adjustments for the same org.
     const rows = await tx.$queryRaw<Array<{ creditsUsed: number }>>`
       SELECT "creditsUsed" FROM "maya_usage"
-      WHERE "organizationId" = ${organizationId} AND "periodStart" = ${resolvedPeriod.periodStart}
+      WHERE "organizationId" = ${organizationId} AND "periodStart" = ${periodStart}
       FOR UPDATE
     `;
     const current = rows[0];
@@ -201,10 +138,7 @@ export async function adjustCurrentPeriodUsage(
 
     await tx.mayaUsage.update({
       where: {
-        organizationId_periodStart: {
-          organizationId,
-          periodStart: resolvedPeriod.periodStart,
-        },
+        organizationId_periodStart: { organizationId, periodStart },
       },
       data: { creditsUsed: Math.max(0, current.creditsUsed + delta) },
     });
@@ -213,21 +147,23 @@ export async function adjustCurrentPeriodUsage(
 
 // ─── Public: rollback ─────────────────────────────────────────────────────────
 // Called when an AI generation fails AFTER credits were reserved.
-// Failures are logged but never surfaced to the caller — the original error wins.
+// Failures are logged but never surfaced to the caller — the original error
+// wins. Resolving the window here (rather than just decrementing whatever
+// MayaUsage row happens to exist) keeps this in step with checkAndDeductCredits,
+// which already resolved and upserted the same window moments earlier in the
+// same request — so this is expected to be a no-op lookup, not a fresh create.
 
 export async function rollbackCredits(organizationId: string, credits: number): Promise<void> {
   if (credits <= 0) return;
-  const period = await getActivePeriod(organizationId);
-  if (!period) return;
-  await prisma.mayaUsage
-    .update({
+  try {
+    const { periodStart } = await resolveMayaWindow(organizationId);
+    await prisma.mayaUsage.update({
       where: {
-        organizationId_periodStart: {
-          organizationId,
-          periodStart: period.periodStart,
-        },
+        organizationId_periodStart: { organizationId, periodStart },
       },
       data: { creditsUsed: { decrement: credits } },
-    })
-    .catch((e) => console.error("[maya] credits rollback failed", e));
+    });
+  } catch (e) {
+    console.error("[maya] credits rollback failed", e);
+  }
 }
