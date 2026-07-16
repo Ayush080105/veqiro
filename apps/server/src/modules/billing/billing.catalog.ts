@@ -83,7 +83,7 @@ export function getAgentMonthlyPriceCents(agent: Agent): number {
   return centsFromEnv(AGENT_ENV_KEYS[agent], DEFAULT_AGENT_MONTHLY_CENTS[agent]);
 }
 
-const AGENT_PRODUCT_ENV_KEYS: Record<Agent, string> = {
+export const AGENT_PRODUCT_ENV_KEYS: Record<Agent, string> = {
   MAYA: "DODO_PRODUCT_AGENT_MAYA",
   SAGE: "DODO_PRODUCT_AGENT_SAGE",
   LEX: "DODO_PRODUCT_AGENT_LEX",
