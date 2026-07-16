@@ -2,9 +2,14 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../config/prisma.js";
 import { dodoClient } from "../../lib/dodo.js";
-import { createCheckoutForOrg, requireOrgOwner, startTrialForOrg } from "./billing.service.js";
+import {
+  createCheckoutForOrg,
+  getUpgradeQuoteForOrg,
+  requireOrgOwner,
+  startTrialForOrg,
+} from "./billing.service.js";
 import { cancelAgentAutoPay, resumeAgentAutoPay } from "./billing.cancel.js";
-import { normalizeAgents } from "./billing.catalog.js";
+import { normalizeAgents, normalizePlan } from "./billing.catalog.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 
 function daysRemaining(date: Date | null): number | null {
@@ -81,6 +86,15 @@ export async function createCheckout(req: Request, res: Response) {
     crew: req.body?.crew,
   });
   res.status(StatusCodes.OK).json(checkout);
+}
+
+// Read-only pricing lookup — no owner check, any authenticated org member
+// may see what a Crew upgrade would cost.
+export async function getUpgradeQuote(req: Request, res: Response) {
+  const organizationId = req.organizationId;
+  if (!organizationId) throw new BadRequestError("No active organization selected");
+  const plan = normalizePlan(req.query.cadence ?? "MONTHLY");
+  res.status(StatusCodes.OK).json(await getUpgradeQuoteForOrg(organizationId, plan));
 }
 
 export async function openPortal(req: Request, res: Response) {

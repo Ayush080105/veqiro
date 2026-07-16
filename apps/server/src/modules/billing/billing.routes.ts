@@ -1,9 +1,18 @@
 import { Router } from "express";
-import { cancelAgent, createCheckout, getStatus, openPortal, resumeAgent, startTrial } from "./billing.controller.js";
+import {
+  cancelAgent,
+  createCheckout,
+  getStatus,
+  getUpgradeQuote,
+  openPortal,
+  resumeAgent,
+  startTrial,
+} from "./billing.controller.js";
 
 const router = Router();
 
 router.get("/status", (req, res, next) => getStatus(req, res).catch(next));
+router.get("/upgrade-quote", (req, res, next) => getUpgradeQuote(req, res).catch(next));
 router.post("/start-trial", (req, res, next) => startTrial(req, res).catch(next));
 router.post("/checkout",   (req, res, next) => createCheckout(req, res).catch(next));
 router.post("/portal",      (req, res, next) => openPortal(req, res).catch(next));
