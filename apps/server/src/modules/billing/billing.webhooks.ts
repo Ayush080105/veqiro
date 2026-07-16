@@ -1,13 +1,13 @@
 import { prisma } from "../../config/prisma.js";
-import { syncOrgEntitlement } from "./billing.service.js";
-import { ALL_AGENTS } from "./billing.catalog.js";
+import { dodoClient } from "../../lib/dodo.js";
 import {
-  parseAgentsMetadata,
-  parseEntitlementModeMetadata,
-  parsePlanMetadata,
-  resolveEntitlementMode,
-  resolvePlan,
-} from "./billing.types.js";
+  ALL_AGENTS,
+  getAgentMonthlyPriceCents,
+  getCrewPriceCents,
+  resolveAgentFromProductId,
+  resolveCrewPlanFromProductId,
+} from "./billing.catalog.js";
+import type { Agent, SubscriptionPlan } from "../../../prisma/generated/prisma/client.js";
 
 /**
  * True for Prisma's unique-constraint violation (P2002). Duck-typed on
@@ -35,20 +35,11 @@ type WebhookPayload = {
   };
 };
 
-type BillingSub = Awaited<ReturnType<typeof findSubscriptionByCustomer>>;
-
 async function findSubscriptionByCustomer(customerId: string | undefined) {
   if (!customerId) return null;
   return prisma.subscription.findFirst({
     where: { dodoCustomerId: customerId },
-    select: {
-      organizationId: true,
-      dodoSubscriptionId: true,
-      pendingEntitlementMode: true,
-      pendingPlan: true,
-      pendingSelectedAgents: true,
-      pendingProductId: true,
-    },
+    select: { organizationId: true },
   });
 }
 
@@ -124,17 +115,18 @@ export async function withWebhookEvent<T>(
     });
   } catch (err) {
     // By this point `fn()` has ALREADY SUCCEEDED — the business logic
-    // (syncOrgEntitlement, mayaUsage.create, ...) has committed. Only the
-    // ledger write recording that fact failed. We must not leave the claim
-    // stuck at "processing" forever (that reproduces the original bug one
-    // step later), so we delete it and rethrow — which means Dodo's retry
-    // WILL re-run an already-applied handler.
+    // (applyAgentActivation, applyCrewActivation, ...) has committed. Only
+    // the ledger write recording that fact failed. We must not leave the
+    // claim stuck at "processing" forever (that reproduces the original bug
+    // one step later), so we delete it and rethrow — which means Dodo's
+    // retry WILL re-run an already-applied handler.
     //
     // This is safe ONLY because every handler wrapped by `withWebhookEvent`
-    // today is idempotent (they set a status or upsert a row), and Task 6.1
-    // adds an explicit "already provisioned, ignore" guard on top. A future
-    // handler that is NOT idempotent must NOT be wrapped naively like this —
-    // re-running it on retry would double-apply a non-idempotent effect.
+    // today is idempotent (they set a status, upsert a row, or — for
+    // handleSubscriptionActive — check for an existing BillingSubscription
+    // before creating one). A future handler that is NOT idempotent must NOT
+    // be wrapped naively like this — re-running it on retry would
+    // double-apply a non-idempotent effect.
     console.error(
       "[billing] webhook ledger update failed after handler already applied; releasing claim — retry will re-run an already-applied handler",
       eventId,
@@ -199,159 +191,373 @@ export function providerEventId(payload: WebhookPayload): string {
   return `${payload.type}:${payload.data.subscription_id ?? "none"}:${period}`;
 }
 
-function subscriptionMatchesCurrent(sub: BillingSub, payload: WebhookPayload) {
-  const incoming = payload.data.subscription_id;
-  return Boolean(incoming && sub?.dodoSubscriptionId && sub.dodoSubscriptionId === incoming);
+type CheckoutKind = "AGENT" | "CREW" | "CREW_UPGRADE";
+
+function isCheckoutKind(value: unknown): value is CheckoutKind {
+  return value === "AGENT" || value === "CREW" || value === "CREW_UPGRADE";
 }
 
-export async function handleSubscriptionActive(payload: WebhookPayload) {
-  const sub = await findSubscriptionByCustomer(payload.data.customer?.customer_id);
-  const orgId = sub?.organizationId ?? findOrgIdFromPayload(payload);
-  if (!orgId) return console.warn("[billing] active webhook: no org for customer", payload.data.customer?.customer_id);
+function isAgentValue(value: unknown): value is Agent {
+  return typeof value === "string" && (ALL_AGENTS as string[]).includes(value);
+}
 
-  await withWebhookEvent(providerEventId(payload), payload.type, payload.data.subscription_id, orgId, async () => {
-    const plan = parsePlanMetadata(payload.data.metadata?.plan)
-      ?? sub?.pendingPlan
-      ?? (payload.data.product_id ? resolvePlan(payload.data.product_id) : null);
-    const mode = parseEntitlementModeMetadata(payload.data.metadata?.entitlementMode)
-      ?? sub?.pendingEntitlementMode
-      ?? (payload.data.product_id ? resolveEntitlementMode(payload.data.product_id) : null);
-    const selectedAgents = mode === "CREW"
-      ? ALL_AGENTS
-      : mode === "CUSTOM"
-        ? parseAgentsMetadata(payload.data.metadata?.agents) ?? sub?.pendingSelectedAgents ?? null
-        : null;
+function isPlanValue(value: unknown): value is SubscriptionPlan {
+  return value === "MONTHLY" || value === "ANNUAL";
+}
 
-    if (!mode || !selectedAgents?.length) {
-      console.warn("[billing] active webhook: unresolved entitlement", {
-        orgId,
-        productId: payload.data.product_id,
-      });
-      return "ignored-unresolved-entitlement";
-    }
-
-    if (
-      sub?.pendingProductId &&
-      payload.data.product_id &&
-      sub.pendingProductId !== payload.data.product_id
-    ) {
-      console.warn("[billing] active webhook: product mismatch", {
-        orgId,
-        productId: payload.data.product_id,
-        pendingProductId: sub.pendingProductId,
-      });
-      return "ignored-product-mismatch";
-    }
-
-    await syncOrgEntitlement(orgId, {
-      status: "ACTIVE",
-      plan,
-      entitlementMode: mode,
-      selectedAgents,
-      dodoSubscriptionId: payload.data.subscription_id,
-      currentPeriodEnd: parsePeriodEnd(payload.data),
-      trialEndsAt: null,
-      cancelAtPeriodEnd: false,
-      pendingCheckoutSessionId: null,
-      pendingPlan: null,
-      pendingEntitlementMode: null,
-      pendingSelectedAgents: [],
-      pendingProductId: null,
-      pendingCheckoutCreatedAt: null,
+/**
+ * Provisions the entitlement for a newly-activated single-agent subscription.
+ *
+ * Crucially this only ADDS a row for THIS agent. The old handler wrote
+ * Subscription.selectedAgents wholesale, so a second purchase erased the
+ * first (defect 2 — buying Rex erased Maya).
+ *
+ * One agent per subscription is a platform constraint, not a choice: Dodo
+ * rejects multi-subscription-product carts (422 "Only one subscription
+ * product allowed per checkout", verified), so `agent` is always singular
+ * here — never an array.
+ */
+export async function applyAgentActivation(input: {
+  organizationId: string;
+  dodoSubscriptionId: string;
+  agent: Agent;
+  periodEnd: Date;
+}) {
+  const now = new Date();
+  return prisma.$transaction(async (tx) => {
+    const bs = await tx.billingSubscription.create({
+      data: {
+        organizationId: input.organizationId,
+        dodoSubscriptionId: input.dodoSubscriptionId,
+        plan: "MONTHLY", // individual agents are MONTHLY-only by design
+        status: "ACTIVE",
+        currentPeriodEnd: input.periodEnd,
+      },
     });
-    // Create a fresh Maya usage period for the new paid billing cycle.
-    // Trial credits do not carry over — this is always a clean start.
-    const activePeriodEnd = parsePeriodEnd(payload.data);
-    if (activePeriodEnd) {
-      await prisma.mayaUsage.create({
-        data: { organizationId: orgId, periodStart: new Date(), periodEnd: activePeriodEnd },
-      });
-    }
-    return "applied-active";
+    await tx.entitlement.create({
+      data: {
+        organizationId: input.organizationId,
+        agent: input.agent,
+        source: "AGENT",
+        status: "ACTIVE",
+        currentPeriodStart: now,
+        currentPeriodEnd: input.periodEnd,
+        priceCents: getAgentMonthlyPriceCents(input.agent),
+        billingSubscriptionId: bs.id,
+      },
+    });
+    return bs;
   });
 }
 
-export async function handleSubscriptionRenewed(payload: WebhookPayload) {
-  const sub = await findSubscriptionByCustomer(payload.data.customer?.customer_id);
-  const orgId = sub?.organizationId ?? null;
-  if (!orgId) return;
+/**
+ * Provisions Crew: six CREW rows, and supersedes any AGENT rows the upgrade
+ * credited. Their Dodo subs are told to stop at period end so the customer is
+ * never charged twice — the already-paid time is what the upgrade discount
+ * credited them for.
+ *
+ * SUPERSEDED (not delete) keeps this reversible if the Crew payment is later
+ * refunded or reversed. billing.cancel.ts's per-agent cancel/resume relies on
+ * AGENT/CREW overlap being resolvable, so getting this right is load-bearing.
+ *
+ * priceCents per row is floor(crewPrice / 6), never each agent's individual
+ * list price — stamping list price here would let a future Crew-upgrade
+ * quote (which sums AGENT-source priceCents) massively overcredit the org.
+ */
+export async function applyCrewActivation(input: {
+  organizationId: string;
+  dodoSubscriptionId: string;
+  plan: SubscriptionPlan;
+  periodEnd: Date;
+}) {
+  const now = new Date();
+  const perAgentCents = Math.floor(getCrewPriceCents(input.plan) / ALL_AGENTS.length);
 
-  await withWebhookEvent(providerEventId(payload), payload.type, payload.data.subscription_id, orgId, async () => {
-    if (!subscriptionMatchesCurrent(sub, payload)) {
-      return "ignored-stale-subscription";
-    }
-    await syncOrgEntitlement(orgId, {
-      status: "ACTIVE",
-      currentPeriodEnd: parsePeriodEnd(payload.data),
-      cancelAtPeriodEnd: false,
+  const superseded = await prisma.$transaction(async (tx) => {
+    const bs = await tx.billingSubscription.create({
+      data: {
+        organizationId: input.organizationId,
+        dodoSubscriptionId: input.dodoSubscriptionId,
+        plan: input.plan,
+        status: "ACTIVE",
+        currentPeriodEnd: input.periodEnd,
+      },
     });
-    // Create a fresh Maya usage period for the renewed billing cycle.
-    const renewedPeriodEnd = parsePeriodEnd(payload.data);
-    if (renewedPeriodEnd) {
-      await prisma.mayaUsage.create({
-        data: { organizationId: orgId, periodStart: new Date(), periodEnd: renewedPeriodEnd },
+
+    const priorAgentRows = await tx.entitlement.findMany({
+      where: {
+        organizationId: input.organizationId,
+        source: "AGENT",
+        status: { in: ["ACTIVE", "PAST_DUE"] },
+        currentPeriodEnd: { gt: now },
+      },
+      select: { id: true, billingSubscriptionId: true },
+    });
+
+    await tx.entitlement.createMany({
+      data: ALL_AGENTS.map((agent) => ({
+        organizationId: input.organizationId,
+        agent,
+        source: "CREW" as const,
+        status: "ACTIVE" as const,
+        currentPeriodStart: now,
+        currentPeriodEnd: input.periodEnd,
+        priceCents: perAgentCents,
+        billingSubscriptionId: bs.id,
+      })),
+    });
+
+    if (priorAgentRows.length > 0) {
+      await tx.entitlement.updateMany({
+        where: { id: { in: priorAgentRows.map((r) => r.id) } },
+        data: { status: "SUPERSEDED" },
       });
     }
+
+    return [...new Set(priorAgentRows.map((r) => r.billingSubscriptionId).filter((id): id is string => Boolean(id)))];
+  });
+
+  // Stop the superseded subs at their period end. Outside the transaction:
+  // these are external calls and must not hold a DB lock. Failure here is
+  // recoverable (support/a reconciler can retry) and must NOT roll back the
+  // Crew grant the customer has already paid for.
+  for (const bsId of superseded) {
+    const bs = await prisma.billingSubscription.findUnique({ where: { id: bsId } });
+    if (!bs) continue;
+    await dodoClient.subscriptions
+      .update(bs.dodoSubscriptionId, { cancel_at_next_billing_date: true })
+      .catch((e) => console.error("[billing] failed to stop superseded sub", bs.dodoSubscriptionId, e));
+    await prisma.billingSubscription
+      .update({ where: { id: bsId }, data: { cancelAtPeriodEnd: true } })
+      .catch((e) => console.error("[billing] failed to flag superseded sub cancelAtPeriodEnd", bsId, e));
+  }
+}
+
+/**
+ * Resolves what a `subscription.active` webhook is activating.
+ *
+ * Dodo does not echo back a `checkout_session_id` on the subscription
+ * payload (verified: createCheckoutForOrg / createCrewCheckout never put one
+ * in `metadata`, and the WebhookPayload shape has no such field), so
+ * PendingCheckout cannot be looked up by session id. Instead:
+ *
+ *   1. PRIMARY: the most recent PendingCheckout row for this org. This is
+ *      our own authoritative record of what the org just checked out for,
+ *      written synchronously before the checkout URL was ever returned to
+ *      the browser — by the time Dodo's webhook fires (after the user
+ *      actually completes payment) this row is essentially guaranteed to
+ *      exist.
+ *   2. FALLBACK: `payload.data.metadata` — createCheckoutForOrg and
+ *      createCrewCheckout both set `metadata: { organizationId, kind,
+ *      agent | plan }` on the Dodo checkout session, and Dodo echoes
+ *      metadata back on the subscription webhook (this is how the pre-6.1
+ *      handler already resolved `plan`/`entitlementMode`). Covers the
+ *      unlikely-but-possible race where the webhook beats our own
+ *      PendingCheckout write.
+ *   3. LAST RESORT: `product_id` → catalog resolution.
+ *
+ * Never defaults to an agent or to ALL_AGENTS: an unresolved agent returns
+ * `null` and the caller must fail closed.
+ */
+function resolveActivationIntent(
+  payload: WebhookPayload,
+  pending: { kind: CheckoutKind; agent: Agent | null; plan: SubscriptionPlan } | null,
+): { kind: CheckoutKind; agent: Agent | null; plan: SubscriptionPlan } | null {
+  const metaKind = payload.data.metadata?.kind;
+  const kind: CheckoutKind | undefined = pending?.kind
+    ?? (isCheckoutKind(metaKind) ? metaKind : undefined)
+    ?? (payload.data.product_id && resolveCrewPlanFromProductId(payload.data.product_id) ? "CREW" : undefined)
+    ?? (payload.data.product_id && resolveAgentFromProductId(payload.data.product_id) ? "AGENT" : undefined);
+
+  if (!kind) return null;
+
+  if (kind === "CREW" || kind === "CREW_UPGRADE") {
+    const metaPlan = payload.data.metadata?.plan;
+    const plan: SubscriptionPlan = pending?.plan
+      ?? (isPlanValue(metaPlan) ? metaPlan : undefined)
+      ?? (payload.data.product_id ? resolveCrewPlanFromProductId(payload.data.product_id) : null)
+      ?? "MONTHLY";
+    return { kind, agent: null, plan };
+  }
+
+  const metaAgent = payload.data.metadata?.agent;
+  const agent: Agent | null = pending?.agent
+    ?? (isAgentValue(metaAgent) ? metaAgent : null)
+    ?? (payload.data.product_id ? resolveAgentFromProductId(payload.data.product_id) : null);
+
+  return { kind: "AGENT", agent, plan: "MONTHLY" };
+}
+
+export async function handleSubscriptionActive(payload: WebhookPayload) {
+  const dodoSubId = payload.data.subscription_id;
+  const periodEnd = parsePeriodEnd(payload.data);
+  const orgId = findOrgIdFromPayload(payload)
+    ?? (await findOrgIdByCustomer(payload.data.customer?.customer_id));
+
+  if (!orgId || !dodoSubId || !periodEnd) {
+    console.warn("[billing] active webhook: unresolved", {
+      orgId, dodoSubId, hasPeriodEnd: Boolean(periodEnd),
+    });
+    return;
+  }
+
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, orgId, async () => {
+    // Idempotency beyond the event ledger: if this Dodo sub is already
+    // provisioned, a replay must not create a second BillingSubscription.
+    const existing = await prisma.billingSubscription.findUnique({
+      where: { dodoSubscriptionId: dodoSubId },
+    });
+    if (existing) return "ignored-already-provisioned";
+
+    const pending = await prisma.pendingCheckout.findFirst({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const intent = resolveActivationIntent(payload, pending);
+    if (!intent) {
+      console.warn("[billing] active webhook: unresolved intent", { orgId, dodoSubId });
+      return "ignored-unresolved-agent";
+    }
+
+    if (intent.kind === "CREW" || intent.kind === "CREW_UPGRADE") {
+      await applyCrewActivation({
+        organizationId: orgId,
+        dodoSubscriptionId: dodoSubId,
+        plan: intent.plan,
+        periodEnd,
+      });
+      if (pending) await prisma.pendingCheckout.delete({ where: { id: pending.id } }).catch(() => {});
+      return "applied-crew";
+    }
+
+    // Fail closed: never default to an agent. The payment is already
+    // captured, so support can provision manually — a defensive default here
+    // would silently grant the wrong agent, or every agent for the price of
+    // one, which is invisible revenue loss.
+    if (!intent.agent) {
+      console.warn("[billing] active webhook: unresolved agent", { orgId, dodoSubId });
+      return "ignored-unresolved-agent";
+    }
+
+    await applyAgentActivation({
+      organizationId: orgId,
+      dodoSubscriptionId: dodoSubId,
+      agent: intent.agent,
+      periodEnd,
+    });
+    if (pending) await prisma.pendingCheckout.delete({ where: { id: pending.id } }).catch(() => {});
+    return "applied-agent";
+  });
+}
+
+/**
+ * Extends ONLY the entitlements billed by the renewed Dodo subscription.
+ * Maya renewing on day 30 must not touch Rex's day-40 row — hence every
+ * write below is scoped to `billingSubscriptionId: bs.id`.
+ */
+export async function handleSubscriptionRenewed(payload: WebhookPayload) {
+  const periodEnd = parsePeriodEnd(payload.data);
+  const dodoSubId = payload.data.subscription_id;
+  if (!dodoSubId || !periodEnd) return;
+
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+    const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
+    if (!bs) return "ignored-unknown-subscription";
+    // Out-of-order guard: never move a period backwards.
+    if (periodEnd <= bs.currentPeriodEnd) return "ignored-stale-period";
+
+    await prisma.$transaction([
+      prisma.billingSubscription.update({
+        where: { id: bs.id },
+        data: { status: "ACTIVE", currentPeriodEnd: periodEnd },
+      }),
+      // Only THIS subscription's agents move. Other agents are untouched.
+      prisma.entitlement.updateMany({
+        where: { billingSubscriptionId: bs.id, status: { in: ["ACTIVE", "PAST_DUE"] } },
+        data: { status: "ACTIVE", currentPeriodStart: new Date(), currentPeriodEnd: periodEnd },
+      }),
+    ]);
     return "applied-renewed";
   });
 }
 
+/**
+ * Marks the Dodo subscription (and only its own entitlements) as scheduled
+ * to stop at period end. Access is retained through the already-paid
+ * period — the sweeper expires the rows when it lapses.
+ */
 export async function handleSubscriptionCancelled(payload: WebhookPayload) {
-  const sub = await findSubscriptionByCustomer(payload.data.customer?.customer_id);
-  const orgId = sub?.organizationId ?? null;
-  if (!orgId) return;
+  const dodoSubId = payload.data.subscription_id;
+  if (!dodoSubId) return;
 
-  await withWebhookEvent(providerEventId(payload), payload.type, payload.data.subscription_id, orgId, async () => {
-    if (!subscriptionMatchesCurrent(sub, payload)) {
-      return "ignored-stale-subscription";
-    }
-    await syncOrgEntitlement(orgId, {
-      status: "CANCELLED",
-      cancelAtPeriodEnd: true,
-      currentPeriodEnd: parsePeriodEnd(payload.data),
-    });
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+    const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
+    if (!bs) return "ignored-unknown-subscription";
+
+    await prisma.$transaction([
+      prisma.billingSubscription.update({ where: { id: bs.id }, data: { cancelAtPeriodEnd: true } }),
+      prisma.entitlement.updateMany({
+        where: { billingSubscriptionId: bs.id, status: { in: ["ACTIVE", "PAST_DUE"] } },
+        data: { cancelAtPeriodEnd: true },
+      }),
+    ]);
     return "applied-cancelled";
   });
 }
 
-export async function handleSubscriptionExpired(payload: WebhookPayload) {
-  const sub = await findSubscriptionByCustomer(payload.data.customer?.customer_id);
-  const orgId = sub?.organizationId ?? null;
-  if (!orgId) return;
+/**
+ * Shared by handleSubscriptionExpired and handleSubscriptionFailed: both
+ * end access for exactly one Dodo subscription's entitlements, scoped by
+ * `billingSubscriptionId`, never the whole org.
+ */
+async function expireBillingSubscription(payload: WebhookPayload, resultTag: string) {
+  const dodoSubId = payload.data.subscription_id;
+  if (!dodoSubId) return;
 
-  await withWebhookEvent(providerEventId(payload), payload.type, payload.data.subscription_id, orgId, async () => {
-    if (!subscriptionMatchesCurrent(sub, payload)) {
-      return "ignored-stale-subscription";
-    }
-    await syncOrgEntitlement(orgId, { status: "EXPIRED" });
-    return "applied-expired";
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+    const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
+    if (!bs) return "ignored-unknown-subscription";
+
+    await prisma.$transaction([
+      prisma.billingSubscription.update({ where: { id: bs.id }, data: { status: "EXPIRED" } }),
+      prisma.entitlement.updateMany({
+        where: { billingSubscriptionId: bs.id, status: { in: ["TRIALING", "ACTIVE", "PAST_DUE"] } },
+        data: { status: "EXPIRED" },
+      }),
+    ]);
+    return resultTag;
   });
+}
+
+export async function handleSubscriptionExpired(payload: WebhookPayload) {
+  return expireBillingSubscription(payload, "applied-expired");
 }
 
 export async function handleSubscriptionFailed(payload: WebhookPayload) {
-  const sub = await findSubscriptionByCustomer(payload.data.customer?.customer_id);
-  const orgId = sub?.organizationId ?? null;
-  if (!orgId) return;
-
-  await withWebhookEvent(providerEventId(payload), payload.type, payload.data.subscription_id, orgId, async () => {
-    if (!subscriptionMatchesCurrent(sub, payload)) {
-      return "ignored-stale-subscription";
-    }
-    await syncOrgEntitlement(orgId, { status: "EXPIRED" });
-    return "applied-failed";
-  });
+  return expireBillingSubscription(payload, "applied-failed");
 }
 
+/**
+ * Marks ONLY the failing Dodo subscription's entitlements PAST_DUE. The old
+ * handler set the whole org PAST_DUE, killing all six agents over one bad
+ * card on a single agent's subscription.
+ */
 export async function handlePaymentFailed(payload: WebhookPayload) {
-  const sub = await findSubscriptionByCustomer(payload.data.customer?.customer_id);
-  const orgId = sub?.organizationId ?? null;
-  if (!orgId) return;
+  const dodoSubId = payload.data.subscription_id;
+  if (!dodoSubId) return;
 
-  await withWebhookEvent(providerEventId(payload), payload.type, payload.data.subscription_id, orgId, async () => {
-    if (payload.data.subscription_id && !subscriptionMatchesCurrent(sub, payload)) {
-      return "ignored-stale-subscription";
-    }
-    await syncOrgEntitlement(orgId, { status: "PAST_DUE" });
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+    const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
+    if (!bs) return "ignored-unknown-subscription";
+
+    await prisma.$transaction([
+      prisma.billingSubscription.update({ where: { id: bs.id }, data: { status: "PAST_DUE" } }),
+      prisma.entitlement.updateMany({
+        where: { billingSubscriptionId: bs.id, status: "ACTIVE" },
+        data: { status: "PAST_DUE" },
+      }),
+    ]);
     return "applied-payment-failed";
   });
 }
