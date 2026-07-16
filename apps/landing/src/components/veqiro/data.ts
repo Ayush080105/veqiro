@@ -246,7 +246,7 @@ export const EMPLOYEES: Employee[] = [
     tag: 'Visuals first. Copy that matches.',
     color: '#F06464',
     ink: '#7A1717',
-    skills: ['Image generation', 'Product campaigns', 'Carousels', 'Post drafting', 'Cross-platform', 'Direct publishing'],
+    skills: ['Image generation', 'Video generation', 'Product campaigns', 'Carousels', 'Post drafting', 'Cross-platform', 'Direct publishing'],
     quote: "Launch campaign set ready — hero shot with product mockup, Instagram square, story with CTA, paid ad variant. Logo locked. Brand colors on. Want to review before it goes live?",
     stats: [{ k: 'Posts published', v: '210K' }, { k: 'Avg CTR lift', v: '+34%' }, { k: 'Brand voices', v: '900+' }],
     description: "Maya generates on-brand campaign images, carousels, and post visuals — with your logo, your palette, your font. Give her a product photo and she builds the full launch set. Give her a topic and she writes the post to match.",
@@ -257,6 +257,8 @@ export const EMPLOYEES: Employee[] = [
       { title: "Full Content Drafting", description: "Complete post for any platform with tone control, brand kit applied, and image auto-generated alongside the copy." },
       { title: "Cross-Platform Variants", description: "One post rewritten natively for every platform — correct length, tone, format, and a matching visual for each." },
       { title: "Direct Publishing", description: "Approve and it goes live. No copy-paste. No scheduling tool." },
+      { title: "Video & Reel Generation", description: "Generate a short-form video or reel straight from a prompt — or hand Maya a full storyboard and she produces every scene in sequence, on-brand." },
+      { title: "Animate Your Logo", description: "Turn a static logo into a polished animated intro clip — ready to drop into any video or campaign." },
     ],
     useCases: [
       "Product teams launching features and needing a full visual campaign fast",
@@ -323,6 +325,10 @@ export const EMPLOYEES: Employee[] = [
       {
         q: "What if I don't like an image she generates?",
         a: "Describe the change in plain English — 'darker background', 'logo bottom-right', 'more whitespace around the product' — and she regenerates it. You can iterate as many times as needed.",
+      },
+      {
+        q: "Can Maya make videos, not just images?",
+        a: "Yes — describe what you want or hand her a storyboard and she generates a short-form video or reel scene by scene. She can also animate a static logo into a short intro clip.",
       },
     ],
     actions: [

@@ -27,12 +27,11 @@ export type BillingSubscription = {
   trialEndsAt: string | null;
   dodoCustomerId: string | null;
   entitlementMode: EntitlementMode;
-  selectedAgents: BillingAgent[];
-  unlockedAgents: BillingAgent[];
   pendingCheckout: {
-    plan: SubscriptionPlan | null;
-    entitlementMode: EntitlementMode | null;
-    selectedAgents: BillingAgent[];
+    kind: "AGENT" | "CREW" | "CREW_UPGRADE" | "MAYA_TOPUP";
+    agent: BillingAgent | null;
+    plan: SubscriptionPlan;
+    createdAt: string;
   } | null;
   entitlements: AgentEntitlement[];
 };
@@ -41,13 +40,34 @@ export type BillingStatusResponse = {
   subscription: BillingSubscription | null;
 };
 
+// Matches billing.controller.ts's startTrial response exactly: no plan,
+// entitlementMode, or selectedAgents — a trial is all agents, all at once.
 export type StartTrialResponse = {
   status: "TRIALING";
   trialEndsAt: string;
-  plan: null;
-  entitlementMode: EntitlementMode;
-  selectedAgents: BillingAgent[];
+  agents: BillingAgent[];
 };
+
+// ─── Catalog (public prices, shared with apps/landing) ─────────────────────
+
+export type BillingCatalogResponse = {
+  agents: Record<BillingAgent, { priceCents: number }>;
+  crew: { monthly: { priceCents: number }; annual: { priceCents: number } };
+  currency: string;
+};
+
+export function getBillingCatalog() {
+  return apiFetch<BillingCatalogResponse>("/billing/catalog");
+}
+
+// Prices change rarely — cache for an hour rather than the 30s global default.
+export function useBillingCatalog() {
+  return useQuery({
+    queryKey: ["billing", "catalog"] as const,
+    queryFn: getBillingCatalog,
+    staleTime: 60 * 60 * 1000,
+  });
+}
 
 export const billingStatusQueryKey = (organizationId?: string | null) =>
   ["billing", "status", organizationId ?? "none"] as const;
@@ -75,6 +95,14 @@ export function startTrial() {
   return apiFetch<StartTrialResponse>("/billing/start-trial", { method: "POST" });
 }
 
+// Clears a stuck/abandoned "Checkout syncing" state. Only removes the
+// PendingCheckout row(s) — never touches entitlements; a webhook that
+// arrives after dismissal still provisions normally (see
+// dismissPendingCheckout's doc comment on the server).
+export function dismissPendingCheckout() {
+  return apiFetch<{ dismissed: number }>("/billing/pending-checkout", { method: "DELETE" });
+}
+
 // Matches the server's `createCheckoutForOrg` input exactly: an individual
 // agent purchase is MONTHLY-only and names exactly one agent (no cadence to
 // pick), while Crew names a cadence and never an agent. An annual
@@ -89,7 +117,16 @@ export type CheckoutInput =
 // union forces every caller to check `resumed` before touching `.url`, so
 // `window.location.href = result.url` on a null (navigating to the literal
 // string "null") is a type error, not a runtime surprise.
-export type CheckoutResult = { resumed: true; url: null } | { resumed: false; url: string };
+//
+// `discountApplied` is only ever present on a Crew checkout response (never
+// on a per-agent one): "applied" | "failed" tells the caller whether the
+// credited discount actually got attached, so a failure can be surfaced
+// instead of the customer silently being charged full price. "not-eligible"
+// means there was no credit to apply in the first place (nothing owned, or
+// credit exceeds Crew's price) — not a failure, so no warning is needed.
+export type CheckoutResult =
+  | { resumed: true; url: null }
+  | { resumed: false; url: string; discountApplied?: "applied" | "failed" | "not-eligible" };
 
 export function createCheckout(input: CheckoutInput) {
   return apiFetch<CheckoutResult>("/billing/checkout", {
@@ -133,6 +170,21 @@ export function cancelAgent(agent: BillingAgent) {
 export function resumeAgent(agent: BillingAgent) {
   return apiFetch<{ renewsOn: string }>(`/billing/agents/${agent.toLowerCase()}/resume`, {
     method: "POST",
+  });
+}
+
+export function cancelCrew() {
+  return apiFetch<{ activeUntil: string }>("/billing/crew/cancel", { method: "POST" });
+}
+
+export function resumeCrew() {
+  return apiFetch<{ renewsOn: string }>("/billing/crew/resume", { method: "POST" });
+}
+
+export function startMayaTopupCheckout(input: { dollars: number }) {
+  return apiFetch<{ url: string; credits: number; dollars: number }>("/billing/maya/topup/checkout", {
+    method: "POST",
+    body: input,
   });
 }
 

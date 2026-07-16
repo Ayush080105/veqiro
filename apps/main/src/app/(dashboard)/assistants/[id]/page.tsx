@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react"
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { useQuery, useMutationState } from "@tanstack/react-query"
+import { useQuery, useMutationState, useQueryClient } from "@tanstack/react-query"
 import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 
@@ -34,9 +34,11 @@ import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-
 import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
 import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
+import { qk } from "@/lib/query-keys"
 
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
+import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
 import { FeatureLockBanner } from "@/components/ui/feature-lock-banner"
 import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 import { FONT } from "@/lib/fonts"
@@ -339,6 +341,7 @@ export default function AssistantChatPage() {
 
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
+  const queryClient = useQueryClient()
 
   const WINDOW = 20
   const [msgWindow, setMsgWindow] = useState<Message[]>([])
@@ -875,6 +878,22 @@ export default function AssistantChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount only
 
+  // Return redirect from a Maya credit top-up checkout (billing.topup.ts's
+  // return_url/cancel_url both point back here). Mirrors the status=success/
+  // cancelled handling on settings/billing/page.tsx.
+  useEffect(() => {
+    const topup = searchParams.get("topup")
+    if (!topup) return
+    if (topup === "success") {
+      toast.success("Credits added", { description: "Check your balance above." })
+      if (organizationId) void queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
+    } else if (topup === "cancelled") {
+      toast.info("Top-up cancelled", { description: "No charge was made." })
+    }
+    router.replace(`/assistants/${id}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // run once on mount only
+
   const discoverCompetitorsPrefill = useMemo(() =>
     brandKit
       ? { description: brandKit.companyDescription || "", industry: brandKit.industry || "", location: brandKit.location || "" }
@@ -1026,11 +1045,15 @@ export default function AssistantChatPage() {
 
   if (!agent) return null
 
-  // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402
+  // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402.
+  // Normalized through getUpgradeRequiredReason (same as briefing/InboxView/CalendarView)
+  // so this shows the specific trial/expired/not-purchased copy instead of the
+  // generic fallback — the raw error code doesn't match UpgradeRequiredCard's copy map.
   const upgradeError =
     (fetchError?.status === 402 ? fetchError : null) ?? sendError
-  if (upgradeError) {
-    return <UpgradeRequiredCard reason={upgradeError.code} />
+  const upgradeReason = getUpgradeRequiredReason(upgradeError)
+  if (upgradeReason) {
+    return <UpgradeRequiredCard reason={upgradeReason} />
   }
 
   const isLex = agent.id === "lex"

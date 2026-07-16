@@ -6,37 +6,21 @@ import { Sparkles } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { SegmentedGroup } from "@/components/ui/segmented-group"
-import { createCheckout, useUpgradeQuote, type SubscriptionPlan } from "@/lib/api/billing"
+import { createCheckout, useBillingCatalog, useUpgradeQuote, type SubscriptionPlan } from "@/lib/api/billing"
 import { billingActionErrorMessage } from "@/components/billing/entitlement-errors"
-
-function money(cents: number) {
-  return `$${(cents / 100).toFixed(2).replace(/\.00$/, "")}`
-}
+import { money } from "@/lib/format"
 
 function unit(cadence: SubscriptionPlan) {
   return cadence === "ANNUAL" ? "yr" : "mo"
 }
 
-// Crew's own list price, independent of any per-agent credit. Needed for the
-// "nothing owned" and "credit exceeds price" states, where /billing/upgrade-quote
-// has no price fields at all (an ineligible quote is just { creditCents, reason }).
-// Mirrors billing.catalog.ts's getCrewPriceCents defaults exactly — keep in sync
-// if the server-side env values ever move.
-const CREW_PRICE_ENV: Record<SubscriptionPlan, string | undefined> = {
-  MONTHLY: process.env.NEXT_PUBLIC_CREW_MONTHLY_CENTS,
-  ANNUAL: process.env.NEXT_PUBLIC_CREW_ANNUAL_CENTS,
-}
-
+// Fallback only, for the brief window before /billing/catalog resolves.
+// Needed for the "nothing owned" and "credit exceeds price" states, where
+// /billing/upgrade-quote has no price fields at all (an ineligible quote is
+// just { creditCents, reason }).
 const DEFAULT_CREW_CENTS: Record<SubscriptionPlan, number> = {
   MONTHLY: 3900,
   ANNUAL: 34800,
-}
-
-function getCrewPrice(cadence: SubscriptionPlan): number {
-  const raw = CREW_PRICE_ENV[cadence]
-  if (!raw) return DEFAULT_CREW_CENTS[cadence]
-  const cents = Number(raw)
-  return Number.isInteger(cents) && cents > 0 ? cents : DEFAULT_CREW_CENTS[cadence]
 }
 
 const CADENCE_OPTIONS = [
@@ -44,26 +28,58 @@ const CADENCE_OPTIONS = [
   { value: "ANNUAL" as const, label: "Annual" },
 ]
 
-export function CrewUpgradeCard({ organizationId }: { organizationId?: string | null }) {
+export function CrewUpgradeCard({
+  organizationId, isOwner = true,
+}: { organizationId?: string | null; isOwner?: boolean }) {
   const [cadence, setCadence] = useState<SubscriptionPlan>("MONTHLY")
   const [busy, setBusy] = useState(false)
   // Re-fetched whenever cadence changes: useUpgradeQuote's query key includes
   // cadence, so flipping the toggle re-quotes rather than reusing a stale
   // monthly credit against an annual price.
-  const { data: quote } = useUpgradeQuote(organizationId, cadence)
+  const { data: quote, error, isPending, refetch } = useUpgradeQuote(organizationId, cadence)
+  const { data: catalog } = useBillingCatalog()
 
-  // Still loading: nothing to commit to a layout for yet. Already on Crew:
-  // there is nothing left to sell them, full stop — no card.
+  // Still loading: nothing to commit to a layout for yet.
+  if (isPending) return null
+  // A fetch error is not "loading" — show it, don't silently disappear the
+  // whole upsell (the previous `if (!quote) return null` collapsed these two
+  // states identically, so a 500 looked exactly like "nothing to show").
+  if (error) {
+    return (
+      <Card variant="brand">
+        <CardContent className="flex flex-col items-center gap-3 py-6 text-center text-sm text-muted-foreground">
+          <p>We couldn&apos;t load Crew upgrade pricing. Please try again.</p>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
   if (!quote) return null
+  // Already on Crew: there is nothing left to sell them, full stop — no card.
   if (!quote.eligible && quote.reason === "already-on-crew") return null
 
   const isCredited = quote.eligible
+  const crewPriceCents = catalog
+    ? (cadence === "ANNUAL" ? catalog.crew.annual.priceCents : catalog.crew.monthly.priceCents)
+    : DEFAULT_CREW_CENTS[cadence]
   // For the credited path the quote itself carries the full list price
   // (payNowCents + creditCents); for the two uncredited paths (nothing
   // owned, or credit exceeds price) the quote has no price fields, so fall
   // back to Crew's own list price for the selected cadence.
-  const fullPriceCents = quote.eligible ? quote.payNowCents + quote.creditCents : getCrewPrice(cadence)
+  const fullPriceCents = quote.eligible ? quote.payNowCents + quote.creditCents : crewPriceCents
   const dueTodayCents = quote.eligible ? quote.payNowCents : fullPriceCents
+
+  // Savings breakdown only makes sense once the real catalog has resolved —
+  // computing it from DEFAULT_CREW_CENTS could show a number the customer is
+  // never actually charged if the server-side catalog differs.
+  const annualSavings = catalog && cadence === "ANNUAL"
+    ? {
+        monthlyEquivCents: Math.round(catalog.crew.annual.priceCents / 12),
+        savingsCents: catalog.crew.monthly.priceCents * 12 - catalog.crew.annual.priceCents,
+      }
+    : null
 
   async function upgrade() {
     setBusy(true)
@@ -79,6 +95,15 @@ export function CrewUpgradeCard({ organizationId }: { organizationId?: string | 
         toast.error("Unexpected response from checkout — please try again.")
         return
       }
+      // The discount is minted server-side right before checkout; if that
+      // failed, the customer is about to be charged full price even though
+      // this card showed a credited total — warn now rather than let them
+      // discover it only after paying.
+      if (result.discountApplied === "failed") {
+        toast.warning("We couldn't apply your credit automatically", {
+          description: "You'll be charged full price for Crew — contact support for a refund of the difference.",
+        })
+      }
       window.location.href = result.url
     } catch (e) {
       toast.error(billingActionErrorMessage(e, "Couldn't start the upgrade"))
@@ -88,7 +113,7 @@ export function CrewUpgradeCard({ organizationId }: { organizationId?: string | 
   }
 
   return (
-    <Card className="border-primary/40 bg-primary/5">
+    <Card variant="brand">
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -127,15 +152,26 @@ export function CrewUpgradeCard({ organizationId }: { organizationId?: string | 
               <dt>Due today</dt>
               <dd>{money(quote.payNowCents)}</dd>
             </div>
+            {annualSavings && (
+              <p className="mt-1 text-xs text-green-600">
+                That's {money(annualSavings.monthlyEquivCents)}/mo — save {money(annualSavings.savingsCents)}/yr vs. monthly.
+              </p>
+            )}
           </dl>
         ) : (
           <div className="text-sm">
             <span className="text-2xl font-semibold">{money(fullPriceCents)}</span>
             <span className="ml-1 text-muted-foreground">/{unit(cadence)}</span>
+            {annualSavings && (
+              <p className="mt-1 text-xs text-green-600">
+                That's {money(annualSavings.monthlyEquivCents)}/mo — save {money(annualSavings.savingsCents)}/yr vs. monthly.
+              </p>
+            )}
           </div>
         )}
         <div className="flex flex-col items-start gap-2 md:items-end">
-          <Button onClick={upgrade} disabled={busy}>
+          <Button onClick={upgrade} disabled={busy || !isOwner}
+            title={isOwner ? undefined : "Only the organization owner can manage billing"}>
             {busy
               ? "Opening checkout..."
               : isCredited

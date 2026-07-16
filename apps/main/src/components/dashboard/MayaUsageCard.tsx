@@ -6,7 +6,7 @@ import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
 import { useMayaUsage } from "@/lib/api/billing"
-import { ApiError } from "@/lib/api/client"
+import { isNoMayaSubscription } from "@/components/billing/entitlement-errors"
 import { UsageBar } from "@/components/billing/UsageBar"
 import { MayaUsageCardSkeleton } from "@/components/dashboard/MayaUsageCardSkeleton"
 
@@ -39,7 +39,7 @@ export function MayaUsageCard() {
     return <MayaUsageCardSkeleton />
   }
 
-  const isNoSubscription = error instanceof ApiError && error.message === "no-subscription"
+  const isNoSubscription = isNoMayaSubscription(error)
 
   if (isNoSubscription || (!error && !data)) {
     return (

@@ -260,6 +260,7 @@ export const PendingCheckoutScalarFieldEnum = {
   agent: 'agent',
   plan: 'plan',
   discountCode: 'discountCode',
+  credits: 'credits',
   createdAt: 'createdAt'
 } as const
 
@@ -772,6 +773,7 @@ export const MayaUsageScalarFieldEnum = {
   periodStart: 'periodStart',
   periodEnd: 'periodEnd',
   creditsUsed: 'creditsUsed',
+  bonusCredits: 'bonusCredits',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { CreditCard } from "lucide-react"
 
@@ -14,22 +15,16 @@ import { PageHeader } from "@/components/ui/page-header"
 import { authClient, useSession } from "@/lib/auth-client"
 import { AgentEntitlementRow } from "@/components/billing/AgentEntitlementRow"
 import { CrewUpgradeCard } from "@/components/billing/CrewUpgradeCard"
+import { CrewSubscriptionCard } from "@/components/billing/CrewSubscriptionCard"
 import { AgentBuyCard } from "@/components/billing/AgentBuyCard"
-import { BillingAgent, openBillingPortal, useBillingStatus } from "@/lib/api/billing"
+import { BillingAgent, dismissPendingCheckout, openBillingPortal, useBillingCatalog, useBillingStatus } from "@/lib/api/billing"
+import { qk } from "@/lib/query-keys"
 
 const ALL_AGENTS: BillingAgent[] = ["MAYA", "SAGE", "LEX", "REX", "SCOUT", "VEGA"]
 
-// Individual agents are MONTHLY-only, so there is no cadence here — Annual
-// exists only for Crew (see CrewUpgradeCard).
-const AGENT_PRICE_ENV: Record<BillingAgent, string | undefined> = {
-  MAYA: process.env.NEXT_PUBLIC_AGENT_PRICE_MAYA_MONTHLY_CENTS,
-  SAGE: process.env.NEXT_PUBLIC_AGENT_PRICE_SAGE_MONTHLY_CENTS,
-  LEX: process.env.NEXT_PUBLIC_AGENT_PRICE_LEX_MONTHLY_CENTS,
-  REX: process.env.NEXT_PUBLIC_AGENT_PRICE_REX_MONTHLY_CENTS,
-  SCOUT: process.env.NEXT_PUBLIC_AGENT_PRICE_SCOUT_MONTHLY_CENTS,
-  VEGA: process.env.NEXT_PUBLIC_AGENT_PRICE_VEGA_MONTHLY_CENTS,
-}
-
+// Fallback only, for the brief window before /billing/catalog resolves — the
+// real prices always come from the server (single source of truth, shared
+// with apps/landing) so this can never drift from what's actually charged.
 const DEFAULT_AGENT_MONTHLY_CENTS: Record<BillingAgent, number> = {
   MAYA: 1900,
   SAGE: 900,
@@ -37,13 +32,6 @@ const DEFAULT_AGENT_MONTHLY_CENTS: Record<BillingAgent, number> = {
   REX: 900,
   SCOUT: 900,
   VEGA: 900,
-}
-
-function getMonthlyPrice(agent: BillingAgent): number {
-  const raw = AGENT_PRICE_ENV[agent]
-  if (!raw) return DEFAULT_AGENT_MONTHLY_CENTS[agent]
-  const cents = Number(raw)
-  return Number.isInteger(cents) && cents > 0 ? cents : DEFAULT_AGENT_MONTHLY_CENTS[agent]
 }
 
 type AugmentedSession = {
@@ -58,7 +46,29 @@ export default function BillingPage() {
   const augmented = session as (AugmentedSession & typeof session) | null
   const organizationId = activeOrg?.id ?? augmented?.activeOrganization?.id
   const { data: billing, refetch, isPending } = useBillingStatus(organizationId)
+  const { data: catalog } = useBillingCatalog()
+  const { data: activeMemberRole, isPending: isRolePending } = authClient.useActiveMemberRole()
+  const queryClient = useQueryClient()
   const sub = billing?.subscription
+
+  // useMayaUsage rides its own query key (qk.mayaUsage), separate from
+  // useBillingStatus's — a cancel/resume/buy here changes entitlements but
+  // never auto-refreshes the Usage page's/Maya credits pill's own query, so
+  // it must be invalidated explicitly alongside the billing-status refetch.
+  function onEntitlementsChanged() {
+    void refetch()
+    if (organizationId) void queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
+  }
+  // Server-side, every mutating billing route (checkout, cancel, resume) is
+  // owner-gated via requireOrgOwner — a non-owner hitting them gets a 403.
+  // Disabling proactively here is better UX than letting them click through
+  // to a failed request. Default true while the role is still loading so
+  // buttons don't flash disabled-then-enabled for the common owner case.
+  const isOwner = isRolePending || activeMemberRole?.role === "owner"
+
+  function getMonthlyPrice(agent: BillingAgent): number {
+    return catalog?.agents[agent]?.priceCents ?? DEFAULT_AGENT_MONTHLY_CENTS[agent]
+  }
 
   const [portaling, setPortaling] = useState(false)
   const [syncingCheckout, setSyncingCheckout] = useState(false)
@@ -73,17 +83,37 @@ export default function BillingPage() {
   }, [searchParams, refetch, router])
 
   useEffect(() => {
+    if (searchParams.get("status") !== "cancelled") return
+    toast.info("Checkout cancelled", { description: "No charge was made." })
+    router.replace("/settings/billing")
+  }, [searchParams, router])
+
+  useEffect(() => {
     if (!syncingCheckout) return
+    // Caps the poll at ~30s (15 attempts * 2s) rather than spinning forever
+    // if a webhook is lost or delayed — surfaces a "still syncing" state
+    // instead of an endless silent loop.
+    let attempts = 0
     const interval = window.setInterval(() => {
+      attempts += 1
       void refetch().then((result) => {
         if (!result.data?.subscription?.pendingCheckout) {
           setSyncingCheckout(false)
           toast.success("Billing updated", { description: "Your agent access is ready." })
+          // A fresh purchase (e.g. Maya, or Crew) can raise the credit tier —
+          // the Usage page / credits pill's own query must not keep showing
+          // the pre-purchase limit until its own staleTime happens to lapse.
+          if (organizationId) void queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
+        } else if (attempts >= 15) {
+          setSyncingCheckout(false)
+          toast.warning("Still syncing", {
+            description: "This is taking longer than usual — refresh the page or contact support if it doesn't update soon.",
+          })
         }
       })
     }, 2000)
     return () => window.clearInterval(interval)
-  }, [syncingCheckout, refetch])
+  }, [syncingCheckout, refetch, organizationId, queryClient])
 
   async function handlePortal() {
     setPortaling(true)
@@ -97,22 +127,70 @@ export default function BillingPage() {
     }
   }
 
+  const [dismissing, setDismissing] = useState(false)
+  // Only offered once a pending checkout has clearly stopped being "in
+  // progress" — a real purchase resolves within seconds of a webhook
+  // arriving, so anything older than this is genuinely stuck (lost webhook,
+  // abandoned checkout) rather than mid-flight.
+  const PENDING_CHECKOUT_STUCK_MS = 10 * 60 * 1000
+  const pendingCheckoutAgeMs = sub?.pendingCheckout
+    ? Date.now() - new Date(sub.pendingCheckout.createdAt).getTime()
+    : 0
+  const pendingCheckoutStuck = pendingCheckoutAgeMs > PENDING_CHECKOUT_STUCK_MS
+
+  async function handleDismissPendingCheckout() {
+    setDismissing(true)
+    try {
+      await dismissPendingCheckout()
+      await refetch()
+      toast.success("Cleared", { description: "You can start a new checkout any time." })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't clear this checkout")
+    } finally {
+      setDismissing(false)
+    }
+  }
+
   const entitlements = useMemo(() => sub?.entitlements ?? [], [sub?.entitlements])
-  const ownedAgents = useMemo(() => new Set(entitlements.map((e) => e.agent)), [entitlements])
+  // TRIAL doesn't count as "owned" for Buy-card purposes — the backend
+  // already allows converting a trialing agent to paid early
+  // (assertAgentPurchasable explicitly permits this), so treating a TRIAL
+  // row as ownership hid every per-agent Buy card for an org's entire 7-day
+  // trial, even though buying one mid-trial is a real, working flow.
+  const ownedAgents = useMemo(
+    () => new Set(entitlements.filter((e) => e.source !== "TRIAL").map((e) => e.agent)),
+    [entitlements],
+  )
   // A CREW row exists for every agent while Crew is active (even mid-cancel,
   // until period end), so this is the same signal the server uses for
   // crew-covers-all-agents — the individual buy UI must not be offered.
   const crewActive = entitlements.some((e) => e.source === "CREW")
   const unownedAgents = ALL_AGENTS.filter((agent) => !ownedAgents.has(agent))
+  // Derived from the response body already fetched by useBillingStatus,
+  // rather than reading the X-Billing-State response header the server also
+  // sets — that header is only set on a subset of routes and isn't read
+  // anywhere in the frontend today, so the dunning banner it was meant to
+  // drive never actually appeared. Each entitlement's own status is a more
+  // direct, already-available signal.
+  const pastDueAgents = entitlements.filter((e) => e.status === "PAST_DUE")
   // Data hasn't arrived yet: don't flash "buy all six" for a paying customer
   // while their real entitlements are still loading.
   const dataReady = Boolean(organizationId) && !isPending
 
   const canManageBilling = sub?.status === "ACTIVE" || sub?.status === "CANCELLED" || sub?.status === "PAST_DUE"
 
+  // sub.status is the legacy Subscription.status column — it can never be
+  // "TRIALING" any more (trial state lives on Entitlement rows now, see
+  // deriveStatusFields's doc comment in billing.controller.ts), so a fresh
+  // trial org's Subscription row sits at its ensureBillingCustomerForOrg
+  // default of "EXPIRED" forever. Checking entitlements directly is the same
+  // fix billing.controller.ts already applied for trialEndsAt/daysRemaining —
+  // this is the one remaining spot that still read the stale column.
+  const isTrialing = entitlements.some((e) => e.source === "TRIAL")
+
   const statusLabel =
     !sub ? "No subscription"
-    : sub.status === "TRIALING" ? `Trial · ${sub.daysRemaining ?? 0} days left`
+    : isTrialing ? `Trial · ${sub.daysRemaining ?? 0} days left`
     : sub.status === "ACTIVE" ? (sub.entitlementMode === "CREW" ? "Crew plan" : "Individual agents")
     : sub.status === "PAST_DUE" ? "Payment failed"
     : sub.status === "CANCELLED" ? "Cancelled"
@@ -129,7 +207,14 @@ export default function BillingPage() {
 
       <SettingsNav />
 
-      <Card>
+      {pastDueAgents.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Payment failed for {pastDueAgents.map((e) => e.agent.toLowerCase()).join(", ")}. You still have access
+          through the paid-for period — update your payment method via &quot;View invoices&quot; below to keep it renewing.
+        </div>
+      )}
+
+      <Card variant="brand">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -144,9 +229,32 @@ export default function BillingPage() {
         {(sub?.pendingCheckout || canManageBilling) && (
           <CardContent className="flex flex-col gap-4">
             {sub?.pendingCheckout && (
-              <Badge variant="secondary" className="w-fit">
-                Checkout syncing
-              </Badge>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="w-fit">
+                    Checkout syncing
+                  </Badge>
+                  {/* Not gated on syncStalled alone — a pendingCheckout row can
+                      also be stale on a completely fresh page load (no active
+                      polling session ever started), which previously left this
+                      badge permanently stuck with no way to manually recheck. */}
+                  {!syncingCheckout && (
+                    <Button size="sm" variant="outline" onClick={() => void refetch()}>
+                      Check again
+                    </Button>
+                  )}
+                  {pendingCheckoutStuck && (
+                    <Button size="sm" variant="outline" onClick={handleDismissPendingCheckout} disabled={dismissing}>
+                      {dismissing ? "Clearing..." : "Not you? Dismiss"}
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {pendingCheckoutStuck
+                    ? "This checkout has been syncing for a while — if you didn't complete it, dismiss it and start again."
+                    : "We're waiting for payment confirmation — this usually takes a few seconds."}
+                </p>
+              </div>
             )}
             {canManageBilling && (
               <>
@@ -161,15 +269,18 @@ export default function BillingPage() {
         )}
       </Card>
 
-      {dataReady && <CrewUpgradeCard organizationId={organizationId} />}
+      {dataReady && crewActive && (
+        <CrewSubscriptionCard entitlements={entitlements} onChanged={onEntitlementsChanged} isOwner={isOwner} />
+      )}
+      {dataReady && !crewActive && <CrewUpgradeCard organizationId={organizationId} isOwner={isOwner} />}
 
       {!dataReady ? (
-        <Card>
+        <Card variant="brand">
           <CardContent className="py-6 text-sm text-muted-foreground">Loading your agents...</CardContent>
         </Card>
       ) : (
         <>
-          <Card>
+          <Card variant="brand">
             <CardHeader>
               <CardTitle className="text-base">Your agents</CardTitle>
               <CardDescription>Each row is its own subscription with its own renewal date.</CardDescription>
@@ -186,7 +297,8 @@ export default function BillingPage() {
                   <AgentEntitlementRow
                     key={`${entitlement.agent}-${entitlement.source}-${entitlement.currentPeriodEnd}`}
                     entitlement={entitlement}
-                    onChanged={() => void refetch()}
+                    onChanged={onEntitlementsChanged}
+                    isOwner={isOwner}
                   />
                 ))
               )}
@@ -196,7 +308,7 @@ export default function BillingPage() {
           {/* Crew already covers every agent — offering per-agent purchase on
               top of it would just hit crew-covers-all-agents on the server. */}
           {!crewActive && unownedAgents.length > 0 && (
-            <Card>
+            <Card variant="brand">
               <CardHeader>
                 <CardTitle className="text-base">Add agents</CardTitle>
                 <CardDescription>Each purchase is its own checkout — no bundling required.</CardDescription>
@@ -207,7 +319,9 @@ export default function BillingPage() {
                     key={agent}
                     agent={agent}
                     priceCents={getMonthlyPrice(agent)}
-                    onResumed={() => void refetch()}
+                    onResumed={onEntitlementsChanged}
+                    disabled={!isOwner}
+                    disabledReason="Only the organization owner can manage billing"
                   />
                 ))}
               </CardContent>

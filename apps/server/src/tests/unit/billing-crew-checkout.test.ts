@@ -154,6 +154,7 @@ describe("createCheckoutForOrg — crew: true (createCrewCheckout)", () => {
     assert.equal(checkoutArgs.product_cart[0].product_id, "pdt_crew_monthly");
 
     assert.equal((result as { url: string }).url, "https://checkout.dodo.test/sess_1");
+    assert.equal((result as { discountApplied: string }).discountApplied, "applied");
 
     assert.equal(pendingCheckoutsCreated.length, 1);
     assert.equal(pendingCheckoutsCreated[0].kind, "CREW_UPGRADE");
@@ -169,6 +170,7 @@ describe("createCheckoutForOrg — crew: true (createCrewCheckout)", () => {
     assert.equal(checkoutArgs.discount_code, undefined);
 
     assert.equal((result as { url: string }).url, "https://checkout.dodo.test/sess_1");
+    assert.equal((result as { discountApplied: string }).discountApplied, "not-eligible");
     assert.equal(pendingCheckoutsCreated[0].kind, "CREW");
     assert.equal(pendingCheckoutsCreated[0].discountCode ?? null, null);
   });
@@ -195,5 +197,9 @@ describe("createCheckoutForOrg — crew: true (createCrewCheckout)", () => {
     const checkoutArgs = mockDodo.checkoutSessions.create.mock.calls[0][0];
     assert.equal(checkoutArgs.discount_code, undefined);
     assert.equal(pendingCheckoutsCreated[0].kind, "CREW");
+    assert.equal(
+      (result as { discountApplied: string }).discountApplied, "failed",
+      "the caller must be told the discount failed, not just silently charged full price",
+    );
   });
 });

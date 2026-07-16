@@ -19,7 +19,7 @@ export function UpgradeRequiredCard({ reason }: { reason: string | null | undefi
 
   return (
     <div className="flex h-full items-center justify-center p-6">
-      <Card className="max-w-md">
+      <Card variant="brand" className="max-w-md">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Lock className="size-4 text-muted-foreground" />

@@ -100,6 +100,7 @@ const SECTIONS: Section[] = [
       { feature: 'AI Image Regeneration', v: '✅', m: '❌', s: '❌' },
       { feature: 'Product Campaign Creator', v: '✅', m: '❌', s: 'Limited' },
       { feature: 'Carousel Post Generator', v: '✅', m: '❌', s: 'Limited' },
+      { feature: 'Video & Reel Generation', v: '✅', m: '❌', s: '❌' },
     ],
   },
   {
@@ -210,12 +211,14 @@ const EXCLUSIVES = [
   'Investor Updates',
   'Board Deck Generation',
   'Weekly Business Digest',
+  'Video & Reel Generation',
 ];
 
 const EXCLUSIVE_COLORS = [
   '#6FCDE8', '#F5C518', '#F5C518', '#1DBC87',
   '#F79FD4', '#F06464', '#F06464', '#F06464',
   '#F06464', '#F06464', '#F06464', '#F06464',
+  '#F79FD4',
 ];
 
 const VERDICTS = [

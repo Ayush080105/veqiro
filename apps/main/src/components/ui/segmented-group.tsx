@@ -56,7 +56,14 @@ export function SegmentedGroup<V extends string = string>({
             disabled={opt.disabled}
             aria-label={typeof opt.label === "string" ? opt.label : opt.value}
             className={cn(
-              "data-[pressed=true]:border-foreground data-[pressed=true]:bg-foreground data-[pressed=true]:text-primary-foreground",
+              // @base-ui/react's Toggle primitive renders the pressed state as
+              // `data-pressed=""` (empty-string presence attribute — see
+              // getStateAttributesProps), not `data-pressed="true"`. The
+              // value-match selector below never matched, so the active
+              // segment never looked selected. `data-pressed:` is Tailwind's
+              // presence variant and matches regardless of the attribute's
+              // value.
+              "data-pressed:border-foreground data-pressed:bg-foreground data-pressed:text-primary-foreground",
               itemClassName
             )}
           >

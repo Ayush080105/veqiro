@@ -45,7 +45,7 @@ async function resolveMayaWindow(organizationId: string) {
       }))?.plan ?? null
     : null;
 
-  const limit = getQuotaForMayaEntitlement({ source: ent.source, plan });
+  const tierLimit = getQuotaForMayaEntitlement({ source: ent.source, plan });
   const tier = displayTierFor(ent.source, plan);
   const { periodStart, periodEnd } = currentCreditWindow(ent.currentPeriodStart, new Date());
 
@@ -54,6 +54,11 @@ async function resolveMayaWindow(organizationId: string) {
     create: { organizationId, periodStart, periodEnd },
     update: {},
   });
+
+  // Effective limit = the plan's tier limit plus any credits purchased via a
+  // top-up this period. Callers should compare/report against this, never
+  // the raw tierLimit, once a top-up has been applied.
+  const limit = tierLimit + usage.bonusCredits;
 
   return { limit, tier, usage, periodStart, periodEnd };
 }
@@ -141,6 +146,45 @@ export async function adjustCurrentPeriodUsage(
         organizationId_periodStart: { organizationId, periodStart },
       },
       data: { creditsUsed: Math.max(0, current.creditsUsed + delta) },
+    });
+  });
+}
+
+// ─── Public: grantPurchasedTopupCredits ───────────────────────────────────────
+// Grants credits from a real money purchase (Maya top-up), by raising
+// `bonusCredits` on the current window — a dedicated column, not a call to
+// adjustCurrentPeriodUsage with a negative delta. That function's floor-at-0
+// clamp on `creditsUsed` is correct for its own (admin grant/revoke) callers
+// but wrong here: this repo's earlier version of this function decremented
+// `creditsUsed` below zero to bank top-up headroom, which computed
+// `remaining` correctly but rendered `used` as a raw negative number
+// anywhere the frontend displays it directly (e.g. the usage progress bar
+// showing "-50 / 300"). `bonusCredits` avoids that: `creditsUsed` never
+// goes negative, and resolveMayaWindow's effective limit
+// (tierLimit + bonusCredits) is what `remaining` is computed against.
+export async function grantPurchasedTopupCredits(
+  organizationId: string,
+  credits: number,
+): Promise<void> {
+  if (credits <= 0) return;
+
+  const { periodStart } = await resolveMayaWindow(organizationId);
+
+  await prisma.$transaction(async (tx) => {
+    // Lock the row to serialize concurrent top-up grants for the same org —
+    // matches the other mutators' pattern even though a plain increment
+    // wouldn't strictly need the read first.
+    await tx.$queryRaw`
+      SELECT "creditsUsed" FROM "maya_usage"
+      WHERE "organizationId" = ${organizationId} AND "periodStart" = ${periodStart}
+      FOR UPDATE
+    `;
+
+    await tx.mayaUsage.update({
+      where: {
+        organizationId_periodStart: { organizationId, periodStart },
+      },
+      data: { bonusCredits: { increment: credits } },
     });
   });
 }

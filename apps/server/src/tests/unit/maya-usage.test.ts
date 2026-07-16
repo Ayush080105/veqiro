@@ -26,6 +26,7 @@ type UsageRow = {
   periodStart: Date;
   periodEnd: Date;
   creditsUsed: number;
+  bonusCredits: number;
 };
 
 let entitlements: EntRow[] = [];
@@ -168,7 +169,7 @@ beforeEach(() => {
       (r) => r.organizationId === key.organizationId && r.periodStart.getTime() === key.periodStart.getTime(),
     );
     if (!row) {
-      row = { ...create, creditsUsed: 0 };
+      row = { ...create, creditsUsed: 0, bonusCredits: 0 };
       usageRows.push(row);
     }
     return row;
@@ -189,6 +190,12 @@ beforeEach(() => {
       row.creditsUsed -= (v as { decrement: number }).decrement;
     } else if (typeof v === "number") {
       row.creditsUsed = v;
+    }
+    const b = data.bonusCredits;
+    if (b && typeof b === "object" && "increment" in (b as object)) {
+      row.bonusCredits += (b as { increment: number }).increment;
+    } else if (typeof b === "number") {
+      row.bonusCredits = b;
     }
     return row;
   });
@@ -401,6 +408,74 @@ describe("maya.usage.service", () => {
       await adjustCurrentPeriodUsage("org_15", 0);
       assert.equal(mockPrisma.entitlement.findMany.mock.calls.length, 0);
       assert.equal(mockPrisma.mayaUsage.upsert.mock.calls.length, 0);
+    });
+  });
+
+  describe("grantPurchasedTopupCredits", () => {
+    test("raises bonusCredits, never touches creditsUsed — `used` must never go negative for display", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [crewEntitlement("org_19", anchor, new Date(Date.now() + 20 * DAY), "bs_11")];
+      billingSubscriptions = [{ id: "bs_11", plan: "MONTHLY" }];
+
+      const { getCurrentUsage, grantPurchasedTopupCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      // Usage is 0 (nothing spent yet) — a top-up bought at this point must
+      // still grant real, usable extra credits, not be silently absorbed by
+      // a floor clamp (the bug the old adjustCurrentPeriodUsage-based
+      // implementation would have hit).
+      await grantPurchasedTopupCredits("org_19", 150);
+
+      assert.equal(usageRows[0]!.creditsUsed, 0, "creditsUsed must be untouched by a grant");
+      assert.equal(usageRows[0]!.bonusCredits, 150);
+      const usage = await getCurrentUsage("org_19");
+      assert.equal(usage.credits.used, 0, "used must never be negative");
+      assert.equal(usage.credits.limit, 450, "effective limit = 300 base + 150 purchased");
+      assert.equal(usage.credits.remaining, 450, "300 base + 150 purchased = 450 usable");
+    });
+
+    test("stacks with existing usage correctly", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [crewEntitlement("org_20", anchor, new Date(Date.now() + 20 * DAY), "bs_12")];
+      billingSubscriptions = [{ id: "bs_12", plan: "MONTHLY" }];
+
+      const { checkAndDeductCredits, grantPurchasedTopupCredits, getCurrentUsage } =
+        await import("../../modules/agents/maya/maya.usage.service.js");
+      await checkAndDeductCredits("org_20", 300); // exhaust the base 300
+      await grantPurchasedTopupCredits("org_20", 150);
+
+      const usage = await getCurrentUsage("org_20");
+      assert.equal(usage.credits.used, 300, "used reflects only real consumption, unaffected by the topup");
+      assert.equal(usage.credits.limit, 450);
+      assert.equal(usage.credits.remaining, 150, "300 used against a 450 effective limit = 150 still usable");
+    });
+
+    test("buying a topup before exhausting the base allowance grants real, immediately usable headroom (the bug this design avoids)", async () => {
+      const anchor = new Date(Date.now() - 5 * DAY);
+      entitlements = [crewEntitlement("org_23", anchor, new Date(Date.now() + 20 * DAY), "bs_13")];
+      billingSubscriptions = [{ id: "bs_13", plan: "MONTHLY" }];
+
+      const { checkAndDeductCredits, grantPurchasedTopupCredits, getCurrentUsage } =
+        await import("../../modules/agents/maya/maya.usage.service.js");
+      // Nothing spent yet — this is exactly the case where the old
+      // negative-creditsUsed design would clamp to 0 and silently discard
+      // the purchase.
+      await grantPurchasedTopupCredits("org_23", 150);
+      await checkAndDeductCredits("org_23", 400); // would exceed the base 300 limit alone
+
+      const usage = await getCurrentUsage("org_23");
+      assert.equal(usage.credits.used, 400);
+      assert.equal(usage.credits.remaining, 50, "450 effective limit - 400 used = 50 remaining");
+    });
+
+    test("no-op when credits <= 0", async () => {
+      const { grantPurchasedTopupCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await grantPurchasedTopupCredits("org_21", 0);
+      assert.equal(mockPrisma.entitlement.findMany.mock.calls.length, 0);
+    });
+
+    test("throws no-subscription when there is no covering Maya entitlement", async () => {
+      entitlements = [];
+      const { grantPurchasedTopupCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(grantPurchasedTopupCredits("org_22", 50)).rejects.toThrow("no-subscription");
     });
   });
 

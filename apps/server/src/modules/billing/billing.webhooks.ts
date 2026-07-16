@@ -7,6 +7,8 @@ import {
   resolveAgentFromProductId,
   resolveCrewPlanFromProductId,
 } from "./billing.catalog.js";
+import { grantPurchasedTopupCredits } from "../agents/maya/maya.usage.service.js";
+import { TOPUP_CREDITS_PER_UNIT } from "../agents/maya/maya.quotas.js";
 import type { Agent, SubscriptionPlan } from "../../../prisma/generated/prisma/client.js";
 
 /**
@@ -27,6 +29,8 @@ type WebhookPayload = {
     customer?: { customer_id?: string };
     subscription_id?: string;
     product_id?: string;
+    payment_id?: string;
+    product_cart?: { product_id: string; quantity: number }[] | null;
     status?: string;
     metadata?: Record<string, string | undefined>;
     next_billing_date?: string;
@@ -182,19 +186,27 @@ export async function withWebhookEvent<T>(
  * handler that needs to count failed-payment attempts), would be silently
  * broken by this fallback — the second event just vanishes. Do not reuse
  * this key for such a handler without adding the real provider event id.
+ *
+ * One-time payments (e.g. a Maya credit top-up) have no subscription_id and
+ * no period fields at all — every one of them would otherwise collapse onto
+ * the identical key `payment.succeeded:none:no-period`, silently dropping
+ * the second and every subsequent top-up as a "duplicate". Dodo's payment_id
+ * is a stable per-payment identifier always present on `payment.*` events,
+ * so it is checked BEFORE falling through to the subscription/period key.
  */
 export function providerEventId(payload: WebhookPayload): string {
   const id = (payload as { id?: string; webhook_id?: string }).id
     ?? (payload as { webhook_id?: string }).webhook_id;
   if (id) return id;
+  if (payload.data.payment_id) return `${payload.type}:payment:${payload.data.payment_id}`;
   const period = payload.data.next_billing_date ?? payload.data.current_period_end ?? "no-period";
   return `${payload.type}:${payload.data.subscription_id ?? "none"}:${period}`;
 }
 
-type CheckoutKind = "AGENT" | "CREW" | "CREW_UPGRADE";
+type CheckoutKind = "AGENT" | "CREW" | "CREW_UPGRADE" | "MAYA_TOPUP";
 
 function isCheckoutKind(value: unknown): value is CheckoutKind {
-  return value === "AGENT" || value === "CREW" || value === "CREW_UPGRADE";
+  return value === "AGENT" || value === "CREW" || value === "CREW_UPGRADE" || value === "MAYA_TOPUP";
 }
 
 function isAgentValue(value: unknown): value is Agent {
@@ -320,17 +332,33 @@ export async function applyCrewActivation(input: {
   // Stop the superseded subs at their period end. Outside the transaction:
   // these are external calls and must not hold a DB lock. Failure here is
   // recoverable (support/a reconciler can retry) and must NOT roll back the
-  // Crew grant the customer has already paid for.
+  // Crew grant the customer has already paid for. There is no error-tracking
+  // service in this repo, so failures are also folded into the return value
+  // — the caller encodes them into the BillingWebhookEvent ledger's `result`
+  // string (instead of the generic "applied-crew"), making a still-billing
+  // superseded subscription greppable for manual reconciliation:
+  //   SELECT * FROM billing_webhook_event WHERE result LIKE 'applied-crew:supersede-failed%'
+  const supersedeFailedIds: string[] = [];
   for (const bsId of superseded) {
     const bs = await prisma.billingSubscription.findUnique({ where: { id: bsId } });
     if (!bs) continue;
-    await dodoClient.subscriptions
+    const dodoOk = await dodoClient.subscriptions
       .update(bs.dodoSubscriptionId, { cancel_at_next_billing_date: true })
-      .catch((e) => console.error("[billing] failed to stop superseded sub", bs.dodoSubscriptionId, e));
-    await prisma.billingSubscription
+      .then(() => true)
+      .catch((e) => {
+        console.error("[billing] failed to stop superseded sub", bs.dodoSubscriptionId, e);
+        return false;
+      });
+    const dbOk = await prisma.billingSubscription
       .update({ where: { id: bsId }, data: { cancelAtPeriodEnd: true } })
-      .catch((e) => console.error("[billing] failed to flag superseded sub cancelAtPeriodEnd", bsId, e));
+      .then(() => true)
+      .catch((e) => {
+        console.error("[billing] failed to flag superseded sub cancelAtPeriodEnd", bsId, e);
+        return false;
+      });
+    if (!dodoOk || !dbOk) supersedeFailedIds.push(bsId);
   }
+  return { supersedeFailedIds };
 }
 
 /**
@@ -462,14 +490,21 @@ export async function handleSubscriptionActive(payload: WebhookPayload) {
     }
 
     if (intent.kind === "CREW" || intent.kind === "CREW_UPGRADE") {
-      await applyCrewActivation({
+      const { supersedeFailedIds } = await applyCrewActivation({
         organizationId: orgId,
         dodoSubscriptionId: dodoSubId,
         plan: intent.plan,
         periodEnd,
       });
       await cleanupPendingCheckouts(orgId, intent);
-      return "applied-crew";
+      // The Crew grant itself always succeeds here regardless of the
+      // supersede outcome below — see applyCrewActivation's comment. Encode
+      // any failure into the result string (rather than the generic
+      // "applied-crew") so a still-billing superseded subscription is
+      // greppable in the webhook ledger for manual reconciliation.
+      return supersedeFailedIds.length > 0
+        ? `applied-crew:supersede-failed:${supersedeFailedIds.join(",")}`
+        : "applied-crew";
     }
 
     // Fail closed: never default to an agent. The payment is already
@@ -600,5 +635,61 @@ export async function handlePaymentFailed(payload: WebhookPayload) {
       }),
     ]);
     return "applied-payment-failed";
+  });
+}
+
+/**
+ * Grants Maya credits for a completed one-time top-up payment. This is the
+ * only `payment.succeeded` handler in the module — every other purchase in
+ * this app is a subscription, provisioned on `subscription.active` instead.
+ *
+ * Ignores any `payment.succeeded` payload that isn't a top-up (metadata.kind
+ * check) so a future subscription-payment echo on this same event type can
+ * never accidentally grant credits.
+ *
+ * Credits are computed from Dodo's own `product_cart` (what was actually
+ * charged) in preference to our own checkout-time metadata (what we merely
+ * intended) — the cart is closer to ground truth. A mismatch between the two
+ * is logged, not treated as fatal.
+ */
+export async function handleMayaTopupPaymentSucceeded(payload: WebhookPayload) {
+  if (payload.data.metadata?.kind !== "MAYA_TOPUP") return;
+
+  const orgId = findOrgIdFromPayload(payload)
+    ?? (await findOrgIdByCustomer(payload.data.customer?.customer_id));
+  if (!orgId) {
+    console.warn("[billing] topup webhook: unresolved org", payload);
+    return;
+  }
+
+  return withWebhookEvent(providerEventId(payload), payload.type, undefined, orgId, async () => {
+    const cart = payload.data.product_cart ?? [];
+    const creditsFromCart = (cart[0]?.quantity ?? 0) * TOPUP_CREDITS_PER_UNIT;
+    const creditsFromMetadata = Number(payload.data.metadata?.credits ?? 0);
+    const credits = creditsFromCart > 0 ? creditsFromCart : creditsFromMetadata;
+
+    if (credits <= 0) {
+      console.warn("[billing] topup webhook: no credits resolved", orgId);
+      return "ignored-no-credits";
+    }
+    if (creditsFromCart > 0 && creditsFromMetadata > 0 && creditsFromCart !== creditsFromMetadata) {
+      console.warn("[billing] topup credits mismatch — cart vs metadata", { orgId, creditsFromCart, creditsFromMetadata });
+    }
+
+    // Known edge case, not solved here: if the org's Maya entitlement has
+    // lapsed between checkout and webhook delivery, grantPurchasedTopupCredits
+    // throws "no-subscription" (there is no window to grant the credit
+    // into) — the payment was captured but there's nowhere to apply it.
+    // withWebhookEvent's catch releases the claim and rethrows, so Dodo
+    // retries indefinitely on an unrecoverable condition. This mirrors the
+    // existing house style elsewhere in this file (idempotent-retry-forever)
+    // rather than inventing new dead-letter infrastructure.
+    await grantPurchasedTopupCredits(orgId, credits);
+
+    await prisma.pendingCheckout
+      .deleteMany({ where: { organizationId: orgId, kind: "MAYA_TOPUP" } })
+      .catch((e) => console.error("[billing] failed to clean up topup pending checkout", orgId, e));
+
+    return `applied-topup:${credits}`;
   });
 }

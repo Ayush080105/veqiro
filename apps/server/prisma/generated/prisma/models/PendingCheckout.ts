@@ -21,8 +21,18 @@ export type PendingCheckoutModel = runtime.Types.Result.DefaultSelection<Prisma.
 
 export type AggregatePendingCheckout = {
   _count: PendingCheckoutCountAggregateOutputType | null
+  _avg: PendingCheckoutAvgAggregateOutputType | null
+  _sum: PendingCheckoutSumAggregateOutputType | null
   _min: PendingCheckoutMinAggregateOutputType | null
   _max: PendingCheckoutMaxAggregateOutputType | null
+}
+
+export type PendingCheckoutAvgAggregateOutputType = {
+  credits: number | null
+}
+
+export type PendingCheckoutSumAggregateOutputType = {
+  credits: number | null
 }
 
 export type PendingCheckoutMinAggregateOutputType = {
@@ -33,6 +43,7 @@ export type PendingCheckoutMinAggregateOutputType = {
   agent: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan | null
   discountCode: string | null
+  credits: number | null
   createdAt: Date | null
 }
 
@@ -44,6 +55,7 @@ export type PendingCheckoutMaxAggregateOutputType = {
   agent: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan | null
   discountCode: string | null
+  credits: number | null
   createdAt: Date | null
 }
 
@@ -55,10 +67,19 @@ export type PendingCheckoutCountAggregateOutputType = {
   agent: number
   plan: number
   discountCode: number
+  credits: number
   createdAt: number
   _all: number
 }
 
+
+export type PendingCheckoutAvgAggregateInputType = {
+  credits?: true
+}
+
+export type PendingCheckoutSumAggregateInputType = {
+  credits?: true
+}
 
 export type PendingCheckoutMinAggregateInputType = {
   id?: true
@@ -68,6 +89,7 @@ export type PendingCheckoutMinAggregateInputType = {
   agent?: true
   plan?: true
   discountCode?: true
+  credits?: true
   createdAt?: true
 }
 
@@ -79,6 +101,7 @@ export type PendingCheckoutMaxAggregateInputType = {
   agent?: true
   plan?: true
   discountCode?: true
+  credits?: true
   createdAt?: true
 }
 
@@ -90,6 +113,7 @@ export type PendingCheckoutCountAggregateInputType = {
   agent?: true
   plan?: true
   discountCode?: true
+  credits?: true
   createdAt?: true
   _all?: true
 }
@@ -132,6 +156,18 @@ export type PendingCheckoutAggregateArgs<ExtArgs extends runtime.Types.Extension
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: PendingCheckoutAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: PendingCheckoutSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: PendingCheckoutMinAggregateInputType
@@ -162,6 +198,8 @@ export type PendingCheckoutGroupByArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   _count?: PendingCheckoutCountAggregateInputType | true
+  _avg?: PendingCheckoutAvgAggregateInputType
+  _sum?: PendingCheckoutSumAggregateInputType
   _min?: PendingCheckoutMinAggregateInputType
   _max?: PendingCheckoutMaxAggregateInputType
 }
@@ -174,8 +212,11 @@ export type PendingCheckoutGroupByOutputType = {
   agent: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan
   discountCode: string | null
+  credits: number | null
   createdAt: Date
   _count: PendingCheckoutCountAggregateOutputType | null
+  _avg: PendingCheckoutAvgAggregateOutputType | null
+  _sum: PendingCheckoutSumAggregateOutputType | null
   _min: PendingCheckoutMinAggregateOutputType | null
   _max: PendingCheckoutMaxAggregateOutputType | null
 }
@@ -206,6 +247,7 @@ export type PendingCheckoutWhereInput = {
   agent?: Prisma.EnumAgentNullableFilter<"PendingCheckout"> | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFilter<"PendingCheckout"> | $Enums.SubscriptionPlan
   discountCode?: Prisma.StringNullableFilter<"PendingCheckout"> | string | null
+  credits?: Prisma.IntNullableFilter<"PendingCheckout"> | number | null
   createdAt?: Prisma.DateTimeFilter<"PendingCheckout"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
 }
@@ -218,6 +260,7 @@ export type PendingCheckoutOrderByWithRelationInput = {
   agent?: Prisma.SortOrderInput | Prisma.SortOrder
   plan?: Prisma.SortOrder
   discountCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  credits?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   organization?: Prisma.OrganizationOrderByWithRelationInput
 }
@@ -233,6 +276,7 @@ export type PendingCheckoutWhereUniqueInput = Prisma.AtLeast<{
   agent?: Prisma.EnumAgentNullableFilter<"PendingCheckout"> | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFilter<"PendingCheckout"> | $Enums.SubscriptionPlan
   discountCode?: Prisma.StringNullableFilter<"PendingCheckout"> | string | null
+  credits?: Prisma.IntNullableFilter<"PendingCheckout"> | number | null
   createdAt?: Prisma.DateTimeFilter<"PendingCheckout"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
 }, "id" | "sessionId">
@@ -245,10 +289,13 @@ export type PendingCheckoutOrderByWithAggregationInput = {
   agent?: Prisma.SortOrderInput | Prisma.SortOrder
   plan?: Prisma.SortOrder
   discountCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  credits?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.PendingCheckoutCountOrderByAggregateInput
+  _avg?: Prisma.PendingCheckoutAvgOrderByAggregateInput
   _max?: Prisma.PendingCheckoutMaxOrderByAggregateInput
   _min?: Prisma.PendingCheckoutMinOrderByAggregateInput
+  _sum?: Prisma.PendingCheckoutSumOrderByAggregateInput
 }
 
 export type PendingCheckoutScalarWhereWithAggregatesInput = {
@@ -262,6 +309,7 @@ export type PendingCheckoutScalarWhereWithAggregatesInput = {
   agent?: Prisma.EnumAgentNullableWithAggregatesFilter<"PendingCheckout"> | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanWithAggregatesFilter<"PendingCheckout"> | $Enums.SubscriptionPlan
   discountCode?: Prisma.StringNullableWithAggregatesFilter<"PendingCheckout"> | string | null
+  credits?: Prisma.IntNullableWithAggregatesFilter<"PendingCheckout"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PendingCheckout"> | Date | string
 }
 
@@ -272,6 +320,7 @@ export type PendingCheckoutCreateInput = {
   agent?: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan
   discountCode?: string | null
+  credits?: number | null
   createdAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutPendingCheckoutsInput
 }
@@ -284,6 +333,7 @@ export type PendingCheckoutUncheckedCreateInput = {
   agent?: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan
   discountCode?: string | null
+  credits?: number | null
   createdAt?: Date | string
 }
 
@@ -294,6 +344,7 @@ export type PendingCheckoutUpdateInput = {
   agent?: Prisma.NullableEnumAgentFieldUpdateOperationsInput | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan
   discountCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  credits?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutPendingCheckoutsNestedInput
 }
@@ -306,6 +357,7 @@ export type PendingCheckoutUncheckedUpdateInput = {
   agent?: Prisma.NullableEnumAgentFieldUpdateOperationsInput | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan
   discountCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  credits?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -317,6 +369,7 @@ export type PendingCheckoutCreateManyInput = {
   agent?: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan
   discountCode?: string | null
+  credits?: number | null
   createdAt?: Date | string
 }
 
@@ -327,6 +380,7 @@ export type PendingCheckoutUpdateManyMutationInput = {
   agent?: Prisma.NullableEnumAgentFieldUpdateOperationsInput | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan
   discountCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  credits?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -338,6 +392,7 @@ export type PendingCheckoutUncheckedUpdateManyInput = {
   agent?: Prisma.NullableEnumAgentFieldUpdateOperationsInput | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan
   discountCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  credits?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -359,7 +414,12 @@ export type PendingCheckoutCountOrderByAggregateInput = {
   agent?: Prisma.SortOrder
   plan?: Prisma.SortOrder
   discountCode?: Prisma.SortOrder
+  credits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+}
+
+export type PendingCheckoutAvgOrderByAggregateInput = {
+  credits?: Prisma.SortOrder
 }
 
 export type PendingCheckoutMaxOrderByAggregateInput = {
@@ -370,6 +430,7 @@ export type PendingCheckoutMaxOrderByAggregateInput = {
   agent?: Prisma.SortOrder
   plan?: Prisma.SortOrder
   discountCode?: Prisma.SortOrder
+  credits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -381,7 +442,12 @@ export type PendingCheckoutMinOrderByAggregateInput = {
   agent?: Prisma.SortOrder
   plan?: Prisma.SortOrder
   discountCode?: Prisma.SortOrder
+  credits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+}
+
+export type PendingCheckoutSumOrderByAggregateInput = {
+  credits?: Prisma.SortOrder
 }
 
 export type PendingCheckoutCreateNestedManyWithoutOrganizationInput = {
@@ -434,6 +500,14 @@ export type NullableEnumAgentFieldUpdateOperationsInput = {
   set?: $Enums.Agent | null
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type PendingCheckoutCreateWithoutOrganizationInput = {
   id?: string
   sessionId: string
@@ -441,6 +515,7 @@ export type PendingCheckoutCreateWithoutOrganizationInput = {
   agent?: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan
   discountCode?: string | null
+  credits?: number | null
   createdAt?: Date | string
 }
 
@@ -451,6 +526,7 @@ export type PendingCheckoutUncheckedCreateWithoutOrganizationInput = {
   agent?: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan
   discountCode?: string | null
+  credits?: number | null
   createdAt?: Date | string
 }
 
@@ -491,6 +567,7 @@ export type PendingCheckoutScalarWhereInput = {
   agent?: Prisma.EnumAgentNullableFilter<"PendingCheckout"> | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFilter<"PendingCheckout"> | $Enums.SubscriptionPlan
   discountCode?: Prisma.StringNullableFilter<"PendingCheckout"> | string | null
+  credits?: Prisma.IntNullableFilter<"PendingCheckout"> | number | null
   createdAt?: Prisma.DateTimeFilter<"PendingCheckout"> | Date | string
 }
 
@@ -501,6 +578,7 @@ export type PendingCheckoutCreateManyOrganizationInput = {
   agent?: $Enums.Agent | null
   plan: $Enums.SubscriptionPlan
   discountCode?: string | null
+  credits?: number | null
   createdAt?: Date | string
 }
 
@@ -511,6 +589,7 @@ export type PendingCheckoutUpdateWithoutOrganizationInput = {
   agent?: Prisma.NullableEnumAgentFieldUpdateOperationsInput | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan
   discountCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  credits?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -521,6 +600,7 @@ export type PendingCheckoutUncheckedUpdateWithoutOrganizationInput = {
   agent?: Prisma.NullableEnumAgentFieldUpdateOperationsInput | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan
   discountCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  credits?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -531,6 +611,7 @@ export type PendingCheckoutUncheckedUpdateManyWithoutOrganizationInput = {
   agent?: Prisma.NullableEnumAgentFieldUpdateOperationsInput | $Enums.Agent | null
   plan?: Prisma.EnumSubscriptionPlanFieldUpdateOperationsInput | $Enums.SubscriptionPlan
   discountCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  credits?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -544,6 +625,7 @@ export type PendingCheckoutSelect<ExtArgs extends runtime.Types.Extensions.Inter
   agent?: boolean
   plan?: boolean
   discountCode?: boolean
+  credits?: boolean
   createdAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["pendingCheckout"]>
@@ -556,6 +638,7 @@ export type PendingCheckoutSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   agent?: boolean
   plan?: boolean
   discountCode?: boolean
+  credits?: boolean
   createdAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["pendingCheckout"]>
@@ -568,6 +651,7 @@ export type PendingCheckoutSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   agent?: boolean
   plan?: boolean
   discountCode?: boolean
+  credits?: boolean
   createdAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["pendingCheckout"]>
@@ -580,10 +664,11 @@ export type PendingCheckoutSelectScalar = {
   agent?: boolean
   plan?: boolean
   discountCode?: boolean
+  credits?: boolean
   createdAt?: boolean
 }
 
-export type PendingCheckoutOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "sessionId" | "kind" | "agent" | "plan" | "discountCode" | "createdAt", ExtArgs["result"]["pendingCheckout"]>
+export type PendingCheckoutOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "sessionId" | "kind" | "agent" | "plan" | "discountCode" | "credits" | "createdAt", ExtArgs["result"]["pendingCheckout"]>
 export type PendingCheckoutInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }
@@ -620,17 +705,23 @@ export type $PendingCheckoutPayload<ExtArgs extends runtime.Types.Extensions.Int
      */
     kind: $Enums.CheckoutKind
     /**
-     * Agent being purchased. Null for CREW / CREW_UPGRADE.
+     * Agent being purchased. Null for CREW / CREW_UPGRADE / MAYA_TOPUP.
      */
     agent: $Enums.Agent | null
     /**
-     * Billing cadence for this checkout.
+     * Billing cadence for this checkout. Meaningless filler ("MONTHLY") for
+     * MAYA_TOPUP, which has no cadence — kept non-null for schema simplicity,
+     * same convention as individual-agent checkouts.
      */
     plan: $Enums.SubscriptionPlan
     /**
      * Optional discount code applied at checkout.
      */
     discountCode: string | null
+    /**
+     * Credits purchased. Only set for MAYA_TOPUP; null otherwise.
+     */
+    credits: number | null
     /**
      * Creation timestamp.
      */
@@ -1066,6 +1157,7 @@ export interface PendingCheckoutFieldRefs {
   readonly agent: Prisma.FieldRef<"PendingCheckout", 'Agent'>
   readonly plan: Prisma.FieldRef<"PendingCheckout", 'SubscriptionPlan'>
   readonly discountCode: Prisma.FieldRef<"PendingCheckout", 'String'>
+  readonly credits: Prisma.FieldRef<"PendingCheckout", 'Int'>
   readonly createdAt: Prisma.FieldRef<"PendingCheckout", 'DateTime'>
 }
     

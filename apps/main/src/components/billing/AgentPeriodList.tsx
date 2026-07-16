@@ -1,9 +1,10 @@
 "use client"
 
 import Image from "next/image"
+import { Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useEntitlements, type AgentEntitlement } from "@/lib/api/billing"
+import { useEntitlements, useMayaUsage, type AgentEntitlement } from "@/lib/api/billing"
 import { getAgent } from "@/lib/config/agents"
 
 const SOURCE_LABELS: Record<AgentEntitlement["source"], string> = {
@@ -28,10 +29,13 @@ function formatDate(iso: string) {
  */
 export function AgentPeriodList({ organizationId }: { organizationId?: string | null }) {
   const { entitlements, isPending } = useEntitlements(organizationId)
+  // Only Maya has a credit quota — every other agent is genuinely unlimited,
+  // so their rows show a static badge instead of an extra API call.
+  const { data: mayaUsage } = useMayaUsage(organizationId)
 
   if (isPending) {
     return (
-      <Card>
+      <Card variant="brand">
         <CardContent className="py-6 text-center text-sm text-muted-foreground">
           Loading agent access…
         </CardContent>
@@ -44,7 +48,7 @@ export function AgentPeriodList({ organizationId }: { organizationId?: string | 
   }
 
   return (
-    <Card>
+    <Card variant="brand">
       <CardHeader>
         <CardTitle className="text-sm font-semibold">Agent access</CardTitle>
         <CardDescription>
@@ -61,10 +65,10 @@ export function AgentPeriodList({ organizationId }: { organizationId?: string | 
             // so `agent` alone isn't a unique key — see billing/page.tsx.
             <div
               key={`${entitlement.agent}-${entitlement.source}-${entitlement.currentPeriodEnd}`}
-              className="flex items-center justify-between gap-4 rounded-lg border bg-card p-3"
+              className="flex items-center justify-between gap-4 rounded-lg border-2 border-foreground/60 bg-card p-3"
             >
               <div className="flex items-center gap-3">
-                <div className="relative size-9 overflow-hidden rounded-full border bg-muted">
+                <div className="relative size-9 overflow-hidden rounded-full border-2 border-foreground bg-muted">
                   <Image
                     src={`/agents/${agentId}.jpeg`}
                     alt={`${agent?.name ?? entitlement.agent} portrait`}
@@ -94,6 +98,18 @@ export function AgentPeriodList({ organizationId }: { organizationId?: string | 
                   </p>
                 </div>
               </div>
+              {entitlement.agent === "MAYA" ? (
+                mayaUsage && (
+                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-1 font-mono text-[11px] text-muted-foreground">
+                    <Sparkles className="size-3" />
+                    {mayaUsage.credits.used}/{mayaUsage.credits.limit} credits
+                  </span>
+                )
+              ) : (
+                <Badge variant="secondary" className="shrink-0 text-[10px]">
+                  Unlimited
+                </Badge>
+              )}
             </div>
           )
         })}

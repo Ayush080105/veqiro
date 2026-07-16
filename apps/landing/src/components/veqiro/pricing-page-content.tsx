@@ -4,19 +4,11 @@ import Link from 'next/link';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT, Button } from '@/components/veqiro/shared';
-import { agentPricing, pricingTiers, consoleUrl, isPreLaunch, waitlistUrl, contact } from '@/lib/site-config';
+import { agentPricing, pricingTiers, consoleUrl, isPreLaunch, waitlistUrl, contact, PRICING_FAQ } from '@/lib/site-config';
+import { useBillingCatalog } from '@/lib/use-billing-catalog';
 import { EMPLOYEES } from '@/components/veqiro/data';
 import { CHARACTER_COMPONENTS } from '@/components/veqiro/characters';
 import { ContactModal } from '@/components/veqiro/contact-modal';
-
-const PRICING_FAQ = [
-  { q: 'Is there a free trial?', a: "Yes — 7 days, no credit card required. Full access to all six agents from day one." },
-  { q: 'What does "billed annually" mean?', a: "You pay for 12 months upfront and save ~25% versus monthly. Cancel before renewal and we won't charge you again." },
-  { q: 'Can I cancel anytime?', a: "On monthly billing: cancel before your next cycle. On annual: you keep access until the end of the paid period." },
-  { q: 'What integrations are included?', a: "Gmail, Google Calendar, LinkedIn, Twitter/X, and Instagram out of the box. More on the roadmap." },
-  { q: 'Do agents share memory across tasks?', a: "Yes. Your Brain (company profile, brand voice, competitors) is read by all six agents so they stay consistent." },
-  { q: 'Is my data used to train your AI?', a: "Never. Your content is used only to perform the tasks you ask for." },
-];
 
 const AGENT_BLURBS: Record<string, string> = {
   vega:  'Inbox, calendar, briefings',
@@ -27,41 +19,45 @@ const AGENT_BLURBS: Record<string, string> = {
   rex:   'Finance, metrics, forecasts',
 };
 
+// Every blurb is exactly 3 comma-separated words, but at this card width some
+// wrap after 2 words and some don't (depends on word length) — forcing the
+// break after the 2nd word keeps every card the same height in a row.
+function TwoLineBlurb({ text }: { text: string }) {
+  const words = text.split(', ');
+  return (
+    <>
+      {words.slice(0, 2).join(', ')},<br />
+      {words.slice(2).join(', ')}
+    </>
+  );
+}
+
 const FEATURES = [
   { title: 'All 6 AI Employees', desc: 'Vega, Scout, Maya, Sage, Lex, and Rex — fully specialized, ready to work.', color: '#F5C518' },
   { title: 'Shared Brain', desc: 'One company profile. All agents read your brand voice, competitors, and goals.', color: '#6FCDE8' },
   { title: 'Custom Brand Voice', desc: '6 presets or fully custom — your agents write like you, not like a template.', color: '#F06464' },
   { title: 'Priority Processing', desc: "Your tasks don't wait in a queue. You get dedicated compute from day one.", color: '#1DBC87' },
   { title: 'Integrations', desc: 'Gmail, Google Calendar, LinkedIn, Twitter/X, Instagram, and more.', color: '#F79FD4' },
-  { title: 'Unlimited Tasks', desc: 'No credits. No per-task fees. Just assign the work and get results.', color: '#8A8AF0' },
+  { title: 'No Per-Task Fees', desc: "Assign as much work as you want. Maya's image/video generation draws from a monthly credit allowance — every other agent has none at all.", color: '#8A8AF0' },
 ];
 
-const PRICE_BY_AGENT = Object.fromEntries(agentPricing.map(item => [item.key, item.monthly])) as Record<string, number | null>;
-
-function cartTotal(selected: string[], yearly: boolean, crewMonthly: number, crewAnnual: number) {
-  if (selected.length === EMPLOYEES.length) return yearly ? crewAnnual : crewMonthly;
-  const prices = selected.map(key => PRICE_BY_AGENT[key]);
-  if (prices.some(price => price == null)) return null;
-  const monthly = (prices as number[]).reduce((sum, price) => sum + price, 0);
-  return yearly ? Math.round(monthly * 12 * 0.75) : monthly;
-}
+// Fallback only, for the brief window before /billing/catalog resolves.
+const STATIC_PRICE_BY_AGENT = Object.fromEntries(agentPricing.map(item => [item.key, item.monthly])) as Record<string, number | null>;
 
 export default function PricingPageContent() {
-  const tier = pricingTiers[0];
+  // Real prices come from the server catalog; site-config's hardcoded
+  // numbers are only the fallback shown until the fetch resolves.
+  const catalog = useBillingCatalog();
+  const priceByAgent: Record<string, number | null> = catalog
+    ? Object.fromEntries(Object.entries(catalog.agents).map(([key, value]) => [key.toLowerCase(), Math.round(value.priceCents / 100)]))
+    : STATIC_PRICE_BY_AGENT;
+  const tier = catalog
+    ? { ...pricingTiers[0], monthly: Math.round(catalog.crew.monthly.priceCents / 100), yearly: Math.round(catalog.crew.annual.priceCents / 100 / 12) }
+    : pricingTiers[0];
   const custom = pricingTiers.find(t => t.custom);
   const [yearly, setYearly] = useState(false);
   const price = yearly ? tier.yearly : tier.monthly;
   const [isContactOpen, setIsContactOpen] = useState(false);
-  const [selectedAgents, setSelectedAgents] = useState<string[]>(['maya']);
-  const selectedTotal = cartTotal(selectedAgents, yearly, tier.monthly, tier.yearly * 12);
-  const selectedParam = selectedAgents.join(',');
-
-  function toggleAgent(key: string) {
-    setSelectedAgents(prev => {
-      if (prev.includes(key)) return prev.length === 1 ? prev : prev.filter(item => item !== key);
-      return [...prev, key];
-    });
-  }
 
   return (
     <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
@@ -293,105 +289,77 @@ export default function PricingPageContent() {
         </div>
       </section>
 
-      {/* AGENT CART */}
+      {/* BUY INDIVIDUALLY — each agent is its own checkout, no cart, no
+          selection state. Matches how the real product works: one agent =
+          one purchase, with its own renewal date. */}
       <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 32 }}>
-            <div>
-              <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 12 }}>
-                [ AGENT CART ]
-              </div>
-              <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(38px, 6vw, 76px)', margin: 0, lineHeight: 0.92 }}>
-                buy the agents<br />
-                <span style={{ background: '#6FCDE8', border: '3px solid #111', borderRadius: 8, boxShadow: '5px 5px 0 #111', padding: '0 14px', display: 'inline-block' }}>
-                  you need first.
-                </span>
-              </h2>
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 12 }}>
+              [ OR BUY ONE AT A TIME ]
             </div>
-            <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: '#444', maxWidth: 380, margin: 0 }}>
-              Start with one specialist, add more later, or pick all six and we switch you to Crew pricing automatically.
+            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(38px, 6vw, 76px)', margin: 0, lineHeight: 0.92 }}>
+              start with one.<br />
+              <span style={{ background: '#6FCDE8', border: '3px solid #111', borderRadius: 8, boxShadow: '5px 5px 0 #111', padding: '0 14px', display: 'inline-block' }}>
+                add the rest later.
+              </span>
+            </h2>
+            <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: '#444', maxWidth: 620, margin: '18px 0 0' }}>
+              Rather start small? Every agent is available on its own, starting at $9/mo — each one bills and renews independently, so you only ever pay for who you&apos;re using.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20 }}>
             {EMPLOYEES.map(emp => {
-              const selected = selectedAgents.includes(emp.key);
               const Comp = CHARACTER_COMPONENTS[emp.key];
+              const monthlyPrice = priceByAgent[emp.key];
               return (
-                <button
+                <div
                   key={emp.key}
-                  onClick={() => toggleAgent(emp.key)}
                   style={{
                     textAlign: 'left',
                     border: '3px solid #111',
                     borderRadius: 12,
                     overflow: 'hidden',
-                    background: selected ? emp.color : '#fff',
-                    boxShadow: selected ? '6px 6px 0 #111' : '3px 3px 0 #111',
-                    cursor: 'pointer',
-                    padding: 0,
+                    background: '#fff',
+                    boxShadow: '5px 5px 0 #111',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                 >
                   <div style={{ position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', background: emp.color, borderBottom: '3px solid #111' }}>
                     <Comp size="100%" />
-                    <div style={{
-                      position: 'absolute', top: 8, right: 8,
-                      width: 26, height: 26, borderRadius: '50%',
-                      background: selected ? '#111' : '#fff',
-                      border: '2px solid #111',
-                      display: 'grid', placeItems: 'center',
-                      fontFamily: FONT.head, fontSize: 14, color: '#fff',
-                      boxShadow: '2px 2px 0 #111',
-                    }}>
-                      {selected && '✓'}
-                    </div>
                   </div>
-                  <div style={{ padding: 14 }}>
-                    <div style={{ fontFamily: FONT.display, fontSize: 25, lineHeight: 1, color: selected ? '#111' : emp.color }}>
+                  <div style={{ padding: 14, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                    <div style={{ fontFamily: FONT.display, fontSize: 22, lineHeight: 1, color: emp.color }}>
                       {emp.name}
                     </div>
-                    <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: selected ? '#111' : '#777', marginTop: 6 }}>
-                      {PRICE_BY_AGENT[emp.key] == null ? 'configured price' : `$${PRICE_BY_AGENT[emp.key]}/mo`}
+                    <div style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: '#777', marginTop: 6, lineHeight: 1.5 }}>
+                      <TwoLineBlurb text={AGENT_BLURBS[emp.key]} />
                     </div>
+                    <div style={{ fontFamily: FONT.display, fontSize: 24, color: '#111', marginTop: 12 }}>
+                      {monthlyPrice == null ? '—' : `$${monthlyPrice}`}
+                      <span style={{ fontFamily: FONT.body, fontSize: 12, color: '#888', marginLeft: 4 }}>/mo</span>
+                    </div>
+                    <div style={{ fontFamily: FONT.mono, fontSize: 10, color: '#1DBC87', marginTop: 4 }}>
+                      {emp.key === 'maya' ? '300 credits/mo included' : 'Unlimited generations'}
+                    </div>
+                    <a
+                      href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
+                      style={{
+                        marginTop: 12, display: 'block', textAlign: 'center',
+                        padding: '10px 14px', background: '#111', color: '#EFE7D6',
+                        fontFamily: FONT.head, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1,
+                        border: '3px solid #111', borderRadius: 8, textDecoration: 'none',
+                        boxSizing: 'border-box',
+                      } as React.CSSProperties}
+                    >
+                      Start with {emp.name} →
+                    </a>
                   </div>
-                </button>
+                </div>
               );
             })}
-          </div>
-
-          <div style={{
-            marginTop: 28,
-            border: '3px solid #111',
-            borderRadius: 14,
-            boxShadow: '8px 8px 0 #111',
-            background: '#EFE7D6',
-            padding: 'clamp(18px, 4vw, 28px)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 20,
-            flexWrap: 'wrap',
-          }}>
-            <div>
-              <div style={{ fontFamily: FONT.head, fontSize: 18 }}>
-                {selectedAgents.length === EMPLOYEES.length ? 'Crew pricing applied' : `${selectedAgents.length} agent${selectedAgents.length === 1 ? '' : 's'} selected`}
-              </div>
-              <div style={{ fontFamily: FONT.body, fontSize: 14, color: '#555', marginTop: 4 }}>
-                {selectedTotal == null ? 'Final price appears once agent prices are configured.' : yearly ? 'Billed annually with 25% off.' : 'Monthly billing. Add or manage agents from billing.'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ fontFamily: FONT.display, fontSize: 44, lineHeight: 1 }}>
-                {selectedTotal == null ? 'TBD' : `$${selectedTotal}`}
-                <span style={{ fontFamily: FONT.body, fontSize: 15, color: '#555' }}>{yearly ? '/yr' : '/mo'}</span>
-              </div>
-              <Button
-                variant="dark"
-                href={isPreLaunch ? waitlistUrl : `${consoleUrl}/settings/billing?agents=${encodeURIComponent(selectedParam)}`}
-              >
-                Add to cart →
-              </Button>
-            </div>
           </div>
         </div>
       </section>

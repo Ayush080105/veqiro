@@ -9,6 +9,43 @@ import rehypeStringify from 'rehype-stringify';
 
 const POSTS_DIR = path.join(process.cwd(), 'content/blog');
 
+// Markdown tables render as raw <table> elements with no wrapper, and
+// `.blog-content table { display: block; overflow-x: auto }` can't actually
+// scroll a block-level table (there's no table-layout box left to measure a
+// scroll width from) — columns clip instead. Wrapping each compiled <table>
+// in its own scrollable <div> (mirroring compare-page-content.tsx's working
+// pattern) fixes every post with a table in one place, no per-post changes.
+type HastNode = {
+  type: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+};
+
+function wrapTables(node: HastNode): HastNode {
+  if (node.children) {
+    node.children = node.children.map((child) => {
+      const wrapped = wrapTables(child);
+      if (wrapped.type === 'element' && wrapped.tagName === 'table') {
+        return {
+          type: 'element',
+          tagName: 'div',
+          properties: { className: ['blog-table-wrap'] },
+          children: [wrapped],
+        };
+      }
+      return wrapped;
+    });
+  }
+  return node;
+}
+
+function rehypeWrapTables() {
+  return (tree: HastNode) => {
+    wrapTables(tree);
+  };
+}
+
 export type BlogCategory =
   | 'ai-employees'
   | 'founders'
@@ -111,6 +148,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
       .use(remarkGfm)
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeSlug)
+      .use(rehypeWrapTables)
       .use(rehypeStringify, { allowDangerousHtml: true })
       .process(markdownContent);
 

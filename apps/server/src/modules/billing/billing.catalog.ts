@@ -105,6 +105,13 @@ export function crewProductId(plan: SubscriptionPlan): string {
   return value;
 }
 
+/** One-time (non-recurring) product for a single $3-credit-unit Maya top-up purchase. */
+export function mayaTopupUnitProductId(): string {
+  const value = process.env.DODO_PRODUCT_MAYA_TOPUP_UNIT;
+  if (!value) throw new BadRequestError("missing-product-id:MAYA_TOPUP");
+  return value;
+}
+
 export function resolveAgentFromProductId(productId: string): Agent | null {
   if (!productId) return null;
   for (const agent of ALL_AGENTS) {
@@ -118,16 +125,4 @@ export function resolveCrewPlanFromProductId(productId: string): SubscriptionPla
   if (productId === process.env.DODO_PRODUCT_CREW_MONTHLY) return "MONTHLY";
   if (productId === process.env.DODO_PRODUCT_CREW_ANNUAL) return "ANNUAL";
   return null;
-}
-
-/**
- * Sum of monthly list prices for a set of agents. Individual agents are
- * MONTHLY-only by design, so there is no cadence argument to get wrong.
- *
- * Transitional: this exists only to keep the current quantity-hack call site
- * compiling until Task 5.1 replaces it with real per-agent products. Phase 12
- * deletes it.
- */
-export function sumAgentMonthlyPriceCents(agents: Agent[]): number {
-  return agents.reduce((sum, agent) => sum + getAgentMonthlyPriceCents(agent), 0);
 }

@@ -287,7 +287,7 @@ describe("applyCrewActivation", () => {
 
     // Must not throw — the Crew grant is already committed and must survive
     // a failure in the best-effort "stop the old sub" cleanup step.
-    await applyCrewActivation({
+    const result = await applyCrewActivation({
       organizationId: "o1", dodoSubscriptionId: "sub_crew",
       plan: "MONTHLY" as never, periodEnd: daysFromNow(30),
     });
@@ -295,6 +295,15 @@ describe("applyCrewActivation", () => {
     assert.ok(ents.some((e) => e.agent === "REX" && e.source === "CREW"), "Crew grant must still exist");
     const rex = ents.find((e) => e.id === "ent_rex")!;
     assert.equal(rex.status, "SUPERSEDED", "supersede must still have committed despite the Dodo call failing");
+    assert.deepEqual(result.supersedeFailedIds, ["bs_rex"], "the failure must be reported, not just swallowed");
+  });
+
+  test("no failures reports an empty supersedeFailedIds", async () => {
+    const result = await applyCrewActivation({
+      organizationId: "o1", dodoSubscriptionId: "sub_crew",
+      plan: "MONTHLY" as never, periodEnd: daysFromNow(30),
+    });
+    assert.deepEqual(result.supersedeFailedIds, []);
   });
 });
 
@@ -338,6 +347,28 @@ describe("handleSubscriptionActive", () => {
     assert.equal(ents.length, 6);
     assert.ok(ents.every((e) => e.source === "CREW"));
     assert.equal(pendingCheckouts.length, 0, "the matching PendingCheckout row must be cleaned up");
+  });
+
+  test("a supersede failure during Crew activation is encoded into the webhook ledger's result, not swallowed as the generic 'applied-crew'", async () => {
+    ents = [{
+      id: "ent_rex", organizationId: "o1", agent: "REX", source: "AGENT", status: "ACTIVE",
+      currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_rex",
+    }];
+    billingSubs = [{ id: "bs_rex", organizationId: "o1", dodoSubscriptionId: "sub_rex", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
+    mockDodo.subscriptions.update = vi.fn(async () => { throw new Error("dodo down"); });
+
+    await handleSubscriptionActive(
+      basePayload({ metadata: { organizationId: "o1", kind: "CREW", plan: "MONTHLY" } }) as never,
+    );
+
+    assert.equal(ents.length, 7, "Crew grant (6 rows) plus the superseded AGENT row must both still exist");
+    const ledgerRow = webhookEvents.find((e) => e.eventType === "subscription.active");
+    assert.ok(ledgerRow, "a ledger row must have been written");
+    assert.match(
+      String(ledgerRow!.result),
+      /^applied-crew:supersede-failed:bs_rex$/,
+      "the failure must be greppable in the ledger, not hidden behind the generic 'applied-crew'",
+    );
   });
 
   test("REGRESSION (the money bug): an abandoned Rex checkout is the most-recent PendingCheckout row, but the customer actually paid for Maya — Maya must be provisioned, not Rex", async () => {

@@ -9,6 +9,8 @@ import {
   startTrialForOrg,
 } from "./billing.service.js";
 import { cancelAgentAutoPay, resumeAgentAutoPay } from "./billing.cancel.js";
+import { cancelCrewAutoPay, resumeCrewAutoPay } from "./billing.crew-cancel.js";
+import { createMayaTopupCheckout } from "./billing.topup.js";
 import { normalizeAgents, normalizePlan } from "./billing.catalog.js";
 import { getActiveEntitlements } from "./entitlement.service.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
@@ -75,10 +77,6 @@ export async function getStatus(req: Request, res: Response) {
       status: true,
       plan: true,
       dodoCustomerId: true,
-      pendingCheckoutSessionId: true,
-      pendingPlan: true,
-      pendingEntitlementMode: true,
-      pendingSelectedAgents: true,
     },
   });
 
@@ -90,6 +88,16 @@ export async function getStatus(req: Request, res: Response) {
   const active = await getActiveEntitlements(organizationId);
   const derived = deriveStatusFields(active);
 
+  // Checkout creation writes a PendingCheckout row (not the legacy
+  // Subscription.pending* columns, which nothing writes anymore); the
+  // matching row is deleted once its webhook resolves, so "most recent row
+  // for this org" is exactly "is a checkout still in flight."
+  const pending = await prisma.pendingCheckout.findFirst({
+    where: { organizationId },
+    orderBy: { createdAt: "desc" },
+    select: { kind: true, agent: true, plan: true, createdAt: true },
+  });
+
   res.status(StatusCodes.OK).json({
     subscription: {
       status: sub.status,
@@ -100,12 +108,8 @@ export async function getStatus(req: Request, res: Response) {
       entitlementMode: derived.entitlementMode,
       selectedAgents: derived.selectedAgents,
       unlockedAgents: derived.unlockedAgents,
-      pendingCheckout: sub.pendingCheckoutSessionId
-        ? {
-            plan: sub.pendingPlan,
-            entitlementMode: sub.pendingEntitlementMode,
-            selectedAgents: sub.pendingSelectedAgents,
-          }
+      pendingCheckout: pending
+        ? { kind: pending.kind, agent: pending.agent, plan: pending.plan, createdAt: pending.createdAt }
         : null,
       daysRemaining: derived.daysRemaining,
       entitlements: derived.entitlements,
@@ -168,4 +172,36 @@ export async function resumeAgent(req: Request, res: Response) {
   const orgId = await requireOrgOwner(req);
   const [agent] = normalizeAgents([req.params.agent]);
   res.status(StatusCodes.OK).json(await resumeAgentAutoPay(orgId, agent));
+}
+
+export async function cancelCrew(req: Request, res: Response) {
+  const orgId = await requireOrgOwner(req);
+  res.status(StatusCodes.OK).json(await cancelCrewAutoPay(orgId));
+}
+
+export async function resumeCrew(req: Request, res: Response) {
+  const orgId = await requireOrgOwner(req);
+  res.status(StatusCodes.OK).json(await resumeCrewAutoPay(orgId));
+}
+
+// Owner-gated like every other checkout-initiating route (createCheckout,
+// crew checkout) — this starts a real charge, unlike merely spending
+// already-purchased Maya credits, which any org member may do.
+export async function startMayaTopupCheckout(req: Request, res: Response) {
+  const orgId = await requireOrgOwner(req);
+  res.status(StatusCodes.OK).json(await createMayaTopupCheckout(orgId, req.body?.dollars));
+}
+
+// Clears the org's "Checkout syncing" UI state for a stuck/abandoned
+// checkout. Deliberately narrow: this only removes PendingCheckout row(s) —
+// it must never touch entitlements. If the webhook for this exact checkout
+// arrives later anyway, provisioning is unaffected: applyAgentActivation /
+// applyCrewActivation / handleMayaTopupPaymentSucceeded all key off the Dodo
+// subscription/payment id and webhook idempotency ledger, not off this row
+// still existing — cleanupPendingCheckouts' matching is best-effort cleanup,
+// not a provisioning precondition.
+export async function dismissPendingCheckout(req: Request, res: Response) {
+  const orgId = await requireOrgOwner(req);
+  const { count } = await prisma.pendingCheckout.deleteMany({ where: { organizationId: orgId } });
+  res.status(StatusCodes.OK).json({ dismissed: count });
 }

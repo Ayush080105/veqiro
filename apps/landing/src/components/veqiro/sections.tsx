@@ -188,6 +188,13 @@ export function Pricing() {
             </div>
           )}
         </div>
+
+        <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 13, marginTop: 32, color: '#EFE7D6', opacity: 0.8 }}>
+          Only need one agent?{' '}
+          <Link href="/pricing" style={{ color: '#F5C518', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            See per-agent pricing →
+          </Link>
+        </p>
       </div>
     </section>
   );

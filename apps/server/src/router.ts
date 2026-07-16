@@ -20,7 +20,7 @@ import { runWeeklyDigestNow, runDailyAlertsNow } from "./modules/agents/rex/rex.
 import messagesRouter from "./modules/messages/messages.routes.js";
 import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
 import uploadsRouter from "./modules/uploads/uploads.routes.js";
-import billingRouter from "./modules/billing/billing.routes.js";
+import billingRouter, { publicRouter as billingPublicRouter } from "./modules/billing/billing.routes.js";
 import adminRouter from "./modules/admin/admin.routes.js";
 import { adminMiddleware } from "./modules/admin/admin.middleware.js";
 import feedbackRouter from "./modules/feedback/feedback.routes.js";
@@ -40,6 +40,10 @@ router.use("/contact", contactRouter);
 // Public REX routes — webhook ingest (validated by API key in body) and public shared pins.
 // Mounted BEFORE the protected router so authMiddleware doesn't intercept them.
 router.use(rexPublicRouter);
+
+// Public billing catalog — no session needed (apps/landing reads this too).
+// Mounted BEFORE the protected /billing router so authMiddleware doesn't intercept it.
+router.use(billingPublicRouter);
 
 router.use("/agents/sage",  authMiddleware, entitlementMiddlewareForAgent(Agent.SAGE), sageRouter);
 router.use("/agents/rex",   authMiddleware, entitlementMiddlewareForAgent(Agent.REX), rexRouter);

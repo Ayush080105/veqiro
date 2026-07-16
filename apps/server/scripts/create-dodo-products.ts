@@ -1,6 +1,7 @@
 /**
- * Create the 8 Dodo products the billing system needs, then print the .env
- * block mapping each to its product-id env var.
+ * Create the 9 Dodo products the billing system needs (6 agents + Crew
+ * monthly/annual + the Maya credit top-up unit), then print the .env block
+ * mapping each to its product-id env var.
  *
  *   DRY RUN (default, creates nothing):
  *     cd apps/server && npx tsx scripts/create-dodo-products.ts
@@ -36,6 +37,7 @@ import {
   getAgentMonthlyPriceCents,
   getCrewPriceCents,
 } from "../src/modules/billing/billing.catalog.js";
+import { TOPUP_DOLLAR_UNIT, TOPUP_CREDITS_PER_UNIT } from "../src/modules/agents/maya/maya.quotas.js";
 import type { Agent } from "../prisma/generated/prisma/client.js";
 
 const APPLY = process.env.APPLY === "1";
@@ -55,20 +57,31 @@ const AGENT_META: Record<Agent, { name: string; role: string }> = {
 
 type Interval = "Month" | "Year";
 
-type Sku = {
-  /** Stable key written to product metadata; the idempotency anchor. */
-  sku: string;
-  envKey: string;
-  name: string;
-  description: string;
-  priceCents: number;
-  interval: Interval;
-};
+type Sku =
+  | {
+      kind: "recurring";
+      /** Stable key written to product metadata; the idempotency anchor. */
+      sku: string;
+      envKey: string;
+      name: string;
+      description: string;
+      priceCents: number;
+      interval: Interval;
+    }
+  | {
+      kind: "one_time";
+      sku: string;
+      envKey: string;
+      name: string;
+      description: string;
+      priceCents: number;
+    };
 
 function buildSkus(): Sku[] {
   const agents: Sku[] = ALL_AGENTS.map((agent) => {
     const meta = AGENT_META[agent];
     return {
+      kind: "recurring",
       sku: `agent_${agent.toLowerCase()}`,
       envKey: AGENT_PRODUCT_ENV_KEYS[agent],
       name: `${meta.name} — ${meta.role}`,
@@ -82,6 +95,7 @@ function buildSkus(): Sku[] {
   return [
     ...agents,
     {
+      kind: "recurring",
       sku: "crew_monthly",
       envKey: "DODO_PRODUCT_CREW_MONTHLY",
       name: "Veqiro Crew — All 6 AI Employees (Monthly)",
@@ -90,6 +104,7 @@ function buildSkus(): Sku[] {
       interval: "Month",
     },
     {
+      kind: "recurring",
       sku: "crew_annual",
       envKey: "DODO_PRODUCT_CREW_ANNUAL",
       name: "Veqiro Crew — All 6 AI Employees (Annual)",
@@ -97,21 +112,38 @@ function buildSkus(): Sku[] {
       priceCents: getCrewPriceCents("ANNUAL"),
       interval: "Year",
     },
+    {
+      // One-time purchase, not a subscription — a top-up buys a fixed
+      // credit block once. quantity in the checkout cart multiplies this
+      // base unit (see billing.topup.ts's createMayaTopupCheckout).
+      kind: "one_time",
+      sku: "maya_topup_unit",
+      envKey: "DODO_PRODUCT_MAYA_TOPUP_UNIT",
+      name: `Maya Credit Top-Up (${TOPUP_CREDITS_PER_UNIT} credits per unit)`,
+      // Quantity-aware: the checkout page shows this description alongside a
+      // fixed "Qty: N" line, but doesn't recompute the total credits for you —
+      // a static "50 credits" description was misleading once quantity > 1.
+      description: `Each unit adds ${TOPUP_CREDITS_PER_UNIT} Maya generation credits (one-time purchase, not a subscription). Increase quantity at checkout for a bigger top-up — e.g. quantity 3 = ${TOPUP_CREDITS_PER_UNIT * 3} credits.`,
+      priceCents: TOPUP_DOLLAR_UNIT * 100,
+    },
   ];
 }
 
-type Existing = { productId: string; name?: string | null; priceCents?: number | null };
+type Existing = { productId: string; name?: string | null; priceCents?: number | null; description?: string | null };
 
-/** Index every recurring product by its veqiro_sku tag and by exact name. */
+/** Index every product (recurring and one-time) by its veqiro_sku tag and by exact name. */
 async function loadExisting() {
   const bySku = new Map<string, Existing>();
   const byName = new Map<string, Existing>();
 
-  for await (const product of dodoClient.products.list({ recurring: true })) {
+  // No `recurring` filter: this must find the one-time top-up product too,
+  // not just the 8 subscription products.
+  for await (const product of dodoClient.products.list({})) {
     const entry: Existing = {
       productId: product.product_id,
       name: product.name,
       priceCents: product.price,
+      description: product.description,
     };
     const sku = product.metadata?.veqiro_sku;
     if (sku) bySku.set(sku, entry);
@@ -141,7 +173,7 @@ async function main() {
 
   for (const sku of skus) {
     const dollars = (sku.priceCents / 100).toFixed(2);
-    const cadence = sku.interval === "Year" ? "yr" : "mo";
+    const cadence = sku.kind === "one_time" ? "one-time" : sku.interval === "Year" ? "yr" : "mo";
 
     const tagged = bySku.get(sku.sku);
     const named = byName.get(sku.name);
@@ -165,7 +197,23 @@ async function main() {
             `Consider adding metadata veqiro_sku=${sku.sku} to it in the dashboard.`,
         );
       }
-      console.log(`  exists   ${sku.name}  ($${dollars}/${cadence})  ->  ${existing.productId}`);
+      // Copy-only sync: name/description aren't attached to running
+      // subscriptions the way price is, so it's safe to keep them in sync
+      // automatically (unlike price, which only ever warns — see above).
+      // Matched by the veqiro_sku tag (not by name), so a name change here
+      // doesn't create a duplicate — it just needs the existing product's
+      // copy pushed to match.
+      const copyDrifted = existing.name !== sku.name || existing.description !== sku.description;
+      if (copyDrifted) {
+        if (APPLY) {
+          await dodoClient.products.update(existing.productId, { name: sku.name, description: sku.description });
+          console.log(`  exists   ${sku.name}  ($${dollars}/${cadence})  ->  ${existing.productId}  (name/description updated)`);
+        } else {
+          console.log(`  exists   ${sku.name}  ($${dollars}/${cadence})  ->  ${existing.productId}  (name/description OUT OF DATE — re-run with APPLY=1 to sync)`);
+        }
+      } else {
+        console.log(`  exists   ${sku.name}  ($${dollars}/${cadence})  ->  ${existing.productId}`);
+      }
       resolved.push({ envKey: sku.envKey, productId: existing.productId, note: "existing" });
       continue;
     }
@@ -181,22 +229,31 @@ async function main() {
       description: sku.description,
       tax_category: "saas",
       metadata: { veqiro_sku: sku.sku },
-      price: {
-        type: "recurring_price",
-        currency: "USD",
-        price: sku.priceCents,
-        discount: 0,
-        purchasing_power_parity: false,
-        payment_frequency_count: 1,
-        payment_frequency_interval: sku.interval,
-        subscription_period_count: 1,
-        subscription_period_interval: sku.interval,
-        tax_inclusive: false,
-        // Trials are granted in-app as TRIAL entitlements (one 7-day window per
-        // org, all agents at once). A Dodo-side trial would double-grant and
-        // hand out a second trial per product purchased.
-        trial_period_days: 0,
-      },
+      price: sku.kind === "one_time"
+        ? {
+            type: "one_time_price",
+            currency: "USD",
+            price: sku.priceCents,
+            discount: 0,
+            purchasing_power_parity: false,
+            tax_inclusive: false,
+          }
+        : {
+            type: "recurring_price",
+            currency: "USD",
+            price: sku.priceCents,
+            discount: 0,
+            purchasing_power_parity: false,
+            payment_frequency_count: 1,
+            payment_frequency_interval: sku.interval,
+            subscription_period_count: 1,
+            subscription_period_interval: sku.interval,
+            tax_inclusive: false,
+            // Trials are granted in-app as TRIAL entitlements (one 7-day window
+            // per org, all agents at once). A Dodo-side trial would double-grant
+            // and hand out a second trial per product purchased.
+            trial_period_days: 0,
+          },
     });
 
     console.log(`  created  ${sku.name}  ($${dollars}/${cadence})  ->  ${created.product_id}`);

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { authClient, useSession } from "@/lib/auth-client"
 import { useBillingStatus, useMayaUsage, type MayaUsageTier } from "@/lib/api/billing"
-import { ApiError } from "@/lib/api/client"
+import { isNoMayaSubscription } from "@/components/billing/entitlement-errors"
 import { PageHeader } from "@/components/ui/page-header"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,7 +54,7 @@ export default function UsagePage() {
   const { data: billing } = useBillingStatus(organizationId)
   const sub = billing?.subscription
   const atLimit = data && data.credits.remaining === 0
-  const isNoSubscription = error instanceof ApiError && error.message === "no-subscription"
+  const isNoSubscription = isNoMayaSubscription(error)
 
   // With staggered per-agent periods there is no single org-wide billing
   // cycle any more (see billing.controller.ts's deriveStatusFields, which
@@ -84,7 +84,7 @@ export default function UsagePage() {
       <SettingsNav />
 
       {isLoading && (
-        <Card>
+        <Card variant="brand">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             Loading usage data…
           </CardContent>
@@ -92,7 +92,7 @@ export default function UsagePage() {
       )}
 
       {!isLoading && isNoSubscription && (
-        <Card>
+        <Card variant="brand">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No active usage period. Start your trial or subscribe to see your limits.
           </CardContent>
@@ -100,7 +100,7 @@ export default function UsagePage() {
       )}
 
       {!isLoading && error && !isNoSubscription && (
-        <Card>
+        <Card variant="brand">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground">
             <p>We couldn&apos;t load your usage. Please try again.</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
@@ -111,7 +111,7 @@ export default function UsagePage() {
       )}
 
       {!isLoading && !error && !data && (
-        <Card>
+        <Card variant="brand">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No active usage period. Start your trial or subscribe to see your limits.
           </CardContent>
@@ -119,7 +119,7 @@ export default function UsagePage() {
       )}
 
       {data && !error && (
-        <Card>
+        <Card variant="brand">
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>

@@ -398,6 +398,8 @@ enum CheckoutKind {
   AGENT
   CREW
   CREW_UPGRADE
+  /// One-time Maya credit top-up purchase (not a subscription).
+  MAYA_TOPUP
 }
 
 /// A checkout awaiting provider confirmation. Replaces Subscription.pending*.
@@ -413,12 +415,16 @@ model PendingCheckout {
   sessionId      String       @unique
   /// What this checkout is for.
   kind           CheckoutKind
-  /// Agent being purchased. Null for CREW / CREW_UPGRADE.
+  /// Agent being purchased. Null for CREW / CREW_UPGRADE / MAYA_TOPUP.
   agent          Agent?
-  /// Billing cadence for this checkout.
+  /// Billing cadence for this checkout. Meaningless filler ("MONTHLY") for
+  /// MAYA_TOPUP, which has no cadence — kept non-null for schema simplicity,
+  /// same convention as individual-agent checkouts.
   plan           SubscriptionPlan
   /// Optional discount code applied at checkout.
   discountCode   String?
+  /// Credits purchased. Only set for MAYA_TOPUP; null otherwise.
+  credits        Int?
   /// Creation timestamp.
   createdAt      DateTime     @default(now())
 
@@ -1422,6 +1428,10 @@ model MayaUsage {
   periodEnd      DateTime
   /// Total credits consumed this period (1 image = 2 credits, 1 video-second = 4 credits).
   creditsUsed    Int          @default(0)
+  /// Extra credits purchased via a Maya credit top-up this period, added on top
+  /// of the plan's tier limit. Kept separate from creditsUsed so "used" never
+  /// goes negative on the frontend — effective limit = tier limit + bonusCredits.
+  bonusCredits   Int          @default(0)
   /// Record creation timestamp.
   createdAt      DateTime     @default(now())
   /// Record update timestamp.

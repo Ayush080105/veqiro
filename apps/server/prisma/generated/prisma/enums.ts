@@ -118,7 +118,8 @@ export type ActivityAction = (typeof ActivityAction)[keyof typeof ActivityAction
 export const CheckoutKind = {
   AGENT: 'AGENT',
   CREW: 'CREW',
-  CREW_UPGRADE: 'CREW_UPGRADE'
+  CREW_UPGRADE: 'CREW_UPGRADE',
+  MAYA_TOPUP: 'MAYA_TOPUP'
 } as const
 
 export type CheckoutKind = (typeof CheckoutKind)[keyof typeof CheckoutKind]

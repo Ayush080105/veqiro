@@ -4,7 +4,7 @@ import { prisma } from "../config/prisma.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../common/utils/mailer.js";
 import { admin, organization, customSession } from "better-auth/plugins";
-import { dodopayments, checkout, webhooks } from "@dodopayments/better-auth";
+import { dodopayments, webhooks } from "@dodopayments/better-auth";
 import { dodoClient } from "./dodo.js";
 import {
   handleSubscriptionActive,
@@ -13,6 +13,7 @@ import {
   handleSubscriptionExpired,
   handleSubscriptionFailed,
   handlePaymentFailed,
+  handleMayaTopupPaymentSucceeded,
 } from "../modules/billing/billing.webhooks.js";
 import { seedDefaultTasks } from "../modules/tasks/tasks.service.js";
 import { logActivity, ActivityAction } from "../modules/activity/activity.service.js";
@@ -119,14 +120,6 @@ const auth = betterAuth({
     dodopayments({
       client: dodoClient,
       use: [
-        checkout({
-          products: [
-            { productId: process.env.DODO_PRO_MONTHLY_PRODUCT_ID!, slug: "pro-monthly" },
-            { productId: process.env.DODO_PRO_ANNUAL_PRODUCT_ID!, slug: "pro-annual" },
-          ],
-          successUrl: "/settings/billing?status=success",
-          authenticatedUsersOnly: true,
-        }),
         webhooks({
           webhookKey: (process.env.DODO_PAYMENTS_WEBHOOK_SECRET ?? process.env.DODO_WEBHOOK_SECRET)!,
           onSubscriptionActive: handleSubscriptionActive as any,
@@ -135,6 +128,7 @@ const auth = betterAuth({
           onSubscriptionExpired: handleSubscriptionExpired as any,
           onSubscriptionFailed: handleSubscriptionFailed as any,
           onPaymentFailed: handlePaymentFailed as any,
+          onPaymentSucceeded: handleMayaTopupPaymentSucceeded as any,
         }),
       ],
     }),

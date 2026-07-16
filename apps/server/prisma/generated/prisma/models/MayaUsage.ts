@@ -28,10 +28,12 @@ export type AggregateMayaUsage = {
 
 export type MayaUsageAvgAggregateOutputType = {
   creditsUsed: number | null
+  bonusCredits: number | null
 }
 
 export type MayaUsageSumAggregateOutputType = {
   creditsUsed: number | null
+  bonusCredits: number | null
 }
 
 export type MayaUsageMinAggregateOutputType = {
@@ -40,6 +42,7 @@ export type MayaUsageMinAggregateOutputType = {
   periodStart: Date | null
   periodEnd: Date | null
   creditsUsed: number | null
+  bonusCredits: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,6 +53,7 @@ export type MayaUsageMaxAggregateOutputType = {
   periodStart: Date | null
   periodEnd: Date | null
   creditsUsed: number | null
+  bonusCredits: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,6 +64,7 @@ export type MayaUsageCountAggregateOutputType = {
   periodStart: number
   periodEnd: number
   creditsUsed: number
+  bonusCredits: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -68,10 +73,12 @@ export type MayaUsageCountAggregateOutputType = {
 
 export type MayaUsageAvgAggregateInputType = {
   creditsUsed?: true
+  bonusCredits?: true
 }
 
 export type MayaUsageSumAggregateInputType = {
   creditsUsed?: true
+  bonusCredits?: true
 }
 
 export type MayaUsageMinAggregateInputType = {
@@ -80,6 +87,7 @@ export type MayaUsageMinAggregateInputType = {
   periodStart?: true
   periodEnd?: true
   creditsUsed?: true
+  bonusCredits?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -90,6 +98,7 @@ export type MayaUsageMaxAggregateInputType = {
   periodStart?: true
   periodEnd?: true
   creditsUsed?: true
+  bonusCredits?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,6 +109,7 @@ export type MayaUsageCountAggregateInputType = {
   periodStart?: true
   periodEnd?: true
   creditsUsed?: true
+  bonusCredits?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -197,6 +207,7 @@ export type MayaUsageGroupByOutputType = {
   periodStart: Date
   periodEnd: Date
   creditsUsed: number
+  bonusCredits: number
   createdAt: Date
   updatedAt: Date
   _count: MayaUsageCountAggregateOutputType | null
@@ -230,6 +241,7 @@ export type MayaUsageWhereInput = {
   periodStart?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   creditsUsed?: Prisma.IntFilter<"MayaUsage"> | number
+  bonusCredits?: Prisma.IntFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -241,6 +253,7 @@ export type MayaUsageOrderByWithRelationInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   creditsUsed?: Prisma.SortOrder
+  bonusCredits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   organization?: Prisma.OrganizationOrderByWithRelationInput
@@ -256,6 +269,7 @@ export type MayaUsageWhereUniqueInput = Prisma.AtLeast<{
   periodStart?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   creditsUsed?: Prisma.IntFilter<"MayaUsage"> | number
+  bonusCredits?: Prisma.IntFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -267,6 +281,7 @@ export type MayaUsageOrderByWithAggregationInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   creditsUsed?: Prisma.SortOrder
+  bonusCredits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.MayaUsageCountOrderByAggregateInput
@@ -285,6 +300,7 @@ export type MayaUsageScalarWhereWithAggregatesInput = {
   periodStart?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
   creditsUsed?: Prisma.IntWithAggregatesFilter<"MayaUsage"> | number
+  bonusCredits?: Prisma.IntWithAggregatesFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"MayaUsage"> | Date | string
 }
@@ -294,6 +310,7 @@ export type MayaUsageCreateInput = {
   periodStart: Date | string
   periodEnd: Date | string
   creditsUsed?: number
+  bonusCredits?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutMayaUsagesInput
@@ -305,6 +322,7 @@ export type MayaUsageUncheckedCreateInput = {
   periodStart: Date | string
   periodEnd: Date | string
   creditsUsed?: number
+  bonusCredits?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -314,6 +332,7 @@ export type MayaUsageUpdateInput = {
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  bonusCredits?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutMayaUsagesNestedInput
@@ -325,6 +344,7 @@ export type MayaUsageUncheckedUpdateInput = {
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  bonusCredits?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -335,6 +355,7 @@ export type MayaUsageCreateManyInput = {
   periodStart: Date | string
   periodEnd: Date | string
   creditsUsed?: number
+  bonusCredits?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -344,6 +365,7 @@ export type MayaUsageUpdateManyMutationInput = {
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  bonusCredits?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -354,6 +376,7 @@ export type MayaUsageUncheckedUpdateManyInput = {
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  bonusCredits?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -379,12 +402,14 @@ export type MayaUsageCountOrderByAggregateInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   creditsUsed?: Prisma.SortOrder
+  bonusCredits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type MayaUsageAvgOrderByAggregateInput = {
   creditsUsed?: Prisma.SortOrder
+  bonusCredits?: Prisma.SortOrder
 }
 
 export type MayaUsageMaxOrderByAggregateInput = {
@@ -393,6 +418,7 @@ export type MayaUsageMaxOrderByAggregateInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   creditsUsed?: Prisma.SortOrder
+  bonusCredits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -403,12 +429,14 @@ export type MayaUsageMinOrderByAggregateInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   creditsUsed?: Prisma.SortOrder
+  bonusCredits?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type MayaUsageSumOrderByAggregateInput = {
   creditsUsed?: Prisma.SortOrder
+  bonusCredits?: Prisma.SortOrder
 }
 
 export type MayaUsageCreateNestedManyWithoutOrganizationInput = {
@@ -458,6 +486,7 @@ export type MayaUsageCreateWithoutOrganizationInput = {
   periodStart: Date | string
   periodEnd: Date | string
   creditsUsed?: number
+  bonusCredits?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -467,6 +496,7 @@ export type MayaUsageUncheckedCreateWithoutOrganizationInput = {
   periodStart: Date | string
   periodEnd: Date | string
   creditsUsed?: number
+  bonusCredits?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -506,6 +536,7 @@ export type MayaUsageScalarWhereInput = {
   periodStart?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   creditsUsed?: Prisma.IntFilter<"MayaUsage"> | number
+  bonusCredits?: Prisma.IntFilter<"MayaUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MayaUsage"> | Date | string
 }
@@ -515,6 +546,7 @@ export type MayaUsageCreateManyOrganizationInput = {
   periodStart: Date | string
   periodEnd: Date | string
   creditsUsed?: number
+  bonusCredits?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -524,6 +556,7 @@ export type MayaUsageUpdateWithoutOrganizationInput = {
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  bonusCredits?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -533,6 +566,7 @@ export type MayaUsageUncheckedUpdateWithoutOrganizationInput = {
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  bonusCredits?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -542,6 +576,7 @@ export type MayaUsageUncheckedUpdateManyWithoutOrganizationInput = {
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creditsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  bonusCredits?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -554,6 +589,7 @@ export type MayaUsageSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   periodStart?: boolean
   periodEnd?: boolean
   creditsUsed?: boolean
+  bonusCredits?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -565,6 +601,7 @@ export type MayaUsageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   periodStart?: boolean
   periodEnd?: boolean
   creditsUsed?: boolean
+  bonusCredits?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -576,6 +613,7 @@ export type MayaUsageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   periodStart?: boolean
   periodEnd?: boolean
   creditsUsed?: boolean
+  bonusCredits?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -587,11 +625,12 @@ export type MayaUsageSelectScalar = {
   periodStart?: boolean
   periodEnd?: boolean
   creditsUsed?: boolean
+  bonusCredits?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MayaUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "periodStart" | "periodEnd" | "creditsUsed" | "createdAt" | "updatedAt", ExtArgs["result"]["mayaUsage"]>
+export type MayaUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "periodStart" | "periodEnd" | "creditsUsed" | "bonusCredits" | "createdAt" | "updatedAt", ExtArgs["result"]["mayaUsage"]>
 export type MayaUsageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }
@@ -631,6 +670,12 @@ export type $MayaUsagePayload<ExtArgs extends runtime.Types.Extensions.InternalA
      * Total credits consumed this period (1 image = 2 credits, 1 video-second = 4 credits).
      */
     creditsUsed: number
+    /**
+     * Extra credits purchased via a Maya credit top-up this period, added on top
+     * of the plan's tier limit. Kept separate from creditsUsed so "used" never
+     * goes negative on the frontend — effective limit = tier limit + bonusCredits.
+     */
+    bonusCredits: number
     /**
      * Record creation timestamp.
      */
@@ -1068,6 +1113,7 @@ export interface MayaUsageFieldRefs {
   readonly periodStart: Prisma.FieldRef<"MayaUsage", 'DateTime'>
   readonly periodEnd: Prisma.FieldRef<"MayaUsage", 'DateTime'>
   readonly creditsUsed: Prisma.FieldRef<"MayaUsage", 'Int'>
+  readonly bonusCredits: Prisma.FieldRef<"MayaUsage", 'Int'>
   readonly createdAt: Prisma.FieldRef<"MayaUsage", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"MayaUsage", 'DateTime'>
 }

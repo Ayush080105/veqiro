@@ -7,7 +7,6 @@ import { BadRequestError } from "../../common/errors/badRequest.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
 import CustomApiError from "../../common/errors/customApiError.js";
 import { StatusCodes } from "http-status-codes";
-import { deriveEntitlementFields, type SubscriptionLike } from "./billing.types.js";
 import {
   ALL_AGENTS,
   normalizeAgents,
@@ -18,9 +17,7 @@ import {
 import { ACCESS_STATUSES, getActiveEntitlements } from "./entitlement.service.js";
 import { resumeAgentAutoPay } from "./billing.cancel.js";
 import { quoteCrewUpgrade, type UpgradeQuote } from "./billing.upgrade.js";
-import type { Agent, Prisma, SubscriptionPlan } from "../../../prisma/generated/prisma/client.js";
-
-type TxClient = Prisma.TransactionClient;
+import type { Agent, SubscriptionPlan } from "../../../prisma/generated/prisma/client.js";
 
 class ForbiddenError extends CustomApiError {
   constructor(message: string) {
@@ -54,37 +51,6 @@ export async function requireOrgOwner(req: Request): Promise<string> {
   return orgId;
 }
 
-/**
- * Updates Subscription + Organization in one transaction so the denormalized
- * Org columns never drift from the Subscription row. Returns the updated
- * Subscription row.
- *
- * Pass an existing transaction client as `tx` to fold this into a larger
- * atomic operation. When `tx` is omitted, this opens and commits its own
- * transaction as before — existing callers (billing.webhooks.ts) are
- * unaffected.
- */
-export async function syncOrgEntitlement(
-  organizationId: string,
-  subscriptionUpdate: Parameters<typeof prisma.subscription.update>[0]["data"],
-  tx?: TxClient,
-) {
-  const run = async (client: TxClient | typeof prisma) => {
-    const updated = await client.subscription.update({
-      where: { organizationId },
-      data: subscriptionUpdate,
-    });
-    const fields = deriveEntitlementFields(updated as unknown as SubscriptionLike);
-    await client.organization.update({
-      where: { id: organizationId },
-      data: fields,
-    });
-    return updated;
-  };
-  if (tx) return run(tx);
-  return prisma.$transaction(run);
-}
-
 async function findOrgOwner(organizationId: string) {
   const owner = await prisma.member.findFirst({
     where: { organizationId, role: "owner" },
@@ -92,20 +58,6 @@ async function findOrgOwner(organizationId: string) {
   });
   if (!owner) throw new BadRequestError("Org has no owner");
   return owner;
-}
-
-function customProductEnvKey(plan: "MONTHLY" | "ANNUAL") {
-  return plan === "ANNUAL" ? "DODO_CUSTOM_ANNUAL_PRODUCT_ID" : "DODO_CUSTOM_MONTHLY_PRODUCT_ID";
-}
-
-function checkoutProductId(entitlementMode: "CREW" | "CUSTOM", plan: "MONTHLY" | "ANNUAL") {
-  if (entitlementMode === "CREW") {
-    return plan === "ANNUAL"
-      ? process.env.DODO_PRO_ANNUAL_PRODUCT_ID
-      : process.env.DODO_PRO_MONTHLY_PRODUCT_ID;
-  }
-
-  return process.env[customProductEnvKey(plan)];
 }
 
 export async function ensureBillingCustomerForOrg(organizationId: string) {
@@ -318,6 +270,10 @@ async function createCrewCheckout(
   }
 
   let discountCode: string | undefined;
+  // Surfaced to the frontend so it can warn the customer rather than let
+  // them discover a missing discount only after being charged full price —
+  // see createCheckoutForOrg's return type and CrewUpgradeCard.tsx's usage.
+  let discountApplied: "applied" | "failed" | "not-eligible" = "not-eligible";
   if (quote.eligible) {
     try {
       const discount = await dodoClient.discounts.create({
@@ -330,10 +286,12 @@ async function createCrewCheckout(
         expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       });
       discountCode = discount.code;
+      discountApplied = "applied";
     } catch (err) {
       // Do not fail the purchase over a missed discount — log and continue
       // to an undiscounted Crew checkout below.
       console.error("crew-upgrade-discount-create-failed", { organizationId, err });
+      discountApplied = "failed";
     }
   }
 
@@ -343,6 +301,11 @@ async function createCrewCheckout(
     customer: { customer_id: sub.dodoCustomerId } as never,
     return_url: `${baseUrl}/settings/billing?status=success`,
     cancel_url: `${baseUrl}/settings/billing?status=cancelled`,
+    // Our catalog is USD-only — lock the checkout page's displayed currency
+    // to USD instead of letting Dodo auto-convert to the buyer's local
+    // currency, so the number shown always matches what the app quoted.
+    billing_currency: "USD",
+    feature_flags: { allow_currency_selection: false },
     ...(discountCode ? { discount_code: discountCode } : {}),
     metadata: {
       organizationId,
@@ -364,7 +327,7 @@ async function createCrewCheckout(
       discountCode,
     },
   });
-  return { resumed: false as const, url: session.checkout_url };
+  return { resumed: false as const, url: session.checkout_url, discountApplied };
 }
 
 /**
@@ -412,6 +375,8 @@ export async function createCheckoutForOrg(
     show_saved_payment_methods: true,
     return_url: `${baseUrl}/settings/billing?status=success`,
     cancel_url: `${baseUrl}/settings/billing?status=cancelled`,
+    billing_currency: "USD",
+    feature_flags: { allow_currency_selection: false },
     metadata: { organizationId, kind: "AGENT", agent },
   });
 

@@ -140,6 +140,7 @@ export const pricingTiers: PricingTier[] = [
       'Faster Than Traditional Workflows',
       'Speaks Exactly Like Your Brand',
       'Works With Your Existing Tools',
+      'Maya: 300 Credits/mo (400/mo Billed Annually) — Every Other Agent Unlimited',
     ],
     popular: true,
   },
@@ -159,6 +160,16 @@ export const pricingTiers: PricingTier[] = [
     ],
     custom: true,
   },
+];
+
+export const PRICING_FAQ = [
+  { q: 'Is there a free trial?', a: "Yes — 7 days, no credit card required. Full access to all six agents from day one." },
+  { q: 'What does "billed annually" mean?', a: "You pay for 12 months upfront and save ~25% versus monthly. Cancel before renewal and we won't charge you again." },
+  { q: 'Can I cancel anytime?', a: "On monthly billing: cancel before your next cycle. On annual: you keep access until the end of the paid period." },
+  { q: 'What integrations are included?', a: "Gmail, Google Calendar, LinkedIn, Twitter/X, and Instagram out of the box. More on the roadmap." },
+  { q: 'Do agents share memory across tasks?', a: "Yes. Your Brain (company profile, brand voice, competitors) is read by all six agents so they stay consistent." },
+  { q: 'Is my data used to train your AI?', a: "Never. Your content is used only to perform the tasks you ask for." },
+  { q: 'Can I buy just one agent?', a: "Yes — every agent is available on its own starting at $9/mo, no Crew subscription required. Add more whenever you're ready." },
 ];
 
 export const faqItems = [
@@ -209,6 +220,10 @@ export const faqItems = [
   {
     q: 'why Veqiro?',
     a: "Because doing everything yourself was never a flex. It was just inefficient.",
+  },
+  {
+    q: 'do I have to buy all six?',
+    a: "Nope. Start with one agent for as little as $9/mo and add the rest whenever you actually need them.",
   },
 ];
 

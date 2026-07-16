@@ -1,18 +1,26 @@
-import { assert, describe, test, vi } from "vitest";
+import { assert, beforeEach, describe, expect, test, vi } from "vitest";
 
 // billing.controller.ts imports billing.service.ts at module scope, which
 // imports lib/auth.ts (pulls in the mailer -> Resend chain, crashes without
 // RESEND_API_KEY) and lib/dodo.ts (constructs a DodoPayments client, crashes
 // without DODO_PAYMENTS_API_KEY). Mock both out the same way
 // billing-checkout-guards.test.ts does, since this test only exercises the
-// pure deriveStatusFields helper.
+// pure deriveStatusFields helper (plus getStatus below, with prisma mocked).
+const mockGetSession = vi.fn();
 vi.mock("../../lib/auth.js", () => ({
-  default: { api: { getSession: vi.fn() } },
+  default: { api: { getSession: mockGetSession } },
 }));
 vi.mock("../../lib/dodo.js", () => ({ dodoClient: {} }));
-vi.mock("../../config/prisma.js", () => ({ prisma: {} }));
 
-const { deriveStatusFields } = await import("../../modules/billing/billing.controller.js");
+const mockPrisma = {
+  subscription: { findUnique: vi.fn() },
+  entitlement: { findMany: vi.fn() },
+  pendingCheckout: { findFirst: vi.fn(), deleteMany: vi.fn() },
+  member: { findFirst: vi.fn() },
+};
+vi.mock("../../config/prisma.js", () => ({ prisma: mockPrisma }));
+
+const { deriveStatusFields, getStatus, dismissPendingCheckout } = await import("../../modules/billing/billing.controller.js");
 
 const ent = (
   agent: string,
@@ -87,5 +95,87 @@ describe("deriveStatusFields", () => {
         priceCents: 1900,
       },
     ]);
+  });
+});
+
+describe("getStatus's pendingCheckout field", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockPrisma.subscription.findUnique.mockResolvedValue({
+      status: "ACTIVE",
+      plan: "MONTHLY",
+      dodoCustomerId: "cus_1",
+    });
+    mockPrisma.entitlement.findMany.mockResolvedValue([]);
+  });
+
+  function fakeReqRes(organizationId: string) {
+    const json = vi.fn();
+    const req = { organizationId } as never;
+    const res = { status: () => ({ json }), json } as never;
+    return { req, res, json };
+  }
+
+  test("no PendingCheckout row -> pendingCheckout is null", async () => {
+    mockPrisma.pendingCheckout.findFirst.mockResolvedValue(null);
+    const { req, res, json } = fakeReqRes("org_1");
+    await getStatus(req, res);
+    const body = json.mock.calls[0][0];
+    assert.equal(body.subscription.pendingCheckout, null);
+  });
+
+  test("an in-flight PendingCheckout row surfaces kind/agent/plan/createdAt", async () => {
+    const createdAt = new Date("2026-07-16T12:00:00Z");
+    mockPrisma.pendingCheckout.findFirst.mockResolvedValue({
+      kind: "AGENT",
+      agent: "REX",
+      plan: "MONTHLY",
+      createdAt,
+    });
+    const { req, res, json } = fakeReqRes("org_1");
+    await getStatus(req, res);
+    const body = json.mock.calls[0][0];
+    assert.deepEqual(body.subscription.pendingCheckout, {
+      kind: "AGENT",
+      agent: "REX",
+      plan: "MONTHLY",
+      createdAt,
+    });
+  });
+});
+
+describe("dismissPendingCheckout", () => {
+  function fakeReqRes() {
+    const json = vi.fn();
+    const req = { headers: {} } as never;
+    const res = { status: () => ({ json }), json } as never;
+    return { req, res, json };
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetSession.mockResolvedValue({
+      session: { activeOrganizationId: "org_1" },
+      user: { id: "user_1" },
+    });
+    mockPrisma.member.findFirst.mockResolvedValue({ id: "member_1" });
+    mockPrisma.pendingCheckout.deleteMany.mockResolvedValue({ count: 1 });
+  });
+
+  test("deletes the org's PendingCheckout rows and returns the count", async () => {
+    const { req, res, json } = fakeReqRes();
+    await dismissPendingCheckout(req, res);
+
+    assert.deepEqual(mockPrisma.pendingCheckout.deleteMany.mock.calls[0][0], {
+      where: { organizationId: "org_1" },
+    });
+    assert.deepEqual(json.mock.calls[0][0], { dismissed: 1 });
+  });
+
+  test("rejects a non-owner", async () => {
+    mockPrisma.member.findFirst.mockResolvedValue(null);
+    const { req, res } = fakeReqRes();
+    await expect(dismissPendingCheckout(req, res)).rejects.toThrow();
+    assert.equal(mockPrisma.pendingCheckout.deleteMany.mock.calls.length, 0);
   });
 });

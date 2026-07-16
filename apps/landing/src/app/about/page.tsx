@@ -49,7 +49,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'How much does Veqiro cost?',
-    a: "Veqiro is $39/mo, or $29/mo billed annually. That's one subscription for all six AI employees — no per-seat fees, no per-agent tiers. A 7-day free trial is available with no credit card required.",
+    a: "Crew (all six AI employees) is $39/mo, or $29/mo billed annually — no per-seat fees. Prefer to start smaller? Buy any agent individually from $9/mo and add more as you need them. A 7-day free trial covers all six agents, no credit card required.",
   },
 ];
 

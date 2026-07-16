@@ -427,14 +427,18 @@ html, body {
 
 .blog-post-grid {
   display: grid;
-  grid-template-columns: 1fr 260px;
+  /* minmax(0, 1fr), not 1fr: a bare 1fr track has an implicit min-width:auto,
+     so a wide descendant (e.g. a comparison table demanding min-width:480px)
+     grows the track — and the whole page — instead of scrolling inside its
+     own wrapper. minmax(0, ...) lets the track shrink below content size. */
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 56px;
   align-items: start;
   max-width: 1100px;
   margin: 0 auto;
 }
 @media (max-width: 1100px) {
-  .blog-post-grid { grid-template-columns: 1fr; gap: 32px; }
+  .blog-post-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .blog-toc-sidebar { display: none !important; }
 }
 
@@ -556,15 +560,18 @@ html, body {
   margin: 0 0 1.5em; padding-left: 1.6em; display: grid; gap: 0.55em;
 }
 .blog-content ol li { line-height: 1.7; }
-.blog-content table {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  border-collapse: collapse;
-  margin: 2em 0;
-  font-size: 0.92em;
+.blog-content .blog-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  margin: 2em 0;
+}
+.blog-content table {
+  display: table;
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 0.92em;
 }
 .blog-content th {
   font-family: var(--font-mono), monospace; font-size: 0.78em;
