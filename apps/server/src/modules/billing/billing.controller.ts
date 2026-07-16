@@ -10,11 +10,59 @@ import {
 } from "./billing.service.js";
 import { cancelAgentAutoPay, resumeAgentAutoPay } from "./billing.cancel.js";
 import { normalizeAgents, normalizePlan } from "./billing.catalog.js";
+import { getActiveEntitlements } from "./entitlement.service.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
+import type { Agent, EntitlementSource, EntitlementStatus } from "../../../prisma/generated/prisma/client.js";
 
 function daysRemaining(date: Date | null): number | null {
   if (!date) return null;
   return Math.max(0, Math.ceil((date.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+}
+
+type ActiveEntitlementLike = {
+  agent: Agent;
+  source: EntitlementSource;
+  status: EntitlementStatus;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd: boolean;
+  priceCents: number;
+};
+
+/**
+ * Pure core of getStatus's legacy-field derivation, split out so it can be
+ * unit tested without a database.
+ *
+ * `Subscription.status` can never be TRIALING for a new trial any more —
+ * trial state lives on Entitlement rows now (source: "TRIAL") — so
+ * trialEndsAt/daysRemaining must come from those rows, not the Subscription
+ * row, or the UI is stuck showing "Trial · 0 days left" forever.
+ */
+export function deriveStatusFields(active: ActiveEntitlementLike[]) {
+  const agents = [...new Set(active.map((e) => e.agent))];
+  const isCrew = active.some((e) => e.source === "CREW");
+  const trialRows = active.filter((e) => e.source === "TRIAL");
+  const trialEndsAt = trialRows.length
+    ? new Date(Math.max(...trialRows.map((e) => e.currentPeriodEnd.getTime())))
+    : null;
+
+  return {
+    entitlementMode: (isCrew ? "CREW" : "CUSTOM") as "CREW" | "CUSTOM",
+    unlockedAgents: agents,
+    selectedAgents: agents,
+    currentPeriodEnd: active.length
+      ? new Date(Math.max(...active.map((e) => e.currentPeriodEnd.getTime())))
+      : null,
+    trialEndsAt,
+    daysRemaining: daysRemaining(trialEndsAt),
+    entitlements: active.map((e) => ({
+      agent: e.agent,
+      source: e.source,
+      status: e.status,
+      currentPeriodEnd: e.currentPeriodEnd,
+      cancelAtPeriodEnd: e.cancelAtPeriodEnd,
+      priceCents: e.priceCents,
+    })),
+  };
 }
 
 export async function getStatus(req: Request, res: Response) {
@@ -26,44 +74,42 @@ export async function getStatus(req: Request, res: Response) {
     select: {
       status: true,
       plan: true,
-      trialEndsAt: true,
-      currentPeriodEnd: true,
       dodoCustomerId: true,
-      entitlementMode: true,
-      selectedAgents: true,
       pendingCheckoutSessionId: true,
       pendingPlan: true,
       pendingEntitlementMode: true,
       pendingSelectedAgents: true,
     },
   });
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { unlockedAgents: true },
-  });
+
+  if (!sub) {
+    res.status(StatusCodes.OK).json({ subscription: null });
+    return;
+  }
+
+  const active = await getActiveEntitlements(organizationId);
+  const derived = deriveStatusFields(active);
 
   res.status(StatusCodes.OK).json({
-    subscription: sub
-      ? {
-          status: sub.status,
-          plan: sub.plan,
-          trialEndsAt: sub.trialEndsAt,
-          currentPeriodEnd: sub.currentPeriodEnd,
-          dodoCustomerId: sub.dodoCustomerId,
-          entitlementMode: sub.entitlementMode,
-          selectedAgents: sub.selectedAgents,
-          unlockedAgents: org?.unlockedAgents ?? [],
-          pendingCheckout: sub.pendingCheckoutSessionId
-            ? {
-                plan: sub.pendingPlan,
-                entitlementMode: sub.pendingEntitlementMode,
-                selectedAgents: sub.pendingSelectedAgents,
-              }
-            : null,
-          daysRemaining:
-            sub.status === "TRIALING" ? daysRemaining(sub.trialEndsAt) : null,
-        }
-      : null,
+    subscription: {
+      status: sub.status,
+      plan: sub.plan,
+      trialEndsAt: derived.trialEndsAt,
+      currentPeriodEnd: derived.currentPeriodEnd,
+      dodoCustomerId: sub.dodoCustomerId,
+      entitlementMode: derived.entitlementMode,
+      selectedAgents: derived.selectedAgents,
+      unlockedAgents: derived.unlockedAgents,
+      pendingCheckout: sub.pendingCheckoutSessionId
+        ? {
+            plan: sub.pendingPlan,
+            entitlementMode: sub.pendingEntitlementMode,
+            selectedAgents: sub.pendingSelectedAgents,
+          }
+        : null,
+      daysRemaining: derived.daysRemaining,
+      entitlements: derived.entitlements,
+    },
   });
 }
 
