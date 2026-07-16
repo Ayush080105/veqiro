@@ -4,7 +4,7 @@
 
 **Context:** The per-agent entitlements billing rebuild (branch `billing-per-agent-entitlements`, plan `2026-07-15-per-agent-entitlements-billing.md`) is functionally complete: 20 commits, both apps typecheck clean, 285 tests / 282 pass / 3 known-red baseline, migrations + backfill applied to production. This plan covers the small, well-bounded work that remains.
 
-**Prerequisite the user owns (NOT in this plan):** the 8 Dodo product env vars must be set or every checkout throws `missing-product-id:*`. See "Task 4" for an optional helper to create them, but the env values themselves are the user's to fill in.
+**Prerequisite — RESOLVED for test mode (2026-07-16, commit f9c2e0d).** The 8 Dodo product env vars are set in `apps/server/.env` and verified; checkouts no longer throw `missing-product-id:*`. **Live mode still needs the same run** — see Task 4.
 
 ## Global Constraints
 
@@ -150,7 +150,21 @@ fix(admin): don't 500 org detail when the org has no Maya entitlement
 
 ---
 
-## Task 4 (OPTIONAL): Dodo product-creation helper script
+## Task 4: Dodo product-creation helper script — ✅ DONE (commit f9c2e0d)
+
+**Outcome:** `apps/server/scripts/create-dodo-products.ts` exists. All 8 products
+created in **TEST mode**; ids written to `apps/server/.env` (gitignored). Verified:
+prices match the catalog exactly, round-trip resolution passes for all 8, unknown
+ids still resolve to `null`, and a re-run creates 0 duplicates (matched by the
+`metadata.veqiro_sku` tag). Suite unaffected (285/282/3).
+
+**Still required for production:** product ids are per-mode, so the live cutover
+means re-running `DODO_ENV=live APPLY=1 ALLOW_LIVE=1 npx tsx scripts/create-dodo-products.ts`
+and replacing the 8 `.env` values. Test-mode ids will not work in live.
+
+Original task description follows.
+
+### (original)
 
 **Why:** billing cannot function until 8 Dodo products exist and their ids are in `apps/server/.env`. The user said they'll set the env, but creating 8 products by hand in the dashboard is error-prone. This script creates them in whatever mode `DODO_ENV` points at and prints the exact `.env` block. **Skip this task if the user has already created the products.**
 
@@ -184,9 +198,9 @@ chore(billing): add Dodo product creation helper
 
 ---
 
-## End-to-end verification (do this before merging, after products + env exist)
+## End-to-end verification (do this before merging) — ⬅ **NOW UNBLOCKED, AND THE LAST REAL GATE**
 
-Not a code task — a manual smoke test against Dodo **test mode**. Unit tests and typechecks pass, but no real purchase has been driven through the flow. Walk the plan's verification checklist; at minimum:
+Products + env now exist (Task 4), so this can finally be driven for real. Not a code task — a manual smoke test against Dodo **test mode**. Unit tests and typechecks pass, but **no real purchase has ever been driven through this flow**; that is the single largest remaining risk before merge. Walk the checklist; at minimum:
 
 - [ ] Buy Maya → lands, entitlement created, access granted
 - [ ] Buy Rex a few days later → **both active, independent expiry dates** (the original reported bug)
