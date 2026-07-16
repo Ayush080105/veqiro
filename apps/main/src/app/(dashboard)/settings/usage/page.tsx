@@ -10,17 +10,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { UsageBar } from "@/components/billing/UsageBar"
+import { AgentPeriodList } from "@/components/billing/AgentPeriodList"
 import { Info, Sparkles } from "lucide-react"
 
 type AugmentedSession = {
   activeOrganization?: { id?: string } | null
 }
 
+// These four values are still what the server sends (see
+// maya.usage.service.ts's `displayTierFor`) — it's a display-only mapping of
+// Maya's governing entitlement's source/plan, kept for this badge. The
+// underlying quota is read live from the entitlement (getQuotaForMayaEntitlement),
+// never from this tier. ANNUAL_CREW's copy calls out "400 credits/month"
+// explicitly: the old model granted 400 credits for the entire YEAR on an
+// annual plan — the credit window is now a fixed monthly window decoupled
+// from the (annual) billing period, and the label must not carry that lie.
 const TIER_LABELS: Record<MayaUsageTier, string> = {
   TRIAL:          "7-day trial",
   MONTHLY_CUSTOM: "Monthly · Maya",
   MONTHLY_CREW:   "Monthly · Crew",
-  ANNUAL_CREW:    "Annual · Crew",
+  ANNUAL_CREW:    "Annual · Crew (400 credits/month)",
 }
 
 function formatDate(iso: string) {
@@ -29,6 +38,10 @@ function formatDate(iso: string) {
     day: "numeric",
     year: "numeric",
   })
+}
+
+function daysUntil(iso: string): number {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
 }
 
 export default function UsagePage() {
@@ -43,16 +56,21 @@ export default function UsagePage() {
   const atLimit = data && data.credits.remaining === 0
   const isNoSubscription = error instanceof ApiError && error.message === "no-subscription"
 
-  const billingCycleLabel =
-    !sub ? null
-    : sub.status === "TRIALING" ? `Trial · ${sub.daysRemaining ?? 0} days left`
-    : sub.status === "ACTIVE" ? (sub.plan === "ANNUAL" ? "Annual plan" : "Monthly plan")
-    : sub.status === "PAST_DUE" ? "Payment failed"
-    : sub.status === "CANCELLED" ? "Cancelled"
-    : sub.status === "EXPIRED" ? "Expired"
-    : null
+  // With staggered per-agent periods there is no single org-wide billing
+  // cycle any more (see billing.controller.ts's deriveStatusFields, which
+  // takes the MAX currentPeriodEnd across every entitlement — that can be a
+  // *different* agent's renewal date, not Maya's). This card is Maya's
+  // credits, so scope both the label and the date to Maya's own entitlement.
+  const mayaEntitlement = sub?.entitlements.find((e) => e.agent === "MAYA")
 
-  const billingCycleDate = sub?.status === "TRIALING" ? sub.trialEndsAt : sub?.currentPeriodEnd
+  const billingCycleLabel =
+    !mayaEntitlement ? null
+    : mayaEntitlement.status === "TRIALING" ? `Trial · ${daysUntil(mayaEntitlement.currentPeriodEnd)} days left`
+    : mayaEntitlement.status === "PAST_DUE" ? "Payment failed"
+    : mayaEntitlement.source === "CREW" ? (sub?.plan === "ANNUAL" ? "Annual · Crew" : "Monthly · Crew")
+    : "Monthly · Maya"
+
+  const billingCycleDate = mayaEntitlement?.currentPeriodEnd ?? null
 
   return (
     <div className="flex flex-col gap-6 pb-8">
@@ -113,7 +131,15 @@ export default function UsagePage() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     {billingCycleLabel}
                     {billingCycleDate && (
-                      <> · {sub?.status === "TRIALING" ? "Ends" : "Renews"} {formatDate(billingCycleDate)}</>
+                      <>
+                        {" · "}
+                        {mayaEntitlement?.cancelAtPeriodEnd
+                          ? "Access until"
+                          : mayaEntitlement?.status === "TRIALING"
+                            ? "Ends"
+                            : "Renews"}{" "}
+                        {formatDate(billingCycleDate)}
+                      </>
                     )}
                   </p>
                 )}
@@ -144,6 +170,8 @@ export default function UsagePage() {
           </CardContent>
         </Card>
       )}
+
+      {organizationId && <AgentPeriodList organizationId={organizationId} />}
     </div>
   )
 }
