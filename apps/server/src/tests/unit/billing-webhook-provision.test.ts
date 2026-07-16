@@ -93,6 +93,28 @@ const mockPrisma = {
     delete: vi.fn(async ({ where }: { where: { id: string } }) => {
       pendingCheckouts = pendingCheckouts.filter((p) => p.id !== where.id);
     }),
+    // Mirrors the shape billing.webhooks.ts's cleanupPendingCheckouts uses:
+    // { organizationId, OR: [{ kind, agent? }, { createdAt: { lt } }] }.
+    deleteMany: vi.fn(async ({ where }: { where: Record<string, unknown> }) => {
+      const matchesCond = (p: Record<string, unknown>, cond: Record<string, unknown>) => {
+        if ("kind" in cond && p.kind !== cond.kind) return false;
+        if ("agent" in cond && p.agent !== cond.agent) return false;
+        if ("createdAt" in cond) {
+          const lt = (cond.createdAt as { lt: Date }).lt;
+          if (!((p.createdAt as Date).getTime() < lt.getTime())) return false;
+        }
+        return true;
+      };
+      const matches = (p: Record<string, unknown>) => {
+        if (where.organizationId && p.organizationId !== where.organizationId) return false;
+        const or = where.OR as Array<Record<string, unknown>> | undefined;
+        if (or) return or.some((cond) => matchesCond(p, cond));
+        return true;
+      };
+      const before = pendingCheckouts.length;
+      pendingCheckouts = pendingCheckouts.filter((p) => !matches(p));
+      return { count: before - pendingCheckouts.length };
+    }),
   },
   billingWebhookEvent: {
     create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
@@ -287,33 +309,63 @@ describe("handleSubscriptionActive", () => {
     },
   });
 
-  test("dispatches to applyAgentActivation using the PendingCheckout row written at checkout", async () => {
+  test("dispatches to applyAgentActivation using metadata written at checkout, and cleans up the matching PendingCheckout row", async () => {
     pendingCheckouts = [{
       id: "pc_1", organizationId: "o1", sessionId: "sess_1",
       kind: "AGENT", agent: "REX", plan: "MONTHLY", createdAt: new Date(),
     }];
 
-    await handleSubscriptionActive(basePayload() as never);
+    await handleSubscriptionActive(
+      basePayload({ metadata: { organizationId: "o1", kind: "AGENT", agent: "REX" } }) as never,
+    );
 
     assert.equal(ents.length, 1);
     assert.equal(ents[0].agent, "REX");
     assert.equal(ents[0].source, "AGENT");
-    assert.equal(pendingCheckouts.length, 0, "the consumed PendingCheckout row must be cleaned up");
+    assert.equal(pendingCheckouts.length, 0, "the matching PendingCheckout row must be cleaned up");
   });
 
-  test("dispatches to applyCrewActivation using the PendingCheckout row written at checkout", async () => {
+  test("dispatches to applyCrewActivation using metadata written at checkout, and cleans up the matching PendingCheckout row", async () => {
     pendingCheckouts = [{
       id: "pc_1", organizationId: "o1", sessionId: "sess_1",
       kind: "CREW", agent: null, plan: "MONTHLY", createdAt: new Date(),
     }];
 
-    await handleSubscriptionActive(basePayload() as never);
+    await handleSubscriptionActive(
+      basePayload({ metadata: { organizationId: "o1", kind: "CREW", plan: "MONTHLY" } }) as never,
+    );
 
     assert.equal(ents.length, 6);
     assert.ok(ents.every((e) => e.source === "CREW"));
+    assert.equal(pendingCheckouts.length, 0, "the matching PendingCheckout row must be cleaned up");
   });
 
-  test("falls back to metadata kind/agent when no PendingCheckout row is found (webhook beat our own write)", async () => {
+  test("REGRESSION (the money bug): an abandoned Rex checkout is the most-recent PendingCheckout row, but the customer actually paid for Maya — Maya must be provisioned, not Rex", async () => {
+    const older = new Date(Date.now() - 10 * 60 * 1000); // Maya checkout opened first...
+    const newer = new Date(); // ...then abandoned; Rex checkout opened after and is now "most recent"
+    pendingCheckouts = [
+      { id: "pc_maya", organizationId: "o1", sessionId: "sess_maya", kind: "AGENT", agent: "MAYA", plan: "MONTHLY", createdAt: older },
+      { id: "pc_rex", organizationId: "o1", sessionId: "sess_rex", kind: "AGENT", agent: "REX", plan: "MONTHLY", createdAt: newer },
+    ];
+
+    // The webhook that actually fires is for the completed Maya checkout:
+    // its own session's metadata and product_id both say MAYA.
+    await handleSubscriptionActive(
+      basePayload({
+        metadata: { organizationId: "o1", kind: "AGENT", agent: "MAYA" },
+        product_id: "pdt_maya",
+      }) as never,
+    );
+
+    assert.equal(ents.length, 1);
+    assert.equal(
+      ents[0].agent,
+      "MAYA",
+      "the customer paid for Maya's subscription (this event's own metadata says MAYA) and must be provisioned Maya — recency of an unrelated PendingCheckout row must never override that",
+    );
+  });
+
+  test("resolves the agent from metadata when present", async () => {
     pendingCheckouts = [];
     await handleSubscriptionActive(
       basePayload({ metadata: { organizationId: "o1", kind: "AGENT", agent: "REX" } }) as never,
@@ -322,7 +374,7 @@ describe("handleSubscriptionActive", () => {
     assert.equal(ents[0].agent, "REX");
   });
 
-  test("falls back to product_id resolution when neither PendingCheckout nor metadata carry the agent", async () => {
+  test("falls back to product_id resolution when metadata carries no agent/kind", async () => {
     pendingCheckouts = [];
     await handleSubscriptionActive(
       basePayload({ metadata: { organizationId: "o1" }, product_id: "pdt_rex" }) as never,
@@ -331,13 +383,59 @@ describe("handleSubscriptionActive", () => {
     assert.equal(ents[0].agent, "REX");
   });
 
-  test("fails closed with ignored-unresolved-agent when nothing resolves the agent — never defaults", async () => {
+  test("fails closed with ignored-unresolved-agent when neither metadata nor product_id resolve an agent — never defaults", async () => {
     pendingCheckouts = [];
     await handleSubscriptionActive(
       basePayload({ metadata: { organizationId: "o1" } }) as never,
     );
     assert.equal(ents.length, 0, "no entitlement must be created for an unresolved agent");
     assert.equal(billingSubs.length, 0);
+  });
+
+  test("REGRESSION: metadata.plan wins over a stale PendingCheckout row's plan for Crew pricing", async () => {
+    // The PendingCheckout row (unrelated/stale) says MONTHLY; this event's
+    // own metadata — the session that actually completed — says ANNUAL.
+    // Getting this wrong changes getCrewPriceCents and therefore every
+    // stamped priceCents on the six CREW entitlement rows.
+    pendingCheckouts = [{
+      id: "pc_1", organizationId: "o1", sessionId: "sess_1",
+      kind: "CREW", agent: null, plan: "MONTHLY", createdAt: new Date(),
+    }];
+
+    await handleSubscriptionActive(
+      basePayload({ metadata: { organizationId: "o1", kind: "CREW", plan: "ANNUAL" } }) as never,
+    );
+
+    assert.equal(ents.length, 6);
+    assert.ok(ents.every((e) => e.source === "CREW"));
+    assert.equal(
+      ents[0].priceCents,
+      Math.floor(34800 / 6),
+      "priceCents must be stamped from ANNUAL (this event's metadata), not MONTHLY (the unrelated PendingCheckout row)",
+    );
+  });
+
+  test("cleanup: provisioning MAYA also removes a stale unrelated PendingCheckout row so it cannot poison a later webhook", async () => {
+    const staleRex = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25h old — past the 24h staleness bound
+    pendingCheckouts = [
+      { id: "pc_maya", organizationId: "o1", sessionId: "sess_maya", kind: "AGENT", agent: "MAYA", plan: "MONTHLY", createdAt: new Date() },
+      { id: "pc_rex_stale", organizationId: "o1", sessionId: "sess_rex", kind: "AGENT", agent: "REX", plan: "MONTHLY", createdAt: staleRex },
+    ];
+
+    await handleSubscriptionActive(
+      basePayload({
+        metadata: { organizationId: "o1", kind: "AGENT", agent: "MAYA" },
+        product_id: "pdt_maya",
+      }) as never,
+    );
+
+    assert.equal(ents.length, 1);
+    assert.equal(ents[0].agent, "MAYA");
+    assert.equal(
+      pendingCheckouts.length,
+      0,
+      "both the matching MAYA row (same kind+agent as provisioned) and the stale REX row (older than 24h) must be gone",
+    );
   });
 
   test("REGRESSION: idempotency — a redelivery for an already-provisioned Dodo subscription does not create a second row", async () => {

@@ -336,36 +336,43 @@ export async function applyCrewActivation(input: {
 /**
  * Resolves what a `subscription.active` webhook is activating.
  *
- * Dodo does not echo back a `checkout_session_id` on the subscription
- * payload (verified: createCheckoutForOrg / createCrewCheckout never put one
- * in `metadata`, and the WebhookPayload shape has no such field), so
- * PendingCheckout cannot be looked up by session id. Instead:
+ * Only sources drawn from THIS event's payload are used — both are
+ * session-correlated, because they come from the very checkout session that
+ * just completed and fired this webhook:
  *
- *   1. PRIMARY: the most recent PendingCheckout row for this org. This is
- *      our own authoritative record of what the org just checked out for,
- *      written synchronously before the checkout URL was ever returned to
- *      the browser — by the time Dodo's webhook fires (after the user
- *      actually completes payment) this row is essentially guaranteed to
- *      exist.
- *   2. FALLBACK: `payload.data.metadata` — createCheckoutForOrg and
- *      createCrewCheckout both set `metadata: { organizationId, kind,
- *      agent | plan }` on the Dodo checkout session, and Dodo echoes
- *      metadata back on the subscription webhook (this is how the pre-6.1
- *      handler already resolved `plan`/`entitlementMode`). Covers the
- *      unlikely-but-possible race where the webhook beats our own
- *      PendingCheckout write.
- *   3. LAST RESORT: `product_id` → catalog resolution.
+ *   1. PRIMARY: `payload.data.metadata` — createCheckoutForOrg writes
+ *      `metadata: { organizationId, kind: "AGENT", agent }` and
+ *      createCrewCheckout writes `metadata: { organizationId, kind: "CREW"
+ *      | "CREW_UPGRADE", plan }` on the Dodo checkout session, and Dodo
+ *      echoes that exact metadata back on the subscription webhook for that
+ *      subscription.
+ *   2. FALLBACK: `product_id` → catalog resolution (`resolveAgentFromProductId`
+ *      / `resolveCrewPlanFromProductId`), also read from this same event's
+ *      payload.
+ *
+ * PendingCheckout is deliberately NOT consulted here, even though it is our
+ * own record of "what the org checked out for." Dodo does not echo back a
+ * `checkout_session_id` on the subscription payload (verified:
+ * createCheckoutForOrg / createCrewCheckout never put one in `metadata`, and
+ * the WebhookPayload shape has no such field), so a PendingCheckout row
+ * cannot be tied to the specific session that completed. An org can have
+ * multiple PendingCheckout rows in flight (e.g. an abandoned Maya checkout
+ * followed by a Rex checkout the user actually completes) — picking "most
+ * recent for the org" is a pure recency guess, not a correlation to this
+ * event, and CAN resolve to a DIFFERENT agent/plan than the one the customer
+ * actually paid for. That is a money bug (customer pays for Maya, gets Rex
+ * provisioned), so PendingCheckout must never decide `kind`, `agent`, or
+ * `plan` — see cleanupPendingCheckouts below for its one remaining
+ * (non-deciding) use.
  *
  * Never defaults to an agent or to ALL_AGENTS: an unresolved agent returns
  * `null` and the caller must fail closed.
  */
 function resolveActivationIntent(
   payload: WebhookPayload,
-  pending: { kind: CheckoutKind; agent: Agent | null; plan: SubscriptionPlan } | null,
 ): { kind: CheckoutKind; agent: Agent | null; plan: SubscriptionPlan } | null {
   const metaKind = payload.data.metadata?.kind;
-  const kind: CheckoutKind | undefined = pending?.kind
-    ?? (isCheckoutKind(metaKind) ? metaKind : undefined)
+  const kind: CheckoutKind | undefined = (isCheckoutKind(metaKind) ? metaKind : undefined)
     ?? (payload.data.product_id && resolveCrewPlanFromProductId(payload.data.product_id) ? "CREW" : undefined)
     ?? (payload.data.product_id && resolveAgentFromProductId(payload.data.product_id) ? "AGENT" : undefined);
 
@@ -373,19 +380,58 @@ function resolveActivationIntent(
 
   if (kind === "CREW" || kind === "CREW_UPGRADE") {
     const metaPlan = payload.data.metadata?.plan;
-    const plan: SubscriptionPlan = pending?.plan
-      ?? (isPlanValue(metaPlan) ? metaPlan : undefined)
+    const plan: SubscriptionPlan = (isPlanValue(metaPlan) ? metaPlan : undefined)
       ?? (payload.data.product_id ? resolveCrewPlanFromProductId(payload.data.product_id) : null)
       ?? "MONTHLY";
     return { kind, agent: null, plan };
   }
 
   const metaAgent = payload.data.metadata?.agent;
-  const agent: Agent | null = pending?.agent
-    ?? (isAgentValue(metaAgent) ? metaAgent : null)
+  const agent: Agent | null = (isAgentValue(metaAgent) ? metaAgent : null)
     ?? (payload.data.product_id ? resolveAgentFromProductId(payload.data.product_id) : null);
 
   return { kind: "AGENT", agent, plan: "MONTHLY" };
+}
+
+/**
+ * Best-effort cleanup of PendingCheckout rows after a `subscription.active`
+ * webhook has been resolved and provisioned.
+ *
+ * PendingCheckout rows cannot be correlated to the session that just
+ * completed (see resolveActivationIntent's doc comment above), so this must
+ * NOT delete "whichever row happens to exist" — that is exactly the bug
+ * being fixed: a wrong pick can delete the abandoned row and leave the real
+ * (still-pending-looking) one behind forever. Instead this deletes rows that
+ * describe the SAME purchase this webhook just confirmed — same `kind`, and
+ * for AGENT the same `agent` — which is safe because it only ever removes a
+ * row for the purchase that was actually just provisioned.
+ *
+ * It also sweeps rows older than 24 hours for this org. Nothing else ever
+ * expires a PendingCheckout: an abandoned checkout (user closes the tab, or
+ * completes a different one instead) is never confirmed by ANY webhook, so
+ * it must be aged out here rather than waited on — otherwise it lingers
+ * indefinitely as UI-only "checkout syncing" noise and stale bait for a
+ * future recency-based mistake.
+ */
+async function cleanupPendingCheckouts(
+  orgId: string,
+  intent: { kind: CheckoutKind; agent: Agent | null },
+): Promise<void> {
+  const staleBefore = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  await prisma.pendingCheckout
+    .deleteMany({
+      where: {
+        organizationId: orgId,
+        OR: [
+          {
+            kind: intent.kind,
+            ...(intent.kind === "AGENT" ? { agent: intent.agent } : {}),
+          },
+          { createdAt: { lt: staleBefore } },
+        ],
+      },
+    })
+    .catch((e) => console.error("[billing] failed to clean up pending checkouts", orgId, e));
 }
 
 export async function handleSubscriptionActive(payload: WebhookPayload) {
@@ -409,12 +455,7 @@ export async function handleSubscriptionActive(payload: WebhookPayload) {
     });
     if (existing) return "ignored-already-provisioned";
 
-    const pending = await prisma.pendingCheckout.findFirst({
-      where: { organizationId: orgId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const intent = resolveActivationIntent(payload, pending);
+    const intent = resolveActivationIntent(payload);
     if (!intent) {
       console.warn("[billing] active webhook: unresolved intent", { orgId, dodoSubId });
       return "ignored-unresolved-agent";
@@ -427,7 +468,7 @@ export async function handleSubscriptionActive(payload: WebhookPayload) {
         plan: intent.plan,
         periodEnd,
       });
-      if (pending) await prisma.pendingCheckout.delete({ where: { id: pending.id } }).catch(() => {});
+      await cleanupPendingCheckouts(orgId, intent);
       return "applied-crew";
     }
 
@@ -446,7 +487,7 @@ export async function handleSubscriptionActive(payload: WebhookPayload) {
       agent: intent.agent,
       periodEnd,
     });
-    if (pending) await prisma.pendingCheckout.delete({ where: { id: pending.id } }).catch(() => {});
+    await cleanupPendingCheckouts(orgId, intent);
     return "applied-agent";
   });
 }
