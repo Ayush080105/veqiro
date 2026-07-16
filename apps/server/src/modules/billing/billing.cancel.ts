@@ -4,6 +4,27 @@ import { Agent } from "../../../prisma/generated/prisma/client.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { ACCESS_STATUSES } from "./entitlement.service.js";
 
+/**
+ * Resolves the AGENT-source entitlement (and its BillingSubscription) that
+ * per-agent cancel/resume must act on.
+ *
+ * Overlapping rows for the same agent are legal and documented (see
+ * getMayaEntitlement in entitlement.service.ts): an org can hold an AGENT row
+ * and a CREW row for the same agent at once, because purchases insert new
+ * rows alongside old ones rather than replacing them, and nothing sets
+ * SUPERSEDED yet. Per-agent cancel must never resolve to the Crew bundle's
+ * subscription — cancelling Crew cancels all six agents, which is a
+ * different, much bigger action than the one the caller asked for, and the
+ * shared-subscription guard below only counts AGENT-source siblings, so it
+ * would not catch a Crew subscription slipping through here. So this
+ * function filters to `source: "AGENT"` explicitly and, when no AGENT row
+ * covers the agent, distinguishes "covered only by Crew" (refuse — the UI
+ * must offer a separate "cancel Crew" action) from "covered only by trial"
+ * and "not entitled at all" (existing behaviour, unchanged).
+ *
+ * When more than one AGENT row somehow covers the agent, the one with the
+ * latest currentPeriodEnd wins — never unordered row order.
+ */
 async function resolveAgentSubscription(organizationId: string, agent: Agent) {
   const rows = await prisma.entitlement.findMany({
     where: {
@@ -11,9 +32,14 @@ async function resolveAgentSubscription(organizationId: string, agent: Agent) {
       currentPeriodEnd: { gt: new Date() },
       status: { in: ACCESS_STATUSES },
     },
+    orderBy: { currentPeriodEnd: "desc" },
   });
-  const row = rows[0];
-  if (!row) throw new BadRequestError(`not-entitled:${agent}`);
+  const row = rows.find((r) => r.source === "AGENT");
+  if (!row) {
+    if (rows.some((r) => r.source === "CREW")) throw new BadRequestError(`covered-by-crew:${agent}`);
+    if (rows.some((r) => r.source === "TRIAL")) throw new BadRequestError("no-subscription-for-agent");
+    throw new BadRequestError(`not-entitled:${agent}`);
+  }
   if (!row.billingSubscriptionId) throw new BadRequestError("no-subscription-for-agent");
   const bs = await prisma.billingSubscription.findUnique({ where: { id: row.billingSubscriptionId } });
   if (!bs) throw new BadRequestError("no-subscription-for-agent");

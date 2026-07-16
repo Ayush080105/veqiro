@@ -43,8 +43,16 @@ function matchesWhere(e: EntRow, where: Record<string, unknown>): boolean {
 
 const mockPrisma = {
   entitlement: {
-    findMany: vi.fn(async ({ where }: { where: Record<string, unknown> }) => {
-      return ents.filter((e) => matchesWhere(e, where));
+    findMany: vi.fn(async ({ where, orderBy }: {
+      where: Record<string, unknown>;
+      orderBy?: Record<string, "asc" | "desc">;
+    }) => {
+      const results = ents.filter((e) => matchesWhere(e, where));
+      if (orderBy?.currentPeriodEnd) {
+        const dir = orderBy.currentPeriodEnd === "desc" ? -1 : 1;
+        results.sort((a, b) => dir * (a.currentPeriodEnd.getTime() - b.currentPeriodEnd.getTime()));
+      }
+      return results;
     }),
     updateMany: vi.fn(async ({ where, data }: { where: Record<string, unknown>; data: Partial<EntRow> }) => {
       let count = 0;
@@ -155,7 +163,16 @@ describe("cancelAgentAutoPay", () => {
       assert.equal(ents[0].cancelAtPeriodEnd, true);
     });
 
-    test("a CREW-source subscription with 6 entitlements does not trigger the guard", async () => {
+    // REGRESSION. This test previously asserted the OPPOSITE — that the cancel
+    // proceeded and called Dodo once — which encoded the bug rather than
+    // guarding against it: the shared-subscription guard counts only
+    // AGENT-source siblings, so a 6-row CREW subscription sails straight
+    // through it, and the code would cancel the whole Crew bundle when the
+    // user asked to cancel a single agent.
+    //
+    // Resolution now filters to source:"AGENT" and refuses before the guard is
+    // ever reached, so a CREW-covered agent can never be cancelled this way.
+    test("a CREW-source subscription is refused, not silently cancelled as a bundle", async () => {
       ents[0].source = "CREW";
       const crewAgents = ["MAYA", "SAGE", "LEX", "SCOUT", "VEGA"];
       for (const agent of crewAgents) {
@@ -164,9 +181,69 @@ describe("cancelAgentAutoPay", () => {
           currentPeriodEnd: future, cancelAtPeriodEnd: false, billingSubscriptionId: "bs_1",
         });
       }
-      const out = await cancelAgentAutoPay("o1", "REX" as never);
+      const before = JSON.parse(JSON.stringify(ents));
+      await cancelAgentAutoPay("o1", "REX" as never).then(
+        () => assert.fail("per-agent cancel must never act on a Crew subscription"),
+        (e) => assert.match(String(e), /covered-by-crew:REX/),
+      );
+      assert.equal(dodoUpdate.mock.calls.length, 0, "Dodo must not be called");
+      assert.deepEqual(JSON.parse(JSON.stringify(ents)), before, "nothing may be mutated");
+    });
+  });
+
+  describe("crew overlap (per-agent cancel must never resolve to a Crew subscription)", () => {
+    test("cancelling an agent covered ONLY by a CREW row throws covered-by-crew:MAYA, mutates nothing, and never calls Dodo", async () => {
+      ents = [
+        {
+          id: "crew-1", organizationId: "o1", agent: "MAYA", source: "CREW", status: "ACTIVE",
+          currentPeriodEnd: future, cancelAtPeriodEnd: false, billingSubscriptionId: "bs_crew",
+        },
+      ];
+      subs = [{ id: "bs_crew", dodoSubscriptionId: "sub_crew", cancelAtPeriodEnd: false }];
+      const before = JSON.parse(JSON.stringify(ents));
+
+      await cancelAgentAutoPay("o1", "MAYA" as never).then(
+        () => assert.fail("should have thrown"),
+        (e) => assert.match(String(e), /covered-by-crew:MAYA/),
+      );
+
+      assert.deepEqual(JSON.parse(JSON.stringify(ents)), before, "entitlement rows must be unchanged");
+      assert.equal(dodoUpdate.mock.calls.length, 0, "Dodo must never be called when there is no AGENT row to act on");
+    });
+
+    test("cancelling an agent with BOTH an ACTIVE AGENT row and an ACTIVE CREW row resolves to the AGENT subscription and touches ONLY it (the exact regression this fix closes)", async () => {
+      // The CREW row is inserted FIRST so an unordered `rows[0]` pick (the
+      // old, buggy behaviour) would select it instead of the AGENT row. If
+      // this test passed regardless of insertion order, it would prove
+      // nothing about the fix.
+      ents = [
+        {
+          id: "crew-1", organizationId: "o1", agent: "MAYA", source: "CREW", status: "ACTIVE",
+          currentPeriodEnd: future, cancelAtPeriodEnd: false, billingSubscriptionId: "bs_crew",
+        },
+        {
+          id: "agent-1", organizationId: "o1", agent: "MAYA", source: "AGENT", status: "ACTIVE",
+          currentPeriodEnd: future, cancelAtPeriodEnd: false, billingSubscriptionId: "bs_agent",
+        },
+      ];
+      subs = [
+        { id: "bs_crew", dodoSubscriptionId: "sub_crew", cancelAtPeriodEnd: false },
+        { id: "bs_agent", dodoSubscriptionId: "sub_agent", cancelAtPeriodEnd: false },
+      ];
+
+      const out = await cancelAgentAutoPay("o1", "MAYA" as never);
+
       assert.equal(out.activeUntil.getTime(), future.getTime());
       assert.equal(dodoUpdate.mock.calls.length, 1);
+      assert.equal(dodoUpdate.mock.calls[0][0], "sub_agent", "must cancel the AGENT subscription");
+      assert.notEqual(dodoUpdate.mock.calls[0][0], "sub_crew", "must NOT cancel the Crew (six-agent) subscription");
+      assert.equal(
+        subs.find((s) => s.id === "bs_crew")!.cancelAtPeriodEnd, false,
+        "the Crew BillingSubscription row must be left untouched",
+      );
+      assert.equal(subs.find((s) => s.id === "bs_agent")!.cancelAtPeriodEnd, true);
+      assert.equal(ents.find((e) => e.id === "crew-1")!.cancelAtPeriodEnd, false, "the CREW entitlement row must be untouched");
+      assert.equal(ents.find((e) => e.id === "agent-1")!.cancelAtPeriodEnd, true);
     });
   });
 });
