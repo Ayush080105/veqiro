@@ -498,7 +498,17 @@ export async function getOrganizationById(id: string) {
   const agentMap: Record<string, number> = {};
   for (const r of agentCounts) agentMap[r.agent] = r._count._all;
 
-  const mayaCredits = org.subscription ? await getCurrentUsage(id) : null;
+  // getCurrentUsage throws `no-subscription` when the org has no ACTIVE Maya
+  // entitlement (bought other agents only, or its trial lapsed). That is a
+  // normal org state, not an error — surface it as "no credits" so the admin
+  // detail view still renders. The old `org.subscription ?` guard checked the
+  // legacy Subscription row, which almost every org has, so it did not prevent
+  // this throw and the endpoint 500'd for such orgs. Any OTHER error (e.g. a
+  // real DB failure) still propagates.
+  const mayaCredits = await getCurrentUsage(id).catch((err) => {
+    if (err instanceof Error && err.message === "no-subscription") return null;
+    throw err;
+  });
 
   const total30dTokens = token30d._sum.tokensUsed ?? 0;
   const tokenUsageByAgent = ALL_AGENTS.map((a) => {
