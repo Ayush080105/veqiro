@@ -9,8 +9,9 @@ WORKDIR /repo
 
 # Layer-cache manifests before copying source
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY apps/server/package.json            ./apps/server/
-COPY packages/transactional/package.json ./packages/transactional/
+COPY apps/server/package.json                  ./apps/server/
+COPY packages/transactional/package.json       ./packages/transactional/
+COPY packages/integrations-catalog/package.json ./packages/integrations-catalog/
 RUN pnpm install --frozen-lockfile
 
 # Copy source (selective — avoids .env and other apps)
@@ -19,6 +20,11 @@ COPY apps/server/prisma/          ./apps/server/prisma/
 COPY apps/server/tsconfig.json    ./apps/server/tsconfig.json
 COPY apps/server/prisma.config.ts ./apps/server/prisma.config.ts
 COPY packages/transactional/      ./packages/transactional/
+COPY packages/integrations-catalog/ ./packages/integrations-catalog/
+
+# integrations-catalog is compiled (unlike transactional's raw source) —
+# its package.json main/types point at ./dist/, so it must build first.
+RUN pnpm --filter @repo/integrations-catalog build
 
 # Generate Prisma client then compile TypeScript
 WORKDIR /repo/apps/server
