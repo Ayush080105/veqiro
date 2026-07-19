@@ -1,6 +1,9 @@
 export const qk = {
   brandKit: (organizationId: string) => ["brand-kit", organizationId] as const,
   integrations: () => ["integrations"] as const,
+  mcpConnections: () => ["mcp", "connections"] as const,
+  mcpConfigSchema: (slug: string) => ["mcp", "config-schema", slug] as const,
+  mcpConnectionStatus: (slug: string) => ["mcp", "connection-status", slug] as const,
   assistantStatuses: (organizationId: string) =>
     ["assistant-statuses", organizationId] as const,
   lastMessages: () => ["last-messages"] as const,

@@ -70,6 +70,7 @@ export const ModelName = {
   AgentMemory: 'AgentMemory',
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
+  McpConnection: 'McpConnection',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -422,6 +423,26 @@ export const SocialAccountScalarFieldEnum = {
 } as const
 
 export type SocialAccountScalarFieldEnum = (typeof SocialAccountScalarFieldEnum)[keyof typeof SocialAccountScalarFieldEnum]
+
+
+export const McpConnectionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  integrationSlug: 'integrationSlug',
+  connectionId: 'connectionId',
+  qualifiedName: 'qualifiedName',
+  ownerAgent: 'ownerAgent',
+  status: 'status',
+  configSchema: 'configSchema',
+  lastConnectedAt: 'lastConnectedAt',
+  lastCheckedAt: 'lastCheckedAt',
+  lastError: 'lastError',
+  connectedByUserId: 'connectedByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpConnectionScalarFieldEnum = (typeof McpConnectionScalarFieldEnum)[keyof typeof McpConnectionScalarFieldEnum]
 
 
 export const PublishedPostScalarFieldEnum = {

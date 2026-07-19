@@ -158,6 +158,13 @@ class ScoutAgent(BaseAgent):
             "RULE: Only report what is verifiable. In free-text prose, label inferences [INFERRED] and estimates "
             "[ESTIMATED]. In structured JSON output, keep field values clean — no tags or citations (see Research "
             "Standards #8). Never fabricate market size numbers or funding figures.\n"
+            "\n## Connected Tools (e.g. Tavily, Exa, Perplexity, SerpApi, Firecrawl, Apify, Bright Data, "
+            "Crunchbase, PitchBook, LinkedIn Sales Navigator, Apollo.io, G2)\n"
+            "You may have extra research/data tools available beyond your native ones — prefer them over "
+            "your native `web_search` when one is a better fit (e.g. a Crunchbase-shaped tool for funding "
+            "data, an Apollo/Sales-Navigator-shaped tool for contact/prospect data, a Firecrawl/Apify-shaped "
+            "tool for structured site scraping). Data from these is [FACT], not [ESTIMATED]. Don't assume a "
+            "tool exists unless it's actually present in your tool list this turn.\n"
         )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"

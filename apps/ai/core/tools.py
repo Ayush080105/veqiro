@@ -25,6 +25,11 @@ class ToolDefinition(BaseModel):
     name: str
     description: str
     parameters: list[ToolParameter] = []
+    # MCP tools speak JSON Schema natively (inputSchema) and can be nested
+    # (e.g. Notion's create_page). ToolParameter is flat and can't represent
+    # that — when set, converters below use this verbatim instead of the
+    # lossy JSON-Schema -> ToolParameter -> JSON-Schema round trip.
+    raw_schema: dict | None = None
 
 
 class ToolCall(BaseModel):
@@ -79,7 +84,7 @@ def tool_defs_to_openai(tools: list[ToolDefinition]) -> list[dict]:
             "function": {
                 "name": t.name,
                 "description": t.description,
-                "parameters": _params_to_json_schema(t.parameters),
+                "parameters": t.raw_schema if t.raw_schema is not None else _params_to_json_schema(t.parameters),
             },
         }
         for t in tools
@@ -90,7 +95,7 @@ def tool_defs_to_gemini(tools: list[ToolDefinition]) -> list[dict]:
     """Convert tool definitions to Gemini function declaration format."""
     declarations = []
     for t in tools:
-        schema = _params_to_json_schema(t.parameters, include_defaults=False)
+        schema = t.raw_schema if t.raw_schema is not None else _params_to_json_schema(t.parameters, include_defaults=False)
         declarations.append({
             "name": t.name,
             "description": t.description,

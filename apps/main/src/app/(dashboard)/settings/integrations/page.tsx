@@ -3,12 +3,20 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { CheckCircle2, XCircle, ExternalLink, UserCircle2 } from "lucide-react"
+import { CheckCircle2, XCircle, ExternalLink, UserCircle2, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -19,26 +27,32 @@ import {
   type SocialAccount,
   type SocialPlatformSlug,
 } from "@/lib/api/integrations"
+import { useMcpConnections } from "@/lib/api/mcp"
+import { INTEGRATIONS_CATALOG, getIntegrationCategories } from "@repo/integrations-catalog"
+import { IntegrationCatalogCard, IntegrationLogo } from "@/components/integrations/IntegrationCatalogCard"
+import { LEGACY_MCP_SLUGS } from "@/lib/config/legacy-integrations"
 import { qk } from "@/lib/query-keys"
 import { PageHeader } from "@/components/ui/page-header"
 
-// ─── Integration Config ───────────────────────────────────────────────────────
+// ─── Legacy (native) integrations — Gmail/Calendar and X/LinkedIn/Instagram
+// still connect through their original mechanism (better-auth / the bespoke
+// SocialAccount OAuth module) until the Smithery cutover for those specific
+// rows is verified — see plan Rollout phases 2-3. Everything else below
+// renders from the shared @repo/integrations-catalog through the uniform
+// Smithery connect flow.
 
-interface IntegrationDef {
+interface LegacyIntegrationDef {
   id: string
   name: string
   description: string
   requiredBy: string[]
-  docsUrl?: string
-  /** Optional note shown below the description (e.g. requirements or setup tips). */
   note?: string
-  /** If set, this integration is wired to /api/v1/integrations/:slug */
   platformSlug?: SocialPlatformSlug
-  /** If true, this integration uses Better Auth's social sign-in for OAuth */
   useBetterAuth?: boolean
+  logoUrl?: string
 }
 
-const INTEGRATIONS: IntegrationDef[] = [
+const LEGACY_INTEGRATIONS: LegacyIntegrationDef[] = [
   {
     id: "google",
     name: "Google (Gmail & Calendar)",
@@ -46,6 +60,7 @@ const INTEGRATIONS: IntegrationDef[] = [
       "Required for Vega to read your inbox, draft replies, and manage calendar events on your behalf.",
     requiredBy: ["Vega"],
     useBetterAuth: true,
+    logoUrl: "https://api.smithery.ai/servers/gmail/icon",
   },
   {
     id: "twitter",
@@ -54,6 +69,7 @@ const INTEGRATIONS: IntegrationDef[] = [
       "Publish Maya's drafts straight to X — tweets, threads, and posts with generated images.",
     requiredBy: ["Maya"],
     platformSlug: "twitter",
+    logoUrl: "https://api.smithery.ai/servers/twitter/icon",
   },
   {
     id: "linkedin",
@@ -62,6 +78,7 @@ const INTEGRATIONS: IntegrationDef[] = [
       "Share Maya's long-form posts and images directly to your personal LinkedIn feed.",
     requiredBy: ["Maya"],
     platformSlug: "linkedin",
+    logoUrl: "https://logos.composio.dev/api/linkedin",
   },
   {
     id: "instagram",
@@ -71,52 +88,26 @@ const INTEGRATIONS: IntegrationDef[] = [
     note: "Requires a Professional account. To switch (it's free): ••• → Account type and tools → Account type → Switch to professional.",
     requiredBy: ["Maya"],
     platformSlug: "instagram",
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    description:
-      "Send briefing summaries and agent updates directly to your Slack channels.",
-    requiredBy: ["Vega", "Rex"],
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    description:
-      "Sync generated content drafts and research reports to your Notion workspace.",
-    requiredBy: ["Sage", "Maya"],
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    description:
-      "Allow Lex and Scout to monitor your repositories for compliance and dependency updates.",
-    requiredBy: ["Lex", "Scout"],
-  },
-  {
-    id: "stripe",
-    name: "Stripe",
-    description:
-      "Rex reads your MRR, churn, and revenue metrics directly from Stripe for financial briefings.",
-    requiredBy: ["Rex"],
+    logoUrl: "https://cdn.jsdelivr.net/gh/ComposioHQ/open-logos@master/instagram.svg",
   },
 ]
 
-// ─── Integration Card ─────────────────────────────────────────────────────────
+const MCP_CATALOG = INTEGRATIONS_CATALOG.filter((e) => !LEGACY_MCP_SLUGS.has(e.slug))
+const CATEGORIES = getIntegrationCategories().filter((c) =>
+  MCP_CATALOG.some((e) => e.category === c)
+)
 
-function IntegrationCard({
+// ─── Legacy Integration Card (unchanged) ───────────────────────────────────
+
+function LegacyIntegrationCard({
   integration,
   account,
   connectedOverride,
   connectedEmail,
 }: {
-  integration: IntegrationDef
+  integration: LegacyIntegrationDef
   account?: SocialAccount
-  /** For useBetterAuth integrations (Google), connection state lives in
-   * Better Auth's `account` table, not the `social_account` table that
-   * `account` here points at. The parent computes that and passes it in. */
   connectedOverride?: boolean
-  /** Email/name to display for Better Auth integrations (e.g. Google). */
   connectedEmail?: string
 }) {
   const disconnect = useDisconnectIntegration()
@@ -124,7 +115,6 @@ function IntegrationCard({
   const isWired = Boolean(integration.platformSlug) || Boolean(integration.useBetterAuth)
   const loading = disconnect.isPending
 
-  // The display name shown in the "connected as" row
   const accountDisplay = account?.accountName ?? account?.providerAccountId ?? connectedEmail ?? null
 
   async function handleToggle() {
@@ -149,9 +139,7 @@ function IntegrationCard({
       }
     } catch (err) {
       toast.error(
-        `Failed to ${connected ? "disconnect" : "connect"} ${integration.name}: ${
-          (err as Error).message
-        }`
+        `Failed to ${connected ? "disconnect" : "connect"} ${integration.name}: ${(err as Error).message}`
       )
     }
   }
@@ -160,14 +148,17 @@ function IntegrationCard({
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-0.5">
-            <CardTitle className="text-sm font-semibold">{integration.name}</CardTitle>
-            <CardDescription>{integration.description}</CardDescription>
-            {integration.note && (
-              <p className="mt-1.5 text-[11px] text-muted-foreground/70 leading-relaxed">
-                {integration.note}
-              </p>
-            )}
+          <div className="flex items-start gap-2.5">
+            <IntegrationLogo name={integration.name} logoUrl={integration.logoUrl} />
+            <div className="flex flex-col gap-0.5">
+              <CardTitle className="text-sm font-semibold">{integration.name}</CardTitle>
+              <CardDescription>{integration.description}</CardDescription>
+              {integration.note && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground/70 leading-relaxed">
+                  {integration.note}
+                </p>
+              )}
+            </div>
           </div>
           {connected ? (
             <CheckCircle2 className="size-4 shrink-0 text-chart-2 mt-0.5" />
@@ -177,14 +168,11 @@ function IntegrationCard({
         </div>
       </CardHeader>
 
-      {/* Connected account info */}
       {connected && accountDisplay && (
         <div className="px-6 pb-3">
           <div className="flex items-center gap-2 rounded-md border border-chart-2/20 bg-chart-2/8 px-2.5 py-1.5">
             <UserCircle2 className="size-3.5 shrink-0 text-chart-2" />
-            <span className="truncate text-[11px] font-medium text-foreground">
-              {accountDisplay}
-            </span>
+            <span className="truncate text-[11px] font-medium text-foreground">{accountDisplay}</span>
           </div>
         </div>
       )}
@@ -218,12 +206,12 @@ export default function IntegrationsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { data: accounts = [] } = useIntegrations()
+  const { data: mcpConnections = [] } = useMcpConnections()
   const [linkedProviders, setLinkedProviders] = useState<Set<string>>(new Set())
   const [googleEmail, setGoogleEmail] = useState<string | undefined>(undefined)
+  const [search, setSearch] = useState("")
+  const [category, setCategory] = useState<string>("all")
 
-  // Better Auth's listAccounts returns the user's linked OAuth providers
-  // (e.g. "google"). Polled on mount and after every connect/disconnect
-  // round-trip so the UI stays in sync without a hard refresh.
   const refetchTrigger = searchParams.get("connected")
   useEffect(() => {
     let cancelled = false
@@ -237,9 +225,7 @@ export default function IntegrationsPage() {
           providerId?: string
           provider?: string
         }>
-        const ids = new Set(
-          list.map((a) => a.providerId ?? a.provider ?? "").filter(Boolean)
-        )
+        const ids = new Set(list.map((a) => a.providerId ?? a.provider ?? "").filter(Boolean))
         if (!cancelled) {
           setLinkedProviders(ids)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -274,6 +260,20 @@ export default function IntegrationsPage() {
     return map
   }, [accounts])
 
+  const connectedMcpSlugs = useMemo(
+    () => new Set(mcpConnections.filter((c) => c.status === "CONNECTED").map((c) => c.slug)),
+    [mcpConnections]
+  )
+
+  const filteredCatalog = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return MCP_CATALOG.filter((e) => {
+      if (category !== "all" && e.category !== category) return false
+      if (!q) return true
+      return e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)
+    })
+  }, [search, category])
+
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
@@ -304,18 +304,15 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {INTEGRATIONS.map((integration) => {
+        {LEGACY_INTEGRATIONS.map((integration) => {
           const account = integration.platformSlug
             ? accountByPlatform.get(platformSlugToEnum[integration.platformSlug])
             : undefined
-          // Map our `id` to the Better Auth provider id. Today only Google
-          // uses this path, but we route through `id` so adding GitHub /
-          // Microsoft etc. later is a one-line change.
           const connectedOverride = integration.useBetterAuth
             ? linkedProviders.has(integration.id)
             : undefined
           return (
-            <IntegrationCard
+            <LegacyIntegrationCard
               key={integration.id}
               integration={integration}
               account={account}
@@ -324,6 +321,56 @@ export default function IntegrationsPage() {
             />
           )
         })}
+      </div>
+
+      <div className="flex flex-col gap-3 pt-2">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-sm font-semibold text-foreground">1000+ more, via Smithery</h2>
+          <p className="text-xs text-muted-foreground">
+            Browse the full catalog and connect the tools each agent needs.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search integrations…"
+              className="pl-8"
+            />
+          </div>
+          <Select value={category} onValueChange={(value) => setCategory(value ?? "all")}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {filteredCatalog.map((entry) => (
+            <IntegrationCatalogCard
+              key={entry.slug}
+              entry={entry}
+              connected={connectedMcpSlugs.has(entry.slug)}
+            />
+          ))}
+        </div>
+
+        {filteredCatalog.length === 0 && (
+          <p className="py-8 text-center text-xs text-muted-foreground">
+            No integrations match “{search}”.
+          </p>
+        )}
       </div>
     </div>
   )

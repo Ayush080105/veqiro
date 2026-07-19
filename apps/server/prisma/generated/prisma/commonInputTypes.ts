@@ -538,6 +538,23 @@ export type EnumSocialPlatformWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumSocialPlatformFilter<$PrismaModel>
 }
 
+export type EnumMcpConnectionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpConnectionStatus | Prisma.EnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel> | $Enums.McpConnectionStatus
+}
+
+export type EnumMcpConnectionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpConnectionStatus | Prisma.EnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpConnectionStatusWithAggregatesFilter<$PrismaModel> | $Enums.McpConnectionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel>
+}
+
 export type FloatFilter<$PrismaModel = never> = {
   equals?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   in?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel>
@@ -1165,6 +1182,23 @@ export type NestedEnumSocialPlatformWithAggregatesFilter<$PrismaModel = never> =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumSocialPlatformFilter<$PrismaModel>
   _max?: Prisma.NestedEnumSocialPlatformFilter<$PrismaModel>
+}
+
+export type NestedEnumMcpConnectionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpConnectionStatus | Prisma.EnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel> | $Enums.McpConnectionStatus
+}
+
+export type NestedEnumMcpConnectionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpConnectionStatus | Prisma.EnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpConnectionStatus[] | Prisma.ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpConnectionStatusWithAggregatesFilter<$PrismaModel> | $Enums.McpConnectionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel>
 }
 
 export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {

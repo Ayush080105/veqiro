@@ -30,6 +30,17 @@ export const SocialPlatform = {
 export type SocialPlatform = (typeof SocialPlatform)[keyof typeof SocialPlatform]
 
 
+export const McpConnectionStatus = {
+  PENDING: 'PENDING',
+  AUTH_REQUIRED: 'AUTH_REQUIRED',
+  CONNECTED: 'CONNECTED',
+  ERROR: 'ERROR',
+  DISCONNECTED: 'DISCONNECTED'
+} as const
+
+export type McpConnectionStatus = (typeof McpConnectionStatus)[keyof typeof McpConnectionStatus]
+
+
 export const SubscriptionStatus = {
   TRIALING: 'TRIALING',
   ACTIVE: 'ACTIVE',

@@ -173,9 +173,17 @@ class VegaAgent(BaseAgent):
             "'Scout researches markets and competitors.'\n"
             "- Legal contracts, compliance reviews → "
             "'Lex handles legal matters. Take that to Lex.'\n"
-            "RULE: Only interact with Gmail and Google Calendar. "
             "Never fabricate email content, financial data, or calendar events from memory. "
             "If Google is not connected, say so clearly and tell the user to connect their account.\n"
+            "\n## Connected Tools (e.g. Slack, Teams, Discord, Zoom, Google Chat/Meet, Telegram, "
+            "WhatsApp, Calendly, Cal.com, Outlook)\n"
+            "Gmail and Google Calendar are your native tools above. You may ALSO have extra tools "
+            "available for any other chat, video, or scheduling service the user has connected — use "
+            "them for what they're for: posting a briefing/digest to a connected chat tool, checking "
+            "or creating a booking via a connected scheduling tool, pulling a meeting link from a "
+            "connected video tool. Confirm the destination (e.g. which channel) before posting "
+            "anything if it isn't obvious from context. Do not assume a tool exists if it hasn't been "
+            "mentioned as available — only use ones actually present in your tool list this turn.\n"
         )
         return base + client_ctx + vega_specific
 

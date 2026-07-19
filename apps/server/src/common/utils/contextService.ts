@@ -6,6 +6,7 @@ import { CONTEXT_HISTORY_LIMIT, SUMMARIZE_THRESHOLD } from "../../config/constan
 import type { BuildContextResponse } from "../../modules/context/context.types.js"
 import { z } from "zod"
 import { prisma } from "../../config/prisma.js"
+import { getConnectionsForAgent } from "../../modules/mcp/mcp.service.js"
 
 interface AgentCallOptions {
   agentApiPath: string            // e.g. "/ai/sage/chat"
@@ -218,6 +219,19 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
     ? [...built.hot_messages, ...built.semantic_messages]
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
+  // 2.5. Resolve this org's connected MCP tools relevant to this agent.
+  // Cheap no-op (no DB/Smithery call beyond one indexed query) for the
+  // common case of an org with zero connections.
+  let mcpMeta: Record<string, unknown> = {}
+  try {
+    const connections = await getConnectionsForAgent(organizationId, agentEnum)
+    if (connections.length > 0) {
+      mcpMeta = { mcp_connections: connections }
+    }
+  } catch (err) {
+    console.error("[context] mcp connection resolution failed — continuing without MCP tools", err)
+  }
+
   // 3. Call the agent
   const { data: response } = await aiService.post<T>(agentApiPath, {
     user_id: userId,
@@ -228,6 +242,7 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
     ...topLevelPayload,
     metadata: {
       ...extraPayload,
+      ...mcpMeta,
       ...(built?.memory_block ? { memory_context: built.memory_block } : {}),
     },
   })

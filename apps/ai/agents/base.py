@@ -11,6 +11,8 @@ from core.observability import set_llm_context
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolCall, ToolResult
+from core.mcp.cache import get_mcp_tools
+from core.mcp.client import call_connection_tool, McpToolCallError
 
 # ── Terminal logger ─────────────────────────────────────────────────────────
 # Prints structured, colorized logs to stdout for every agent turn so you can
@@ -240,11 +242,25 @@ class BaseAgent(ABC):
 
     # ── Tool definitions (override in subclass) ─────────────────────────
 
-    def validate_tool_call(self, name: str, arguments: dict) -> str | None:
-        """Returns a rejection reason string if the call is structurally invalid, else None."""
-        for tool in self.get_tools():
+    def validate_tool_call(
+        self, name: str, arguments: dict, tools: list[ToolDefinition] | None = None
+    ) -> str | None:
+        """Returns a rejection reason string if the call is structurally invalid, else None.
+
+        `tools` defaults to self.get_tools() for backwards compatibility, but
+        chat_sync() passes its full merged list (native + ask_agent + MCP) —
+        without that, MCP tools' required fields (declared via raw_schema,
+        not ToolParameter) were never validated at all.
+        """
+        for tool in (tools if tools is not None else self.get_tools()):
             if tool.name != name:
                 continue
+            if tool.raw_schema is not None:
+                for required_name in tool.raw_schema.get("required", []) or []:
+                    val = arguments.get(required_name)
+                    if val is None or (isinstance(val, str) and not val.strip()):
+                        return f"Missing required parameter: {required_name}"
+                return None
             for param in tool.parameters:
                 if not param.required:
                     continue
@@ -389,6 +405,19 @@ class BaseAgent(ABC):
                     p.enum = [s for s in p.enum if s != self.slug]
             tools.append(ask_agent_tool)
 
+        # Merge in this org's connected MCP tools for this agent (resolved
+        # and org-scoped by Node's contextService.ts — see mcp_connections).
+        # mcp_alias_map is a LOCAL var, not self.state: agents are singletons
+        # shared across every org's concurrent requests (see registry.py), so
+        # per-call state must never live on self.
+        mcp_connections = request.metadata.get("mcp_connections") or []
+        mcp_alias_map: dict[str, tuple[str, str]] = {}
+        if mcp_connections:
+            mcp_tools, mcp_alias_map = await get_mcp_tools(
+                request.organization_id, self.slug, mcp_connections
+            )
+            tools.extend(mcp_tools)
+
         # If no tools defined (shouldn't happen, but safety), fall back
         if len(tools) <= 1:  # only ask_agent
             return await self._chat_sync_no_tools(request)
@@ -502,7 +531,7 @@ class BaseAgent(ABC):
             stub_start = len(all_tool_calls)
             rejected: list[int] = []
             for idx, tc in enumerate(response.tool_calls):
-                reason = self.validate_tool_call(tc.name, tc.arguments)
+                reason = self.validate_tool_call(tc.name, tc.arguments, tools)
                 if reason:
                     rejected.append(idx)
                     print(f"  {_R}[reject] {tc.name}({_args_summary(tc.arguments)}) → {reason}{_X}")
@@ -553,7 +582,11 @@ class BaseAgent(ABC):
             async def _run_one(tc) -> str:
                 if tc.name == "ask_agent":
                     coro = self._execute_cross_agent_call(
-                        tc.arguments, request.user_id, request.organization_id
+                        tc.arguments, request.user_id, request.organization_id, mcp_connections
+                    )
+                elif tc.name in mcp_alias_map:
+                    coro = self._execute_mcp_tool(
+                        tc.name, tc.arguments, request.organization_id, mcp_alias_map
                     )
                 else:
                     coro = self.execute_tool(
@@ -640,6 +673,24 @@ class BaseAgent(ABC):
             action_result=action_result,
         )
 
+    # ── MCP tool execution ───────────────────────────────────────────────
+
+    async def _execute_mcp_tool(
+        self,
+        alias: str,
+        arguments: dict,
+        organization_id: str,
+        alias_map: dict[str, tuple[str, str]],
+    ) -> str:
+        """Dispatch an MCP-sourced tool call. `alias_map` is the LOCAL map
+        built this turn by get_mcp_tools() — never self.state (see chat_sync)."""
+        connection_id, real_tool_name = alias_map[alias]
+        try:
+            result = await call_connection_tool(organization_id, connection_id, real_tool_name, arguments)
+        except McpToolCallError as e:
+            raise RuntimeError(str(e))
+        return json.dumps(result)
+
     # ── Cross-agent execution ───────────────────────────────────────────
 
     async def _execute_cross_agent_call(
@@ -647,6 +698,7 @@ class BaseAgent(ABC):
         arguments: dict,
         user_id: str,
         organization_id: str = "",
+        mcp_connections: list | None = None,
     ) -> str:
         """Execute a cross-agent call via the agent registry."""
         from agents.registry import get_agent
@@ -661,14 +713,22 @@ class BaseAgent(ABC):
         if not target_agent:
             return f"Error: Agent '{target_slug}' not found or not registered."
 
-        # Run target agent's full tool loop, but block further delegation via flag
+        # Run target agent's full tool loop, but block further delegation via flag.
+        # Pass mcp_connections through — otherwise a delegated call silently
+        # loses MCP tool access. v1 does not re-filter by the target agent's
+        # catalog ownership (Node already filtered for the outer agent before
+        # this call happened); acceptable scoping nuance, not a security gap
+        # since it can only ever be a subset of what the outer agent already had.
         inner_request = ChatRequest(
             user_id=user_id,
             organization_id=organization_id,
             conversation_id=f"cross-agent-{self.slug}-to-{target_slug}",
             message=question,
             history=[],
-            metadata={"_cross_agent_call": True},
+            metadata={
+                "_cross_agent_call": True,
+                **({"mcp_connections": mcp_connections} if mcp_connections else {}),
+            },
         )
         result = await target_agent.chat_sync(inner_request)
         return result.response

@@ -403,6 +403,7 @@ export const ModelName = {
   AgentMemory: 'AgentMemory',
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
+  McpConnection: 'McpConnection',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -443,7 +444,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1850,6 +1851,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SocialAccountCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SocialAccountCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpConnection: {
+      payload: Prisma.$McpConnectionPayload<ExtArgs>
+      fields: Prisma.McpConnectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpConnectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpConnectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>
+        }
+        findFirst: {
+          args: Prisma.McpConnectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpConnectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>
+        }
+        findMany: {
+          args: Prisma.McpConnectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>[]
+        }
+        create: {
+          args: Prisma.McpConnectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>
+        }
+        createMany: {
+          args: Prisma.McpConnectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpConnectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>[]
+        }
+        delete: {
+          args: Prisma.McpConnectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>
+        }
+        update: {
+          args: Prisma.McpConnectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpConnectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpConnectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpConnectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpConnectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpConnectionPayload>
+        }
+        aggregate: {
+          args: Prisma.McpConnectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpConnection>
+        }
+        groupBy: {
+          args: Prisma.McpConnectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpConnectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpConnectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpConnectionCountAggregateOutputType> | number
         }
       }
     }
@@ -4053,6 +4128,26 @@ export const SocialAccountScalarFieldEnum = {
 export type SocialAccountScalarFieldEnum = (typeof SocialAccountScalarFieldEnum)[keyof typeof SocialAccountScalarFieldEnum]
 
 
+export const McpConnectionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  integrationSlug: 'integrationSlug',
+  connectionId: 'connectionId',
+  qualifiedName: 'qualifiedName',
+  ownerAgent: 'ownerAgent',
+  status: 'status',
+  configSchema: 'configSchema',
+  lastConnectedAt: 'lastConnectedAt',
+  lastCheckedAt: 'lastCheckedAt',
+  lastError: 'lastError',
+  connectedByUserId: 'connectedByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpConnectionScalarFieldEnum = (typeof McpConnectionScalarFieldEnum)[keyof typeof McpConnectionScalarFieldEnum]
+
+
 export const PublishedPostScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -4670,6 +4765,20 @@ export type ListEnumSocialPlatformFieldRefInput<$PrismaModel> = FieldRefInputTyp
 
 
 /**
+ * Reference to a field of type 'McpConnectionStatus'
+ */
+export type EnumMcpConnectionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpConnectionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'McpConnectionStatus[]'
+ */
+export type ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpConnectionStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -4894,6 +5003,7 @@ export type GlobalOmitConfig = {
   agentMemory?: Prisma.AgentMemoryOmit
   orgMemory?: Prisma.OrgMemoryOmit
   socialAccount?: Prisma.SocialAccountOmit
+  mcpConnection?: Prisma.McpConnectionOmit
   publishedPost?: Prisma.PublishedPostOmit
   mayaContentIdea?: Prisma.MayaContentIdeaOmit
   sageSavedKeyword?: Prisma.SageSavedKeywordOmit

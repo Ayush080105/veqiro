@@ -24,6 +24,15 @@ enum SocialPlatform {
   INSTAGRAM
 }
 
+/// Lifecycle of an org's connection to a Smithery-hosted MCP server.
+enum McpConnectionStatus {
+  PENDING
+  AUTH_REQUIRED
+  CONNECTED
+  ERROR
+  DISCONNECTED
+}
+
 /// Local entitlement state mirrored from the billing provider.
 enum SubscriptionStatus {
   TRIALING
@@ -723,6 +732,49 @@ model SocialAccount {
   @@index([organizationId, createdAt])
   @@index([organizationId, accessTokenExpiresAt])
   @@map("social_account")
+}
+
+/// Org-level pointer to a Smithery-brokered MCP connection. Smithery stores
+/// the actual credentials server-side (encrypted, write-only) — this row is
+/// status/metadata only, never a token.
+model McpConnection {
+  /// Connection id.
+  id                String              @id @default(uuid())
+  /// Owning organization id.
+  organizationId    String
+  /// Catalog slug from @repo/integrations-catalog, e.g. "notion".
+  integrationSlug   String
+  /// Short opaque id passed to Smithery as connectionId, e.g. "mc_8fk2n1q7xa2p".
+  /// Deliberately not derived from organizationId — keeps Smithery-visible
+  /// tool-name prefixes short and avoids leaking org ids into MCP tool names.
+  connectionId      String              @unique
+  /// Smithery registry qualifiedName, e.g. "@smithery-ai/notion".
+  qualifiedName     String
+  /// Agent whose "Onboard me" UI surfaced this connection. UX attribution
+  /// only — NOT access control; tool visibility is computed from the
+  /// catalog's agents[] field at request time.
+  ownerAgent        Agent
+  /// Connection lifecycle state.
+  status            McpConnectionStatus @default(PENDING)
+  /// Cached copy of the server's session config JSON Schema, avoids a
+  /// refetch from Smithery's registry on every settings page load.
+  configSchema      Json?
+  /// Last time this connection reached CONNECTED.
+  lastConnectedAt   DateTime?
+  /// Last time status was polled/refreshed from Smithery.
+  lastCheckedAt     DateTime?
+  /// Last error message, if status is ERROR.
+  lastError         String?
+  /// User who initiated the connection.
+  connectedByUserId String?
+  /// Creation timestamp.
+  createdAt         DateTime            @default(now())
+  /// Update timestamp.
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([organizationId, integrationSlug])
+  @@index([organizationId, status])
+  @@map("mcp_connection")
 }
 
 /// Maya social post publication record.

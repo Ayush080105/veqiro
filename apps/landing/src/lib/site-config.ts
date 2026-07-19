@@ -65,6 +65,12 @@ export const marqueeRedItems = [
   'they do ask for coffee (jk)',
 ];
 
+export const integrationNames = [
+  'Gmail', 'Slack', 'Notion', 'Stripe', 'HubSpot', 'Google Calendar',
+  'QuickBooks', 'Postgres', 'Jira', 'Linear', 'Zoom', 'Google Drive',
+  'DocuSign', 'Asana', 'Mailchimp', 'Snowflake', 'Discord', 'Airtable',
+];
+
 export const howItWorksSteps = [
   {
     n: '01',

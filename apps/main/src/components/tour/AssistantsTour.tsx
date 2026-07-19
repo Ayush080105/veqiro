@@ -82,7 +82,17 @@ const STEPS: DriveStep[] = [
         "Reviews contracts, drafts NDAs, and explains legal clauses in plain English. Reads the fine print so you don't have to.",
       side: "right",
       align: "center",
-      nextBtnText: "Start chatting →",
+    },
+  },
+  {
+    element: "[data-tour='onboard-me-button']",
+    popover: {
+      title: "Connect their tools",
+      description:
+        "Your crew can only reach real data once you connect it — Gmail, Slack, Stripe, and 1000+ more. Click here anytime to onboard an agent.",
+      side: "bottom",
+      align: "center",
+      nextBtnText: "Let's connect something",
     },
   },
 ]
@@ -95,7 +105,8 @@ export function AssistantsTour() {
     const orgId = activeOrg?.id
     if (!orgId || startedRef.current) return
 
-    const key = `veqiro.assistants.tour.v1.${orgId}`
+    // v2: appends the "Connect their tools" / onboard-me step.
+    const key = `veqiro.assistants.tour.v2.${orgId}`
     if (localStorage.getItem(key) === "1") return
 
     startedRef.current = true

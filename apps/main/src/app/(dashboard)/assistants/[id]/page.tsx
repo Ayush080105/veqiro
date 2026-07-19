@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } fr
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useMutationState, useQueryClient } from "@tanstack/react-query"
-import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown } from "lucide-react"
+import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -23,6 +23,7 @@ import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { MediaViewerProvider } from "@/components/chat/MediaViewer"
 import { PlusMenu } from "@/components/chat/PlusMenu"
 import { HelpSheet } from "@/components/chat/HelpSheet"
+import { OnboardMeModal } from "@/components/assistants/OnboardMeModal"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
 import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
@@ -62,10 +63,12 @@ function ChatHeader({
   agent,
   onInfoClick,
   onHelpClick,
+  onOnboardClick,
 }: {
   agent: AgentConfig
   onInfoClick: () => void
   onHelpClick: () => void
+  onOnboardClick: () => void
 }) {
   const agentPhoto = AGENT_PHOTOS[agent.id]
   return (
@@ -156,6 +159,19 @@ function ChatHeader({
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1DBC87", display: "inline-block" }} />
           online
         </div>
+      </button>
+      <button
+        suppressHydrationWarning
+        type="button"
+        data-tour="onboard-me-button"
+        onClick={onOnboardClick}
+        aria-label={`Onboard ${agent.name}`}
+        title="Onboard me — connect my tools"
+        style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+      >
+        <Plug className="size-4" />
       </button>
       <button
         suppressHydrationWarning
@@ -429,6 +445,7 @@ export default function AssistantChatPage() {
   const [sendError, setSendError] = useState<ApiError | null>(null)
   const [plusOpen, setPlusOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [onboardOpen, setOnboardOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
   const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
@@ -1080,6 +1097,7 @@ export default function AssistantChatPage() {
         agent={agent}
         onInfoClick={() => setInfoOpen(true)}
         onHelpClick={() => setHelpOpen(true)}
+        onOnboardClick={() => setOnboardOpen(true)}
       />
 
       {isLex && (
@@ -1451,6 +1469,12 @@ export default function AssistantChatPage() {
         onPick={(a) => handlePlusPick(a.id)}
       />
       <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} agent={agent} />
+      <OnboardMeModal
+        agentSlug={agentSlug}
+        agentName={agent.name}
+        open={onboardOpen}
+        onOpenChange={setOnboardOpen}
+      />
       <RunActionDialog
         open={!!activeActionId}
         onOpenChange={(v) => {

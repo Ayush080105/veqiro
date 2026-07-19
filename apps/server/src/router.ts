@@ -13,6 +13,7 @@ import contextRouter from "./modules/context/context.routes.js";
 import integrationsProtectedRouter, {
   integrationsPublicRouter,
 } from "./modules/integrations/integrations.routes.js";
+import mcpRouter, { mcpInternalRouter } from "./modules/mcp/mcp.routes.js";
 import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
 import { getBrandKitInternal } from "./modules/brand-kit/brand-kit.controller.js";
 import brandImagesRouter from "./modules/brand-images/brand-images.routes.js";
@@ -75,5 +76,9 @@ router.use("/expenses", adminMiddleware, expensesRouter);
 // Public OAuth callbacks (state-verified) mounted BEFORE the protected router
 router.use("/integrations", integrationsPublicRouter);
 router.use("/integrations", integrationsProtectedRouter);
+
+router.use("/mcp", mcpRouter);
+// apps/ai's only path to Smithery — Node holds the master API key exclusively.
+router.use("/internal/mcp", mcpInternalRouter);
 
 export default router;

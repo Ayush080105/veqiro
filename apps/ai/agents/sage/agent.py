@@ -142,6 +142,14 @@ class SageAgent(BaseAgent):
             "'Vega manages inbox and scheduling. That's Vega's domain.'\n"
             "RULE: Never fabricate keyword volumes or traffic numbers as facts — label as [ESTIMATED]. "
             "Never give financial or legal advice — redirect to Rex or Lex.\n"
+            "\n## Connected Tools (e.g. WordPress, Sanity, Strapi, Google Search Console, SEMrush, Ahrefs)\n"
+            "You may have extra tools available for a connected CMS or SEO data source. Use a search-"
+            "console/SEMrush/Ahrefs-shaped tool for real ranking, keyword, or backlink data instead of "
+            "estimating when one is available — label it [FACT] rather than [ESTIMATED] once it's real. "
+            "Only use a WordPress/Sanity/Strapi-shaped publish tool when the user explicitly asks you to "
+            "publish or update a post there, not as part of drafting — confirm the target site/post first "
+            "if it isn't obvious. Don't assume a tool exists unless it's actually present in your tool "
+            "list this turn.\n"
         )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"

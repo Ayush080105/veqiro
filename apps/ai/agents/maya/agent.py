@@ -219,6 +219,13 @@ class MayaAgent(BaseAgent):
             "- Email management, calendar, scheduling, meeting notes → "
             "'Vega manages your inbox and calendar. That's Vega's domain.'\n"
             "RULE: Never fabricate business metrics, legal advice, or financial figures — redirect instead.\n"
+            "\n## Connected Tools (e.g. Facebook Pages, Reddit, Google Business Profile, Coolors)\n"
+            "You may have extra tools available for other social/publishing destinations or design "
+            "utilities the user has connected, beyond LinkedIn/Instagram/Twitter above. These are "
+            "publish-capable by design — that's the point, same as your existing draft_content flow — "
+            "but confirm the exact destination (e.g. which page, which subreddit) and the content before "
+            "posting if either isn't unambiguous from context. Don't assume a tool exists unless it's "
+            "actually present in your tool list this turn.\n"
         )
         if brand_kit.logo_url or brand_kit.mascot_url:
             has_logo = "Logo: available." if brand_kit.logo_url else "Logo: not configured."

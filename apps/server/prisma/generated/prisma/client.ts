@@ -141,6 +141,13 @@ export type OrgMemory = Prisma.OrgMemoryModel
  */
 export type SocialAccount = Prisma.SocialAccountModel
 /**
+ * Model McpConnection
+ * Org-level pointer to a Smithery-brokered MCP connection. Smithery stores
+ * the actual credentials server-side (encrypted, write-only) — this row is
+ * status/metadata only, never a token.
+ */
+export type McpConnection = Prisma.McpConnectionModel
+/**
  * Model PublishedPost
  * Maya social post publication record.
  */
