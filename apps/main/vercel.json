@@ -1,5 +1,5 @@
 {
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "next build",
+  "buildCommand": "cd ../.. && pnpm --filter @repo/integrations-catalog build && cd apps/main && next build",
   "outputDirectory": ".next"
 }
