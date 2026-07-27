@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { UsageBar } from "@/components/billing/UsageBar"
 import { AgentPeriodList } from "@/components/billing/AgentPeriodList"
+import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
 import { Info, Sparkles } from "lucide-react"
 
 type AugmentedSession = {
@@ -67,7 +68,11 @@ export default function UsagePage() {
     !mayaEntitlement ? null
     : mayaEntitlement.status === "TRIALING" ? `Trial · ${daysUntil(mayaEntitlement.currentPeriodEnd)} days left`
     : mayaEntitlement.status === "PAST_DUE" ? "Payment failed"
-    : mayaEntitlement.source === "CREW" ? (sub?.plan === "ANNUAL" ? "Annual · Crew" : "Monthly · Crew")
+    // mayaEntitlement.plan is this row's own BillingSubscription cadence —
+    // not the legacy, never-updated top-level sub.plan column, which stays
+    // stuck at its creation-time default and would always read "Monthly"
+    // even for a Crew Annual subscriber.
+    : mayaEntitlement.source === "CREW" ? (mayaEntitlement.plan === "ANNUAL" ? "Annual · Crew" : "Monthly · Crew")
     : "Monthly · Maya"
 
   const billingCycleDate = mayaEntitlement?.currentPeriodEnd ?? null
@@ -144,7 +149,10 @@ export default function UsagePage() {
                   </p>
                 )}
               </div>
-              <Badge variant="secondary">{TIER_LABELS[data.tier]}</Badge>
+              <div className="flex flex-col items-end gap-1.5">
+                <Badge variant="secondary">{TIER_LABELS[data.tier]}</Badge>
+                {organizationId && <MayaTopUpButton organizationId={organizationId} />}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">

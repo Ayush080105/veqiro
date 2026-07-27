@@ -9,7 +9,15 @@ import { Agent, EntitlementStatus } from "../../../prisma/generated/prisma/clien
  */
 export const ACCESS_STATUSES: EntitlementStatus[] = ["TRIALING", "ACTIVE", "PAST_DUE"];
 
-/** Every entitlement currently granting access. */
+/**
+ * Every entitlement currently granting access.
+ *
+ * Includes each row's billing cadence via its BillingSubscription — every
+ * AGENT/CREW row has one (applyAgentActivation/applyCrewActivation always set
+ * one), TRIAL rows never do (startTrialForOrg leaves billingSubscriptionId
+ * null), so `billingSubscription?.plan` is the real per-row cadence rather
+ * than the legacy, never-updated Subscription.plan column.
+ */
 export async function getActiveEntitlements(organizationId: string) {
   return prisma.entitlement.findMany({
     where: {
@@ -17,6 +25,7 @@ export async function getActiveEntitlements(organizationId: string) {
       currentPeriodEnd: { gt: new Date() },
       status: { in: ACCESS_STATUSES },
     },
+    include: { billingSubscription: { select: { plan: true } } },
     orderBy: { currentPeriodEnd: "asc" },
   });
 }

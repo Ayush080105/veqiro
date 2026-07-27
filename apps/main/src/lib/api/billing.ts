@@ -17,6 +17,11 @@ export type AgentEntitlement = {
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
   priceCents: number;
+  // This row's own billing cadence (from its BillingSubscription) — null for
+  // TRIAL rows, which have none. Use this instead of the top-level
+  // `subscription.plan` field, which is a legacy column that's never updated
+  // after the org's first checkout and so can't be trusted for cadence.
+  plan: SubscriptionPlan | null;
 };
 
 export type BillingSubscription = {

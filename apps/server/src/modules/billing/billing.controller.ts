@@ -14,7 +14,12 @@ import { createMayaTopupCheckout } from "./billing.topup.js";
 import { normalizeAgents, normalizePlan } from "./billing.catalog.js";
 import { getActiveEntitlements } from "./entitlement.service.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
-import type { Agent, EntitlementSource, EntitlementStatus } from "../../../prisma/generated/prisma/client.js";
+import type {
+  Agent,
+  EntitlementSource,
+  EntitlementStatus,
+  SubscriptionPlan,
+} from "../../../prisma/generated/prisma/client.js";
 
 function daysRemaining(date: Date | null): number | null {
   if (!date) return null;
@@ -28,6 +33,7 @@ type ActiveEntitlementLike = {
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
   priceCents: number;
+  billingSubscription: { plan: SubscriptionPlan } | null;
 };
 
 /**
@@ -63,6 +69,11 @@ export function deriveStatusFields(active: ActiveEntitlementLike[]) {
       currentPeriodEnd: e.currentPeriodEnd,
       cancelAtPeriodEnd: e.cancelAtPeriodEnd,
       priceCents: e.priceCents,
+      // The row's real cadence, from its own BillingSubscription — not the
+      // legacy Subscription.plan column, which is never updated after
+      // creation (see this file's `sub.plan` read below, kept only for the
+      // old top-level field).
+      plan: e.billingSubscription?.plan ?? null,
     })),
   };
 }

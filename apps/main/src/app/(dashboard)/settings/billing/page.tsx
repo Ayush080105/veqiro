@@ -177,24 +177,38 @@ export default function BillingPage() {
   // while their real entitlements are still loading.
   const dataReady = Boolean(organizationId) && !isPending
 
-  const canManageBilling = sub?.status === "ACTIVE" || sub?.status === "CANCELLED" || sub?.status === "PAST_DUE"
-
   // sub.status is the legacy Subscription.status column — it can never be
   // "TRIALING" any more (trial state lives on Entitlement rows now, see
   // deriveStatusFields's doc comment in billing.controller.ts), so a fresh
   // trial org's Subscription row sits at its ensureBillingCustomerForOrg
-  // default of "EXPIRED" forever. Checking entitlements directly is the same
-  // fix billing.controller.ts already applied for trialEndsAt/daysRemaining —
-  // this is the one remaining spot that still read the stale column.
+  // default of "EXPIRED" forever and never changes. Everything below derives
+  // from entitlements instead — the same fix billing.controller.ts already
+  // applied for trialEndsAt/daysRemaining.
   const isTrialing = entitlements.some((e) => e.source === "TRIAL")
+  const agentCount = ownedAgents.size
 
+  // A Dodo customer (and therefore something for the portal to show) exists
+  // from the very first trial-start or checkout — a real, permanent signal,
+  // unlike the dead status column this used to read.
+  const canManageBilling = Boolean(sub?.dodoCustomerId)
+
+  const crewEntitlements = entitlements.filter((e) => e.source === "CREW")
+  // Every CREW row shares one BillingSubscription, so any one row's plan is
+  // the whole group's cadence.
+  const crewCadence = crewEntitlements.find((e) => e.plan)?.plan ?? null
+  const crewEnding = crewActive && crewEntitlements.every((e) => e.cancelAtPeriodEnd)
+
+  // "No active plan" is a real, reachable state (not just theoretical): the
+  // trial is once-per-org-forever, so an org can sit here indefinitely after
+  // it lapses without ever buying anything.
   const statusLabel =
     !sub ? "No subscription"
     : isTrialing ? `Trial · ${sub.daysRemaining ?? 0} days left`
-    : sub.status === "ACTIVE" ? (sub.entitlementMode === "CREW" ? "Crew plan" : "Individual agents")
-    : sub.status === "PAST_DUE" ? "Payment failed"
-    : sub.status === "CANCELLED" ? "Cancelled"
-    : "Expired"
+    : crewActive ? `Crew plan${crewCadence === "ANNUAL" ? " · annual" : ""}${crewEnding ? " · ending" : ""}`
+    : agentCount > 0 ? `${agentCount} agent${agentCount === 1 ? "" : "s"} active`
+    : "No active plan"
+
+  const hasActiveAccess = isTrialing || crewActive || agentCount > 0
 
   return (
     <div className="flex flex-col gap-6 pb-8">
@@ -223,7 +237,7 @@ export default function BillingPage() {
                 {sub ? "Manage each agent's billing below." : "You haven't purchased any agents yet."}
               </CardDescription>
             </div>
-            <Badge variant={sub?.status === "ACTIVE" ? "default" : "secondary"}>{statusLabel}</Badge>
+            <Badge variant={hasActiveAccess ? "default" : "secondary"}>{statusLabel}</Badge>
           </div>
         </CardHeader>
         {(sub?.pendingCheckout || canManageBilling) && (
@@ -259,10 +273,20 @@ export default function BillingPage() {
             {canManageBilling && (
               <>
                 <Separator />
-                <Button variant="outline" className="self-start" onClick={handlePortal} disabled={portaling}>
-                  <CreditCard className="size-3.5" />
-                  {portaling ? "Opening..." : "View invoices"}
-                </Button>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-2.5">
+                    <CreditCard className="size-4 mt-0.5 shrink-0 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Payment history</p>
+                      <p className="text-xs text-muted-foreground">
+                        Every charge and receipt, via Dodo&apos;s secure billing portal.
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handlePortal} disabled={portaling}>
+                    {portaling ? "Opening..." : "View invoices"}
+                  </Button>
+                </div>
               </>
             )}
           </CardContent>

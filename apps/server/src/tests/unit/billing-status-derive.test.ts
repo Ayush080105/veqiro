@@ -82,6 +82,18 @@ describe("deriveStatusFields", () => {
     assert.equal(r.currentPeriodEnd?.toISOString(), later.toISOString());
   });
 
+  test("plan comes from the row's own BillingSubscription, not a shared value", () => {
+    const future = new Date(Date.now() + 10 * 86400_000);
+    const r = deriveStatusFields([
+      ent("MAYA", "CREW", future, { billingSubscription: { plan: "ANNUAL" } }),
+      ent("REX", "AGENT", future, { billingSubscription: { plan: "MONTHLY" } }),
+      ent("SAGE", "TRIAL", future),
+    ]);
+    assert.equal(r.entitlements.find((e) => e.agent === "MAYA")?.plan, "ANNUAL");
+    assert.equal(r.entitlements.find((e) => e.agent === "REX")?.plan, "MONTHLY");
+    assert.equal(r.entitlements.find((e) => e.agent === "SAGE")?.plan, null);
+  });
+
   test("entitlements passthrough preserves per-agent shape", () => {
     const future = new Date(Date.now() + 10 * 86400_000);
     const r = deriveStatusFields([ent("MAYA", "AGENT", future, { cancelAtPeriodEnd: true, priceCents: 1900 })]);
@@ -93,6 +105,7 @@ describe("deriveStatusFields", () => {
         currentPeriodEnd: future,
         cancelAtPeriodEnd: true,
         priceCents: 1900,
+        plan: null,
       },
     ]);
   });
