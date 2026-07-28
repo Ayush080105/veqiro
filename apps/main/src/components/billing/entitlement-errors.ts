@@ -48,8 +48,8 @@ export function hasMayaEntitlement(sub: BillingSubscription | null | undefined):
 
 /**
  * Maps the raw error strings billing.cancel.ts / billing.service.ts throw
- * (`shared-subscription:<AGENTS>`, `covered-by-crew:<AGENT>`, etc.) to copy a
- * user can act on. These come back as ApiError.message from BadRequestError /
+ * (`shared-subscription:<AGENTS>`, etc.) to copy a user can act on. These
+ * come back as ApiError.message from BadRequestError /
  * ConflictError on the cancel/resume/checkout routes — a different failure
  * class than the 402 upgrade-required codes upgrade-errors.ts handles, but
  * the same principle: never show the raw server string.
@@ -74,20 +74,11 @@ export function billingActionErrorMessage(error: unknown, fallback = "Something 
     const list = agents.length ? agents.join(" and ") : "another agent"
     return `This agent's billing is tied together with ${list} on one legacy subscription, so it can't be cancelled on its own. Contact support to split them.`
   }
-  if (message.startsWith("covered-by-crew:")) {
-    return "This agent is covered by your Crew plan, not its own subscription. Cancel the Crew plan if you want to stop billing for it."
-  }
   if (message === "no-subscription-for-agent") {
     return "We couldn't find a billing subscription for this agent. Contact support."
   }
   if (message.startsWith("not-entitled:")) {
     return "You don't currently own this agent."
-  }
-  if (message === "crew-covers-all-agents") {
-    return "Your Crew plan already includes this agent."
-  }
-  if (message === "no-crew-subscription") {
-    return "You don't have an active Crew subscription to cancel."
   }
   if (message.startsWith("already-entitled:")) {
     return "You already own this agent."

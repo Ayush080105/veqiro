@@ -10,7 +10,6 @@ import { getAgent } from "@/lib/config/agents"
 const SOURCE_LABELS: Record<AgentEntitlement["source"], string> = {
   TRIAL: "Trial",
   AGENT: "Individual",
-  CREW: "Crew",
 }
 
 function formatDate(iso: string) {
