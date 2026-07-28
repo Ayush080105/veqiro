@@ -36,18 +36,10 @@ export function creditsForTopUpDollars(dollars: number): number {
   return (dollars / TOPUP_DOLLAR_UNIT) * TOPUP_CREDITS_PER_UNIT;
 }
 
-/**
- * Maya's monthly credit allowance, read live from her entitlement.
- *
- * ANNUAL grants 400 *per month*, not per year: the credit period is a fixed
- * 1-month window decoupled from the billing period (see spec, Decision 6).
- * The previous code granted 400 for the entire year.
- */
+/** Maya's monthly credit allowance, read live from her entitlement. */
 export function getQuotaForMayaEntitlement(e: {
   source: EntitlementSource;
   plan: SubscriptionPlan | null;
 }): number {
-  if (e.source === "TRIAL") return 30;
-  if (e.source === "CREW" && e.plan === "ANNUAL") return 400;
-  return 300;
+  return e.source === "TRIAL" ? 30 : 300;
 }

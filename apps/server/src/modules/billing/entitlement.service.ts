@@ -49,9 +49,8 @@ export async function hasAgentAccess(organizationId: string, agent: Agent): Prom
 
 /**
  * Maya's governing entitlement, used for quota lookup. When rows overlap the
- * most generous one wins, so a mid-period Crew upgrade raises the ceiling
- * rather than lowering it: CREW outranks AGENT outranks TRIAL, and among
- * equals the later period end wins.
+ * most generous one wins: AGENT outranks TRIAL, and among equals the later
+ * period end wins.
  */
 export async function getMayaEntitlement(organizationId: string) {
   const rows = await prisma.entitlement.findMany({
@@ -63,7 +62,7 @@ export async function getMayaEntitlement(organizationId: string) {
     },
   });
   if (rows.length === 0) return null;
-  const rank = { CREW: 3, AGENT: 2, TRIAL: 1 } as const;
+  const rank = { AGENT: 2, TRIAL: 1 } as const;
   return rows.sort((a, b) =>
     rank[b.source] - rank[a.source] ||
     b.currentPeriodEnd.getTime() - a.currentPeriodEnd.getTime())[0];

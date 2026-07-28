@@ -129,7 +129,7 @@ function crewEntitlement(
   return {
     organizationId: orgId,
     agent: "MAYA",
-    source: "CREW",
+    source: "AGENT",
     status,
     currentPeriodStart: periodStart,
     currentPeriodEnd: periodEnd,
@@ -224,34 +224,6 @@ describe("maya.usage.service", () => {
       assert.equal(mockPrisma.mayaUsage.upsert.mock.calls.length, 1);
     });
 
-    test("CREW + ANNUAL billing subscription → tier ANNUAL_CREW, limit 400 (not the annual billing period)", async () => {
-      const anchor = new Date("2026-01-10T00:00:00Z");
-      entitlements = [crewEntitlement("org_2", anchor, new Date(Date.now() + 300 * DAY), "bs_1")];
-      billingSubscriptions = [{ id: "bs_1", plan: "ANNUAL" }];
-
-      const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      const result = await getCurrentUsage("org_2");
-
-      assert.equal(result.tier, "ANNUAL_CREW");
-      assert.equal(result.credits.limit, 400);
-      // The window is a fixed 1-month slice, decoupled from the entitlement's
-      // (yearly) currentPeriodEnd — the bug this whole task exists to fix.
-      const spanDays = (new Date(result.periodEnd).getTime() - new Date(result.periodStart).getTime()) / DAY;
-      assert.ok(spanDays <= 31, `expected a ~1-month window, got ${spanDays} days`);
-    });
-
-    test("CREW + MONTHLY billing subscription → tier MONTHLY_CREW, limit 300", async () => {
-      const anchor = new Date("2026-01-10T00:00:00Z");
-      entitlements = [crewEntitlement("org_3", anchor, new Date(Date.now() + 20 * DAY), "bs_2")];
-      billingSubscriptions = [{ id: "bs_2", plan: "MONTHLY" }];
-
-      const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
-      const result = await getCurrentUsage("org_3");
-
-      assert.equal(result.tier, "MONTHLY_CREW");
-      assert.equal(result.credits.limit, 300);
-    });
-
     test("AGENT (individually purchased Maya) → tier MONTHLY_CUSTOM, limit 300", async () => {
       const anchor = new Date("2026-01-10T00:00:00Z");
       entitlements = [{
@@ -283,31 +255,6 @@ describe("maya.usage.service", () => {
       await expect(getCurrentUsage("org_5")).rejects.toThrow("no-subscription");
     });
 
-    test("mid-period upgrade (AGENT → CREW) raises the ceiling on the SAME open window without resetting usage", async () => {
-      const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [{
-        organizationId: "org_6", agent: "MAYA", source: "AGENT", status: "ACTIVE",
-        currentPeriodStart: anchor, currentPeriodEnd: new Date(Date.now() + 20 * DAY),
-        billingSubscriptionId: "bs_5",
-      }];
-      billingSubscriptions = [{ id: "bs_5", plan: "MONTHLY" }];
-
-      const { getCurrentUsage, checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
-      await checkAndDeductCredits("org_6", 50);
-      const before = await getCurrentUsage("org_6");
-      assert.equal(before.credits.limit, 300);
-      assert.equal(before.credits.used, 50);
-
-      // Org upgrades to Crew (annual) mid-period — a second, more generous
-      // entitlement row is added. getMayaEntitlement ranks CREW above AGENT.
-      entitlements.push(crewEntitlement("org_6", anchor, new Date(Date.now() + 300 * DAY), "bs_6"));
-      billingSubscriptions.push({ id: "bs_6", plan: "ANNUAL" });
-
-      const after = await getCurrentUsage("org_6");
-      assert.equal(after.credits.limit, 400, "ceiling raised by the upgrade");
-      assert.equal(after.credits.used, 50, "usage carries over — no reset");
-      assert.equal(after.periodStart, before.periodStart, "same open window, not a new one");
-    });
   });
 
   describe("checkAndDeductCredits", () => {

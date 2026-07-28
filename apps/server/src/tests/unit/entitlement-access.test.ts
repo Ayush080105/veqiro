@@ -47,7 +47,6 @@ const { entitlementMiddlewareForAgent } =
   await import("../../middlewares/entitlement.middleware.js");
 
 const future = new Date(Date.now() + 10 * 86400_000);
-const later  = new Date(Date.now() + 20 * 86400_000);
 const past   = new Date(Date.now() - 1 * 86400_000);
 
 function makeRes() {
@@ -88,19 +87,6 @@ describe("hasAgentAccess", () => {
   test("SUPERSEDED → no access", async () => {
     ents = [{ organizationId: "o1", agent: "MAYA", source: "AGENT", status: "SUPERSEDED", currentPeriodEnd: future, priceCents: 1900 }];
     assert.equal(await hasAgentAccess("o1", "MAYA" as never), false);
-  });
-
-  test("CREW row grants access to an agent with no AGENT row", async () => {
-    ents = [{ organizationId: "o1", agent: "VEGA", source: "CREW", status: "ACTIVE", currentPeriodEnd: future, priceCents: 650 }];
-    assert.equal(await hasAgentAccess("o1", "VEGA" as never), true);
-  });
-
-  test("overlapping rows: expired AGENT + active CREW → access", async () => {
-    ents = [
-      { organizationId: "o1", agent: "MAYA", source: "AGENT", status: "SUPERSEDED", currentPeriodEnd: past,   priceCents: 1900 },
-      { organizationId: "o1", agent: "MAYA", source: "CREW",  status: "ACTIVE",     currentPeriodEnd: future, priceCents: 650 },
-    ];
-    assert.equal(await hasAgentAccess("o1", "MAYA" as never), true);
   });
 
   test("agents are independent: Maya lapsed does not affect Rex", async () => {
@@ -238,7 +224,7 @@ describe("entitlementMiddlewareForAgent", () => {
   test("one PAST_DUE row alongside a healthy ACTIVE row → next() called and header NOT set", async () => {
     ents = [
       { organizationId: "o1", agent: "MAYA", source: "AGENT", status: "PAST_DUE", currentPeriodEnd: future, priceCents: 1900 },
-      { organizationId: "o1", agent: "MAYA", source: "CREW",  status: "ACTIVE",   currentPeriodEnd: future, priceCents: 650 },
+      { organizationId: "o1", agent: "MAYA", source: "AGENT", status: "ACTIVE",   currentPeriodEnd: future, priceCents: 650 },
     ];
     const req = { organizationId: "o1" } as never;
     const res = makeRes();
@@ -252,24 +238,6 @@ describe("entitlementMiddlewareForAgent", () => {
 });
 
 describe("getMayaEntitlement", () => {
-  test("TRIAL + CREW rows both covering → returns the CREW row", async () => {
-    ents = [
-      { organizationId: "o1", agent: "MAYA", source: "TRIAL", status: "TRIALING", currentPeriodEnd: future, priceCents: 0 },
-      { organizationId: "o1", agent: "MAYA", source: "CREW",  status: "ACTIVE",   currentPeriodEnd: future, priceCents: 650 },
-    ];
-    const result = await getMayaEntitlement("o1");
-    assert.equal(result?.source, "CREW");
-  });
-
-  test("AGENT + CREW rows both covering → returns the CREW row (mid-period upgrade)", async () => {
-    ents = [
-      { organizationId: "o1", agent: "MAYA", source: "AGENT", status: "ACTIVE", currentPeriodEnd: future, priceCents: 1900 },
-      { organizationId: "o1", agent: "MAYA", source: "CREW",  status: "ACTIVE", currentPeriodEnd: future, priceCents: 650 },
-    ];
-    const result = await getMayaEntitlement("o1");
-    assert.equal(result?.source, "CREW");
-  });
-
   test("TRIAL + AGENT rows both covering → returns the AGENT row", async () => {
     ents = [
       { organizationId: "o1", agent: "MAYA", source: "TRIAL", status: "TRIALING", currentPeriodEnd: future, priceCents: 0 },
@@ -279,26 +247,8 @@ describe("getMayaEntitlement", () => {
     assert.equal(result?.source, "AGENT");
   });
 
-  test("two CREW rows → returns the one with the later currentPeriodEnd", async () => {
-    ents = [
-      { organizationId: "o1", agent: "MAYA", source: "CREW", status: "ACTIVE", currentPeriodEnd: future, priceCents: 650 },
-      { organizationId: "o1", agent: "MAYA", source: "CREW", status: "ACTIVE", currentPeriodEnd: later,  priceCents: 650 },
-    ];
-    const result = await getMayaEntitlement("o1");
-    assert.equal(result?.currentPeriodEnd.getTime(), later.getTime());
-  });
-
   test("no covering rows → returns null", async () => {
     ents = [];
     assert.equal(await getMayaEntitlement("o1"), null);
-  });
-
-  test("an expired CREW row + an active AGENT row → returns the AGENT row (expired rows must not win)", async () => {
-    ents = [
-      { organizationId: "o1", agent: "MAYA", source: "CREW",  status: "EXPIRED", currentPeriodEnd: past,   priceCents: 650 },
-      { organizationId: "o1", agent: "MAYA", source: "AGENT", status: "ACTIVE",  currentPeriodEnd: future, priceCents: 1900 },
-    ];
-    const result = await getMayaEntitlement("o1");
-    assert.equal(result?.source, "AGENT");
   });
 });

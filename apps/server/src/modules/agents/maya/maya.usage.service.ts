@@ -1,5 +1,5 @@
 import { prisma } from "../../../config/prisma.js";
-import { EntitlementSource, SubscriptionPlan } from "../../../../prisma/generated/prisma/client.js";
+import { EntitlementSource } from "../../../../prisma/generated/prisma/client.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { QuotaExceededError } from "../../../common/errors/quotaExceeded.js";
 import { getMayaEntitlement } from "../../billing/entitlement.service.js";
@@ -12,12 +12,10 @@ import { currentCreditWindow } from "./maya.period.js";
 // entitlement onto the four labels the frontend already renders
 // (apps/main/.../settings/usage/page.tsx TIER_LABELS), so that surface keeps
 // working unchanged.
-type DisplayTier = "TRIAL" | "MONTHLY_CUSTOM" | "MONTHLY_CREW" | "ANNUAL_CREW";
+type DisplayTier = "TRIAL" | "MONTHLY_CUSTOM";
 
-function displayTierFor(source: EntitlementSource, plan: SubscriptionPlan | null): DisplayTier {
-  if (source === "TRIAL") return "TRIAL";
-  if (source === "CREW") return plan === "ANNUAL" ? "ANNUAL_CREW" : "MONTHLY_CREW";
-  return "MONTHLY_CUSTOM"; // source === "AGENT": an individually-purchased agent, always MONTHLY.
+function displayTierFor(source: EntitlementSource): DisplayTier {
+  return source === "TRIAL" ? "TRIAL" : "MONTHLY_CUSTOM"; // source === "AGENT": an individually-purchased agent, always MONTHLY.
 }
 
 // ─── Window resolution ────────────────────────────────────────────────────────
@@ -46,7 +44,7 @@ async function resolveMayaWindow(organizationId: string) {
     : null;
 
   const tierLimit = getQuotaForMayaEntitlement({ source: ent.source, plan });
-  const tier = displayTierFor(ent.source, plan);
+  const tier = displayTierFor(ent.source);
   const { periodStart, periodEnd } = currentCreditWindow(ent.currentPeriodStart, new Date());
 
   const usage = await prisma.mayaUsage.upsert({

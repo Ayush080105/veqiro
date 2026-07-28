@@ -17,14 +17,6 @@ describe("getQuotaForMayaEntitlement", () => {
   test("individually purchased Maya (monthly) → 300", () => {
     assert.equal(getQuotaForMayaEntitlement({ source: "AGENT", plan: "MONTHLY" }), 300);
   });
-
-  test("crew monthly → 300", () => {
-    assert.equal(getQuotaForMayaEntitlement({ source: "CREW", plan: "MONTHLY" }), 300);
-  });
-
-  test("crew annual → 400 (per month, not per year)", () => {
-    assert.equal(getQuotaForMayaEntitlement({ source: "CREW", plan: "ANNUAL" }), 400);
-  });
 });
 
 describe("credit conversion is unchanged", () => {
