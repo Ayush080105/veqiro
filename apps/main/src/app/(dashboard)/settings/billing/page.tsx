@@ -14,8 +14,6 @@ import { SettingsNav } from "@/components/settings/SettingsNav"
 import { PageHeader } from "@/components/ui/page-header"
 import { authClient, useSession } from "@/lib/auth-client"
 import { AgentEntitlementRow } from "@/components/billing/AgentEntitlementRow"
-import { CrewUpgradeCard } from "@/components/billing/CrewUpgradeCard"
-import { CrewSubscriptionCard } from "@/components/billing/CrewSubscriptionCard"
 import { AgentBuyCard } from "@/components/billing/AgentBuyCard"
 import { BillingAgent, dismissPendingCheckout, openBillingPortal, useBillingCatalog, useBillingStatus } from "@/lib/api/billing"
 import { qk } from "@/lib/query-keys"
@@ -52,14 +50,14 @@ export default function BillingPage() {
   const sub = billing?.subscription
 
   // useMayaUsage rides its own query key (qk.mayaUsage), separate from
-  // useBillingStatus's — a cancel/resume/buy here changes entitlements but
-  // never auto-refreshes the Usage page's/Maya credits pill's own query, so
-  // it must be invalidated explicitly alongside the billing-status refetch.
+  // useBillingStatus's — a buy/resume here changes entitlements but never
+  // auto-refreshes the Usage page's/Maya credits pill's own query, so it
+  // must be invalidated explicitly alongside the billing-status refetch.
   function onEntitlementsChanged() {
     void refetch()
     if (organizationId) void queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
   }
-  // Server-side, every mutating billing route (checkout, cancel, resume) is
+  // Server-side, every mutating billing route (checkout, portal) is
   // owner-gated via requireOrgOwner — a non-owner hitting them gets a 403.
   // Disabling proactively here is better UX than letting them click through
   // to a failed request. Default true while the role is still loading so
@@ -100,9 +98,9 @@ export default function BillingPage() {
         if (!result.data?.subscription?.pendingCheckout) {
           setSyncingCheckout(false)
           toast.success("Billing updated", { description: "Your agent access is ready." })
-          // A fresh purchase (e.g. Maya, or Crew) can raise the credit tier —
-          // the Usage page / credits pill's own query must not keep showing
-          // the pre-purchase limit until its own staleTime happens to lapse.
+          // A fresh purchase can raise the credit tier — the Usage page /
+          // credits pill's own query must not keep showing the pre-purchase
+          // limit until its own staleTime happens to lapse.
           if (organizationId) void queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
         } else if (attempts >= 15) {
           setSyncingCheckout(false)
@@ -161,17 +159,7 @@ export default function BillingPage() {
     () => new Set(entitlements.filter((e) => e.source !== "TRIAL").map((e) => e.agent)),
     [entitlements],
   )
-  // A CREW row exists for every agent while Crew is active (even mid-cancel,
-  // until period end), so this is the same signal the server uses for
-  // crew-covers-all-agents — the individual buy UI must not be offered.
-  const crewActive = entitlements.some((e) => e.source === "CREW")
   const unownedAgents = ALL_AGENTS.filter((agent) => !ownedAgents.has(agent))
-  // Derived from the response body already fetched by useBillingStatus,
-  // rather than reading the X-Billing-State response header the server also
-  // sets — that header is only set on a subset of routes and isn't read
-  // anywhere in the frontend today, so the dunning banner it was meant to
-  // drive never actually appeared. Each entitlement's own status is a more
-  // direct, already-available signal.
   const pastDueAgents = entitlements.filter((e) => e.status === "PAST_DUE")
   // Data hasn't arrived yet: don't flash "buy all six" for a paying customer
   // while their real entitlements are still loading.
@@ -182,8 +170,7 @@ export default function BillingPage() {
   // deriveStatusFields's doc comment in billing.controller.ts), so a fresh
   // trial org's Subscription row sits at its ensureBillingCustomerForOrg
   // default of "EXPIRED" forever and never changes. Everything below derives
-  // from entitlements instead — the same fix billing.controller.ts already
-  // applied for trialEndsAt/daysRemaining.
+  // from entitlements instead.
   const isTrialing = entitlements.some((e) => e.source === "TRIAL")
   const agentCount = ownedAgents.size
 
@@ -192,23 +179,16 @@ export default function BillingPage() {
   // unlike the dead status column this used to read.
   const canManageBilling = Boolean(sub?.dodoCustomerId)
 
-  const crewEntitlements = entitlements.filter((e) => e.source === "CREW")
-  // Every CREW row shares one BillingSubscription, so any one row's plan is
-  // the whole group's cadence.
-  const crewCadence = crewEntitlements.find((e) => e.plan)?.plan ?? null
-  const crewEnding = crewActive && crewEntitlements.every((e) => e.cancelAtPeriodEnd)
-
   // "No active plan" is a real, reachable state (not just theoretical): the
   // trial is once-per-org-forever, so an org can sit here indefinitely after
   // it lapses without ever buying anything.
   const statusLabel =
     !sub ? "No subscription"
     : isTrialing ? `Trial · ${sub.daysRemaining ?? 0} days left`
-    : crewActive ? `Crew plan${crewCadence === "ANNUAL" ? " · annual" : ""}${crewEnding ? " · ending" : ""}`
     : agentCount > 0 ? `${agentCount} agent${agentCount === 1 ? "" : "s"} active`
     : "No active plan"
 
-  const hasActiveAccess = isTrialing || crewActive || agentCount > 0
+  const hasActiveAccess = isTrialing || agentCount > 0
 
   return (
     <div className="flex flex-col gap-6 pb-8">
@@ -224,7 +204,7 @@ export default function BillingPage() {
       {pastDueAgents.length > 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Payment failed for {pastDueAgents.map((e) => e.agent.toLowerCase()).join(", ")}. You still have access
-          through the paid-for period — update your payment method via &quot;View invoices&quot; below to keep it renewing.
+          through the paid-for period — update your payment method via &quot;Manage billing&quot; below to keep it renewing.
         </div>
       )}
 
@@ -234,7 +214,7 @@ export default function BillingPage() {
             <div>
               <CardTitle className="text-sm font-semibold">Current access</CardTitle>
               <CardDescription>
-                {sub ? "Manage each agent's billing below." : "You haven't purchased any agents yet."}
+                {sub ? "Each agent below is its own subscription." : "You haven't purchased any agents yet."}
               </CardDescription>
             </div>
             <Badge variant={hasActiveAccess ? "default" : "secondary"}>{statusLabel}</Badge>
@@ -277,14 +257,14 @@ export default function BillingPage() {
                   <div className="flex items-start gap-2.5">
                     <CreditCard className="size-4 mt-0.5 shrink-0 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">Payment history</p>
+                      <p className="text-sm font-medium">Manage billing</p>
                       <p className="text-xs text-muted-foreground">
-                        Every charge and receipt, via Dodo&apos;s secure billing portal.
+                        View invoices, update your payment method, or cancel any agent — all through Dodo&apos;s secure billing portal.
                       </p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" onClick={handlePortal} disabled={portaling}>
-                    {portaling ? "Opening..." : "View invoices"}
+                    {portaling ? "Opening..." : "Manage billing"}
                   </Button>
                 </div>
               </>
@@ -292,11 +272,6 @@ export default function BillingPage() {
           </CardContent>
         )}
       </Card>
-
-      {dataReady && crewActive && (
-        <CrewSubscriptionCard entitlements={entitlements} onChanged={onEntitlementsChanged} isOwner={isOwner} />
-      )}
-      {dataReady && !crewActive && <CrewUpgradeCard organizationId={organizationId} isOwner={isOwner} />}
 
       {!dataReady ? (
         <Card variant="brand">
@@ -314,24 +289,19 @@ export default function BillingPage() {
                 <p className="text-sm text-muted-foreground">No agents yet — buy one below to get started.</p>
               ) : (
                 entitlements.map((entitlement) => (
-                  // Overlapping rows for the same agent are legal (e.g. an
-                  // AGENT row and a CREW row both covering MAYA mid-upgrade —
-                  // see entitlement.service.ts), so `agent` alone isn't a
-                  // unique key.
+                  // Overlapping rows for the same agent are legal (e.g. a
+                  // TRIAL row and an AGENT row both covering the same agent
+                  // mid-conversion), so `agent` alone isn't a unique key.
                   <AgentEntitlementRow
                     key={`${entitlement.agent}-${entitlement.source}-${entitlement.currentPeriodEnd}`}
                     entitlement={entitlement}
-                    onChanged={onEntitlementsChanged}
-                    isOwner={isOwner}
                   />
                 ))
               )}
             </CardContent>
           </Card>
 
-          {/* Crew already covers every agent — offering per-agent purchase on
-              top of it would just hit crew-covers-all-agents on the server. */}
-          {!crewActive && unownedAgents.length > 0 && (
+          {unownedAgents.length > 0 && (
             <Card variant="brand">
               <CardHeader>
                 <CardTitle className="text-base">Add agents</CardTitle>
