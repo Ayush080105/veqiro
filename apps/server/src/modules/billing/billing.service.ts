@@ -157,7 +157,7 @@ export async function extendTrialForOrg(organizationId: string, days = 7) {
   const activePaidEntitlement = await prisma.entitlement.findFirst({
     where: {
       organizationId,
-      source: { in: ["AGENT", "CREW"] },
+      source: { in: ["AGENT"] },
       status: { in: ACCESS_STATUSES },
       currentPeriodEnd: { gt: now },
     },
