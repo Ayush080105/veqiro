@@ -66,7 +66,7 @@ export function softwareApplicationJsonLd(): object {
       'Veqiro is an AI workforce platform that gives founders and small teams a full crew of autonomous AI agents — covering executive assistance, research, content, SEO, legal, and finance.',
     offers: {
       '@type': 'Offer',
-      price: 39.0,
+      price: 9.0,
       priceCurrency: 'USD',
       priceSpecification: {
         '@type': 'UnitPriceSpecification',
