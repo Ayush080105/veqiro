@@ -4,7 +4,6 @@ import { serverUrl } from './site-config';
 
 export interface BillingCatalog {
   agents: Record<string, { priceCents: number }>;
-  crew: { monthly: { priceCents: number }; annual: { priceCents: number } };
   currency: string;
 }
 

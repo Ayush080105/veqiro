@@ -132,41 +132,22 @@ export const agentPricing: AgentPricing[] = [
   { key: 'vega', monthly: publicAgentPrice('vega') },
 ];
 
-export const pricingTiers: PricingTier[] = [
-  {
-    name: 'Crew',
-    monthly: 39,
-    yearly: 29,
-    tag: 'the full gang',
-    color: '#F06464',
-    includes: [
-      'Your 6-Member AI Team (All Included)',
-      'Lex, Maya, Rex, Sage, Scout & Vega — Ready to Work',
-      'Everything Stays Connected (Shared Context)',
-      'Faster Than Traditional Workflows',
-      'Speaks Exactly Like Your Brand',
-      'Works With Your Existing Tools',
-      'Maya: 300 Credits/mo (400/mo Billed Annually) — Every Other Agent Unlimited',
-    ],
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    monthly: 99,
-    yearly: 0,
-    tag: 'built around your team',
-    color: '#8A8AF0',
-    includes: [
-      'Custom SLAs',
-      'Dedicated onboarding & support',
-      'Custom integrations',
-      'Volume / seat-based pricing',
-      'Priority support channel',
-      'Dedicated account manager',
-    ],
-    custom: true,
-  },
-];
+export const enterpriseTier: PricingTier = {
+  name: 'Enterprise',
+  monthly: 99,
+  yearly: 0,
+  tag: 'built around your team',
+  color: '#8A8AF0',
+  includes: [
+    'Custom SLAs',
+    'Dedicated onboarding & support',
+    'Custom integrations',
+    'Volume / seat-based pricing',
+    'Priority support channel',
+    'Dedicated account manager',
+  ],
+  custom: true,
+};
 
 export const PRICING_FAQ = [
   { q: 'Is there a free trial?', a: "Yes — 7 days, no credit card required. Full access to all six agents from day one." },
@@ -175,7 +156,7 @@ export const PRICING_FAQ = [
   { q: 'What integrations are included?', a: "Gmail, Google Calendar, LinkedIn, Twitter/X, and Instagram out of the box. More on the roadmap." },
   { q: 'Do agents share memory across tasks?', a: "Yes. Your Brain (company profile, brand voice, competitors) is read by all six agents so they stay consistent." },
   { q: 'Is my data used to train your AI?', a: "Never. Your content is used only to perform the tasks you ask for." },
-  { q: 'Can I buy just one agent?', a: "Yes — every agent is available on its own starting at $9/mo, no Crew subscription required. Add more whenever you're ready." },
+  { q: 'Can I buy just one agent?', a: "Yes — every agent is billed independently starting at $9/mo. Pick only the ones you need, and add more whenever you're ready." },
 ];
 
 export const faqItems = [
@@ -319,7 +300,7 @@ export const siteConfig = {
   marqueeRedItems,
   howItWorksSteps,
   agentPricing,
-  pricingTiers,
+  enterpriseTier,
   faqItems,
   crewReplies,
   crewFollows,
