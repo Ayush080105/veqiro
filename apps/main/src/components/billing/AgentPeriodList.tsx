@@ -60,8 +60,10 @@ export function AgentPeriodList({ organizationId }: { organizationId?: string | 
           const agent = getAgent(agentId)
           return (
             // Overlapping rows for the same agent are legal (e.g. an AGENT
-            // row and a CREW row both covering the same agent mid-upgrade),
-            // so `agent` alone isn't a unique key — see billing/page.tsx.
+            // row and a lingering TRIAL row both covering the same agent,
+            // when a trial-period purchase creates the AGENT row before the
+            // TRIAL row has expired), so `agent` alone isn't a unique key —
+            // see billing/page.tsx.
             <div
               key={`${entitlement.agent}-${entitlement.source}-${entitlement.currentPeriodEnd}`}
               className="flex items-center justify-between gap-4 rounded-lg border-2 border-foreground/60 bg-card p-3"
