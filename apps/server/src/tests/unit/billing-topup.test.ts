@@ -153,7 +153,7 @@ const anchor = new Date(Date.now() - 5 * DAY);
 
 function crewMayaEntitlement(orgId: string, billingSubscriptionId = "bs_1"): EntRow {
   return {
-    organizationId: orgId, agent: "MAYA", source: "CREW", status: "ACTIVE",
+    organizationId: orgId, agent: "MAYA", source: "AGENT", status: "ACTIVE",
     currentPeriodStart: anchor, currentPeriodEnd: future, billingSubscriptionId,
   };
 }
