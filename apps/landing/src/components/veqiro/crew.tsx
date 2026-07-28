@@ -106,7 +106,7 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
               [ THE CREW ]
             </div>
             <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 7vw, 104px)', margin: 0, lineHeight: 0.9, letterSpacing: -1, color: '#EFE7D6' }}>
-              your crew, <span style={{ color: '#F5C518' }}>one bill.</span>
+              your crew, <span style={{ color: '#F5C518' }}>no bundle.</span>
             </h2>
           </div>
           <p style={{ maxWidth: 420, fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.5, color: '#CFC6B2', margin: 0 }}>
