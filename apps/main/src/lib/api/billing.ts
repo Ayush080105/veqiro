@@ -5,9 +5,9 @@ import { qk } from "@/lib/query-keys";
 export type SubscriptionStatus = "TRIALING" | "ACTIVE" | "CANCELLED" | "PAST_DUE" | "EXPIRED";
 export type SubscriptionPlan = "MONTHLY" | "ANNUAL";
 export type BillingAgent = "MAYA" | "SAGE" | "LEX" | "REX" | "SCOUT" | "VEGA";
-export type EntitlementMode = "CREW" | "CUSTOM";
+export type EntitlementMode = "CUSTOM";
 
-export type EntitlementSource = "TRIAL" | "AGENT" | "CREW";
+export type EntitlementSource = "TRIAL" | "AGENT";
 export type EntitlementStatus = "TRIALING" | "ACTIVE" | "PAST_DUE";
 
 export type AgentEntitlement = {
@@ -33,7 +33,7 @@ export type BillingSubscription = {
   dodoCustomerId: string | null;
   entitlementMode: EntitlementMode;
   pendingCheckout: {
-    kind: "AGENT" | "CREW" | "CREW_UPGRADE" | "MAYA_TOPUP";
+    kind: "AGENT" | "MAYA_TOPUP";
     agent: BillingAgent | null;
     plan: SubscriptionPlan;
     createdAt: string;
@@ -57,7 +57,6 @@ export type StartTrialResponse = {
 
 export type BillingCatalogResponse = {
   agents: Record<BillingAgent, { priceCents: number }>;
-  crew: { monthly: { priceCents: number }; annual: { priceCents: number } };
   currency: string;
 };
 
@@ -109,29 +108,18 @@ export function dismissPendingCheckout() {
 }
 
 // Matches the server's `createCheckoutForOrg` input exactly: an individual
-// agent purchase is MONTHLY-only and names exactly one agent (no cadence to
-// pick), while Crew names a cadence and never an agent. An annual
-// individual-agent purchase and a multi-agent purchase are unrepresentable in
-// this type, not merely rejected at runtime.
-export type CheckoutInput =
-  | { crew: true; cadence: SubscriptionPlan; agent?: never }
-  | { crew?: false; agent: BillingAgent; cadence?: never };
+// agent purchase is MONTHLY-only and names exactly one agent — a multi-agent
+// purchase is unrepresentable in this type, not merely rejected at runtime.
+export type CheckoutInput = { agent: BillingAgent };
 
 // Buying a cancelled-but-unexpired agent resumes auto-pay instead of
 // charging again, and the server returns `url: null` for that branch — this
 // union forces every caller to check `resumed` before touching `.url`, so
 // `window.location.href = result.url` on a null (navigating to the literal
 // string "null") is a type error, not a runtime surprise.
-//
-// `discountApplied` is only ever present on a Crew checkout response (never
-// on a per-agent one): "applied" | "failed" tells the caller whether the
-// credited discount actually got attached, so a failure can be surfaced
-// instead of the customer silently being charged full price. "not-eligible"
-// means there was no credit to apply in the first place (nothing owned, or
-// credit exceeds Crew's price) — not a failure, so no warning is needed.
 export type CheckoutResult =
   | { resumed: true; url: null }
-  | { resumed: false; url: string; discountApplied?: "applied" | "failed" | "not-eligible" };
+  | { resumed: false; url: string };
 
 export function createCheckout(input: CheckoutInput) {
   return apiFetch<CheckoutResult>("/billing/checkout", {
@@ -144,27 +132,7 @@ export function openBillingPortal() {
   return apiFetch<{ url: string }>("/billing/portal", { method: "POST" });
 }
 
-// ─── Per-agent cancel/resume + upgrade pricing ─────────────────────────────
-
-// Mirrors the server's UpgradeIneligibleReason (billing.upgrade.ts) exactly —
-// not widened to `string` — so an unhandled reason is a compile error here
-// rather than a silent fallback in the UI.
-export type UpgradeIneligibleReason =
-  | "credit-exceeds-crew-price"
-  | "no-agents-owned"
-  | "already-on-crew";
-
-export type UpgradeQuoteResponse =
-  | { eligible: true; creditCents: number; payNowCents: number; discountBasisPoints: number }
-  | { eligible: false; creditCents: number; reason: UpgradeIneligibleReason };
-
-export function useUpgradeQuote(organizationId?: string | null, cadence: SubscriptionPlan = "MONTHLY") {
-  return useQuery({
-    queryKey: ["billing", "upgrade-quote", organizationId ?? "none", cadence] as const,
-    queryFn: () => apiFetch<UpgradeQuoteResponse>(`/billing/upgrade-quote?cadence=${cadence}`),
-    enabled: Boolean(organizationId),
-  });
-}
+// ─── Per-agent cancel/resume ───────────────────────────────────────────────
 
 export function cancelAgent(agent: BillingAgent) {
   return apiFetch<{ activeUntil: string }>(`/billing/agents/${agent.toLowerCase()}/cancel`, {
@@ -178,14 +146,6 @@ export function resumeAgent(agent: BillingAgent) {
   });
 }
 
-export function cancelCrew() {
-  return apiFetch<{ activeUntil: string }>("/billing/crew/cancel", { method: "POST" });
-}
-
-export function resumeCrew() {
-  return apiFetch<{ renewsOn: string }>("/billing/crew/resume", { method: "POST" });
-}
-
 export function startMayaTopupCheckout(input: { dollars: number }) {
   return apiFetch<{ url: string; credits: number; dollars: number }>("/billing/maya/topup/checkout", {
     method: "POST",
@@ -195,7 +155,7 @@ export function startMayaTopupCheckout(input: { dollars: number }) {
 
 // ─── Maya usage ───────────────────────────────────────────────────────────────
 
-export type MayaUsageTier = "TRIAL" | "MONTHLY_CUSTOM" | "MONTHLY_CREW" | "ANNUAL_CREW";
+export type MayaUsageTier = "TRIAL" | "MONTHLY_CUSTOM";
 
 export type UsageResource = {
   used: number;
