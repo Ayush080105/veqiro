@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { FONT, Button } from '@/components/veqiro/shared';
-import { agentPricing, pricingTiers, consoleUrl, isPreLaunch, waitlistUrl, contact, PRICING_FAQ } from '@/lib/site-config';
+import { agentPricing, enterpriseTier, consoleUrl, isPreLaunch, waitlistUrl, contact, PRICING_FAQ } from '@/lib/site-config';
 import { useBillingCatalog } from '@/lib/use-billing-catalog';
 import { EMPLOYEES } from '@/components/veqiro/data';
 import { CHARACTER_COMPONENTS } from '@/components/veqiro/characters';
@@ -51,12 +51,6 @@ export default function PricingPageContent() {
   const priceByAgent: Record<string, number | null> = catalog
     ? Object.fromEntries(Object.entries(catalog.agents).map(([key, value]) => [key.toLowerCase(), Math.round(value.priceCents / 100)]))
     : STATIC_PRICE_BY_AGENT;
-  const tier = catalog
-    ? { ...pricingTiers[0], monthly: Math.round(catalog.crew.monthly.priceCents / 100), yearly: Math.round(catalog.crew.annual.priceCents / 100 / 12) }
-    : pricingTiers[0];
-  const custom = pricingTiers.find(t => t.custom);
-  const [yearly, setYearly] = useState(false);
-  const price = yearly ? tier.yearly : tier.monthly;
   const [isContactOpen, setIsContactOpen] = useState(false);
 
   return (
@@ -95,7 +89,7 @@ export default function PricingPageContent() {
             fontFamily: FONT.body, fontSize: 'clamp(13px, 1.8vw, 15px)', color: '#888',
             marginTop: 14, lineHeight: 1.6, maxWidth: 620, marginLeft: 'auto', marginRight: 'auto',
           }}>
-            Veqiro pricing is simple: one subscription gets you all six AI employees — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst. $39/mo, or $29/mo billed annually. No per-seat fees, no tier decisions.
+            Veqiro pricing is simple: every AI employee bills independently, starting at $9/mo — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst. Pick one or hire the whole team. No bundle, no tier decisions.
           </p>
 
           {/* Trust strip */}
@@ -114,189 +108,12 @@ export default function PricingPageContent() {
         </div>
       </section>
 
-      {/* ── PRICING CARD ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
-        <div style={{ maxWidth: 980, margin: '0 auto' }}>
-          {/* Billing toggle */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
-            <div style={{
-              display: 'inline-flex', background: '#111', borderRadius: 999,
-              padding: 4, border: '3px solid #111',
-            }}>
-              {['Monthly', 'Annually · save 25%'].map((l, i) => (
-                <button
-                  key={l}
-                  onClick={() => setYearly(i === 1)}
-                  style={{
-                    background: (yearly ? 1 : 0) === i ? '#F5C518' : 'transparent',
-                    color: (yearly ? 1 : 0) === i ? '#111' : '#888',
-                    border: 'none', borderRadius: 999, padding: '10px 20px',
-                    fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase',
-                    letterSpacing: 1, cursor: 'pointer', transition: 'background 160ms, color 160ms',
-                  }}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'stretch' }}>
-            <div style={{
-              border: '3px solid #111', borderRadius: 20,
-              overflow: 'hidden', boxShadow: '10px 10px 0 #111',
-              display: 'flex', flexDirection: 'column',
-            }}>
-              {/* Header */}
-              <div style={{ background: tier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
-                <div style={{
-                  display: 'inline-block', background: '#111', color: tier.color,
-                  fontFamily: FONT.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: 2,
-                  padding: '5px 12px', borderRadius: 999, marginBottom: 16,
-                }}>
-                  Most hired
-                </div>
-                <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 8vw, 64px)', margin: 0, lineHeight: 1, color: '#111' }}>
-                  {tier.name}
-                </h2>
-                <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
-                  {tier.tag}
-                </p>
-              </div>
-
-              {/* Price */}
-              <div style={{ background: '#fff', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 12vw, 72px)', color: '#111', lineHeight: 1 }}>
-                    ${price}
-                  </div>
-                  <div style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#888', paddingBottom: 8 }}>
-                    /mo{yearly ? ' · billed annually' : ''}
-                  </div>
-                </div>
-                {yearly && (
-                  <div style={{
-                    display: 'inline-block', background: '#F5C518', border: '2px solid #111',
-                    borderRadius: 999, padding: '4px 12px', fontFamily: FONT.mono,
-                    fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10,
-                  }}>
-                    You save ${(tier.monthly - tier.yearly) * 12}/yr
-                  </div>
-                )}
-              </div>
-
-              {/* Features */}
-              <div style={{ background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111', flexGrow: 1 }}>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 14 }}>
-                  {tier.includes.map(f => (
-                    <li key={f} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      <span style={{ color: '#1DBC87', fontFamily: FONT.head, fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
-                      <span style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', lineHeight: 1.4 }}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* CTA */}
-              <div style={{ background: '#fff', padding: 'clamp(18px, 4vw, 24px) clamp(20px, 5vw, 36px)', textAlign: 'center' }}>
-                <a
-                  href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'center',
-                    padding: '16px 26px', background: '#111', color: '#EFE7D6',
-                    fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-                    border: '3px solid #111', borderRadius: 10, textDecoration: 'none',
-                    boxShadow: '5px 5px 0 #F5C518', boxSizing: 'border-box',
-                  } as React.CSSProperties}
-                >
-                  Start 7-day free trial →
-                </a>
-                <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 12, marginBottom: 0 }}>
-                  No credit card · Cancel anytime
-                </p>
-              </div>
-            </div>
-
-            {custom && (
-              <div style={{
-                border: '3px solid #111', borderRadius: 20,
-                overflow: 'hidden', boxShadow: `10px 10px 0 ${custom.color}`,
-                display: 'flex', flexDirection: 'column',
-              }}>
-                {/* Header */}
-                <div style={{ background: custom.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
-                  <div style={{
-                    display: 'inline-block', background: '#111', color: custom.color,
-                    fontFamily: FONT.mono, fontSize: 10, textTransform: 'uppercase', letterSpacing: 2,
-                    padding: '5px 12px', borderRadius: 999, marginBottom: 16, visibility: 'hidden',
-                  }}>
-                    Most hired
-                  </div>
-                  <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 8vw, 64px)', margin: 0, lineHeight: 1, color: '#111' }}>
-                    {custom.name}
-                  </h2>
-                  <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
-                    {custom.tag}
-                  </p>
-                </div>
-
-                {/* Price */}
-                <div style={{ background: '#fff', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                    <div style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 12vw, 72px)', color: '#111', lineHeight: 1 }}>
-                      ${custom.monthly}+
-                    </div>
-                    <div style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#888', paddingBottom: 8 }}>
-                      /mo and up
-                    </div>
-                  </div>
-                </div>
-
-                {/* Features */}
-                <div style={{ background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', borderBottom: '3px solid #111', flexGrow: 1 }}>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 14 }}>
-                    {custom.includes.map(f => (
-                      <li key={f} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                        <span style={{ color: '#1DBC87', fontFamily: FONT.head, fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
-                        <span style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', lineHeight: 1.4 }}>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* CTA */}
-                <div style={{ background: '#fff', padding: 'clamp(18px, 4vw, 24px) clamp(20px, 5vw, 36px)', textAlign: 'center' }}>
-                  <a
-                    href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`}
-                    style={{
-                      display: 'block', width: '100%', textAlign: 'center',
-                      padding: '16px 26px', background: '#111', color: '#EFE7D6',
-                      fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-                      border: '3px solid #111', borderRadius: 10, textDecoration: 'none',
-                      boxShadow: `5px 5px 0 ${custom.color}`, boxSizing: 'border-box',
-                    } as React.CSSProperties}
-                  >
-                    Talk to sales →
-                  </a>
-                  <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 12, marginBottom: 0 }}>
-                    Response within 1 business day
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* BUY INDIVIDUALLY — each agent is its own checkout, no cart, no
-          selection state. Matches how the real product works: one agent =
-          one purchase, with its own renewal date. */}
+      {/* ── PRICING ── */}
       <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 32, textAlign: 'center' }}>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 12 }}>
-              [ OR BUY ONE AT A TIME ]
+              [ PICK YOUR AGENTS ]
             </div>
             <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(38px, 6vw, 76px)', margin: 0, lineHeight: 0.92 }}>
               start with one.<br />
@@ -304,12 +121,12 @@ export default function PricingPageContent() {
                 add the rest later.
               </span>
             </h2>
-            <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: '#444', maxWidth: 620, margin: '18px 0 0' }}>
-              Rather start small? Every agent is available on its own, starting at $9/mo — each one bills and renews independently, so you only ever pay for who you&apos;re using.
+            <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: '#444', maxWidth: 620, margin: '18px auto 0' }}>
+              Every agent bills and renews on its own — no bundle, no tiers. Pick one, or hire the whole team.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20, marginBottom: 32 }}>
             {EMPLOYEES.map(emp => {
               const Comp = CHARACTER_COMPONENTS[emp.key];
               const monthlyPrice = priceByAgent[emp.key];
@@ -360,6 +177,56 @@ export default function PricingPageContent() {
                 </div>
               );
             })}
+          </div>
+
+          {/* Enterprise — separate from per-agent pricing, not a per-agent card */}
+          <div style={{
+            border: '3px solid #111', borderRadius: 20, overflow: 'hidden',
+            boxShadow: `10px 10px 0 ${enterpriseTier.color}`,
+            display: 'flex', flexWrap: 'wrap',
+          }}>
+            <div style={{ flex: '1 1 260px', background: enterpriseTier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderRight: '3px solid #111' }}>
+              <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 6vw, 52px)', margin: 0, lineHeight: 1, color: '#111' }}>
+                {enterpriseTier.name}
+              </h2>
+              <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
+                {enterpriseTier.tag}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginTop: 20 }}>
+                <div style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 8vw, 56px)', color: '#111', lineHeight: 1 }}>
+                  ${enterpriseTier.monthly}+
+                </div>
+                <div style={{ fontFamily: FONT.body, fontSize: 15, color: '#111', opacity: 0.7, paddingBottom: 6 }}>
+                  /mo and up
+                </div>
+              </div>
+            </div>
+            <div style={{ flex: '2 1 360px', background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                {enterpriseTier.includes.map(f => (
+                  <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ color: '#1DBC87', fontFamily: FONT.head, fontSize: 16, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
+                    <span style={{ fontFamily: FONT.body, fontSize: 14, color: '#111', lineHeight: 1.4 }}>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div>
+                <a
+                  href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`}
+                  style={{
+                    display: 'inline-block', padding: '14px 24px', background: '#111', color: '#EFE7D6',
+                    fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1,
+                    border: '3px solid #111', borderRadius: 10, textDecoration: 'none',
+                    boxShadow: `5px 5px 0 ${enterpriseTier.color}`,
+                  } as React.CSSProperties}
+                >
+                  Talk to sales →
+                </a>
+                <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 10, marginBottom: 0 }}>
+                  Response within 1 business day
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
