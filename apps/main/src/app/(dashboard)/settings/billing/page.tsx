@@ -155,11 +155,33 @@ export default function BillingPage() {
   // (assertAgentPurchasable explicitly permits this), so treating a TRIAL
   // row as ownership hid every per-agent Buy card for an org's entire 7-day
   // trial, even though buying one mid-trial is a real, working flow.
+  //
+  // A cancelAtPeriodEnd AGENT row also doesn't count as "owned" — cancel and
+  // resume are portal-only now (AgentEntitlementRow no longer renders a
+  // resume button), so if this row stayed "owned" a cancelled-but-unexpired
+  // agent would have no in-app way back to auto-pay: no resume button (gone)
+  // and no Buy card (excluded). Re-showing the Buy card here is safe: the
+  // server's createCheckoutForOrg detects a cancelAtPeriodEnd row for the
+  // same agent and resumes auto-pay instead of charging again
+  // (`{ resumed: true, url: null }`), so "buying" a cancelled agent again
+  // never double-charges.
   const ownedAgents = useMemo(
-    () => new Set(entitlements.filter((e) => e.source !== "TRIAL").map((e) => e.agent)),
+    () =>
+      new Set(
+        entitlements
+          .filter((e) => e.source !== "TRIAL" && !e.cancelAtPeriodEnd)
+          .map((e) => e.agent),
+      ),
     [entitlements],
   )
   const unownedAgents = ALL_AGENTS.filter((agent) => !ownedAgents.has(agent))
+  // Derived from the response body's per-entitlement `status`, not the
+  // X-Billing-State header — that header is set by the single-agent
+  // entitlement middleware (per request, for whichever one agent is being
+  // checked), so it can only ever say "this one agent is past due." This
+  // page needs to list every past-due agent at once, and the per-entitlement
+  // status in the /billing/status body is the only source that can answer
+  // that for a multi-agent list.
   const pastDueAgents = entitlements.filter((e) => e.status === "PAST_DUE")
   // Data hasn't arrived yet: don't flash "buy all six" for a paying customer
   // while their real entitlements are still loading.
@@ -195,7 +217,7 @@ export default function BillingPage() {
       <PageHeader
         kicker="preferences"
         title="billing"
-        subtitle="Each agent bills on its own — buy, cancel, or resume independently."
+        subtitle="Each agent bills on its own — buy here, manage cancellation and payment through the billing portal."
         sticker={{ label: "agent billing", rot: -6, color: "var(--vq-blue)" }}
       />
 
