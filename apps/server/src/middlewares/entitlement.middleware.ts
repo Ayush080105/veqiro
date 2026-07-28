@@ -23,7 +23,7 @@ export function entitlementMiddlewareForAgent(agent?: Agent) {
       // Distinguish "never started" from "lapsed" so the UI can route the user
       // to the trial CTA vs the billing page. A lapsed org that has only ever
       // held TRIAL entitlements gets "Trial expired"; one that has held a
-      // paid (AGENT/CREW) entitlement gets "Subscription expired". These are
+      // paid AGENT entitlement gets "Subscription expired". These are
       // separate frontend copy paths (see apps/main upgrade-errors.ts).
       const org = await prisma.organization.findUnique({
         where: { id: orgId },
@@ -35,7 +35,7 @@ export function entitlementMiddlewareForAgent(agent?: Agent) {
       }
 
       const hasHeldPaidEntitlement = await prisma.entitlement.findFirst({
-        where: { organizationId: orgId, source: { in: ["AGENT", "CREW"] } },
+        where: { organizationId: orgId, source: "AGENT" },
         select: { id: true },
       });
 

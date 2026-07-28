@@ -558,7 +558,7 @@ export async function getOrganizationById(id: string) {
 export async function extendTrial(id: string, days = 7) {
   // Delegates entirely to the entitlements-based helper, which only ever
   // touches TRIAL-sourced Entitlement rows — it can't disturb a paying org's
-  // CREW/AGENT entitlements — and itself throws when the org has no trial
+  // AGENT entitlements — and itself throws when the org has no trial
   // entitlement rows to extend, which is the only eligibility guard needed
   // now that trial state no longer lives on the denormalized Subscription.
   return extendTrialForOrg(id, days);

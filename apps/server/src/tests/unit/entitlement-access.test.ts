@@ -26,10 +26,10 @@ const mockPrisma = {
     // "held a paid entitlement at some point" — deliberately unfiltered by
     // status/currentPeriodEnd, unlike findMany above.
     findFirst: vi.fn(async ({ where }: never) => {
-      const w = where as { organizationId: string; source?: { in: string[] } };
+      const w = where as { organizationId: string; source?: string };
       return ents.find((e) =>
         e.organizationId === w.organizationId &&
-        (!w.source || w.source.in.includes(e.source))) ?? null;
+        (!w.source || e.source === w.source)) ?? null;
     }),
   },
   organization: {

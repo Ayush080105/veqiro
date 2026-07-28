@@ -143,7 +143,7 @@ export async function extendTrialForOrg(organizationId: string, days = 7) {
   // Guard against reviving a paying customer's trial. A TRIAL row does NOT
   // expire out of existence: when the trial period lapses the sweeper flips
   // the six TRIAL rows to EXPIRED, but they are never deleted. When that org
-  // later converts to a paying customer, the purchase inserts new AGENT/CREW
+  // later converts to a paying customer, the purchase inserts new AGENT
   // rows alongside the old ones rather than replacing them. So "the org has
   // TRIAL rows" — even stale EXPIRED ones — is never evidence the org is
   // currently a trial org; it only proves they trialed at some point in the

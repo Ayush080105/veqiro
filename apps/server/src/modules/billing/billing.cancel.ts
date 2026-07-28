@@ -9,18 +9,11 @@ import { ACCESS_STATUSES } from "./entitlement.service.js";
  * per-agent cancel/resume must act on.
  *
  * Overlapping rows for the same agent are legal and documented (see
- * getMayaEntitlement in entitlement.service.ts): an org can hold an AGENT row
- * and a CREW row for the same agent at once, because purchases insert new
- * rows alongside old ones rather than replacing them, and nothing sets
- * SUPERSEDED yet. Per-agent cancel must never resolve to the Crew bundle's
- * subscription — cancelling Crew cancels all six agents, which is a
- * different, much bigger action than the one the caller asked for, and the
- * shared-subscription guard below only counts AGENT-source siblings, so it
- * would not catch a Crew subscription slipping through here. So this
- * function filters to `source: "AGENT"` explicitly and, when no AGENT row
- * covers the agent, distinguishes "covered only by Crew" (refuse — the UI
- * must offer a separate "cancel Crew" action) from "covered only by trial"
- * and "not entitled at all" (existing behaviour, unchanged).
+ * getMayaEntitlement in entitlement.service.ts): purchases insert new rows
+ * alongside old ones rather than replacing them, and nothing sets SUPERSEDED
+ * yet. So this function filters to `source: "AGENT"` explicitly and, when no
+ * AGENT row covers the agent, distinguishes "covered only by trial" from
+ * "not entitled at all".
  *
  * When more than one AGENT row somehow covers the agent, the one with the
  * latest currentPeriodEnd wins — never unordered row order.
@@ -36,7 +29,6 @@ async function resolveAgentSubscription(organizationId: string, agent: Agent) {
   });
   const row = rows.find((r) => r.source === "AGENT");
   if (!row) {
-    if (rows.some((r) => r.source === "CREW")) throw new BadRequestError(`covered-by-crew:${agent}`);
     if (rows.some((r) => r.source === "TRIAL")) throw new BadRequestError("no-subscription-for-agent");
     throw new BadRequestError(`not-entitled:${agent}`);
   }
@@ -61,9 +53,8 @@ async function resolveAgentSubscription(organizationId: string, agent: Agent) {
  * Refusing here is the honest behaviour; the caller surfaces the agent list
  * so the UI/support can explain why.
  *
- * Scoped to `source: "AGENT"` only: a CREW subscription legitimately has all
- * six entitlements attached, and cancelling Crew is a separate, correct
- * all-six action that must not be caught by this guard. Only rows still
+ * Scoped to `source: "AGENT"` only: TRIAL rows have no real Dodo subscription
+ * to conflict over, so they are irrelevant to this guard. Only rows still
  * granting access (status in ACCESS_STATUSES and currentPeriodEnd in the
  * future) count — an already-expired sibling must not block a cancel.
  */
@@ -111,11 +102,10 @@ export async function cancelAgentAutoPay(organizationId: string, agent: Agent) {
  * Resumes auto-pay for one agent.
  *
  * No shared-subscription guard here on purpose: resuming a subscription that
- * bills more than one agent (the legacy backfill case above, or a legitimate
- * CREW subscription) flips `cancelAtPeriodEnd` back to false for every row on
- * it. That is harmless — nobody loses access and nobody is charged more than
- * they already agreed to — so it is allowed to proceed for all agents on the
- * subscription.
+ * bills more than one agent (the legacy backfill case above) flips
+ * `cancelAtPeriodEnd` back to false for every row on it. That is harmless —
+ * nobody loses access and nobody is charged more than they already agreed to
+ * — so it is allowed to proceed for all agents on the subscription.
  */
 export async function resumeAgentAutoPay(organizationId: string, agent: Agent) {
   const { row, bs } = await resolveAgentSubscription(organizationId, agent);
