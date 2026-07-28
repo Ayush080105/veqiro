@@ -9,7 +9,7 @@ import { currentCreditWindow } from "./maya.period.js";
 // ─── Display tier (frontend badge only) ──────────────────────────────────────
 // NOT used for quota lookup — the quota is always read live from the
 // entitlement via getQuotaForMayaEntitlement. This purely maps the governing
-// entitlement onto the four labels the frontend already renders
+// entitlement onto the labels the frontend already renders
 // (apps/main/.../settings/usage/page.tsx TIER_LABELS), so that surface keeps
 // working unchanged.
 type DisplayTier = "TRIAL" | "MONTHLY_CUSTOM";
@@ -25,9 +25,9 @@ function displayTierFor(source: EntitlementSource): DisplayTier {
 // window converges on the same row instead of racing to create it.
 //
 // The quota is read LIVE here rather than snapshotted onto the MayaUsage row:
-// a mid-period upgrade (e.g. Maya-custom → Crew-annual) just raises the
-// ceiling on the already-open window. No reset, so the user never loses
-// unused credits, and nobody can refill credits by upgrading mid-period.
+// a mid-period conversion (e.g. TRIAL → AGENT) just raises the ceiling on the
+// already-open window. No reset, so the user never loses unused credits, and
+// nobody can refill credits by upgrading mid-period.
 async function resolveMayaWindow(organizationId: string) {
   const ent = await getMayaEntitlement(organizationId);
   // Kept as "no-subscription" (not the newer "maya-not-entitled") — three
