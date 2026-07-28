@@ -4,14 +4,12 @@ import { prisma } from "../../config/prisma.js";
 import { dodoClient } from "../../lib/dodo.js";
 import {
   createCheckoutForOrg,
-  getUpgradeQuoteForOrg,
   requireOrgOwner,
   startTrialForOrg,
 } from "./billing.service.js";
 import { cancelAgentAutoPay, resumeAgentAutoPay } from "./billing.cancel.js";
-import { cancelCrewAutoPay, resumeCrewAutoPay } from "./billing.crew-cancel.js";
 import { createMayaTopupCheckout } from "./billing.topup.js";
-import { normalizeAgents, normalizePlan } from "./billing.catalog.js";
+import { normalizeAgents } from "./billing.catalog.js";
 import { getActiveEntitlements } from "./entitlement.service.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import type {
@@ -47,14 +45,13 @@ type ActiveEntitlementLike = {
  */
 export function deriveStatusFields(active: ActiveEntitlementLike[]) {
   const agents = [...new Set(active.map((e) => e.agent))];
-  const isCrew = active.some((e) => e.source === "CREW");
   const trialRows = active.filter((e) => e.source === "TRIAL");
   const trialEndsAt = trialRows.length
     ? new Date(Math.max(...trialRows.map((e) => e.currentPeriodEnd.getTime())))
     : null;
 
   return {
-    entitlementMode: (isCrew ? "CREW" : "CUSTOM") as "CREW" | "CUSTOM",
+    entitlementMode: "CUSTOM" as const,
     unlockedAgents: agents,
     selectedAgents: agents,
     currentPeriodEnd: active.length
@@ -141,21 +138,8 @@ export async function startTrial(req: Request, res: Response) {
 
 export async function createCheckout(req: Request, res: Response) {
   const orgId = await requireOrgOwner(req);
-  const checkout = await createCheckoutForOrg(orgId, {
-    agent: req.body?.agent,
-    cadence: req.body?.cadence,
-    crew: req.body?.crew,
-  });
+  const checkout = await createCheckoutForOrg(orgId, { agent: req.body?.agent });
   res.status(StatusCodes.OK).json(checkout);
-}
-
-// Read-only pricing lookup — no owner check, any authenticated org member
-// may see what a Crew upgrade would cost.
-export async function getUpgradeQuote(req: Request, res: Response) {
-  const organizationId = req.organizationId;
-  if (!organizationId) throw new BadRequestError("No active organization selected");
-  const plan = normalizePlan(req.query.cadence ?? "MONTHLY");
-  res.status(StatusCodes.OK).json(await getUpgradeQuoteForOrg(organizationId, plan));
 }
 
 export async function openPortal(req: Request, res: Response) {
@@ -185,18 +169,8 @@ export async function resumeAgent(req: Request, res: Response) {
   res.status(StatusCodes.OK).json(await resumeAgentAutoPay(orgId, agent));
 }
 
-export async function cancelCrew(req: Request, res: Response) {
-  const orgId = await requireOrgOwner(req);
-  res.status(StatusCodes.OK).json(await cancelCrewAutoPay(orgId));
-}
-
-export async function resumeCrew(req: Request, res: Response) {
-  const orgId = await requireOrgOwner(req);
-  res.status(StatusCodes.OK).json(await resumeCrewAutoPay(orgId));
-}
-
-// Owner-gated like every other checkout-initiating route (createCheckout,
-// crew checkout) — this starts a real charge, unlike merely spending
+// Owner-gated like every other checkout-initiating route — this starts a
+// real charge, unlike merely spending
 // already-purchased Maya credits, which any org member may do.
 export async function startMayaTopupCheckout(req: Request, res: Response) {
   const orgId = await requireOrgOwner(req);

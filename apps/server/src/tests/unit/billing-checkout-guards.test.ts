@@ -36,13 +36,6 @@ describe("assertAgentPurchasable", () => {
     );
   });
 
-  test("buying any agent while Crew is active is rejected", () => {
-    assert.throws(
-      () => assertAgentPurchasable([ent("REX", "CREW")], "MAYA" as never),
-      /crew-covers-all-agents/,
-    );
-  });
-
   test("an agent cancelled-but-unexpired is repurchasable (resume, not double-charge)", () => {
     assert.doesNotThrow(
       () => assertAgentPurchasable([ent("MAYA", "AGENT", { cancelAtPeriodEnd: true })], "MAYA" as never),

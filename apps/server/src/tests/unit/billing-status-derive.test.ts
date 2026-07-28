@@ -24,7 +24,7 @@ const { deriveStatusFields, getStatus, dismissPendingCheckout } = await import("
 
 const ent = (
   agent: string,
-  source: "TRIAL" | "AGENT" | "CREW",
+  source: "TRIAL" | "AGENT",
   currentPeriodEnd: Date,
   extra: Record<string, unknown> = {},
 ) => ({
@@ -62,12 +62,6 @@ describe("deriveStatusFields", () => {
     assert.equal(r.unlockedAgents.length, 6);
   });
 
-  test("a CREW row sets entitlementMode CREW even alongside AGENT rows", () => {
-    const future = new Date(Date.now() + 10 * 86400_000);
-    const r = deriveStatusFields([ent("MAYA", "AGENT", future), ent("REX", "CREW", future)]);
-    assert.equal(r.entitlementMode, "CREW");
-  });
-
   test("paid AGENT rows do not set trialEndsAt/daysRemaining", () => {
     const future = new Date(Date.now() + 10 * 86400_000);
     const r = deriveStatusFields([ent("MAYA", "AGENT", future)]);
@@ -85,7 +79,7 @@ describe("deriveStatusFields", () => {
   test("plan comes from the row's own BillingSubscription, not a shared value", () => {
     const future = new Date(Date.now() + 10 * 86400_000);
     const r = deriveStatusFields([
-      ent("MAYA", "CREW", future, { billingSubscription: { plan: "ANNUAL" } }),
+      ent("MAYA", "AGENT", future, { billingSubscription: { plan: "ANNUAL" } }),
       ent("REX", "AGENT", future, { billingSubscription: { plan: "MONTHLY" } }),
       ent("SAGE", "TRIAL", future),
     ]);

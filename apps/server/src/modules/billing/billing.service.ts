@@ -10,14 +10,11 @@ import { StatusCodes } from "http-status-codes";
 import {
   ALL_AGENTS,
   normalizeAgents,
-  normalizePlan,
   agentProductId,
-  crewProductId,
 } from "./billing.catalog.js";
 import { ACCESS_STATUSES, getActiveEntitlements } from "./entitlement.service.js";
 import { resumeAgentAutoPay } from "./billing.cancel.js";
-import { quoteCrewUpgrade, type UpgradeQuote } from "./billing.upgrade.js";
-import type { Agent, SubscriptionPlan } from "../../../prisma/generated/prisma/client.js";
+import type { Agent } from "../../../prisma/generated/prisma/client.js";
 
 class ForbiddenError extends CustomApiError {
   constructor(message: string) {
@@ -179,7 +176,7 @@ export async function extendTrialForOrg(organizationId: string, days = 7) {
 
 type ActiveEntitlement = {
   agent: Agent;
-  source: "TRIAL" | "AGENT" | "CREW";
+  source: "TRIAL" | "AGENT";
   cancelAtPeriodEnd: boolean;
 };
 
@@ -192,142 +189,10 @@ type ActiveEntitlement = {
  * the user resumes auto-pay, handled charge-free in createCheckoutForOrg.
  */
 export function assertAgentPurchasable(active: ActiveEntitlement[], agent: Agent): void {
-  if (active.some((e) => e.source === "CREW")) {
-    throw new ConflictError("crew-covers-all-agents");
-  }
   const blocking = active.find(
     (e) => e.agent === agent && e.source === "AGENT" && !e.cancelAtPeriodEnd,
   );
   if (blocking) throw new ConflictError(`already-entitled:${agent}`);
-}
-
-/**
- * Pure core shared by getUpgradeQuoteForOrg and createCrewCheckout: prices a
- * Crew upgrade from already-fetched active entitlements, so the checkout
- * path doesn't need a second DB round trip to re-derive the same quote.
- *
- * An active CREW row short-circuits to "already-on-crew" before
- * quoteCrewUpgrade is even called — that function only sees AGENT prices, so
- * it has no way to know the org already holds a Crew entitlement.
- *
- * Credit uses each row's stored priceCents (what was actually paid), never
- * today's list price, so a catalog price change cannot retroactively move an
- * existing customer's credit. Only source: "AGENT" rows count — TRIAL and
- * CREW rows are excluded from the sum.
- */
-function quoteUpgradeFromActive(
-  active: Array<{ source: string; priceCents: number }>,
-  plan: SubscriptionPlan,
-): UpgradeQuote {
-  if (active.some((e) => e.source === "CREW")) {
-    return { eligible: false, creditCents: 0, reason: "already-on-crew" };
-  }
-  const owned = active.filter((e) => e.source === "AGENT").map((e) => e.priceCents);
-  return quoteCrewUpgrade(owned, plan);
-}
-
-/**
- * Prices a Crew upgrade from the org's live entitlements. Read-only — this
- * is what the settings page polls to show "Upgrade to Crew for $X" before
- * the user commits to a checkout.
- */
-export async function getUpgradeQuoteForOrg(
-  organizationId: string,
-  plan: SubscriptionPlan,
-): Promise<UpgradeQuote> {
-  const active = await getActiveEntitlements(organizationId);
-  return quoteUpgradeFromActive(active, plan);
-}
-
-/**
- * Crew checkout, with a credited upgrade for orgs that already own
- * individual agents. Dodo supports percentage discounts only
- * (UNSUPPORTED_DISCOUNT_TYPE for flat amounts), so the credit is expressed
- * as basis points of the Crew price and applied with subscription_cycles: 1
- * so only the first billing cycle is discounted — renewals bill full price
- * with no action from us.
- *
- * Ineligible is NOT the same as blocked: an org with no credit (or one whose
- * credit would exceed the Crew price) can still buy Crew at full price, they
- * just get no discount. The one case that IS blocked is already owning
- * Crew — buying it twice is nonsense, so that throws instead of silently
- * charging full price again.
- *
- * If discount creation fails, we deliberately do not fail the whole
- * checkout: a user who cannot get their credit applied should still be able
- * to buy Crew. We log and fall through to an undiscounted checkout instead
- * of blocking the purchase.
- */
-async function createCrewCheckout(
-  organizationId: string,
-  sub: Awaited<ReturnType<typeof ensureBillingCustomerForOrg>>,
-  active: Awaited<ReturnType<typeof getActiveEntitlements>>,
-  plan: SubscriptionPlan,
-) {
-  const quote = quoteUpgradeFromActive(active, plan);
-  if (!quote.eligible && quote.reason === "already-on-crew") {
-    throw new ConflictError("already-on-crew");
-  }
-
-  let discountCode: string | undefined;
-  // Surfaced to the frontend so it can warn the customer rather than let
-  // them discover a missing discount only after being charged full price —
-  // see createCheckoutForOrg's return type and CrewUpgradeCard.tsx's usage.
-  let discountApplied: "applied" | "failed" | "not-eligible" = "not-eligible";
-  if (quote.eligible) {
-    try {
-      const discount = await dodoClient.discounts.create({
-        type: "percentage",
-        amount: quote.discountBasisPoints,
-        name: `Crew upgrade credit — org ${organizationId}`,
-        usage_limit: 1,
-        subscription_cycles: 1,
-        restricted_to: [crewProductId(plan)],
-        expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      });
-      discountCode = discount.code;
-      discountApplied = "applied";
-    } catch (err) {
-      // Do not fail the purchase over a missed discount — log and continue
-      // to an undiscounted Crew checkout below.
-      console.error("crew-upgrade-discount-create-failed", { organizationId, err });
-      discountApplied = "failed";
-    }
-  }
-
-  const baseUrl = process.env.CLIENT_URL || "http://localhost:3001";
-  const session = await dodoClient.checkoutSessions.create({
-    product_cart: [{ product_id: crewProductId(plan), quantity: 1 }],
-    customer: { customer_id: sub.dodoCustomerId } as never,
-    return_url: `${baseUrl}/settings/billing?status=success`,
-    cancel_url: `${baseUrl}/settings/billing?status=cancelled`,
-    // Our catalog is USD-only — lock the checkout page's displayed currency
-    // to USD instead of letting Dodo auto-convert to the buyer's local
-    // currency, so the number shown always matches what the app quoted.
-    billing_currency: "USD",
-    feature_flags: { allow_currency_selection: false },
-    ...(discountCode ? { discount_code: discountCode } : {}),
-    metadata: {
-      organizationId,
-      kind: discountCode ? "CREW_UPGRADE" : "CREW",
-      plan,
-    },
-  });
-
-  if (!session.checkout_url) throw new BadRequestError("checkout-url-missing");
-  await prisma.pendingCheckout.create({
-    data: {
-      organizationId,
-      sessionId: session.session_id,
-      // Reflects what actually happened, not what was merely eligible: if
-      // the discount call above failed, this fell through to a plain Crew
-      // checkout, so it is recorded as CREW rather than CREW_UPGRADE.
-      kind: discountCode ? "CREW_UPGRADE" : "CREW",
-      plan,
-      discountCode,
-    },
-  });
-  return { resumed: false as const, url: session.checkout_url, discountApplied };
 }
 
 /**
@@ -337,14 +202,10 @@ async function createCrewCheckout(
  */
 export async function createCheckoutForOrg(
   organizationId: string,
-  input: { agent?: unknown; cadence?: unknown; crew?: boolean },
+  input: { agent?: unknown },
 ) {
   const sub = await ensureBillingCustomerForOrg(organizationId);
   const active = await getActiveEntitlements(organizationId);
-
-  if (input.crew) {
-    return createCrewCheckout(organizationId, sub, active, normalizePlan(input.cadence));
-  }
 
   // normalizeAgents gives slug ("rex") and enum ("REX") handling plus
   // validation for free; we just require exactly one.

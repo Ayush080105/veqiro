@@ -107,7 +107,7 @@ type Row = {
   id: string;
   organizationId: string;
   agent: string;
-  source: "TRIAL" | "AGENT" | "CREW";
+  source: "TRIAL" | "AGENT";
   status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "EXPIRED" | "SUPERSEDED";
   currentPeriodEnd: Date;
 };
@@ -172,24 +172,6 @@ describe("extendTrialForOrg — org-has-paid-entitlement guard", () => {
 
     assert.equal(rows[0]!.status, "EXPIRED");
     assert.equal(rows[0]!.currentPeriodEnd.getTime(), staleEnd.getTime());
-    assert.equal(rows[1]!.status, "ACTIVE");
-  });
-
-  test("an org with an active CREW entitlement + stale TRIAL rows is refused the same way", async () => {
-    const staleEnd = new Date(Date.now() - 1000);
-    const futureEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    rows = [
-      { id: "t1", organizationId: "o1", agent: "SAGE", source: "TRIAL", status: "EXPIRED", currentPeriodEnd: staleEnd },
-      { id: "c1", organizationId: "o1", agent: "SAGE", source: "CREW", status: "ACTIVE", currentPeriodEnd: futureEnd },
-    ];
-
-    const { extendTrialForOrg } = await import("../../modules/billing/billing.service.js");
-    await extendTrialForOrg("o1", 7).then(
-      () => assert.fail("a CREW-covered org's trial rows must not be revivable"),
-      (e) => assert.match(String(e), /org-has-paid-entitlement/),
-    );
-
-    assert.equal(rows[0]!.status, "EXPIRED");
     assert.equal(rows[1]!.status, "ACTIVE");
   });
 
