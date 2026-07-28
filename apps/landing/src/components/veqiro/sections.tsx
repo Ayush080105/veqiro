@@ -7,13 +7,16 @@ import {
   isPreLaunch,
   waitlistUrl,
   howItWorksSteps,
-  pricingTiers,
+  agentPricing,
+  enterpriseTier,
   faqItems,
   footerColumns,
   social,
   footerBottom,
   contact,
 } from '@/lib/site-config';
+import { useBillingCatalog } from '@/lib/use-billing-catalog';
+import { EMPLOYEES } from './data';
 import { ContactModal } from './contact-modal';
 
 export function HowItWorks() {
@@ -55,32 +58,14 @@ export function HowItWorks() {
 }
 
 export function Pricing() {
-  const [yearly, setYearly] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'out' | 'in'>('idle');
-  const p = pricingTiers[0];
-  const custom = pricingTiers.find(t => t.custom);
-  const price = yearly ? p.yearly : p.monthly;
-
-  // Monthly: red card, yellow shadow/badge
-  // Yearly:  yellow card, red shadow/badge
-  const cardBg    = yearly ? '#F5C518' : '#F06464';
-  const shadowClr = yearly ? '#F06464' : '#F5C518';
-  const badgeBg   = yearly ? '#F06464' : '#F5C518';
-  const badgeTxt  = yearly ? '#EFE7D6' : '#111';
-
-  const handleToggle = (toYearly: boolean) => {
-    if (toYearly === yearly || phase !== 'idle') return;
-    setPhase('out');
-    setTimeout(() => { setYearly(toYearly); setPhase('in'); }, 280);
-    setTimeout(() => { setPhase('idle'); }, 560);
-  };
-
-  const cardTransform = phase === 'out' ? 'perspective(900px) rotateY(90deg) scale(0.95)' : 'perspective(900px) rotateY(0deg) scale(1)';
-  const cardTransition = phase === 'out' ? 'transform 280ms ease-in' : 'transform 280ms ease-out';
+  const catalog = useBillingCatalog();
+  const priceByAgent: Record<string, number | null> = catalog
+    ? Object.fromEntries(Object.entries(catalog.agents).map(([key, value]) => [key.toLowerCase(), Math.round(value.priceCents / 100)]))
+    : Object.fromEntries(agentPricing.map(item => [item.key, item.monthly]));
 
   return (
     <section id="pricing" className="vq-section-pad" style={{ background: '#111', color: '#EFE7D6' }}>
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, color: '#F5C518' }}>
             [ PRICING ]
@@ -88,111 +73,53 @@ export function Pricing() {
           <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 96px)', margin: 0, lineHeight: 0.9, letterSpacing: -1 }}>
             less than<br /><span style={{ color: '#F5C518' }}>a bad intern.</span>
           </h2>
-          <div style={{ display: 'inline-flex', marginTop: 28, background: '#EFE7D6', borderRadius: 999, padding: 4, border: '3px solid #EFE7D6' }}>
-            {['Monthly', 'Yearly · save 25%'].map((l, i) => (
-              <button key={l} onClick={() => handleToggle(i === 1)} style={{
-                background: (yearly ? 1 : 0) === i ? '#111' : 'transparent',
-                color: (yearly ? 1 : 0) === i ? '#EFE7D6' : '#111',
-                border: 'none', borderRadius: 999, padding: '10px 20px',
-                fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, cursor: 'pointer',
-                transition: 'background 200ms, color 200ms',
-              }}>{l}</button>
-            ))}
-          </div>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', color: '#CFC6B2', marginTop: 20 }}>
+            Every agent bills on its own, starting at $9/mo. No bundle required.
+          </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'stretch' }}>
-          <div style={{
-            background: cardBg, color: '#111',
-            border: '3px solid #EFE7D6', borderRadius: 20,
-            padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
-            position: 'relative', boxShadow: `10px 10px 0 ${shadowClr}`,
-            transform: cardTransform, transition: cardTransition,
-            willChange: 'transform',
-            display: 'flex', flexDirection: 'column',
-          }}>
-            <div style={{
-              position: 'absolute', top: -14, right: 24,
-              background: badgeBg, color: badgeTxt,
-              border: '3px solid #111', borderRadius: 999, padding: '4px 14px',
-              fontFamily: FONT.head, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
-              transform: 'rotate(4deg)', boxShadow: '3px 3px 0 #111',
-            }}>most hired ✦</div>
-
-            <div style={{ fontFamily: FONT.head, fontSize: 28 }}>{p.name}</div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{p.tag}</div>
-
-            <div style={{ marginTop: 24, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 14vw, 88px)', lineHeight: 1 }}>${price}</span>
-              <span style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)' }}>/{yearly ? 'mo, billed yearly' : 'month'}</span>
-            </div>
-
-            <ul style={{ listStyle: 'none', padding: 0, margin: '28px 0', display: 'grid', gap: 12 }}>
-              {p.includes.map(it => (
-                <li key={it} style={{ fontFamily: FONT.body, fontSize: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ width: 22, height: 22, background: '#111', color: cardBg, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontFamily: FONT.head, flexShrink: 0 }}>✓</span>
-                  {it}
-                </li>
-              ))}
-            </ul>
-
-            <a href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`} style={{
-              display: 'block', textAlign: 'center', textDecoration: 'none',
-              background: '#111', color: '#EFE7D6', padding: '16px',
-              border: '3px solid #111', borderRadius: 12, boxShadow: '5px 5px 0 #111',
-              fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-              marginTop: 'auto',
-            }}>{isPreLaunch ? 'Join the waitlist →' : 'Start hiring — free 7 days →'}</a>
-
-            <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
-              {isPreLaunch ? 'Free for early members · 30% off first month' : 'No credit card needed · Cancel anytime'}
-            </p>
-          </div>
-
-          {custom && (
-            <div style={{
-              background: '#1a1a1a', color: '#EFE7D6',
-              border: `3px solid ${custom.color}`, borderRadius: 20,
-              padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
-              boxShadow: `10px 10px 0 ${custom.color}`,
-              display: 'flex', flexDirection: 'column',
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {EMPLOYEES.map(emp => (
+            <div key={emp.key} style={{
+              background: '#1a1a1a', border: `3px solid ${emp.color}`, borderRadius: 14,
+              padding: '18px 16px', textAlign: 'center', boxShadow: `4px 4px 0 ${emp.color}`,
             }}>
-              <div style={{ fontFamily: FONT.head, fontSize: 28 }}>{custom.name}</div>
-              <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{custom.tag}</div>
-
-              <div style={{ marginTop: 24, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 14vw, 88px)', lineHeight: 1, color: custom.color }}>${custom.monthly}+</span>
-                <span style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)' }}>/month and up</span>
+              <div style={{ fontFamily: FONT.head, fontSize: 18, color: emp.color }}>{emp.name}</div>
+              <div style={{ fontFamily: FONT.display, fontSize: 28, marginTop: 8 }}>
+                {priceByAgent[emp.key] == null ? '—' : `$${priceByAgent[emp.key]}`}
               </div>
-
-              <ul style={{ listStyle: 'none', padding: 0, margin: '28px 0', display: 'grid', gap: 12 }}>
-                {custom.includes.map(it => (
-                  <li key={it} style={{ fontFamily: FONT.body, fontSize: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ width: 22, height: 22, background: custom.color, color: '#111', borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontFamily: FONT.head, flexShrink: 0 }}>✓</span>
-                    {it}
-                  </li>
-                ))}
-              </ul>
-
-              <a href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`} style={{
-                display: 'block', textAlign: 'center', textDecoration: 'none',
-                background: '#EFE7D6', color: '#111', padding: '16px',
-                border: '3px solid #111', borderRadius: 12, boxShadow: `5px 5px 0 ${custom.color}`,
-                fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-                marginTop: 'auto',
-              }}>Talk to sales →</a>
-
-              <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 12, opacity: 0.65, marginTop: 16, marginBottom: 0 }}>
-                Response within 1 business day
-              </p>
+              <div style={{ fontFamily: FONT.mono, fontSize: 10, color: '#888', marginTop: 2 }}>/month</div>
             </div>
-          )}
+          ))}
+        </div>
+
+        <div style={{
+          background: '#1a1a1a', color: '#EFE7D6',
+          border: `3px solid ${enterpriseTier.color}`, borderRadius: 20,
+          padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
+          boxShadow: `10px 10px 0 ${enterpriseTier.color}`,
+          display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontFamily: FONT.head, fontSize: 24 }}>{enterpriseTier.name}</div>
+            <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{enterpriseTier.tag}</div>
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 8vw, 56px)', lineHeight: 1, color: enterpriseTier.color }}>${enterpriseTier.monthly}+</span>
+              <span style={{ fontFamily: FONT.body, fontSize: 15 }}>/month and up</span>
+            </div>
+          </div>
+          <a href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`} style={{
+            display: 'inline-block', textDecoration: 'none',
+            background: '#EFE7D6', color: '#111', padding: '16px 26px',
+            border: '3px solid #111', borderRadius: 12, boxShadow: `5px 5px 0 ${enterpriseTier.color}`,
+            fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
+          } as React.CSSProperties}>Talk to sales →</a>
         </div>
 
         <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 13, marginTop: 32, color: '#EFE7D6', opacity: 0.8 }}>
-          Only need one agent?{' '}
+          Want the whole team?{' '}
           <Link href="/pricing" style={{ color: '#F5C518', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-            See per-agent pricing →
+            See every agent →
           </Link>
         </p>
       </div>
