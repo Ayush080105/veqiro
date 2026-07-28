@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ALL_AGENTS, getAgentMonthlyPriceCents, getCrewPriceCents } from "./billing.catalog.js";
+import { ALL_AGENTS, getAgentMonthlyPriceCents } from "./billing.catalog.js";
 
 export function buildCatalogPayload() {
   const agents = Object.fromEntries(
@@ -8,10 +8,6 @@ export function buildCatalogPayload() {
 
   return {
     agents,
-    crew: {
-      monthly: { priceCents: getCrewPriceCents("MONTHLY") },
-      annual: { priceCents: getCrewPriceCents("ANNUAL") },
-    },
     currency: "USD",
   };
 }

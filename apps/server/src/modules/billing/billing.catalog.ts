@@ -38,14 +38,6 @@ function centsFromEnv(key: string, fallback: number): number {
   return value;
 }
 
-function optionalCentsFromEnv(key: string, fallback: number): number {
-  const raw = process.env[key];
-  if (!raw) return fallback;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value <= 0) return fallback;
-  return value;
-}
-
 export function normalizeAgents(input: unknown): Agent[] {
   if (!Array.isArray(input)) throw new BadRequestError("agents-required");
 
@@ -68,17 +60,6 @@ export function normalizePlan(input: unknown): SubscriptionPlan {
   throw new BadRequestError("invalid-billing-cadence");
 }
 
-export function isCrewSelection(agents: Agent[]) {
-  return agents.length === ALL_AGENTS.length && ALL_AGENTS.every((agent) => agents.includes(agent));
-}
-
-export function getCrewPriceCents(plan: SubscriptionPlan): number {
-  if (plan === "ANNUAL") {
-    return optionalCentsFromEnv("CREW_ANNUAL_CENTS", 29 * 12 * 100);
-  }
-  return optionalCentsFromEnv("CREW_MONTHLY_CENTS", 39 * 100);
-}
-
 export function getAgentMonthlyPriceCents(agent: Agent): number {
   return centsFromEnv(AGENT_ENV_KEYS[agent], DEFAULT_AGENT_MONTHLY_CENTS[agent]);
 }
@@ -98,13 +79,6 @@ export function agentProductId(agent: Agent): string {
   return value;
 }
 
-export function crewProductId(plan: SubscriptionPlan): string {
-  const key = plan === "ANNUAL" ? "DODO_PRODUCT_CREW_ANNUAL" : "DODO_PRODUCT_CREW_MONTHLY";
-  const value = process.env[key];
-  if (!value) throw new BadRequestError(`missing-product-id:CREW_${plan}`);
-  return value;
-}
-
 /** One-time (non-recurring) product for a single $3-credit-unit Maya top-up purchase. */
 export function mayaTopupUnitProductId(): string {
   const value = process.env.DODO_PRODUCT_MAYA_TOPUP_UNIT;
@@ -120,9 +94,3 @@ export function resolveAgentFromProductId(productId: string): Agent | null {
   return null;
 }
 
-export function resolveCrewPlanFromProductId(productId: string): SubscriptionPlan | null {
-  if (!productId) return null;
-  if (productId === process.env.DODO_PRODUCT_CREW_MONTHLY) return "MONTHLY";
-  if (productId === process.env.DODO_PRODUCT_CREW_ANNUAL) return "ANNUAL";
-  return null;
-}

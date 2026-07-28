@@ -1,6 +1,6 @@
 /**
- * Create the 9 Dodo products the billing system needs (6 agents + Crew
- * monthly/annual + the Maya credit top-up unit), then print the .env block
+ * Create the 7 Dodo products the billing system needs (6 agents + the Maya
+ * credit top-up unit), then print the .env block
  * mapping each to its product-id env var.
  *
  *   DRY RUN (default, creates nothing):
@@ -35,7 +35,6 @@ import {
   ALL_AGENTS,
   AGENT_PRODUCT_ENV_KEYS,
   getAgentMonthlyPriceCents,
-  getCrewPriceCents,
 } from "../src/modules/billing/billing.catalog.js";
 import { TOPUP_DOLLAR_UNIT, TOPUP_CREDITS_PER_UNIT } from "../src/modules/agents/maya/maya.quotas.js";
 import type { Agent } from "../prisma/generated/prisma/client.js";
@@ -91,27 +90,8 @@ function buildSkus(): Sku[] {
     };
   });
 
-  // Individual agents are monthly-only by design; annual exists for Crew alone.
   return [
     ...agents,
-    {
-      kind: "recurring",
-      sku: "crew_monthly",
-      envKey: "DODO_PRODUCT_CREW_MONTHLY",
-      name: "Veqiro Crew — All 6 AI Employees (Monthly)",
-      description: "Maya, Sage, Lex, Rex, Scout and Vega. Billed monthly.",
-      priceCents: getCrewPriceCents("MONTHLY"),
-      interval: "Month",
-    },
-    {
-      kind: "recurring",
-      sku: "crew_annual",
-      envKey: "DODO_PRODUCT_CREW_ANNUAL",
-      name: "Veqiro Crew — All 6 AI Employees (Annual)",
-      description: "Maya, Sage, Lex, Rex, Scout and Vega. Billed once yearly.",
-      priceCents: getCrewPriceCents("ANNUAL"),
-      interval: "Year",
-    },
     {
       // One-time purchase, not a subscription — a top-up buys a fixed
       // credit block once. quantity in the checkout cart multiplies this
