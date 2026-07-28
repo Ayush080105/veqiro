@@ -13,10 +13,10 @@ export const ACCESS_STATUSES: EntitlementStatus[] = ["TRIALING", "ACTIVE", "PAST
  * Every entitlement currently granting access.
  *
  * Includes each row's billing cadence via its BillingSubscription — every
- * AGENT/CREW row has one (applyAgentActivation/applyCrewActivation always set
- * one), TRIAL rows never do (startTrialForOrg leaves billingSubscriptionId
- * null), so `billingSubscription?.plan` is the real per-row cadence rather
- * than the legacy, never-updated Subscription.plan column.
+ * AGENT row has one (applyAgentActivation always sets one), TRIAL rows never
+ * do (startTrialForOrg leaves billingSubscriptionId null), so
+ * `billingSubscription?.plan` is the real per-row cadence rather than the
+ * legacy, never-updated Subscription.plan column.
  */
 export async function getActiveEntitlements(organizationId: string) {
   return prisma.entitlement.findMany({
@@ -32,7 +32,7 @@ export async function getActiveEntitlements(organizationId: string) {
 
 /**
  * Access check for one agent. Any covering row grants access — overlapping
- * rows (an AGENT row and a CREW row for the same agent) are legal.
+ * rows (an AGENT row and a lingering TRIAL row for the same agent) are legal.
  */
 export async function hasAgentAccess(organizationId: string, agent: Agent): Promise<boolean> {
   const rows = await prisma.entitlement.findMany({
