@@ -119,7 +119,7 @@ function trialEntitlement(orgId: string, periodStart: Date, periodEnd: Date): En
   };
 }
 
-function crewEntitlement(
+function agentEntitlement(
   orgId: string,
   periodStart: Date,
   periodEnd: Date,
@@ -248,7 +248,7 @@ describe("maya.usage.service", () => {
 
     test("an EXPIRED-status entitlement (not in ACCESS_STATUSES) is invisible — throws no-subscription", async () => {
       const anchor = new Date("2026-01-10T00:00:00Z");
-      entitlements = [crewEntitlement("org_5", anchor, new Date(Date.now() + 20 * DAY), "bs_4", "EXPIRED")];
+      entitlements = [agentEntitlement("org_5", anchor, new Date(Date.now() + 20 * DAY), "bs_4", "EXPIRED")];
       billingSubscriptions = [{ id: "bs_4", plan: "MONTHLY" }];
 
       const { getCurrentUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
@@ -260,7 +260,7 @@ describe("maya.usage.service", () => {
   describe("checkAndDeductCredits", () => {
     test("happy path: increments creditsUsed on the resolved window", async () => {
       const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [crewEntitlement("org_7", anchor, new Date(Date.now() + 20 * DAY), "bs_7")];
+      entitlements = [agentEntitlement("org_7", anchor, new Date(Date.now() + 20 * DAY), "bs_7")];
       billingSubscriptions = [{ id: "bs_7", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
@@ -300,7 +300,7 @@ describe("maya.usage.service", () => {
 
     test("two concurrent resolutions for the same org converge on one row (upsert, not create-and-catch)", async () => {
       const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [crewEntitlement("org_11", anchor, new Date(Date.now() + 20 * DAY), "bs_8")];
+      entitlements = [agentEntitlement("org_11", anchor, new Date(Date.now() + 20 * DAY), "bs_8")];
       billingSubscriptions = [{ id: "bs_8", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
@@ -321,7 +321,7 @@ describe("maya.usage.service", () => {
   describe("adjustCurrentPeriodUsage", () => {
     test("grants (negative delta) decrement `used`, clamped at 0", async () => {
       const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [crewEntitlement("org_12", anchor, new Date(Date.now() + 20 * DAY), "bs_9")];
+      entitlements = [agentEntitlement("org_12", anchor, new Date(Date.now() + 20 * DAY), "bs_9")];
       billingSubscriptions = [{ id: "bs_9", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits, adjustCurrentPeriodUsage } = await import("../../modules/agents/maya/maya.usage.service.js");
@@ -361,7 +361,7 @@ describe("maya.usage.service", () => {
   describe("grantPurchasedTopupCredits", () => {
     test("raises bonusCredits, never touches creditsUsed — `used` must never go negative for display", async () => {
       const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [crewEntitlement("org_19", anchor, new Date(Date.now() + 20 * DAY), "bs_11")];
+      entitlements = [agentEntitlement("org_19", anchor, new Date(Date.now() + 20 * DAY), "bs_11")];
       billingSubscriptions = [{ id: "bs_11", plan: "MONTHLY" }];
 
       const { getCurrentUsage, grantPurchasedTopupCredits } = await import("../../modules/agents/maya/maya.usage.service.js");
@@ -381,7 +381,7 @@ describe("maya.usage.service", () => {
 
     test("stacks with existing usage correctly", async () => {
       const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [crewEntitlement("org_20", anchor, new Date(Date.now() + 20 * DAY), "bs_12")];
+      entitlements = [agentEntitlement("org_20", anchor, new Date(Date.now() + 20 * DAY), "bs_12")];
       billingSubscriptions = [{ id: "bs_12", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits, grantPurchasedTopupCredits, getCurrentUsage } =
@@ -397,7 +397,7 @@ describe("maya.usage.service", () => {
 
     test("buying a topup before exhausting the base allowance grants real, immediately usable headroom (the bug this design avoids)", async () => {
       const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [crewEntitlement("org_23", anchor, new Date(Date.now() + 20 * DAY), "bs_13")];
+      entitlements = [agentEntitlement("org_23", anchor, new Date(Date.now() + 20 * DAY), "bs_13")];
       billingSubscriptions = [{ id: "bs_13", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits, grantPurchasedTopupCredits, getCurrentUsage } =
@@ -429,7 +429,7 @@ describe("maya.usage.service", () => {
   describe("rollbackCredits", () => {
     test("decrements the resolved window's creditsUsed", async () => {
       const anchor = new Date(Date.now() - 5 * DAY);
-      entitlements = [crewEntitlement("org_16", anchor, new Date(Date.now() + 20 * DAY), "bs_10")];
+      entitlements = [agentEntitlement("org_16", anchor, new Date(Date.now() + 20 * DAY), "bs_10")];
       billingSubscriptions = [{ id: "bs_10", plan: "MONTHLY" }];
 
       const { checkAndDeductCredits, rollbackCredits } = await import("../../modules/agents/maya/maya.usage.service.js");

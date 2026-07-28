@@ -1,4 +1,4 @@
-import { Agent, SubscriptionPlan } from "../../../prisma/generated/prisma/client.js";
+import { Agent } from "../../../prisma/generated/prisma/client.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 
 export const ALL_AGENTS: Agent[] = ["MAYA", "SAGE", "LEX", "REX", "SCOUT", "VEGA"];
@@ -52,12 +52,6 @@ export function normalizeAgents(input: unknown): Agent[] {
   });
 
   return [...new Set(normalized)].sort((a, b) => ALL_AGENTS.indexOf(a) - ALL_AGENTS.indexOf(b));
-}
-
-export function normalizePlan(input: unknown): SubscriptionPlan {
-  const value = typeof input === "string" ? input.toUpperCase() : "";
-  if (value === "MONTHLY" || value === "ANNUAL") return value;
-  throw new BadRequestError("invalid-billing-cadence");
 }
 
 export function getAgentMonthlyPriceCents(agent: Agent): number {

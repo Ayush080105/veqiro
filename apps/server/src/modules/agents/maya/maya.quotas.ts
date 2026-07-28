@@ -1,4 +1,4 @@
-import { EntitlementSource, SubscriptionPlan } from "../../../../prisma/generated/prisma/client.js";
+import { EntitlementSource } from "../../../../prisma/generated/prisma/client.js";
 
 // ─── Credit conversion factors ─────────────────────────────────────────────
 export const CREDITS_PER_IMAGE = 2;
@@ -36,10 +36,13 @@ export function creditsForTopUpDollars(dollars: number): number {
   return (dollars / TOPUP_DOLLAR_UNIT) * TOPUP_CREDITS_PER_UNIT;
 }
 
-/** Maya's monthly credit allowance, read live from her entitlement. */
-export function getQuotaForMayaEntitlement(e: {
-  source: EntitlementSource;
-  plan: SubscriptionPlan | null;
-}): number {
+/**
+ * Maya's monthly credit allowance, read live from her entitlement.
+ *
+ * Only `source` matters: every non-trial agent purchase gets the same 300
+ * credit allowance regardless of billing cadence, so this deliberately does
+ * not take a `plan` param — callers should not fetch one just to pass it in.
+ */
+export function getQuotaForMayaEntitlement(e: { source: EntitlementSource }): number {
   return e.source === "TRIAL" ? 30 : 300;
 }

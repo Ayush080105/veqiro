@@ -298,9 +298,13 @@ model Subscription {
   status             SubscriptionStatus @default(TRIALING)
   /// Current paid plan cadence.
   plan               SubscriptionPlan?
-  /// Whether the subscription unlocks all agents or a selected subset.
+  /// Legacy entitlement-shape field. The enum now has only one value
+  /// (CUSTOM) — access is fully governed by Entitlement rows, not this mode.
   entitlementMode    SubscriptionEntitlementMode @default(CUSTOM)
-  /// Agents unlocked by this subscription. CREW subscriptions store all agents.
+  /// Legacy/vestigial: written on customer creation but not read by any
+  /// access-control or provisioning logic. Real agent access lives on
+  /// Entitlement rows; this column predates that and is kept only to avoid
+  /// a migration.
   selectedAgents     Agent[]       @default([])
   /// Checkout session waiting for provider confirmation.
   pendingCheckoutSessionId String?
@@ -330,8 +334,8 @@ model Subscription {
 
 /// Source of truth for agent access. One row per purchase of one agent.
 /// Deliberately NOT unique on [organizationId, agent]: overlapping rows are
-/// legal and load-bearing (during a Crew upgrade an org briefly holds both an
-/// AGENT row and a CREW row for the same agent).
+/// legal and load-bearing (e.g. a TRIAL row and an AGENT row for the same
+/// agent both exist briefly while a trialing org converts to paid).
 model Entitlement {
   /// Entitlement row id.
   id                    String               @id @default(cuid())
@@ -351,8 +355,8 @@ model Entitlement {
   currentPeriodEnd      DateTime
   /// Whether cancellation is scheduled for period end.
   cancelAtPeriodEnd     Boolean              @default(false)
-  /// Cents actually paid for this agent. Drives the Crew upgrade credit, so it
-  /// must be the price paid, not today's list price.
+  /// Cents actually paid for this agent — the price paid, not today's list
+  /// price.
   priceCents            Int                  @default(0)
   /// Owning Dodo subscription id, if any.
   billingSubscriptionId String?
@@ -420,7 +424,7 @@ model PendingCheckout {
   sessionId      String       @unique
   /// What this checkout is for.
   kind           CheckoutKind
-  /// Agent being purchased. Null for CREW / CREW_UPGRADE / MAYA_TOPUP.
+  /// Agent being purchased. Null for MAYA_TOPUP.
   agent          Agent?
   /// Billing cadence for this checkout. Meaningless filler ("MONTHLY") for
   /// MAYA_TOPUP, which has no cadence — kept non-null for schema simplicity,

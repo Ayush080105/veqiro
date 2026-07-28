@@ -181,10 +181,10 @@ export async function startMayaTopupCheckout(req: Request, res: Response) {
 // checkout. Deliberately narrow: this only removes PendingCheckout row(s) —
 // it must never touch entitlements. If the webhook for this exact checkout
 // arrives later anyway, provisioning is unaffected: applyAgentActivation /
-// applyCrewActivation / handleMayaTopupPaymentSucceeded all key off the Dodo
-// subscription/payment id and webhook idempotency ledger, not off this row
-// still existing — cleanupPendingCheckouts' matching is best-effort cleanup,
-// not a provisioning precondition.
+// handleMayaTopupPaymentSucceeded both key off the Dodo subscription/payment
+// id and webhook idempotency ledger, not off this row still existing —
+// cleanupPendingCheckouts' matching is best-effort cleanup, not a
+// provisioning precondition.
 export async function dismissPendingCheckout(req: Request, res: Response) {
   const orgId = await requireOrgOwner(req);
   const { count } = await prisma.pendingCheckout.deleteMany({ where: { organizationId: orgId } });

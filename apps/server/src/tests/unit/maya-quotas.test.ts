@@ -11,11 +11,11 @@ import {
 
 describe("getQuotaForMayaEntitlement", () => {
   test("trial → 30", () => {
-    assert.equal(getQuotaForMayaEntitlement({ source: "TRIAL", plan: null }), 30);
+    assert.equal(getQuotaForMayaEntitlement({ source: "TRIAL" }), 30);
   });
 
-  test("individually purchased Maya (monthly) → 300", () => {
-    assert.equal(getQuotaForMayaEntitlement({ source: "AGENT", plan: "MONTHLY" }), 300);
+  test("individually purchased Maya → 300", () => {
+    assert.equal(getQuotaForMayaEntitlement({ source: "AGENT" }), 300);
   });
 });
 

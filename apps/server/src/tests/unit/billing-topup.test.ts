@@ -151,7 +151,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const future = new Date(Date.now() + 20 * DAY);
 const anchor = new Date(Date.now() - 5 * DAY);
 
-function crewMayaEntitlement(orgId: string, billingSubscriptionId = "bs_1"): EntRow {
+function activeMayaEntitlement(orgId: string, billingSubscriptionId = "bs_1"): EntRow {
   return {
     organizationId: orgId, agent: "MAYA", source: "AGENT", status: "ACTIVE",
     currentPeriodStart: anchor, currentPeriodEnd: future, billingSubscriptionId,
@@ -188,12 +188,12 @@ beforeEach(() => {
 
 describe("createMayaTopupCheckout", () => {
   test("rejects a dollar amount that isn't one of the 5 allowed presets", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
     await expect(createMayaTopupCheckout("o1", 10)).rejects.toThrow("invalid-topup-amount");
   });
 
   test("rejects a valid multiple of $3 that isn't a preset (closed allowlist, not just 'any multiple of 3')", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
     await expect(createMayaTopupCheckout("o1", 18)).rejects.toThrow("invalid-topup-amount");
   });
 
@@ -203,7 +203,7 @@ describe("createMayaTopupCheckout", () => {
   });
 
   test("happy path: quantity = dollars/3, PendingCheckout row records kind + credits", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
 
     const result = await createMayaTopupCheckout("o1", 9);
 
@@ -244,7 +244,7 @@ describe("handleMayaTopupPaymentSucceeded", () => {
   });
 
   test("ignores a payment.succeeded payload that isn't a top-up", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
     await handleMayaTopupPaymentSucceeded(
       basePayload({ metadata: { organizationId: "o1", kind: "AGENT" } }) as never,
     );
@@ -252,7 +252,7 @@ describe("handleMayaTopupPaymentSucceeded", () => {
   });
 
   test("grants credits computed from product_cart (dodo's own record), not just checkout-time metadata", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
     await handleMayaTopupPaymentSucceeded(basePayload() as never);
 
     assert.equal(usageRows.length, 1);
@@ -261,7 +261,7 @@ describe("handleMayaTopupPaymentSucceeded", () => {
   });
 
   test("cleans up the matching MAYA_TOPUP PendingCheckout row", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
     pendingCheckouts = [{ id: "pc_1", organizationId: "o1", kind: "MAYA_TOPUP", credits: 150 }];
 
     await handleMayaTopupPaymentSucceeded(basePayload() as never);
@@ -270,7 +270,7 @@ describe("handleMayaTopupPaymentSucceeded", () => {
   });
 
   test("idempotent: replaying the same payment_id grants credits exactly once", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
     await handleMayaTopupPaymentSucceeded(basePayload() as never);
     await handleMayaTopupPaymentSucceeded(basePayload() as never);
 
@@ -278,7 +278,7 @@ describe("handleMayaTopupPaymentSucceeded", () => {
   });
 
   test("a subscription payment's payment.succeeded echo (if any) never triggers the topup credit-grant path", async () => {
-    entitlements = [crewMayaEntitlement("o1")];
+    entitlements = [activeMayaEntitlement("o1")];
     await handleMayaTopupPaymentSucceeded(
       basePayload({
         subscription_id: "sub_real_subscription",

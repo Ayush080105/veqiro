@@ -36,14 +36,7 @@ async function resolveMayaWindow(organizationId: string) {
   // state. Changing it would silently break all three.
   if (!ent) throw new BadRequestError("no-subscription");
 
-  const plan = ent.billingSubscriptionId
-    ? (await prisma.billingSubscription.findUnique({
-        where: { id: ent.billingSubscriptionId },
-        select: { plan: true },
-      }))?.plan ?? null
-    : null;
-
-  const tierLimit = getQuotaForMayaEntitlement({ source: ent.source, plan });
+  const tierLimit = getQuotaForMayaEntitlement({ source: ent.source });
   const tier = displayTierFor(ent.source);
   const { periodStart, periodEnd } = currentCreditWindow(ent.currentPeriodStart, new Date());
 

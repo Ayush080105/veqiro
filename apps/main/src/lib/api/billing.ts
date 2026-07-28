@@ -133,6 +133,10 @@ export function openBillingPortal() {
 }
 
 // ─── Per-agent cancel/resume ───────────────────────────────────────────────
+// Not called from the UI — cancel/resume now happen through Dodo's hosted
+// billing portal (see openBillingPortal below). The backend routes these hit
+// are kept intentionally for API completeness / potential future use, so
+// these wrappers are kept too rather than deleted.
 
 export function cancelAgent(agent: BillingAgent) {
   return apiFetch<{ activeUntil: string }>(`/billing/agents/${agent.toLowerCase()}/cancel`, {

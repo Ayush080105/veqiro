@@ -12,9 +12,10 @@ import { prisma } from "../config/prisma.js";
  * with a past date." Do not make anything depend on this job for
  * correctness.
  *
- * SUPERSEDED is excluded — those rows were retired by a Crew upgrade and must
- * keep that status as an audit trail. Sweeping them to EXPIRED would destroy
- * the distinction between "retired by upgrade" and "lapsed".
+ * SUPERSEDED is excluded — nothing currently writes that status (it's a
+ * defensive no-op inclusion), but if something ever does supersede a row and
+ * mark it as such, it must keep that status as an audit trail. Sweeping it to
+ * EXPIRED would destroy the distinction between "superseded" and "lapsed".
  */
 export async function sweepExpiredEntitlements(now = new Date()): Promise<{ expired: number }> {
   const { count } = await prisma.entitlement.updateMany({
