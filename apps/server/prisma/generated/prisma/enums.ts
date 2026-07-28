@@ -61,7 +61,6 @@ export type SubscriptionPlan = (typeof SubscriptionPlan)[keyof typeof Subscripti
 
 
 export const SubscriptionEntitlementMode = {
-  CREW: 'CREW',
   CUSTOM: 'CUSTOM'
 } as const
 
@@ -70,8 +69,7 @@ export type SubscriptionEntitlementMode = (typeof SubscriptionEntitlementMode)[k
 
 export const EntitlementSource = {
   TRIAL: 'TRIAL',
-  AGENT: 'AGENT',
-  CREW: 'CREW'
+  AGENT: 'AGENT'
 } as const
 
 export type EntitlementSource = (typeof EntitlementSource)[keyof typeof EntitlementSource]
@@ -128,8 +126,6 @@ export type ActivityAction = (typeof ActivityAction)[keyof typeof ActivityAction
 
 export const CheckoutKind = {
   AGENT: 'AGENT',
-  CREW: 'CREW',
-  CREW_UPGRADE: 'CREW_UPGRADE',
   MAYA_TOPUP: 'MAYA_TOPUP'
 } as const
 

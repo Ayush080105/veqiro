@@ -50,7 +50,6 @@ enum SubscriptionPlan {
 
 /// Billing entitlement shape.
 enum SubscriptionEntitlementMode {
-  CREW
   CUSTOM
 }
 
@@ -58,7 +57,6 @@ enum SubscriptionEntitlementMode {
 enum EntitlementSource {
   TRIAL
   AGENT
-  CREW
 }
 
 /// Lifecycle of a single agent entitlement.
@@ -301,7 +299,7 @@ model Subscription {
   /// Current paid plan cadence.
   plan               SubscriptionPlan?
   /// Whether the subscription unlocks all agents or a selected subset.
-  entitlementMode    SubscriptionEntitlementMode @default(CREW)
+  entitlementMode    SubscriptionEntitlementMode @default(CUSTOM)
   /// Agents unlocked by this subscription. CREW subscriptions store all agents.
   selectedAgents     Agent[]       @default([])
   /// Checkout session waiting for provider confirmation.
@@ -405,8 +403,6 @@ model BillingSubscription {
 /// Kind of checkout a PendingCheckout row is waiting on.
 enum CheckoutKind {
   AGENT
-  CREW
-  CREW_UPGRADE
   /// One-time Maya credit top-up purchase (not a subscription).
   MAYA_TOPUP
 }
