@@ -224,7 +224,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
             margin: '0 0 32px',
           }}
         >
-          Six AI employees. One subscription. $39/mo.
+          Six AI employees, billed independently, starting at $9/mo.
         </p>
         <a
           href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}

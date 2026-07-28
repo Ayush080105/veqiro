@@ -321,7 +321,7 @@ export default function UseCasesHubPage() {
               lineHeight: 1.65,
             }}
           >
-            All six AI employees. One subscription. $39/mo or $29/mo billed annually. 7-day free trial, no card needed.
+            All six AI employees, billed independently, starting at $9/mo. Pick one or hire the whole crew. 7-day free trial, no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>

@@ -4,7 +4,7 @@ import type { UseCaseContent } from '@/components/veqiro/use-case-page';
 
 export const metadata = buildPageMetadata({
   title: 'AI Tools for Founders — Your 6-Person AI Team',
-  description: 'Veqiro gives founders an AI executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst — for $39/mo.',
+  description: 'Veqiro gives founders an AI executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst — each billed independently starting at $9/mo.',
   path: '/use-cases/founders',
   keywords: ['ai tools for founders', 'ai agent for founders', 'ai assistant for founders', 'ai for early-stage startups', 'ai team for business', 'all in one ai platform for startups'],
 });
@@ -17,7 +17,7 @@ const content: UseCaseContent = {
   hero: {
     h1: 'Stop doing everything yourself.',
     subheading: 'AI tools for founders who need a full team — without the payroll.',
-    stats: ['6 AI employees', '$39 / mo', '24/7 availability'],
+    stats: ['6 AI employees', 'From $9 / mo', '24/7 availability'],
   },
   painPoints: [
     'inbox never clears', 'no time for research', 'content goes cold',
@@ -92,7 +92,7 @@ const content: UseCaseContent = {
     { q: 'Is this better than hiring a virtual assistant?', a: "A VA works 8 hours a day, forgets context between tasks, and charges $30–80/hour. Vega works 24/7, remembers every thread, and the whole crew costs less than a VA's first week. You still keep a human VA for personal tasks; Veqiro handles the company work." },
     { q: 'Can a solo founder really use all six?', a: "Especially a solo founder. Solo founders face the same six-function workload as a team of ten — just with nobody to delegate to. Veqiro is that delegation layer." },
     { q: 'How fast is the setup?', a: "15 minutes to brief your crew. First output within the hour. Most founders are fully set up same-day and see real output within 24 hours." },
-    { q: 'What if I only need one agent right now?', a: "You get all 6 — there's no per-agent pricing. Start with the one you need most (usually Vega for inbox or Maya for content), then let the others activate as you hit the work they're built for." },
+    { q: 'What if I only need one agent right now?', a: "Start with just one — every agent is billed independently from $9/mo, so there's no bundle to buy into. Most founders start with the one they need most (usually Vega for inbox or Maya for content), then add the others as they hit the work those agents are built for." },
     { q: 'What tools does Veqiro need to connect to?', a: "Gmail and Google Calendar for full coverage. You can start with just Gmail — more integrations layer in as you're ready." },
   ],
 };

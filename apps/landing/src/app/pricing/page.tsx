@@ -15,8 +15,8 @@ export const metadata = buildPageMetadata({
 // productJsonLd expects PricingTier[]; each agent is now billed independently
 // (no separate crew plan), so build one Offer per agent from its monthly
 // price. Agents have no annual cadence of their own, so `yearly` mirrors
-// `monthly` — productJsonLd multiplies it by 12 for the Annual offer, which
-// correctly reflects "12 months at the same monthly rate, no discount."
+// `monthly` — productJsonLd treats `yearly === monthly` as "no real annual
+// rate" and skips generating an Annual offer for these tiers entirely.
 const agentOffers: PricingTier[] = agentPricing
   .filter((a): a is { key: string; monthly: number } => a.monthly != null)
   .map((a) => ({

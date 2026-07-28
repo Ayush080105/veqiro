@@ -224,13 +224,13 @@ const EXCLUSIVE_COLORS = [
 const VERDICTS = [
   {
     name: 'Veqiro',
-    tag: '★ Full Crew',
+    tag: '★ Per-Agent Pricing',
     tagColor: '#F5C518',
     highlight: true,
     color: '#F5C518',
     position: 'The all-in-one AI workforce for lean teams and founders.',
-    price: '$39/mo',
-    priceNote: 'all 6 employees',
+    price: 'From $9/mo',
+    priceNote: 'per agent, no bundle',
     coverage: { count: '6 specialists', roles: 'EA · Research · SEO · Content · Legal · Finance' },
     ideal: 'Founders & lean startups needing full coverage',
   },
@@ -642,7 +642,7 @@ export function ComparePageContent() {
               [ PRICING ]
             </div>
             <h2 style={{ fontFamily: F.display, fontSize: 'clamp(34px, 5vw, 60px)', margin: 0, lineHeight: 0.95 }}>
-              one subscription.<br />
+              no bundle.<br />
               <span
                 style={{
                   background: '#F5C518', padding: '0 14px',
@@ -665,11 +665,11 @@ export function ComparePageContent() {
             {[
               {
                 name: 'Veqiro',
-                price: '$39',
+                price: '$9',
                 period: '/mo',
-                note: 'or $29/mo billed annually',
+                note: 'per agent, billed independently',
                 highlight: true,
-                what: 'All 6 AI employees included — no extras, no per-seat nonsense.',
+                what: 'Every AI employee billed on its own, starting at $9/mo — no bundle, no per-seat nonsense.',
                 color: '#F5C518',
               },
               {
@@ -755,7 +755,7 @@ export function ComparePageContent() {
               color: '#777', margin: '0 0 36px', lineHeight: 1.6,
             }}
           >
-            6 AI employees. One subscription. $39/mo.<br />7-day free trial. No credit card.
+            6 AI employees, billed independently, starting at $9/mo.<br />7-day free trial. No credit card.
           </p>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a

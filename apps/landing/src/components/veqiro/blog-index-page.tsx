@@ -159,7 +159,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
             lineHeight: 1.6,
           }}
         >
-          Six AI employees. One subscription. $39/mo.
+          Six AI employees, billed independently, starting at $9/mo.
         </p>
         <div
           style={{

@@ -82,7 +82,7 @@ export default function PricingPageContent() {
             fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#CFC6B2',
             marginTop: 28, lineHeight: 1.6,
           }}>
-            Six AI employees with real specialties. One monthly bill.
+            Six AI employees with real specialties. Hire them one at a time.
             No payroll. No HR drama. No sick days.
           </p>
           <p style={{
@@ -246,7 +246,7 @@ export default function PricingPageContent() {
               margin: 0, color: '#EFE7D6', lineHeight: 0.95,
             }}>
               six specialists.<br />
-              <span style={{ color: '#F5C518' }}>one subscription.</span>
+              <span style={{ color: '#F5C518' }}>no bundle required.</span>
             </h2>
           </div>
 

@@ -17,7 +17,7 @@ const content: UseCaseContent = {
   hero: {
     h1: "Scale the output. Not the headcount.",
     subheading: 'AI tools for Series A/B startups who need more output from the team they already have.',
-    stats: ['All 6 agents included', 'Deploys in under a day', '$39 / mo'],
+    stats: ['All 6 agents available', 'Deploys in under a day', 'From $9 / mo'],
   },
   painPoints: [
     'board deck takes all week', 'investor updates slip', 'content team bottlenecked',
@@ -90,10 +90,10 @@ const content: UseCaseContent = {
   ],
   faq: [
     { q: "Is Veqiro designed for companies our size (20–80 people)?", a: "This is the sweet spot. You have enough operational complexity to need specialized help, but lean enough that adding headcount for every function isn't the answer. Veqiro gives each team the AI specialist they need without adding to payroll." },
-    { q: "How does this compare to hiring a specialist?", a: "A mid-level hire costs $80–120K fully loaded. Veqiro is $39/mo and covers all six functions. It doesn't replace senior judgment — your team still makes the calls. It replaces the execution work that was clogging everyone's calendar." },
+    { q: "How does this compare to hiring a specialist?", a: "A mid-level hire costs $80–120K fully loaded. Veqiro agents bill independently starting at $9/mo each, and can cover all six functions if you need them. It doesn't replace senior judgment — your team still makes the calls. It replaces the execution work that was clogging everyone's calendar." },
     { q: "Can multiple team members use it at once?", a: "Yes. Every agent operates from your shared Brand Brain — company positioning, voice, competitors, KPIs. Different team members talk to different agents and everyone works from the same playbook. No re-briefing, no duplication." },
     { q: "How quickly can we integrate it with our existing tools?", a: "Vega connects to Gmail and Google Calendar in under a minute. Rex connects to Stripe, bank exports, and ad platforms. Everything else works immediately from your Brand Brain. No long IT projects, no enterprise onboarding." },
-    { q: "What's the ROI case for a CFO or ops lead?", a: "One board deck rebuild = 3 days of 3 people's time. One late investor update = friction with backers. One unreviewed contract = legal risk. Veqiro handles all of that for $39/mo. The math isn't close." },
+    { q: "What's the ROI case for a CFO or ops lead?", a: "One board deck rebuild = 3 days of 3 people's time. One late investor update = friction with backers. One unreviewed contract = legal risk. Veqiro handles all of that for a few agents billed independently at $9-19/mo each. The math isn't close." },
     { q: "Do we need to change how the team works?", a: "No. The agents slot into your existing workflow. Sales still closes. Product still ships. Legal still handles the high-stakes deals. Veqiro handles the execution layer that was blocking everyone else." },
   ],
 };

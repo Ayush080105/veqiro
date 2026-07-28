@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: "%s · Veqiro",
   },
   description:
-    "Veqiro gives you six AI employees — an exec assistant, SEO, content, research, legal, and finance — for $39/mo. Hire your AI crew today.",
+    "Veqiro gives you six AI employees — an exec assistant, SEO, content, research, legal, and finance — each billed independently starting at $9/mo. Hire your AI crew today.",
   keywords: SITE_KEYWORDS,
   authors: [{ name: "Veqiro" }],
   creator: "Veqiro",

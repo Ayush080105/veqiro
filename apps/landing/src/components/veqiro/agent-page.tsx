@@ -12,6 +12,7 @@ import { JsonLd } from '@/components/veqiro/json-ld';
 import { Breadcrumbs } from '@/components/veqiro/breadcrumbs';
 import { personAgentJsonLd, faqPageJsonLd } from '@/lib/jsonld';
 import { SITE_URL, AGENT_META } from '@/lib/seo';
+import { agentPricing } from '@/lib/site-config';
 
 interface Props {
   employee: Employee;
@@ -19,6 +20,7 @@ interface Props {
 
 export function AgentPage({ employee }: Props) {
   const Comp = CHARACTER_COMPONENTS[employee.key];
+  const agentMonthlyPrice = agentPricing.find((a) => a.key === employee.key)?.monthly;
   const crumbs = [
     { name: 'Home', url: SITE_URL },
     { name: 'Agents', url: `${SITE_URL}/#crew` },
@@ -601,7 +603,7 @@ export function AgentPage({ employee }: Props) {
             </span>
           </h2>
           <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', color: '#555', marginBottom: 44 }}>
-            Start with {employee.name} on the Crew plan at $39/mo, or try free for 7 days — no card needed.
+            Start with {employee.name} for {agentMonthlyPrice != null ? `$${agentMonthlyPrice}/mo` : 'starting at $9/mo'} — billed independently, no bundle — or try free for 7 days, no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>

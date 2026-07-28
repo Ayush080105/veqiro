@@ -11,7 +11,7 @@ import { organizationJsonLd, faqPageJsonLd } from '@/lib/jsonld';
 
 export const metadata = buildPageMetadata({
   title: 'About Veqiro — Who We Are & What Veqiro Is',
-  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in India. One subscription, six AI agents — all-in-one AI platform for startups.',
+  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in India. Each agent billed independently starting at $9/mo — all-in-one AI platform for startups.',
   path: '/about',
   keywords: [
     'who is veqiro',
@@ -49,7 +49,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'How much does Veqiro cost?',
-    a: "Crew (all six AI employees) is $39/mo, or $29/mo billed annually — no per-seat fees. Prefer to start smaller? Buy any agent individually from $9/mo and add more as you need them. A 7-day free trial covers all six agents, no credit card required.",
+    a: "Every AI employee is billed independently, starting at $9/mo — no bundle, no per-seat fees. Start with one agent or hire the whole crew; each one renews on its own. A 7-day free trial covers all six agents, no credit card required.",
   },
 ];
 
@@ -204,7 +204,7 @@ export default function AboutPage() {
           }}>
             {[
               { label: 'AI employees', value: '6', accent: '#F5C518' },
-              { label: 'One subscription', value: '$39/mo', accent: '#F06464' },
+              { label: 'Starting at', value: '$9/mo', accent: '#F06464' },
               { label: 'Built in', value: 'India', accent: '#1DBC87' },
               { label: 'Free trial', value: '7 days', accent: '#6FCDE8' },
             ].map((f) => (

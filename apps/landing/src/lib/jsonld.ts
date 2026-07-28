@@ -84,8 +84,8 @@ export function softwareApplicationJsonLd(): object {
 // ---------------------------------------------------------------------------
 
 export function productJsonLd(tiers: PricingTier[]): object {
-  const offers = tiers.filter((tier) => !tier.custom).flatMap((tier) => [
-    {
+  const offers = tiers.filter((tier) => !tier.custom).flatMap((tier) => {
+    const monthlyOffer = {
       '@type': 'Offer',
       name: `${tier.name} — Monthly`,
       price: tier.monthly,
@@ -96,27 +96,37 @@ export function productJsonLd(tiers: PricingTier[]): object {
         '@type': 'UnitPriceSpecification',
         billingDuration: 'P1M',
       },
-    },
-    {
-      '@type': 'Offer',
-      name: `${tier.name} — Annual`,
-      price: tier.yearly * 12,
-      priceCurrency: 'USD',
-      availability: 'https://schema.org/InStock',
-      url: `${SITE_URL}/pricing`,
-      priceSpecification: {
-        '@type': 'UnitPriceSpecification',
-        billingDuration: 'P1Y',
+    };
+    // Only emit an Annual offer when the tier actually has a distinct annual
+    // rate. Per-agent tiers set `yearly === monthly` (no real annual cadence
+    // exists for individual agents — see pricing/page.tsx's agentOffers), so
+    // gating here avoids publishing an "Annual" Offer for a cadence nothing
+    // in checkout can actually fulfill. A future tier with a real annual
+    // discount (yearly !== monthly) still gets its Annual offer as before.
+    if (tier.yearly === tier.monthly) return [monthlyOffer];
+    return [
+      monthlyOffer,
+      {
+        '@type': 'Offer',
+        name: `${tier.name} — Annual`,
+        price: tier.yearly * 12,
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: `${SITE_URL}/pricing`,
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          billingDuration: 'P1Y',
+        },
       },
-    },
-  ]);
+    ];
+  });
 
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: 'Veqiro Crew',
+    name: 'Veqiro AI Employees',
     description:
-      'One subscription, all six AI employees — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst.',
+      'Six specialized AI employees — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst — each billed independently, starting at $9/mo.',
     brand: {
       '@id': ORG_ID,
     },

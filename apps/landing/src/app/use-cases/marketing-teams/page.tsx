@@ -4,7 +4,7 @@ import type { UseCaseContent } from '@/components/veqiro/use-case-page';
 
 export const metadata = buildPageMetadata({
   title: 'AI Tools for Marketing Teams — Content, SEO & Social on Autopilot',
-  description: 'Give your marketing team AI superpowers: Maya writes content in your brand voice, Sage handles SEO, Scout finds the angles. All for $39/mo.',
+  description: 'Give your marketing team AI superpowers: Maya writes content in your brand voice, Sage handles SEO, Scout finds the angles. Each agent billed independently, starting at $9/mo.',
   path: '/use-cases/marketing-teams',
   keywords: ['ai tools for marketing teams', 'ai marketing assistant', 'ai content marketing tool', 'ai social media post generator', 'ai content calendar'],
 });
