@@ -7,21 +7,6 @@ vi.mock("../../lib/auth.js", () => ({
   default: { api: { getSession: vi.fn() } },
 }));
 
-// billing.webhooks.ts pulls in dodoClient (for applyCrewActivation's
-// subscriptions.update call) — mock it the same way billing-webhook-
-// idempotency.test.ts does so importing the real module under test doesn't
-// construct a real Dodo API client.
-const updateCalls: Array<{ subId: string; body: unknown }> = [];
-const mockDodo = {
-  subscriptions: {
-    update: vi.fn(async (subId: string, body: unknown) => {
-      updateCalls.push({ subId, body });
-      return {};
-    }),
-  },
-};
-vi.mock("../../lib/dodo.js", () => ({ dodoClient: mockDodo }));
-
 let ents: Array<Record<string, unknown>> = [];
 let billingSubs: Array<Record<string, unknown>> = [];
 let pendingCheckouts: Array<Record<string, unknown>> = [];
@@ -134,7 +119,7 @@ const mockPrisma = {
     }),
   },
   // Supports both call shapes used across billing.webhooks.ts:
-  //   $transaction(async (tx) => {...})   — applyAgentActivation / applyCrewActivation
+  //   $transaction(async (tx) => {...})   — applyAgentActivation
   //   $transaction([p1, p2, ...])         — renewed / cancelled / expired / payment-failed
   $transaction: vi.fn(async (arg: unknown) => {
     if (typeof arg === "function") {
@@ -147,7 +132,6 @@ vi.mock("../../config/prisma.js", () => ({ prisma: mockPrisma }));
 
 const {
   applyAgentActivation,
-  applyCrewActivation,
   handleSubscriptionActive,
   handleSubscriptionRenewed,
   handlePaymentFailed,
@@ -163,12 +147,7 @@ beforeEach(() => {
   billingSubs = [];
   pendingCheckouts = [];
   webhookEvents = [];
-  updateCalls.length = 0;
   vi.clearAllMocks();
-  process.env.CREW_MONTHLY_CENTS = "3900";
-  process.env.CREW_ANNUAL_CENTS = "34800";
-  process.env.DODO_PRODUCT_CREW_MONTHLY = "pdt_crew_monthly";
-  process.env.DODO_PRODUCT_CREW_ANNUAL = "pdt_crew_annual";
   process.env.DODO_PRODUCT_AGENT_MAYA = "pdt_maya";
   process.env.DODO_PRODUCT_AGENT_REX = "pdt_rex";
   delete process.env.AGENT_PRICE_REX_MONTHLY_CENTS;
@@ -230,83 +209,6 @@ describe("applyAgentActivation", () => {
   });
 });
 
-describe("applyCrewActivation", () => {
-  test("creates six CREW rows priced at floor(crewPrice / 6), not agent list price", async () => {
-    await applyCrewActivation({
-      organizationId: "o1", dodoSubscriptionId: "sub_crew",
-      plan: "MONTHLY" as never, periodEnd: daysFromNow(30),
-    });
-    assert.equal(ents.length, 6);
-    for (const e of ents) {
-      assert.equal(e.source, "CREW");
-      assert.equal(e.priceCents, Math.floor(3900 / 6));
-    }
-  });
-
-  test("supersedes (not deletes) prior AGENT rows for the org", async () => {
-    ents = [{
-      id: "ent_rex", organizationId: "o1", agent: "REX", source: "AGENT", status: "ACTIVE",
-      currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_rex",
-    }];
-    billingSubs = [{ id: "bs_rex", organizationId: "o1", dodoSubscriptionId: "sub_rex", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
-
-    await applyCrewActivation({
-      organizationId: "o1", dodoSubscriptionId: "sub_crew",
-      plan: "MONTHLY" as never, periodEnd: daysFromNow(30),
-    });
-
-    const rex = ents.find((e) => e.id === "ent_rex")!;
-    assert.equal(rex.status, "SUPERSEDED", "prior AGENT row must be superseded, not deleted");
-    assert.ok(ents.some((e) => e.agent === "REX" && e.source === "CREW"), "a new CREW row must exist");
-  });
-
-  test("stops the superseded subscription's auto-pay OUTSIDE the write transaction", async () => {
-    ents = [{
-      id: "ent_rex", organizationId: "o1", agent: "REX", source: "AGENT", status: "ACTIVE",
-      currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_rex",
-    }];
-    billingSubs = [{ id: "bs_rex", organizationId: "o1", dodoSubscriptionId: "sub_rex", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
-
-    await applyCrewActivation({
-      organizationId: "o1", dodoSubscriptionId: "sub_crew",
-      plan: "MONTHLY" as never, periodEnd: daysFromNow(30),
-    });
-
-    assert.equal(updateCalls.length, 1);
-    assert.equal(updateCalls[0].subId, "sub_rex");
-    assert.deepEqual(updateCalls[0].body, { cancel_at_next_billing_date: true });
-  });
-
-  test("a failure stopping the superseded Dodo subscription does not undo the Crew grant already paid for", async () => {
-    ents = [{
-      id: "ent_rex", organizationId: "o1", agent: "REX", source: "AGENT", status: "ACTIVE",
-      currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_rex",
-    }];
-    billingSubs = [{ id: "bs_rex", organizationId: "o1", dodoSubscriptionId: "sub_rex", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
-    mockDodo.subscriptions.update = vi.fn(async () => { throw new Error("dodo down"); });
-
-    // Must not throw — the Crew grant is already committed and must survive
-    // a failure in the best-effort "stop the old sub" cleanup step.
-    const result = await applyCrewActivation({
-      organizationId: "o1", dodoSubscriptionId: "sub_crew",
-      plan: "MONTHLY" as never, periodEnd: daysFromNow(30),
-    });
-
-    assert.ok(ents.some((e) => e.agent === "REX" && e.source === "CREW"), "Crew grant must still exist");
-    const rex = ents.find((e) => e.id === "ent_rex")!;
-    assert.equal(rex.status, "SUPERSEDED", "supersede must still have committed despite the Dodo call failing");
-    assert.deepEqual(result.supersedeFailedIds, ["bs_rex"], "the failure must be reported, not just swallowed");
-  });
-
-  test("no failures reports an empty supersedeFailedIds", async () => {
-    const result = await applyCrewActivation({
-      organizationId: "o1", dodoSubscriptionId: "sub_crew",
-      plan: "MONTHLY" as never, periodEnd: daysFromNow(30),
-    });
-    assert.deepEqual(result.supersedeFailedIds, []);
-  });
-});
-
 describe("handleSubscriptionActive", () => {
   const basePayload = (overrides: Record<string, unknown> = {}) => ({
     type: "subscription.active",
@@ -332,43 +234,6 @@ describe("handleSubscriptionActive", () => {
     assert.equal(ents[0].agent, "REX");
     assert.equal(ents[0].source, "AGENT");
     assert.equal(pendingCheckouts.length, 0, "the matching PendingCheckout row must be cleaned up");
-  });
-
-  test("dispatches to applyCrewActivation using metadata written at checkout, and cleans up the matching PendingCheckout row", async () => {
-    pendingCheckouts = [{
-      id: "pc_1", organizationId: "o1", sessionId: "sess_1",
-      kind: "CREW", agent: null, plan: "MONTHLY", createdAt: new Date(),
-    }];
-
-    await handleSubscriptionActive(
-      basePayload({ metadata: { organizationId: "o1", kind: "CREW", plan: "MONTHLY" } }) as never,
-    );
-
-    assert.equal(ents.length, 6);
-    assert.ok(ents.every((e) => e.source === "CREW"));
-    assert.equal(pendingCheckouts.length, 0, "the matching PendingCheckout row must be cleaned up");
-  });
-
-  test("a supersede failure during Crew activation is encoded into the webhook ledger's result, not swallowed as the generic 'applied-crew'", async () => {
-    ents = [{
-      id: "ent_rex", organizationId: "o1", agent: "REX", source: "AGENT", status: "ACTIVE",
-      currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_rex",
-    }];
-    billingSubs = [{ id: "bs_rex", organizationId: "o1", dodoSubscriptionId: "sub_rex", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
-    mockDodo.subscriptions.update = vi.fn(async () => { throw new Error("dodo down"); });
-
-    await handleSubscriptionActive(
-      basePayload({ metadata: { organizationId: "o1", kind: "CREW", plan: "MONTHLY" } }) as never,
-    );
-
-    assert.equal(ents.length, 7, "Crew grant (6 rows) plus the superseded AGENT row must both still exist");
-    const ledgerRow = webhookEvents.find((e) => e.eventType === "subscription.active");
-    assert.ok(ledgerRow, "a ledger row must have been written");
-    assert.match(
-      String(ledgerRow!.result),
-      /^applied-crew:supersede-failed:bs_rex$/,
-      "the failure must be greppable in the ledger, not hidden behind the generic 'applied-crew'",
-    );
   });
 
   test("REGRESSION (the money bug): an abandoned Rex checkout is the most-recent PendingCheckout row, but the customer actually paid for Maya — Maya must be provisioned, not Rex", async () => {
@@ -421,29 +286,6 @@ describe("handleSubscriptionActive", () => {
     );
     assert.equal(ents.length, 0, "no entitlement must be created for an unresolved agent");
     assert.equal(billingSubs.length, 0);
-  });
-
-  test("REGRESSION: metadata.plan wins over a stale PendingCheckout row's plan for Crew pricing", async () => {
-    // The PendingCheckout row (unrelated/stale) says MONTHLY; this event's
-    // own metadata — the session that actually completed — says ANNUAL.
-    // Getting this wrong changes getCrewPriceCents and therefore every
-    // stamped priceCents on the six CREW entitlement rows.
-    pendingCheckouts = [{
-      id: "pc_1", organizationId: "o1", sessionId: "sess_1",
-      kind: "CREW", agent: null, plan: "MONTHLY", createdAt: new Date(),
-    }];
-
-    await handleSubscriptionActive(
-      basePayload({ metadata: { organizationId: "o1", kind: "CREW", plan: "ANNUAL" } }) as never,
-    );
-
-    assert.equal(ents.length, 6);
-    assert.ok(ents.every((e) => e.source === "CREW"));
-    assert.equal(
-      ents[0].priceCents,
-      Math.floor(34800 / 6),
-      "priceCents must be stamped from ANNUAL (this event's metadata), not MONTHLY (the unrelated PendingCheckout row)",
-    );
   });
 
   test("cleanup: provisioning MAYA also removes a stale unrelated PendingCheckout row so it cannot poison a later webhook", async () => {

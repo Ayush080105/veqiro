@@ -1,11 +1,8 @@
 import { prisma } from "../../config/prisma.js";
-import { dodoClient } from "../../lib/dodo.js";
 import {
   ALL_AGENTS,
   getAgentMonthlyPriceCents,
-  getCrewPriceCents,
   resolveAgentFromProductId,
-  resolveCrewPlanFromProductId,
 } from "./billing.catalog.js";
 import { grantPurchasedTopupCredits } from "../agents/maya/maya.usage.service.js";
 import { TOPUP_CREDITS_PER_UNIT } from "../agents/maya/maya.quotas.js";
@@ -119,7 +116,7 @@ export async function withWebhookEvent<T>(
     });
   } catch (err) {
     // By this point `fn()` has ALREADY SUCCEEDED — the business logic
-    // (applyAgentActivation, applyCrewActivation, ...) has committed. Only
+    // (applyAgentActivation, ...) has committed. Only
     // the ledger write recording that fact failed. We must not leave the
     // claim stuck at "processing" forever (that reproduces the original bug
     // one step later), so we delete it and rethrow — which means Dodo's
@@ -203,18 +200,14 @@ export function providerEventId(payload: WebhookPayload): string {
   return `${payload.type}:${payload.data.subscription_id ?? "none"}:${period}`;
 }
 
-type CheckoutKind = "AGENT" | "CREW" | "CREW_UPGRADE" | "MAYA_TOPUP";
+type CheckoutKind = "AGENT" | "MAYA_TOPUP";
 
 function isCheckoutKind(value: unknown): value is CheckoutKind {
-  return value === "AGENT" || value === "CREW" || value === "CREW_UPGRADE" || value === "MAYA_TOPUP";
+  return value === "AGENT" || value === "MAYA_TOPUP";
 }
 
 function isAgentValue(value: unknown): value is Agent {
   return typeof value === "string" && (ALL_AGENTS as string[]).includes(value);
-}
-
-function isPlanValue(value: unknown): value is SubscriptionPlan {
-  return value === "MONTHLY" || value === "ANNUAL";
 }
 
 /**
@@ -263,105 +256,6 @@ export async function applyAgentActivation(input: {
 }
 
 /**
- * Provisions Crew: six CREW rows, and supersedes any AGENT rows the upgrade
- * credited. Their Dodo subs are told to stop at period end so the customer is
- * never charged twice — the already-paid time is what the upgrade discount
- * credited them for.
- *
- * SUPERSEDED (not delete) keeps this reversible if the Crew payment is later
- * refunded or reversed. billing.cancel.ts's per-agent cancel/resume relies on
- * AGENT/CREW overlap being resolvable, so getting this right is load-bearing.
- *
- * priceCents per row is floor(crewPrice / 6), never each agent's individual
- * list price — stamping list price here would let a future Crew-upgrade
- * quote (which sums AGENT-source priceCents) massively overcredit the org.
- */
-export async function applyCrewActivation(input: {
-  organizationId: string;
-  dodoSubscriptionId: string;
-  plan: SubscriptionPlan;
-  periodEnd: Date;
-}) {
-  const now = new Date();
-  const perAgentCents = Math.floor(getCrewPriceCents(input.plan) / ALL_AGENTS.length);
-
-  const superseded = await prisma.$transaction(async (tx) => {
-    const bs = await tx.billingSubscription.create({
-      data: {
-        organizationId: input.organizationId,
-        dodoSubscriptionId: input.dodoSubscriptionId,
-        plan: input.plan,
-        status: "ACTIVE",
-        currentPeriodEnd: input.periodEnd,
-      },
-    });
-
-    const priorAgentRows = await tx.entitlement.findMany({
-      where: {
-        organizationId: input.organizationId,
-        source: "AGENT",
-        status: { in: ["ACTIVE", "PAST_DUE"] },
-        currentPeriodEnd: { gt: now },
-      },
-      select: { id: true, billingSubscriptionId: true },
-    });
-
-    await tx.entitlement.createMany({
-      data: ALL_AGENTS.map((agent) => ({
-        organizationId: input.organizationId,
-        agent,
-        source: "CREW" as const,
-        status: "ACTIVE" as const,
-        currentPeriodStart: now,
-        currentPeriodEnd: input.periodEnd,
-        priceCents: perAgentCents,
-        billingSubscriptionId: bs.id,
-      })),
-    });
-
-    if (priorAgentRows.length > 0) {
-      await tx.entitlement.updateMany({
-        where: { id: { in: priorAgentRows.map((r) => r.id) } },
-        data: { status: "SUPERSEDED" },
-      });
-    }
-
-    return [...new Set(priorAgentRows.map((r) => r.billingSubscriptionId).filter((id): id is string => Boolean(id)))];
-  });
-
-  // Stop the superseded subs at their period end. Outside the transaction:
-  // these are external calls and must not hold a DB lock. Failure here is
-  // recoverable (support/a reconciler can retry) and must NOT roll back the
-  // Crew grant the customer has already paid for. There is no error-tracking
-  // service in this repo, so failures are also folded into the return value
-  // — the caller encodes them into the BillingWebhookEvent ledger's `result`
-  // string (instead of the generic "applied-crew"), making a still-billing
-  // superseded subscription greppable for manual reconciliation:
-  //   SELECT * FROM billing_webhook_event WHERE result LIKE 'applied-crew:supersede-failed%'
-  const supersedeFailedIds: string[] = [];
-  for (const bsId of superseded) {
-    const bs = await prisma.billingSubscription.findUnique({ where: { id: bsId } });
-    if (!bs) continue;
-    const dodoOk = await dodoClient.subscriptions
-      .update(bs.dodoSubscriptionId, { cancel_at_next_billing_date: true })
-      .then(() => true)
-      .catch((e) => {
-        console.error("[billing] failed to stop superseded sub", bs.dodoSubscriptionId, e);
-        return false;
-      });
-    const dbOk = await prisma.billingSubscription
-      .update({ where: { id: bsId }, data: { cancelAtPeriodEnd: true } })
-      .then(() => true)
-      .catch((e) => {
-        console.error("[billing] failed to flag superseded sub cancelAtPeriodEnd", bsId, e);
-        return false;
-      });
-    if (!dodoOk || !dbOk) supersedeFailedIds.push(bsId);
-  }
-  return { supersedeFailedIds };
-}
-
-/**
  * Resolves what a `subscription.active` webhook is activating.
  *
  * Only sources drawn from THIS event's payload are used — both are
@@ -369,19 +263,16 @@ export async function applyCrewActivation(input: {
  * just completed and fired this webhook:
  *
  *   1. PRIMARY: `payload.data.metadata` — createCheckoutForOrg writes
- *      `metadata: { organizationId, kind: "AGENT", agent }` and
- *      createCrewCheckout writes `metadata: { organizationId, kind: "CREW"
- *      | "CREW_UPGRADE", plan }` on the Dodo checkout session, and Dodo
- *      echoes that exact metadata back on the subscription webhook for that
- *      subscription.
- *   2. FALLBACK: `product_id` → catalog resolution (`resolveAgentFromProductId`
- *      / `resolveCrewPlanFromProductId`), also read from this same event's
- *      payload.
+ *      `metadata: { organizationId, kind: "AGENT", agent }` on the Dodo
+ *      checkout session, and Dodo echoes that exact metadata back on the
+ *      subscription webhook for that subscription.
+ *   2. FALLBACK: `product_id` → catalog resolution (`resolveAgentFromProductId`),
+ *      also read from this same event's payload.
  *
  * PendingCheckout is deliberately NOT consulted here, even though it is our
  * own record of "what the org checked out for." Dodo does not echo back a
  * `checkout_session_id` on the subscription payload (verified:
- * createCheckoutForOrg / createCrewCheckout never put one in `metadata`, and
+ * createCheckoutForOrg never puts one in `metadata`, and
  * the WebhookPayload shape has no such field), so a PendingCheckout row
  * cannot be tied to the specific session that completed. An org can have
  * multiple PendingCheckout rows in flight (e.g. an abandoned Maya checkout
@@ -401,18 +292,9 @@ function resolveActivationIntent(
 ): { kind: CheckoutKind; agent: Agent | null; plan: SubscriptionPlan } | null {
   const metaKind = payload.data.metadata?.kind;
   const kind: CheckoutKind | undefined = (isCheckoutKind(metaKind) ? metaKind : undefined)
-    ?? (payload.data.product_id && resolveCrewPlanFromProductId(payload.data.product_id) ? "CREW" : undefined)
     ?? (payload.data.product_id && resolveAgentFromProductId(payload.data.product_id) ? "AGENT" : undefined);
 
   if (!kind) return null;
-
-  if (kind === "CREW" || kind === "CREW_UPGRADE") {
-    const metaPlan = payload.data.metadata?.plan;
-    const plan: SubscriptionPlan = (isPlanValue(metaPlan) ? metaPlan : undefined)
-      ?? (payload.data.product_id ? resolveCrewPlanFromProductId(payload.data.product_id) : null)
-      ?? "MONTHLY";
-    return { kind, agent: null, plan };
-  }
 
   const metaAgent = payload.data.metadata?.agent;
   const agent: Agent | null = (isAgentValue(metaAgent) ? metaAgent : null)
@@ -487,24 +369,6 @@ export async function handleSubscriptionActive(payload: WebhookPayload) {
     if (!intent) {
       console.warn("[billing] active webhook: unresolved intent", { orgId, dodoSubId });
       return "ignored-unresolved-agent";
-    }
-
-    if (intent.kind === "CREW" || intent.kind === "CREW_UPGRADE") {
-      const { supersedeFailedIds } = await applyCrewActivation({
-        organizationId: orgId,
-        dodoSubscriptionId: dodoSubId,
-        plan: intent.plan,
-        periodEnd,
-      });
-      await cleanupPendingCheckouts(orgId, intent);
-      // The Crew grant itself always succeeds here regardless of the
-      // supersede outcome below — see applyCrewActivation's comment. Encode
-      // any failure into the result string (rather than the generic
-      // "applied-crew") so a still-billing superseded subscription is
-      // greppable in the webhook ledger for manual reconciliation.
-      return supersedeFailedIds.length > 0
-        ? `applied-crew:supersede-failed:${supersedeFailedIds.join(",")}`
-        : "applied-crew";
     }
 
     // Fail closed: never default to an agent. The payment is already
