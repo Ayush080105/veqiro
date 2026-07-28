@@ -6,8 +6,8 @@ import type { PricingTier } from '@/lib/site-config';
 import PricingPageContent from '@/components/veqiro/pricing-page-content';
 
 export const metadata = buildPageMetadata({
-  title: 'AI Employee Pricing — One Plan, Six Agents',
-  description: 'Veqiro pricing: one subscription, all six AI employees. $39/mo (or $29/mo billed yearly). 7-day free trial. No credit card.',
+  title: 'AI Employee Pricing — Starting at $9/mo',
+  description: 'Veqiro pricing: every AI employee is billed independently, starting at $9/mo. Start with one, add the rest whenever you need them. 7-day free trial. No credit card.',
   path: '/pricing',
   keywords: ['ai employee pricing', 'ai agents pricing', 'hire ai agents cost', 'veqiro pricing'],
 });
