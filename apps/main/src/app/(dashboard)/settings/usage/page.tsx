@@ -18,19 +18,13 @@ type AugmentedSession = {
   activeOrganization?: { id?: string } | null
 }
 
-// These four values are still what the server sends (see
-// maya.usage.service.ts's `displayTierFor`) — it's a display-only mapping of
-// Maya's governing entitlement's source/plan, kept for this badge. The
-// underlying quota is read live from the entitlement (getQuotaForMayaEntitlement),
-// never from this tier. ANNUAL_CREW's copy calls out "400 credits/month"
-// explicitly: the old model granted 400 credits for the entire YEAR on an
-// annual plan — the credit window is now a fixed monthly window decoupled
-// from the (annual) billing period, and the label must not carry that lie.
+// These two values are what the server sends (see maya.usage.service.ts's
+// `displayTierFor`) — a display-only mapping of Maya's governing
+// entitlement's source, kept for this badge. The underlying quota is read
+// live from the entitlement (getQuotaForMayaEntitlement), never from this tier.
 const TIER_LABELS: Record<MayaUsageTier, string> = {
   TRIAL:          "7-day trial",
   MONTHLY_CUSTOM: "Monthly · Maya",
-  MONTHLY_CREW:   "Monthly · Crew",
-  ANNUAL_CREW:    "Annual · Crew (400 credits/month)",
 }
 
 function formatDate(iso: string) {
@@ -68,11 +62,6 @@ export default function UsagePage() {
     !mayaEntitlement ? null
     : mayaEntitlement.status === "TRIALING" ? `Trial · ${daysUntil(mayaEntitlement.currentPeriodEnd)} days left`
     : mayaEntitlement.status === "PAST_DUE" ? "Payment failed"
-    // mayaEntitlement.plan is this row's own BillingSubscription cadence —
-    // not the legacy, never-updated top-level sub.plan column, which stays
-    // stuck at its creation-time default and would always read "Monthly"
-    // even for a Crew Annual subscriber.
-    : mayaEntitlement.source === "CREW" ? (mayaEntitlement.plan === "ANNUAL" ? "Annual · Crew" : "Monthly · Crew")
     : "Monthly · Maya"
 
   const billingCycleDate = mayaEntitlement?.currentPeriodEnd ?? null
