@@ -56,6 +56,7 @@ import type { PlatformSlug, SocialProvider } from "../../integrations/integratio
 import {
   checkAndDeductCredits,
   rollbackCredits,
+  assertVideoGenerationAllowed,
 } from "./maya.usage.service.js";
 import { imageCreditsFor, videoCreditsFor } from "./maya.quotas.js";
 
@@ -1307,6 +1308,7 @@ export const generateVideo = async (
   organizationId: string,
   input: GenerateVideoInput
 ): Promise<GenerateVideoResponse> => {
+  await assertVideoGenerationAllowed(organizationId);
   const videoCredits = videoCreditsFor(input.durationSeconds);
   await checkAndDeductCredits(organizationId, videoCredits);
 
@@ -1442,6 +1444,7 @@ export const createCampaignVideo = async (
   organizationId: string,
   input: CampaignVideoInput
 ): Promise<CampaignVideoResponse> => {
+  await assertVideoGenerationAllowed(organizationId);
   const campaignVideoCredits = videoCreditsFor(input.durationSeconds);
   await checkAndDeductCredits(organizationId, campaignVideoCredits);
 
@@ -1521,6 +1524,7 @@ export const createLogoAnimation = async (
   organizationId: string,
   input: LogoAnimationInput
 ): Promise<LogoAnimationResponse> => {
+  await assertVideoGenerationAllowed(organizationId);
   const logoAnimationCredits = videoCreditsFor(LOGO_ANIMATION_DURATION_SECONDS);
   await checkAndDeductCredits(organizationId, logoAnimationCredits);
 

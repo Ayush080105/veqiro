@@ -453,4 +453,31 @@ describe("maya.usage.service", () => {
       await expect(rollbackCredits("org_18", 4)).resolves.toBeUndefined();
     });
   });
+
+  describe("assertVideoGenerationAllowed", () => {
+    test("TRIAL entitlement → rejected", async () => {
+      const anchor = new Date(Date.now() - 2 * DAY);
+      entitlements = [trialEntitlement("org_24", anchor, new Date(Date.now() + 20 * DAY))];
+
+      const { assertVideoGenerationAllowed } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(assertVideoGenerationAllowed("org_24")).rejects.toThrow(
+        "Video generation isn't available on your free trial. Upgrade to a paid plan to unlock it.",
+      );
+    });
+
+    test("AGENT (paid) entitlement → resolves without throwing", async () => {
+      const anchor = new Date(Date.now() - 2 * DAY);
+      entitlements = [agentEntitlement("org_25", anchor, new Date(Date.now() + 20 * DAY), "bs_14")];
+      billingSubscriptions = [{ id: "bs_14", plan: "MONTHLY" }];
+
+      const { assertVideoGenerationAllowed } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(assertVideoGenerationAllowed("org_25")).resolves.toBeUndefined();
+    });
+
+    test("no covering entitlement → resolves without throwing (entitlementMiddlewareForAgent already gates this case upstream)", async () => {
+      entitlements = [];
+      const { assertVideoGenerationAllowed } = await import("../../modules/agents/maya/maya.usage.service.js");
+      await expect(assertVideoGenerationAllowed("org_26")).resolves.toBeUndefined();
+    });
+  });
 });

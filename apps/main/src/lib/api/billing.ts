@@ -188,11 +188,13 @@ export function useMayaUsage(organizationId?: string | null) {
 }
 
 // null means "unknown" (loading/no data yet) — callers should treat that as
-// "don't block", not as zero remaining.
+// "don't block", not as zero remaining. Same reasoning for isTrial: defaults
+// to false while loading so a paid org's dialog never flashes trial-blocked.
 export function useMayaRemainingCredits(organizationId?: string | null) {
   const { data, isPending } = useMayaUsage(organizationId);
   return {
     creditsRemaining: data ? data.credits.remaining : null,
+    isTrial: data ? data.tier === "TRIAL" : false,
     isLoading: isPending,
   };
 }

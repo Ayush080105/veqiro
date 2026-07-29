@@ -2,6 +2,7 @@ import { prisma } from "../../../config/prisma.js";
 import { EntitlementSource } from "../../../../prisma/generated/prisma/client.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { QuotaExceededError } from "../../../common/errors/quotaExceeded.js";
+import { ForbiddenError } from "../../../common/errors/forbidden.js";
 import { getMayaEntitlement } from "../../billing/entitlement.service.js";
 import { getQuotaForMayaEntitlement } from "./maya.quotas.js";
 import { currentCreditWindow } from "./maya.period.js";
@@ -70,6 +71,23 @@ export async function getCurrentUsage(organizationId: string) {
       remaining: Math.max(0, limit - used),
     },
   };
+}
+
+// ─── Public: assertVideoGenerationAllowed ─────────────────────────────────────
+// Video generation (Generate Video, Campaign Video, Logo Animation) is not
+// available on the free trial — only a paid Maya subscriber can generate
+// video. The campaign-video storyboard step is exempt: it only produces a
+// still preview image, not video, so trial users can still use it. Checked
+// before checkAndDeductCredits at each call site so a trial org never locks a
+// MayaUsage row for an action it isn't allowed to complete.
+
+export async function assertVideoGenerationAllowed(organizationId: string): Promise<void> {
+  const ent = await getMayaEntitlement(organizationId);
+  if (ent?.source === "TRIAL") {
+    throw new ForbiddenError(
+      "Video generation isn't available on your free trial. Upgrade to a paid plan to unlock it.",
+    );
+  }
 }
 
 // ─── Public: checkAndDeductCredits ────────────────────────────────────────────

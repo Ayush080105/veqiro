@@ -31,7 +31,7 @@ export function UsageBar({
           {label}
         </span>
         <span className="text-muted-foreground tabular-nums">
-          {resource.used}{unit ? ` ${unit}` : ""} / {resource.limit}{unit ? ` ${unit}` : ""}
+          {resource.remaining}{unit ? ` ${unit}` : ""} remaining
           {isExhausted && (
             <Badge variant="destructive" className="ml-2 text-[10px]">Exhausted</Badge>
           )}
@@ -46,9 +46,6 @@ export function UsageBar({
           style={{ width: `${pct}%`, background: barColor }}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        {resource.remaining}{unit ? ` ${unit}` : ""} remaining this period
-      </p>
     </div>
   )
 }

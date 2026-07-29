@@ -363,9 +363,11 @@ export function MayaDraftForm({
         </div>
       )}
 
-      {overLimit && (
-        <p className="text-xs text-destructive">
-          {`This would use ${requestedCredits} credits, but only ${creditsRemaining} remain this period.`}
+      {requestedCredits > 0 && (
+        <p className={overLimit ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+          {overLimit
+            ? `This would use ${requestedCredits} credits, but only ${creditsRemaining} remain this period.`
+            : `This will use ${requestedCredits} credits.`}
         </p>
       )}
 
@@ -550,9 +552,11 @@ export function MayaVariantsForm({
         )}
       />
 
-      {overLimit && (
-        <p className="text-xs text-destructive">
-          {`This would use ${requestedCredits} credits, but only ${creditsRemaining} remain this period.`}
+      {requestedCredits > 0 && (
+        <p className={overLimit ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+          {overLimit
+            ? `This would use ${requestedCredits} credits, but only ${creditsRemaining} remain this period.`
+            : `This will use ${requestedCredits} credits.`}
         </p>
       )}
     </FieldGroup>
@@ -670,6 +674,7 @@ export function MayaImageRegenForm({
         )}
       </RhfField>
 
+      <p className="text-xs text-muted-foreground">This will use 2 credits.</p>
     </FieldGroup>
   )
 }
@@ -963,11 +968,11 @@ export function MayaCampaignForm({
             )
           })}
         </div>
-        {overLimit && (
-          <p className="text-xs text-destructive">
-            {`This would use ${photoCount * 2} credits, but only ${creditsRemaining} remain this period.`}
-          </p>
-        )}
+        <p className={overLimit ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+          {overLimit
+            ? `This would use ${photoCount * 2} credits, but only ${creditsRemaining} remain this period.`
+            : `This will use ${photoCount * 2} credits.`}
+        </p>
       </div>
 
       {/* Logo overlay */}
@@ -1129,14 +1134,14 @@ export function MayaGenerateVideoForm({
   })
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { creditsRemaining } = useMayaRemainingCredits(orgId)
+  const { creditsRemaining, isTrial } = useMayaRemainingCredits(orgId)
   const durationSeconds = form.watch("duration_seconds")
   const requestedCredits = durationSeconds * 4
   const overLimit = creditsRemaining !== null && requestedCredits > creditsRemaining
 
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overLimit)
-  }, [overLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit || isTrial)
+  }, [overLimit, isTrial, onDisableSubmit])
 
   return (
     <FieldGroup>
@@ -1175,9 +1180,17 @@ export function MayaGenerateVideoForm({
             />
           )}
         />
-        {overLimit && (
+        {isTrial ? (
+          <p className="text-xs text-destructive">
+            Video generation isn&apos;t available on your free trial — upgrade to a paid plan to unlock it.
+          </p>
+        ) : overLimit ? (
           <p className="text-xs text-destructive">
             {`This would use ${requestedCredits} credits (${durationSeconds}s of video), but only ${creditsRemaining} remain this period.`}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {`This will use ${requestedCredits} credits (${durationSeconds}s of video).`}
           </p>
         )}
       </div>
@@ -1228,7 +1241,7 @@ export function MayaCampaignVideoForm({
   })
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { creditsRemaining } = useMayaRemainingCredits(orgId)
+  const { creditsRemaining, isTrial } = useMayaRemainingCredits(orgId)
   const storyboardImageUrl = (value as Record<string, unknown>).storyboard_image_url as string | undefined
   const storyboardBeats = (value as Record<string, unknown>).storyboard_beats as string[] | undefined
   const durationSeconds = form.watch("duration_seconds")
@@ -1245,10 +1258,14 @@ export function MayaCampaignVideoForm({
   const videoCredits = !hideDuration ? durationSeconds * 4 : 0
   const requestedCredits = storyboardCredits + videoCredits
   const overLimit = creditsRemaining !== null && requestedCredits > creditsRemaining
+  // Trial gate applies only to the actual video-generation step, never the
+  // storyboard step (hideDuration === true) — the storyboard only produces a
+  // still preview image, which trial users can still generate.
+  const videoBlocked = isTrial && !hideDuration
 
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overLimit)
-  }, [overLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit || videoBlocked)
+  }, [overLimit, videoBlocked, onDisableSubmit])
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = React.useState(false)
@@ -1361,9 +1378,17 @@ export function MayaCampaignVideoForm({
             <span>Click to upload — JPG, PNG, or WEBP</span>
           </button>
         )}
-        {overLimit && (
+        {videoBlocked ? (
+          <p className="text-xs text-destructive">
+            Video generation isn&apos;t available on your free trial — upgrade to a paid plan to unlock it.
+          </p>
+        ) : overLimit ? (
           <p className="text-xs text-destructive">
             {`This would use ${requestedCredits} credits total (storyboard image${!hideDuration ? " + video" : ""}), but only ${creditsRemaining} remain this period.`}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {`This will use ${requestedCredits} credits total (storyboard image${!hideDuration ? " + video" : ""}).`}
           </p>
         )}
       </div>
@@ -1466,13 +1491,13 @@ export function MayaLogoAnimationForm({
   })
 
   const orgId = (value as Record<string, unknown>).organization_id as string
-  const { creditsRemaining } = useMayaRemainingCredits(orgId)
+  const { creditsRemaining, isTrial } = useMayaRemainingCredits(orgId)
   const { data: stylesData, isLoading: stylesLoading } = useLogoAnimationStyles()
   const overLimit = creditsRemaining !== null && LOGO_ANIMATION_CREDITS > creditsRemaining
 
   React.useLayoutEffect(() => {
-    onDisableSubmit?.(overLimit)
-  }, [overLimit, onDisableSubmit])
+    onDisableSubmit?.(overLimit || isTrial)
+  }, [overLimit, isTrial, onDisableSubmit])
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = React.useState(false)
@@ -1612,9 +1637,17 @@ export function MayaLogoAnimationForm({
         />
       </div>
 
-      {overLimit && (
+      {isTrial ? (
+        <p className="text-xs text-destructive">
+          Video generation isn&apos;t available on your free trial — upgrade to a paid plan to unlock it.
+        </p>
+      ) : overLimit ? (
         <p className="text-xs text-destructive">
           {`This uses ${LOGO_ANIMATION_CREDITS} credits (10s of video), but only ${creditsRemaining} remain this period.`}
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {`This uses ${LOGO_ANIMATION_CREDITS} credits (10s of video).`}
         </p>
       )}
 

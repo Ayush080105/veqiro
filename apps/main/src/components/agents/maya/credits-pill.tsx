@@ -19,7 +19,7 @@ export function MayaCreditsPill({ organizationId }: { organizationId: string }) 
     <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#555]">
       <span className="flex items-center gap-1 rounded-full bg-[#F0F0F0] px-2 py-1">
         <Sparkles className="size-3" />
-        {data.credits.used}/{data.credits.limit} credits
+        {data.credits.remaining} credits
       </span>
       <Popover>
         <PopoverTrigger
@@ -32,7 +32,7 @@ export function MayaCreditsPill({ organizationId }: { organizationId: string }) 
         </PopoverTrigger>
         <PopoverContent align="end">
           <p className="font-medium text-foreground">
-            {data.credits.used}/{data.credits.limit} credits used this period
+            {data.credits.remaining} credits remaining this period
           </p>
           <p className="text-muted-foreground">
             1 image = 2 credits · 1 second of video = 4 credits. All
