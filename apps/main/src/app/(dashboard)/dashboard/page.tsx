@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import dynamic from "next/dynamic"
-import Link from "next/link"
-import { Newspaper, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 import { useDashboardSummary, ALL_SLUGS, type Range } from "@/lib/api/dashboard"
@@ -138,43 +137,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-
-      {showSkeletons ? (
-        <div className="h-[72px] rounded-md border-[3px] border-foreground bg-[#D5CCBA] shadow-[5px_5px_0_var(--vq-green)] animate-pulse" />
-      ) : (
-        <div className="relative" data-tour="dashboard-briefing">
-          <Link
-            href="/workspace/briefing"
-            className="flex items-center gap-3.5 rounded-md border-[3px] border-foreground bg-card p-4 px-5 no-underline shadow-[5px_5px_0_var(--vq-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:flex-col max-sm:items-start"
-          >
-            <span
-              className="grid size-10 shrink-0 place-items-center rounded-md border-[2.5px] border-foreground bg-foreground text-primary-foreground"
-              style={{ transform: "rotate(-4deg)" }}
-            >
-              <Newspaper className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="font-head text-[15px] tracking-tight text-foreground">
-                Today&apos;s briefing
-              </div>
-              <p className="m-0 mt-0.5 line-clamp-2 font-body text-[13px] leading-snug text-muted-foreground max-sm:line-clamp-none">
-                {metrics && metrics.messagesWeek > 0
-                  ? [
-                      `Your crew handled ${metrics.messagesWeek} conversation${metrics.messagesWeek !== 1 ? "s" : ""} this week`,
-                      metrics.contentPublishedWeek > 0
-                        ? ` and published ${metrics.contentPublishedWeek} post${metrics.contentPublishedWeek !== 1 ? "s" : ""}`
-                        : "",
-                      ". Open to see emails, calendar and agent activity ->",
-                    ].join("")
-                  : "No agent activity yet this week. Generate a briefing to see your inbox and calendar summary."}
-              </p>
-            </div>
-            <Button variant="brand-dark" size="brand-sm">
-              {"Read ->"}
-            </Button>
-          </Link>
-        </div>
-      )}
 
       <section className="flex flex-col gap-3" data-tour="dashboard-metrics">
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">

@@ -412,56 +412,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       icon: "Stamp",
     },
   ],
-  vega: [
-    {
-      id: "vega:process-inbox",
-      agent: "vega",
-      endpoint: "process-inbox",
-      label: "Triage inbox",
-      description: "Prioritize, label, and optionally draft replies.",
-      icon: "Inbox",
-    },
-    {
-      id: "vega:draft-reply",
-      agent: "vega",
-      endpoint: "draft-reply",
-      label: "Draft a reply",
-      description: "Reply in your voice to a specific email.",
-      icon: "Reply",
-    },
-    {
-      id: "vega:calendar-summary",
-      agent: "vega",
-      endpoint: "calendar-summary",
-      label: "Calendar summary",
-      description: "Agenda, conflicts, and free slots for the next week.",
-      icon: "CalendarDays",
-    },
-    {
-      id: "vega:create-event",
-      agent: "vega",
-      endpoint: "create-event",
-      label: "Schedule an event",
-      description: "Parse a plain-English event and create it on your calendar.",
-      icon: "CalendarPlus",
-    },
-    {
-      id: "vega:compose-email",
-      agent: "vega",
-      endpoint: "compose-email",
-      label: "Compose an email",
-      description: "Draft a new outbound Gmail — saves directly as a Gmail draft.",
-      icon: "Mail",
-    },
-    {
-      id: "vega:executive-briefing",
-      agent: "vega",
-      endpoint: "executive-briefing",
-      label: "Executive briefing",
-      description: "Daily exec briefing — urgent actions, schedule, focus.",
-      icon: "Sun",
-    },
-  ],
+  vega: [],
 }
 
 export function findAction(id: AgentActionId): AgentActionMeta | undefined {

@@ -22,8 +22,8 @@ router.delete("/connections/:slug", disconnect);
 export default router;
 
 // Internal router — mounted separately in router.ts under /internal/mcp,
-// called only by apps/ai (never by the browser). Node holds the Smithery
-// master key exclusively; this is the sole path apps/ai has to Smithery.
+// called only by apps/ai (never by the browser). Node holds the Composio
+// master key exclusively; this is apps/ai's sole path to it.
 export const mcpInternalRouter = Router();
 mcpInternalRouter.use(internalKeyMiddleware);
 mcpInternalRouter.get("/connections/:connectionId/tools", listToolsInternal);

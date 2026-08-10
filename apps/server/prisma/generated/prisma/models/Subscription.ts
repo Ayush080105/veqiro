@@ -912,11 +912,15 @@ export type $SubscriptionPayload<ExtArgs extends runtime.Types.Extensions.Intern
      */
     plan: $Enums.SubscriptionPlan | null
     /**
-     * Whether the subscription unlocks all agents or a selected subset.
+     * Legacy entitlement-shape field. The enum now has only one value
+     * (CUSTOM) — access is fully governed by Entitlement rows, not this mode.
      */
     entitlementMode: $Enums.SubscriptionEntitlementMode
     /**
-     * Agents unlocked by this subscription. CREW subscriptions store all agents.
+     * Legacy/vestigial: written on customer creation but not read by any
+     * access-control or provisioning logic. Real agent access lives on
+     * Entitlement rows; this column predates that and is kept only to avoid
+     * a migration.
      */
     selectedAgents: $Enums.Agent[]
     /**

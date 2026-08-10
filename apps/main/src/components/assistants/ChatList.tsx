@@ -11,7 +11,6 @@ import { AGENTS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
 import { useUpcomingAgents, type UpcomingAgent } from "@/lib/api/feedback"
 import { stripMarkdown } from "@/lib/utils"
-import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 const AGENT_PHOTOS: Record<string, string> = {
   maya:  "/agents/maya.jpeg",
   rex:   "/agents/rex.jpeg",
@@ -190,24 +189,6 @@ function AgentRow({
             </div>
           )}
         </div>
-        {agent.id === "vega" && GOOGLE_FEATURES_LOCKED && (
-          <span
-            style={{
-              position: "absolute",
-              bottom: 0,
-              right: 0,
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              background: "#fff",
-              border: "1.5px solid #D4C9B0",
-              display: "grid",
-              placeItems: "center",
-            }}
-          >
-            <Lock style={{ width: 10, height: 10, color: "#555" }} />
-          </span>
-        )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div

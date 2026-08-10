@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SettingsNav } from "@/components/settings/SettingsNav"
-import { authClient } from "@/lib/auth-client"
 import {
   authorizeUrl,
   platformSlugToEnum,
@@ -34,12 +33,11 @@ import { LEGACY_MCP_SLUGS } from "@/lib/config/legacy-integrations"
 import { qk } from "@/lib/query-keys"
 import { PageHeader } from "@/components/ui/page-header"
 
-// ─── Legacy (native) integrations — Gmail/Calendar and X/LinkedIn/Instagram
-// still connect through their original mechanism (better-auth / the bespoke
-// SocialAccount OAuth module) until the Smithery cutover for those specific
-// rows is verified — see plan Rollout phases 2-3. Everything else below
-// renders from the shared @repo/integrations-catalog through the uniform
-// Smithery connect flow.
+// ─── Legacy (native) integrations — X/LinkedIn/Instagram connect through their
+// original mechanism (the bespoke SocialAccount OAuth module). Instagram
+// publishes via the native Meta Graph API provider, not MCP. Google has no
+// native integration anymore (see the Vega/Google removal plan) — Gmail/Google
+// Calendar render below as normal, Composio-backed catalog cards.
 
 interface LegacyIntegrationDef {
   id: string
@@ -48,20 +46,10 @@ interface LegacyIntegrationDef {
   requiredBy: string[]
   note?: string
   platformSlug?: SocialPlatformSlug
-  useBetterAuth?: boolean
   logoUrl?: string
 }
 
 const LEGACY_INTEGRATIONS: LegacyIntegrationDef[] = [
-  {
-    id: "google",
-    name: "Google (Gmail & Calendar)",
-    description:
-      "Required for Vega to read your inbox, draft replies, and manage calendar events on your behalf.",
-    requiredBy: ["Vega"],
-    useBetterAuth: true,
-    logoUrl: "https://api.smithery.ai/servers/gmail/icon",
-  },
   {
     id: "twitter",
     name: "Twitter / X",
@@ -69,7 +57,7 @@ const LEGACY_INTEGRATIONS: LegacyIntegrationDef[] = [
       "Publish Maya's drafts straight to X — tweets, threads, and posts with generated images.",
     requiredBy: ["Maya"],
     platformSlug: "twitter",
-    logoUrl: "https://api.smithery.ai/servers/twitter/icon",
+    logoUrl: "https://logos.composio.dev/api/twitter",
   },
   {
     id: "linkedin",
@@ -84,8 +72,7 @@ const LEGACY_INTEGRATIONS: LegacyIntegrationDef[] = [
     id: "instagram",
     name: "Instagram",
     description:
-      "Publish Maya's visual posts to an Instagram Business account linked to a Facebook Page.",
-    note: "Requires a Professional account. To switch (it's free): ••• → Account type and tools → Account type → Switch to professional.",
+      "Publish Maya's photos, reels, and carousels straight to your Instagram Business account.",
     requiredBy: ["Maya"],
     platformSlug: "instagram",
     logoUrl: "https://cdn.jsdelivr.net/gh/ComposioHQ/open-logos@master/instagram.svg",
@@ -102,20 +89,16 @@ const CATEGORIES = getIntegrationCategories().filter((c) =>
 function LegacyIntegrationCard({
   integration,
   account,
-  connectedOverride,
-  connectedEmail,
 }: {
   integration: LegacyIntegrationDef
   account?: SocialAccount
-  connectedOverride?: boolean
-  connectedEmail?: string
 }) {
   const disconnect = useDisconnectIntegration()
-  const connected = connectedOverride ?? Boolean(account)
-  const isWired = Boolean(integration.platformSlug) || Boolean(integration.useBetterAuth)
+  const connected = Boolean(account)
+  const isWired = Boolean(integration.platformSlug)
   const loading = disconnect.isPending
 
-  const accountDisplay = account?.accountName ?? account?.providerAccountId ?? connectedEmail ?? null
+  const accountDisplay = account?.accountName ?? account?.providerAccountId ?? null
 
   async function handleToggle() {
     if (!isWired) {
@@ -123,13 +106,6 @@ function LegacyIntegrationCard({
       return
     }
     try {
-      if (integration.useBetterAuth) {
-        await authClient.signIn.social({
-          provider: "google",
-          callbackURL: `${window.location.origin}/settings/integrations?connected=google`,
-        })
-        return
-      }
       if (connected && account) {
         await disconnect.mutateAsync(account.id)
         toast.success(`${integration.name} disconnected`)
@@ -207,39 +183,8 @@ export default function IntegrationsPage() {
   const queryClient = useQueryClient()
   const { data: accounts = [] } = useIntegrations()
   const { data: mcpConnections = [] } = useMcpConnections()
-  const [linkedProviders, setLinkedProviders] = useState<Set<string>>(new Set())
-  const [googleEmail, setGoogleEmail] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState<string>("all")
-
-  const refetchTrigger = searchParams.get("connected")
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      try {
-        const [accountsResult, sessionResult] = await Promise.all([
-          authClient.listAccounts(),
-          authClient.getSession(),
-        ])
-        const list = (accountsResult?.data ?? []) as Array<{
-          providerId?: string
-          provider?: string
-        }>
-        const ids = new Set(list.map((a) => a.providerId ?? a.provider ?? "").filter(Boolean))
-        if (!cancelled) {
-          setLinkedProviders(ids)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const email = (sessionResult?.data as any)?.user?.email as string | undefined
-          if (email) setGoogleEmail(email)
-        }
-      } catch {
-        // Treat as not-linked; user can still click Connect.
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [refetchTrigger])
 
   useEffect(() => {
     const connected = searchParams.get("connected")
@@ -308,16 +253,11 @@ export default function IntegrationsPage() {
           const account = integration.platformSlug
             ? accountByPlatform.get(platformSlugToEnum[integration.platformSlug])
             : undefined
-          const connectedOverride = integration.useBetterAuth
-            ? linkedProviders.has(integration.id)
-            : undefined
           return (
             <LegacyIntegrationCard
               key={integration.id}
               integration={integration}
               account={account}
-              connectedOverride={connectedOverride}
-              connectedEmail={integration.useBetterAuth ? googleEmail : undefined}
             />
           )
         })}
@@ -325,7 +265,7 @@ export default function IntegrationsPage() {
 
       <div className="flex flex-col gap-3 pt-2">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-semibold text-foreground">1000+ more, via Smithery</h2>
+          <h2 className="text-sm font-semibold text-foreground">1000+ more, via Composio</h2>
           <p className="text-xs text-muted-foreground">
             Browse the full catalog and connect the tools each agent needs.
           </p>

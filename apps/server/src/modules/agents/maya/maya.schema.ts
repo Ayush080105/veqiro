@@ -152,10 +152,6 @@ export const publishSchema = z
   .refine(
     (v) => !((v.imageUrl || v.imageBase64) && (v.videoUrl || v.videoBase64)),
     "Provide either an image or a video, not both"
-  )
-  .refine(
-    (v) => Boolean(v.imageUrl || v.imageBase64 || v.videoUrl || v.videoBase64),
-    "Provide an image or a video to publish"
   );
 
 export const publishCarouselSchema = z.object({
@@ -193,10 +189,6 @@ export const scheduleSchema = z
   .refine(
     (v) => !((v.imageUrl || v.imageBase64) && (v.videoUrl || v.videoBase64)),
     "Provide either an image or a video, not both"
-  )
-  .refine(
-    (v) => Boolean(v.imageUrl || v.imageBase64 || v.videoUrl || v.videoBase64),
-    "Provide an image or a video to schedule"
   );
 
 export const scheduleCarouselSchema = z.object({

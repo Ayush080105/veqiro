@@ -5,7 +5,6 @@ import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useIntegrations } from "@/lib/api/integrations"
-import { useGoogleConnected } from "@/lib/api/auth-accounts"
 import type { SocialAccount } from "@/lib/api/integrations"
 
 type Row = {
@@ -53,17 +52,10 @@ const stateClasses: Record<
 
 export function IntegrationHealth() {
   const { data: accounts = [] } = useIntegrations()
-  const { data: googleConnected } = useGoogleConnected()
 
   const rows: Row[] = [
-    {
-      id: "google",
-      label: "Google",
-      state: googleConnected ? "connected" : "disconnected",
-    },
     platformRow("twitter", "Twitter", "TWITTER", accounts),
     platformRow("linkedin", "LinkedIn", "LINKEDIN", accounts),
-    platformRow("instagram", "Instagram", "INSTAGRAM", accounts),
   ]
 
   return (

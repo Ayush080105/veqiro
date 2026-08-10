@@ -21,11 +21,11 @@ const AGENT_LABEL: Record<string, string> = {
 }
 
 /**
- * logoUrl comes from Smithery's own per-server iconUrl (real brand icons,
- * already colored — Composio's logo API, Smithery's own icon proxy, or a
- * favicon fallback), so this renders as a plain <img>, not a CSS mask.
- * Falls back to a two-letter initials badge if there's no URL, or if the
- * image fails to load (external hosts we don't control).
+ * logoUrl comes from a mix of sources (Composio's logo API, jsdelivr-hosted
+ * open logos, favicon fallbacks — real brand icons, already colored), so
+ * this renders as a plain <img>, not a CSS mask. Falls back to a two-letter
+ * initials badge if there's no URL, or if the image fails to load (external
+ * hosts we don't control).
  */
 export function IntegrationLogo({ name, logoUrl }: { name: string; logoUrl?: string }) {
   const [failed, setFailed] = useState(false)
@@ -56,7 +56,7 @@ export function IntegrationCatalogCard({
 }) {
   const [modalOpen, setModalOpen] = useState(false)
   const disconnect = useDisconnectMcp(entry.slug)
-  const isConnectable = entry.status === "smithery"
+  const isConnectable = entry.status === "composio"
 
   async function handleDisconnect() {
     try {

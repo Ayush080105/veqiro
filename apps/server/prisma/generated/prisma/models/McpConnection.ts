@@ -14,9 +14,9 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model McpConnection
- * Org-level pointer to a Smithery-brokered MCP connection. Smithery stores
- * the actual credentials server-side (encrypted, write-only) — this row is
- * status/metadata only, never a token.
+ * Org-level pointer to an MCP connection brokered by Composio. The provider
+ * stores the actual credentials server-side (encrypted, write-only) — this
+ * row is status/metadata only, never a token.
  */
 export type McpConnectionModel = runtime.Types.Result.DefaultSelection<Prisma.$McpConnectionPayload>
 
@@ -31,7 +31,8 @@ export type McpConnectionMinAggregateOutputType = {
   organizationId: string | null
   integrationSlug: string | null
   connectionId: string | null
-  qualifiedName: string | null
+  toolkitSlug: string | null
+  provider: $Enums.McpProvider | null
   ownerAgent: $Enums.Agent | null
   status: $Enums.McpConnectionStatus | null
   lastConnectedAt: Date | null
@@ -47,7 +48,8 @@ export type McpConnectionMaxAggregateOutputType = {
   organizationId: string | null
   integrationSlug: string | null
   connectionId: string | null
-  qualifiedName: string | null
+  toolkitSlug: string | null
+  provider: $Enums.McpProvider | null
   ownerAgent: $Enums.Agent | null
   status: $Enums.McpConnectionStatus | null
   lastConnectedAt: Date | null
@@ -63,7 +65,8 @@ export type McpConnectionCountAggregateOutputType = {
   organizationId: number
   integrationSlug: number
   connectionId: number
-  qualifiedName: number
+  toolkitSlug: number
+  provider: number
   ownerAgent: number
   status: number
   configSchema: number
@@ -82,7 +85,8 @@ export type McpConnectionMinAggregateInputType = {
   organizationId?: true
   integrationSlug?: true
   connectionId?: true
-  qualifiedName?: true
+  toolkitSlug?: true
+  provider?: true
   ownerAgent?: true
   status?: true
   lastConnectedAt?: true
@@ -98,7 +102,8 @@ export type McpConnectionMaxAggregateInputType = {
   organizationId?: true
   integrationSlug?: true
   connectionId?: true
-  qualifiedName?: true
+  toolkitSlug?: true
+  provider?: true
   ownerAgent?: true
   status?: true
   lastConnectedAt?: true
@@ -114,7 +119,8 @@ export type McpConnectionCountAggregateInputType = {
   organizationId?: true
   integrationSlug?: true
   connectionId?: true
-  qualifiedName?: true
+  toolkitSlug?: true
+  provider?: true
   ownerAgent?: true
   status?: true
   configSchema?: true
@@ -204,7 +210,8 @@ export type McpConnectionGroupByOutputType = {
   organizationId: string
   integrationSlug: string
   connectionId: string
-  qualifiedName: string
+  toolkitSlug: string
+  provider: $Enums.McpProvider
   ownerAgent: $Enums.Agent
   status: $Enums.McpConnectionStatus
   configSchema: runtime.JsonValue | null
@@ -242,7 +249,8 @@ export type McpConnectionWhereInput = {
   organizationId?: Prisma.StringFilter<"McpConnection"> | string
   integrationSlug?: Prisma.StringFilter<"McpConnection"> | string
   connectionId?: Prisma.StringFilter<"McpConnection"> | string
-  qualifiedName?: Prisma.StringFilter<"McpConnection"> | string
+  toolkitSlug?: Prisma.StringFilter<"McpConnection"> | string
+  provider?: Prisma.EnumMcpProviderFilter<"McpConnection"> | $Enums.McpProvider
   ownerAgent?: Prisma.EnumAgentFilter<"McpConnection"> | $Enums.Agent
   status?: Prisma.EnumMcpConnectionStatusFilter<"McpConnection"> | $Enums.McpConnectionStatus
   configSchema?: Prisma.JsonNullableFilter<"McpConnection">
@@ -259,7 +267,8 @@ export type McpConnectionOrderByWithRelationInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
-  qualifiedName?: Prisma.SortOrder
+  toolkitSlug?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
   ownerAgent?: Prisma.SortOrder
   status?: Prisma.SortOrder
   configSchema?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -280,7 +289,8 @@ export type McpConnectionWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.McpConnectionWhereInput | Prisma.McpConnectionWhereInput[]
   organizationId?: Prisma.StringFilter<"McpConnection"> | string
   integrationSlug?: Prisma.StringFilter<"McpConnection"> | string
-  qualifiedName?: Prisma.StringFilter<"McpConnection"> | string
+  toolkitSlug?: Prisma.StringFilter<"McpConnection"> | string
+  provider?: Prisma.EnumMcpProviderFilter<"McpConnection"> | $Enums.McpProvider
   ownerAgent?: Prisma.EnumAgentFilter<"McpConnection"> | $Enums.Agent
   status?: Prisma.EnumMcpConnectionStatusFilter<"McpConnection"> | $Enums.McpConnectionStatus
   configSchema?: Prisma.JsonNullableFilter<"McpConnection">
@@ -297,7 +307,8 @@ export type McpConnectionOrderByWithAggregationInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
-  qualifiedName?: Prisma.SortOrder
+  toolkitSlug?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
   ownerAgent?: Prisma.SortOrder
   status?: Prisma.SortOrder
   configSchema?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -320,7 +331,8 @@ export type McpConnectionScalarWhereWithAggregatesInput = {
   organizationId?: Prisma.StringWithAggregatesFilter<"McpConnection"> | string
   integrationSlug?: Prisma.StringWithAggregatesFilter<"McpConnection"> | string
   connectionId?: Prisma.StringWithAggregatesFilter<"McpConnection"> | string
-  qualifiedName?: Prisma.StringWithAggregatesFilter<"McpConnection"> | string
+  toolkitSlug?: Prisma.StringWithAggregatesFilter<"McpConnection"> | string
+  provider?: Prisma.EnumMcpProviderWithAggregatesFilter<"McpConnection"> | $Enums.McpProvider
   ownerAgent?: Prisma.EnumAgentWithAggregatesFilter<"McpConnection"> | $Enums.Agent
   status?: Prisma.EnumMcpConnectionStatusWithAggregatesFilter<"McpConnection"> | $Enums.McpConnectionStatus
   configSchema?: Prisma.JsonNullableWithAggregatesFilter<"McpConnection">
@@ -337,7 +349,8 @@ export type McpConnectionCreateInput = {
   organizationId: string
   integrationSlug: string
   connectionId: string
-  qualifiedName: string
+  toolkitSlug: string
+  provider?: $Enums.McpProvider
   ownerAgent: $Enums.Agent
   status?: $Enums.McpConnectionStatus
   configSchema?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -354,7 +367,8 @@ export type McpConnectionUncheckedCreateInput = {
   organizationId: string
   integrationSlug: string
   connectionId: string
-  qualifiedName: string
+  toolkitSlug: string
+  provider?: $Enums.McpProvider
   ownerAgent: $Enums.Agent
   status?: $Enums.McpConnectionStatus
   configSchema?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -371,7 +385,8 @@ export type McpConnectionUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
-  qualifiedName?: Prisma.StringFieldUpdateOperationsInput | string
+  toolkitSlug?: Prisma.StringFieldUpdateOperationsInput | string
+  provider?: Prisma.EnumMcpProviderFieldUpdateOperationsInput | $Enums.McpProvider
   ownerAgent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   status?: Prisma.EnumMcpConnectionStatusFieldUpdateOperationsInput | $Enums.McpConnectionStatus
   configSchema?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -388,7 +403,8 @@ export type McpConnectionUncheckedUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
-  qualifiedName?: Prisma.StringFieldUpdateOperationsInput | string
+  toolkitSlug?: Prisma.StringFieldUpdateOperationsInput | string
+  provider?: Prisma.EnumMcpProviderFieldUpdateOperationsInput | $Enums.McpProvider
   ownerAgent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   status?: Prisma.EnumMcpConnectionStatusFieldUpdateOperationsInput | $Enums.McpConnectionStatus
   configSchema?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -405,7 +421,8 @@ export type McpConnectionCreateManyInput = {
   organizationId: string
   integrationSlug: string
   connectionId: string
-  qualifiedName: string
+  toolkitSlug: string
+  provider?: $Enums.McpProvider
   ownerAgent: $Enums.Agent
   status?: $Enums.McpConnectionStatus
   configSchema?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -422,7 +439,8 @@ export type McpConnectionUpdateManyMutationInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
-  qualifiedName?: Prisma.StringFieldUpdateOperationsInput | string
+  toolkitSlug?: Prisma.StringFieldUpdateOperationsInput | string
+  provider?: Prisma.EnumMcpProviderFieldUpdateOperationsInput | $Enums.McpProvider
   ownerAgent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   status?: Prisma.EnumMcpConnectionStatusFieldUpdateOperationsInput | $Enums.McpConnectionStatus
   configSchema?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -439,7 +457,8 @@ export type McpConnectionUncheckedUpdateManyInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
-  qualifiedName?: Prisma.StringFieldUpdateOperationsInput | string
+  toolkitSlug?: Prisma.StringFieldUpdateOperationsInput | string
+  provider?: Prisma.EnumMcpProviderFieldUpdateOperationsInput | $Enums.McpProvider
   ownerAgent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   status?: Prisma.EnumMcpConnectionStatusFieldUpdateOperationsInput | $Enums.McpConnectionStatus
   configSchema?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -461,7 +480,8 @@ export type McpConnectionCountOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
-  qualifiedName?: Prisma.SortOrder
+  toolkitSlug?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
   ownerAgent?: Prisma.SortOrder
   status?: Prisma.SortOrder
   configSchema?: Prisma.SortOrder
@@ -478,7 +498,8 @@ export type McpConnectionMaxOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
-  qualifiedName?: Prisma.SortOrder
+  toolkitSlug?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
   ownerAgent?: Prisma.SortOrder
   status?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
@@ -494,7 +515,8 @@ export type McpConnectionMinOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
-  qualifiedName?: Prisma.SortOrder
+  toolkitSlug?: Prisma.SortOrder
+  provider?: Prisma.SortOrder
   ownerAgent?: Prisma.SortOrder
   status?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
@@ -503,6 +525,10 @@ export type McpConnectionMinOrderByAggregateInput = {
   connectedByUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type EnumMcpProviderFieldUpdateOperationsInput = {
+  set?: $Enums.McpProvider
 }
 
 export type EnumMcpConnectionStatusFieldUpdateOperationsInput = {
@@ -516,7 +542,8 @@ export type McpConnectionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   organizationId?: boolean
   integrationSlug?: boolean
   connectionId?: boolean
-  qualifiedName?: boolean
+  toolkitSlug?: boolean
+  provider?: boolean
   ownerAgent?: boolean
   status?: boolean
   configSchema?: boolean
@@ -533,7 +560,8 @@ export type McpConnectionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   organizationId?: boolean
   integrationSlug?: boolean
   connectionId?: boolean
-  qualifiedName?: boolean
+  toolkitSlug?: boolean
+  provider?: boolean
   ownerAgent?: boolean
   status?: boolean
   configSchema?: boolean
@@ -550,7 +578,8 @@ export type McpConnectionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   organizationId?: boolean
   integrationSlug?: boolean
   connectionId?: boolean
-  qualifiedName?: boolean
+  toolkitSlug?: boolean
+  provider?: boolean
   ownerAgent?: boolean
   status?: boolean
   configSchema?: boolean
@@ -567,7 +596,8 @@ export type McpConnectionSelectScalar = {
   organizationId?: boolean
   integrationSlug?: boolean
   connectionId?: boolean
-  qualifiedName?: boolean
+  toolkitSlug?: boolean
+  provider?: boolean
   ownerAgent?: boolean
   status?: boolean
   configSchema?: boolean
@@ -579,7 +609,7 @@ export type McpConnectionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type McpConnectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "integrationSlug" | "connectionId" | "qualifiedName" | "ownerAgent" | "status" | "configSchema" | "lastConnectedAt" | "lastCheckedAt" | "lastError" | "connectedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpConnection"]>
+export type McpConnectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "integrationSlug" | "connectionId" | "toolkitSlug" | "provider" | "ownerAgent" | "status" | "configSchema" | "lastConnectedAt" | "lastCheckedAt" | "lastError" | "connectedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpConnection"]>
 
 export type $McpConnectionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "McpConnection"
@@ -598,15 +628,19 @@ export type $McpConnectionPayload<ExtArgs extends runtime.Types.Extensions.Inter
      */
     integrationSlug: string
     /**
-     * Short opaque id passed to Smithery as connectionId, e.g. "mc_8fk2n1q7xa2p".
-     * Deliberately not derived from organizationId — keeps Smithery-visible
-     * tool-name prefixes short and avoids leaking org ids into MCP tool names.
+     * Composio's real connected-account id (or connection-request id prior to
+     * OAuth completion), returned by the provider — not locally generated.
      */
     connectionId: string
     /**
-     * Smithery registry qualifiedName, e.g. "@smithery-ai/notion".
+     * Toolkit identifier in the owning provider's own namespace — Composio's
+     * toolkit slug (e.g. "gmail").
      */
-    qualifiedName: string
+    toolkitSlug: string
+    /**
+     * Which provider brokers this connection. Composio brokers the whole catalog.
+     */
+    provider: $Enums.McpProvider
     /**
      * Agent whose "Onboard me" UI surfaced this connection. UX attribution
      * only — NOT access control; tool visibility is computed from the
@@ -618,8 +652,8 @@ export type $McpConnectionPayload<ExtArgs extends runtime.Types.Extensions.Inter
      */
     status: $Enums.McpConnectionStatus
     /**
-     * Cached copy of the server's session config JSON Schema, avoids a
-     * refetch from Smithery's registry on every settings page load.
+     * Cached copy of the toolkit's connect-time config JSON Schema, avoids a
+     * refetch from Composio on every settings page load.
      */
     configSchema: runtime.JsonValue | null
     /**
@@ -627,7 +661,7 @@ export type $McpConnectionPayload<ExtArgs extends runtime.Types.Extensions.Inter
      */
     lastConnectedAt: Date | null
     /**
-     * Last time status was polled/refreshed from Smithery.
+     * Last time status was polled/refreshed from Composio.
      */
     lastCheckedAt: Date | null
     /**
@@ -1073,7 +1107,8 @@ export interface McpConnectionFieldRefs {
   readonly organizationId: Prisma.FieldRef<"McpConnection", 'String'>
   readonly integrationSlug: Prisma.FieldRef<"McpConnection", 'String'>
   readonly connectionId: Prisma.FieldRef<"McpConnection", 'String'>
-  readonly qualifiedName: Prisma.FieldRef<"McpConnection", 'String'>
+  readonly toolkitSlug: Prisma.FieldRef<"McpConnection", 'String'>
+  readonly provider: Prisma.FieldRef<"McpConnection", 'McpProvider'>
   readonly ownerAgent: Prisma.FieldRef<"McpConnection", 'Agent'>
   readonly status: Prisma.FieldRef<"McpConnection", 'McpConnectionStatus'>
   readonly configSchema: Prisma.FieldRef<"McpConnection", 'Json'>

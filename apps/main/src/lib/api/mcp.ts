@@ -7,7 +7,7 @@ export type McpConnectionStatus = "PENDING" | "AUTH_REQUIRED" | "CONNECTED" | "E
 export interface McpConnectionSummary {
   slug: string
   connectionId: string
-  qualifiedName: string
+  toolkitSlug: string
   ownerAgent: string
   status: McpConnectionStatus
   lastConnectedAt: string | null

@@ -25,16 +25,6 @@ const STEPS: DriveStep[] = [
     },
   },
   {
-    element: "[data-tour='dashboard-briefing']",
-    popover: {
-      title: "Today's Briefing",
-      description:
-        "Vega reads your inbox and calendar each morning and produces a curated summary. Click to open your AI-organized day.",
-      side: "bottom",
-      align: "start",
-    },
-  },
-  {
     element: "[data-tour='dashboard-metrics']",
     popover: {
       title: "At a Glance",
@@ -59,17 +49,7 @@ const STEPS: DriveStep[] = [
     popover: {
       title: "Tasks",
       description:
-        "Schedule recurring operations — morning briefings, weekly SEO reports, daily content ideas — on any cadence you choose.",
-      side: "right",
-      align: "start",
-    },
-  },
-  {
-    element: "[data-tour='nav-workspace']",
-    popover: {
-      title: "Workspace",
-      description:
-        "Your AI-powered Inbox, Briefing, and Calendar. Vega auto-labels emails, surfaces important threads, and syncs your schedule.",
+        "Schedule recurring operations — weekly SEO reports, daily content ideas — on any cadence you choose.",
       side: "right",
       align: "start",
     },

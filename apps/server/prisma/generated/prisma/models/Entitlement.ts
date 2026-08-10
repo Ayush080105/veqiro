@@ -16,8 +16,8 @@ import type * as Prisma from "../internal/prismaNamespace.js"
  * Model Entitlement
  * Source of truth for agent access. One row per purchase of one agent.
  * Deliberately NOT unique on [organizationId, agent]: overlapping rows are
- * legal and load-bearing (during a Crew upgrade an org briefly holds both an
- * AGENT row and a CREW row for the same agent).
+ * legal and load-bearing (e.g. a TRIAL row and an AGENT row for the same
+ * agent both exist briefly while a trialing org converts to paid).
  */
 export type EntitlementModel = runtime.Types.Result.DefaultSelection<Prisma.$EntitlementPayload>
 
@@ -990,8 +990,8 @@ export type $EntitlementPayload<ExtArgs extends runtime.Types.Extensions.Interna
      */
     cancelAtPeriodEnd: boolean
     /**
-     * Cents actually paid for this agent. Drives the Crew upgrade credit, so it
-     * must be the price paid, not today's list price.
+     * Cents actually paid for this agent — the price paid, not today's list
+     * price.
      */
     priceCents: number
     /**

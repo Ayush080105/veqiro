@@ -76,17 +76,10 @@ const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Request Gmail + Calendar scopes so Vega can read inbox, label, draft, and
-      // manage events. accessType=offline + prompt=consent forces a refresh_token.
-      scope: [
-        "openid",
-        "email",
-        "profile",
-        "https://www.googleapis.com/auth/gmail.modify",
-        "https://www.googleapis.com/auth/calendar",
-      ],
-      accessType: "offline",
-      prompt: "consent",
+      // Basic login only — Gmail/Calendar access is no longer bundled into
+      // sign-in. Google connects the same way as every other integration:
+      // opt-in via its Composio-backed MCP catalog card in Settings.
+      scope: ["openid", "email", "profile"],
     },
   },
   plugins: [

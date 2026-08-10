@@ -9,7 +9,6 @@ export const qk = {
   lastMessages: () => ["last-messages"] as const,
   chat: (agentSlug: string, organizationId: string) =>
     ["chat", agentSlug, organizationId] as const,
-  googleConnected: () => ["auth-accounts", "google"] as const,
   lexSources: () => ["lex", "sources"] as const,
   mayaPublishedPosts: (organizationId: string) =>
     ["maya", "published-posts", organizationId] as const,

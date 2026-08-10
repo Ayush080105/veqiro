@@ -12,7 +12,7 @@ export interface ConnectResult {
 export interface McpConnectionSummary {
   slug: string;
   connectionId: string;
-  qualifiedName: string;
+  toolkitSlug: string;
   ownerAgent: Agent;
   status: McpConnectionStatus;
   lastConnectedAt: Date | null;
@@ -22,7 +22,7 @@ export interface McpConnectionSummary {
 /** What contextService.ts's callAgentWithContext() merges into agent request metadata. */
 export interface McpConnectionRef {
   connectionId: string;
-  qualifiedName: string;
+  toolkitSlug: string;
   integrationSlug: string;
 }
 

@@ -129,21 +129,21 @@ export const AGENTS: AgentConfig[] = [
     llm: "GPT-4o-mini",
     personality: "Organised, proactive, detail-oriented",
     description:
-      "Vega manages your inbox, schedules meetings, and delivers executive briefings — your always-on chief of staff.",
-    specialties: ["Email Triage", "Calendar Management", "Executive Briefings", "Task Management"],
+      "Vega helps you plan the day, prioritize, and think through decisions — your always-on chief of staff. Connect Gmail or Calendar any time to bring in your real inbox and schedule.",
+    specialties: ["Prioritization", "Planning", "Decision Support", "Task Management"],
     color: "var(--vq-blue)",
     ink: "#0E5C74",
     initials: "VG",
     tag: "Your right hand, 24/7",
     quote:
-      "Sent you a calendar hold for Thursday. Also, Priya wants 15 min on Tuesday — added to your \"maybe\" pile.",
+      "Given the three deadlines this week, I'd tackle the investor update first — everything else can slip a day.",
     stats: [
-      { k: "Emails handled", v: "1.2M+" },
-      { k: "Meetings booked", v: "340K" },
+      { k: "Conversations", v: "1.2M+" },
+      { k: "Decisions supported", v: "340K" },
       { k: "Avg reply time", v: "47s" },
     ],
-    skills: ["Inbox triage", "Calendar tetris", "Meeting prep", "Follow-ups"],
-    quickPrompts: ["Block 2hrs tomorrow for deep work", "Summarize my inbox", "Schedule team sync"],
+    skills: ["Prioritization", "Planning", "Task tracking", "Follow-ups"],
+    quickPrompts: ["Help me plan tomorrow", "What should I prioritize this week?", "Draft a follow-up plan"],
   },
 ]
 
