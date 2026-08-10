@@ -11,7 +11,6 @@ import {
   FilePlus,
   Scale,
   ClipboardCheck,
-  Mail,
   PenLine,
   Loader2,
   Stamp,
@@ -498,29 +497,6 @@ export function ContractAnalysisCard({
           <p className="text-[11px] leading-relaxed">
             <strong>Overall:</strong> {a.overall_assessment}
           </p>
-        )}
-
-        {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
-            <Button
-              variant="chat-action"
-              onClick={() => {
-                const highRisks = a.risks
-                  ?.filter((r) => r.severity === "high" || r.severity === "critical")
-                  .map((r) => `${r.clause}: ${r.risk}`)
-                  .slice(0, 3)
-                  .join("\n") ?? ""
-                onFollowUpAction("vega:compose-email", {
-                  subject: `Contract review: ${a.document_type ?? "document"} — ${a.risk_level} risk`,
-                  instructions: highRisks
-                    ? `Alert team about these contract risks:\n${highRisks}`
-                    : a.executive_summary ?? "",
-                })
-              }}
-            >
-              <Mail className="size-3" /> Email team about risks · Vega
-            </Button>
-          </div>
         )}
 
       </AgentCard.Body>

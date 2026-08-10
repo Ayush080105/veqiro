@@ -16,7 +16,6 @@ import {
   AgentNotAvailableError,
 } from "@/lib/api/assistants"
 import { useBrandKit } from "@/lib/api/brain"
-import { useGoogleConnected } from "@/lib/api/auth-accounts"
 
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
@@ -40,8 +39,6 @@ import { qk } from "@/lib/query-keys"
 import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
-import { FeatureLockBanner } from "@/components/ui/feature-lock-banner"
-import { GOOGLE_FEATURES_LOCKED } from "@/lib/config/features"
 import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
@@ -431,7 +428,6 @@ export default function AssistantChatPage() {
     }
   }, [hasPreviousPage, isLoadingPrev, msgWindow, id, organizationId])
   const { data: brandKit = null } = useBrandKit(organizationId)
-  const { data: googleLinked } = useGoogleConnected(agent?.id === "vega")
   const { data: rexDatasetCount = 0 } = useQuery({
     queryKey: REX_DATASETS_KEY(organizationId),
     queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets"),
@@ -1063,8 +1059,8 @@ export default function AssistantChatPage() {
   if (!agent) return null
 
   // Surface entitlement gate: messages fetch returned 402, or a send attempt hit 402.
-  // Normalized through getUpgradeRequiredReason (same as briefing/InboxView/CalendarView)
-  // so this shows the specific trial/expired/not-purchased copy instead of the
+  // Normalized through getUpgradeRequiredReason so this shows the specific
+  // trial/expired/not-purchased copy instead of the
   // generic fallback — the raw error code doesn't match UpgradeRequiredCard's copy map.
   const upgradeError =
     (fetchError?.status === 402 ? fetchError : null) ?? sendError
@@ -1293,11 +1289,6 @@ export default function AssistantChatPage() {
             onSwitchToChat={() => setRexTab("chat")}
           />
         </div>
-      ) : isVega && GOOGLE_FEATURES_LOCKED ? (
-        <FeatureLockBanner
-          title="vega"
-          description="Vega manages your inbox, schedules meetings, and delivers executive briefings — powered by Gmail and Google Calendar. She'll be ready very soon."
-        />
       ) : historyLoaded && !hasMessages && !isBusy ? (
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
@@ -1399,44 +1390,6 @@ export default function AssistantChatPage() {
       )}
 
       <div style={{ flexShrink: 0 }}>
-        {isVega && googleLinked === false && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              background: "#FFFBEB",
-              borderTop: "1px solid #E5E5E5",
-              padding: "10px 20px",
-            }}
-          >
-            <p
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 11,
-                letterSpacing: 1,
-                color: "#333",
-                margin: 0,
-              }}
-            >
-              {"// connect google calendar to let vega schedule on your behalf"}
-            </p>
-            <Button
-              variant="brand-dark"
-              size="brand-sm"
-              onClick={() => {
-                authClient.signIn.social({
-                  provider: "google",
-                  callbackURL: `${window.location.origin}/assistants/vega`,
-                })
-              }}
-            >
-              Connect Google
-            </Button>
-          </div>
-        )}
-
         {!(isLex && lexTab === "documents") &&
           !(isSage && sageTab === "favourites") &&
           !(isRex && rexTab === "data") &&
@@ -1447,8 +1400,8 @@ export default function AssistantChatPage() {
             onSend={handleSend}
             onPlusClick={() => setPlusOpen(true)}
             onAttachClick={isLex ? openUploadAction : undefined}
-            placeholder={isVega && GOOGLE_FEATURES_LOCKED ? "Vega is coming soon…" : `Message ${agent.name.toLowerCase()}…`}
-            disabled={isLoading || (isVega && GOOGLE_FEATURES_LOCKED)}
+            placeholder={`Message ${agent.name.toLowerCase()}…`}
+            disabled={isLoading}
           />
         )}
       </div>

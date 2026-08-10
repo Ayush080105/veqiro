@@ -61,15 +61,6 @@ import {
   ComplianceCheckCard,
   StampLetterheadCard,
 } from "@/components/agents/lex/cards"
-// Vega
-import {
-  InboxTriageCard,
-  DraftReplyCard,
-  CalendarCard,
-  EventCreatedCard,
-  ExecutiveBriefingCard,
-  ComposeEmailCard,
-} from "@/components/agents/vega/cards"
 
 export interface ActionResultRendererProps {
   actionId: AgentActionId
@@ -196,19 +187,6 @@ export function ActionResultRenderer({ actionId, result, input, agentColor, onFo
       return <ComplianceCheckCard result={r} onFollowUpAction={onFollowUpAction} />
     case "lex:stamp-letterhead":
       return <StampLetterheadCard result={r} />
-
-    case "vega:process-inbox":
-      return <InboxTriageCard result={r} onFollowUpAction={onFollowUpAction} />
-    case "vega:draft-reply":
-      return <DraftReplyCard result={r} />
-    case "vega:calendar-summary":
-      return <CalendarCard result={r} />
-    case "vega:create-event":
-      return <EventCreatedCard result={r} />
-    case "vega:executive-briefing":
-      return <ExecutiveBriefingCard result={r} />
-    case "vega:compose-email":
-      return <ComposeEmailCard result={r} />
 
     default:
       return (

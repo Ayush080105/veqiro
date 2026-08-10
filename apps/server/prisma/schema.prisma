@@ -24,13 +24,19 @@ enum SocialPlatform {
   INSTAGRAM
 }
 
-/// Lifecycle of an org's connection to a Smithery-hosted MCP server.
+/// Lifecycle of an org's connection to a Composio-hosted MCP toolkit.
 enum McpConnectionStatus {
   PENDING
   AUTH_REQUIRED
   CONNECTED
   ERROR
   DISCONNECTED
+}
+
+/// Which provider brokers an McpConnection row. Composio brokers the whole
+/// catalog. (Instagram publishes via a native Meta Graph API provider, not MCP.)
+enum McpProvider {
+  COMPOSIO
 }
 
 /// Local entitlement state mirrored from the billing provider.
@@ -734,9 +740,9 @@ model SocialAccount {
   @@map("social_account")
 }
 
-/// Org-level pointer to a Smithery-brokered MCP connection. Smithery stores
-/// the actual credentials server-side (encrypted, write-only) — this row is
-/// status/metadata only, never a token.
+/// Org-level pointer to an MCP connection brokered by Composio. The provider
+/// stores the actual credentials server-side (encrypted, write-only) — this
+/// row is status/metadata only, never a token.
 model McpConnection {
   /// Connection id.
   id                String              @id @default(uuid())
@@ -744,24 +750,26 @@ model McpConnection {
   organizationId    String
   /// Catalog slug from @repo/integrations-catalog, e.g. "notion".
   integrationSlug   String
-  /// Short opaque id passed to Smithery as connectionId, e.g. "mc_8fk2n1q7xa2p".
-  /// Deliberately not derived from organizationId — keeps Smithery-visible
-  /// tool-name prefixes short and avoids leaking org ids into MCP tool names.
+  /// Composio's real connected-account id (or connection-request id prior to
+  /// OAuth completion), returned by the provider — not locally generated.
   connectionId      String              @unique
-  /// Smithery registry qualifiedName, e.g. "@smithery-ai/notion".
-  qualifiedName     String
+  /// Toolkit identifier in the owning provider's own namespace — Composio's
+  /// toolkit slug (e.g. "gmail").
+  toolkitSlug       String
+  /// Which provider brokers this connection. Composio brokers the whole catalog.
+  provider          McpProvider         @default(COMPOSIO)
   /// Agent whose "Onboard me" UI surfaced this connection. UX attribution
   /// only — NOT access control; tool visibility is computed from the
   /// catalog's agents[] field at request time.
   ownerAgent        Agent
   /// Connection lifecycle state.
   status            McpConnectionStatus @default(PENDING)
-  /// Cached copy of the server's session config JSON Schema, avoids a
-  /// refetch from Smithery's registry on every settings page load.
+  /// Cached copy of the toolkit's connect-time config JSON Schema, avoids a
+  /// refetch from Composio on every settings page load.
   configSchema      Json?
   /// Last time this connection reached CONNECTED.
   lastConnectedAt   DateTime?
-  /// Last time status was polled/refreshed from Smithery.
+  /// Last time status was polled/refreshed from Composio.
   lastCheckedAt     DateTime?
   /// Last error message, if status is ERROR.
   lastError         String?

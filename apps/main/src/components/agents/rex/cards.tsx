@@ -32,7 +32,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts"
-import { MessageSquare, BarChart2, Sparkles, TrendingUp as TrendUp, Lightbulb, CheckCircle2, Send } from "lucide-react"
+import { MessageSquare, BarChart2, Sparkles, TrendingUp as TrendUp, Lightbulb, CheckCircle2 } from "lucide-react"
 import type {
   RexAnalyzeMetricsResult,
   RexForecastResult,
@@ -588,14 +588,6 @@ export function RunwayCard({
                 scenarios: [{ name: "", changes: {} }],
               })}
             />
-            <FollowUpBtn
-              label="Email board · Vega"
-              icon={Mail}
-              onClick={() => onFollowUpAction("vega:compose-email" as AgentActionId, {
-                subject: `Runway update: ${result.months_remaining != null ? `${result.months_remaining} months` : "Profitable"}`,
-                instructions: result.recommendation,
-              })}
-            />
           </div>
         )}
       </AgentCard.Body>
@@ -886,18 +878,6 @@ export function InvestorUpdateCard({
             {result.full_email_body}
           </pre>
         </details>
-        {onFollowUpAction && (
-          <div className="flex flex-wrap justify-end gap-1.5 pt-1">
-            <FollowUpBtn
-              label="Send via Vega"
-              icon={Send}
-              onClick={() => onFollowUpAction("vega:compose-email" as AgentActionId, {
-                subject: result.subject_line,
-                instructions: `Send this investor update as-is:\n\n${result.full_email_body}`,
-              })}
-            />
-          </div>
-        )}
       </AgentCard.Body>
     </AgentCard>
   )

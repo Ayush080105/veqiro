@@ -1072,116 +1072,6 @@ export interface LexComplianceCheckResult {
   estimated_effort: string
 }
 
-// ─── Vega ────────────────────────────────────────────────────────────────────
-
-export interface VegaProcessInboxRequest {
-  max_emails?: number
-  auto_label?: boolean
-  draft_replies?: boolean
-}
-
-export interface ProcessedEmail {
-  email_id: string
-  subject: string
-  from_name: string
-  priority: "urgent" | "high" | "medium" | "low"
-  summary: string
-  suggested_action: string
-  label_applied?: string
-  draft_created: boolean
-  draft_id?: string
-}
-
-export interface VegaProcessInboxResult {
-  processed: ProcessedEmail[]
-  stats: {
-    total_processed: number
-    urgent: number
-    high: number
-    medium: number
-    low: number
-    drafts_created: number
-    labels_applied: number
-  }
-}
-
-export interface VegaDraftReplyRequest {
-  email_id: string
-  reply_instructions: string
-  tone?: string
-  save_as_draft?: boolean
-}
-
-export interface VegaDraftReplyResult {
-  draft: { to: string; subject: string; body: string; draft_id?: string; saved: boolean }
-  suggested_follow_up: string
-}
-
-export interface VegaCalendarSummaryRequest {
-  days_ahead?: number
-}
-
-export interface VegaCalendarSummaryResult {
-  events: Array<{ id: string; title: string; start: string; end: string; attendees?: string[] }>
-  conflicts: Array<{ event_a: string; event_b: string; overlap_minutes: number }>
-  free_slots: Array<{ start: string; end: string }>
-  daily_summary: Record<string, string>
-}
-
-export interface VegaCreateEventRequest {
-  description: string
-  check_conflicts?: boolean
-}
-
-export interface VegaCreateEventResult {
-  event: {
-    id: string
-    title: string
-    start: string
-    end: string
-    attendees?: string[]
-    meet_link?: string
-    status: string
-  }
-  conflicts: string[]
-  google_event_id?: string
-  created: boolean
-}
-
-export interface VegaExecutiveBriefingRequest {
-  include_email?: boolean
-  include_calendar?: boolean
-}
-
-export interface VegaExecutiveBriefingResult {
-  briefing: {
-    date: string
-    good_morning: string
-    priority_score: number
-    urgent_actions: string[]
-    today_schedule: Array<{ time: string; title: string }>
-    upcoming_this_week: Array<{ day: string; title: string }>
-    email_summary: string
-    free_time_today: string
-    focus_recommendation: string
-    generated_at: string
-  }
-}
-
-export interface VegaComposeEmailRequest {
-  to: string
-  subject: string
-  instructions: string
-  tone?: string
-  include_cta?: boolean
-}
-
-export interface VegaComposeEmailResult {
-  draft: { to: string; subject: string; body: string; draft_id?: string }
-  draft_id?: string
-  errors?: string[]
-}
-
 export interface SageBlogIdeaItem {
   title: string
   topic: string
@@ -1362,12 +1252,6 @@ export type AgentActionId =
   | "lex:legal-research"
   | "lex:compliance-check"
   | "lex:stamp-letterhead"
-  | "vega:process-inbox"
-  | "vega:draft-reply"
-  | "vega:calendar-summary"
-  | "vega:create-event"
-  | "vega:executive-briefing"
-  | "vega:compose-email"
 
 export interface ActionMessagePayload {
   actionId: AgentActionId

@@ -41,6 +41,13 @@ export const McpConnectionStatus = {
 export type McpConnectionStatus = (typeof McpConnectionStatus)[keyof typeof McpConnectionStatus]
 
 
+export const McpProvider = {
+  COMPOSIO: 'COMPOSIO'
+} as const
+
+export type McpProvider = (typeof McpProvider)[keyof typeof McpProvider]
+
+
 export const SubscriptionStatus = {
   TRIALING: 'TRIALING',
   ACTIVE: 'ACTIVE',

@@ -4133,7 +4133,8 @@ export const McpConnectionScalarFieldEnum = {
   organizationId: 'organizationId',
   integrationSlug: 'integrationSlug',
   connectionId: 'connectionId',
-  qualifiedName: 'qualifiedName',
+  toolkitSlug: 'toolkitSlug',
+  provider: 'provider',
   ownerAgent: 'ownerAgent',
   status: 'status',
   configSchema: 'configSchema',
@@ -4761,6 +4762,20 @@ export type EnumSocialPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$P
  * Reference to a field of type 'SocialPlatform[]'
  */
 export type ListEnumSocialPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialPlatform[]'>
+    
+
+
+/**
+ * Reference to a field of type 'McpProvider'
+ */
+export type EnumMcpProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpProvider'>
+    
+
+
+/**
+ * Reference to a field of type 'McpProvider[]'
+ */
+export type ListEnumMcpProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpProvider[]'>
     
 
 

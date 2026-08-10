@@ -20,8 +20,8 @@ const authMiddleware = async (
         throw new UnauthenticatedError("Unauthorized");
       }
 
-      const userId = req.body.userId ?? req.query.userId;
-      const organizationId = req.body.organizationId ?? req.query.organizationId;
+      const userId = req.body?.userId ?? req.query.userId;
+      const organizationId = req.body?.organizationId ?? req.query.organizationId;
       if (!userId || !organizationId) {
         throw new BadRequestError(
           "Internal requests must supply userId and organizationId in body or query"

@@ -78,7 +78,7 @@ router.use("/integrations", integrationsPublicRouter);
 router.use("/integrations", integrationsProtectedRouter);
 
 router.use("/mcp", mcpRouter);
-// apps/ai's only path to Smithery — Node holds the master API key exclusively.
+// apps/ai's only path to Composio — Node holds the master API key exclusively.
 router.use("/internal/mcp", mcpInternalRouter);
 
 export default router;

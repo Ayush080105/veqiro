@@ -705,7 +705,7 @@ export type $PendingCheckoutPayload<ExtArgs extends runtime.Types.Extensions.Int
      */
     kind: $Enums.CheckoutKind
     /**
-     * Agent being purchased. Null for CREW / CREW_UPGRADE / MAYA_TOPUP.
+     * Agent being purchased. Null for MAYA_TOPUP.
      */
     agent: $Enums.Agent | null
     /**

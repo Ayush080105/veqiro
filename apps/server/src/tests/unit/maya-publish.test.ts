@@ -47,6 +47,13 @@ vi.mock("../../modules/integrations/integrations.service.js", () => ({
   isAuthTokenError: vi.fn(),
 }));
 
+// mcp.service.js transitively constructs the Composio SDK client
+// at import time (it throws immediately without real API keys) — mocked
+// here since these Twitter-only tests never exercise the MCP path.
+vi.mock("../../modules/mcp/mcp.service.js", () => ({
+  callTool: vi.fn(),
+}));
+
 const twitterAccount = (accessToken: string): SocialAccount => ({
   id: "acct_1",
   organizationId: "org_1",

@@ -1,8 +1,8 @@
 """
-apps/ai's only path to Smithery is through Node — Node holds the Smithery
-master API key exclusively (see apps/server/src/lib/smithery.ts) and enforces
+apps/ai's only path to Composio is through Node — Node holds the Composio
+master API key exclusively (see apps/server/src/lib/composio.ts) and enforces
 that a connectionId belongs to the calling organization before ever calling
-Smithery. This module just makes plain internal REST calls to Node, mirroring
+Composio. This module just makes plain internal REST calls to Node, mirroring
 the pattern already established in core/brand_kit.py.
 """
 
@@ -33,7 +33,10 @@ class McpToolCallError(Exception):
 
 
 async def list_connection_tools(organization_id: str, connection_id: str) -> list[dict]:
-    """Returns raw Smithery Tool dicts: {name, description?, inputSchema, ...}."""
+    """Returns {name, description?, inputSchema} dicts — Node remaps Composio's
+    raw tool shape ({slug, name, description, inputParameters}) into this
+    MCP-style shape before returning it (see mcp.service.ts's
+    listToolsForConnection); `name` here is the callable tool slug."""
     url = f"{settings.BRAND_KIT_SERVICE_URL}/api/v1/internal/mcp/connections/{connection_id}/tools"
     client = _get_http_client()
     resp = await client.get(

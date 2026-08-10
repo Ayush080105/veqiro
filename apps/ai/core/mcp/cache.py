@@ -1,7 +1,7 @@
 """
-Per-(org, agent) MCP tool-list cache. Smithery bills per RPC (tools/list,
-tools/call), so this avoids re-listing tools on every chat turn — see
-MCP_INTEGRATIONS_FINAL.pdf-derived plan, Risk #6 (RPC billing exposure).
+Per-(org, agent) MCP tool-list cache. Avoids re-listing tools from Composio
+on every chat turn — see MCP_INTEGRATIONS_FINAL.pdf-derived plan, Risk #6
+(RPC/usage exposure).
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ async def get_mcp_tools(
 ) -> tuple[list[ToolDefinition], dict[str, tuple[str, str]]]:
     """
     connections: the `mcp_connections` list Node placed in request.metadata,
-    e.g. [{"connectionId": "mc_...", "qualifiedName": "...", "integrationSlug": "slack"}].
+    e.g. [{"connectionId": "ca_...", "toolkitSlug": "slack", "integrationSlug": "slack"}].
 
     Returns (tool_definitions, alias_map) where alias_map maps the sanitized
     LLM-facing tool name back to (connection_id, real_tool_name) for dispatch.

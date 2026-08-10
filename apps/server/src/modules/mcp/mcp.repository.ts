@@ -1,5 +1,5 @@
 import { prisma } from "../../config/prisma.js";
-import { Prisma, Agent, McpConnectionStatus } from "../../../prisma/generated/prisma/client.js";
+import { Prisma, Agent, McpConnectionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
 
 export const findByOrg = (organizationId: string) =>
   prisma.mcpConnection.findMany({
@@ -24,7 +24,8 @@ export interface UpsertInput {
   organizationId: string;
   integrationSlug: string;
   connectionId: string;
-  qualifiedName: string;
+  toolkitSlug: string;
+  provider: McpProvider;
   ownerAgent: Agent;
   status: McpConnectionStatus;
   configSchema?: Record<string, unknown> | null;
@@ -44,7 +45,8 @@ export const upsert = (input: UpsertInput) =>
       organizationId: input.organizationId,
       integrationSlug: input.integrationSlug,
       connectionId: input.connectionId,
-      qualifiedName: input.qualifiedName,
+      toolkitSlug: input.toolkitSlug,
+      provider: input.provider,
       ownerAgent: input.ownerAgent,
       status: input.status,
       configSchema: (input.configSchema ?? undefined) as Prisma.InputJsonValue | undefined,
@@ -55,7 +57,8 @@ export const upsert = (input: UpsertInput) =>
     },
     update: {
       connectionId: input.connectionId,
-      qualifiedName: input.qualifiedName,
+      toolkitSlug: input.toolkitSlug,
+      provider: input.provider,
       status: input.status,
       configSchema: (input.configSchema ?? undefined) as Prisma.InputJsonValue | undefined,
       lastError: input.lastError ?? null,

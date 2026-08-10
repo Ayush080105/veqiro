@@ -775,9 +775,10 @@ export const publish = async (
 
   const resolved = await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
 
-  // Pre-flight: every platform demands some media to publish
-  if (!imageUrl && !videoUrl) {
-    throw new BadRequestError("Publishing requires an image or video");
+  // Pre-flight: Instagram's Graph API rejects text-only posts — Twitter and
+  // LinkedIn both support them, so only gate Instagram here.
+  if (resolved.account.platform === SocialPlatform.INSTAGRAM && !imageUrl && !videoUrl) {
+    throw new BadRequestError("Publishing to Instagram requires an image or video");
   }
 
   const caption = normalizeCaption(input.caption, input.hashtags);
@@ -865,14 +866,16 @@ export const schedulePost = async (
     videoUrl = uploaded.url;
   }
 
-  if (!imageUrl && !videoUrl) {
-    throw new BadRequestError("Scheduling requires an image or video");
-  }
-
   const { account, platform } = await integrationsService.getUsableSocialAccount(
     organizationId,
     input.socialAccountId
   );
+
+  // Instagram's Graph API rejects text-only posts — Twitter and LinkedIn both
+  // support them, so only gate Instagram here.
+  if (account.platform === SocialPlatform.INSTAGRAM && !imageUrl && !videoUrl) {
+    throw new BadRequestError("Scheduling to Instagram requires an image or video");
+  }
   const caption = normalizeCaption(input.caption, input.hashtags);
 
   const row = await prisma.publishedPost.create({

@@ -220,7 +220,7 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
   // 2.5. Resolve this org's connected MCP tools relevant to this agent.
-  // Cheap no-op (no DB/Smithery call beyond one indexed query) for the
+  // Cheap no-op (no DB/provider call beyond one indexed query) for the
   // common case of an org with zero connections.
   let mcpMeta: Record<string, unknown> = {}
   try {

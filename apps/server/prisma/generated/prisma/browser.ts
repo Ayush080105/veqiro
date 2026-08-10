@@ -51,8 +51,8 @@ export type Subscription = Prisma.SubscriptionModel
  * Model Entitlement
  * Source of truth for agent access. One row per purchase of one agent.
  * Deliberately NOT unique on [organizationId, agent]: overlapping rows are
- * legal and load-bearing (during a Crew upgrade an org briefly holds both an
- * AGENT row and a CREW row for the same agent).
+ * legal and load-bearing (e.g. a TRIAL row and an AGENT row for the same
+ * agent both exist briefly while a trialing org converts to paid).
  */
 export type Entitlement = Prisma.EntitlementModel
 /**
@@ -118,9 +118,9 @@ export type OrgMemory = Prisma.OrgMemoryModel
 export type SocialAccount = Prisma.SocialAccountModel
 /**
  * Model McpConnection
- * Org-level pointer to a Smithery-brokered MCP connection. Smithery stores
- * the actual credentials server-side (encrypted, write-only) — this row is
- * status/metadata only, never a token.
+ * Org-level pointer to an MCP connection brokered by Composio. The provider
+ * stores the actual credentials server-side (encrypted, write-only) — this
+ * row is status/metadata only, never a token.
  */
 export type McpConnection = Prisma.McpConnectionModel
 /**

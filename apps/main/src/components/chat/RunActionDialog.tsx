@@ -73,15 +73,6 @@ import {
   LexStampLetterheadForm,
 } from "@/components/agents/lex/forms"
 import { uploadLexDocument, stampLexLetterhead } from "@/lib/api/lex"
-// Vega forms
-import {
-  VegaProcessInboxForm,
-  VegaDraftReplyForm,
-  VegaCalendarSummaryForm,
-  VegaCreateEventForm,
-  VegaExecutiveBriefingForm,
-  VegaComposeEmailForm,
-} from "@/components/agents/vega/forms"
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- heterogeneous form dispatch across agent actions */
 type FormComponent = React.ComponentType<{
@@ -617,52 +608,6 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       const format = ext === "docx" ? "docx" : "pdf"
       return stampLexLetterhead({ fileUrl: v.source_url as string, filename: v.source_name as string, format })
     },
-  },
-
-  "vega:process-inbox": {
-    defaultValue: { max_emails: 20, auto_label: true, draft_replies: false },
-    Form: VegaProcessInboxForm,
-  },
-  "vega:draft-reply": {
-    defaultValue: { email_id: "", reply_instructions: "", save_as_draft: true },
-    Form: VegaDraftReplyForm,
-    validate: (v) =>
-      !v.email_id?.trim()
-        ? "Email ID is required."
-        : !v.reply_instructions?.trim()
-          ? "Reply instructions are required."
-          : null,
-  },
-  "vega:calendar-summary": {
-    defaultValue: { days_ahead: 7 },
-    Form: VegaCalendarSummaryForm,
-  },
-  "vega:create-event": {
-    defaultValue: { description: "", check_conflicts: true },
-    Form: VegaCreateEventForm,
-    validate: (v) => (v.description?.trim() ? null : "Describe the event."),
-  },
-  "vega:executive-briefing": {
-    defaultValue: { include_email: true, include_calendar: true },
-    Form: VegaExecutiveBriefingForm,
-  },
-  "vega:compose-email": {
-    defaultValue: {
-      to: "",
-      subject: "",
-      instructions: "",
-      tone: "professional",
-      include_cta: true,
-    },
-    Form: VegaComposeEmailForm,
-    validate: (v) =>
-      !v.to?.trim()
-        ? "Recipient email is required."
-        : !v.subject?.trim()
-          ? "Subject is required."
-          : !v.instructions?.trim()
-            ? "Instructions are required."
-            : null,
   },
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -8,10 +8,6 @@ import {
   Users,
   Brain,
   Settings,
-  FileText,
-  Newspaper,
-  Mail,
-  Calendar,
   ChevronDown,
   LogOut,
   Plus,
@@ -31,16 +27,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarSeparator,
-  useSidebar,
 } from "@/components/ui/sidebar"
-import {
-  Collapsible,
-  CollapsibleContent,
-} from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,12 +43,6 @@ import {
   clearActiveAndStartNew,
   switchToOrganization,
 } from "@/lib/api/organizations"
-
-const workspaceItems = [
-  { href: "/workspace/briefing", label: "Briefing", icon: Newspaper },
-  { href: "/workspace/inbox", label: "Inbox", icon: Mail },
-  { href: "/workspace/calendar", label: "Calendar", icon: Calendar },
-]
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -93,17 +75,6 @@ export function AppSidebar() {
   const { data: organizationList } = authClient.useListOrganizations()
   const organizations = organizationList ?? []
   const [switchingId, setSwitchingId] = useState<string | null>(null)
-  const { state: sidebarState, setOpen: setSidebarOpen } = useSidebar()
-
-  const isWorkspaceActive = pathname.startsWith("/workspace")
-  const [workspaceOpen, setWorkspaceOpen] = useState(isWorkspaceActive)
-
-  // Keep the sub-menu open whenever we're on a workspace route, regardless of
-  // which page the sidebar first mounted on.
-  useEffect(() => {
-    if (isWorkspaceActive) setWorkspaceOpen(true)
-  }, [isWorkspaceActive])
-
   const switchOrg = async (organizationId: string) => {
     if (switchingId || organizationId === activeOrg?.id) return
     setSwitchingId(organizationId)
@@ -315,55 +286,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-
-              <SidebarMenuItem data-tour="nav-workspace">
-                <Collapsible open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
-                  <SidebarMenuButton
-                    isActive={isWorkspaceActive}
-                    tooltip="Workspace"
-                    style={monoLabelStyle}
-                    onClick={() => {
-                      if (sidebarState === "collapsed") {
-                        // Icon mode hides sub-menus — expand the sidebar first,
-                        // then open the workspace sub-menu so the items show.
-                        setSidebarOpen(true)
-                        setWorkspaceOpen(true)
-                      } else {
-                        setWorkspaceOpen((open) => !open)
-                      }
-                    }}
-                  >
-                    <FileText className="size-4" />
-                    <span>Workspace</span>
-                    <ChevronDown
-                      className="ml-auto size-3 transition-transform duration-200"
-                      style={{
-                        transform: workspaceOpen ? "rotate(180deg)" : "none",
-                      }}
-                    />
-                  </SidebarMenuButton>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {workspaceItems.map((item) => (
-                        <SidebarMenuSubItem key={item.href}>
-                          <SidebarMenuSubButton
-                            render={
-                              <Link
-                                href={item.href}
-                                style={{ ...monoLabelStyle, fontSize: 10 }}
-                              />
-                            }
-                            isActive={pathname === item.href}
-                          >
-                            <item.icon className="size-3" />
-                            <span>{item.label}</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </Collapsible>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

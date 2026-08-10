@@ -17,20 +17,6 @@ const DEFAULT_TASKS: Array<{
     cronExpression: "0 9 * * 1",
   },
   {
-    name: "Morning Briefing",
-    description: "Daily morning email briefing covering inbox, calendar, and priorities.",
-    agent: "VEGA",
-    cronExpression: "0 8 * * *",
-    payload: { vegaBriefingType: "MORNING" },
-  },
-  {
-    name: "Evening Wrap-up",
-    description: "Daily evening email summary of the day's key events and follow-ups.",
-    agent: "VEGA",
-    cronExpression: "0 18 * * *",
-    payload: { vegaBriefingType: "EVENING" },
-  },
-  {
     name: "Content Ideas",
     description: "Generate fresh content ideas for the day ahead.",
     agent: "MAYA",
@@ -148,18 +134,6 @@ export async function dispatchTask(task: Task) {
   if (task.agent === "REX") {
     const { runWeeklyDigestForOrg } = await import("../agents/rex/rex.cron.js");
     await runWeeklyDigestForOrg(task.organizationId);
-    return;
-  }
-
-  if (task.agent === "VEGA") {
-    const { runBriefingForOrg } = await import("../agents/vega/vega.cron.js");
-    const p = task.payload as { vegaBriefingType?: string } | null;
-    const nameLower = task.name.toLowerCase();
-    const type = (p?.vegaBriefingType as "MORNING" | "EVENING" | "WEEKLY") ??
-      (nameLower.includes("evening") || nameLower.includes("wrap") ? "EVENING"
-       : nameLower.includes("weekly") || nameLower.includes("insight") ? "WEEKLY"
-       : "MORNING");
-    await runBriefingForOrg(task.organizationId, type);
     return;
   }
 

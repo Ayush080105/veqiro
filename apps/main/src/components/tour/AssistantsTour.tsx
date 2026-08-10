@@ -29,7 +29,7 @@ const STEPS: DriveStep[] = [
     popover: {
       title: "Vega — Chief of Staff",
       description:
-        "Manages your inbox, schedules meetings, and delivers executive briefings every morning. Your always-on right hand.",
+        "Your executive assistant for planning, prioritizing, and thinking through the day-to-day. Connect Gmail or Calendar any time from Settings to bring in your real inbox and schedule.",
       side: "right",
       align: "center",
     },
