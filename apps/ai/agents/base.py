@@ -4,6 +4,7 @@ import logging
 import time
 import uuid
 from abc import ABC
+from datetime import datetime, timezone
 from typing import AsyncGenerator
 
 from core.llm import LLMClient
@@ -42,7 +43,23 @@ def _args_summary(args: dict) -> str:
         parts.append(f"{k}={_trim(str(v), 40)!r}")
     return ", ".join(parts) if parts else ""
 
-MAX_TOOL_RESULT_CHARS = 10000
+
+def _humanize_mcp_call(real_tool_name: str, arguments: dict) -> str:
+    """Turn a Composio tool slug (e.g. GMAIL_SEND_EMAIL) + its call arguments
+    into a short human-readable summary for the confirm-action UI."""
+    label = real_tool_name.replace("_", " ").strip().title()
+    preview = _args_summary(arguments)
+    return f"{label} — {preview}" if preview else label
+
+# Was 10000, then 50000 — both too small for real MCP tool results at
+# realistic data volumes (verified live: an 89-row Razorpay payments list is
+# 65,068 chars in full, truncating mid-JSON and leaving Rex unable to compute
+# an accurate total — it correctly refused to guess rather than hallucinate,
+# but the limit itself was the actual problem). This will need revisiting as
+# data volumes grow further (200+ rows on a similar endpoint would exceed
+# this too) — a pagination/field-projection approach would scale better than
+# repeatedly raising a hardcoded cap, but wasn't the chosen fix today.
+MAX_TOOL_RESULT_CHARS = 100000
 _TOOL_TIMEOUT = 300.0       # seconds — safety net for tools with no internal timeout
 _MEMORY_HARD_CAP = 8000     # chars (~2k tokens) — prevents context overflow on any message
 
@@ -79,13 +96,7 @@ RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
     "draft_document":           "lex:draft-document",
     "legal_research":           "lex:legal-research",
     "compliance_check":         "lex:compliance-check",
-    # Vega
-    "process_inbox":            "vega:process-inbox",
-    "draft_reply":              "vega:draft-reply",
-    "calendar_summary":         "vega:calendar-summary",
-    "create_event":             "vega:create-event",
-    "executive_briefing":       "vega:executive-briefing",
-    "compose_email":            "vega:compose-email",
+    # Vega has no native tools — all MCP-routed, see agents/vega/agent.py.
 }
 
 
@@ -127,13 +138,6 @@ _RICH_TOOL_PICK_ORDER: list[str] = [
     "scenario_model",
     "weekly_digest",
     "generate_investor_update",
-    # ── Workspace deliverables ────────────────────────────────────────────
-    "process_inbox",
-    "draft_reply",
-    "calendar_summary",
-    "create_event",
-    "executive_briefing",
-    "compose_email",
     # ── Ideation helpers (lowest priority — often called alongside drafts) ─
     "generate_ideas",
     "trending_topics",
@@ -179,10 +183,19 @@ class BaseAgent(ABC):
     slug: str = "base"
     name: str = "Base Agent"
     default_provider: str = "openai"
-    default_model: str = "gpt-4.1-mini"
+    default_model: str = "gpt-5.6-luna"
     personality: str = "Helpful AI assistant"
 
     MAX_TOOL_CALLS = 5  # Circuit breaker for tool-calling loop
+
+    # Native tool names this agent will drop from its tool list when the org
+    # has set an mcp_tool_preference for it (see chat_sync). Opt-in per agent —
+    # empty by default. Exists because prompt-level "prefer the MCP tool"
+    # guidance is unreliable for native tools that source data internally
+    # rather than choosing between tools they're offered (verified: Scout's
+    # research_topic/discover_competitors call Serper directly regardless of
+    # a connected Tavily tool being present in the same tool list).
+    SUPERSEDABLE_BY_MCP: set[str] = set()
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         self.llm = llm_client
@@ -224,6 +237,69 @@ class BaseAgent(ABC):
             "If a question is clearly outside your domain, redirect the user to the right team member "
             "instead of guessing. Say which agent handles it and why.\n"
             "It's better to redirect cleanly than to give a mediocre or made-up answer.\n"
+        )
+
+    def _current_date_block(self) -> str:
+        """Universal grounding for 'today' — injected by every agent. Without
+        this the LLM has no way to know the real current date and silently
+        guesses (observed: a Gmail date-range search built for 2024 instead
+        of the real year, returning zero results)."""
+        now = datetime.now(timezone.utc)
+        return f"\n\nToday's date is {now.strftime('%A, %Y-%m-%d')} (UTC, current time {now.strftime('%H:%M')}). Use this for any relative date/time reasoning — 'this year', 'last quarter', 'today', search date ranges, etc.\n"
+
+    def _mcp_catalog_block(self, catalog: list[dict] | None) -> str:
+        """Universal 'what can you connect to' awareness block. `catalog` is
+        Node's per-agent slice of the integrations catalog (request.metadata
+        ['mcp_catalog']), each entry tagged connected: true/false — see
+        contextService.ts's callAgentWithContext. Injected by chat_sync so
+        every agent can answer capability questions accurately instead of
+        falling back to a native tool's hardcoded platform list."""
+        if not catalog:
+            return ""
+        connected = [c["name"] for c in catalog if c.get("connected")]
+        not_connected = [c["name"] for c in catalog if not c.get("connected")]
+        lines = [
+            "\n## Your Possible Integrations\n",
+            "If the user asks what platforms, tools, or services you can connect to or use, "
+            "answer using this exact list — don't guess or rely on any other list elsewhere "
+            "in this prompt, which may be incomplete or out of date.\n",
+        ]
+        if connected:
+            lines.append(f"Connected now, ready to use: {', '.join(connected)}.\n")
+        if not_connected:
+            lines.append(
+                "Not yet connected — tell the user to connect these via Settings > Integrations "
+                f"(or the connect panel in this chat) if they want to use them: {', '.join(not_connected)}.\n"
+            )
+        return "".join(lines)
+
+    def _mcp_supersede_block(self, superseded_names: list[str], replacement_mcp_names: list[str]) -> str:
+        """Tells the LLM what to use INSTEAD when SUPERSEDABLE_BY_MCP removed
+        some of its usual native tools this turn (see chat_sync) — without
+        this, the rest of the prompt (e.g. get_tool_instructions()) still
+        references the now-absent native tools by name and the LLM has no
+        replacement guidance, so it tends to just answer from memory with no
+        tool call at all instead of reaching for the raw MCP tool."""
+        if not superseded_names:
+            return ""
+        removed = ", ".join(f"`{n}`" for n in superseded_names)
+        if replacement_mcp_names:
+            replacements = ", ".join(f"`{n}`" for n in replacement_mcp_names)
+            return (
+                "\n## CRITICAL — your default tools have been replaced this turn\n"
+                f"The org has configured a preferred external source, so {removed} are NOT in your "
+                f"tool list right now — do not try to call them. For ANY request that would normally "
+                f"need one of those (a topic question, market/company insight, trend lookup, "
+                f"competitor question, etc.), use one of these instead: {replacements}. Treat any "
+                "question with a research/lookup angle as something to actually call one of these tools "
+                "for — do not just answer from your own memory because the usual named tool is missing.\n"
+            )
+        return (
+            "\n## CRITICAL — your default tools are unavailable this turn\n"
+            f"The org has configured a preferred external source for this, but it isn't connected right "
+            f"now, so {removed} are NOT in your tool list. Tell the user their preferred research source "
+            "isn't connected and to reconnect it, rather than answering from memory or claiming to have "
+            "looked something up.\n"
         )
 
     # ── Tool-use instructions (override in subclass for stricter behaviour) ─
@@ -300,6 +376,7 @@ class BaseAgent(ABC):
         prompt = f"You are {self.name}, {self.personality}.\n\n"
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"
+        prompt += self._current_date_block()
         prompt += self._core_response_style_block()
         if has_history:
             prompt += self._mid_conversation_ack_block()
@@ -412,11 +489,33 @@ class BaseAgent(ABC):
         # per-call state must never live on self.
         mcp_connections = request.metadata.get("mcp_connections") or []
         mcp_alias_map: dict[str, tuple[str, str]] = {}
+        # Write-capable MCP tools (see Node's classifyWrite) get staged for
+        # user confirmation instead of executed immediately — see _run_one
+        # below and mcp_pending_actions.
+        mcp_write_set: set[str] = set()
+        mcp_pending_actions: list[dict] = []
+        # Deterministic override (see SUPERSEDABLE_BY_MCP): when set, only the
+        # preferred integration's tools get merged in, and this agent's own
+        # supersedable native tools are dropped below — forcing the LLM to use
+        # the preferred MCP tool directly instead of a native default it can't
+        # reliably be prompted away from.
+        tool_preference = request.metadata.get("mcp_tool_preference")
+        if tool_preference and mcp_connections:
+            mcp_connections = [c for c in mcp_connections if c.get("integrationSlug") == tool_preference]
         if mcp_connections:
             mcp_tools, mcp_alias_map = await get_mcp_tools(
-                request.organization_id, self.slug, mcp_connections
+                request.organization_id, self.slug, mcp_connections,
+                reserved_tools=len(tools),
             )
             tools.extend(mcp_tools)
+            mcp_write_set = {td.name for td in mcp_tools if td.is_write}
+        superseded_names: list[str] = []
+        replacement_mcp_names: list[str] = []
+        if tool_preference and self.SUPERSEDABLE_BY_MCP:
+            superseded_names = [t.name for t in tools if t.name in self.SUPERSEDABLE_BY_MCP]
+            if superseded_names:
+                tools = [t for t in tools if t.name not in self.SUPERSEDABLE_BY_MCP]
+                replacement_mcp_names = [n for n in mcp_alias_map if n.startswith(f"mcp_{tool_preference}_")]
 
         # If no tools defined (shouldn't happen, but safety), fall back
         if len(tools) <= 1:  # only ask_agent
@@ -481,6 +580,8 @@ class BaseAgent(ABC):
 
         # Add tool-use instructions to system prompt
         system_prompt += self.get_tool_instructions()
+        system_prompt += self._mcp_catalog_block(request.metadata.get("mcp_catalog"))
+        system_prompt += self._mcp_supersede_block(superseded_names, replacement_mcp_names)
 
         messages = [
             {"role": m.role, "content": m.content} for m in request.history
@@ -507,6 +608,8 @@ class BaseAgent(ABC):
                 metadata: dict = {}
                 if all_tool_calls:
                     metadata["tool_calls"] = all_tool_calls
+                if mcp_pending_actions:
+                    metadata["pending_actions"] = mcp_pending_actions
                 # Surface the last rich tool result as a card payload
                 action_id_out, action_result = _pick_rich_result(all_tool_calls)
                 elapsed = time.monotonic() - _turn_start
@@ -585,6 +688,24 @@ class BaseAgent(ABC):
                         tc.arguments, request.user_id, request.organization_id, mcp_connections
                     )
                 elif tc.name in mcp_alias_map:
+                    if tc.name in mcp_write_set:
+                        connection_id, real_tool_name = mcp_alias_map[tc.name]
+                        pending_id = str(uuid.uuid4())
+                        mcp_pending_actions.append({
+                            "id": pending_id,
+                            "connection_id": connection_id,
+                            "tool_name": real_tool_name,
+                            "arguments": tc.arguments,
+                            "summary": _humanize_mcp_call(real_tool_name, tc.arguments),
+                        })
+                        return json.dumps({
+                            "status": "pending_confirmation",
+                            "message": (
+                                "Staged for the user to confirm or reject in the UI. "
+                                "Do not call this tool again this turn — tell the user "
+                                "it's ready for their approval."
+                            ),
+                        })
                     coro = self._execute_mcp_tool(
                         tc.name, tc.arguments, request.organization_id, mcp_alias_map
                     )
@@ -668,6 +789,7 @@ class BaseAgent(ABC):
             metadata={
                 "tool_calls": all_tool_calls,
                 "max_iterations_reached": True,
+                **({"pending_actions": mcp_pending_actions} if mcp_pending_actions else {}),
             },
             action_id=action_id_out,
             action_result=action_result,

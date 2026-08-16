@@ -4,6 +4,25 @@ import { McpConnectionStatus } from "../../../prisma/generated/prisma/client.js"
 import { composioClient } from "../../lib/composio.js";
 import type { McpProviderAdapter } from "./mcp.provider.js";
 
+// Composio tags each tool with a real, verified-live vocabulary (confirmed by
+// direct API probe against the Slack toolkit — see mcp.provider.composio.ts
+// git history / session notes): readOnlyHint plus separate createHint/
+// updateHint/deleteHint/destructiveHint mutation markers, alongside unrelated
+// topical tags (search, chat, files, ...) that carry no read/write signal.
+// Any of the mutation tags means write; readOnlyHint alone means read.
+// Falls back to a verb heuristic when neither is present. Fail-closed: an
+// unrecognized/ambiguous tool name is treated as a write.
+const WRITE_TAGS = ["destructiveHint", "createHint", "updateHint", "deleteHint"];
+const READ_VERB = /^(GET|LIST|FETCH|FIND|SEARCH|QUERY|READ|RETRIEVE|SHOW|VIEW|LOOKUP|DESCRIBE|EXPORT|COUNT)/i;
+
+const classifyWrite = (tool: { slug: string; tags?: string[] }, toolkitSlug: string): boolean => {
+  const tags = tool.tags ?? [];
+  if (WRITE_TAGS.some((t) => tags.includes(t))) return true;
+  if (tags.includes("readOnlyHint")) return false;
+  const afterPrefix = tool.slug.replace(new RegExp(`^${toolkitSlug}_`, "i"), "");
+  return !READ_VERB.test(afterPrefix);
+};
+
 const mapConnectionStatus = (state: string | undefined): McpConnectionStatus => {
   switch (state) {
     case "ACTIVE":
@@ -22,14 +41,22 @@ const mapConnectionStatus = (state: string | undefined): McpConnectionStatus => 
   }
 };
 
+// OAuth-family schemes need a real provider-issued OAuth app manually
+// registered (Twitter, PayPal — kept "coming-soon" in the catalog for this
+// reason) and can't be self-served by an end user, unlike credential-shaped
+// schemes (API_KEY, BASIC, BEARER_TOKEN, ...) which just collect a value the
+// org already has. A toolkit can list more than one custom scheme — verified
+// live: Razorpay offers both `razorpay_oauth` (BYO app, OAuth2) and
+// `razorpay_api_key` (self-serve) — so blindly taking the first entry can
+// pick an unusable one even though a usable one exists alongside it.
+const BYO_OAUTH_MODES = new Set(["OAUTH2", "OAUTH1", "S2S_OAUTH2", "DCR_OAUTH"]);
+
 /**
  * Fetches a toolkit and resolves which auth scheme to connect it with.
  * Composio-managed schemes (zero setup, e.g. most OAuth toolkits) are
- * preferred; otherwise the toolkit's first (and for this catalog, only)
- * custom scheme is used — API_KEY/BASIC-shaped schemes collect fields from
- * the connecting org, OAuth-shaped custom schemes (Twitter, PayPal) need a
- * real provider-issued OAuth app that can't be auto-provisioned and are
- * kept out of the catalog (status stays "coming-soon") until one exists.
+ * preferred; otherwise the first self-serve (non-BYO-OAuth) custom scheme is
+ * used, falling back to whatever's available if every custom scheme needs a
+ * manually-registered app.
  */
 const resolveAuthScheme = async (toolkitSlug: string) => {
   const toolkit = await composioClient.toolkits.get(toolkitSlug);
@@ -37,7 +64,8 @@ const resolveAuthScheme = async (toolkitSlug: string) => {
   if (managedSchemes.length > 0) {
     return { toolkit, isManaged: true as const, mode: managedSchemes[0]! };
   }
-  const custom = toolkit.authConfigDetails?.[0];
+  const customSchemes = toolkit.authConfigDetails ?? [];
+  const custom = customSchemes.find((c) => !BYO_OAUTH_MODES.has(c.mode)) ?? customSchemes[0];
   if (!custom) {
     throw new BadRequestError(`"${toolkit.name}" has no available auth method on Composio.`);
   }
@@ -140,14 +168,30 @@ export const composioAdapter: McpProviderAdapter = {
    * Composio's raw tool shape uses {slug, name, description, inputParameters}
    * (slug is the callable identifier); remapped to the {name, description,
    * inputSchema} shape apps/ai expects, where `name` is the callable slug
-   * (matches what callTool's `toolName` argument must be).
+   * (matches what callTool's `toolName` argument must be). `isWrite` gates
+   * whether apps/ai executes the tool immediately or stages it for user
+   * confirmation — see classifyWrite() above.
    */
   async listTools({ toolkitSlug }) {
-    const tools = await composioClient.tools.getRawComposioTools({ toolkits: [toolkitSlug] });
+    // No `limit` here silently applies Composio's server-side `important: true`
+    // filter (and a small default page size), truncating most toolkits down to
+    // a handful of "curated" actions — verified live: Discord 4, Slack 20,
+    // missing real actions like SLACK_SEND_MESSAGE entirely. An explicit limit
+    // disables both, surfacing each toolkit's real catalog (largest seen: 167).
+    const tools = await composioClient.tools.getRawComposioTools({
+      toolkits: [toolkitSlug],
+      limit: 200,
+    });
     return tools.map((tool) => ({
       name: tool.slug,
       description: tool.description,
       inputSchema: tool.inputParameters,
+      isWrite: classifyWrite(tool, toolkitSlug),
+      // Composio's own "commonly used" curation signal — reused by apps/ai to
+      // prioritize which tools survive when a connection's full catalog is
+      // too large to fit in one LLM call (providers cap total tool count,
+      // e.g. OpenAI at 128) rather than truncating arbitrarily.
+      important: (tool.tags ?? []).includes("important"),
     }));
   },
 

@@ -31,9 +31,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     MOCK_MODE: bool = Field(default=True)
 
-    SCOUT_MODEL: str = Field(default="gpt-4.1-mini")
+    SCOUT_MODEL: str = Field(default="gpt-5.6-luna")
 
-    SAGE_MODEL: str = Field(default="gpt-4.1-mini")
+    SAGE_MODEL: str = Field(default="gpt-5.6-luna")
 
     # Image generation model — override in .env to A/B test a higher tier
     # (e.g. GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview, ~3.4x cost per image)

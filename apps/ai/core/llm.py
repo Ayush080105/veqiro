@@ -17,6 +17,32 @@ GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
 GPT4O_MINI = ("openai", "gpt-4.1-mini")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
+# Models whose Chat Completions API only accepts the default temperature (1) —
+# a custom value is rejected outright with a 400 (verified live: gpt-5.6-luna).
+_FIXED_TEMPERATURE_MODELS = {"gpt-5.6-luna"}
+# Models that reject function/tool calling on /v1/chat/completions unless
+# reasoning_effort is explicitly disabled (verified live: gpt-5.6-luna — without
+# this, tool calls fail with "Function tools with reasoning_effort are not
+# supported... use /v1/responses or set reasoning_effort to 'none'").
+_REASONING_EFFORT_REQUIRED_FOR_TOOLS = {"gpt-5.6-luna"}
+
+
+def _openai_completion_kwargs(
+    model: str, temperature: float, max_tokens: int | None = None, for_tools: bool = False
+) -> dict:
+    """Model-aware kwargs for the OpenAI chat.completions API. `max_tokens` is
+    always sent as `max_completion_tokens` — the modern, universally-accepted
+    name (verified backward-compatible with gpt-4.1-mini too); some newer
+    models reject the legacy `max_tokens` name outright."""
+    kwargs: dict = {"model": model}
+    if max_tokens is not None:
+        kwargs["max_completion_tokens"] = max_tokens
+    if model not in _FIXED_TEMPERATURE_MODELS:
+        kwargs["temperature"] = temperature
+    if for_tools and model in _REASONING_EFFORT_REQUIRED_FOR_TOOLS:
+        kwargs["reasoning_effort"] = "none"
+    return kwargs
+
 def _aspect_ratio_hint(aspect_ratio: str) -> str:
     return {
         "1:1":  "square (1:1 aspect ratio)",
@@ -455,7 +481,8 @@ class LLMClient:
         import openai as _openai
         client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         oai_messages = [{"role": "system", "content": system}] + messages
-        kwargs = {"model": model, "messages": oai_messages, "temperature": temperature, "max_tokens": max_tokens}
+        kwargs = _openai_completion_kwargs(model, temperature, max_tokens)
+        kwargs["messages"] = oai_messages
         if response_format:
             kwargs["response_format"] = response_format
         resp = await client.chat.completions.create(**kwargs)
@@ -578,9 +605,9 @@ class LLMClient:
         import openai as _openai
         client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         oai_messages = [{"role": "system", "content": system}] + messages
-        async with client.chat.completions.stream(
-            model=model, messages=oai_messages, temperature=temperature
-        ) as stream:
+        stream_kwargs = _openai_completion_kwargs(model, temperature)
+        stream_kwargs["messages"] = oai_messages
+        async with client.chat.completions.stream(**stream_kwargs) as stream:
             async for text in stream.text_stream:
                 yield text
 
@@ -687,14 +714,11 @@ class LLMClient:
         client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         oai_messages = [{"role": "system", "content": system}] + messages
         oai_tools = tool_defs_to_openai(tools)
-        resp = await client.chat.completions.create(
-            model=model,
-            messages=oai_messages,
-            tools=oai_tools,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            tool_choice=tool_choice,
-        )
+        kwargs = _openai_completion_kwargs(model, temperature, max_tokens, for_tools=True)
+        kwargs["messages"] = oai_messages
+        kwargs["tools"] = oai_tools
+        kwargs["tool_choice"] = tool_choice
+        resp = await client.chat.completions.create(**kwargs)
         choice = resp.choices[0]
         usage = resp.usage
         pt, ct = usage.prompt_tokens, usage.completion_tokens

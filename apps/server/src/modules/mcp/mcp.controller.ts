@@ -2,7 +2,14 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
-import { slugParamSchema, connectBodySchema, callToolBodySchema } from "./mcp.schema.js";
+import {
+  slugParamSchema,
+  connectBodySchema,
+  callToolBodySchema,
+  pendingActionParamSchema,
+  agentParamSchema,
+  toolPreferenceBodySchema,
+} from "./mcp.schema.js";
 import * as mcpService from "./mcp.service.js";
 
 const requireAuth = (req: Request): { userId: string; organizationId: string } => {
@@ -47,6 +54,44 @@ export const disconnect = async (req: Request, res: Response) => {
   const { slug } = slugParamSchema.parse(req.params);
   await mcpService.disconnect(organizationId, slug);
   res.status(StatusCodes.NO_CONTENT).send();
+};
+
+export const getPendingAction = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = pendingActionParamSchema.parse(req.params);
+  const result = await mcpService.getPendingAction(organizationId, id);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const confirmPendingAction = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = pendingActionParamSchema.parse(req.params);
+  const result = await mcpService.confirmPendingAction(organizationId, id);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const rejectPendingAction = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = pendingActionParamSchema.parse(req.params);
+  const result = await mcpService.rejectPendingAction(organizationId, id);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const getToolPreference = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { agent } = agentParamSchema.parse(req.params);
+  const result = await mcpService.getToolPreference(organizationId, agent);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const setToolPreference = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { agent } = agentParamSchema.parse(req.params);
+  const { preferredIntegrationSlug } = toolPreferenceBodySchema.parse(req.body ?? {});
+  const result = await mcpService.setToolPreference(organizationId, agent, preferredIntegrationSlug);
+  res.status(StatusCodes.OK).json(result);
 };
 
 // --- Internal (apps/ai only, internalKeyMiddleware-protected) ---

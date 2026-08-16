@@ -71,6 +71,8 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   McpConnection: 'McpConnection',
+  McpPendingAction: 'McpPendingAction',
+  McpToolPreference: 'McpToolPreference',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -444,6 +446,39 @@ export const McpConnectionScalarFieldEnum = {
 } as const
 
 export type McpConnectionScalarFieldEnum = (typeof McpConnectionScalarFieldEnum)[keyof typeof McpConnectionScalarFieldEnum]
+
+
+export const McpPendingActionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  agent: 'agent',
+  messageId: 'messageId',
+  connectionId: 'connectionId',
+  integrationSlug: 'integrationSlug',
+  toolName: 'toolName',
+  arguments: 'arguments',
+  summary: 'summary',
+  status: 'status',
+  resultJson: 'resultJson',
+  errorMessage: 'errorMessage',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpPendingActionScalarFieldEnum = (typeof McpPendingActionScalarFieldEnum)[keyof typeof McpPendingActionScalarFieldEnum]
+
+
+export const McpToolPreferenceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  preferredIntegrationSlug: 'preferredIntegrationSlug',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpToolPreferenceScalarFieldEnum = (typeof McpToolPreferenceScalarFieldEnum)[keyof typeof McpToolPreferenceScalarFieldEnum]
 
 
 export const PublishedPostScalarFieldEnum = {

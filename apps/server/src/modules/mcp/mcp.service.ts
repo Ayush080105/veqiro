@@ -1,10 +1,16 @@
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
-import { Agent, McpConnectionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
+import { Agent, McpConnectionStatus, McpPendingActionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
 import { aiService } from "../../common/utils/aiService.js";
 import * as repo from "./mcp.repository.js";
 import { getIntegrationBySlug, getIntegrationsByAgent, type AgentSlug, type IntegrationCatalogEntry } from "@repo/integrations-catalog";
-import type { ConnectResult, McpConnectionRef, McpConnectionSummary } from "./mcp.types.js";
+import type {
+  ConnectResult,
+  McpConnectionRef,
+  McpConnectionSummary,
+  McpPendingActionSummary,
+  RawPendingAction,
+} from "./mcp.types.js";
 import type { McpProviderAdapter } from "./mcp.provider.js";
 import { composioAdapter } from "./mcp.provider.composio.js";
 
@@ -46,6 +52,23 @@ const requireCatalogEntry = (slug: string): IntegrationCatalogEntry => {
     throw new BadRequestError(`"${entry.name}" isn't connectable yet — coming soon.`);
   }
   return entry;
+};
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Best-effort extraction of a wait duration from a provider's rate-limit
+// error text, e.g. Reddit's Composio error: "[['RATELIMIT', '5 seconds',
+// 'ratelimit']]". Returns null when the message isn't rate-limit-shaped or
+// no duration could be parsed, in which case the caller should not retry.
+const parseRateLimitWaitMs = (message: string): number | null => {
+  if (!/rate.?limit/i.test(message)) return null;
+  const match = message.match(/(\d+(?:\.\d+)?)\s*(ms|milliseconds?|s|secs?|seconds?|m|mins?|minutes?)\b/i);
+  if (!match) return null;
+  const value = parseFloat(match[1]);
+  const unit = match[2].toLowerCase();
+  if (unit.startsWith("ms") || unit.startsWith("milli")) return value;
+  if (unit.startsWith("m") && !unit.startsWith("ms") && !unit.startsWith("milli")) return value * 60_000;
+  return value * 1000;
 };
 
 const notifyAiCacheInvalidate = async (organizationId: string): Promise<void> => {
@@ -229,4 +252,181 @@ export const callTool = async (
   }
   const adapter = PROVIDER_ADAPTER_BY_ENUM[row.provider];
   return adapter.callTool({ organizationId, connectionId, toolkitSlug: row.toolkitSlug, toolName, args });
+};
+
+const toPendingActionSummary = (row: {
+  id: string;
+  agent: Agent;
+  integrationSlug: string;
+  toolName: string;
+  summary: string;
+  status: McpPendingActionStatus;
+  resultJson: unknown;
+  errorMessage: string | null;
+}): McpPendingActionSummary => ({
+  id: row.id,
+  agent: row.agent,
+  integrationSlug: row.integrationSlug,
+  toolName: row.toolName,
+  summary: row.summary,
+  status: row.status,
+  resultJson: row.resultJson,
+  errorMessage: row.errorMessage,
+});
+
+/** Lightweight snapshot each agent's *.service.ts stores on Message.customInput
+ * so the chat UI can render pending-action cards without an extra fetch. */
+export const toPendingActionsSnapshot = (pendingActions: RawPendingAction[]) =>
+  pendingActions.map((a) => ({ id: a.id, summary: a.summary, status: "PENDING" as const }));
+
+/**
+ * Called by each agent's *.service.ts right after it persists the assistant
+ * Message — stages the write-capable MCP tool calls apps/ai proposed but did
+ * NOT execute (see agents/base.py's mcp_pending_actions), so the user can
+ * confirm or reject each one from the chat UI.
+ */
+export const stagePendingActions = async (params: {
+  organizationId: string;
+  userId: string;
+  agent: Agent;
+  messageId: string;
+  pendingActions: RawPendingAction[];
+}): Promise<void> => {
+  if (params.pendingActions.length === 0) return;
+  const connectionIds = [...new Set(params.pendingActions.map((a) => a.connection_id))];
+  const connections = await repo.findManyByConnectionIds(params.organizationId, connectionIds);
+  const integrationSlugByConnectionId = new Map(connections.map((c) => [c.connectionId, c.integrationSlug]));
+
+  await repo.createPendingActions(
+    params.pendingActions.map((a) => ({
+      id: a.id,
+      organizationId: params.organizationId,
+      userId: params.userId,
+      agent: params.agent,
+      messageId: params.messageId,
+      connectionId: a.connection_id,
+      integrationSlug: integrationSlugByConnectionId.get(a.connection_id) ?? "",
+      toolName: a.tool_name,
+      arguments: a.arguments,
+      summary: a.summary,
+    }))
+  );
+};
+
+const requirePendingAction = async (organizationId: string, id: string) => {
+  const row = await repo.findPendingActionById(id);
+  if (!row || row.organizationId !== organizationId) {
+    throw new NotFoundError("Pending action not found");
+  }
+  if (row.status !== McpPendingActionStatus.PENDING) {
+    throw new BadRequestError(`Action already ${row.status.toLowerCase()}`);
+  }
+  return row;
+};
+
+/**
+ * Live status lookup — no PENDING guard, unlike confirm/reject. Lets the
+ * frontend show the real current state on page load/refresh instead of the
+ * stale PENDING snapshot baked into Message.customInput at staging time.
+ */
+export const getPendingAction = async (
+  organizationId: string,
+  id: string
+): Promise<McpPendingActionSummary> => {
+  const row = await repo.findPendingActionById(id);
+  if (!row || row.organizationId !== organizationId) {
+    throw new NotFoundError("Pending action not found");
+  }
+  return toPendingActionSummary(row);
+};
+
+export const confirmPendingAction = async (
+  organizationId: string,
+  id: string
+): Promise<McpPendingActionSummary> => {
+  const row = await requirePendingAction(organizationId, id);
+  const MAX_RATE_LIMIT_RETRIES = 2;
+  const MAX_AUTO_WAIT_MS = 15_000; // don't hold the request open longer than this per wait
+
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const result = await callTool(
+        organizationId,
+        row.connectionId,
+        row.toolName,
+        row.arguments as Record<string, unknown>
+      );
+      // Composio's tool.execute() often reports business-logic-level failures
+      // (permission denied, plan limits, validation errors, rate limits, ...)
+      // as a normal 200 response shaped { data, error, successful: false }
+      // rather than throwing — verified live (Calendly's paid-plan-only
+      // Scheduling API, Reddit's rate limiter both return this shape).
+      const isComposioFailure =
+        typeof result === "object" && result !== null && (result as { successful?: unknown }).successful === false;
+      if (isComposioFailure) {
+        const composioError = (result as { error?: unknown }).error;
+        const errorMessage = typeof composioError === "string" ? composioError : "Action failed";
+        const waitMs = parseRateLimitWaitMs(errorMessage);
+        if (waitMs !== null && waitMs <= MAX_AUTO_WAIT_MS && attempt < MAX_RATE_LIMIT_RETRIES) {
+          await sleep(waitMs);
+          continue; // retry the same tool call
+        }
+        const updated = await repo.updatePendingActionStatus(id, {
+          status: McpPendingActionStatus.FAILED,
+          resultJson: result,
+          errorMessage,
+        });
+        return toPendingActionSummary(updated);
+      }
+      const updated = await repo.updatePendingActionStatus(id, {
+        status: McpPendingActionStatus.EXECUTED,
+        resultJson: result,
+      });
+      return toPendingActionSummary(updated);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const updated = await repo.updatePendingActionStatus(id, {
+        status: McpPendingActionStatus.FAILED,
+        errorMessage: message,
+      });
+      return toPendingActionSummary(updated);
+    }
+  }
+};
+
+export const rejectPendingAction = async (
+  organizationId: string,
+  id: string
+): Promise<McpPendingActionSummary> => {
+  await requirePendingAction(organizationId, id);
+  const updated = await repo.updatePendingActionStatus(id, { status: McpPendingActionStatus.REJECTED });
+  return toPendingActionSummary(updated);
+};
+
+// --- Per-agent MCP tool preference ---
+
+const requireAgentSlug = (agentSlug: string): AgentSlug => {
+  if (!(agentSlug in AGENT_ENUM_BY_SLUG)) {
+    throw new BadRequestError(`Unknown agent "${agentSlug}"`);
+  }
+  return agentSlug as AgentSlug;
+};
+
+export const getToolPreference = async (
+  organizationId: string,
+  agentSlug: string
+): Promise<{ preferredIntegrationSlug: string | null }> => {
+  const agent = AGENT_ENUM_BY_SLUG[requireAgentSlug(agentSlug)];
+  const row = await repo.findToolPreference(organizationId, agent);
+  return { preferredIntegrationSlug: row?.preferredIntegrationSlug ?? null };
+};
+
+export const setToolPreference = async (
+  organizationId: string,
+  agentSlug: string,
+  preferredIntegrationSlug: string | null
+): Promise<{ preferredIntegrationSlug: string | null }> => {
+  const agent = AGENT_ENUM_BY_SLUG[requireAgentSlug(agentSlug)];
+  const row = await repo.upsertToolPreference(organizationId, agent, preferredIntegrationSlug);
+  return { preferredIntegrationSlug: row.preferredIntegrationSlug };
 };

@@ -1,7 +1,12 @@
-import type { Agent, McpConnection, McpConnectionStatus } from "../../../prisma/generated/prisma/client.js";
+import type {
+  Agent,
+  McpConnection,
+  McpConnectionStatus,
+  McpPendingActionStatus,
+} from "../../../prisma/generated/prisma/client.js";
 import type { AgentSlug } from "@repo/integrations-catalog";
 
-export type { McpConnection, McpConnectionStatus };
+export type { McpConnection, McpConnectionStatus, McpPendingActionStatus };
 
 export interface ConnectResult {
   status: "connected" | "auth_required" | "input_required" | "error";
@@ -27,3 +32,23 @@ export interface McpConnectionRef {
 }
 
 export type { AgentSlug };
+
+/** One entry of ChatSyncResponse.metadata.pending_actions from apps/ai. */
+export interface RawPendingAction {
+  id: string;
+  connection_id: string;
+  tool_name: string;
+  arguments: Record<string, unknown>;
+  summary: string;
+}
+
+export interface McpPendingActionSummary {
+  id: string;
+  agent: Agent;
+  integrationSlug: string;
+  toolName: string;
+  summary: string;
+  status: McpPendingActionStatus;
+  resultJson: unknown;
+  errorMessage: string | null;
+}

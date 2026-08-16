@@ -48,6 +48,17 @@ export const McpProvider = {
 export type McpProvider = (typeof McpProvider)[keyof typeof McpProvider]
 
 
+export const McpPendingActionStatus = {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  REJECTED: 'REJECTED',
+  EXECUTED: 'EXECUTED',
+  FAILED: 'FAILED'
+} as const
+
+export type McpPendingActionStatus = (typeof McpPendingActionStatus)[keyof typeof McpPendingActionStatus]
+
+
 export const SubscriptionStatus = {
   TRIALING: 'TRIALING',
   ACTIVE: 'ACTIVE',

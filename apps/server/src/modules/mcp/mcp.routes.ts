@@ -7,6 +7,11 @@ import {
   connect,
   getStatus,
   disconnect,
+  getPendingAction,
+  confirmPendingAction,
+  rejectPendingAction,
+  getToolPreference,
+  setToolPreference,
   listToolsInternal,
   callToolInternal,
 } from "./mcp.controller.js";
@@ -18,6 +23,11 @@ router.get("/connections/:slug/config-schema", getConfigSchema);
 router.post("/connections/:slug/connect", connect);
 router.get("/connections/:slug/status", getStatus);
 router.delete("/connections/:slug", disconnect);
+router.get("/pending-actions/:id", getPendingAction);
+router.post("/pending-actions/:id/confirm", confirmPendingAction);
+router.post("/pending-actions/:id/reject", rejectPendingAction);
+router.get("/tool-preference/:agent", getToolPreference);
+router.patch("/tool-preference/:agent", setToolPreference);
 
 export default router;
 

@@ -1,6 +1,5 @@
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
 
 from agents.base import BaseAgent
 from core.llm import LLMClient
@@ -31,7 +30,7 @@ class VegaAgent(BaseAgent):
         "Always calm, always a step ahead, and genuinely happy to help."
     )
     default_provider = "openai"
-    default_model = "gpt-4.1-mini"
+    default_model = "gpt-5.6-luna"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
@@ -82,16 +81,30 @@ class VegaAgent(BaseAgent):
             "\n\n## Tool Usage Rules\n"
             "NEVER use tools for: greetings, thanks, 'great', 'got it', 'ok', small talk, "
             "or anything that is not an actual email/calendar task. Respond to those warmly in plain text.\n\n"
-            "Use tools when the user asks for an actual email or calendar action:\n"
-            "- Any request to process, triage, or summarize emails → call `process_inbox`\n"
-            "- Any request to reply to an email → call `draft_reply`\n"
-            "- Any request to write a new email → call `compose_email`\n"
-            "- Any request about calendar, schedule, or meetings → call `calendar_summary`\n"
-            "- Any request to schedule or create an event → call `create_event`\n"
-            "- Any request for a daily briefing → call `executive_briefing`\n"
-            "IMPORTANT: You do NOT send emails or create calendar events directly. "
-            "Your tools return structured action instructions (node_actions) that the system backend executes. "
-            "Always present the drafted content to the user for review before confirming.\n\n"
+            "## CRITICAL: Email and Calendar — you have no native tools at all\n"
+            "You have ZERO built-in email or calendar tools. Everything routes through connected MCP "
+            "tools: Gmail via `mcp_gmail_*`, Google Calendar via `mcp_google-calendar_*`. "
+            "For ANY email or calendar request — checking inbox, reading mail, "
+            "replying, composing, checking schedule, creating events — use those if present in your tool "
+            "list this turn. If the relevant `mcp_*` tools aren't present, tell the user that service "
+            "isn't connected and to connect it via Settings > Integrations. Never claim you've sent an "
+            "email or created an event unless a real tool call actually returned success.\n"
+            "NEVER answer a follow-up question about a specific email or event (its link, exact time, "
+            "attendees, ID, content, whether it exists, whether it's the same thing as something else "
+            "mentioned earlier) from conversation memory alone — always make a fresh read tool call in "
+            "THAT turn to get the authoritative current answer, even if you or the user discussed it a "
+            "moment ago. Memory of what you said earlier is not a source of truth; the calendar/inbox is. "
+            "This applies even when tool_calls_proposed would otherwise be 0 — if the user is asking "
+            "about something concrete and checkable, check it.\n"
+            "Do NOT infer an action's outcome from conversation history alone: a prior turn's staged "
+            "action may have succeeded even if a later duplicate confirmation attempt in this same chat "
+            "failed with 'already executed' — that failure means the ORIGINAL action already succeeded, "
+            "not that nothing happened. And don't confuse two different staged/created things discussed "
+            "in the same conversation (e.g. a real Calendar event vs. a separately-discussed Zoom meeting) "
+            "— if unsure which one the user means by 'it', check both or ask, never guess and assert.\n"
+            "For a 'daily briefing' request: there is no single briefing tool — call the Gmail and "
+            "Calendar MCP tools yourself (e.g. list today's events, list unread/important emails) and "
+            "synthesize a briefing in your own written response.\n\n"
             "## When to use ask_agent\n"
             "- User asks to include financial metrics or runway data in a briefing or email → call `ask_agent` with rex first.\n"
             "- User wants to research an attendee or company before a meeting → call `ask_agent` with scout.\n"
@@ -110,6 +123,20 @@ class VegaAgent(BaseAgent):
         has_history: bool = False,
     ) -> str:
         base = await super().build_system_prompt(user_id, organization_id, extra_context, has_history=has_history)
+
+        # Placed first, ahead of everything else, for maximum salience — this
+        # exact rule stated later in get_tool_instructions() was repeatedly
+        # skipped when buried deeper in the prompt (model answered follow-up
+        # questions about emails/events from memory instead of calling a tool).
+        verify_first = (
+            "## ABSOLUTE RULE — verify, never assume\n"
+            "Before answering ANY question about a specific email, meeting, or calendar event — its "
+            "existence, link, time, attendees, or any other detail — you MUST call the relevant tool "
+            "THIS turn to get the real answer, even for a short follow-up like 'give me the link' or "
+            "'what time is it'. Do NOT answer from memory of what you or the user said earlier in this "
+            "conversation, even your own immediately-preceding message — it may be wrong or stale. This "
+            "rule overrides every other instruction in this prompt.\n\n"
+        )
 
         client_ctx = ""
         if use_brand_kit:
@@ -175,17 +202,68 @@ class VegaAgent(BaseAgent):
             "'Lex handles legal matters. Take that to Lex.'\n"
             "Never fabricate email content, financial data, or calendar events from memory. "
             "If Google is not connected, say so clearly and tell the user to connect their account.\n"
-            "\n## Connected Tools (e.g. Slack, Teams, Discord, Zoom, Google Chat/Meet, Telegram, "
-            "WhatsApp, Calendly, Cal.com, Outlook)\n"
-            "Gmail and Google Calendar are your native tools above. You may ALSO have extra tools "
-            "available for any other chat, video, or scheduling service the user has connected — use "
-            "them for what they're for: posting a briefing/digest to a connected chat tool, checking "
-            "or creating a booking via a connected scheduling tool, pulling a meeting link from a "
-            "connected video tool. Confirm the destination (e.g. which channel) before posting "
-            "anything if it isn't obvious from context. Do not assume a tool exists if it hasn't been "
-            "mentioned as available — only use ones actually present in your tool list this turn.\n"
+            "\n## Connected Tools\n"
+            "You have no native tools at all — see the CRITICAL note in Tool Usage Rules. Gmail and "
+            "Google Calendar are both handled via connected MCP tools (`mcp_gmail_*`, "
+            "`mcp_google-calendar_*`), same as everything else below — each "
+            "one's LLM-facing name is prefixed `mcp_<slug>_`, e.g. `mcp_slack_send_message`. Only use a "
+            "tool if it's actually present in your tool list this turn — never assume one exists just "
+            "because it's listed here.\n"
+            "**Email & Calendar parity** — `mcp_outlook-mail_*` / `mcp_outlook-calendar_*` (Outlook / "
+            "Microsoft 365, same read/draft/schedule role as Gmail+Calendar for Microsoft-tenant users), "
+            "`mcp_calendly_*` — READ-ONLY: check booking activity only. NEVER call a Calendly booking/"
+            "invitee-creation action (e.g. anything like POST_INVITEE) — Calendly's booking-creation API "
+            "requires a paid Calendly plan most accounts don't have and will fail with a 403 permission "
+            "error. If the user asks you to schedule/book something via Calendly, tell them directly that "
+            "you can only check existing Calendly bookings, not create new ones (paid-plan API "
+            "limitation), and offer to schedule it via Google Calendar (or Outlook Calendar) instead if "
+            "one of those is connected.\n"
+            "**Chat & Video** — `mcp_slack_*` / `mcp_microsoft-teams_*` support BOTH directions: reading "
+            "(search messages, fetch conversation/channel history, list unread messages, list channels) "
+            "AND posting (send a briefing/digest/update to a channel — confirm the destination channel "
+            "first if it isn't obvious). If the user asks what's in Slack/Teams, what messages they have, "
+            "or to check/search for something there, call the relevant read tool — don't assume it's "
+            "unavailable or that you're a post-only integration. `mcp_discord_*` / `mcp_telegram_*` tool "
+            "sets vary a lot by what the user authorized — check your actual tool list this turn for what "
+            "you can do (message read/send tools may or may not be present) rather than assuming either "
+            "way. `mcp_zoom_*` / `mcp_google-meet_*` (read-only: pull existing meeting summaries/links for "
+            "calendar context).\n"
+            "CRITICAL — 'schedule a meeting/call' is a CALENDAR action, not a video-tool action: when "
+            "the user asks to schedule, set up, or create a meeting or call — even if they say 'Google "
+            "Meet' or 'Zoom' by name — create a CALENDAR EVENT via `mcp_google-calendar_*` with the "
+            "attendee(s) and time (most calendar create-event tools accept a flag to auto-attach a video "
+            "link). That is what actually invites the attendee and puts it on a calendar; Google's/Zoom's "
+            "own space-creation tools (e.g. `GOOGLEMEET_CREATE_MEET`) do NOT take attendees or a time and "
+            "do NOT send anyone an invite — calling one of those alone for a 'schedule X with Y' request "
+            "creates an empty, unscheduled room nobody knows about. Never call a video tool's own create "
+            "action for a scheduling request unless the user explicitly asks for a bare meeting link with "
+            "no invite.\n"
+            "If no `mcp_google-calendar_*` (or relevant calendar) tool is present in your tool list this "
+            "turn — even if a video tool like `mcp_google-meet_*` IS present — do NOT silently substitute "
+            "the video tool and claim you scheduled the meeting. Tell the user their calendar isn't "
+            "connected, that you can't actually invite anyone or put it on a calendar without it, and to "
+            "connect it via Settings > Integrations. Only offer to create a bare unscheduled meeting link "
+            "as a fallback if they explicitly say that's fine.\n"
+            "When looking up a calendar event by TIME (e.g. 'today's 7pm meeting', 'my next meeting') — "
+            "use the `time_min`/`time_max` parameters (ISO datetime, built from the current date above + "
+            "the mentioned time) on the calendar find/list tool. Do NOT put a time expression like '7pm' "
+            "into a `query`/text-search field — that searches event names/attendees/descriptions and "
+            "will not match a bare time string. Only use `query` for a name/keyword lookup (e.g. 'the "
+            "meeting with Sarah'). If the calendar tool's own description documents its parameters (most "
+            "do, in detail) follow that documentation over your own assumptions about the field's purpose.\n"
+            "**Docs & Knowledge** — `mcp_google-drive_*` / `mcp_notion_*` (read-only: use find/search + "
+            "read actions to pull context for a reply, briefing, or answer when the user references a "
+            "doc or page — e.g. 'check the Q3 doc before you reply'; never use their create/edit/delete/"
+            "share actions — that's Lex's and the user's job, not yours).\n"
+            "IMPORTANT — do not double-confirm: write-capable connected tools are staged, not executed "
+            "immediately — the user gets a real confirm/reject button in the UI before anything actually "
+            "runs. That IS the confirmation step. If you already have enough information (destination, "
+            "time, recipient, content, etc. — from this message or earlier in the conversation), CALL THE "
+            "TOOL — do not ask 'shall I proceed?' or 'if you want' in plain text first, that just makes "
+            "the user confirm twice. Only ask a clarifying question in chat if something genuinely "
+            "required is missing or ambiguous (e.g. which of two channels, no time given at all).\n"
         )
-        return base + client_ctx + vega_specific
+        return verify_first + base + client_ctx + vega_specific
 
     # ── Chat override: collect node_actions from tool calls ──────────────
 
@@ -213,61 +291,10 @@ class VegaAgent(BaseAgent):
     # ── Tool Definitions ─────────────────────────────────────────────────
 
     def get_tools(self) -> list[ToolDefinition]:
-        return [
-            ToolDefinition(
-                name="process_inbox",
-                description="Triage, prioritize, and label unread emails. Returns processed emails with priority levels, summaries, and node_action instructions for the backend to apply labels.",
-                parameters=[
-                    ToolParameter(name="max_emails", type="integer", description="Maximum number of emails to process", required=False, default=10),
-                    ToolParameter(name="auto_label", type="boolean", description="Whether to auto-label emails", required=False, default=True),
-                    ToolParameter(name="draft_replies", type="boolean", description="Whether to draft replies for important emails", required=False, default=True),
-                ],
-            ),
-            ToolDefinition(
-                name="draft_reply",
-                description="Draft a contextually appropriate email reply in the founder's voice. Returns a node_action for the backend to create the Gmail draft.",
-                parameters=[
-                    ToolParameter(name="email_id", type="string", description="ID of the email to reply to", required=True),
-                    ToolParameter(name="reply_instructions", type="string", description="Instructions for the reply (e.g., 'Accept the meeting, propose Thursday 3pm')", required=True),
-                    ToolParameter(name="tone", type="string", description="Tone of the reply", required=False, default="professional"),
-                    ToolParameter(name="save_as_draft", type="boolean", description="Whether to save as Gmail draft", required=False, default=True),
-                ],
-            ),
-            ToolDefinition(
-                name="calendar_summary",
-                description="Get a comprehensive calendar overview with events, conflict detection, free slots, and daily summaries.",
-                parameters=[
-                    ToolParameter(name="days_ahead", type="integer", description="Number of days to look ahead", required=False, default=7),
-                ],
-            ),
-            ToolDefinition(
-                name="create_event",
-                description="Parse a natural language event description and return a node_action for the backend to create the calendar event. Checks for conflicts with existing events.",
-                parameters=[
-                    ToolParameter(name="description", type="string", description="Natural language event description (e.g., 'Schedule a 30-min call with Marcus on Wednesday at 10am')", required=True),
-                    ToolParameter(name="check_conflicts", type="boolean", description="Whether to check for scheduling conflicts", required=False, default=True),
-                ],
-            ),
-            ToolDefinition(
-                name="executive_briefing",
-                description="Generate a comprehensive executive daily briefing combining email summaries, calendar overview, urgent actions, and focus recommendations.",
-                parameters=[
-                    ToolParameter(name="include_email", type="boolean", description="Include email summary in briefing", required=False, default=True),
-                    ToolParameter(name="include_calendar", type="boolean", description="Include calendar summary in briefing", required=False, default=True),
-                ],
-            ),
-            ToolDefinition(
-                name="compose_email",
-                description="Draft a brand new outbound email (not a reply). Returns a node_action for the backend to create a Gmail draft.",
-                parameters=[
-                    ToolParameter(name="to", type="string", description="Recipient email address or name", required=True),
-                    ToolParameter(name="subject", type="string", description="Email subject line", required=True),
-                    ToolParameter(name="instructions", type="string", description="Instructions for what the email should say and achieve", required=True),
-                    ToolParameter(name="tone", type="string", description="Tone of the email (professional, casual, enthusiastic)", required=False, default="professional"),
-                    ToolParameter(name="include_cta", type="boolean", description="Whether to include a clear call-to-action", required=False, default=True),
-                ],
-            ),
-        ]
+        # No native tools — Gmail/Calendar/briefing all route through connected
+        # MCP tools (mcp_gmail_*, mcp_google-calendar_*) instead; see the
+        # CRITICAL Gmail/Calendar notes in get_tool_instructions().
+        return []
 
     # ── Tool Execution ────────────────────────────────────────────────────
 
@@ -278,334 +305,6 @@ class VegaAgent(BaseAgent):
         user_id: str,
         organization_id: str = "",
     ) -> str:
-        # Read-only Gmail/Calendar access for context; all writes become node_actions
-        from agents.vega.gmail import list_unread, get_message
-        from agents.vega.calendar import list_events, find_free_slots
-
-        system = await self.build_system_prompt(user_id, organization_id)
-        token = self._google_token or "mock-token"
-
-        if name == "process_inbox":
-            max_emails = arguments.get("max_emails", 10)
-            emails = await list_unread(token, max_results=max_emails)
-
-            processed = []
-            label_messages = []
-            label_list = ", ".join(self._label_names())
-            label_rationales = self._label_prompt()
-
-            for email in emails[:max_emails]:
-                _email_prompt = [{"role": "user", "content": (
-                        "Analyze this email. Return ONLY a JSON object (no markdown fences) with keys:\n"
-                        "priority (urgent/high/medium/low), summary (1-2 sentences), "
-                        f"suggested_action (string), label (exactly one of: {label_list}), "
-                        "hidden_tasks (list of strings — implicit action items, e.g. 'review attached deck', 'respond before Friday'), "
-                        "suggested_reply (string — a 1-3 sentence reply suggestion if suggested_action is 'reply', otherwise null), "
-                        "meeting_request (object with keys date, time, topic if the email requests a meeting, otherwise null)\n\n"
-                        "Use these label rationales to choose the best label. Do not invent labels. "
-                        "Use Other only when no configured rationale clearly fits.\n"
-                        f"{label_rationales}\n\n"
-                        f"From: {email.get('from', '')}\n"
-                        f"Subject: {email.get('subject', '')}\n"
-                        f"Body: {email.get('body', email.get('snippet', ''))[:500]}"
-                    )}]
-                try:
-                    analysis = await self.llm.complete_json(
-                        provider=self.default_provider, model=self.default_model,
-                        system=system, messages=_email_prompt,
-                    )
-                    priority = analysis.get("priority", "medium")
-                    summary = analysis.get("summary", "")
-                    suggested_action = analysis.get("suggested_action", "review")
-                    label = self._normalize_label(analysis.get("label", "Other"))
-                    hidden_tasks = analysis.get("hidden_tasks", [])
-                    suggested_reply = analysis.get("suggested_reply", None)
-                    meeting_request = analysis.get("meeting_request", None)
-                except Exception:
-                    priority = "medium"
-                    summary = email.get("snippet", "")[:200]
-                    suggested_action = "review"
-                    label = self._normalize_label("Other")
-                    hidden_tasks = []
-                    suggested_reply = None
-                    meeting_request = None
-
-                label_messages.append({"email_id": email.get("id", ""), "label": label})
-                processed.append({
-                    "email_id": email.get("id", ""),
-                    "subject": email.get("subject", ""),
-                    "from_name": email.get("from_name", email.get("from", "")),
-                    "from_email": email.get("from_email", ""),
-                    "priority": priority,
-                    "summary": summary,
-                    "suggested_action": suggested_action,
-                    "label_applied": label,
-                    "draft_created": bool(suggested_reply),
-                    "hidden_tasks": hidden_tasks,
-                    "suggested_reply": suggested_reply,
-                    "meeting_request": meeting_request,
-                })
-
-            node_action = {
-                "node_action": "label_messages",
-                "messages": label_messages,
-            }
-            self._node_actions_buffer.append(node_action)
-            stats = {
-                "total_processed": len(processed),
-                "urgent": sum(1 for e in processed if e["priority"] == "urgent"),
-                "high": sum(1 for e in processed if e["priority"] == "high"),
-                "medium": sum(1 for e in processed if e["priority"] == "medium"),
-                "low": sum(1 for e in processed if e["priority"] == "low"),
-                "drafts_created": sum(1 for e in processed if e["draft_created"]),
-                "labels_applied": len(processed),
-            }
-            result = {
-                "processed": processed,
-                "stats": stats,
-                "node_action": node_action,
-            }
-            return json.dumps(result, default=str)
-
-        elif name == "draft_reply":
-            email_id = arguments.get("email_id", "")
-            instructions = arguments.get("reply_instructions", "")
-            tone = arguments.get("tone", "professional")
-
-            email = await get_message(token, email_id)
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": (
-                    f"Draft a {tone} reply to this email:\n\n"
-                    f"From: {email.get('from', '')}\n"
-                    f"Subject: {email.get('subject', '')}\n"
-                    f"Body: {email.get('body', '')[:1000]}\n\n"
-                    f"Instructions: {instructions}"
-                )}],
-            )
-
-            node_action = {
-                "node_action": "create_gmail_draft",
-                "to": email.get("from", ""),
-                "subject": f"RE: {email.get('subject', '')}",
-                "body": raw,
-                "reply_to_message_id": email_id,
-                "reply_to_thread_id": email.get("thread_id", ""),
-            }
-            self._node_actions_buffer.append(node_action)
-            result = {
-                "draft": {
-                    "to": email.get("from", ""),
-                    "subject": f"RE: {email.get('subject', '')}",
-                    "body": raw,
-                    "saved": True,
-                },
-                "suggested_follow_up": None,
-                "node_action": node_action,
-            }
-            return json.dumps(result, default=str)
-
-        elif name == "calendar_summary":
-            days = arguments.get("days_ahead", 7)
-            events = await list_events(token, days_ahead=days)
-            free_slots = await find_free_slots(token, {})
-
-            # Detect overlapping events — build card-compatible conflict objects
-            conflicts = []
-            sorted_events = sorted(events, key=lambda e: e.get("start", ""))
-            for i in range(len(sorted_events) - 1):
-                e1 = sorted_events[i]
-                e2 = sorted_events[i + 1]
-                e1_end = e1.get("end", "")
-                e2_start = e2.get("start", "")
-                if e1_end and e2_start and e1_end > e2_start:
-                    try:
-                        from datetime import datetime as _dt
-                        overlap_mins = int(
-                            (_dt.fromisoformat(e1_end.replace("Z", "+00:00")) -
-                             _dt.fromisoformat(e2_start.replace("Z", "+00:00"))).total_seconds() / 60
-                        )
-                    except Exception:
-                        overlap_mins = 0
-                    conflicts.append({
-                        "event_a": e1.get("title", ""),
-                        "event_b": e2.get("title", ""),
-                        "overlap_minutes": max(0, overlap_mins),
-                    })
-
-            # Build daily summary map (ISO datetime: "2025-01-15T14:30:00Z" → time at [11:16])
-            daily_summary: dict = {}
-            for event in events:
-                day = (event.get("start") or "")[:10]
-                if day:
-                    start_str = event.get("start") or ""
-                    time_part = start_str[11:16] if len(start_str) >= 16 else ""
-                    suffix = f" at {time_part}" if time_part else ""
-                    daily_summary[day] = daily_summary.get(day, "") + (
-                        f"{event.get('title', 'Event')}{suffix}. "
-                    )
-
-            result = {
-                "events": events,
-                "conflicts": conflicts,
-                "free_slots": free_slots,
-                "daily_summary": daily_summary,
-                "total_events": len(events),
-                "total_conflicts": len(conflicts),
-            }
-            return json.dumps(result, default=str)
-
-        elif name == "create_event":
-            description = arguments.get("description", "")
-            check_conflicts = arguments.get("check_conflicts", True)
-
-            now = datetime.now(timezone.utc)
-            next_day = (now + timedelta(days=1)).strftime("%Y-%m-%d")
-
-            try:
-                # Date/time extraction must be deterministic and machine-readable —
-                # JSON mode + low temperature, with one corrective retry built in.
-                event_data = await self.llm.complete_json(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system,
-                    messages=[{"role": "user", "content": (
-                        f"Today is {now.strftime('%A, %Y-%m-%d')} UTC.\n"
-                        f"Parse this event description into structured data:\n{description}\n\n"
-                        "Return ONLY a JSON object (no markdown fences) with keys: "
-                        "title (string), start (ISO 8601 UTC datetime), end (ISO 8601 UTC datetime), "
-                        "attendees (list of email strings), description (string)"
-                    )}],
-                    temperature=0.1,
-                )
-            except Exception:
-                event_data = {
-                    "title": description[:50],
-                    "start": f"{next_day}T10:00:00Z",
-                    "end": f"{next_day}T11:00:00Z",
-                    "attendees": [],
-                    "description": description,
-                }
-
-            conflicts = []
-            if check_conflicts:
-                existing = await list_events(token, days_ahead=14)
-                for e in existing:
-                    if e.get("start", "")[:10] == event_data.get("start", "")[:10]:
-                        conflicts.append({"event": e.get("title", ""), "time": e.get("start", "")})
-
-            node_action = {
-                "node_action": "create_calendar_event",
-                "title": event_data.get("title", ""),
-                "start": event_data.get("start", ""),
-                "end": event_data.get("end", ""),
-                "attendees": event_data.get("attendees", []),
-                "description": event_data.get("description", ""),
-                "add_google_meet": True,
-            }
-            self._node_actions_buffer.append(node_action)
-            result = {
-                "created": True,
-                "event": {
-                    "id": event_data.get("id", "pending"),
-                    "title": event_data.get("title", ""),
-                    "start": event_data.get("start", ""),
-                    "end": event_data.get("end", ""),
-                    "attendees": event_data.get("attendees", []),
-                    "status": "proposed",
-                    "meet_link": None,
-                },
-                "conflicts": conflicts,
-                "node_action": node_action,
-            }
-            return json.dumps(result, default=str)
-
-        elif name == "executive_briefing":
-            include_email = arguments.get("include_email", True)
-            include_calendar = arguments.get("include_calendar", True)
-
-            emails = []
-            if include_email:
-                emails = await list_unread(token, max_results=10)
-            events = []
-            if include_calendar:
-                events = await list_events(token, days_ahead=7)
-
-            context = (
-                f"Unread emails: {json.dumps(emails[:5], default=str)}\n\n"
-                f"Calendar events: {json.dumps(events, default=str)}"
-            )
-            now_iso = datetime.now(timezone.utc).isoformat()
-            today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            _briefing_messages = [{"role": "user", "content": (
-                    f"Generate a comprehensive executive briefing for today ({today_date}):\n{context}\n\n"
-                    "Return ONLY a JSON object (no markdown fences) with keys:\n"
-                    "good_morning (1 personalized greeting sentence), "
-                    "priority_score (integer 1-10 — overall urgency of today), "
-                    "urgent_actions (list of {action, deadline, context, email_id?}), "
-                    "today_schedule (list of {time, title, location?, prep_needed}), "
-                    "upcoming_this_week (list of {day, title}), "
-                    "email_summary (1-2 sentence string summary of email situation), "
-                    "focus_recommendation (string — single most important thing to do today), "
-                    "free_time_today (string estimate e.g. '2 hours')"
-                )}]
-            try:
-                data = await self.llm.complete_json(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system, messages=_briefing_messages,
-                )
-            except Exception:
-                data = {
-                    "good_morning": "Good morning! Here's your briefing.",
-                    "priority_score": 5,
-                    "urgent_actions": [],
-                    "today_schedule": [],
-                    "upcoming_this_week": [],
-                    "email_summary": "Briefing generation failed — please retry.",
-                    "focus_recommendation": "",
-                    "free_time_today": "",
-                }
-            data["generated_at"] = now_iso
-            return json.dumps({"briefing": data}, default=str)
-
-        elif name == "compose_email":
-            to = arguments.get("to", "")
-            subject = arguments.get("subject", "")
-            instructions = arguments.get("instructions", "")
-            tone = arguments.get("tone", "professional")
-            include_cta = arguments.get("include_cta", True)
-
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system,
-                messages=[{"role": "user", "content": (
-                    f"Compose a {tone} email.\n\n"
-                    f"To: {to}\nSubject: {subject}\n"
-                    f"Instructions: {instructions}\n"
-                    f"{'Include a clear call-to-action.' if include_cta else 'No CTA needed.'}"
-                )}],
-            )
-
-            node_action = {
-                "node_action": "create_gmail_draft",
-                "to": to,
-                "subject": subject,
-                "body": raw,
-                "reply_to_message_id": None,
-                "reply_to_thread_id": None,
-            }
-            self._node_actions_buffer.append(node_action)
-            result = {
-                "draft": {
-                    "to": to,
-                    "subject": subject,
-                    "body": raw,
-                    "draft_id": None,
-                },
-                "draft_id": None,
-                "errors": [],
-                "node_action": node_action,
-            }
-            return json.dumps(result, default=str)
-
+        # No native tools left — see get_tools(). Should never actually be
+        # called; the LLM only ever sees mcp_*/ask_agent tool names.
         raise ValueError(f"Unknown tool: {name}")

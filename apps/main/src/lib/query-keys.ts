@@ -4,6 +4,8 @@ export const qk = {
   mcpConnections: () => ["mcp", "connections"] as const,
   mcpConfigSchema: (slug: string) => ["mcp", "config-schema", slug] as const,
   mcpConnectionStatus: (slug: string) => ["mcp", "connection-status", slug] as const,
+  mcpPendingAction: (id: string) => ["mcp", "pending-action", id] as const,
+  mcpToolPreference: (agent: string) => ["mcp", "tool-preference", agent] as const,
   assistantStatuses: (organizationId: string) =>
     ["assistant-statuses", organizationId] as const,
   lastMessages: () => ["last-messages"] as const,

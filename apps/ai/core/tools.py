@@ -30,6 +30,15 @@ class ToolDefinition(BaseModel):
     # that — when set, converters below use this verbatim instead of the
     # lossy JSON-Schema -> ToolParameter -> JSON-Schema round trip.
     raw_schema: dict | None = None
+    # MCP tools only: True if Node classified this as a write/mutating action
+    # (see mcp.provider.composio.ts::classifyWrite). Write calls get staged
+    # for user confirmation instead of executed immediately — see
+    # agents/base.py::chat_sync's mcp_write_set.
+    is_write: bool = False
+    # MCP tools only: Composio's own "commonly used" tag. Used to prioritize
+    # which tools survive truncation when a connection's full catalog is too
+    # large to fit in one LLM call — see core/mcp/cache.py.
+    important: bool = False
 
 
 class ToolCall(BaseModel):

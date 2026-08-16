@@ -4,6 +4,8 @@ import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as rexRepository from "./rex.repository.js";
+import * as mcpService from "../../mcp/mcp.service.js";
+import type { RawPendingAction } from "../../mcp/mcp.types.js";
 import { parseUploaded } from "./rex.csv.js";
 import type {
   SendMessageInput,
@@ -79,10 +81,15 @@ export const sendMessage = async (
     throw new BadRequestError("Failed to get response");
   }
 
+  const pendingActions = responseData.metadata?.pending_actions as RawPendingAction[] | undefined
+  const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
+
   const customInput =
     responseData.action_id && responseData.action_result
-      ? { actionId: responseData.action_id, input: {}, result: responseData.action_result }
-      : undefined;
+      ? { actionId: responseData.action_id, input: {}, result: responseData.action_result, pendingActions: pendingActionsSnapshot }
+      : pendingActionsSnapshot
+        ? { pendingActions: pendingActionsSnapshot }
+        : undefined;
 
   const assistantMessage = await rexRepository.createAssistantMessage({
     organizationId,
@@ -93,6 +100,16 @@ export const sendMessage = async (
     model: responseData.model_used,
     customInput,
   });
+
+  if (pendingActions?.length) {
+    await mcpService.stagePendingActions({
+      organizationId,
+      userId,
+      agent: Agent.REX,
+      messageId: assistantMessage.id,
+      pendingActions,
+    });
+  }
 
   return assistantMessage;
 };

@@ -10,4 +10,5 @@ export interface AssistantMessagePayload {
   model_used?: string;
   action_id?: string;
   action_result?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }

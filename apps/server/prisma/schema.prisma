@@ -39,6 +39,15 @@ enum McpProvider {
   COMPOSIO
 }
 
+/// Lifecycle of a staged write-capable MCP tool call awaiting user confirmation.
+enum McpPendingActionStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  EXECUTED
+  FAILED
+}
+
 /// Local entitlement state mirrored from the billing provider.
 enum SubscriptionStatus {
   TRIALING
@@ -107,45 +116,46 @@ enum ActivityAction {
 /// Better Auth user plus admin flags.
 model User {
   /// Better Auth user id.
-  id            String       @id
+  id                 String              @id
   /// Display name shown in the app.
-  name          String
+  name               String
   /// Login email and unique user identifier.
-  email         String
+  email              String
   /// Whether the email address has been verified.
-  emailVerified Boolean      @default(false)
+  emailVerified      Boolean             @default(false)
   /// Optional profile image URL from the auth provider.
-  image         String?
+  image              String?
   /// User creation timestamp.
-  createdAt     DateTime     @default(now())
+  createdAt          DateTime            @default(now())
   /// User update timestamp maintained by Prisma.
-  updatedAt     DateTime     @updatedAt
+  updatedAt          DateTime            @updatedAt
   /// Optional app/admin role.
-  role          String?
+  role               String?
   /// Better Auth ban flag.
-  banned        Boolean?     @default(false)
+  banned             Boolean?            @default(false)
   /// Optional ban reason visible to admins.
-  banReason     String?
+  banReason          String?
   /// Optional ban expiry timestamp.
-  banExpires    DateTime?
+  banExpires         DateTime?
   /// Auth sessions owned by this user.
-  sessions      Session[]
+  sessions           Session[]
   /// OAuth/password accounts linked to this user.
-  accounts      Account[]
+  accounts           Account[]
   /// Organization memberships for this user.
-  members              Member[]
+  members            Member[]
   /// Organization invitations sent by this user.
-  invitations          Invitation[]
+  invitations        Invitation[]
   /// Feedback posts authored by this user.
-  feedbackPosts        FeedbackPost[]       @relation("FeedbackPostAuthor")
+  feedbackPosts      FeedbackPost[]      @relation("FeedbackPostAuthor")
   /// Upvotes cast by this user on feedback posts.
-  feedbackVotes        FeedbackVote[]       @relation("FeedbackVoteUser")
+  feedbackVotes      FeedbackVote[]      @relation("FeedbackVoteUser")
   /// Comments left by this user on feedback posts.
-  feedbackComments     FeedbackComment[]    @relation("FeedbackCommentUser")
+  feedbackComments   FeedbackComment[]   @relation("FeedbackCommentUser")
   /// Upvotes cast by this user on upcoming agents.
-  upcomingAgentVotes   UpcomingAgentVote[]  @relation("UpcomingAgentVoteUser")
+  upcomingAgentVotes UpcomingAgentVote[] @relation("UpcomingAgentVoteUser")
   /// Activity log entries recorded for this user.
-  activityLogs         ActivityLog[]
+  activityLogs       ActivityLog[]
+
   @@unique([email])
   @@map("user")
 }
@@ -239,7 +249,7 @@ model Verification {
 /// Tenant organization and denormalized entitlement state.
 model Organization {
   /// Better Auth organization id.
-  id                   String              @id
+  id                   String                @id
   /// Organization display name.
   name                 String
   /// Unique URL/workspace slug.
@@ -251,7 +261,7 @@ model Organization {
   /// Better Auth metadata blob stored as string.
   metadata             String?
   /// Whether onboarding/brand kit setup is complete.
-  onboarded            Boolean             @default(false)
+  onboarded            Boolean               @default(false)
   /// Users belonging to this organization.
   members              Member[]
   /// Pending invitations for this organization.
@@ -261,7 +271,7 @@ model Organization {
   /// Fast entitlement expiry used by middleware.
   entitlementExpiresAt DateTime?
   /// Fast per-agent unlocks used by middleware.
-  unlockedAgents       Agent[]              @default([])
+  unlockedAgents       Agent[]               @default([])
   /// When the org's one-and-only trial was started. Non-null = trial already used.
   trialStartedAt       DateTime?
   /// Per-agent entitlements — the source of truth for access.
@@ -291,49 +301,49 @@ model Organization {
 /// Billing provider subscription record for one organization.
 model Subscription {
   /// Local subscription id.
-  id                 String       @id @default(cuid())
+  id                       String                       @id @default(cuid())
   /// Owning organization id.
-  organizationId     String       @unique
+  organizationId           String                       @unique
   /// Owning organization relation.
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization             Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// Dodo customer id.
-  dodoCustomerId     String       @unique
+  dodoCustomerId           String                       @unique
   /// Dodo subscription id after checkout activation.
-  dodoSubscriptionId String?      @unique
+  dodoSubscriptionId       String?                      @unique
   /// Current local billing status.
-  status             SubscriptionStatus @default(TRIALING)
+  status                   SubscriptionStatus           @default(TRIALING)
   /// Current paid plan cadence.
-  plan               SubscriptionPlan?
+  plan                     SubscriptionPlan?
   /// Legacy entitlement-shape field. The enum now has only one value
   /// (CUSTOM) — access is fully governed by Entitlement rows, not this mode.
-  entitlementMode    SubscriptionEntitlementMode @default(CUSTOM)
+  entitlementMode          SubscriptionEntitlementMode  @default(CUSTOM)
   /// Legacy/vestigial: written on customer creation but not read by any
   /// access-control or provisioning logic. Real agent access lives on
   /// Entitlement rows; this column predates that and is kept only to avoid
   /// a migration.
-  selectedAgents     Agent[]       @default([])
+  selectedAgents           Agent[]                      @default([])
   /// Checkout session waiting for provider confirmation.
   pendingCheckoutSessionId String?
   /// Pending paid plan cadence from latest checkout.
-  pendingPlan        SubscriptionPlan?
+  pendingPlan              SubscriptionPlan?
   /// Pending entitlement mode from latest checkout.
-  pendingEntitlementMode SubscriptionEntitlementMode?
+  pendingEntitlementMode   SubscriptionEntitlementMode?
   /// Pending selected agents from latest checkout.
-  pendingSelectedAgents Agent[]    @default([])
+  pendingSelectedAgents    Agent[]                      @default([])
   /// Pending Dodo product id from latest checkout.
-  pendingProductId   String?
+  pendingProductId         String?
   /// Pending checkout creation timestamp.
   pendingCheckoutCreatedAt DateTime?
   /// Trial end timestamp.
-  trialEndsAt        DateTime?
+  trialEndsAt              DateTime?
   /// Current paid period end timestamp.
-  currentPeriodEnd   DateTime?
+  currentPeriodEnd         DateTime?
   /// Whether cancellation is scheduled for period end.
-  cancelAtPeriodEnd  Boolean      @default(false)
+  cancelAtPeriodEnd        Boolean                      @default(false)
   /// Subscription creation timestamp.
-  createdAt          DateTime     @default(now())
+  createdAt                DateTime                     @default(now())
   /// Subscription update timestamp.
-  updatedAt          DateTime     @updatedAt
+  updatedAt                DateTime                     @updatedAt
 
   @@map("subscription")
 }
@@ -421,13 +431,13 @@ enum CheckoutKind {
 /// Holds a SINGLE agent: Dodo permits one subscription per checkout.
 model PendingCheckout {
   /// Pending checkout row id.
-  id             String       @id @default(cuid())
+  id             String           @id @default(cuid())
   /// Owning organization id.
   organizationId String
   /// Owning organization relation.
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// Dodo checkout session id.
-  sessionId      String       @unique
+  sessionId      String           @unique
   /// What this checkout is for.
   kind           CheckoutKind
   /// Agent being purchased. Null for MAYA_TOPUP.
@@ -441,7 +451,7 @@ model PendingCheckout {
   /// Credits purchased. Only set for MAYA_TOPUP; null otherwise.
   credits        Int?
   /// Creation timestamp.
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime         @default(now())
 
   @@index([organizationId, createdAt])
   @@map("pending_checkout")
@@ -624,27 +634,29 @@ model BrandImage {
 /// Chat message history across agents.
 model Message {
   /// Message id.
-  id             String   @id @default(uuid())
+  id             String             @id @default(uuid())
   /// Owning organization id.
   organizationId String
   /// Message role, usually user or assistant.
-  role           String   @default("user")
+  role           String             @default("user")
   /// Message text content.
   content        String
   /// Creation timestamp.
-  createdAt      DateTime @default(now())
+  createdAt      DateTime           @default(now())
   /// Optional generated or attached image URL.
   imageUrl       String?
   /// Agent that owns this message.
   agent          Agent
   /// Token usage reported by the AI service.
-  tokensUsed     Int      @default(0)
+  tokensUsed     Int                @default(0)
   /// Model identifier reported by the AI service.
   model          String?
   /// User id that initiated the message.
   userId         String?
   /// Structured action input/result metadata for cards.
   customInput    Json?
+  /// Write-capable MCP tool calls this message staged for confirmation.
+  pendingActions McpPendingAction[]
 
   @@index([agent, organizationId])
   @@index([organizationId, agent, createdAt])
@@ -706,7 +718,7 @@ model OrgMemory {
 /// Connected social account for publishing.
 model SocialAccount {
   /// Social account id.
-  id                   String         @id @default(uuid())
+  id                   String          @id @default(uuid())
   /// Owning organization id.
   organizationId       String
   /// User who connected the account.
@@ -728,9 +740,9 @@ model SocialAccount {
   /// Provider-specific metadata.
   metadata             Json?
   /// Creation timestamp.
-  createdAt            DateTime       @default(now())
+  createdAt            DateTime        @default(now())
   /// Update timestamp.
-  updatedAt            DateTime       @updatedAt
+  updatedAt            DateTime        @updatedAt
   /// Posts published through this account.
   publishedPosts       PublishedPost[]
 
@@ -785,46 +797,115 @@ model McpConnection {
   @@map("mcp_connection")
 }
 
+/// A write-capable MCP tool call the LLM proposed mid-conversation, staged
+/// here instead of executed immediately — requires an explicit user
+/// confirm/reject click (see mcp.service.ts confirmPendingAction /
+/// rejectPendingAction) before the underlying provider call actually runs.
+model McpPendingAction {
+  /// Pending action id — also used as the tool-call id apps/ai generated.
+  id              String                 @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// User whose conversation staged this action.
+  userId          String
+  /// Agent whose tool loop proposed this action.
+  agent           Agent
+  /// Chat message this action was staged from, if the message still exists.
+  messageId       String?
+  /// Owning message relation.
+  message         Message?               @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  /// McpConnection.connectionId the tool call targets.
+  connectionId    String
+  /// Catalog slug, denormalized for cheap frontend display (icon/name).
+  integrationSlug String
+  /// Real provider-side tool/action slug (e.g. Composio's GMAIL_SEND_EMAIL).
+  toolName        String
+  /// Arguments the LLM proposed calling the tool with.
+  arguments       Json
+  /// Human-readable summary shown in the confirm/reject UI.
+  summary         String
+  /// Staged action lifecycle state.
+  status          McpPendingActionStatus @default(PENDING)
+  /// Provider result, once executed.
+  resultJson      Json?
+  /// Provider error, if execution failed.
+  errorMessage    String?
+  /// Creation timestamp.
+  createdAt       DateTime               @default(now())
+  /// Update timestamp.
+  updatedAt       DateTime               @updatedAt
+
+  @@index([organizationId, status])
+  @@index([messageId])
+  @@map("mcp_pending_action")
+}
+
+/// Per-(org, agent) override of which connected MCP integration an agent's
+/// native tools should prefer over their built-in default data source (e.g.
+/// Scout's research tools use native Serper search by default; toggling this
+/// to "tavily" makes them source from the connected Tavily integration
+/// instead). Deterministic override — exists because prompt-level "prefer
+/// the MCP tool" guidance proved unreliable for tools that call their own
+/// data source internally rather than choosing between exposed tool options.
+model McpToolPreference {
+  /// Preference row id.
+  id                       String   @id @default(uuid())
+  /// Owning organization id.
+  organizationId           String
+  /// Agent this preference applies to.
+  agent                    Agent
+  /// Catalog slug of the preferred MCP integration (e.g. "tavily"), or null
+  /// to use the agent's default (native) data source.
+  preferredIntegrationSlug String?
+  /// Creation timestamp.
+  createdAt                DateTime @default(now())
+  /// Update timestamp.
+  updatedAt                DateTime @updatedAt
+
+  @@unique([organizationId, agent])
+  @@map("mcp_tool_preference")
+}
+
 /// Maya social post publication record.
 model PublishedPost {
   /// Published post id.
-  id              String         @id @default(uuid())
+  id                String         @id @default(uuid())
   /// Owning organization id.
-  organizationId  String
+  organizationId    String
   /// User who initiated publish.
-  userId          String
+  userId            String
   /// Connected account used for publishing.
-  socialAccountId String?
+  socialAccountId   String?
   /// Connected account relation.
-  socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  socialAccount     SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
   /// Target platform.
-  platform        SocialPlatform
+  platform          SocialPlatform
   /// Provider-side post id.
-  platformPostId  String?
+  platformPostId    String?
   /// Published caption/body.
-  caption         String
+  caption           String
   /// Hashtags included in the post.
-  hashtags        String[]
+  hashtags          String[]
   /// Optional image URL used in the post.
-  imageUrl        String?
+  imageUrl          String?
   /// Optional video URL used in the post.
-  videoUrl        String?
+  videoUrl          String?
   /// Additional carousel image URLs (Instagram carousels only); imageUrl holds the first.
-  imageUrls       String[]       @default([])
+  imageUrls         String[]       @default([])
   /// Instagram post-vs-reel selection, preserved for scheduled video posts.
-  postType        String?
+  postType          String?
   /// Publish status: pending, scheduled, publishing, success, failed, or cancelled.
-  status          String         @default("pending")
+  status            String         @default("pending")
   /// Publish error message when failed.
-  error           String?
+  error             String?
   /// Provider publish timestamp.
-  publishedAt     DateTime?
+  publishedAt       DateTime?
   /// When set (status = "scheduled"), the time the post should be auto-published.
-  scheduledAt     DateTime?
+  scheduledAt       DateTime?
   /// Set once a scheduled post's failure has been emailed/toasted, to avoid duplicate notifications.
   failureNotifiedAt DateTime?
   /// Local creation timestamp.
-  createdAt       DateTime       @default(now())
+  createdAt         DateTime       @default(now())
 
   @@index([organizationId, createdAt])
   @@index([organizationId, status, publishedAt])
@@ -1135,41 +1216,41 @@ enum FeedbackCategory {
 /// A feature request / bug report submitted by a user.
 model FeedbackPost {
   /// Row id.
-  id          String           @id @default(cuid())
+  id           String            @id @default(cuid())
   /// Short title supplied by the submitter.
-  title       String
+  title        String
   /// Longer description supplied by the submitter.
-  description String
+  description  String
   /// Categorisation tag.
-  category    FeedbackCategory @default(GENERAL)
+  category     FeedbackCategory  @default(GENERAL)
   /// Optional agent this feedback relates to.
-  agentSlug   String?
+  agentSlug    String?
   /// Current lifecycle status.
-  status      FeedbackStatus   @default(NEW)
+  status       FeedbackStatus    @default(NEW)
   /// Cached vote tally (incremented/decremented atomically).
-  voteCount   Int              @default(0)
+  voteCount    Int               @default(0)
   /// Optional public-facing ETA shown on the roadmap.
-  roadmapEta  String?
+  roadmapEta   String?
   /// Optional public admin reply shown to voters.
-  adminReply  String?
+  adminReply   String?
   /// Optional internal-only admin note.
-  adminNote   String?
+  adminNote    String?
   /// Whether the post has been merged into another.
-  isMerged    Boolean          @default(false)
+  isMerged     Boolean           @default(false)
   /// Target post id when this post was merged.
   mergedIntoId String?
   /// Submitting user id.
-  createdById String
+  createdById  String
   /// Submitting user relation.
-  createdBy   User             @relation("FeedbackPostAuthor", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy    User              @relation("FeedbackPostAuthor", fields: [createdById], references: [id], onDelete: Cascade)
   /// Creation timestamp.
-  createdAt   DateTime         @default(now())
+  createdAt    DateTime          @default(now())
   /// Last-updated timestamp.
-  updatedAt   DateTime         @updatedAt
+  updatedAt    DateTime          @updatedAt
   /// Votes cast on this post.
-  votes       FeedbackVote[]
+  votes        FeedbackVote[]
   /// Comments on this post.
-  comments    FeedbackComment[]
+  comments     FeedbackComment[]
 
   @@index([status])
   @@index([category])
@@ -1380,23 +1461,23 @@ model ExpenseGroup {
 /// Free-text named member of an ExpenseGroup (not linked to an app user account).
 model ExpenseGroupMember {
   /// Row id.
-  id       String       @id @default(cuid())
+  id              String         @id @default(cuid())
   /// Group this membership belongs to.
-  groupId  String
+  groupId         String
   /// Display name for this member (free text).
-  name     String
+  name            String
   /// When the member was added.
-  joinedAt DateTime     @default(now())
+  joinedAt        DateTime       @default(now())
   /// Group relation.
-  group           ExpenseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group           ExpenseGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   /// Expenses paid by this member.
-  expenses        Expense[]    @relation("ExpensePaidByMember")
+  expenses        Expense[]      @relation("ExpensePaidByMember")
   /// Splits this member is responsible for.
   expenseSplits   ExpenseSplit[]
   /// Settlements where this member is the payer.
-  settlementsFrom Settlement[] @relation("SettlementFromMember")
+  settlementsFrom Settlement[]   @relation("SettlementFromMember")
   /// Settlements where this member is the receiver.
-  settlementsTo   Settlement[] @relation("SettlementToMember")
+  settlementsTo   Settlement[]   @relation("SettlementToMember")
 
   @@unique([groupId, name])
   @@index([groupId])
@@ -1406,7 +1487,7 @@ model ExpenseGroupMember {
 /// A single expense logged in an ExpenseGroup.
 model Expense {
   /// Expense id.
-  id             String          @id @default(cuid())
+  id             String             @id @default(cuid())
   /// Owning group id.
   groupId        String
   /// Short description of the expense.
@@ -1414,11 +1495,11 @@ model Expense {
   /// Amount in the original currency.
   amount         Float
   /// ISO-4217 currency code.
-  currency       String          @default("USD")
+  currency       String             @default("USD")
   /// Amount converted to USD for balance calculations.
   amountUsd      Float
   /// Category tag.
-  category       ExpenseCategory @default(OTHER)
+  category       ExpenseCategory    @default(OTHER)
   /// Member who paid for this expense.
   paidByMemberId String
   /// Optional receipt image/PDF URL (R2).
@@ -1428,15 +1509,15 @@ model Expense {
   /// Date the expense occurred.
   date           DateTime
   /// Whether this expense recurs on a schedule.
-  isRecurring    Boolean         @default(false)
+  isRecurring    Boolean            @default(false)
   /// CRON expression for recurrence (null if not recurring).
   cronExpression String?
   /// Next scheduled recurrence timestamp.
   nextRunAt      DateTime?
   /// Creation timestamp.
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime           @default(now())
   /// Update timestamp.
-  updatedAt      DateTime        @updatedAt
+  updatedAt      DateTime           @updatedAt
   /// Owning group relation.
   group          ExpenseGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   /// Member who paid.
@@ -1507,25 +1588,25 @@ model MayaUsage {
 /// A recorded debt payment between two group members.
 model Settlement {
   /// Settlement id.
-  id          String       @id @default(cuid())
+  id           String             @id @default(cuid())
   /// Group this settlement belongs to.
-  groupId     String
+  groupId      String
   /// Member who is paying.
   fromMemberId String
   /// Member who is receiving payment.
   toMemberId   String
   /// Amount paid in the settlement currency.
-  amount      Float
+  amount       Float
   /// ISO-4217 currency code.
-  currency    String       @default("USD")
+  currency     String             @default("USD")
   /// Amount converted to USD.
-  amountUsd   Float
+  amountUsd    Float
   /// Payment method (e.g. "UPI", "Cash", "Bank Transfer").
-  method      String?
+  method       String?
   /// Optional notes.
-  notes       String?
+  notes        String?
   /// When the settlement was recorded.
-  settledAt   DateTime     @default(now())
+  settledAt    DateTime           @default(now())
   /// Group relation.
   group        ExpenseGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   /// Payer relation.

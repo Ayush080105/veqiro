@@ -6,7 +6,8 @@ import { CONTEXT_HISTORY_LIMIT, SUMMARIZE_THRESHOLD } from "../../config/constan
 import type { BuildContextResponse } from "../../modules/context/context.types.js"
 import { z } from "zod"
 import { prisma } from "../../config/prisma.js"
-import { getConnectionsForAgent } from "../../modules/mcp/mcp.service.js"
+import { getConnectionsForAgent, getToolPreference } from "../../modules/mcp/mcp.service.js"
+import { getIntegrationsByAgent, type AgentSlug } from "@repo/integrations-catalog"
 
 interface AgentCallOptions {
   agentApiPath: string            // e.g. "/ai/sage/chat"
@@ -219,14 +220,29 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
     ? [...built.hot_messages, ...built.semantic_messages]
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
-  // 2.5. Resolve this org's connected MCP tools relevant to this agent.
-  // Cheap no-op (no DB/provider call beyond one indexed query) for the
-  // common case of an org with zero connections.
+  // 2.5. Resolve this org's connected MCP tools relevant to this agent, plus
+  // the agent's full connectable catalog (each entry tagged connected:
+  // true/false) so it can accurately answer "what can you connect to" even
+  // when nothing — or only some things — are connected yet. Cheap no-op (no
+  // extra DB/provider call beyond one indexed query) for the common case of
+  // an org with zero connections.
   let mcpMeta: Record<string, unknown> = {}
   try {
     const connections = await getConnectionsForAgent(organizationId, agentEnum)
-    if (connections.length > 0) {
-      mcpMeta = { mcp_connections: connections }
+    const agentSlug = agentEnum.toLowerCase() as AgentSlug
+    const connectedSlugs = new Set(connections.map((c) => c.integrationSlug))
+    const catalog = getIntegrationsByAgent(agentSlug)
+      .filter((e) => e.status === "composio")
+      .map((e) => ({ slug: e.slug, name: e.name, connected: connectedSlugs.has(e.slug) }))
+    // Deterministic override for agents whose native tools can't reliably be
+    // prompted to "prefer" a connected MCP tool (see agents/base.py's
+    // SUPERSEDABLE_BY_MCP) — which integration, if any, should replace this
+    // agent's default data source entirely.
+    const { preferredIntegrationSlug } = await getToolPreference(organizationId, agentSlug)
+    mcpMeta = {
+      ...(connections.length > 0 ? { mcp_connections: connections } : {}),
+      ...(catalog.length > 0 ? { mcp_catalog: catalog } : {}),
+      ...(preferredIntegrationSlug ? { mcp_tool_preference: preferredIntegrationSlug } : {}),
     }
   } catch (err) {
     console.error("[context] mcp connection resolution failed — continuing without MCP tools", err)

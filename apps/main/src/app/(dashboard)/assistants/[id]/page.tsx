@@ -16,6 +16,8 @@ import {
   AgentNotAvailableError,
 } from "@/lib/api/assistants"
 import { useBrandKit } from "@/lib/api/brain"
+import { useMcpConnections, useMcpToolPreference, useSetMcpToolPreference } from "@/lib/api/mcp"
+import { getIntegrationsByAgent } from "@repo/integrations-catalog"
 
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
@@ -55,6 +57,52 @@ import type {
 } from "@/lib/types"
 import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult, MayaContentRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
+
+// Scout's native research tools call their own default data source (Serper)
+// internally and can't reliably be prompted to prefer a connected MCP tool
+// instead — see SUPERSEDABLE_BY_MCP in apps/ai/agents/base.py. This toggle
+// lets the org explicitly override the source rather than leaving it to the
+// LLM. Scout-only for now; a separate component so its hooks only run when
+// actually mounted (i.e. only for the scout agent page).
+function ScoutSearchSourceToggle() {
+  const { data: connections } = useMcpConnections()
+  const { data: preference } = useMcpToolPreference("scout")
+  const setPreference = useSetMcpToolPreference("scout")
+
+  const options = getIntegrationsByAgent("scout")
+    .filter((e) => e.status === "composio")
+    .map((e) => ({
+      slug: e.slug,
+      name: e.name,
+      connected: connections?.some((c) => c.slug === e.slug && c.status === "CONNECTED") ?? false,
+    }))
+    .filter((e) => e.connected)
+
+  if (options.length === 0) return null
+
+  return (
+    <select
+      value={preference?.preferredIntegrationSlug ?? ""}
+      onChange={(e) => setPreference.mutate(e.target.value || null)}
+      disabled={setPreference.isPending}
+      title="Which research source Scout should use"
+      style={{
+        background: "transparent",
+        border: "1px solid rgba(0,0,0,0.15)",
+        borderRadius: 8,
+        padding: "6px 8px",
+        fontSize: 12,
+        color: "#555",
+        cursor: setPreference.isPending ? "default" : "pointer",
+      }}
+    >
+      <option value="">Default search</option>
+      {options.map((o) => (
+        <option key={o.slug} value={o.slug}>{o.name}</option>
+      ))}
+    </select>
+  )
+}
 
 function ChatHeader({
   agent,
@@ -157,6 +205,7 @@ function ChatHeader({
           online
         </div>
       </button>
+      {agent.id === "scout" && <ScoutSearchSourceToggle />}
       <button
         suppressHydrationWarning
         type="button"

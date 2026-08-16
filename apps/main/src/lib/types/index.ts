@@ -19,6 +19,8 @@ export interface Message {
     actionId?: string
     input?: unknown
     result?: unknown
+    /** Write-capable MCP tool calls staged from this message, awaiting user confirmation. */
+    pendingActions?: { id: string; summary: string; status: string }[]
   } | null
 }
 

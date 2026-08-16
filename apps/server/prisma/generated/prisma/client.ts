@@ -148,6 +148,25 @@ export type SocialAccount = Prisma.SocialAccountModel
  */
 export type McpConnection = Prisma.McpConnectionModel
 /**
+ * Model McpPendingAction
+ * A write-capable MCP tool call the LLM proposed mid-conversation, staged
+ * here instead of executed immediately — requires an explicit user
+ * confirm/reject click (see mcp.service.ts confirmPendingAction /
+ * rejectPendingAction) before the underlying provider call actually runs.
+ */
+export type McpPendingAction = Prisma.McpPendingActionModel
+/**
+ * Model McpToolPreference
+ * Per-(org, agent) override of which connected MCP integration an agent's
+ * native tools should prefer over their built-in default data source (e.g.
+ * Scout's research tools use native Serper search by default; toggling this
+ * to "tavily" makes them source from the connected Tavily integration
+ * instead). Deterministic override — exists because prompt-level "prefer
+ * the MCP tool" guidance proved unreliable for tools that call their own
+ * data source internally rather than choosing between exposed tool options.
+ */
+export type McpToolPreference = Prisma.McpToolPreferenceModel
+/**
  * Model PublishedPost
  * Maya social post publication record.
  */

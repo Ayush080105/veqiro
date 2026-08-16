@@ -7,6 +7,8 @@ import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64, uploadBuffer } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsService from "../../integrations/integrations.service.js";
+import * as mcpService from "../../mcp/mcp.service.js";
+import type { RawPendingAction } from "../../mcp/mcp.types.js";
 import { logActivity, ActivityAction } from "../../activity/activity.service.js";
 import type {
   SendMessageInput,
@@ -144,6 +146,14 @@ export const sendMessage = async (
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
+  const pendingActions = responseData.metadata?.pending_actions as RawPendingAction[] | undefined
+  const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
+  const stageIfNeeded = async (messageId: string) => {
+    if (pendingActions?.length) {
+      await mcpService.stagePendingActions({ organizationId, userId, agent: Agent.MAYA, messageId, pendingActions })
+    }
+  }
+
   let imageUrl: string | undefined = responseData.image?.url;
   if (!imageUrl && responseData.image?.image_base64 && isR2Configured()) {
     try {
@@ -170,7 +180,7 @@ export const sendMessage = async (
         prompt_used: responseData.image?.prompt_used ?? "",
       });
     }
-    return mayaRepository.createAssistantMessage({
+    const modifyImageMessage = await mayaRepository.createAssistantMessage({
       organizationId,
       userId,
       content: responseData.response,
@@ -189,9 +199,14 @@ export const sendMessage = async (
                 prompt_used: responseData.image?.prompt_used ?? "",
               },
             },
+            pendingActions: pendingActionsSnapshot,
           }
-        : undefined,
+        : pendingActionsSnapshot
+          ? { pendingActions: pendingActionsSnapshot }
+          : undefined,
     });
+    await stageIfNeeded(modifyImageMessage.id);
+    return modifyImageMessage;
   }
 
   // Build customInput for rich card rendering. For content actions inject the
@@ -212,7 +227,7 @@ export const sendMessage = async (
         prompt_used: responseData.image?.prompt_used ?? "",
       };
     }
-    customInput = { actionId: responseData.action_id, input: {}, result };
+    customInput = { actionId: responseData.action_id, input: {}, result, pendingActions: pendingActionsSnapshot };
   }
 
   // When the AI modified an image via chat (e.g. modify_image tool for logo/mascot
@@ -230,7 +245,11 @@ export const sendMessage = async (
           prompt_used: responseData.image?.prompt_used ?? "",
         },
       },
+      pendingActions: pendingActionsSnapshot,
     };
+  }
+  if (!customInput && pendingActionsSnapshot) {
+    customInput = { pendingActions: pendingActionsSnapshot };
   }
 
   const assistantMessage = await mayaRepository.createAssistantMessage({
@@ -242,6 +261,8 @@ export const sendMessage = async (
     model: responseData.model_used,
     customInput,
   });
+
+  await stageIfNeeded(assistantMessage.id);
 
   return assistantMessage;
 };
