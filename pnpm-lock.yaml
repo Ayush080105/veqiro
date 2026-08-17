@@ -102,6 +102,9 @@ importers:
 
   apps/landing:
     dependencies:
+      '@repo/integrations-catalog':
+        specifier: workspace:*
+        version: link:../../packages/integrations-catalog
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
