@@ -62,6 +62,150 @@ export async function disconnectMcp(slug: string): Promise<void> {
   await apiFetch<void>(`/mcp/connections/${slug}`, { method: "DELETE" })
 }
 
+/** What a just-connected system can actually see — shown on the connect
+ *  success screen. `headline` is absent when the integration has no proof
+ *  spec, or the read returned nothing countable. */
+export interface McpConnectionProof {
+  headline?: string
+  toolCount: number
+  integrationName: string
+}
+
+export async function getMcpConnectionProof(slug: string): Promise<McpConnectionProof> {
+  return apiFetch<McpConnectionProof>(`/mcp/connections/${slug}/proof`)
+}
+
+/** One tile on the Command Center — either a number or real rows. */
+export interface OrgSignal {
+  key: string
+  /** Set when the tile could not be read; it still renders, saying so. */
+  error?: string
+  slug: string
+  /** Integration name, e.g. "Gmail". */
+  name: string
+  /** The widget's name, or the customer's rename, e.g. "Unread email". */
+  title: string
+  kind: WidgetKind
+  display?: string | null
+  rows?: WidgetRow[]
+  logoUrl?: string
+}
+
+export interface CommandCenterSummary {
+  signals: OrgSignal[]
+  pendingActionCount: number
+  connectedCount: number
+  refreshedAt: string
+}
+
+export async function getCommandCenter(forceRefresh = false): Promise<CommandCenterSummary> {
+  return apiFetch<CommandCenterSummary>(
+    `/mcp/command-center${forceRefresh ? "?refresh=1" : ""}`,
+  )
+}
+
+/** What the agents actually did across connected systems this period — the
+ *  renewal artifact. `hoursSaved` is null while the sample is too small. */
+export interface ValueReport {
+  periodDays: number
+  actions: number
+  writes: number
+  systemsTouched: number
+  breakdown: { slug: string; name: string; actions: number }[]
+  hoursSaved: number | null
+}
+
+export async function getValueReport(): Promise<ValueReport> {
+  return apiFetch<ValueReport>("/mcp/value-report")
+}
+
+/** One metric a user can pin to the dashboard from a given integration. */
+export interface MetricCandidate {
+  toolName: string
+  label: string
+  noun: string
+  argFree: boolean
+  important: boolean
+}
+
+export type WidgetKind = "metric" | "list"
+
+/** One row of a list widget — a real email, meeting, or search query. */
+export interface WidgetRow {
+  title: string
+  subtitle?: string
+  meta?: string
+  link?: string
+}
+
+export interface WidgetResult {
+  kind: WidgetKind
+  display?: string | null
+  rows?: WidgetRow[]
+  total?: number | null
+  error?: string
+}
+
+export interface AvailableWidgetInput {
+  name: string
+  label: string
+  placeholder?: string
+  /** Present when we could list the choices from the customer's own account. */
+  options?: string[]
+  /** Fixed labelled options (e.g. a date range). Value is a day count. */
+  choices?: { value: string; label: string }[]
+  /** Pre-selected value so sensible defaults need no interaction. */
+  defaultValue?: string
+}
+
+export interface AvailableWidget {
+  id: string
+  integrationSlug: string
+  integrationName: string
+  name: string
+  description: string
+  kind: WidgetKind
+  inputs: AvailableWidgetInput[]
+}
+
+export interface DashboardTile {
+  id: string
+  widgetId: string
+  integrationSlug: string
+  integrationName: string
+  name: string
+  kind: WidgetKind
+  inputs: Record<string, unknown>
+  position: number
+}
+
+export async function listAvailableWidgets(): Promise<AvailableWidget[]> {
+  return apiFetch<AvailableWidget[]>("/mcp/available-widgets")
+}
+
+export async function runWidget(
+  widgetId: string,
+  inputs: Record<string, unknown>,
+): Promise<WidgetResult> {
+  return apiFetch<WidgetResult>("/mcp/run-widget", { method: "POST", body: { widgetId, inputs } })
+}
+
+export async function listDashboardTiles(): Promise<DashboardTile[]> {
+  return apiFetch<DashboardTile[]>("/mcp/dashboard-tiles")
+}
+
+export async function addDashboardTile(input: {
+  widgetId: string
+  inputs?: Record<string, unknown>
+  label?: string | null
+}): Promise<DashboardTile[]> {
+  return apiFetch<DashboardTile[]>("/mcp/dashboard-tiles", { method: "POST", body: input })
+}
+
+export async function removeDashboardTile(id: string): Promise<DashboardTile[]> {
+  return apiFetch<DashboardTile[]>(`/mcp/dashboard-tiles/${id}`, { method: "DELETE" })
+}
+
 export interface McpToolPreference {
   preferredIntegrationSlug: string | null
 }
@@ -99,6 +243,103 @@ export function useMcpConnections() {
   })
 }
 
+/** Fires once, on the connect success screen. No retry: a failed proof read
+ *  already degrades server-side to a tool count, and the connection itself is
+ *  fine either way — retrying would just delay the modal. */
+export function useMcpConnectionProof(slug: string, enabled: boolean) {
+  return useQuery({
+    queryKey: qk.mcpConnectionProof(slug),
+    queryFn: () => getMcpConnectionProof(slug),
+    enabled,
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+  })
+}
+
+/** Backs the dashboard's Command Center. The server caches provider reads for a
+ *  minute; this refetches on mount and focus so returning to the tab shows
+ *  current data rather than whatever was there when it was opened. */
+export function useCommandCenter() {
+  return useQuery({
+    queryKey: qk.mcpCommandCenter(),
+    queryFn: () => getCommandCenter(),
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  })
+}
+
+/** Explicit refresh: bypasses both caches and writes the result straight into
+ *  the query so the tiles update without a second round-trip. */
+export function useRefreshCommandCenter() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => getCommandCenter(true),
+    onSuccess: (summary) => {
+      queryClient.setQueryData(qk.mcpCommandCenter(), summary)
+    },
+  })
+}
+
+export function useValueReport() {
+  return useQuery({
+    queryKey: qk.mcpValueReport(),
+    queryFn: () => getValueReport(),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useDashboardTiles() {
+  return useQuery({
+    queryKey: qk.mcpDashboardTiles(),
+    queryFn: () => listDashboardTiles(),
+  })
+}
+
+/** Widgets available for the systems this org has connected. Input options are
+ *  resolved server-side from the customer's account, so this can be slow the
+ *  first time — cached for the session. */
+export function useAvailableWidgets(enabled: boolean) {
+  return useQuery({
+    queryKey: qk.mcpAvailableWidgets(),
+    queryFn: () => listAvailableWidgets(),
+    enabled,
+    staleTime: 5 * 60_000,
+  })
+}
+
+/** Runs a widget so the gallery can show the real thing before it is pinned. */
+export function useWidgetPreview(widgetId: string | null, inputs: Record<string, unknown>) {
+  return useQuery({
+    queryKey: qk.mcpWidgetPreview(widgetId ?? "", JSON.stringify(inputs)),
+    queryFn: () => runWidget(widgetId!, inputs),
+    enabled: Boolean(widgetId),
+    retry: false,
+    staleTime: 0,
+  })
+}
+
+function useTileMutation<TArgs>(fn: (args: TArgs) => Promise<DashboardTile[]>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (tiles) => {
+      queryClient.setQueryData(qk.mcpDashboardTiles(), tiles)
+      // The Command Center renders from these tiles, so it must re-read.
+      queryClient.invalidateQueries({ queryKey: qk.mcpCommandCenter() })
+    },
+  })
+}
+
+export function useAddDashboardTile() {
+  return useTileMutation(addDashboardTile)
+}
+
+export function useRemoveDashboardTile() {
+  return useTileMutation(removeDashboardTile)
+}
+
 export function useMcpConfigSchema(slug: string, enabled: boolean) {
   return useQuery({
     queryKey: qk.mcpConfigSchema(slug),
@@ -107,13 +348,21 @@ export function useMcpConfigSchema(slug: string, enabled: boolean) {
   })
 }
 
+/** Everything that becomes stale when a connection is added or removed.
+ *  The Command Center caches live provider reads, so leaving it alone made a
+ *  freshly reconnected account appear to still show the old one. */
+function invalidateConnectionDependents(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: qk.mcpConnections() })
+  queryClient.invalidateQueries({ queryKey: qk.mcpCommandCenter() })
+  queryClient.invalidateQueries({ queryKey: qk.mcpAvailableWidgets() })
+  queryClient.invalidateQueries({ queryKey: qk.mcpDashboardTiles() })
+}
+
 export function useConnectMcp(slug: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (configValues?: Record<string, unknown>) => connectMcp(slug, configValues),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.mcpConnections() })
-    },
+    onSuccess: () => invalidateConnectionDependents(queryClient),
   })
 }
 
@@ -124,7 +373,7 @@ export function useMcpConnectionStatus(slug: string, opts: { enabled: boolean })
     queryFn: async () => {
       const result = await getMcpConnectionStatus(slug)
       if (result.status === "CONNECTED") {
-        queryClient.invalidateQueries({ queryKey: qk.mcpConnections() })
+        invalidateConnectionDependents(queryClient)
       }
       return result
     },
@@ -137,9 +386,7 @@ export function useDisconnectMcp(slug: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => disconnectMcp(slug),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.mcpConnections() })
-    },
+    onSuccess: () => invalidateConnectionDependents(queryClient),
   })
 }
 

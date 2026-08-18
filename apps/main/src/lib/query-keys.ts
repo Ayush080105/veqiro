@@ -4,6 +4,13 @@ export const qk = {
   mcpConnections: () => ["mcp", "connections"] as const,
   mcpConfigSchema: (slug: string) => ["mcp", "config-schema", slug] as const,
   mcpConnectionStatus: (slug: string) => ["mcp", "connection-status", slug] as const,
+  mcpConnectionProof: (slug: string) => ["mcp", "connection-proof", slug] as const,
+  mcpCommandCenter: () => ["mcp", "command-center"] as const,
+  mcpValueReport: () => ["mcp", "value-report"] as const,
+  mcpDashboardTiles: () => ["mcp", "dashboard-tiles"] as const,
+  mcpAvailableWidgets: () => ["mcp", "available-widgets"] as const,
+  mcpWidgetPreview: (widgetId: string, inputs: string) =>
+    ["mcp", "widget-preview", widgetId, inputs] as const,
   mcpPendingAction: (id: string) => ["mcp", "pending-action", id] as const,
   mcpToolPreference: (agent: string) => ["mcp", "tool-preference", agent] as const,
   assistantStatuses: (organizationId: string) =>

@@ -6,6 +6,14 @@ import {
   getConfigSchema,
   connect,
   getStatus,
+  getProof,
+  getCommandCenter,
+  getValueReport,
+  listAvailableWidgets,
+  runWidget,
+  listTiles,
+  addTile,
+  removeTile,
   disconnect,
   getPendingAction,
   confirmPendingAction,
@@ -19,9 +27,17 @@ import {
 const router = Router();
 router.use(authMiddleware);
 router.get("/connections", listConnections);
+router.get("/command-center", getCommandCenter);
+router.get("/value-report", getValueReport);
+router.get("/dashboard-tiles", listTiles);
+router.post("/dashboard-tiles", addTile);
+router.delete("/dashboard-tiles/:id", removeTile);
+router.get("/available-widgets", listAvailableWidgets);
+router.post("/run-widget", runWidget);
 router.get("/connections/:slug/config-schema", getConfigSchema);
 router.post("/connections/:slug/connect", connect);
 router.get("/connections/:slug/status", getStatus);
+router.get("/connections/:slug/proof", getProof);
 router.delete("/connections/:slug", disconnect);
 router.get("/pending-actions/:id", getPendingAction);
 router.post("/pending-actions/:id/confirm", confirmPendingAction);

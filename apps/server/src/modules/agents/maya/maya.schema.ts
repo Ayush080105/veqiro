@@ -130,9 +130,22 @@ export const logoAnimationSchema = z
     "Upload a logo or enable useBrandLogo"
   );
 
+// Instagram publishes over its Composio MCP connection, which has no
+// SocialAccount row — so callers send `platform: "instagram"` instead of a
+// socialAccountId. Exactly one of the two identifies the target.
+const publishTarget = {
+  socialAccountId: z.string().min(1).optional(),
+  platform: z.enum(["instagram"]).optional(),
+};
+
+const hasExactlyOneTarget = (v: { socialAccountId?: string; platform?: string }) =>
+  Boolean(v.socialAccountId) !== Boolean(v.platform);
+
+const ONE_TARGET_MESSAGE = "Provide either socialAccountId or platform, not both";
+
 export const publishSchema = z
   .object({
-    socialAccountId: z.string().min(1),
+    ...publishTarget,
     caption: z.string().min(1).max(5000),
     hashtags: z.array(z.string()).max(30).optional().default([]),
     imageUrl: z.string().url().optional(),
@@ -152,14 +165,17 @@ export const publishSchema = z
   .refine(
     (v) => !((v.imageUrl || v.imageBase64) && (v.videoUrl || v.videoBase64)),
     "Provide either an image or a video, not both"
-  );
+  )
+  .refine(hasExactlyOneTarget, ONE_TARGET_MESSAGE);
 
-export const publishCarouselSchema = z.object({
-  socialAccountId: z.string().min(1),
-  caption: z.string().max(2200).optional().default(""),
-  hashtags: z.array(z.string()).max(30).optional().default([]),
-  imageUrls: z.array(z.string().url()).min(1).max(10),
-});
+export const publishCarouselSchema = z
+  .object({
+    ...publishTarget,
+    caption: z.string().max(2200).optional().default(""),
+    hashtags: z.array(z.string()).max(30).optional().default([]),
+    imageUrls: z.array(z.string().url()).min(1).max(10),
+  })
+  .refine(hasExactlyOneTarget, ONE_TARGET_MESSAGE);
 
 const futureDatetime = z.string().datetime().refine(
   (v) => new Date(v).getTime() > Date.now(),
@@ -168,7 +184,7 @@ const futureDatetime = z.string().datetime().refine(
 
 export const scheduleSchema = z
   .object({
-    socialAccountId: z.string().min(1),
+    ...publishTarget,
     caption: z.string().min(1).max(5000),
     hashtags: z.array(z.string()).max(30).optional().default([]),
     imageUrl: z.string().url().optional(),
@@ -189,12 +205,15 @@ export const scheduleSchema = z
   .refine(
     (v) => !((v.imageUrl || v.imageBase64) && (v.videoUrl || v.videoBase64)),
     "Provide either an image or a video, not both"
-  );
+  )
+  .refine(hasExactlyOneTarget, ONE_TARGET_MESSAGE);
 
-export const scheduleCarouselSchema = z.object({
-  socialAccountId: z.string().min(1),
-  caption: z.string().max(2200).optional().default(""),
-  hashtags: z.array(z.string()).max(30).optional().default([]),
-  imageUrls: z.array(z.string().url()).min(1).max(10),
-  scheduledAt: futureDatetime,
-});
+export const scheduleCarouselSchema = z
+  .object({
+    ...publishTarget,
+    caption: z.string().max(2200).optional().default(""),
+    hashtags: z.array(z.string()).max(30).optional().default([]),
+    imageUrls: z.array(z.string().url()).min(1).max(10),
+    scheduledAt: futureDatetime,
+  })
+  .refine(hasExactlyOneTarget, ONE_TARGET_MESSAGE);

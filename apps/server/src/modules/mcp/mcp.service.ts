@@ -2,6 +2,7 @@ import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
 import { Agent, McpConnectionStatus, McpPendingActionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
 import { aiService } from "../../common/utils/aiService.js";
+import { prisma } from "../../config/prisma.js";
 import * as repo from "./mcp.repository.js";
 import { getIntegrationBySlug, getIntegrationsByAgent, type AgentSlug, type IntegrationCatalogEntry } from "@repo/integrations-catalog";
 import type {
@@ -10,9 +11,22 @@ import type {
   McpConnectionSummary,
   McpPendingActionSummary,
   RawPendingAction,
+  ToolTraceEntry,
 } from "./mcp.types.js";
 import type { McpProviderAdapter } from "./mcp.provider.js";
-import { composioAdapter } from "./mcp.provider.composio.js";
+import { composioAdapter, isWriteToolName } from "./mcp.provider.composio.js";
+import { evaluateMetric, formatMetric, resolvePath } from "./mcp.metrics.js";
+import {
+  WIDGET_CATALOG,
+  dateRangeLabel,
+  evaluateWidget,
+  resolveArgs,
+  resolveInputArgs,
+  widgetById,
+  type WidgetKind,
+  type WidgetResult,
+  type WidgetRow,
+} from "./mcp.widgets.js";
 
 const AGENT_ENUM_BY_SLUG: Record<AgentSlug, Agent> = {
   vega: Agent.VEGA,
@@ -135,6 +149,7 @@ export const connect = async ({ organizationId, userId, slug, configValues }: Co
 
     if (result.apiStatus === "connected") {
       await notifyAiCacheInvalidate(organizationId);
+      invalidateSignals(organizationId);
     }
     return { status: result.apiStatus, setupUrl: result.setupUrl, message: result.message };
   } catch (err) {
@@ -166,6 +181,7 @@ export const refreshStatus = async (organizationId: string, slug: string): Promi
 
   if (dbStatus === McpConnectionStatus.CONNECTED && row.status !== McpConnectionStatus.CONNECTED) {
     await notifyAiCacheInvalidate(organizationId);
+    invalidateSignals(organizationId);
   }
 
   return {
@@ -191,6 +207,7 @@ export const disconnect = async (organizationId: string, slug: string): Promise<
   }
   await repo.remove(organizationId, slug);
   await notifyAiCacheInvalidate(organizationId);
+  invalidateSignals(organizationId);
 };
 
 /**
@@ -251,7 +268,646 @@ export const callTool = async (
     throw new NotFoundError("Connection not found");
   }
   const adapter = PROVIDER_ADAPTER_BY_ENUM[row.provider];
-  return adapter.callTool({ organizationId, connectionId, toolkitSlug: row.toolkitSlug, toolName, args });
+  // Single choke point for every provider-bound call, so the action log can't
+  // drift out of sync with what actually happened — both the agent tool loop
+  // and confirmed pending actions route through here.
+  const started = Date.now();
+  try {
+    const result = await adapter.callTool({
+      organizationId, connectionId, toolkitSlug: row.toolkitSlug, toolName, args,
+    });
+    void recordAction({
+      organizationId,
+      agent: row.ownerAgent,
+      integrationSlug: row.integrationSlug,
+      toolkitSlug: row.toolkitSlug,
+      toolName,
+      successful: true,
+      durationMs: Date.now() - started,
+    });
+    return result;
+  } catch (err) {
+    void recordAction({
+      organizationId,
+      agent: row.ownerAgent,
+      integrationSlug: row.integrationSlug,
+      toolkitSlug: row.toolkitSlug,
+      toolName,
+      successful: false,
+      durationMs: Date.now() - started,
+    });
+    throw err;
+  }
+};
+
+// ─── Proof of sight ────────────────────────────────────────────────────────
+// The moment right after OAuth is the only one where a user is actively
+// wondering whether this worked. Spending it on a green check wastes it, so
+// a read-only call runs immediately and quotes their own data back.
+
+/** Keys a provider might nest a countable list under, deepest-value-first. */
+const PROOF_LIST_KEYS = [
+  "items", "messages", "events", "channels", "files", "records",
+  "results", "pages", "issues", "customers", "charges", "bases", "tasks", "data",
+];
+
+/** Walks a provider response for the first list that looks like the payload.
+ *  Bounded depth: responses nest (Composio wraps everything under `data`), but
+ *  an unbounded walk on a large result is a needless hot loop. */
+const findCountableList = (value: unknown, depth = 0): unknown[] | null => {
+  if (Array.isArray(value)) return value;
+  if (depth >= 4 || value === null || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  for (const key of PROOF_LIST_KEYS) {
+    const found = findCountableList(record[key], depth + 1);
+    if (found) return found;
+  }
+  return null;
+};
+
+/** Keys carrying the *total* matching count rather than the returned page —
+ *  Gmail sends resultSizeEstimate, most others some spelling of "total". */
+const PROOF_TOTAL_KEYS = [
+  "resultSizeEstimate", "totalResults", "totalCount", "total_count",
+  "totalSize", "total", "count",
+];
+
+/**
+ * Finds the real total behind a paged result, so the headline can read
+ * "2,113 emails" instead of "25+ emails" — the page size we happened to ask
+ * for is not a fact about the user's business, and it's the fact that makes
+ * this screen land.
+ *
+ * Only accepts a value at least as large as the page we got back: a smaller
+ * "count" means the key meant something else entirely (a per-item count, a
+ * page number), and reporting it would understate what we can see.
+ */
+const findTotalCount = (value: unknown, atLeast: number, depth = 0): number | null => {
+  if (depth >= 4 || value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  for (const key of PROOF_TOTAL_KEYS) {
+    const candidate = record[key];
+    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate >= atLeast) {
+      return Math.floor(candidate);
+    }
+  }
+  for (const key of PROOF_LIST_KEYS) {
+    const found = findTotalCount(record[key], atLeast, depth + 1);
+    if (found !== null) return found;
+  }
+  return null;
+};
+
+export interface ProofResult {
+  /** Human-readable line, e.g. "1,847 emails". Absent when nothing countable came back. */
+  headline?: string;
+  /** How many actions this connection exposes — always available. */
+  toolCount: number;
+  integrationName: string;
+}
+
+/**
+ * Runs an integration's ProofSpec against a freshly-connected account.
+ *
+ * Every failure path degrades to the tool count rather than throwing: this
+ * runs on the success screen of a connect flow that has *already* succeeded,
+ * so a failed proof read must never make a working connection look broken.
+ */
+export const getConnectionProof = async (
+  organizationId: string,
+  slug: string,
+): Promise<ProofResult> => {
+  const entry = requireCatalogEntry(slug);
+  const row = await repo.findByOrgAndSlug(organizationId, slug);
+  if (!row) throw new NotFoundError("Connection not found");
+
+  const adapter = getProviderAdapter(entry);
+  const tools = await adapter.listTools({ toolkitSlug: row.toolkitSlug, connectionId: row.connectionId });
+  const base: ProofResult = { toolCount: tools.length, integrationName: entry.name };
+
+  const spec = entry.proof;
+  if (!spec) return base;
+
+  // Resolve the spec's intent against tools that genuinely exist on this
+  // connection, so a stale fragment degrades instead of erroring at call time.
+  const readableTools = tools.filter((t) => !t.isWrite);
+  const match = spec.toolMatch
+    .map((fragment) =>
+      readableTools.find((t) => t.name.toUpperCase().includes(fragment.toUpperCase())),
+    )
+    .find(Boolean);
+  if (!match) return base;
+
+  try {
+    const result = await adapter.callTool({
+      organizationId,
+      connectionId: row.connectionId,
+      toolkitSlug: row.toolkitSlug,
+      toolName: match.name,
+      args: spec.args ?? {},
+    });
+    const list = findCountableList(result);
+    if (!list) return base;
+    // Prefer the provider's own total over the page we asked for; only fall
+    // back to "25+" when the response carries no total at all.
+    const total = findTotalCount(result, list.length);
+    const count = total ?? list.length;
+    const approximate = total === null && list.length >= (Number(spec.args?.max_results) || 25);
+    return {
+      ...base,
+      headline: `${count.toLocaleString("en-US")}${approximate ? "+" : ""} ${spec.noun}`,
+    };
+  } catch (err) {
+    console.error("[mcp] proof read failed (falling back to tool count)", slug, err);
+    return base;
+  }
+};
+
+// ─── Action log ────────────────────────────────────────────────────────────
+
+/**
+ * Records one executed provider call. Fire-and-forget by design: an agent's
+ * real work must never fail because bookkeeping did, so every error is
+ * swallowed after logging — the same contract as activity.service.ts.
+ *
+ * isWrite is derived from the tool slug via the provider's own classifier so
+ * the log agrees with the confirm-before-execute gate that used it.
+ */
+const recordAction = async (input: {
+  organizationId: string;
+  agent: Agent | null;
+  integrationSlug: string;
+  /** Provider-side toolkit slug — the tool prefix, which differs from the
+   *  catalog slug (catalog "google-calendar" vs. toolkit "googlecalendar"). */
+  toolkitSlug: string;
+  toolName: string;
+  successful: boolean;
+  durationMs: number;
+}): Promise<void> => {
+  try {
+    await prisma.mcpActionLog.create({
+      data: {
+        organizationId: input.organizationId,
+        agent: input.agent,
+        integrationSlug: input.integrationSlug,
+        toolName: input.toolName,
+        isWrite: isWriteToolName(input.toolName, input.toolkitSlug),
+        successful: input.successful,
+        durationMs: input.durationMs,
+      },
+    });
+  } catch (err) {
+    console.error("[mcp] action log write failed (continuing)", err);
+  }
+};
+
+// ─── Dashboard widgets ─────────────────────────────────────────────────────
+// The customer picks business widgets ("Unread email", "Search clicks"), never
+// tools or field paths — see mcp.widgets.ts for why that inversion matters.
+
+export interface AvailableWidgetInput {
+  name: string;
+  label: string;
+  placeholder?: string;
+  /** Resolved from the customer's own account when the widget declares it. */
+  options?: string[];
+  /** Fixed labelled options (a date range). Value is a day count, not a date. */
+  choices?: { value: string; label: string }[];
+  /** Pre-selected value, so a widget with sensible defaults is one click. */
+  defaultValue?: string;
+}
+
+export interface AvailableWidget {
+  id: string;
+  integrationSlug: string;
+  integrationName: string;
+  name: string;
+  description: string;
+  kind: WidgetKind;
+  inputs: AvailableWidgetInput[];
+}
+
+/**
+ * Widgets this org can add, for the systems it actually has connected.
+ *
+ * Input options are resolved live (e.g. the customer's Search Console
+ * properties) so the picker offers a dropdown instead of asking them to paste
+ * an identifier they'd have to go and look up.
+ */
+/**
+ * Widgets this org can add, for the systems it actually has connected.
+ *
+ * Curated only, deliberately. Auto-discovering widgets from a provider's tool
+ * list was built and measured against 14 live connections: even after filtering
+ * out administrative tools and identifier-shaped titles, only 9 of 42
+ * candidates rendered anything, and those still titled rows "INR",
+ * "siteOwner" and "CHAT". A dashboard is the wrong place to guess, so coverage
+ * grows by verifying one integration at a time in mcp.widgets.ts.
+ *
+ * Input options are resolved live (e.g. the customer's Search Console
+ * properties) so the picker offers a dropdown instead of asking them to paste
+ * an identifier they would have to go and look up.
+ */
+export const listAvailableWidgets = async (organizationId: string): Promise<AvailableWidget[]> => {
+  const connections = await repo.findConnectedByOrg(organizationId);
+  const bySlug = new Map(connections.map((c) => [c.integrationSlug, c]));
+
+  return Promise.all(
+    WIDGET_CATALOG.filter((widget) => bySlug.has(widget.integrationSlug)).map(async (widget) => {
+      const row = bySlug.get(widget.integrationSlug)!;
+      const entry = getIntegrationBySlug(widget.integrationSlug);
+      const inputs: AvailableWidgetInput[] = [];
+      for (const input of widget.inputs ?? []) {
+        let options: string[] | undefined;
+        if (input.optionsFrom) {
+          try {
+            const response = await withTimeout(
+              callTool(organizationId, row.connectionId, input.optionsFrom.toolName, {}),
+              SIGNAL_TIMEOUT_MS,
+            );
+            const values = resolvePath(response, input.optionsFrom.valuePath)
+              .filter((v): v is string => typeof v === "string");
+            if (values.length) options = values;
+          } catch (err) {
+            // Offer a free-text field rather than dropping the widget — the
+            // customer may well know the value even if we could not list it.
+            console.error("[mcp] widget option lookup failed", widget.id, input.name, err);
+          }
+        }
+        inputs.push({
+          name: input.name,
+          label: input.label,
+          placeholder: input.placeholder,
+          options,
+          choices: input.choices,
+          // 28 days is the middle of the range list and what Search Console
+          // itself defaults to, so it is the least surprising pre-selection.
+          defaultValue: input.kind === "dateRange" ? "28" : undefined,
+        });
+      }
+      return {
+        id: widget.id,
+        integrationSlug: widget.integrationSlug,
+        integrationName: entry?.name ?? widget.integrationSlug,
+        name: widget.name,
+        description: widget.description,
+        kind: widget.kind,
+        inputs,
+      };
+    }),
+  );
+};
+
+/** Falls back to a sensible value for any declared input a stored tile lacks. */
+const defaultInputsFor = (widget: { inputs?: { name: string; kind?: string }[] }) => {
+  const defaults: Record<string, unknown> = {};
+  for (const input of widget.inputs ?? []) {
+    if (input.kind === "dateRange") defaults[input.name] = "28";
+  }
+  return defaults;
+};
+
+/** Runs one widget for this org. Every caller (preview, dashboard) goes through
+ *  here, so what the customer previews is exactly what gets pinned. */
+export const runWidget = async (
+  organizationId: string,
+  widgetId: string,
+  inputs: Record<string, unknown>,
+): Promise<WidgetResult & { error?: string }> => {
+  const widget = widgetById(widgetId);
+  if (!widget) throw new NotFoundError(`Unknown widget "${widgetId}"`);
+  // Tiles pinned before an input was introduced have no stored value for it.
+  // Without this, a pre-existing Search Console tile called the API with no
+  // start_date and silently produced nothing.
+  const withDefaults = { ...defaultInputsFor(widget), ...inputs };
+  const row = await repo.findByOrgAndSlug(organizationId, widget.integrationSlug);
+  if (!row) throw new NotFoundError("Connection not found");
+  try {
+    const response = await withTimeout(
+      callTool(organizationId, row.connectionId, widget.toolName, {
+        ...resolveArgs(widget.args),
+        ...resolveInputArgs(widget, withDefaults),
+      }),
+      SIGNAL_TIMEOUT_MS,
+    );
+    return evaluateWidget(widget, response);
+  } catch (err) {
+    return {
+      kind: widget.kind,
+      error: err instanceof Error ? err.message.slice(0, 200) : "Could not read this",
+    };
+  }
+};
+
+export interface DashboardTile {
+  id: string;
+  widgetId: string;
+  integrationSlug: string;
+  integrationName: string;
+  /** The widget's name, or the customer's rename of it. */
+  name: string;
+  kind: WidgetKind;
+  inputs: Record<string, unknown>;
+  position: number;
+}
+
+const toDashboardTile = (row: {
+  id: string; widgetId: string; integrationSlug: string;
+  label: string | null; inputs: unknown; position: number;
+}): DashboardTile | null => {
+  const widget = widgetById(row.widgetId);
+  // A tile whose widget no longer exists in the catalog is skipped rather than
+  // rendered as a broken card.
+  if (!widget) return null;
+  return {
+    id: row.id,
+    widgetId: row.widgetId,
+    integrationSlug: row.integrationSlug,
+    integrationName: getIntegrationBySlug(row.integrationSlug)?.name ?? row.integrationSlug,
+    name: row.label ?? widget.name,
+    kind: widget.kind,
+    inputs:
+      row.inputs && typeof row.inputs === "object" && !Array.isArray(row.inputs)
+        ? (row.inputs as Record<string, unknown>)
+        : {},
+    position: row.position,
+  };
+};
+
+export const listTiles = async (organizationId: string): Promise<DashboardTile[]> => {
+  const rows = await repo.findTilesByOrg(organizationId);
+  return rows.map(toDashboardTile).filter((t): t is DashboardTile => t !== null);
+};
+
+export const addTile = async (
+  organizationId: string,
+  input: { widgetId: string; inputs?: Record<string, unknown>; label?: string | null },
+): Promise<void> => {
+  const widget = widgetById(input.widgetId);
+  if (!widget) throw new NotFoundError(`Unknown widget "${input.widgetId}"`);
+  // Every declared input must be supplied — a widget missing its site_url would
+  // fail on every dashboard load with no way for the user to see why.
+  for (const declared of widget.inputs ?? []) {
+    const value = input.inputs?.[declared.name];
+    if (value === undefined || value === null || value === "") {
+      throw new BadRequestError(`"${declared.label}" is required for this widget`);
+    }
+  }
+  // Same widget with different inputs is a legitimately different tile (clicks
+  // for two Search Console properties), so uniqueness is (widget + inputs)
+  // rather than a DB constraint on widgetId alone.
+  const existingTiles = await repo.findTilesByOrg(organizationId);
+  const alreadyPinned = existingTiles.some(
+    (tile) => tile.widgetId === input.widgetId && sameInputs(tile.inputs, input.inputs ?? {}),
+  );
+  if (alreadyPinned) {
+    throw new BadRequestError(`"${widget.name}" is already on your dashboard`);
+  }
+
+  const rangeInput = (widget.inputs ?? []).find((i) => i.kind === "dateRange");
+  const chosenRange = rangeInput ? input.inputs?.[rangeInput.name] : undefined;
+  const defaultLabel = chosenRange
+    ? `${widget.name} · ${dateRangeLabel(String(chosenRange)).toLowerCase()}`
+    : null;
+
+  await repo.createTile({
+    organizationId,
+    widgetId: widget.id,
+    integrationSlug: widget.integrationSlug,
+    inputs: input.inputs ?? {},
+    label: input.label ?? defaultLabel,
+    position: existingTiles.length,
+  });
+  invalidateSignals(organizationId);
+};
+
+/** Order-insensitive comparison of two widget input maps. */
+const sameInputs = (a: unknown, b: Record<string, unknown>): boolean => {
+  const left = a && typeof a === "object" && !Array.isArray(a) ? (a as Record<string, unknown>) : {};
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(b);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every((key) => String(left[key]) === String(b[key]));
+};
+
+export const removeTile = async (organizationId: string, id: string): Promise<void> => {
+  await repo.deleteTile(organizationId, id);
+  invalidateSignals(organizationId);
+};
+
+// ─── Value report ──────────────────────────────────────────────────────────
+
+export interface ValueReport {
+  /** Days the window covers. */
+  periodDays: number;
+  /** Successful provider calls in the window. */
+  actions: number;
+  /** Of those, calls that changed something in a connected system. */
+  writes: number;
+  /** Distinct systems touched — the cross-system claim, stated honestly. */
+  systemsTouched: number;
+  /** Busiest integrations first. */
+  breakdown: Array<{ slug: string; name: string; actions: number }>;
+  /** Null until the log has run long enough to mean anything (see below). */
+  hoursSaved: number | null;
+}
+
+// Minutes of manual work a single cross-system action replaces. Deliberately
+// conservative: this number ends up in front of a customer deciding whether to
+// renew, so it should read as obviously defensible rather than impressive.
+const MINUTES_SAVED_PER_ACTION = 2;
+
+// The log starts empty at deploy, so an org's first report would otherwise
+// claim near-zero value for a month they actually used the product. Below this
+// count we return null and the UI says "still measuring" instead of a
+// misleading figure.
+const MIN_ACTIONS_FOR_ESTIMATE = 10;
+
+export const getValueReport = async (
+  organizationId: string,
+  periodDays = 30,
+): Promise<ValueReport> => {
+  const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+  const { total, writes, byIntegration } = await repo.summarizeActions(organizationId, since);
+
+  const breakdown = byIntegration.map((row) => ({
+    slug: row.integrationSlug,
+    name: getIntegrationBySlug(row.integrationSlug)?.name ?? row.integrationSlug,
+    actions: row._count._all,
+  }));
+
+  return {
+    periodDays,
+    actions: total,
+    writes,
+    systemsTouched: byIntegration.length,
+    breakdown,
+    hoursSaved:
+      total >= MIN_ACTIONS_FOR_ESTIMATE
+        ? Math.round((total * MINUTES_SAVED_PER_ACTION) / 60)
+        : null,
+  };
+};
+
+// ─── Command Center signals ────────────────────────────────────────────────
+
+export interface OrgSignal {
+  /** Set when this tile could not be read. The tile still renders, saying so —
+   *  silently dropping it makes the dashboard look broken with no explanation. */
+  error?: string;
+  /** Unique per tile — an org may pin the same widget with different inputs. */
+  key: string;
+  slug: string;
+  /** Integration name, e.g. "Gmail". */
+  name: string;
+  /** The widget's name, or the customer's rename, e.g. "Unread email". */
+  title: string;
+  kind: WidgetKind;
+  /** Formatted value for a metric widget, e.g. "273" or "17.6". */
+  display?: string | null;
+  /** Real rows for a list widget — the actual mail, meetings, or queries. */
+  rows?: WidgetRow[];
+  logoUrl?: string;
+}
+
+export interface CommandCenterSummary {
+  signals: OrgSignal[];
+  pendingActionCount: number;
+  connectedCount: number;
+  /** When the signals were actually read from the providers. */
+  refreshedAt: string;
+}
+
+// Signals fan out one live provider call per connected integration, so a cache
+// is needed to keep repeated loads (and multiple tabs) from hammering every
+// provider. But this card claims to show "right now": at the original 5 minutes
+// a mail sent seconds ago was invisible even after a page refresh, with nothing
+// on screen admitting the data was old. One minute absorbs render bursts while
+// keeping the claim honest, and forceRefresh below gives an explicit way out.
+const SIGNALS_TTL_MS = 60 * 1000;
+// Razorpay alone was measured at 7.95s; at the previous 8s budget a slow
+// provider lost its tile entirely, and tiles run in parallel so they
+// contend. Generous enough that a timeout means genuinely broken.
+const SIGNAL_TIMEOUT_MS = 20_000;
+const signalsCache = new Map<string, { expiresAt: number; signals: OrgSignal[]; refreshedAt: string }>();
+
+const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("signal timed out")), ms)),
+  ]);
+
+/**
+ * The live "your business right now" strip on the dashboard.
+ *
+ * Reuses each integration's ProofSpec rather than defining a second read path:
+ * the question the dashboard asks ("what can we see in here?") is the same one
+ * the connect screen asks, so one spec serves both and there is one place to
+ * fix when a provider changes shape.
+ *
+ * Every read is independently timed out and independently allowed to fail —
+ * one slow or broken integration must never blank the whole dashboard.
+ */
+export const getCommandCenter = async (
+  organizationId: string,
+  opts: { forceRefresh?: boolean } = {},
+): Promise<CommandCenterSummary> => {
+  const connections = await repo.findConnectedByOrg(organizationId);
+  const pendingActionCount = await repo.countPendingActionsByOrg(organizationId);
+
+  const cached = opts.forceRefresh ? undefined : signalsCache.get(organizationId);
+  if (cached && Date.now() < cached.expiresAt) {
+    return {
+      signals: cached.signals,
+      pendingActionCount,
+      connectedCount: connections.length,
+      refreshedAt: cached.refreshedAt,
+    };
+  }
+
+  // What the org pinned wins. Only when they've pinned nothing do we fall back
+  // to the curated proof specs, so the dashboard is useful on day one but stops
+  // second-guessing the customer the moment they've expressed a preference.
+  const tiles = await listTiles(organizationId);
+  const connectedSlugs = new Set(connections.map((c) => c.integrationSlug));
+
+  const readTile = async (tile: DashboardTile): Promise<OrgSignal | null> => {
+    const entry = getIntegrationBySlug(tile.integrationSlug);
+    if (!entry) return null;
+    const result = await runWidget(organizationId, tile.widgetId, tile.inputs);
+    const unreadable =
+      result.error !== undefined ||
+      (result.kind === "metric" && (result.display === null || result.display === undefined));
+    if (unreadable) {
+      return {
+        key: tile.id,
+        slug: entry.slug,
+        name: entry.name,
+        title: tile.name,
+        kind: result.kind,
+        error: result.error ?? "No data came back",
+        logoUrl: entry.logoUrl,
+      };
+    }
+    return {
+      key: tile.id,
+      slug: entry.slug,
+      name: entry.name,
+      title: tile.name,
+      kind: result.kind,
+      display: result.display,
+      rows: result.rows,
+      logoUrl: entry.logoUrl,
+    };
+  };
+
+  const readCuratedDefault = async (integrationSlug: string): Promise<OrgSignal | null> => {
+    const entry = getIntegrationBySlug(integrationSlug);
+    if (!entry) return null;
+    try {
+      const proof = await withTimeout(
+        getConnectionProof(organizationId, integrationSlug),
+        SIGNAL_TIMEOUT_MS,
+      );
+      if (!proof.headline) return null;
+      return {
+        key: entry.slug,
+        slug: entry.slug,
+        name: entry.name,
+        title: entry.name,
+        kind: "metric",
+        display: proof.headline,
+        logoUrl: entry.logoUrl,
+      };
+    } catch (err) {
+      console.error("[mcp] default signal read failed (skipping)", integrationSlug, err);
+      return null;
+    }
+  };
+
+  const results = tiles.length
+    ? await Promise.all(
+        // A tile for a since-disconnected integration is skipped rather than
+        // deleted — reconnecting should bring the customer's choice back.
+        tiles.filter((t) => connectedSlugs.has(t.integrationSlug)).map(readTile),
+      )
+    : await Promise.all(
+        connections
+          .filter((row) => getIntegrationBySlug(row.integrationSlug)?.proof)
+          .map((row) => readCuratedDefault(row.integrationSlug)),
+      );
+
+  const signals = results.filter((s): s is OrgSignal => s !== null);
+  const refreshedAt = new Date().toISOString();
+  signalsCache.set(organizationId, { expiresAt: Date.now() + SIGNALS_TTL_MS, signals, refreshedAt });
+
+  return { signals, pendingActionCount, connectedCount: connections.length, refreshedAt };
+};
+
+/** Dropped whenever connections change, so a newly connected system shows up
+ *  on the dashboard immediately instead of after the TTL. */
+export const invalidateSignals = (organizationId: string): void => {
+  signalsCache.delete(organizationId);
 };
 
 const toPendingActionSummary = (row: {
@@ -278,6 +934,23 @@ const toPendingActionSummary = (row: {
  * so the chat UI can render pending-action cards without an extra fetch. */
 export const toPendingActionsSnapshot = (pendingActions: RawPendingAction[]) =>
   pendingActions.map((a) => ({ id: a.id, summary: a.summary, status: "PENDING" as const }));
+
+/**
+ * Attaches the turn's tool trace to whatever customInput an agent service
+ * already built, so the chat UI can show which systems were touched.
+ *
+ * Deliberately a merge rather than a builder: every agent service composes
+ * customInput differently (Maya folds in images, Lex folds in raw metadata),
+ * so this preserves each one's own shape and only adds a key. Returns the
+ * input untouched when there's no trace — an empty trace must not force an
+ * otherwise-undefined customInput into existence, which would make every
+ * plain conversational reply carry a needless JSON blob.
+ */
+export const withToolTrace = (
+  customInput: Record<string, unknown> | undefined,
+  toolTrace: ToolTraceEntry[] | undefined,
+): Record<string, unknown> | undefined =>
+  toolTrace?.length ? { ...(customInput ?? {}), toolTrace } : customInput;
 
 /**
  * Called by each agent's *.service.ts right after it persists the assistant

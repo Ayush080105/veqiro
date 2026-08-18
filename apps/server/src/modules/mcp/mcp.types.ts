@@ -42,6 +42,17 @@ export interface RawPendingAction {
   summary: string;
 }
 
+/** One entry of ChatSyncResponse.tool_trace from apps/ai — a single tool the
+ *  agent ran this turn, as shown in the chat UI's visible trace. */
+export interface ToolTraceEntry {
+  label: string;
+  /** Integration slug when the call went out over MCP; null for native tools. */
+  integration?: string | null;
+  status: "ok" | "error" | "pending";
+  detail?: string;
+  durationMs?: number | null;
+}
+
 export interface McpPendingActionSummary {
   id: string;
   agent: Agent;

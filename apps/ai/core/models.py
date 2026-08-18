@@ -38,6 +38,10 @@ class ChatSyncResponse(BaseModel):
     image: "ImageResult | None" = None
     action_id: str | None = None
     action_result: dict | None = None
+    # Compact record of the tools this turn ran, for the chat UI's visible
+    # trace. Built by base.py's _build_tool_trace — intentionally separate
+    # from metadata["tool_calls"], which carries full (very large) results.
+    tool_trace: list[dict] = []
 
     model_config = ConfigDict(
         json_schema_extra={

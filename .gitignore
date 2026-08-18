@@ -51,3 +51,5 @@ packages/transactional/.react-email/
 
 # Video assets (large files, added locally before rendering)
 apps/video/public/music.mp3
+# Windows crash dumps from the Git Bash shell
+*.stackdump

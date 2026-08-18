@@ -65,12 +65,14 @@ export const sendMessage = async (
   const pendingActions = responseData.metadata?.pending_actions as RawPendingAction[] | undefined
   const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
 
-  const customInput =
+  const customInput = mcpService.withToolTrace(
     responseData.action_id && responseData.action_result
       ? { actionId: responseData.action_id, input: {}, result: responseData.action_result, pendingActions: pendingActionsSnapshot }
       : pendingActionsSnapshot
         ? { pendingActions: pendingActionsSnapshot }
-        : undefined;
+        : undefined,
+    responseData.tool_trace,
+  );
 
   const assistantMessage = await sageRepository.createAssistantMessage({
     organizationId,

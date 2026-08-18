@@ -1,4 +1,4 @@
-export type { AgentSlug, IntegrationCatalogEntry, IntegrationStatus } from "./types.js";
+export type { AgentSlug, IntegrationCatalogEntry, IntegrationStatus, ProofSpec } from "./types.js";
 export {
   INTEGRATIONS_CATALOG,
   getIntegrationsByAgent,

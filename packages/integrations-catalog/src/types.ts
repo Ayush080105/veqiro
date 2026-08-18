@@ -30,4 +30,29 @@ export interface IntegrationCatalogEntry {
    * seed step or id stored here. */
   composio?: { toolkitSlug: string };
   logoUrl?: string;
+  /** How to prove, right after connecting, that we can actually see this
+   *  system's data. Optional — connections without one fall back to reporting
+   *  the number of actions discovered. See ProofSpec. */
+  proof?: ProofSpec;
+}
+
+/**
+ * A read-only call made immediately after a successful connect, so the user
+ * sees their own data quoted back instead of a bare green check.
+ *
+ * `toolMatch` deliberately holds *fragments* rather than a literal tool slug.
+ * A hardcoded slug that turns out to be wrong fails silently at runtime (the
+ * same trap documented on `composio.toolkitSlug` in catalog.ts); the server
+ * instead resolves these against the tools actually discovered for the live
+ * connection, so an unmatched spec degrades to the fallback rather than
+ * erroring. First fragment that matches a real tool wins, so order them
+ * most-preferred first.
+ */
+export interface ProofSpec {
+  /** Substrings matched (case-insensitively) against real discovered tool slugs. */
+  toolMatch: string[];
+  /** Arguments for the call. Keep minimal — proof reads must never paginate deeply. */
+  args?: Record<string, unknown>;
+  /** Plural noun for whatever the call counts, e.g. "emails", "events". */
+  noun: string;
 }

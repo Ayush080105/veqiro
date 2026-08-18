@@ -24,3 +24,27 @@ export const agentParamSchema = z.object({
 export const toolPreferenceBodySchema = z.object({
   preferredIntegrationSlug: z.string().min(1).nullable(),
 });
+
+// Widget inputs are provider argument names mapped to scalars the customer
+// typed or chose. Kept narrow deliberately: a widget must never accept
+// arbitrary nested structures from the browser, since these values are passed
+// straight into a provider call.
+const widgetInputsSchema = z
+  .record(z.string().max(60), z.union([z.string().max(400), z.number(), z.boolean()]))
+  .optional();
+
+export const runWidgetBodySchema = z.object({
+  widgetId: z.string().min(1).max(120),
+  inputs: widgetInputsSchema,
+});
+
+export const addTileBodySchema = z.object({
+  widgetId: z.string().min(1).max(120),
+  inputs: widgetInputsSchema,
+  /** Optional rename, in the customer's own words. */
+  label: z.string().min(1).max(48).nullable().optional(),
+});
+
+export const tileIdParamSchema = z.object({
+  id: z.string().uuid(),
+});

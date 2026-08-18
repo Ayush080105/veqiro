@@ -866,6 +866,78 @@ model McpToolPreference {
   @@map("mcp_tool_preference")
 }
 
+/// One executed MCP tool call. Written for every call that actually reaches a
+/// provider — reads and writes alike — because three separate things need it
+/// and none of them can be reconstructed after the fact: the customer-facing
+/// audit trail, the monthly value report ("N actions across M systems"), and
+/// usage metering for action-based billing. Deliberately does NOT store tool
+/// arguments or results: those routinely carry the customer's own email
+/// bodies and financial records, and this table is retained long-term.
+model McpActionLog {
+  /// Action log id.
+  id              String   @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// Agent that made the call, when it originated from an agent turn.
+  agent           Agent?
+  /// Catalog slug of the integration called (e.g. "gmail").
+  integrationSlug String
+  /// Real provider-side tool slug (e.g. "GMAIL_FETCH_EMAILS").
+  toolName        String
+  /// Whether the tool mutates the connected system — writes are the ones that
+  /// required human approval, and the ones the value report counts.
+  isWrite         Boolean  @default(false)
+  /// Whether the provider call succeeded.
+  successful      Boolean  @default(true)
+  /// Provider round-trip duration in milliseconds.
+  durationMs      Int?
+  /// Creation timestamp.
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, integrationSlug])
+  @@map("mcp_action_log")
+}
+
+/// A metric the org chose to pin to its dashboard, e.g. "Gmail · unread" or
+/// "Razorpay · customers". Exists because no heuristic can guess which of a
+/// toolkit's ~60-200 read tools matters to a given business — verified
+/// empirically: auto-picking the first argument-free read tool across 14 live
+/// connections produced a usable figure for only 2, and chose meaningless
+/// tools (DISCORD_GET_GATEWAY, TAVILY_GET_USAGE) for the rest. So the choice
+/// is the customer's, made once, from a previewed shortlist.
+model McpDashboardTile {
+  /// Tile id.
+  id              String   @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// Widget catalog id, e.g. "gmail.unread" — see mcp.widgets.ts. The widget
+  /// definition owns the tool, arguments, field mapping and formatting; the
+  /// customer only ever picks a business-language name from the gallery.
+  widgetId        String
+  /// Catalog slug of the integration, denormalized so tiles for a
+  /// disconnected system can be skipped without loading the widget catalog.
+  integrationSlug String
+  /// Inputs the customer supplied for this widget, e.g. {"site_url": "..."}.
+  /// Never contains dates: those are relative tokens resolved per call so a
+  /// tile pinned today does not report today's window forever.
+  inputs          Json?
+  /// Optional rename of the widget's default name, in the customer's words.
+  label           String?
+  /// Display order on the dashboard, ascending.
+  position        Int      @default(0)
+  /// Creation timestamp.
+  createdAt       DateTime @default(now())
+  /// Update timestamp.
+  updatedAt       DateTime @updatedAt
+
+  // Deliberately no unique constraint on (org, widgetId): the same widget with
+  // different inputs is a different tile — an org with two Search Console
+  // properties legitimately wants clicks for both.
+  @@index([organizationId, position])
+  @@map("mcp_dashboard_tile")
+}
+
 /// Maya social post publication record.
 model PublishedPost {
   /// Published post id.

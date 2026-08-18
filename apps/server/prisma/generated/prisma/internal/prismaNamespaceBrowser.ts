@@ -73,6 +73,8 @@ export const ModelName = {
   McpConnection: 'McpConnection',
   McpPendingAction: 'McpPendingAction',
   McpToolPreference: 'McpToolPreference',
+  McpActionLog: 'McpActionLog',
+  McpDashboardTile: 'McpDashboardTile',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -479,6 +481,36 @@ export const McpToolPreferenceScalarFieldEnum = {
 } as const
 
 export type McpToolPreferenceScalarFieldEnum = (typeof McpToolPreferenceScalarFieldEnum)[keyof typeof McpToolPreferenceScalarFieldEnum]
+
+
+export const McpActionLogScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  integrationSlug: 'integrationSlug',
+  toolName: 'toolName',
+  isWrite: 'isWrite',
+  successful: 'successful',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type McpActionLogScalarFieldEnum = (typeof McpActionLogScalarFieldEnum)[keyof typeof McpActionLogScalarFieldEnum]
+
+
+export const McpDashboardTileScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  widgetId: 'widgetId',
+  integrationSlug: 'integrationSlug',
+  inputs: 'inputs',
+  label: 'label',
+  position: 'position',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpDashboardTileScalarFieldEnum = (typeof McpDashboardTileScalarFieldEnum)[keyof typeof McpDashboardTileScalarFieldEnum]
 
 
 export const PublishedPostScalarFieldEnum = {

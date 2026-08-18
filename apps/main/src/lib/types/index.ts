@@ -21,7 +21,19 @@ export interface Message {
     result?: unknown
     /** Write-capable MCP tool calls staged from this message, awaiting user confirmation. */
     pendingActions?: { id: string; summary: string; status: string }[]
+    /** What the agent actually did this turn — rendered as the visible tool trace. */
+    toolTrace?: ToolTraceEntry[]
   } | null
+}
+
+/** One line of the chat's visible tool trace. Mirrors apps/ai's _build_tool_trace. */
+export interface ToolTraceEntry {
+  label: string
+  /** Integration slug when the call went out over MCP; null/absent for native tools. */
+  integration?: string | null
+  status: "ok" | "error" | "pending"
+  detail?: string
+  durationMs?: number | null
 }
 
 export interface AgentStat {

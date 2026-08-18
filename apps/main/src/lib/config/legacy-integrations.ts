@@ -7,8 +7,7 @@
  * a native integration of any kind; it now connects the same way as every
  * other integration, purely opt-in via its Composio-backed MCP catalog card.
  *
- * "instagram" is absent because it's not in the MCP catalog at all — it
- * publishes via the native Meta Graph API provider and renders as a native
- * OAuth card (see settings/integrations LEGACY_INTEGRATIONS).
+ * "instagram" is absent because its native card is gone — it is a plain
+ * Composio catalog row now, for analytics and publishing alike.
  */
 export const LEGACY_MCP_SLUGS = new Set(["twitter", "linkedin"])

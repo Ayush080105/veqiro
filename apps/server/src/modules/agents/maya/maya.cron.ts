@@ -1,3 +1,4 @@
+import { SocialPlatform } from "../../../../prisma/generated/prisma/client.js";
 import cron from "node-cron";
 import { prisma } from "../../../config/prisma.js";
 import { sendMessage, firePublishedPost, firePublishedCarousel } from "./maya.service.js";
@@ -28,6 +29,7 @@ async function fireDueScheduledPosts() {
           id: post.id,
           organizationId: post.organizationId,
           userId: post.userId,
+          platform: post.platform as SocialPlatform,
           socialAccountId: post.socialAccountId,
           caption: post.caption,
           imageUrls: post.imageUrls,
@@ -37,6 +39,7 @@ async function fireDueScheduledPosts() {
           id: post.id,
           organizationId: post.organizationId,
           userId: post.userId,
+          platform: post.platform as SocialPlatform,
           socialAccountId: post.socialAccountId,
           caption: post.caption,
           imageUrl: post.imageUrl,

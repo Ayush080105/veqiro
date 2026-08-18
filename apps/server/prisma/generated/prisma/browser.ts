@@ -143,6 +143,28 @@ export type McpPendingAction = Prisma.McpPendingActionModel
  */
 export type McpToolPreference = Prisma.McpToolPreferenceModel
 /**
+ * Model McpActionLog
+ * One executed MCP tool call. Written for every call that actually reaches a
+ * provider — reads and writes alike — because three separate things need it
+ * and none of them can be reconstructed after the fact: the customer-facing
+ * audit trail, the monthly value report ("N actions across M systems"), and
+ * usage metering for action-based billing. Deliberately does NOT store tool
+ * arguments or results: those routinely carry the customer's own email
+ * bodies and financial records, and this table is retained long-term.
+ */
+export type McpActionLog = Prisma.McpActionLogModel
+/**
+ * Model McpDashboardTile
+ * A metric the org chose to pin to its dashboard, e.g. "Gmail · unread" or
+ * "Razorpay · customers". Exists because no heuristic can guess which of a
+ * toolkit's ~60-200 read tools matters to a given business — verified
+ * empirically: auto-picking the first argument-free read tool across 14 live
+ * connections produced a usable figure for only 2, and chose meaningless
+ * tools (DISCORD_GET_GATEWAY, TAVILY_GET_USAGE) for the rest. So the choice
+ * is the customer's, made once, from a previewed shortlist.
+ */
+export type McpDashboardTile = Prisma.McpDashboardTileModel
+/**
  * Model PublishedPost
  * Maya social post publication record.
  */

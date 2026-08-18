@@ -23,6 +23,17 @@ const classifyWrite = (tool: { slug: string; tags?: string[] }, toolkitSlug: str
   return !READ_VERB.test(afterPrefix);
 };
 
+/**
+ * Write classification from a tool slug alone, for callers that hold a name
+ * but not the provider's tag metadata (the action log). Mirrors classifyWrite's
+ * verb fallback — and inherits its fail-closed stance, so an unrecognized verb
+ * is recorded as a write rather than quietly logged as a harmless read.
+ */
+export const isWriteToolName = (toolName: string, toolkitSlug: string): boolean => {
+  const safeSlug = toolkitSlug.replace(/[^a-zA-Z0-9_]/g, "");
+  return !READ_VERB.test(toolName.replace(new RegExp(`^${safeSlug}_`, "i"), ""));
+};
+
 const mapConnectionStatus = (state: string | undefined): McpConnectionStatus => {
   switch (state) {
     case "ACTIVE":

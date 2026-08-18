@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
+import { CheckCircle2, Loader2 } from "lucide-react"
 
 import {
   Dialog,
@@ -17,9 +17,68 @@ import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/fie
 import {
   useConnectMcp,
   useMcpConfigSchema,
+  useMcpConnectionProof,
   useMcpConnectionStatus,
   type McpConnectResult,
+  type McpConnectionProof,
 } from "@/lib/api/mcp"
+
+/**
+ * The payoff screen. Replaces a green check with evidence: a count read live
+ * out of the system the user just connected.
+ *
+ * Degrades in one direction only — headline, then action count, then a plain
+ * confirmation. The connection has already succeeded by the time this renders,
+ * so nothing here may imply failure, including when the proof read itself
+ * errored.
+ */
+function ProofPanel({
+  name,
+  proof,
+}: {
+  name: string
+  proof: { data?: McpConnectionProof; isLoading: boolean }
+}) {
+  if (proof.isLoading) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+        <Loader2 className="size-4 shrink-0 animate-spin" />
+        Looking inside {name}…
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-4">
+      <div className="flex items-start gap-2">
+        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+        <div className="flex flex-col gap-1">
+          {proof.data?.headline ? (
+            <>
+              <span className="text-lg leading-tight font-semibold tabular-nums">
+                {proof.data.headline}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                already visible to your agents
+              </span>
+            </>
+          ) : (
+            <span className="text-sm font-medium">{name} is live</span>
+          )}
+        </div>
+      </div>
+      {proof.data?.toolCount ? (
+        <p className="text-xs text-muted-foreground">
+          Your agents can now run{" "}
+          <span className="font-medium tabular-nums text-foreground">
+            {proof.data.toolCount}
+          </span>{" "}
+          {name} {proof.data.toolCount === 1 ? "action" : "actions"} — ask for one in chat.
+        </p>
+      ) : null}
+    </div>
+  )
+}
 
 interface ConnectIntegrationModalProps {
   slug: string
@@ -35,9 +94,14 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
   const [awaitingAuth, setAwaitingAuth] = useState(false)
   const [setupUrl, setSetupUrl] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // Connecting no longer just closes the dialog. The instant after OAuth is
+  // the only moment the user is actively asking "did that actually work?" —
+  // so we hold the modal open and answer it with their own data.
+  const [connected, setConnected] = useState(false)
   const autoTriggeredRef = useRef(false)
 
-  const { data: status } = useMcpConnectionStatus(slug, { enabled: awaitingAuth })
+  const { data: status } = useMcpConnectionStatus(slug, { enabled: awaitingAuth && !connected })
+  const proof = useMcpConnectionProof(slug, connected)
 
   useEffect(() => {
     if (!open) {
@@ -45,6 +109,7 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
       setAwaitingAuth(false)
       setSetupUrl(null)
       setErrorMessage(null)
+      setConnected(false)
       autoTriggeredRef.current = false
     }
   }, [open])
@@ -52,18 +117,16 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
   useEffect(() => {
     if (status?.status === "CONNECTED") {
       setAwaitingAuth(false)
-      toast.success(`${name} connected`)
-      onOpenChange(false)
+      setConnected(true)
     }
-  }, [status, name, onOpenChange])
+  }, [status])
 
   const fields = Object.entries(schema?.properties ?? {})
   const hasFields = fields.length > 0
 
   function handleResult(result: McpConnectResult) {
     if (result.status === "connected") {
-      toast.success(`${name} connected`)
-      onOpenChange(false)
+      setConnected(true)
       return
     }
     if (result.status === "auth_required" || result.status === "input_required") {
@@ -120,19 +183,25 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Connect {name}</DialogTitle>
+          <DialogTitle>{connected ? `${name} connected` : `Connect ${name}`}</DialogTitle>
           <DialogDescription>
-            {awaitingAuth
-              ? `Click below to finish connecting — this closes automatically once ${name} is connected.`
-              : hasFields
-                ? `Enter the details ${name} needs to connect.`
-                : errorMessage
-                  ? `Something went wrong connecting ${name}.`
-                  : `Connecting to ${name}…`}
+            {connected
+              ? proof.isLoading
+                ? `Checking what Veqiro can see in ${name}…`
+                : `Here's what Veqiro can see in ${name} right now.`
+              : awaitingAuth
+                ? `Click below to finish connecting — this updates automatically once ${name} is connected.`
+                : hasFields
+                  ? `Enter the details ${name} needs to connect.`
+                  : errorMessage
+                    ? `Something went wrong connecting ${name}.`
+                    : `Connecting to ${name}…`}
           </DialogDescription>
         </DialogHeader>
 
-        {!awaitingAuth && hasFields && (
+        {connected && <ProofPanel name={name} proof={proof} />}
+
+        {!connected && !awaitingAuth && hasFields && (
           <FieldGroup>
             {fields.map(([key, field]) => (
               <Field key={key}>
@@ -151,7 +220,7 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
           </FieldGroup>
         )}
 
-        {awaitingAuth && setupUrl && (
+        {!connected && awaitingAuth && setupUrl && (
           <div className="flex flex-col gap-3">
             <Button asChild>
               <a href={setupUrl} target="_blank" rel="noopener noreferrer">
@@ -159,7 +228,8 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
               </a>
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Opens in a new tab. This dialog closes automatically once you're done.
+              Opens in a new tab. Come back here once you&apos;re done — we&apos;ll show you what{" "}
+              {name} shared.
             </p>
           </div>
         )}
@@ -169,10 +239,14 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
         )}
 
         <DialogFooter>
-          {showManualConnectButton && (
-            <Button onClick={handleSubmit} disabled={schemaLoading || connect.isPending}>
-              {connect.isPending ? "Connecting…" : errorMessage ? "Retry" : "Connect"}
-            </Button>
+          {connected ? (
+            <Button onClick={() => onOpenChange(false)}>Done</Button>
+          ) : (
+            showManualConnectButton && (
+              <Button onClick={handleSubmit} disabled={schemaLoading || connect.isPending}>
+                {connect.isPending ? "Connecting…" : errorMessage ? "Retry" : "Connect"}
+              </Button>
+            )
           )}
         </DialogFooter>
       </DialogContent>

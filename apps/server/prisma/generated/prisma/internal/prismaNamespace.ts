@@ -406,6 +406,8 @@ export const ModelName = {
   McpConnection: 'McpConnection',
   McpPendingAction: 'McpPendingAction',
   McpToolPreference: 'McpToolPreference',
+  McpActionLog: 'McpActionLog',
+  McpDashboardTile: 'McpDashboardTile',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -446,7 +448,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2075,6 +2077,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.McpToolPreferenceCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.McpToolPreferenceCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpActionLog: {
+      payload: Prisma.$McpActionLogPayload<ExtArgs>
+      fields: Prisma.McpActionLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpActionLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpActionLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>
+        }
+        findFirst: {
+          args: Prisma.McpActionLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpActionLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>
+        }
+        findMany: {
+          args: Prisma.McpActionLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>[]
+        }
+        create: {
+          args: Prisma.McpActionLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>
+        }
+        createMany: {
+          args: Prisma.McpActionLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpActionLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>[]
+        }
+        delete: {
+          args: Prisma.McpActionLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>
+        }
+        update: {
+          args: Prisma.McpActionLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpActionLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpActionLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpActionLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpActionLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpActionLogPayload>
+        }
+        aggregate: {
+          args: Prisma.McpActionLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpActionLog>
+        }
+        groupBy: {
+          args: Prisma.McpActionLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpActionLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpActionLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpActionLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpDashboardTile: {
+      payload: Prisma.$McpDashboardTilePayload<ExtArgs>
+      fields: Prisma.McpDashboardTileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpDashboardTileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpDashboardTileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>
+        }
+        findFirst: {
+          args: Prisma.McpDashboardTileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpDashboardTileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>
+        }
+        findMany: {
+          args: Prisma.McpDashboardTileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>[]
+        }
+        create: {
+          args: Prisma.McpDashboardTileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>
+        }
+        createMany: {
+          args: Prisma.McpDashboardTileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpDashboardTileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>[]
+        }
+        delete: {
+          args: Prisma.McpDashboardTileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>
+        }
+        update: {
+          args: Prisma.McpDashboardTileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>
+        }
+        deleteMany: {
+          args: Prisma.McpDashboardTileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpDashboardTileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpDashboardTileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>[]
+        }
+        upsert: {
+          args: Prisma.McpDashboardTileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpDashboardTilePayload>
+        }
+        aggregate: {
+          args: Prisma.McpDashboardTileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpDashboardTile>
+        }
+        groupBy: {
+          args: Prisma.McpDashboardTileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpDashboardTileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpDashboardTileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpDashboardTileCountAggregateOutputType> | number
         }
       }
     }
@@ -4332,6 +4482,36 @@ export const McpToolPreferenceScalarFieldEnum = {
 export type McpToolPreferenceScalarFieldEnum = (typeof McpToolPreferenceScalarFieldEnum)[keyof typeof McpToolPreferenceScalarFieldEnum]
 
 
+export const McpActionLogScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  integrationSlug: 'integrationSlug',
+  toolName: 'toolName',
+  isWrite: 'isWrite',
+  successful: 'successful',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type McpActionLogScalarFieldEnum = (typeof McpActionLogScalarFieldEnum)[keyof typeof McpActionLogScalarFieldEnum]
+
+
+export const McpDashboardTileScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  widgetId: 'widgetId',
+  integrationSlug: 'integrationSlug',
+  inputs: 'inputs',
+  label: 'label',
+  position: 'position',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpDashboardTileScalarFieldEnum = (typeof McpDashboardTileScalarFieldEnum)[keyof typeof McpDashboardTileScalarFieldEnum]
+
+
 export const PublishedPostScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -5218,6 +5398,8 @@ export type GlobalOmitConfig = {
   mcpConnection?: Prisma.McpConnectionOmit
   mcpPendingAction?: Prisma.McpPendingActionOmit
   mcpToolPreference?: Prisma.McpToolPreferenceOmit
+  mcpActionLog?: Prisma.McpActionLogOmit
+  mcpDashboardTile?: Prisma.McpDashboardTileOmit
   publishedPost?: Prisma.PublishedPostOmit
   mayaContentIdea?: Prisma.MayaContentIdeaOmit
   sageSavedKeyword?: Prisma.SageSavedKeywordOmit

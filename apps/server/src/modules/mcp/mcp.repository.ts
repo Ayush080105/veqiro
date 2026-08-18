@@ -129,6 +129,20 @@ export const createPendingActions = (rows: CreatePendingActionInput[]) =>
     })),
   });
 
+/** Actions the agents staged but haven't been allowed to run yet — the
+ *  "needs you" queue the Command Center leads with. */
+export const findPendingActionsByOrg = (organizationId: string, limit: number) =>
+  prisma.mcpPendingAction.findMany({
+    where: { organizationId, status: McpPendingActionStatus.PENDING },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+export const countPendingActionsByOrg = (organizationId: string) =>
+  prisma.mcpPendingAction.count({
+    where: { organizationId, status: McpPendingActionStatus.PENDING },
+  });
+
 export const findPendingActionById = (id: string) =>
   prisma.mcpPendingAction.findUnique({ where: { id } });
 
@@ -163,3 +177,54 @@ export const upsertToolPreference = (
     create: { organizationId, agent, preferredIntegrationSlug },
     update: { preferredIntegrationSlug },
   });
+
+/** Aggregates for the monthly value report. Counts only successful calls —
+ *  a failed provider call is not work delivered, and inflating the headline
+ *  with retries would make the report untrustworthy exactly where it matters. */
+export const summarizeActions = async (organizationId: string, since: Date) => {
+  const where = { organizationId, createdAt: { gte: since }, successful: true };
+  const [total, writes, byIntegration] = await Promise.all([
+    prisma.mcpActionLog.count({ where }),
+    prisma.mcpActionLog.count({ where: { ...where, isWrite: true } }),
+    prisma.mcpActionLog.groupBy({
+      by: ["integrationSlug"],
+      where,
+      _count: { _all: true },
+      orderBy: { _count: { integrationSlug: "desc" } },
+    }),
+  ]);
+  return { total, writes, byIntegration };
+};
+
+// --- Dashboard tiles (widgets the org pinned to its Command Center) ---
+
+export const findTilesByOrg = (organizationId: string) =>
+  prisma.mcpDashboardTile.findMany({
+    where: { organizationId },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+  });
+
+export const createTile = (input: {
+  organizationId: string;
+  widgetId: string;
+  integrationSlug: string;
+  inputs?: Record<string, unknown> | null;
+  label?: string | null;
+  position: number;
+}) =>
+  prisma.mcpDashboardTile.create({
+    data: {
+      organizationId: input.organizationId,
+      widgetId: input.widgetId,
+      integrationSlug: input.integrationSlug,
+      inputs: (input.inputs ?? undefined) as Prisma.InputJsonValue | undefined,
+      label: input.label ?? null,
+      position: input.position,
+    },
+  });
+
+export const deleteTile = (organizationId: string, id: string) =>
+  prisma.mcpDashboardTile.deleteMany({ where: { id, organizationId } });
+
+export const countTilesByOrg = (organizationId: string) =>
+  prisma.mcpDashboardTile.count({ where: { organizationId } });

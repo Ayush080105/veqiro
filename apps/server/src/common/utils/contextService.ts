@@ -33,6 +33,21 @@ const chatResponseSchema = z.object({
   image: z.unknown().nullable().optional(),
   action_id: z.string().nullable().optional(),
   action_result: z.record(z.string(), z.unknown()).nullable().optional(),
+  // What the agent actually did this turn, for the chat UI's visible trace.
+  // Built by apps/ai's _build_tool_trace; kept permissive here so adding a
+  // field on the Python side never fails validation for the whole response.
+  tool_trace: z
+    .array(
+      z.object({
+        label: z.string(),
+        integration: z.string().nullable().optional(),
+        status: z.enum(["ok", "error", "pending"]).catch("ok"),
+        detail: z.string().optional(),
+        durationMs: z.number().nullable().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
 })
 
 export type AgentChatResponse = z.infer<typeof chatResponseSchema>

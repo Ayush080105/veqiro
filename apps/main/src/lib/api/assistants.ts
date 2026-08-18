@@ -111,7 +111,11 @@ export async function expandCampaignBrief(
 }
 
 export interface PublishPostInput {
-  socialAccountId: string
+  /** Native OAuth account. Omit for platforms that publish over MCP. */
+  socialAccountId?: string
+  /** Publishes over the Composio MCP connection instead of a SocialAccount.
+   *  Exactly one of this and socialAccountId must be set. */
+  platform?: "instagram"
   caption: string
   hashtags?: string[]
   imageUrl?: string
@@ -140,7 +144,10 @@ export async function publishPost(
 }
 
 export interface PublishCarouselInput {
-  socialAccountId: string
+  /** Native OAuth account. Omit for platforms that publish over MCP. */
+  socialAccountId?: string
+  /** See PublishPostInput.platform. */
+  platform?: "instagram"
   caption?: string
   hashtags?: string[]
   imageUrls: string[]

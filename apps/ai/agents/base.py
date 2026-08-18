@@ -51,6 +51,116 @@ def _humanize_mcp_call(real_tool_name: str, arguments: dict) -> str:
     preview = _args_summary(arguments)
     return f"{label} — {preview}" if preview else label
 
+
+def _trace_action_label(real_tool_name: str, integration_slug: str | None) -> str:
+    """The action half of a trace line, with the toolkit prefix stripped so the
+    UI can render "Gmail · Fetch Emails" instead of "Gmail · Gmail Fetch Emails".
+    Composio slugs are conventionally TOOLKIT_VERB_NOUN, but not universally —
+    only strip when the prefix actually matches the integration."""
+    words = real_tool_name.replace("-", "_").split("_")
+    if integration_slug and words:
+        # Our slugs and Composio's tool prefixes don't segment the same way, and
+        # a prefix can span several words: "google-calendar" prefixes tools as
+        # GOOGLECALENDAR_ (joined into one word), "microsoft-teams" as
+        # MICROSOFT_TEAMS_ (two words), and "outlook-mail" as plain OUTLOOK_
+        # (first segment only). Consume greedily for the first two shapes, then
+        # fall back to the first segment for the third.
+        normalized = integration_slug.replace("-", "").replace("_", "").lower()
+        accumulated = ""
+        matched = 0
+        for index, word in enumerate(words, start=1):
+            accumulated += word.lower()
+            if accumulated == normalized:
+                matched = index
+                break
+            if not normalized.startswith(accumulated):
+                break
+        if not matched and words[0].lower() == integration_slug.replace("-", "_").split("_")[0].lower():
+            matched = 1
+        if matched:
+            words = words[matched:] or [real_tool_name]
+    return " ".join(w.capitalize() for w in words if w) or real_tool_name
+
+
+# Keys whose value, when a list, is the "how many things came back" count for a
+# trace line. Ordered — Composio nests the real payload under `data`, so that is
+# unwrapped first (see _trace_detail) rather than matched here.
+_COUNTABLE_KEYS = ("messages", "items", "results", "events", "records", "files", "rows", "data")
+
+
+def _trace_detail(result) -> str | None:
+    """A short "what came back" fragment for a trace line, e.g. "14 results".
+    Returns None when nothing countable is present — the UI then shows only the
+    tool name, which is still more than the user sees today."""
+    if isinstance(result, str):
+        try:
+            result = json.loads(result)
+        except Exception:
+            return None
+    if isinstance(result, list):
+        return f"{len(result)} result{'' if len(result) == 1 else 's'}"
+    if not isinstance(result, dict):
+        return None
+    # Composio wraps real payloads as {"data": {...}, "successful": bool}.
+    inner = result.get("data")
+    if isinstance(inner, (dict, list)):
+        nested = _trace_detail(inner)
+        if nested:
+            return nested
+    for key in _COUNTABLE_KEYS:
+        value = result.get(key)
+        if isinstance(value, list):
+            return f"{len(value)} result{'' if len(value) == 1 else 's'}"
+    return None
+
+
+def _build_tool_trace(
+    all_tool_calls: list[dict],
+    alias_map: dict[str, tuple[str, str]],
+    integration_by_connection: dict[str, str],
+    write_aliases: set[str],
+) -> list[dict]:
+    """Compact, user-facing record of what this turn actually did.
+
+    Deliberately NOT metadata["tool_calls"] — that carries full tool results
+    (up to MAX_TOOL_RESULT_CHARS each) and is sized for action-card detection,
+    not for shipping to a browser. This keeps only what a trace line renders.
+    """
+    trace: list[dict] = []
+    for call in all_tool_calls:
+        alias = call.get("name") or ""
+        mcp_target = alias_map.get(alias)
+        if mcp_target:
+            connection_id, real_tool_name = mcp_target
+            integration = integration_by_connection.get(connection_id)
+            label = _trace_action_label(real_tool_name, integration)
+        else:
+            integration = None
+            label = _trace_action_label(alias, None)
+
+        if call.get("is_error"):
+            status = "error"
+        elif alias in write_aliases:
+            # Writes are staged for confirmation rather than executed, so the
+            # trace must not claim they happened — see mcp_pending_actions.
+            status = "pending"
+        else:
+            status = "ok"
+
+        entry = {
+            "label": label,
+            "integration": integration,
+            "status": status,
+        }
+        if status == "ok":
+            detail = _trace_detail(call.get("result"))
+            if detail:
+                entry["detail"] = detail
+        if call.get("duration_ms") is not None:
+            entry["durationMs"] = call["duration_ms"]
+        trace.append(entry)
+    return trace
+
 # Was 10000, then 50000 — both too small for real MCP tool results at
 # realistic data volumes (verified live: an 89-row Razorpay payments list is
 # 65,068 chars in full, truncating mid-JSON and leaving Rex unable to compute
@@ -489,6 +599,13 @@ class BaseAgent(ABC):
         # per-call state must never live on self.
         mcp_connections = request.metadata.get("mcp_connections") or []
         mcp_alias_map: dict[str, tuple[str, str]] = {}
+        # connectionId -> integrationSlug, so the visible tool trace can name
+        # the system each call went to ("Gmail") rather than a bare tool slug.
+        integration_by_connection: dict[str, str] = {
+            c["connectionId"]: c.get("integrationSlug") or c.get("toolkitSlug") or "mcp"
+            for c in mcp_connections
+            if c.get("connectionId")
+        }
         # Write-capable MCP tools (see Node's classifyWrite) get staged for
         # user confirmation instead of executed immediately — see _run_one
         # below and mcp_pending_actions.
@@ -628,6 +745,9 @@ class BaseAgent(ABC):
                     metadata=metadata,
                     action_id=action_id_out,
                     action_result=action_result,
+                    tool_trace=_build_tool_trace(
+                        all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
+                    ),
                 )
 
             # Validate calls before executing — reject structurally invalid ones.
@@ -721,14 +841,27 @@ class BaseAgent(ABC):
                     )
 
             # return_exceptions=True: one failing tool returns its exception as a
+            # Wall-clock per call, for the user-visible trace. Recorded in a
+            # finally so a failing or timed-out tool still reports how long it
+            # spent before giving up.
+            call_durations: dict[int, int] = {}
+
+            async def _run_one_timed(index: int, tc) -> str:
+                started = time.monotonic()
+                try:
+                    return await _run_one(tc)
+                finally:
+                    call_durations[index] = int((time.monotonic() - started) * 1000)
+
             # value instead of cancelling sibling tasks. Order matches valid_tool_calls.
             raw_results = await asyncio.gather(
-                *[_run_one(tc) for tc in valid_tool_calls],
+                *[_run_one_timed(i, tc) for i, tc in enumerate(valid_tool_calls)],
                 return_exceptions=True,
             )
 
             tool_results: list[ToolResult] = []
             for i, (tc, raw) in enumerate(zip(valid_tool_calls, raw_results)):
+                all_tool_calls[stub_start + i]["duration_ms"] = call_durations.get(i)
                 if isinstance(raw, BaseException):
                     all_tool_calls[stub_start + i]["is_error"] = True
                     all_tool_calls[stub_start + i]["result"] = f"Error: {str(raw)}"
@@ -793,6 +926,9 @@ class BaseAgent(ABC):
             },
             action_id=action_id_out,
             action_result=action_result,
+            tool_trace=_build_tool_trace(
+                all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
+            ),
         )
 
     # ── MCP tool execution ───────────────────────────────────────────────
