@@ -14,8 +14,8 @@ import { personAgentJsonLd, faqPageJsonLd } from '@/lib/jsonld';
 import { SITE_URL, AGENT_META } from '@/lib/seo';
 import { agentPricing } from '@/lib/site-config';
 import { ToolTile } from './tool-logo';
-import { getIntegrationsByAgent, type AgentSlug } from '@repo/integrations-catalog';
-import { NATIVE_TOOLS } from './native-tools';
+import type { AgentSlug } from '@repo/integrations-catalog';
+import { getAllToolsByAgent } from './native-tools';
 
 interface Props {
   employee: Employee;
@@ -24,10 +24,7 @@ interface Props {
 export function AgentPage({ employee }: Props) {
   const Comp = CHARACTER_COMPONENTS[employee.key];
   const agentMonthlyPrice = agentPricing.find((a) => a.key === employee.key)?.monthly;
-  const connectedTools = [
-    ...getIntegrationsByAgent(employee.key as AgentSlug),
-    ...NATIVE_TOOLS.filter((t) => t.agents.includes(employee.key as AgentSlug)),
-  ];
+  const connectedTools = getAllToolsByAgent(employee.key as AgentSlug);
   const crumbs = [
     { name: 'Home', url: SITE_URL },
     { name: 'Agents', url: `${SITE_URL}/#crew` },

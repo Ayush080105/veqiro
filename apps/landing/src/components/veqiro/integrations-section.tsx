@@ -1,17 +1,35 @@
 'use client';
+import type { CSSProperties } from 'react';
 import { FONT } from './shared';
-import { ToolTile } from './tool-logo';
-import { INTEGRATIONS_CATALOG } from '@repo/integrations-catalog';
-import { NATIVE_TOOLS } from './native-tools';
+import { ToolChip } from './tool-logo';
+import { getIntegrationCategories, type AgentSlug } from '@repo/integrations-catalog';
+import { getAllTools } from './native-tools';
+import { EMPLOYEES } from './data';
+
+const AGENT_COLOR: Record<string, string> = Object.fromEntries(EMPLOYEES.map(e => [e.key, e.color]));
+
+// Social Media leads the list — everything else keeps the catalog's order.
+function orderCategories(categories: string[]): string[] {
+  return [
+    'Social Media',
+    ...categories.filter(c => c !== 'Social Media'),
+  ];
+}
 
 export function IntegrationsSection() {
-  const allTools = [...INTEGRATIONS_CATALOG, ...NATIVE_TOOLS];
+  const allTools = getAllTools();
   const toolCount = allTools.length;
+
+  const categories = orderCategories(getIntegrationCategories());
+  const groups = categories.map(category => {
+    const tools = allTools.filter(t => t.category === category);
+    return { category, tools, accent: AGENT_COLOR[tools[0]?.primaryAgent as AgentSlug] ?? '#111' };
+  });
 
   return (
     <section id="integrations" className="vq-section-pad" style={{ background: '#EFE7D6', borderTop: '3px solid #111' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 'clamp(32px, 5vw, 48px)' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 'clamp(40px, 6vw, 64px)' }}>
           <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, color: '#666' }}>
             [ INTEGRATIONS ]
           </div>
@@ -26,17 +44,25 @@ export function IntegrationsSection() {
           </p>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))',
-            gap: 'clamp(16px, 2.5vw, 28px) clamp(12px, 2vw, 20px)',
-            justifyItems: 'center',
-          }}
-        >
-          {allTools.map(tool => (
-            <ToolTile key={tool.slug} name={tool.name} logoUrl={tool.logoUrl} size={80} />
-          ))}
+        <div className="vq-timeline">
+          {groups.map((group, i) => {
+            const side = i % 2 === 0 ? 'left' : 'right';
+            return (
+              <div key={group.category} className={`vq-timeline-row ${side}`}>
+                <div className="vq-timeline-node" style={{ '--accent': group.accent } as CSSProperties} />
+                <div className="vq-timeline-content">
+                  <div className="vq-category-pill" style={{ '--accent': group.accent } as CSSProperties}>
+                    {group.category}
+                  </div>
+                  <div className="vq-chip-row">
+                    {group.tools.map(tool => (
+                      <ToolChip key={tool.slug} name={tool.name} logoUrl={tool.logoUrl} accent={group.accent} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
