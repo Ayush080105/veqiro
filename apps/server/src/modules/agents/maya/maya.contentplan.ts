@@ -201,6 +201,12 @@ export const generateContentPlan = async (
     // Not a conversation — a week of planning JSON in long-term memory would
     // crowd out what the owner actually said to Maya.
     skipMemory: true,
+    // Maya generates an image automatically whenever the model calls
+    // draft_content / generate_variants / generate_ideas — it is post-
+    // processing, not a tool choice, so the prompt's "do not generate images"
+    // could not stop it. Planning calls generate_ideas, so every plan was
+    // quietly producing an image and charging credits for it.
+    extraPayload: { _skip_auto_image: true },
   });
 
   const rawText = response.response ?? "";

@@ -321,6 +321,14 @@ class MayaAgent(BaseAgent):
         response = await super().chat_sync(request)
         if request.metadata.get("_cross_agent_call", False):
             return response
+        # Callers that want words, not pictures. Image generation below is not
+        # a tool the model chooses — it is post-processing keyed off which tool
+        # was called — so a prompt saying "do not generate images" cannot
+        # prevent it. The content-plan run hit exactly that: planning calls
+        # generate_ideas, which fired an image and spent credits on a request
+        # that asked for a plan.
+        if request.metadata.get("_skip_auto_image", False):
+            return response
 
         tool_calls = response.metadata.get("tool_calls", [])
 
