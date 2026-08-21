@@ -927,18 +927,24 @@ export default function AssistantChatPage() {
    */
   const handleCreateFromPlan = useCallback(
     (item: ContentPlanItem) => {
-      const brief = [item.hook, item.captionDirection].filter(Boolean).join(" — ")
       if (item.format === "reel") {
+        // The video form is a single free-text prompt, so the angle and the
+        // detail belong in one description.
         openAction("maya:generate-video", {
-          prompt: brief,
+          prompt: [item.hook, item.captionDirection].filter(Boolean).join(". "),
           platform: "instagram",
           aspect_ratio: "9:16",
           duration_seconds: 8,
           use_logo: false,
         })
       } else {
+        // Topic is a one-line subject — it renders in a single-line input and
+        // reads as the post's title. The caption direction is guidance about
+        // how to treat it, which is what "Additional context" is for; pushing
+        // both into topic produced an unreadable sentence in a text field.
         openAction("maya:draft-content", {
-          topic: brief,
+          topic: item.hook,
+          additional_context: item.captionDirection,
           platforms: ["instagram"],
           word_count_target: 200,
           include_image: true,
