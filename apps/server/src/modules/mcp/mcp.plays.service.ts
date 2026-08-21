@@ -113,7 +113,7 @@ export const runPlay = async (params: {
   // schedule would quietly produce a chat message while the button produced a
   // stored plan — two different things wearing one name.
   if (def.id === "content-plan") {
-    const plan = await generateContentPlan(organizationId, userId);
+    const plan = await generateContentPlan(organizationId, userId, { skipIfExists: true });
     return { messageId: plan.id };
   }
 

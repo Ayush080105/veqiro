@@ -173,8 +173,21 @@ const toContentPlan = (row: {
 export const generateContentPlan = async (
   organizationId: string,
   userId: string,
+  opts: { skipIfExists?: boolean } = {},
 ): Promise<ContentPlan> => {
   const weekStart = nextMonday(new Date());
+
+  // The scheduled run passes this: if someone already planned the week by
+  // hand, Friday should leave it alone rather than spend credits producing a
+  // second plan for days that are already accounted for. The manual path never
+  // sets it, so an explicit regeneration stays possible.
+  if (opts.skipIfExists) {
+    const existing = await prisma.mayaContentPlan.findFirst({
+      where: { organizationId, weekStart },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) return toContentPlan(existing);
+  }
 
   const response = await callAgentWithContext<{ response: string }>({
     agentApiPath: "/ai/maya/chat",

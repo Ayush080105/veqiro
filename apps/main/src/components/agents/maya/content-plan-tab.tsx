@@ -41,6 +41,20 @@ const dayIndex = (iso: string): number => {
   return (d.getUTCDay() + 6) % 7
 }
 
+/**
+ * The Monday the next generated plan would cover. Mirrors nextMonday() in
+ * maya.contentplan.ts, in UTC for the same reason: the server stores weekStart
+ * in UTC, and comparing against a local-midnight Monday would disagree with it
+ * for anyone east or west of Greenwich for part of the day.
+ */
+const nextMondayIso = (): string => {
+  const now = new Date()
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const daysAhead = ((8 - d.getUTCDay()) % 7) || 7
+  d.setUTCDate(d.getUTCDate() + daysAhead)
+  return d.toISOString().slice(0, 10)
+}
+
 function DayCell({
   label,
   date,
@@ -331,6 +345,11 @@ export function MayaContentPlanTab({
 
   const [latest, ...older] = plans
 
+  // Next week already has a plan, so there is nothing for the button to make.
+  // Hidden rather than disabled: a greyed-out control invites clicking to find
+  // out why, and the sentence below says it outright.
+  const alreadyPlanned = Boolean(latest && latest.weekStart.slice(0, 10) === nextMondayIso())
+
   return (
     <div className="flex h-full min-w-0 flex-col overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
@@ -341,14 +360,20 @@ export function MayaContentPlanTab({
             Nothing is created or published here.
           </p>
         </div>
-        <button
-          onClick={handleGenerate}
-          disabled={generating || !organizationId}
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#111] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          <Sparkles className="size-3" />
-          {generating ? "Planning…" : "Generate plan"}
-        </button>
+        {alreadyPlanned ? (
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            Next week is planned
+          </span>
+        ) : (
+          <button
+            onClick={handleGenerate}
+            disabled={generating || !organizationId}
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#111] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            <Sparkles className="size-3" />
+            {generating ? "Planning…" : "Generate plan"}
+          </button>
+        )}
       </div>
 
       {!organizationId ? (
