@@ -5,6 +5,7 @@ import { NotFoundError } from "../../common/errors/notFound.js";
 import { callAgentWithContext, agentRoles } from "../../common/utils/contextService.js";
 import { PLAY_DEFINITIONS, findPlayDefinition, type PlayDefinition } from "./mcp.plays.js";
 import * as mcpService from "./mcp.service.js";
+import { generateContentPlan } from "../agents/maya/maya.contentplan.js";
 
 /**
  * Plays — scheduled, repeatable work. The scheduled sibling of triggers: same
@@ -106,6 +107,15 @@ export const runPlay = async (params: {
   def: PlayDefinition;
 }): Promise<{ messageId: string }> => {
   const { organizationId, userId, def } = params;
+
+  // The content plan has a real artifact and its own tab, so the scheduled run
+  // goes through the same code the Generate button does. Without this the
+  // schedule would quietly produce a chat message while the button produced a
+  // stored plan — two different things wearing one name.
+  if (def.id === "content-plan") {
+    const plan = await generateContentPlan(organizationId, userId);
+    return { messageId: plan.id };
+  }
 
   const response = await callAgentWithContext<{
     response: string;

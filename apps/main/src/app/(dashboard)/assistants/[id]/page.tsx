@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } fr
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useMutationState, useQueryClient } from "@tanstack/react-query"
-import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug } from "lucide-react"
+import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug, CalendarDays } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -32,6 +32,7 @@ import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-ta
 import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
+import { MayaContentPlanTab } from "@/components/agents/maya/content-plan-tab"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
 import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
@@ -498,7 +499,7 @@ export default function AssistantChatPage() {
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
-  const [mayaTab, setMayaTab] = useState<"chat" | "published">("chat")
+  const [mayaTab, setMayaTab] = useState<"chat" | "published" | "plan">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const chatScrollRef = useRef<HTMLDivElement>(null)
@@ -1299,6 +1300,18 @@ export default function AssistantChatPage() {
           >
             <FolderOpen className="size-3" /> Published Posts
           </button>
+          <button
+            suppressHydrationWarning
+            type="button"
+            onClick={() => setMayaTab("plan")}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              mayaTab === "plan"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <CalendarDays className="size-3" /> Content Plan
+          </button>
           <div className="flex items-center gap-1.5" style={{ marginLeft: "auto" }}>
             <MayaCreditsPill organizationId={organizationId} />
             <MayaTopUpButton organizationId={organizationId} />
@@ -1309,6 +1322,10 @@ export default function AssistantChatPage() {
       {isMaya && mayaTab === "published" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <MayaPublishedPostsTab />
+        </div>
+      ) : isMaya && mayaTab === "plan" ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <MayaContentPlanTab />
         </div>
       ) : isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
@@ -1442,7 +1459,7 @@ export default function AssistantChatPage() {
         {!(isLex && lexTab === "documents") &&
           !(isSage && sageTab === "favourites") &&
           !(isRex && rexTab === "data") &&
-          !(isMaya && mayaTab === "published") && (
+          !(isMaya && mayaTab !== "chat") && (
           <ChatInput
             value={content}
             onChange={setContent}

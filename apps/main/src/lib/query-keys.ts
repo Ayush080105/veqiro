@@ -21,6 +21,8 @@ export const qk = {
   lexSources: () => ["lex", "sources"] as const,
   mayaPublishedPosts: (organizationId: string) =>
     ["maya", "published-posts", organizationId] as const,
+  mayaContentPlans: (organizationId: string) =>
+    ["maya", "content-plans", organizationId] as const,
   mayaUsage: (organizationId: string) =>
     ["maya", "usage", organizationId] as const,
   mayaLogoAnimationStyles: () => ["maya", "logo-animation-styles"] as const,

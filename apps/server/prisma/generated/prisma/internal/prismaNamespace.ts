@@ -413,6 +413,7 @@ export const ModelName = {
   McpApprovalPolicy: 'McpApprovalPolicy',
   McpPlay: 'McpPlay',
   McpToolCatalog: 'McpToolCatalog',
+  MayaContentPlan: 'MayaContentPlan',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -453,7 +454,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2600,6 +2601,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.McpToolCatalogCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.McpToolCatalogCountAggregateOutputType> | number
+        }
+      }
+    }
+    MayaContentPlan: {
+      payload: Prisma.$MayaContentPlanPayload<ExtArgs>
+      fields: Prisma.MayaContentPlanFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MayaContentPlanFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MayaContentPlanFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>
+        }
+        findFirst: {
+          args: Prisma.MayaContentPlanFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MayaContentPlanFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>
+        }
+        findMany: {
+          args: Prisma.MayaContentPlanFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>[]
+        }
+        create: {
+          args: Prisma.MayaContentPlanCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>
+        }
+        createMany: {
+          args: Prisma.MayaContentPlanCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MayaContentPlanCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>[]
+        }
+        delete: {
+          args: Prisma.MayaContentPlanDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>
+        }
+        update: {
+          args: Prisma.MayaContentPlanUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>
+        }
+        deleteMany: {
+          args: Prisma.MayaContentPlanDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MayaContentPlanUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MayaContentPlanUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>[]
+        }
+        upsert: {
+          args: Prisma.MayaContentPlanUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MayaContentPlanPayload>
+        }
+        aggregate: {
+          args: Prisma.MayaContentPlanAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMayaContentPlan>
+        }
+        groupBy: {
+          args: Prisma.MayaContentPlanGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MayaContentPlanGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MayaContentPlanCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MayaContentPlanCountAggregateOutputType> | number
         }
       }
     }
@@ -4964,6 +5039,20 @@ export const McpToolCatalogScalarFieldEnum = {
 export type McpToolCatalogScalarFieldEnum = (typeof McpToolCatalogScalarFieldEnum)[keyof typeof McpToolCatalogScalarFieldEnum]
 
 
+export const MayaContentPlanScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  weekStart: 'weekStart',
+  note: 'note',
+  items: 'items',
+  rawText: 'rawText',
+  createdAt: 'createdAt'
+} as const
+
+export type MayaContentPlanScalarFieldEnum = (typeof MayaContentPlanScalarFieldEnum)[keyof typeof MayaContentPlanScalarFieldEnum]
+
+
 export const PublishedPostScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -5899,6 +5988,7 @@ export type GlobalOmitConfig = {
   mcpApprovalPolicy?: Prisma.McpApprovalPolicyOmit
   mcpPlay?: Prisma.McpPlayOmit
   mcpToolCatalog?: Prisma.McpToolCatalogOmit
+  mayaContentPlan?: Prisma.MayaContentPlanOmit
   publishedPost?: Prisma.PublishedPostOmit
   mayaContentIdea?: Prisma.MayaContentIdeaOmit
   sageSavedKeyword?: Prisma.SageSavedKeywordOmit

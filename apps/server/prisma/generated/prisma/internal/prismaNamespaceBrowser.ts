@@ -80,6 +80,7 @@ export const ModelName = {
   McpApprovalPolicy: 'McpApprovalPolicy',
   McpPlay: 'McpPlay',
   McpToolCatalog: 'McpToolCatalog',
+  MayaContentPlan: 'MayaContentPlan',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -593,6 +594,20 @@ export const McpToolCatalogScalarFieldEnum = {
 } as const
 
 export type McpToolCatalogScalarFieldEnum = (typeof McpToolCatalogScalarFieldEnum)[keyof typeof McpToolCatalogScalarFieldEnum]
+
+
+export const MayaContentPlanScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  weekStart: 'weekStart',
+  note: 'note',
+  items: 'items',
+  rawText: 'rawText',
+  createdAt: 'createdAt'
+} as const
+
+export type MayaContentPlanScalarFieldEnum = (typeof MayaContentPlanScalarFieldEnum)[keyof typeof MayaContentPlanScalarFieldEnum]
 
 
 export const PublishedPostScalarFieldEnum = {

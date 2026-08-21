@@ -416,3 +416,49 @@ export function usePublishedPosts(organizationId: string) {
     placeholderData: (prev) => prev,
   })
 }
+
+export type ContentFormat = "post" | "reel"
+
+export interface ContentPlanItem {
+  date: string
+  day: string
+  format: ContentFormat
+  hook: string
+  captionDirection: string
+  reason: string
+  /** True when Maya found no real signal and said so, rather than inventing one. */
+  isGapFiller: boolean
+  formatReason?: string
+}
+
+export interface ContentPlan {
+  id: string
+  weekStart: string
+  note: string | null
+  /** Null when the model's JSON couldn't be parsed — render rawText instead. */
+  items: ContentPlanItem[] | null
+  rawText: string
+  createdAt: string
+}
+
+export async function listContentPlans(organizationId: string): Promise<ContentPlan[]> {
+  return apiFetch<ContentPlan[]>(`/agents/maya/content-plan?organizationId=${encodeURIComponent(organizationId)}`, {
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export async function generateContentPlan(organizationId: string): Promise<ContentPlan> {
+  return apiFetch<ContentPlan>("/agents/maya/content-plan/generate", {
+    method: "POST",
+    body: { organizationId },
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export function useContentPlans(organizationId: string) {
+  return useQuery({
+    queryKey: qk.mayaContentPlans(organizationId),
+    queryFn: () => listContentPlans(organizationId),
+    enabled: !!organizationId,
+  })
+}
