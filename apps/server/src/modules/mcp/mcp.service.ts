@@ -226,14 +226,39 @@ export const getConnectionsForAgent = async (
  * provider's master key exclusively; Python never talks to Composio
  * directly.
  */
+/**
+ * A toolkit's catalog is the same for everyone. `listTools` resolves against
+ * the toolkit slug alone (see composioAdapter.listTools) — a connection's
+ * granted scopes affect whether a *call* succeeds, not which tools exist — so
+ * Slack's 167 definitions are byte-identical for every org, agent and user.
+ *
+ * Caching per (org, agent) therefore re-fetched the same 233 KB repeatedly.
+ * Keyed by toolkit instead, one fetch serves the entire deployment, and the
+ * TTL can be long because catalogs only change when Composio ships new tools.
+ */
+const TOOL_CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
+const toolCatalogCache = new Map<
+  string,
+  { expiresAt: number; tools: Awaited<ReturnType<McpProviderAdapter["listTools"]>> }
+>();
+
 export const listToolsForConnection = async (organizationId: string, connectionId: string) => {
   const row = await repo.findByConnectionId(connectionId);
   if (!row || row.organizationId !== organizationId) {
-    // Never leak whether a connectionId exists for a DIFFERENT org.
+    // Never leak whether a connectionId exists for a DIFFERENT org. This check
+    // stays ahead of the cache: the cache is shared across orgs, so skipping
+    // the lookup would turn a shared catalog into a tenancy hole.
     throw new NotFoundError("Connection not found");
   }
+
+  const cacheKey = `${row.provider}:${row.toolkitSlug}`;
+  const cached = toolCatalogCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) return cached.tools;
+
   const adapter = PROVIDER_ADAPTER_BY_ENUM[row.provider];
-  return adapter.listTools({ toolkitSlug: row.toolkitSlug, connectionId });
+  const tools = await adapter.listTools({ toolkitSlug: row.toolkitSlug, connectionId });
+  toolCatalogCache.set(cacheKey, { expiresAt: Date.now() + TOOL_CATALOG_TTL_MS, tools });
+  return tools;
 };
 
 /**
