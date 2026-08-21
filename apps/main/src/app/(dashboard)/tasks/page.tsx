@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { PlaysSection } from "@/components/tasks/PlaysSection"
+import { TriggersSection } from "@/components/tasks/TriggersSection"
 import cronstrue from "cronstrue"
 import {
   Clock,
@@ -223,6 +225,18 @@ export default function TasksPage() {
             >
               GENERAL
             </TabsTrigger>
+            <TabsTrigger
+              value="recurring"
+              style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1 }}
+            >
+              RECURRING
+            </TabsTrigger>
+            <TabsTrigger
+              value="triggers"
+              style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1 }}
+            >
+              TRIGGERS
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -294,6 +308,17 @@ export default function TasksPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Scheduled and event-driven work both live here rather than in
+            settings: this page is where the workspace's recurring operations
+            already are, and these are the same kind of thing. */}
+        <TabsContent value="recurring" className="mt-0">
+          <PlaysSection />
+        </TabsContent>
+
+        <TabsContent value="triggers" className="mt-0">
+          <TriggersSection />
         </TabsContent>
       </Tabs>
 
