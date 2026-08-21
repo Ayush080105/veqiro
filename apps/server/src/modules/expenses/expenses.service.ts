@@ -1,5 +1,5 @@
 import * as repo from "./expenses.repository.js";
-import { computeNextRun } from "../tasks/tasks.service.js";
+import { computeNextRun } from "../../common/utils/cron.js";
 import type {
   ExpenseCategory,
   SplitType,
