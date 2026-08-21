@@ -39,6 +39,7 @@ export type McpTriggerSubscriptionMinAggregateOutputType = {
   triggerSlug: string | null
   composioTriggerId: string | null
   agent: $Enums.Agent | null
+  instruction: string | null
   createdByUserId: string | null
   enabled: boolean | null
   lastEventAt: Date | null
@@ -55,6 +56,7 @@ export type McpTriggerSubscriptionMaxAggregateOutputType = {
   triggerSlug: string | null
   composioTriggerId: string | null
   agent: $Enums.Agent | null
+  instruction: string | null
   createdByUserId: string | null
   enabled: boolean | null
   lastEventAt: Date | null
@@ -71,6 +73,7 @@ export type McpTriggerSubscriptionCountAggregateOutputType = {
   triggerSlug: number
   composioTriggerId: number
   agent: number
+  instruction: number
   createdByUserId: number
   enabled: number
   lastEventAt: number
@@ -89,6 +92,7 @@ export type McpTriggerSubscriptionMinAggregateInputType = {
   triggerSlug?: true
   composioTriggerId?: true
   agent?: true
+  instruction?: true
   createdByUserId?: true
   enabled?: true
   lastEventAt?: true
@@ -105,6 +109,7 @@ export type McpTriggerSubscriptionMaxAggregateInputType = {
   triggerSlug?: true
   composioTriggerId?: true
   agent?: true
+  instruction?: true
   createdByUserId?: true
   enabled?: true
   lastEventAt?: true
@@ -121,6 +126,7 @@ export type McpTriggerSubscriptionCountAggregateInputType = {
   triggerSlug?: true
   composioTriggerId?: true
   agent?: true
+  instruction?: true
   createdByUserId?: true
   enabled?: true
   lastEventAt?: true
@@ -210,6 +216,7 @@ export type McpTriggerSubscriptionGroupByOutputType = {
   triggerSlug: string
   composioTriggerId: string | null
   agent: $Enums.Agent
+  instruction: string | null
   createdByUserId: string
   enabled: boolean
   lastEventAt: Date | null
@@ -247,6 +254,7 @@ export type McpTriggerSubscriptionWhereInput = {
   triggerSlug?: Prisma.StringFilter<"McpTriggerSubscription"> | string
   composioTriggerId?: Prisma.StringNullableFilter<"McpTriggerSubscription"> | string | null
   agent?: Prisma.EnumAgentFilter<"McpTriggerSubscription"> | $Enums.Agent
+  instruction?: Prisma.StringNullableFilter<"McpTriggerSubscription"> | string | null
   createdByUserId?: Prisma.StringFilter<"McpTriggerSubscription"> | string
   enabled?: Prisma.BoolFilter<"McpTriggerSubscription"> | boolean
   lastEventAt?: Prisma.DateTimeNullableFilter<"McpTriggerSubscription"> | Date | string | null
@@ -263,6 +271,7 @@ export type McpTriggerSubscriptionOrderByWithRelationInput = {
   triggerSlug?: Prisma.SortOrder
   composioTriggerId?: Prisma.SortOrderInput | Prisma.SortOrder
   agent?: Prisma.SortOrder
+  instruction?: Prisma.SortOrderInput | Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   lastEventAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -283,6 +292,7 @@ export type McpTriggerSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   connectionId?: Prisma.StringFilter<"McpTriggerSubscription"> | string
   triggerSlug?: Prisma.StringFilter<"McpTriggerSubscription"> | string
   agent?: Prisma.EnumAgentFilter<"McpTriggerSubscription"> | $Enums.Agent
+  instruction?: Prisma.StringNullableFilter<"McpTriggerSubscription"> | string | null
   createdByUserId?: Prisma.StringFilter<"McpTriggerSubscription"> | string
   enabled?: Prisma.BoolFilter<"McpTriggerSubscription"> | boolean
   lastEventAt?: Prisma.DateTimeNullableFilter<"McpTriggerSubscription"> | Date | string | null
@@ -299,6 +309,7 @@ export type McpTriggerSubscriptionOrderByWithAggregationInput = {
   triggerSlug?: Prisma.SortOrder
   composioTriggerId?: Prisma.SortOrderInput | Prisma.SortOrder
   agent?: Prisma.SortOrder
+  instruction?: Prisma.SortOrderInput | Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   lastEventAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -321,6 +332,7 @@ export type McpTriggerSubscriptionScalarWhereWithAggregatesInput = {
   triggerSlug?: Prisma.StringWithAggregatesFilter<"McpTriggerSubscription"> | string
   composioTriggerId?: Prisma.StringNullableWithAggregatesFilter<"McpTriggerSubscription"> | string | null
   agent?: Prisma.EnumAgentWithAggregatesFilter<"McpTriggerSubscription"> | $Enums.Agent
+  instruction?: Prisma.StringNullableWithAggregatesFilter<"McpTriggerSubscription"> | string | null
   createdByUserId?: Prisma.StringWithAggregatesFilter<"McpTriggerSubscription"> | string
   enabled?: Prisma.BoolWithAggregatesFilter<"McpTriggerSubscription"> | boolean
   lastEventAt?: Prisma.DateTimeNullableWithAggregatesFilter<"McpTriggerSubscription"> | Date | string | null
@@ -337,6 +349,7 @@ export type McpTriggerSubscriptionCreateInput = {
   triggerSlug: string
   composioTriggerId?: string | null
   agent: $Enums.Agent
+  instruction?: string | null
   createdByUserId: string
   enabled?: boolean
   lastEventAt?: Date | string | null
@@ -353,6 +366,7 @@ export type McpTriggerSubscriptionUncheckedCreateInput = {
   triggerSlug: string
   composioTriggerId?: string | null
   agent: $Enums.Agent
+  instruction?: string | null
   createdByUserId: string
   enabled?: boolean
   lastEventAt?: Date | string | null
@@ -369,6 +383,7 @@ export type McpTriggerSubscriptionUpdateInput = {
   triggerSlug?: Prisma.StringFieldUpdateOperationsInput | string
   composioTriggerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  instruction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -385,6 +400,7 @@ export type McpTriggerSubscriptionUncheckedUpdateInput = {
   triggerSlug?: Prisma.StringFieldUpdateOperationsInput | string
   composioTriggerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  instruction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -401,6 +417,7 @@ export type McpTriggerSubscriptionCreateManyInput = {
   triggerSlug: string
   composioTriggerId?: string | null
   agent: $Enums.Agent
+  instruction?: string | null
   createdByUserId: string
   enabled?: boolean
   lastEventAt?: Date | string | null
@@ -417,6 +434,7 @@ export type McpTriggerSubscriptionUpdateManyMutationInput = {
   triggerSlug?: Prisma.StringFieldUpdateOperationsInput | string
   composioTriggerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  instruction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -433,6 +451,7 @@ export type McpTriggerSubscriptionUncheckedUpdateManyInput = {
   triggerSlug?: Prisma.StringFieldUpdateOperationsInput | string
   composioTriggerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  instruction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -454,6 +473,7 @@ export type McpTriggerSubscriptionCountOrderByAggregateInput = {
   triggerSlug?: Prisma.SortOrder
   composioTriggerId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
+  instruction?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   lastEventAt?: Prisma.SortOrder
@@ -470,6 +490,7 @@ export type McpTriggerSubscriptionMaxOrderByAggregateInput = {
   triggerSlug?: Prisma.SortOrder
   composioTriggerId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
+  instruction?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   lastEventAt?: Prisma.SortOrder
@@ -486,6 +507,7 @@ export type McpTriggerSubscriptionMinOrderByAggregateInput = {
   triggerSlug?: Prisma.SortOrder
   composioTriggerId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
+  instruction?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   lastEventAt?: Prisma.SortOrder
@@ -504,6 +526,7 @@ export type McpTriggerSubscriptionSelect<ExtArgs extends runtime.Types.Extension
   triggerSlug?: boolean
   composioTriggerId?: boolean
   agent?: boolean
+  instruction?: boolean
   createdByUserId?: boolean
   enabled?: boolean
   lastEventAt?: boolean
@@ -520,6 +543,7 @@ export type McpTriggerSubscriptionSelectCreateManyAndReturn<ExtArgs extends runt
   triggerSlug?: boolean
   composioTriggerId?: boolean
   agent?: boolean
+  instruction?: boolean
   createdByUserId?: boolean
   enabled?: boolean
   lastEventAt?: boolean
@@ -536,6 +560,7 @@ export type McpTriggerSubscriptionSelectUpdateManyAndReturn<ExtArgs extends runt
   triggerSlug?: boolean
   composioTriggerId?: boolean
   agent?: boolean
+  instruction?: boolean
   createdByUserId?: boolean
   enabled?: boolean
   lastEventAt?: boolean
@@ -552,6 +577,7 @@ export type McpTriggerSubscriptionSelectScalar = {
   triggerSlug?: boolean
   composioTriggerId?: boolean
   agent?: boolean
+  instruction?: boolean
   createdByUserId?: boolean
   enabled?: boolean
   lastEventAt?: boolean
@@ -560,7 +586,7 @@ export type McpTriggerSubscriptionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type McpTriggerSubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "integrationSlug" | "connectionId" | "triggerSlug" | "composioTriggerId" | "agent" | "createdByUserId" | "enabled" | "lastEventAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpTriggerSubscription"]>
+export type McpTriggerSubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "integrationSlug" | "connectionId" | "triggerSlug" | "composioTriggerId" | "agent" | "instruction" | "createdByUserId" | "enabled" | "lastEventAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpTriggerSubscription"]>
 
 export type $McpTriggerSubscriptionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "McpTriggerSubscription"
@@ -595,6 +621,12 @@ export type $McpTriggerSubscriptionPayload<ExtArgs extends runtime.Types.Extensi
      * Agent that handles events from this subscription.
      */
     agent: $Enums.Agent
+    /**
+     * What the agent should do when this fires. Null means use the catalog's
+     * curated instruction, or the generic one for a discovered trigger that has
+     * no curated entry.
+     */
+    instruction: string | null
     /**
      * User whose identity staged actions run under. Trigger-staged actions
      * still need an owner even though nobody clicked anything.
@@ -1051,6 +1083,7 @@ export interface McpTriggerSubscriptionFieldRefs {
   readonly triggerSlug: Prisma.FieldRef<"McpTriggerSubscription", 'String'>
   readonly composioTriggerId: Prisma.FieldRef<"McpTriggerSubscription", 'String'>
   readonly agent: Prisma.FieldRef<"McpTriggerSubscription", 'Agent'>
+  readonly instruction: Prisma.FieldRef<"McpTriggerSubscription", 'String'>
   readonly createdByUserId: Prisma.FieldRef<"McpTriggerSubscription", 'String'>
   readonly enabled: Prisma.FieldRef<"McpTriggerSubscription", 'Boolean'>
   readonly lastEventAt: Prisma.FieldRef<"McpTriggerSubscription", 'DateTime'>

@@ -301,3 +301,28 @@ export const upsertToolCatalog = (
       fetchedAt: new Date(),
     },
   });
+
+// --- Trigger catalog cache (shared across orgs; keyed by toolkit) ----------
+
+export const findTriggerCatalog = (toolkitSlug: string) =>
+  prisma.mcpTriggerCatalog.findUnique({ where: { toolkitSlug } });
+
+export const upsertTriggerCatalog = (
+  toolkitSlug: string,
+  provider: McpProvider,
+  triggers: unknown,
+) =>
+  prisma.mcpTriggerCatalog.upsert({
+    where: { toolkitSlug },
+    create: {
+      toolkitSlug,
+      provider,
+      triggers: triggers as Prisma.InputJsonValue,
+      triggerCount: Array.isArray(triggers) ? triggers.length : 0,
+    },
+    update: {
+      triggers: triggers as Prisma.InputJsonValue,
+      triggerCount: Array.isArray(triggers) ? triggers.length : 0,
+      fetchedAt: new Date(),
+    },
+  });

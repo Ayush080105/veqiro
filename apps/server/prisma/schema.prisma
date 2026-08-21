@@ -1003,6 +1003,10 @@ model McpTriggerSubscription {
   composioTriggerId String?   @unique
   /// Agent that handles events from this subscription.
   agent             Agent
+  /// What the agent should do when this fires. Null means use the catalog's
+  /// curated instruction, or the generic one for a discovered trigger that has
+  /// no curated entry.
+  instruction       String?
   /// User whose identity staged actions run under. Trigger-staged actions
   /// still need an owner even though nobody clicked anything.
   createdByUserId   String
@@ -1150,6 +1154,26 @@ model McpToolCatalog {
   fetchedAt   DateTime    @default(now())
 
   @@map("mcp_tool_catalog")
+}
+
+/// A toolkit's available trigger types, cached like its tool catalog and for
+/// the same reason: listTypes resolves on the toolkit slug alone, so one row
+/// serves every org. Verified across the catalog — 21 of 46 toolkits expose
+/// triggers at all, 191 types between them.
+model McpTriggerCatalog {
+  /// Provider's toolkit slug, e.g. "slack".
+  toolkitSlug  String      @id
+  /// Which provider this came from.
+  provider     McpProvider @default(COMPOSIO)
+  /// Trigger types as returned by the provider.
+  triggers     Json
+  /// Denormalized count, so "does this toolkit trigger at all" is answerable
+  /// without deserializing.
+  triggerCount Int
+  /// When this was last read from the provider.
+  fetchedAt    DateTime    @default(now())
+
+  @@map("mcp_trigger_catalog")
 }
 
 /// A week's content plan — the artifact Maya's planning play produces.

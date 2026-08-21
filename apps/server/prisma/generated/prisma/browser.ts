@@ -234,6 +234,14 @@ export type McpPlay = Prisma.McpPlayModel
  */
 export type McpToolCatalog = Prisma.McpToolCatalogModel
 /**
+ * Model McpTriggerCatalog
+ * A toolkit's available trigger types, cached like its tool catalog and for
+ * the same reason: listTypes resolves on the toolkit slug alone, so one row
+ * serves every org. Verified across the catalog — 21 of 46 toolkits expose
+ * triggers at all, 191 types between them.
+ */
+export type McpTriggerCatalog = Prisma.McpTriggerCatalogModel
+/**
  * Model MayaContentPlan
  * A week's content plan — the artifact Maya's planning play produces.
  * 
@@ -340,6 +348,12 @@ export type WaitlistEntry = Prisma.WaitlistEntryModel
 /**
  * Model Task
  * Scheduled task owned by an organization — agent-automated or user-defined.
+ * UNUSED — the Task feature was removed. Recurring work is now McpPlay and
+ * event-driven work is McpTriggerSubscription; see the Tasks page.
+ * 
+ * The table is kept rather than dropped so the 48 rows that existed across 16
+ * organizations aren't destroyed by a decision that could be revisited. The
+ * cron that fired them is gone, so nothing here runs any more.
  */
 export type Task = Prisma.TaskModel
 /**

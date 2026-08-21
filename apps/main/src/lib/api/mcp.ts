@@ -299,17 +299,22 @@ export function useRejectMcpPendingAction() {
   })
 }
 
-/** One entry in the inbound-trigger catalog, with this org's state on it. */
+/** One trigger available to this org, discovered from a connected integration. */
 export interface McpTrigger {
+  /** Curated id where one exists, otherwise the provider's own slug. */
   id: string
   integrationSlug: string
+  integrationName: string
+  triggerSlug: string
   label: string
   description: string
   agent: string
-  /** False when the integration this needs isn't connected yet. */
-  available: boolean
+  /** True when this has a hand-written instruction rather than the generic one. */
+  curated: boolean
   subscribed: boolean
   enabled: boolean
+  /** The org's own instruction, if they wrote one. */
+  instruction: string | null
   lastEventAt: string | null
   lastError: string | null
 }

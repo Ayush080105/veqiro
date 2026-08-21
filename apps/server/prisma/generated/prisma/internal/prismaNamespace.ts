@@ -413,6 +413,7 @@ export const ModelName = {
   McpApprovalPolicy: 'McpApprovalPolicy',
   McpPlay: 'McpPlay',
   McpToolCatalog: 'McpToolCatalog',
+  McpTriggerCatalog: 'McpTriggerCatalog',
   MayaContentPlan: 'MayaContentPlan',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
@@ -454,7 +455,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2601,6 +2602,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.McpToolCatalogCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.McpToolCatalogCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpTriggerCatalog: {
+      payload: Prisma.$McpTriggerCatalogPayload<ExtArgs>
+      fields: Prisma.McpTriggerCatalogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpTriggerCatalogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpTriggerCatalogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>
+        }
+        findFirst: {
+          args: Prisma.McpTriggerCatalogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpTriggerCatalogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>
+        }
+        findMany: {
+          args: Prisma.McpTriggerCatalogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>[]
+        }
+        create: {
+          args: Prisma.McpTriggerCatalogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>
+        }
+        createMany: {
+          args: Prisma.McpTriggerCatalogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpTriggerCatalogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>[]
+        }
+        delete: {
+          args: Prisma.McpTriggerCatalogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>
+        }
+        update: {
+          args: Prisma.McpTriggerCatalogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpTriggerCatalogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpTriggerCatalogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpTriggerCatalogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpTriggerCatalogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerCatalogPayload>
+        }
+        aggregate: {
+          args: Prisma.McpTriggerCatalogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpTriggerCatalog>
+        }
+        groupBy: {
+          args: Prisma.McpTriggerCatalogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpTriggerCatalogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpTriggerCatalogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpTriggerCatalogCountAggregateOutputType> | number
         }
       }
     }
@@ -4972,6 +5047,7 @@ export const McpTriggerSubscriptionScalarFieldEnum = {
   triggerSlug: 'triggerSlug',
   composioTriggerId: 'composioTriggerId',
   agent: 'agent',
+  instruction: 'instruction',
   createdByUserId: 'createdByUserId',
   enabled: 'enabled',
   lastEventAt: 'lastEventAt',
@@ -5037,6 +5113,17 @@ export const McpToolCatalogScalarFieldEnum = {
 } as const
 
 export type McpToolCatalogScalarFieldEnum = (typeof McpToolCatalogScalarFieldEnum)[keyof typeof McpToolCatalogScalarFieldEnum]
+
+
+export const McpTriggerCatalogScalarFieldEnum = {
+  toolkitSlug: 'toolkitSlug',
+  provider: 'provider',
+  triggers: 'triggers',
+  triggerCount: 'triggerCount',
+  fetchedAt: 'fetchedAt'
+} as const
+
+export type McpTriggerCatalogScalarFieldEnum = (typeof McpTriggerCatalogScalarFieldEnum)[keyof typeof McpTriggerCatalogScalarFieldEnum]
 
 
 export const MayaContentPlanScalarFieldEnum = {
@@ -5988,6 +6075,7 @@ export type GlobalOmitConfig = {
   mcpApprovalPolicy?: Prisma.McpApprovalPolicyOmit
   mcpPlay?: Prisma.McpPlayOmit
   mcpToolCatalog?: Prisma.McpToolCatalogOmit
+  mcpTriggerCatalog?: Prisma.McpTriggerCatalogOmit
   mayaContentPlan?: Prisma.MayaContentPlanOmit
   publishedPost?: Prisma.PublishedPostOmit
   mayaContentIdea?: Prisma.MayaContentIdeaOmit

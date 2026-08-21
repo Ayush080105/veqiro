@@ -1,6 +1,7 @@
 import {
   Agent,
   McpActionSource,
+  McpProvider,
   McpTriggerEventStatus,
 } from "../../../prisma/generated/prisma/client.js";
 import { prisma } from "../../config/prisma.js";
@@ -11,8 +12,13 @@ import { callAgentWithContext, agentRoles } from "../../common/utils/contextServ
 import {
   TRIGGER_DEFINITIONS,
   findTriggerDefinition,
+  findTriggerDefinitionBySlug,
+  genericTriggerPrompt,
+  humanizeTriggerName,
   type TriggerDefinition,
 } from "./mcp.triggers.js";
+import { getIntegrationBySlug } from "@repo/integrations-catalog";
+import * as repo from "./mcp.repository.js";
 import * as mcpService from "./mcp.service.js";
 
 /**
@@ -68,51 +74,171 @@ const MAX_EVENTS_PER_SUBSCRIPTION_PER_HOUR = 20;
 const MAX_EVENTS_PER_ORG_PER_HOUR = 60;
 
 export interface TriggerSummary {
+  /** Stable id: the curated id where one exists, otherwise the provider slug. */
   id: string;
   integrationSlug: string;
+  /** Integration name as the customer knows it. */
+  integrationName: string;
+  /** Provider's own trigger slug. */
+  triggerSlug: string;
   label: string;
   description: string;
   agent: Agent;
-  /** False when the integration this needs isn't connected. */
-  available: boolean;
+  /** True when this has a hand-written instruction rather than the generic one. */
+  curated: boolean;
   subscribed: boolean;
   enabled: boolean;
+  /** The org's override, if they wrote one. */
+  instruction: string | null;
   lastEventAt: string | null;
   lastError: string | null;
 }
 
+/** How long a toolkit's trigger list is trusted. Catalogs change when the
+ *  provider ships new triggers — rarely, and never urgently. */
+const TRIGGER_CATALOG_TTL_MS = 24 * 60 * 60 * 1000;
+
+interface RawTriggerType {
+  slug: string;
+  name?: string;
+  description?: string;
+}
+
 /**
- * The trigger catalog, each entry annotated with whether this org can use it
- * and whether it currently does. Entries whose integration isn't connected come
- * back as `available: false` rather than hidden — "connect Gmail to switch this
- * on" is a more useful empty state than an absence.
+ * A toolkit's trigger types, cached per toolkit rather than per org.
+ *
+ * listTypes resolves on the toolkit slug alone, so one fetch serves every
+ * customer — the same reasoning as the tool catalog. Without this, opening the
+ * triggers page with fifteen connections would cost fifteen provider calls
+ * every time.
+ */
+const getTriggerTypes = async (toolkitSlug: string): Promise<RawTriggerType[]> => {
+  const cached = await repo.findTriggerCatalog(toolkitSlug);
+  if (cached && Date.now() - cached.fetchedAt.getTime() < TRIGGER_CATALOG_TTL_MS) {
+    return cached.triggers as unknown as RawTriggerType[];
+  }
+  try {
+    const response = (await composioClient.triggers.listTypes({
+      toolkits: [toolkitSlug],
+      limit: 50,
+    } as never)) as { items?: RawTriggerType[] };
+    const items = response.items ?? [];
+    await repo
+      .upsertTriggerCatalog(toolkitSlug, McpProvider.COMPOSIO, items)
+      .catch((err) => console.error("[triggers] catalog persist failed", err));
+    return items;
+  } catch (err) {
+    console.error("[triggers] listTypes failed", { toolkitSlug, error: err });
+    // Serve whatever is cached, however old, rather than showing a connected
+    // integration as having no triggers because one call failed.
+    return (cached?.triggers as unknown as RawTriggerType[] | undefined) ?? [];
+  }
+};
+
+/**
+ * Every trigger the org can actually use: discovered from each connected
+ * integration, rather than a fixed list.
+ *
+ * Curated definitions still win where they exist — a hand-written instruction
+ * that knows what "a new email arrives" means beats a generic one — but they
+ * are now overrides on discovery instead of the whole universe. Verified
+ * across the catalog: 21 of 46 integrations expose triggers, 191 types in
+ * total, so a fixed list of seven was hiding most of what is possible.
  */
 export const listTriggers = async (organizationId: string): Promise<TriggerSummary[]> => {
   const [connections, subscriptions] = await Promise.all([
     prisma.mcpConnection.findMany({
       where: { organizationId, status: "CONNECTED" },
-      select: { integrationSlug: true },
+      select: { integrationSlug: true, toolkitSlug: true },
     }),
     prisma.mcpTriggerSubscription.findMany({ where: { organizationId } }),
   ]);
-  const connected = new Set(connections.map((c) => c.integrationSlug));
   const bySlug = new Map(subscriptions.map((s) => [s.triggerSlug, s]));
 
-  return TRIGGER_DEFINITIONS.map((def) => {
-    const sub = bySlug.get(def.triggerSlug);
+  const perConnection = await Promise.all(
+    connections.map(async (conn) => {
+      const entry = getIntegrationBySlug(conn.integrationSlug);
+      if (!entry) return [];
+      // An integration can serve several agents; the first is the one whose
+      // tools it primarily belongs to.
+      const agentSlug = (entry.primaryAgent ?? entry.agents?.[0]) as string | undefined;
+      if (!agentSlug) return [];
+      const agent = agentSlug.toUpperCase() as Agent;
+
+      const types = await getTriggerTypes(conn.toolkitSlug);
+      return types.map((type): TriggerSummary => {
+        const curated = findTriggerDefinitionBySlug(type.slug);
+        const sub = bySlug.get(type.slug);
+        const label = curated?.label ?? humanizeTriggerName(type.name ?? "", type.slug);
+        return {
+          id: curated?.id ?? type.slug,
+          integrationSlug: conn.integrationSlug,
+          integrationName: entry.name,
+          triggerSlug: type.slug,
+          label,
+          description:
+            curated?.description ??
+            type.description ??
+            `${entry.name} event — the agent decides whether it needs anything.`,
+          agent: curated?.agent ?? agent,
+          curated: Boolean(curated),
+          subscribed: Boolean(sub),
+          enabled: sub?.enabled ?? false,
+          instruction: sub?.instruction ?? null,
+          lastEventAt: sub?.lastEventAt?.toISOString() ?? null,
+          lastError: sub?.lastError ?? null,
+        };
+      });
+    }),
+  );
+
+  return perConnection
+    .flat()
+    .sort(
+      (a, b) =>
+        a.integrationName.localeCompare(b.integrationName) || a.label.localeCompare(b.label),
+    );
+};
+
+/**
+ * Resolves a trigger id from the API into everything needed to act on it.
+ *
+ * The id is a curated id where one exists and the provider slug otherwise, so
+ * this looks both up — and falls back to the org's own connections to find
+ * which integration a discovered slug belongs to. Returning null means the id
+ * is not usable by this org, which is the same answer as "unknown".
+ */
+const resolveTrigger = async (
+  organizationId: string,
+  triggerId: string,
+): Promise<{
+  triggerSlug: string;
+  integrationSlug: string;
+  agent: Agent;
+  label: string;
+  prompt: string;
+} | null> => {
+  const curated = findTriggerDefinition(triggerId);
+  if (curated) {
     return {
-      id: def.id,
-      integrationSlug: def.integrationSlug,
-      label: def.label,
-      description: def.description,
-      agent: def.agent,
-      available: connected.has(def.integrationSlug),
-      subscribed: Boolean(sub),
-      enabled: sub?.enabled ?? false,
-      lastEventAt: sub?.lastEventAt?.toISOString() ?? null,
-      lastError: sub?.lastError ?? null,
+      triggerSlug: curated.triggerSlug,
+      integrationSlug: curated.integrationSlug,
+      agent: curated.agent,
+      label: curated.label,
+      prompt: curated.prompt,
     };
-  });
+  }
+
+  const all = await listTriggers(organizationId);
+  const found = all.find((t) => t.id === triggerId || t.triggerSlug === triggerId);
+  if (!found) return null;
+  return {
+    triggerSlug: found.triggerSlug,
+    integrationSlug: found.integrationSlug,
+    agent: found.agent,
+    label: found.label,
+    prompt: genericTriggerPrompt(found.label, found.integrationName),
+  };
 };
 
 /**
@@ -133,7 +259,7 @@ export const subscribeTrigger = async (
   triggerId: string,
   config?: Record<string, unknown>,
 ): Promise<TriggerSummary> => {
-  const def = findTriggerDefinition(triggerId);
+  const def = await resolveTrigger(organizationId, triggerId);
   if (!def) throw new NotFoundError("Unknown trigger");
 
   const connection = await prisma.mcpConnection.findFirst({
@@ -167,7 +293,7 @@ export const subscribeTrigger = async (
       // Composio's `userId` is our organizationId — see lib/composio.ts.
       const created = await composioClient.triggers.create(organizationId, def.triggerSlug, {
         connectedAccountId: connection.connectionId,
-        triggerConfig: { ...(def.config ?? {}), ...(config ?? {}) },
+        triggerConfig: { ...(config ?? {}) },
       } as never);
       const composioTriggerId =
         (created as { triggerId?: string; id?: string }).triggerId ??
@@ -196,7 +322,7 @@ export const setTriggerEnabled = async (
   triggerId: string,
   enabled: boolean,
 ): Promise<TriggerSummary> => {
-  const def = findTriggerDefinition(triggerId);
+  const def = await resolveTrigger(organizationId, triggerId);
   if (!def) throw new NotFoundError("Unknown trigger");
   const row = await prisma.mcpTriggerSubscription.findUnique({
     where: { organizationId_triggerSlug: { organizationId, triggerSlug: def.triggerSlug } },
@@ -218,7 +344,7 @@ export const unsubscribeTrigger = async (
   organizationId: string,
   triggerId: string,
 ): Promise<void> => {
-  const def = findTriggerDefinition(triggerId);
+  const def = await resolveTrigger(organizationId, triggerId);
   if (!def) throw new NotFoundError("Unknown trigger");
   const row = await prisma.mcpTriggerSubscription.findUnique({
     where: { organizationId_triggerSlug: { organizationId, triggerSlug: def.triggerSlug } },
@@ -344,14 +470,25 @@ const processEvent = async (
     createdByUserId: string;
     agent: Agent;
     triggerSlug: string;
+    integrationSlug: string;
+    instruction: string | null;
   },
   event: InboundEvent,
 ): Promise<void> => {
-  const def = TRIGGER_DEFINITIONS.find((d) => d.triggerSlug === subscription.triggerSlug);
-  if (!def) {
-    await finishEvent(eventRowId, McpTriggerEventStatus.SKIPPED, "no catalog entry");
-    return;
-  }
+  // A discovered trigger has no curated entry, which is normal now — the
+  // instruction comes from the subscription or the generic template instead.
+  const curated = findTriggerDefinitionBySlug(subscription.triggerSlug);
+  const def = {
+    agent: subscription.agent,
+    label: humanizeTriggerName("", subscription.triggerSlug),
+    prompt:
+      subscription.instruction ??
+      curated?.prompt ??
+      genericTriggerPrompt(
+        humanizeTriggerName("", subscription.triggerSlug),
+        subscription.integrationSlug,
+      ),
+  };
 
   try {
     const response = await callAgentWithContext<{
@@ -364,7 +501,7 @@ const processEvent = async (
       userId: subscription.createdByUserId,
       organizationId: subscription.organizationId,
       conversationId: `trigger-${eventRowId}`,
-      userMessage: buildAgentPrompt(def, event.data),
+      userMessage: buildAgentPrompt(def.prompt, event.data),
       rawHistory: [],
       // Not a conversation — see AgentCallOptions.skipMemory.
       skipMemory: true,
@@ -425,7 +562,7 @@ const finishEvent = async (
  * JSON rather than being summarised here — the agent reads a Gmail message
  * shape better than any per-trigger mapping this file could hardcode.
  */
-const buildAgentPrompt = (def: TriggerDefinition, data: Record<string, unknown>): string => {
+const buildAgentPrompt = (instruction: string, data: Record<string, unknown>): string => {
   const payload = JSON.stringify(data, null, 2).slice(0, 8000);
-  return `${def.prompt}\n\nHere is the event:\n\`\`\`json\n${payload}\n\`\`\``;
+  return `${instruction}\n\nHere is the event:\n\`\`\`json\n${payload}\n\`\`\``;
 };

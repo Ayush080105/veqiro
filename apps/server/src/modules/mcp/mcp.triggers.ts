@@ -132,6 +132,40 @@ export const TRIGGER_DEFINITIONS: TriggerDefinition[] = [
 export const findTriggerDefinition = (id: string): TriggerDefinition | undefined =>
   TRIGGER_DEFINITIONS.find((t) => t.id === id);
 
+/**
+ * Turns a provider's own trigger name into something readable.
+ * "New Gmail Message Received Trigger" -> "New Gmail message received".
+ * Composio's names are close to presentable already; this trims the noise they
+ * all share rather than trying to rewrite them.
+ */
+export const humanizeTriggerName = (name: string, slug: string): string => {
+  const base = (name || slug.replace(/_/g, " ")).trim();
+  const trimmed = base.replace(/\s*trigger$/i, "").trim();
+  if (!trimmed) return base;
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};
+
+/**
+ * The instruction for a trigger with no curated entry.
+ *
+ * Deliberately conservative. A curated prompt knows what the event means and
+ * what a good response looks like; this one knows neither, so it asks the agent
+ * to judge whether anything is warranted and to do nothing when it isn't.
+ * Erring toward silence is right for a run nobody is watching — the cost of a
+ * missed nicety is far below the cost of an unwanted action proposed at 3am.
+ */
+export const genericTriggerPrompt = (label: string, integrationSlug: string): string =>
+  [
+    `An event just happened in ${integrationSlug}: ${label}.`,
+    "",
+    "Look at what changed and decide whether it genuinely needs anything from",
+    "you. If it does, do the useful thing and propose any action for approval.",
+    "If it is routine, automated, or needs no response, do nothing and say in",
+    "one line why not.",
+    "",
+    "Do not send, post or change anything without approval.",
+  ].join("\n");
+
 export const findTriggerDefinitionBySlug = (
   triggerSlug: string,
 ): TriggerDefinition | undefined =>

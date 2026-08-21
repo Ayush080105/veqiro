@@ -80,6 +80,7 @@ export const ModelName = {
   McpApprovalPolicy: 'McpApprovalPolicy',
   McpPlay: 'McpPlay',
   McpToolCatalog: 'McpToolCatalog',
+  McpTriggerCatalog: 'McpTriggerCatalog',
   MayaContentPlan: 'MayaContentPlan',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
@@ -529,6 +530,7 @@ export const McpTriggerSubscriptionScalarFieldEnum = {
   triggerSlug: 'triggerSlug',
   composioTriggerId: 'composioTriggerId',
   agent: 'agent',
+  instruction: 'instruction',
   createdByUserId: 'createdByUserId',
   enabled: 'enabled',
   lastEventAt: 'lastEventAt',
@@ -594,6 +596,17 @@ export const McpToolCatalogScalarFieldEnum = {
 } as const
 
 export type McpToolCatalogScalarFieldEnum = (typeof McpToolCatalogScalarFieldEnum)[keyof typeof McpToolCatalogScalarFieldEnum]
+
+
+export const McpTriggerCatalogScalarFieldEnum = {
+  toolkitSlug: 'toolkitSlug',
+  provider: 'provider',
+  triggers: 'triggers',
+  triggerCount: 'triggerCount',
+  fetchedAt: 'fetchedAt'
+} as const
+
+export type McpTriggerCatalogScalarFieldEnum = (typeof McpTriggerCatalogScalarFieldEnum)[keyof typeof McpTriggerCatalogScalarFieldEnum]
 
 
 export const MayaContentPlanScalarFieldEnum = {
