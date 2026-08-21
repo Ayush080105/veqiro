@@ -1,6 +1,6 @@
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
-import { Agent, McpConnectionStatus, McpPendingActionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
+import { Agent, McpActionSource, McpApprovalMode, McpConnectionStatus, McpPendingActionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
 import { aiService } from "../../common/utils/aiService.js";
 import { prisma } from "../../config/prisma.js";
 import * as repo from "./mcp.repository.js";
@@ -15,18 +15,6 @@ import type {
 } from "./mcp.types.js";
 import type { McpProviderAdapter } from "./mcp.provider.js";
 import { composioAdapter, isWriteToolName } from "./mcp.provider.composio.js";
-import { evaluateMetric, formatMetric, resolvePath } from "./mcp.metrics.js";
-import {
-  WIDGET_CATALOG,
-  dateRangeLabel,
-  evaluateWidget,
-  resolveArgs,
-  resolveInputArgs,
-  widgetById,
-  type WidgetKind,
-  type WidgetResult,
-  type WidgetRow,
-} from "./mcp.widgets.js";
 
 const AGENT_ENUM_BY_SLUG: Record<AgentSlug, Agent> = {
   vega: Agent.VEGA,
@@ -149,7 +137,6 @@ export const connect = async ({ organizationId, userId, slug, configValues }: Co
 
     if (result.apiStatus === "connected") {
       await notifyAiCacheInvalidate(organizationId);
-      invalidateSignals(organizationId);
     }
     return { status: result.apiStatus, setupUrl: result.setupUrl, message: result.message };
   } catch (err) {
@@ -181,7 +168,6 @@ export const refreshStatus = async (organizationId: string, slug: string): Promi
 
   if (dbStatus === McpConnectionStatus.CONNECTED && row.status !== McpConnectionStatus.CONNECTED) {
     await notifyAiCacheInvalidate(organizationId);
-    invalidateSignals(organizationId);
   }
 
   return {
@@ -207,7 +193,6 @@ export const disconnect = async (organizationId: string, slug: string): Promise<
   }
   await repo.remove(organizationId, slug);
   await notifyAiCacheInvalidate(organizationId);
-  invalidateSignals(organizationId);
 };
 
 /**
@@ -461,240 +446,6 @@ const recordAction = async (input: {
   }
 };
 
-// ─── Dashboard widgets ─────────────────────────────────────────────────────
-// The customer picks business widgets ("Unread email", "Search clicks"), never
-// tools or field paths — see mcp.widgets.ts for why that inversion matters.
-
-export interface AvailableWidgetInput {
-  name: string;
-  label: string;
-  placeholder?: string;
-  /** Resolved from the customer's own account when the widget declares it. */
-  options?: string[];
-  /** Fixed labelled options (a date range). Value is a day count, not a date. */
-  choices?: { value: string; label: string }[];
-  /** Pre-selected value, so a widget with sensible defaults is one click. */
-  defaultValue?: string;
-}
-
-export interface AvailableWidget {
-  id: string;
-  integrationSlug: string;
-  integrationName: string;
-  name: string;
-  description: string;
-  kind: WidgetKind;
-  inputs: AvailableWidgetInput[];
-}
-
-/**
- * Widgets this org can add, for the systems it actually has connected.
- *
- * Input options are resolved live (e.g. the customer's Search Console
- * properties) so the picker offers a dropdown instead of asking them to paste
- * an identifier they'd have to go and look up.
- */
-/**
- * Widgets this org can add, for the systems it actually has connected.
- *
- * Curated only, deliberately. Auto-discovering widgets from a provider's tool
- * list was built and measured against 14 live connections: even after filtering
- * out administrative tools and identifier-shaped titles, only 9 of 42
- * candidates rendered anything, and those still titled rows "INR",
- * "siteOwner" and "CHAT". A dashboard is the wrong place to guess, so coverage
- * grows by verifying one integration at a time in mcp.widgets.ts.
- *
- * Input options are resolved live (e.g. the customer's Search Console
- * properties) so the picker offers a dropdown instead of asking them to paste
- * an identifier they would have to go and look up.
- */
-export const listAvailableWidgets = async (organizationId: string): Promise<AvailableWidget[]> => {
-  const connections = await repo.findConnectedByOrg(organizationId);
-  const bySlug = new Map(connections.map((c) => [c.integrationSlug, c]));
-
-  return Promise.all(
-    WIDGET_CATALOG.filter((widget) => bySlug.has(widget.integrationSlug)).map(async (widget) => {
-      const row = bySlug.get(widget.integrationSlug)!;
-      const entry = getIntegrationBySlug(widget.integrationSlug);
-      const inputs: AvailableWidgetInput[] = [];
-      for (const input of widget.inputs ?? []) {
-        let options: string[] | undefined;
-        if (input.optionsFrom) {
-          try {
-            const response = await withTimeout(
-              callTool(organizationId, row.connectionId, input.optionsFrom.toolName, {}),
-              SIGNAL_TIMEOUT_MS,
-            );
-            const values = resolvePath(response, input.optionsFrom.valuePath)
-              .filter((v): v is string => typeof v === "string");
-            if (values.length) options = values;
-          } catch (err) {
-            // Offer a free-text field rather than dropping the widget — the
-            // customer may well know the value even if we could not list it.
-            console.error("[mcp] widget option lookup failed", widget.id, input.name, err);
-          }
-        }
-        inputs.push({
-          name: input.name,
-          label: input.label,
-          placeholder: input.placeholder,
-          options,
-          choices: input.choices,
-          // 28 days is the middle of the range list and what Search Console
-          // itself defaults to, so it is the least surprising pre-selection.
-          defaultValue: input.kind === "dateRange" ? "28" : undefined,
-        });
-      }
-      return {
-        id: widget.id,
-        integrationSlug: widget.integrationSlug,
-        integrationName: entry?.name ?? widget.integrationSlug,
-        name: widget.name,
-        description: widget.description,
-        kind: widget.kind,
-        inputs,
-      };
-    }),
-  );
-};
-
-/** Falls back to a sensible value for any declared input a stored tile lacks. */
-const defaultInputsFor = (widget: { inputs?: { name: string; kind?: string }[] }) => {
-  const defaults: Record<string, unknown> = {};
-  for (const input of widget.inputs ?? []) {
-    if (input.kind === "dateRange") defaults[input.name] = "28";
-  }
-  return defaults;
-};
-
-/** Runs one widget for this org. Every caller (preview, dashboard) goes through
- *  here, so what the customer previews is exactly what gets pinned. */
-export const runWidget = async (
-  organizationId: string,
-  widgetId: string,
-  inputs: Record<string, unknown>,
-): Promise<WidgetResult & { error?: string }> => {
-  const widget = widgetById(widgetId);
-  if (!widget) throw new NotFoundError(`Unknown widget "${widgetId}"`);
-  // Tiles pinned before an input was introduced have no stored value for it.
-  // Without this, a pre-existing Search Console tile called the API with no
-  // start_date and silently produced nothing.
-  const withDefaults = { ...defaultInputsFor(widget), ...inputs };
-  const row = await repo.findByOrgAndSlug(organizationId, widget.integrationSlug);
-  if (!row) throw new NotFoundError("Connection not found");
-  try {
-    const response = await withTimeout(
-      callTool(organizationId, row.connectionId, widget.toolName, {
-        ...resolveArgs(widget.args),
-        ...resolveInputArgs(widget, withDefaults),
-      }),
-      SIGNAL_TIMEOUT_MS,
-    );
-    return evaluateWidget(widget, response);
-  } catch (err) {
-    return {
-      kind: widget.kind,
-      error: err instanceof Error ? err.message.slice(0, 200) : "Could not read this",
-    };
-  }
-};
-
-export interface DashboardTile {
-  id: string;
-  widgetId: string;
-  integrationSlug: string;
-  integrationName: string;
-  /** The widget's name, or the customer's rename of it. */
-  name: string;
-  kind: WidgetKind;
-  inputs: Record<string, unknown>;
-  position: number;
-}
-
-const toDashboardTile = (row: {
-  id: string; widgetId: string; integrationSlug: string;
-  label: string | null; inputs: unknown; position: number;
-}): DashboardTile | null => {
-  const widget = widgetById(row.widgetId);
-  // A tile whose widget no longer exists in the catalog is skipped rather than
-  // rendered as a broken card.
-  if (!widget) return null;
-  return {
-    id: row.id,
-    widgetId: row.widgetId,
-    integrationSlug: row.integrationSlug,
-    integrationName: getIntegrationBySlug(row.integrationSlug)?.name ?? row.integrationSlug,
-    name: row.label ?? widget.name,
-    kind: widget.kind,
-    inputs:
-      row.inputs && typeof row.inputs === "object" && !Array.isArray(row.inputs)
-        ? (row.inputs as Record<string, unknown>)
-        : {},
-    position: row.position,
-  };
-};
-
-export const listTiles = async (organizationId: string): Promise<DashboardTile[]> => {
-  const rows = await repo.findTilesByOrg(organizationId);
-  return rows.map(toDashboardTile).filter((t): t is DashboardTile => t !== null);
-};
-
-export const addTile = async (
-  organizationId: string,
-  input: { widgetId: string; inputs?: Record<string, unknown>; label?: string | null },
-): Promise<void> => {
-  const widget = widgetById(input.widgetId);
-  if (!widget) throw new NotFoundError(`Unknown widget "${input.widgetId}"`);
-  // Every declared input must be supplied — a widget missing its site_url would
-  // fail on every dashboard load with no way for the user to see why.
-  for (const declared of widget.inputs ?? []) {
-    const value = input.inputs?.[declared.name];
-    if (value === undefined || value === null || value === "") {
-      throw new BadRequestError(`"${declared.label}" is required for this widget`);
-    }
-  }
-  // Same widget with different inputs is a legitimately different tile (clicks
-  // for two Search Console properties), so uniqueness is (widget + inputs)
-  // rather than a DB constraint on widgetId alone.
-  const existingTiles = await repo.findTilesByOrg(organizationId);
-  const alreadyPinned = existingTiles.some(
-    (tile) => tile.widgetId === input.widgetId && sameInputs(tile.inputs, input.inputs ?? {}),
-  );
-  if (alreadyPinned) {
-    throw new BadRequestError(`"${widget.name}" is already on your dashboard`);
-  }
-
-  const rangeInput = (widget.inputs ?? []).find((i) => i.kind === "dateRange");
-  const chosenRange = rangeInput ? input.inputs?.[rangeInput.name] : undefined;
-  const defaultLabel = chosenRange
-    ? `${widget.name} · ${dateRangeLabel(String(chosenRange)).toLowerCase()}`
-    : null;
-
-  await repo.createTile({
-    organizationId,
-    widgetId: widget.id,
-    integrationSlug: widget.integrationSlug,
-    inputs: input.inputs ?? {},
-    label: input.label ?? defaultLabel,
-    position: existingTiles.length,
-  });
-  invalidateSignals(organizationId);
-};
-
-/** Order-insensitive comparison of two widget input maps. */
-const sameInputs = (a: unknown, b: Record<string, unknown>): boolean => {
-  const left = a && typeof a === "object" && !Array.isArray(a) ? (a as Record<string, unknown>) : {};
-  const leftKeys = Object.keys(left);
-  const rightKeys = Object.keys(b);
-  if (leftKeys.length !== rightKeys.length) return false;
-  return leftKeys.every((key) => String(left[key]) === String(b[key]));
-};
-
-export const removeTile = async (organizationId: string, id: string): Promise<void> => {
-  await repo.deleteTile(organizationId, id);
-  invalidateSignals(organizationId);
-};
-
 // ─── Value report ──────────────────────────────────────────────────────────
 
 export interface ValueReport {
@@ -749,166 +500,245 @@ export const getValueReport = async (
   };
 };
 
-// ─── Command Center signals ────────────────────────────────────────────────
+// ─── Approval policy ───────────────────────────────────────────────────────
 
-export interface OrgSignal {
-  /** Set when this tile could not be read. The tile still renders, saying so —
-   *  silently dropping it makes the dashboard look broken with no explanation. */
-  error?: string;
-  /** Unique per tile — an org may pin the same widget with different inputs. */
-  key: string;
-  slug: string;
-  /** Integration name, e.g. "Gmail". */
-  name: string;
-  /** The widget's name, or the customer's rename, e.g. "Unread email". */
-  title: string;
-  kind: WidgetKind;
-  /** Formatted value for a metric widget, e.g. "273" or "17.6". */
-  display?: string | null;
-  /** Real rows for a list widget — the actual mail, meetings, or queries. */
-  rows?: WidgetRow[];
-  logoUrl?: string;
+export interface ApprovalPolicyEntry {
+  id: string;
+  integrationSlug: string;
+  toolName: string;
+  mode: McpApprovalMode;
+  createdAt: string;
 }
 
-export interface CommandCenterSummary {
-  signals: OrgSignal[];
-  pendingActionCount: number;
-  connectedCount: number;
-  /** When the signals were actually read from the providers. */
-  refreshedAt: string;
-}
-
-// Signals fan out one live provider call per connected integration, so a cache
-// is needed to keep repeated loads (and multiple tabs) from hammering every
-// provider. But this card claims to show "right now": at the original 5 minutes
-// a mail sent seconds ago was invisible even after a page refresh, with nothing
-// on screen admitting the data was old. One minute absorbs render bursts while
-// keeping the claim honest, and forceRefresh below gives an explicit way out.
-const SIGNALS_TTL_MS = 60 * 1000;
-// Razorpay alone was measured at 7.95s; at the previous 8s budget a slow
-// provider lost its tile entirely, and tiles run in parallel so they
-// contend. Generous enough that a timeout means genuinely broken.
-const SIGNAL_TIMEOUT_MS = 20_000;
-const signalsCache = new Map<string, { expiresAt: number; signals: OrgSignal[]; refreshedAt: string }>();
-
-const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-  Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("signal timed out")), ms)),
-  ]);
+const WILDCARD = "*";
 
 /**
- * The live "your business right now" strip on the dashboard.
+ * What should happen to a proposed write. Most specific rule wins: a rule for
+ * this exact tool beats one for the integration, which beats an org-wide one.
  *
- * Reuses each integration's ProofSpec rather than defining a second read path:
- * the question the dashboard asks ("what can we see in here?") is the same one
- * the connect screen asks, so one spec serves both and there is one place to
- * fix when a provider changes shape.
+ * No rule means ALWAYS_ASK. That default is the product's central promise, so
+ * it is expressed as "absence means ask" rather than a seeded row — a policy
+ * table that fails to load cannot accidentally authorise anything.
+ */
+export const resolveApprovalMode = async (
+  organizationId: string,
+  integrationSlug: string,
+  toolName: string,
+): Promise<McpApprovalMode> => {
+  const rules = await prisma.mcpApprovalPolicy.findMany({
+    where: {
+      organizationId,
+      OR: [
+        { integrationSlug, toolName },
+        { integrationSlug, toolName: WILDCARD },
+        { integrationSlug: WILDCARD, toolName: WILDCARD },
+      ],
+    },
+  });
+  if (rules.length === 0) return McpApprovalMode.ALWAYS_ASK;
+
+  const specificity = (r: { integrationSlug: string; toolName: string }) =>
+    (r.integrationSlug === WILDCARD ? 0 : 2) + (r.toolName === WILDCARD ? 0 : 1);
+  return rules.sort((a, b) => specificity(b) - specificity(a))[0]!.mode;
+};
+
+export const listApprovalPolicies = async (
+  organizationId: string,
+): Promise<ApprovalPolicyEntry[]> => {
+  const rows = await prisma.mcpApprovalPolicy.findMany({
+    where: { organizationId },
+    orderBy: [{ integrationSlug: "asc" }, { toolName: "asc" }],
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    integrationSlug: r.integrationSlug,
+    toolName: r.toolName,
+    mode: r.mode,
+    createdAt: r.createdAt.toISOString(),
+  }));
+};
+
+export const setApprovalPolicy = async (params: {
+  organizationId: string;
+  userId: string;
+  integrationSlug?: string;
+  toolName?: string;
+  mode: McpApprovalMode;
+}): Promise<ApprovalPolicyEntry> => {
+  const integrationSlug = params.integrationSlug ?? WILDCARD;
+  const toolName = params.toolName ?? WILDCARD;
+  const row = await prisma.mcpApprovalPolicy.upsert({
+    where: {
+      organizationId_integrationSlug_toolName: {
+        organizationId: params.organizationId,
+        integrationSlug,
+        toolName,
+      },
+    },
+    create: {
+      organizationId: params.organizationId,
+      integrationSlug,
+      toolName,
+      mode: params.mode,
+      createdByUserId: params.userId,
+    },
+    update: { mode: params.mode, createdByUserId: params.userId },
+  });
+  return {
+    id: row.id,
+    integrationSlug: row.integrationSlug,
+    toolName: row.toolName,
+    mode: row.mode,
+    createdAt: row.createdAt.toISOString(),
+  };
+};
+
+export const deleteApprovalPolicy = async (
+  organizationId: string,
+  id: string,
+): Promise<void> => {
+  const row = await prisma.mcpApprovalPolicy.findUnique({ where: { id } });
+  if (!row || row.organizationId !== organizationId) {
+    throw new NotFoundError("Rule not found");
+  }
+  await prisma.mcpApprovalPolicy.delete({ where: { id } });
+};
+
+// ─── Customer-facing audit log ─────────────────────────────────────────────
+
+export interface ActionLogEntry {
+  id: string;
+  /** Integration name as the customer knows it, not the slug. */
+  integration: string;
+  integrationSlug: string;
+  agent: Agent | null;
+  /** The tool slug, tidied for reading: GMAIL_SEND_EMAIL -> "Send email". */
+  action: string;
+  isWrite: boolean;
+  successful: boolean;
+  durationMs: number | null;
+  at: string;
+}
+
+export interface ActionLogPage {
+  entries: ActionLogEntry[];
+  /** Pass back as `before` to fetch the next page; null at the end. */
+  nextCursor: string | null;
+  /** Integrations present in this org's log, for the filter control. */
+  integrations: { slug: string; name: string; count: number }[];
+}
+
+/**
+ * Turns a provider tool slug into something a non-technical owner can read.
+ * The toolkit prefix is dropped because the integration is already its own
+ * column — "Gmail · Gmail send email" reads like a bug.
+ */
+const humanizeToolName = (toolName: string, integrationSlug: string): string => {
+  const prefix = integrationSlug.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const withoutPrefix = toolName.replace(new RegExp(`^${prefix}_`, "i"), "");
+  const words = withoutPrefix.replace(/_/g, " ").toLowerCase().trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/**
+ * The record of what agents actually did in the customer's own systems.
  *
- * Every read is independently timed out and independently allowed to fail —
- * one slow or broken integration must never blank the whole dashboard.
+ * Reads the same McpActionLog rows the value report counts — and inherits its
+ * privacy stance: the log holds no arguments and no results, so this can show
+ * that an email was sent without showing what it said.
+ */
+export const getActionLog = async (params: {
+  organizationId: string;
+  integrationSlug?: string;
+  agent?: Agent;
+  writesOnly?: boolean;
+  failuresOnly?: boolean;
+  before?: string;
+  limit?: number;
+}): Promise<ActionLogPage> => {
+  const limit = Math.min(Math.max(params.limit ?? 50, 1), 200);
+  const [rows, grouped] = await Promise.all([
+    repo.findActionLog({
+      organizationId: params.organizationId,
+      integrationSlug: params.integrationSlug,
+      agent: params.agent,
+      writesOnly: params.writesOnly,
+      failuresOnly: params.failuresOnly,
+      before: params.before ? new Date(params.before) : undefined,
+      // One extra row decides whether there is a next page without a count query.
+      limit: limit + 1,
+    }),
+    repo.findLoggedIntegrations(params.organizationId),
+  ]);
+
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+
+  return {
+    entries: page.map((row) => ({
+      id: row.id,
+      integration: getIntegrationBySlug(row.integrationSlug)?.name ?? row.integrationSlug,
+      integrationSlug: row.integrationSlug,
+      agent: row.agent,
+      action: humanizeToolName(row.toolName, row.integrationSlug),
+      isWrite: row.isWrite,
+      successful: row.successful,
+      durationMs: row.durationMs,
+      at: row.createdAt.toISOString(),
+    })),
+    nextCursor: hasMore ? page[page.length - 1]!.createdAt.toISOString() : null,
+    integrations: grouped
+      .map((g) => ({
+        slug: g.integrationSlug,
+        name: getIntegrationBySlug(g.integrationSlug)?.name ?? g.integrationSlug,
+        count: g._count._all,
+      }))
+      .sort((a, b) => b.count - a.count),
+  };
+};
+
+// ─── Command Center ────────────────────────────────────────────────────────
+
+export interface CommandCenterSummary {
+  /** Staged actions waiting on a human — the only thing here that needs them. */
+  pendingActionCount: number;
+  /** Connected integrations, for the "N systems connected" line. */
+  connectedCount: number;
+  /** Successful provider calls in the last 24h, from the action log. */
+  recentActionCount: number;
+}
+
+/**
+ * What needs the owner, and what the agents have been doing.
+ *
+ * This used to fan out a live provider read per connected integration to show
+ * "your business right now". It was removed: at fifteen connections a single
+ * uncached dashboard load cost fifteen Composio calls, and a number on a
+ * dashboard rarely changes what anyone does — the same question asked of an
+ * agent gets a better answer with context.
+ *
+ * What remains is the part that was always the most useful and happens to be
+ * free: the approval queue, which is exactly where triggers and plays deliver
+ * their proposals, read entirely from our own database. This endpoint makes no
+ * provider calls at all.
  */
 export const getCommandCenter = async (
   organizationId: string,
-  opts: { forceRefresh?: boolean } = {},
 ): Promise<CommandCenterSummary> => {
-  const connections = await repo.findConnectedByOrg(organizationId);
-  const pendingActionCount = await repo.countPendingActionsByOrg(organizationId);
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [connections, pendingActionCount, recentActionCount] = await Promise.all([
+    repo.findConnectedByOrg(organizationId),
+    repo.countPendingActionsByOrg(organizationId),
+    repo.countRecentActions(organizationId, since),
+  ]);
 
-  const cached = opts.forceRefresh ? undefined : signalsCache.get(organizationId);
-  if (cached && Date.now() < cached.expiresAt) {
-    return {
-      signals: cached.signals,
-      pendingActionCount,
-      connectedCount: connections.length,
-      refreshedAt: cached.refreshedAt,
-    };
-  }
-
-  // What the org pinned wins. Only when they've pinned nothing do we fall back
-  // to the curated proof specs, so the dashboard is useful on day one but stops
-  // second-guessing the customer the moment they've expressed a preference.
-  const tiles = await listTiles(organizationId);
-  const connectedSlugs = new Set(connections.map((c) => c.integrationSlug));
-
-  const readTile = async (tile: DashboardTile): Promise<OrgSignal | null> => {
-    const entry = getIntegrationBySlug(tile.integrationSlug);
-    if (!entry) return null;
-    const result = await runWidget(organizationId, tile.widgetId, tile.inputs);
-    const unreadable =
-      result.error !== undefined ||
-      (result.kind === "metric" && (result.display === null || result.display === undefined));
-    if (unreadable) {
-      return {
-        key: tile.id,
-        slug: entry.slug,
-        name: entry.name,
-        title: tile.name,
-        kind: result.kind,
-        error: result.error ?? "No data came back",
-        logoUrl: entry.logoUrl,
-      };
-    }
-    return {
-      key: tile.id,
-      slug: entry.slug,
-      name: entry.name,
-      title: tile.name,
-      kind: result.kind,
-      display: result.display,
-      rows: result.rows,
-      logoUrl: entry.logoUrl,
-    };
+  return {
+    pendingActionCount,
+    connectedCount: connections.length,
+    recentActionCount,
   };
-
-  const readCuratedDefault = async (integrationSlug: string): Promise<OrgSignal | null> => {
-    const entry = getIntegrationBySlug(integrationSlug);
-    if (!entry) return null;
-    try {
-      const proof = await withTimeout(
-        getConnectionProof(organizationId, integrationSlug),
-        SIGNAL_TIMEOUT_MS,
-      );
-      if (!proof.headline) return null;
-      return {
-        key: entry.slug,
-        slug: entry.slug,
-        name: entry.name,
-        title: entry.name,
-        kind: "metric",
-        display: proof.headline,
-        logoUrl: entry.logoUrl,
-      };
-    } catch (err) {
-      console.error("[mcp] default signal read failed (skipping)", integrationSlug, err);
-      return null;
-    }
-  };
-
-  const results = tiles.length
-    ? await Promise.all(
-        // A tile for a since-disconnected integration is skipped rather than
-        // deleted — reconnecting should bring the customer's choice back.
-        tiles.filter((t) => connectedSlugs.has(t.integrationSlug)).map(readTile),
-      )
-    : await Promise.all(
-        connections
-          .filter((row) => getIntegrationBySlug(row.integrationSlug)?.proof)
-          .map((row) => readCuratedDefault(row.integrationSlug)),
-      );
-
-  const signals = results.filter((s): s is OrgSignal => s !== null);
-  const refreshedAt = new Date().toISOString();
-  signalsCache.set(organizationId, { expiresAt: Date.now() + SIGNALS_TTL_MS, signals, refreshedAt });
-
-  return { signals, pendingActionCount, connectedCount: connections.length, refreshedAt };
 };
 
-/** Dropped whenever connections change, so a newly connected system shows up
- *  on the dashboard immediately instead of after the TTL. */
-export const invalidateSignals = (organizationId: string): void => {
-  signalsCache.delete(organizationId);
-};
 
 const toPendingActionSummary = (row: {
   id: string;
@@ -964,6 +794,9 @@ export const stagePendingActions = async (params: {
   agent: Agent;
   messageId: string;
   pendingActions: RawPendingAction[];
+  /** Omitted for chat turns; TRIGGER marks an action proposed with nobody watching. */
+  source?: McpActionSource;
+  triggerEventId?: string;
 }): Promise<void> => {
   if (params.pendingActions.length === 0) return;
   const connectionIds = [...new Set(params.pendingActions.map((a) => a.connection_id))];
@@ -982,7 +815,46 @@ export const stagePendingActions = async (params: {
       toolName: a.tool_name,
       arguments: a.arguments,
       summary: a.summary,
+      source: params.source,
+      triggerEventId: params.triggerEventId,
     }))
+  );
+
+  // Rows exist first, then policy is applied to each — so an action that gets
+  // auto-run or blocked still leaves the same audit trail as one a human
+  // decided on, rather than vanishing before it was ever recorded.
+  await Promise.all(
+    params.pendingActions.map(async (a) => {
+      const integrationSlug = integrationSlugByConnectionId.get(a.connection_id) ?? "";
+      const mode = await resolveApprovalMode(params.organizationId, integrationSlug, a.tool_name);
+      if (mode === McpApprovalMode.ALWAYS_ASK) return;
+
+      if (mode === McpApprovalMode.NEVER) {
+        await repo.updatePendingActionStatus(a.id, {
+          status: McpPendingActionStatus.REJECTED,
+          errorMessage: "Blocked by your approval rules",
+        });
+        return;
+      }
+
+      try {
+        const result = await callTool(
+          params.organizationId,
+          a.connection_id,
+          a.tool_name,
+          a.arguments,
+        );
+        await repo.updatePendingActionStatus(a.id, {
+          status: McpPendingActionStatus.EXECUTED,
+          resultJson: result,
+        });
+      } catch (err) {
+        await repo.updatePendingActionStatus(a.id, {
+          status: McpPendingActionStatus.FAILED,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }),
   );
 };
 

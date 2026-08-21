@@ -5,6 +5,7 @@ import {
   McpConnectionStatus,
   McpProvider,
   McpPendingActionStatus,
+  McpActionSource,
 } from "../../../prisma/generated/prisma/client.js";
 
 export const findByOrg = (organizationId: string) =>
@@ -111,6 +112,9 @@ export interface CreatePendingActionInput {
   toolName: string;
   arguments: Record<string, unknown>;
   summary: string;
+  /** Defaults to CHAT — only trigger-originated actions pass this. */
+  source?: McpActionSource;
+  triggerEventId?: string;
 }
 
 export const createPendingActions = (rows: CreatePendingActionInput[]) =>
@@ -126,6 +130,8 @@ export const createPendingActions = (rows: CreatePendingActionInput[]) =>
       toolName: r.toolName,
       arguments: r.arguments as Prisma.InputJsonValue,
       summary: r.summary,
+      source: r.source ?? McpActionSource.CHAT,
+      triggerEventId: r.triggerEventId ?? null,
     })),
   });
 
@@ -228,3 +234,45 @@ export const deleteTile = (organizationId: string, id: string) =>
 
 export const countTilesByOrg = (organizationId: string) =>
   prisma.mcpDashboardTile.count({ where: { organizationId } });
+
+/**
+ * One page of the customer-facing audit log, newest first. Cursor-paged on
+ * (createdAt, id) rather than offset: the log is append-heavy, and an offset
+ * page 2 read a minute later silently skips rows that arrived in between.
+ */
+export const findActionLog = (params: {
+  organizationId: string;
+  integrationSlug?: string;
+  agent?: Agent;
+  writesOnly?: boolean;
+  failuresOnly?: boolean;
+  before?: Date;
+  limit: number;
+}) =>
+  prisma.mcpActionLog.findMany({
+    where: {
+      organizationId: params.organizationId,
+      ...(params.integrationSlug ? { integrationSlug: params.integrationSlug } : {}),
+      ...(params.agent ? { agent: params.agent } : {}),
+      ...(params.writesOnly ? { isWrite: true } : {}),
+      ...(params.failuresOnly ? { successful: false } : {}),
+      ...(params.before ? { createdAt: { lt: params.before } } : {}),
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: params.limit,
+  });
+
+/** Distinct integrations that appear in this org's log, for the filter list. */
+export const findLoggedIntegrations = (organizationId: string) =>
+  prisma.mcpActionLog.groupBy({
+    by: ["integrationSlug"],
+    where: { organizationId },
+    _count: { _all: true },
+  });
+
+/** Successful provider calls since a moment — the Command Center's "agents did
+ *  N things today" line, read from our own log rather than any provider. */
+export const countRecentActions = (organizationId: string, since: Date) =>
+  prisma.mcpActionLog.count({
+    where: { organizationId, successful: true, createdAt: { gte: since } },
+  });

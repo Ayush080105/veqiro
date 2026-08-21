@@ -52,7 +52,7 @@ const chatResponseSchema = z.object({
 
 export type AgentChatResponse = z.infer<typeof chatResponseSchema>
 
-const agentRoles: Record<Agent, string> = {
+export const agentRoles: Record<Agent, string> = {
   [Agent.MAYA]: "Maya: Social media content creation assistant",
   [Agent.SAGE]: "Sage: SEO and content strategy assistant",
   [Agent.LEX]: "Lex: Legal and compliance assistant",

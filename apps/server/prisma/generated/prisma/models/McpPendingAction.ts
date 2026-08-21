@@ -37,6 +37,8 @@ export type McpPendingActionMinAggregateOutputType = {
   integrationSlug: string | null
   toolName: string | null
   summary: string | null
+  source: $Enums.McpActionSource | null
+  triggerEventId: string | null
   status: $Enums.McpPendingActionStatus | null
   errorMessage: string | null
   createdAt: Date | null
@@ -53,6 +55,8 @@ export type McpPendingActionMaxAggregateOutputType = {
   integrationSlug: string | null
   toolName: string | null
   summary: string | null
+  source: $Enums.McpActionSource | null
+  triggerEventId: string | null
   status: $Enums.McpPendingActionStatus | null
   errorMessage: string | null
   createdAt: Date | null
@@ -70,6 +74,8 @@ export type McpPendingActionCountAggregateOutputType = {
   toolName: number
   arguments: number
   summary: number
+  source: number
+  triggerEventId: number
   status: number
   resultJson: number
   errorMessage: number
@@ -89,6 +95,8 @@ export type McpPendingActionMinAggregateInputType = {
   integrationSlug?: true
   toolName?: true
   summary?: true
+  source?: true
+  triggerEventId?: true
   status?: true
   errorMessage?: true
   createdAt?: true
@@ -105,6 +113,8 @@ export type McpPendingActionMaxAggregateInputType = {
   integrationSlug?: true
   toolName?: true
   summary?: true
+  source?: true
+  triggerEventId?: true
   status?: true
   errorMessage?: true
   createdAt?: true
@@ -122,6 +132,8 @@ export type McpPendingActionCountAggregateInputType = {
   toolName?: true
   arguments?: true
   summary?: true
+  source?: true
+  triggerEventId?: true
   status?: true
   resultJson?: true
   errorMessage?: true
@@ -213,6 +225,8 @@ export type McpPendingActionGroupByOutputType = {
   toolName: string
   arguments: runtime.JsonValue
   summary: string
+  source: $Enums.McpActionSource
+  triggerEventId: string | null
   status: $Enums.McpPendingActionStatus
   resultJson: runtime.JsonValue | null
   errorMessage: string | null
@@ -252,6 +266,8 @@ export type McpPendingActionWhereInput = {
   toolName?: Prisma.StringFilter<"McpPendingAction"> | string
   arguments?: Prisma.JsonFilter<"McpPendingAction">
   summary?: Prisma.StringFilter<"McpPendingAction"> | string
+  source?: Prisma.EnumMcpActionSourceFilter<"McpPendingAction"> | $Enums.McpActionSource
+  triggerEventId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   status?: Prisma.EnumMcpPendingActionStatusFilter<"McpPendingAction"> | $Enums.McpPendingActionStatus
   resultJson?: Prisma.JsonNullableFilter<"McpPendingAction">
   errorMessage?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
@@ -271,6 +287,8 @@ export type McpPendingActionOrderByWithRelationInput = {
   toolName?: Prisma.SortOrder
   arguments?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   resultJson?: Prisma.SortOrderInput | Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -293,6 +311,8 @@ export type McpPendingActionWhereUniqueInput = Prisma.AtLeast<{
   toolName?: Prisma.StringFilter<"McpPendingAction"> | string
   arguments?: Prisma.JsonFilter<"McpPendingAction">
   summary?: Prisma.StringFilter<"McpPendingAction"> | string
+  source?: Prisma.EnumMcpActionSourceFilter<"McpPendingAction"> | $Enums.McpActionSource
+  triggerEventId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   status?: Prisma.EnumMcpPendingActionStatusFilter<"McpPendingAction"> | $Enums.McpPendingActionStatus
   resultJson?: Prisma.JsonNullableFilter<"McpPendingAction">
   errorMessage?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
@@ -312,6 +332,8 @@ export type McpPendingActionOrderByWithAggregationInput = {
   toolName?: Prisma.SortOrder
   arguments?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   resultJson?: Prisma.SortOrderInput | Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -336,6 +358,8 @@ export type McpPendingActionScalarWhereWithAggregatesInput = {
   toolName?: Prisma.StringWithAggregatesFilter<"McpPendingAction"> | string
   arguments?: Prisma.JsonWithAggregatesFilter<"McpPendingAction">
   summary?: Prisma.StringWithAggregatesFilter<"McpPendingAction"> | string
+  source?: Prisma.EnumMcpActionSourceWithAggregatesFilter<"McpPendingAction"> | $Enums.McpActionSource
+  triggerEventId?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
   status?: Prisma.EnumMcpPendingActionStatusWithAggregatesFilter<"McpPendingAction"> | $Enums.McpPendingActionStatus
   resultJson?: Prisma.JsonNullableWithAggregatesFilter<"McpPendingAction">
   errorMessage?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
@@ -353,6 +377,8 @@ export type McpPendingActionCreateInput = {
   toolName: string
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
   status?: $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
@@ -372,6 +398,8 @@ export type McpPendingActionUncheckedCreateInput = {
   toolName: string
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
   status?: $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
@@ -389,6 +417,8 @@ export type McpPendingActionUpdateInput = {
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -408,6 +438,8 @@ export type McpPendingActionUncheckedUpdateInput = {
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -426,6 +458,8 @@ export type McpPendingActionCreateManyInput = {
   toolName: string
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
   status?: $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
@@ -443,6 +477,8 @@ export type McpPendingActionUpdateManyMutationInput = {
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -461,6 +497,8 @@ export type McpPendingActionUncheckedUpdateManyInput = {
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -489,6 +527,8 @@ export type McpPendingActionCountOrderByAggregateInput = {
   toolName?: Prisma.SortOrder
   arguments?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   resultJson?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
@@ -506,6 +546,8 @@ export type McpPendingActionMaxOrderByAggregateInput = {
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -522,6 +564,8 @@ export type McpPendingActionMinOrderByAggregateInput = {
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -570,6 +614,10 @@ export type McpPendingActionUncheckedUpdateManyWithoutMessageNestedInput = {
   deleteMany?: Prisma.McpPendingActionScalarWhereInput | Prisma.McpPendingActionScalarWhereInput[]
 }
 
+export type EnumMcpActionSourceFieldUpdateOperationsInput = {
+  set?: $Enums.McpActionSource
+}
+
 export type EnumMcpPendingActionStatusFieldUpdateOperationsInput = {
   set?: $Enums.McpPendingActionStatus
 }
@@ -584,6 +632,8 @@ export type McpPendingActionCreateWithoutMessageInput = {
   toolName: string
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
   status?: $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
@@ -601,6 +651,8 @@ export type McpPendingActionUncheckedCreateWithoutMessageInput = {
   toolName: string
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
   status?: $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
@@ -648,6 +700,8 @@ export type McpPendingActionScalarWhereInput = {
   toolName?: Prisma.StringFilter<"McpPendingAction"> | string
   arguments?: Prisma.JsonFilter<"McpPendingAction">
   summary?: Prisma.StringFilter<"McpPendingAction"> | string
+  source?: Prisma.EnumMcpActionSourceFilter<"McpPendingAction"> | $Enums.McpActionSource
+  triggerEventId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   status?: Prisma.EnumMcpPendingActionStatusFilter<"McpPendingAction"> | $Enums.McpPendingActionStatus
   resultJson?: Prisma.JsonNullableFilter<"McpPendingAction">
   errorMessage?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
@@ -665,6 +719,8 @@ export type McpPendingActionCreateManyMessageInput = {
   toolName: string
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
   status?: $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
@@ -682,6 +738,8 @@ export type McpPendingActionUpdateWithoutMessageInput = {
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -699,6 +757,8 @@ export type McpPendingActionUncheckedUpdateWithoutMessageInput = {
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -716,6 +776,8 @@ export type McpPendingActionUncheckedUpdateManyWithoutMessageInput = {
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
   resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -736,6 +798,8 @@ export type McpPendingActionSelect<ExtArgs extends runtime.Types.Extensions.Inte
   toolName?: boolean
   arguments?: boolean
   summary?: boolean
+  source?: boolean
+  triggerEventId?: boolean
   status?: boolean
   resultJson?: boolean
   errorMessage?: boolean
@@ -755,6 +819,8 @@ export type McpPendingActionSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   toolName?: boolean
   arguments?: boolean
   summary?: boolean
+  source?: boolean
+  triggerEventId?: boolean
   status?: boolean
   resultJson?: boolean
   errorMessage?: boolean
@@ -774,6 +840,8 @@ export type McpPendingActionSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   toolName?: boolean
   arguments?: boolean
   summary?: boolean
+  source?: boolean
+  triggerEventId?: boolean
   status?: boolean
   resultJson?: boolean
   errorMessage?: boolean
@@ -793,6 +861,8 @@ export type McpPendingActionSelectScalar = {
   toolName?: boolean
   arguments?: boolean
   summary?: boolean
+  source?: boolean
+  triggerEventId?: boolean
   status?: boolean
   resultJson?: boolean
   errorMessage?: boolean
@@ -800,7 +870,7 @@ export type McpPendingActionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type McpPendingActionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "messageId" | "connectionId" | "integrationSlug" | "toolName" | "arguments" | "summary" | "status" | "resultJson" | "errorMessage" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpPendingAction"]>
+export type McpPendingActionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "messageId" | "connectionId" | "integrationSlug" | "toolName" | "arguments" | "summary" | "source" | "triggerEventId" | "status" | "resultJson" | "errorMessage" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpPendingAction"]>
 export type McpPendingActionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
 }
@@ -860,6 +930,15 @@ export type $McpPendingActionPayload<ExtArgs extends runtime.Types.Extensions.In
      * Human-readable summary shown in the confirm/reject UI.
      */
     summary: string
+    /**
+     * Whether a human was present when this was proposed. TRIGGER actions have
+     * no messageId and no conversation to read for context.
+     */
+    source: $Enums.McpActionSource
+    /**
+     * Trigger event that produced this action, when source is TRIGGER.
+     */
+    triggerEventId: string | null
     /**
      * Staged action lifecycle state.
      */
@@ -1314,6 +1393,8 @@ export interface McpPendingActionFieldRefs {
   readonly toolName: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly arguments: Prisma.FieldRef<"McpPendingAction", 'Json'>
   readonly summary: Prisma.FieldRef<"McpPendingAction", 'String'>
+  readonly source: Prisma.FieldRef<"McpPendingAction", 'McpActionSource'>
+  readonly triggerEventId: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly status: Prisma.FieldRef<"McpPendingAction", 'McpPendingActionStatus'>
   readonly resultJson: Prisma.FieldRef<"McpPendingAction", 'Json'>
   readonly errorMessage: Prisma.FieldRef<"McpPendingAction", 'String'>

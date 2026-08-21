@@ -59,6 +59,33 @@ export const McpPendingActionStatus = {
 export type McpPendingActionStatus = (typeof McpPendingActionStatus)[keyof typeof McpPendingActionStatus]
 
 
+export const McpActionSource = {
+  CHAT: 'CHAT',
+  TRIGGER: 'TRIGGER'
+} as const
+
+export type McpActionSource = (typeof McpActionSource)[keyof typeof McpActionSource]
+
+
+export const McpApprovalMode = {
+  ALWAYS_ASK: 'ALWAYS_ASK',
+  AUTO_RUN: 'AUTO_RUN',
+  NEVER: 'NEVER'
+} as const
+
+export type McpApprovalMode = (typeof McpApprovalMode)[keyof typeof McpApprovalMode]
+
+
+export const McpTriggerEventStatus = {
+  RECEIVED: 'RECEIVED',
+  PROCESSED: 'PROCESSED',
+  SKIPPED: 'SKIPPED',
+  FAILED: 'FAILED'
+} as const
+
+export type McpTriggerEventStatus = (typeof McpTriggerEventStatus)[keyof typeof McpTriggerEventStatus]
+
+
 export const SubscriptionStatus = {
   TRIALING: 'TRIALING',
   ACTIVE: 'ACTIVE',

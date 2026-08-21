@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Agent, McpApprovalMode } from "../../../prisma/generated/prisma/client.js";
 
 export const slugParamSchema = z.object({
   slug: z.string().min(1),
@@ -33,18 +34,28 @@ const widgetInputsSchema = z
   .record(z.string().max(60), z.union([z.string().max(400), z.number(), z.boolean()]))
   .optional();
 
-export const runWidgetBodySchema = z.object({
-  widgetId: z.string().min(1).max(120),
-  inputs: widgetInputsSchema,
+/**
+ * Audit-log filters. Booleans arrive as query strings, so "true"/"false" are
+ * coerced explicitly rather than through z.coerce.boolean(), which treats the
+ * string "false" as true.
+ */
+export const actionLogQuerySchema = z.object({
+  integrationSlug: z.string().min(1).optional(),
+  agent: z.nativeEnum(Agent).optional(),
+  writesOnly: z.enum(["true", "false"]).transform((v) => v === "true").optional(),
+  failuresOnly: z.enum(["true", "false"]).transform((v) => v === "true").optional(),
+  before: z.string().datetime().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
-export const addTileBodySchema = z.object({
-  widgetId: z.string().min(1).max(120),
-  inputs: widgetInputsSchema,
-  /** Optional rename, in the customer's own words. */
-  label: z.string().min(1).max(48).nullable().optional(),
+/** Omitting integrationSlug/toolName means "applies to everything". */
+export const approvalPolicyBodySchema = z.object({
+  integrationSlug: z.string().min(1).optional(),
+  toolName: z.string().min(1).optional(),
+  mode: z.nativeEnum(McpApprovalMode),
 });
 
-export const tileIdParamSchema = z.object({
-  id: z.string().uuid(),
-});
+export const policyIdParamSchema = z.object({ id: z.string().min(1) });
+
+export const playIdParamSchema = z.object({ id: z.string().min(1) });
+export const playEnabledBodySchema = z.object({ enabled: z.boolean() });

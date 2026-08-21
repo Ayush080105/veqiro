@@ -17,6 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TriggersSection } from "@/components/settings/TriggersSection"
+import { ApprovalPolicySection } from "@/components/settings/ApprovalPolicySection"
+import { PlaysSection } from "@/components/settings/PlaysSection"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import {
   authorizeUrl,
@@ -253,6 +256,12 @@ export default function IntegrationsPage() {
           )
         })}
       </div>
+
+      <PlaysSection />
+
+      <TriggersSection />
+
+      <ApprovalPolicySection />
 
       <div className="flex flex-col gap-3 pt-2">
         <div className="flex flex-col gap-0.5">

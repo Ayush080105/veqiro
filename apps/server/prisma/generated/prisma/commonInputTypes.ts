@@ -572,11 +572,28 @@ export type EnumMcpConnectionStatusWithAggregatesFilter<$PrismaModel = never> = 
   _max?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel>
 }
 
+export type EnumMcpActionSourceFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpActionSource | Prisma.EnumMcpActionSourceFieldRefInput<$PrismaModel>
+  in?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpActionSourceFilter<$PrismaModel> | $Enums.McpActionSource
+}
+
 export type EnumMcpPendingActionStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.McpPendingActionStatus | Prisma.EnumMcpPendingActionStatusFieldRefInput<$PrismaModel>
   in?: $Enums.McpPendingActionStatus[] | Prisma.ListEnumMcpPendingActionStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.McpPendingActionStatus[] | Prisma.ListEnumMcpPendingActionStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumMcpPendingActionStatusFilter<$PrismaModel> | $Enums.McpPendingActionStatus
+}
+
+export type EnumMcpActionSourceWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpActionSource | Prisma.EnumMcpActionSourceFieldRefInput<$PrismaModel>
+  in?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpActionSourceWithAggregatesFilter<$PrismaModel> | $Enums.McpActionSource
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpActionSourceFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpActionSourceFilter<$PrismaModel>
 }
 
 export type EnumMcpPendingActionStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -587,6 +604,40 @@ export type EnumMcpPendingActionStatusWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumMcpPendingActionStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumMcpPendingActionStatusFilter<$PrismaModel>
+}
+
+export type EnumMcpTriggerEventStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTriggerEventStatus | Prisma.EnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTriggerEventStatusFilter<$PrismaModel> | $Enums.McpTriggerEventStatus
+}
+
+export type EnumMcpTriggerEventStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTriggerEventStatus | Prisma.EnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTriggerEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.McpTriggerEventStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpTriggerEventStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpTriggerEventStatusFilter<$PrismaModel>
+}
+
+export type EnumMcpApprovalModeFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpApprovalMode | Prisma.EnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  in?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpApprovalModeFilter<$PrismaModel> | $Enums.McpApprovalMode
+}
+
+export type EnumMcpApprovalModeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpApprovalMode | Prisma.EnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  in?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpApprovalModeWithAggregatesFilter<$PrismaModel> | $Enums.McpApprovalMode
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpApprovalModeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpApprovalModeFilter<$PrismaModel>
 }
 
 export type FloatFilter<$PrismaModel = never> = {
@@ -1252,11 +1303,28 @@ export type NestedEnumMcpConnectionStatusWithAggregatesFilter<$PrismaModel = nev
   _max?: Prisma.NestedEnumMcpConnectionStatusFilter<$PrismaModel>
 }
 
+export type NestedEnumMcpActionSourceFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpActionSource | Prisma.EnumMcpActionSourceFieldRefInput<$PrismaModel>
+  in?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpActionSourceFilter<$PrismaModel> | $Enums.McpActionSource
+}
+
 export type NestedEnumMcpPendingActionStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.McpPendingActionStatus | Prisma.EnumMcpPendingActionStatusFieldRefInput<$PrismaModel>
   in?: $Enums.McpPendingActionStatus[] | Prisma.ListEnumMcpPendingActionStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.McpPendingActionStatus[] | Prisma.ListEnumMcpPendingActionStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumMcpPendingActionStatusFilter<$PrismaModel> | $Enums.McpPendingActionStatus
+}
+
+export type NestedEnumMcpActionSourceWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpActionSource | Prisma.EnumMcpActionSourceFieldRefInput<$PrismaModel>
+  in?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpActionSource[] | Prisma.ListEnumMcpActionSourceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpActionSourceWithAggregatesFilter<$PrismaModel> | $Enums.McpActionSource
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpActionSourceFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpActionSourceFilter<$PrismaModel>
 }
 
 export type NestedEnumMcpPendingActionStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -1267,6 +1335,40 @@ export type NestedEnumMcpPendingActionStatusWithAggregatesFilter<$PrismaModel = 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumMcpPendingActionStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumMcpPendingActionStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMcpTriggerEventStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTriggerEventStatus | Prisma.EnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTriggerEventStatusFilter<$PrismaModel> | $Enums.McpTriggerEventStatus
+}
+
+export type NestedEnumMcpTriggerEventStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTriggerEventStatus | Prisma.EnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTriggerEventStatus[] | Prisma.ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTriggerEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.McpTriggerEventStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpTriggerEventStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpTriggerEventStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMcpApprovalModeFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpApprovalMode | Prisma.EnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  in?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpApprovalModeFilter<$PrismaModel> | $Enums.McpApprovalMode
+}
+
+export type NestedEnumMcpApprovalModeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpApprovalMode | Prisma.EnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  in?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpApprovalMode[] | Prisma.ListEnumMcpApprovalModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpApprovalModeWithAggregatesFilter<$PrismaModel> | $Enums.McpApprovalMode
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpApprovalModeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpApprovalModeFilter<$PrismaModel>
 }
 
 export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {

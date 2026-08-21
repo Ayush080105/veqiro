@@ -48,6 +48,37 @@ enum McpPendingActionStatus {
   FAILED
 }
 
+/// Where a staged action came from. CHAT actions were proposed inside a
+/// conversation the user was present for; TRIGGER actions were proposed by an
+/// inbound provider event while nobody was watching, so the UI must present
+/// them differently — the user has no surrounding context for them.
+enum McpActionSource {
+  CHAT
+  TRIGGER
+}
+
+/// What happens when an agent proposes a write.
+enum McpApprovalMode {
+  /// Stage it and wait for a human. The default, and the only safe default.
+  ALWAYS_ASK
+  /// Run it immediately, no approval. Still recorded in the action log.
+  AUTO_RUN
+  /// Refuse it outright. Recorded as rejected so the attempt stays visible.
+  NEVER
+}
+
+/// Processing state of one inbound provider event.
+enum McpTriggerEventStatus {
+  /// Accepted and acknowledged to the provider; not yet handled.
+  RECEIVED
+  /// Handled — the agent ran and any proposed actions were staged.
+  PROCESSED
+  /// Deliberately not handled (subscription disabled, loop guard, no payload).
+  SKIPPED
+  /// Handling threw. Not retried automatically; `error` holds the reason.
+  FAILED
+}
+
 /// Local entitlement state mirrored from the billing provider.
 enum SubscriptionStatus {
   TRIALING
@@ -824,6 +855,11 @@ model McpPendingAction {
   arguments       Json
   /// Human-readable summary shown in the confirm/reject UI.
   summary         String
+  /// Whether a human was present when this was proposed. TRIGGER actions have
+  /// no messageId and no conversation to read for context.
+  source          McpActionSource        @default(CHAT)
+  /// Trigger event that produced this action, when source is TRIGGER.
+  triggerEventId  String?
   /// Staged action lifecycle state.
   status          McpPendingActionStatus @default(PENDING)
   /// Provider result, once executed.
@@ -899,6 +935,11 @@ model McpActionLog {
   @@map("mcp_action_log")
 }
 
+/// UNUSED — the dashboard's live tiles were removed (see CommandCenter.tsx for
+/// why: one provider call per tile, against a number that rarely changed what
+/// anyone did). The table is kept rather than dropped so existing rows aren't
+/// destroyed on a decision that could be revisited; nothing reads it.
+///
 /// A metric the org chose to pin to its dashboard, e.g. "Gmail · unread" or
 /// "Razorpay · customers". Exists because no heuristic can guess which of a
 /// toolkit's ~60-200 read tools matters to a given business — verified
@@ -936,6 +977,151 @@ model McpDashboardTile {
   // properties legitimately wants clicks for both.
   @@index([organizationId, position])
   @@map("mcp_dashboard_tile")
+}
+
+/// An inbound provider event the org has asked an agent to act on — "when a
+/// new email arrives, have Vega draft a reply". The counterpart to everything
+/// else in this module: every other MCP call starts with a human asking.
+///
+/// Composio holds the real subscription; this row is the local mirror plus the
+/// policy (which agent, whose identity, enabled or not). `composioTriggerId`
+/// is null between creating the row and Composio accepting it, so a failed
+/// remote create leaves a visibly-broken row rather than a silent no-op.
+model McpTriggerSubscription {
+  /// Subscription id.
+  id                String    @id @default(uuid())
+  /// Owning organization id.
+  organizationId    String
+  /// Catalog slug, e.g. "gmail".
+  integrationSlug   String
+  /// McpConnection.connectionId this subscribes against.
+  connectionId      String
+  /// Composio's own trigger type slug, e.g. "GMAIL_NEW_GMAIL_MESSAGE".
+  triggerSlug       String
+  /// Composio's trigger *instance* id, returned by triggers.create(). Null
+  /// until the remote subscription exists.
+  composioTriggerId String?   @unique
+  /// Agent that handles events from this subscription.
+  agent             Agent
+  /// User whose identity staged actions run under. Trigger-staged actions
+  /// still need an owner even though nobody clicked anything.
+  createdByUserId   String
+  /// Whether events are currently acted on. Disabling leaves the Composio
+  /// subscription in place but drops events at the door.
+  enabled           Boolean   @default(true)
+  /// Last time an event arrived for this subscription.
+  lastEventAt       DateTime?
+  /// Last handling error, if any.
+  lastError         String?
+  /// Creation timestamp.
+  createdAt         DateTime  @default(now())
+  /// Update timestamp.
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([organizationId, triggerSlug])
+  @@index([organizationId, enabled])
+  @@map("mcp_trigger_subscription")
+}
+
+/// One inbound event, recorded before it is handled. Exists for idempotency:
+/// providers retry, and Composio retries anything not acknowledged fast, so
+/// without a dedupe key on the provider's own event id a slow handler sends
+/// the same email twice.
+///
+/// Deliberately stores no payload. Trigger payloads carry email bodies and
+/// calendar contents — the same reason McpActionLog stores no arguments.
+model McpTriggerEvent {
+  /// Event id.
+  id              String                @id @default(uuid())
+  /// The provider's own event identifier — the dedupe key.
+  providerEventId String                @unique
+  /// Owning organization id.
+  organizationId  String
+  /// Subscription this arrived for.
+  subscriptionId  String
+  /// Trigger type slug, denormalized for cheap display.
+  triggerSlug     String
+  /// Processing state.
+  status          McpTriggerEventStatus @default(RECEIVED)
+  /// Why it was skipped or how it failed.
+  error           String?
+  /// Creation timestamp.
+  createdAt       DateTime              @default(now())
+  /// When handling finished.
+  processedAt     DateTime?
+
+  @@index([organizationId, createdAt])
+  @@index([subscriptionId, createdAt])
+  @@map("mcp_trigger_event")
+}
+
+/// Per-org rule for whether a proposed write needs a human.
+///
+/// Veqiro's whole safety story is that an agent proposes and a person decides.
+/// That is right for sending an email and absurd for adding a calendar hold the
+/// owner asked for ten times this week, so the rule is configurable — but only
+/// downward from ALWAYS_ASK, deliberately, and only by explicit choice.
+///
+/// `"*"` is the wildcard rather than NULL: Postgres treats NULLs as distinct in
+/// unique indexes, so a nullable column would happily accept ten conflicting
+/// "applies to everything" rules.
+model McpApprovalPolicy {
+  /// Policy id.
+  id              String          @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// Catalog slug this applies to, or "*" for every integration.
+  integrationSlug String          @default("*")
+  /// Provider tool slug this applies to, or "*" for every tool.
+  toolName        String          @default("*")
+  /// What to do when a write matching this rule is proposed.
+  mode            McpApprovalMode
+  /// User who set the rule — an audit question people actually ask.
+  createdByUserId String
+  /// Creation timestamp.
+  createdAt       DateTime        @default(now())
+  /// Update timestamp.
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([organizationId, integrationSlug, toolName])
+  @@index([organizationId])
+  @@map("mcp_approval_policy")
+}
+
+/// A named, repeatable job an org has switched on — "Monday briefing",
+/// "Inbox triage". The unit customers actually think in: they do not want
+/// "an agent with Gmail access", they want their Monday morning handled.
+///
+/// The definition lives in code (mcp.plays.ts), not here: the prompt and the
+/// tools a play needs are product decisions that get revised, and revising them
+/// should not require migrating every org's row. This table holds only what is
+/// per-org — whether it runs, when, and under whose identity.
+model McpPlay {
+  /// Play subscription id.
+  id              String    @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// Catalog id from mcp.plays.ts, e.g. "monday-briefing".
+  playId          String
+  /// Cron expression this runs on, copied from the catalog at enable time so a
+  /// later catalog change doesn't silently move a customer's Monday.
+  schedule        String
+  /// Whether it currently runs.
+  enabled         Boolean   @default(true)
+  /// User whose identity the run — and anything it proposes — belongs to.
+  createdByUserId String
+  /// Last time a run started.
+  lastRunAt       DateTime?
+  /// Last failure, if the most recent run failed.
+  lastError       String?
+  /// Creation timestamp.
+  createdAt       DateTime  @default(now())
+  /// Update timestamp.
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([organizationId, playId])
+  @@index([enabled])
+  @@map("mcp_play")
 }
 
 /// Maya social post publication record.

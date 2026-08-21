@@ -8,6 +8,7 @@ import { camelizeBody } from "./middlewares/camelizeBody.middleware.js";
 import { toNodeHandler } from "better-auth/node";
 import  auth  from "./lib/auth.js";
 import router from "./router.js";
+import { mcpWebhookRouter } from "./modules/mcp/mcp.routes.js";
 // TODO : Fix Swagger api refactoring
 import { openApiDocument } from "./docs/swagger.js";
 
@@ -28,6 +29,15 @@ app.use(morgan("dev"));
 
 // Better Auth must be mounted BEFORE express.json() so it can stream request bodies
 app.use(`/api/${env.API_VERSION}/auth/*splat`, toNodeHandler(auth));
+
+// Composio trigger deliveries, mounted before express.json() and camelizeBody
+// for the same reason Better Auth is: the signature covers the exact bytes,
+// and camelizing would rewrite Composio's snake_case metadata keys.
+app.use(
+  `/api/${env.API_VERSION}/mcp/webhooks`,
+  express.raw({ type: "application/json", limit: "5mb" }),
+  mcpWebhookRouter
+);
 
 app.use(express.json({ limit: "20mb" }));
 app.use(camelizeBody);

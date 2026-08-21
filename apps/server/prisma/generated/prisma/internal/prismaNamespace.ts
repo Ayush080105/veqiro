@@ -408,6 +408,10 @@ export const ModelName = {
   McpToolPreference: 'McpToolPreference',
   McpActionLog: 'McpActionLog',
   McpDashboardTile: 'McpDashboardTile',
+  McpTriggerSubscription: 'McpTriggerSubscription',
+  McpTriggerEvent: 'McpTriggerEvent',
+  McpApprovalPolicy: 'McpApprovalPolicy',
+  McpPlay: 'McpPlay',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -448,7 +452,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2225,6 +2229,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.McpDashboardTileCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.McpDashboardTileCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpTriggerSubscription: {
+      payload: Prisma.$McpTriggerSubscriptionPayload<ExtArgs>
+      fields: Prisma.McpTriggerSubscriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpTriggerSubscriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpTriggerSubscriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.McpTriggerSubscriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpTriggerSubscriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>
+        }
+        findMany: {
+          args: Prisma.McpTriggerSubscriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>[]
+        }
+        create: {
+          args: Prisma.McpTriggerSubscriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>
+        }
+        createMany: {
+          args: Prisma.McpTriggerSubscriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpTriggerSubscriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.McpTriggerSubscriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>
+        }
+        update: {
+          args: Prisma.McpTriggerSubscriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpTriggerSubscriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpTriggerSubscriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpTriggerSubscriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpTriggerSubscriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerSubscriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.McpTriggerSubscriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpTriggerSubscription>
+        }
+        groupBy: {
+          args: Prisma.McpTriggerSubscriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpTriggerSubscriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpTriggerSubscriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpTriggerSubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpTriggerEvent: {
+      payload: Prisma.$McpTriggerEventPayload<ExtArgs>
+      fields: Prisma.McpTriggerEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpTriggerEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpTriggerEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>
+        }
+        findFirst: {
+          args: Prisma.McpTriggerEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpTriggerEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>
+        }
+        findMany: {
+          args: Prisma.McpTriggerEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>[]
+        }
+        create: {
+          args: Prisma.McpTriggerEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>
+        }
+        createMany: {
+          args: Prisma.McpTriggerEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpTriggerEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>[]
+        }
+        delete: {
+          args: Prisma.McpTriggerEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>
+        }
+        update: {
+          args: Prisma.McpTriggerEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpTriggerEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpTriggerEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpTriggerEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpTriggerEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpTriggerEventPayload>
+        }
+        aggregate: {
+          args: Prisma.McpTriggerEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpTriggerEvent>
+        }
+        groupBy: {
+          args: Prisma.McpTriggerEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpTriggerEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpTriggerEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpTriggerEventCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpApprovalPolicy: {
+      payload: Prisma.$McpApprovalPolicyPayload<ExtArgs>
+      fields: Prisma.McpApprovalPolicyFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpApprovalPolicyFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpApprovalPolicyFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>
+        }
+        findFirst: {
+          args: Prisma.McpApprovalPolicyFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpApprovalPolicyFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>
+        }
+        findMany: {
+          args: Prisma.McpApprovalPolicyFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>[]
+        }
+        create: {
+          args: Prisma.McpApprovalPolicyCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>
+        }
+        createMany: {
+          args: Prisma.McpApprovalPolicyCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpApprovalPolicyCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>[]
+        }
+        delete: {
+          args: Prisma.McpApprovalPolicyDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>
+        }
+        update: {
+          args: Prisma.McpApprovalPolicyUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpApprovalPolicyDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpApprovalPolicyUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpApprovalPolicyUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpApprovalPolicyUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpApprovalPolicyPayload>
+        }
+        aggregate: {
+          args: Prisma.McpApprovalPolicyAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpApprovalPolicy>
+        }
+        groupBy: {
+          args: Prisma.McpApprovalPolicyGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpApprovalPolicyGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpApprovalPolicyCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpApprovalPolicyCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpPlay: {
+      payload: Prisma.$McpPlayPayload<ExtArgs>
+      fields: Prisma.McpPlayFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpPlayFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpPlayFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>
+        }
+        findFirst: {
+          args: Prisma.McpPlayFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpPlayFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>
+        }
+        findMany: {
+          args: Prisma.McpPlayFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>[]
+        }
+        create: {
+          args: Prisma.McpPlayCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>
+        }
+        createMany: {
+          args: Prisma.McpPlayCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpPlayCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>[]
+        }
+        delete: {
+          args: Prisma.McpPlayDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>
+        }
+        update: {
+          args: Prisma.McpPlayUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpPlayDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpPlayUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpPlayUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpPlayUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpPlayPayload>
+        }
+        aggregate: {
+          args: Prisma.McpPlayAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpPlay>
+        }
+        groupBy: {
+          args: Prisma.McpPlayGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpPlayGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpPlayCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpPlayCountAggregateOutputType> | number
         }
       }
     }
@@ -4460,6 +4760,8 @@ export const McpPendingActionScalarFieldEnum = {
   toolName: 'toolName',
   arguments: 'arguments',
   summary: 'summary',
+  source: 'source',
+  triggerEventId: 'triggerEventId',
   status: 'status',
   resultJson: 'resultJson',
   errorMessage: 'errorMessage',
@@ -4510,6 +4812,70 @@ export const McpDashboardTileScalarFieldEnum = {
 } as const
 
 export type McpDashboardTileScalarFieldEnum = (typeof McpDashboardTileScalarFieldEnum)[keyof typeof McpDashboardTileScalarFieldEnum]
+
+
+export const McpTriggerSubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  integrationSlug: 'integrationSlug',
+  connectionId: 'connectionId',
+  triggerSlug: 'triggerSlug',
+  composioTriggerId: 'composioTriggerId',
+  agent: 'agent',
+  createdByUserId: 'createdByUserId',
+  enabled: 'enabled',
+  lastEventAt: 'lastEventAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpTriggerSubscriptionScalarFieldEnum = (typeof McpTriggerSubscriptionScalarFieldEnum)[keyof typeof McpTriggerSubscriptionScalarFieldEnum]
+
+
+export const McpTriggerEventScalarFieldEnum = {
+  id: 'id',
+  providerEventId: 'providerEventId',
+  organizationId: 'organizationId',
+  subscriptionId: 'subscriptionId',
+  triggerSlug: 'triggerSlug',
+  status: 'status',
+  error: 'error',
+  createdAt: 'createdAt',
+  processedAt: 'processedAt'
+} as const
+
+export type McpTriggerEventScalarFieldEnum = (typeof McpTriggerEventScalarFieldEnum)[keyof typeof McpTriggerEventScalarFieldEnum]
+
+
+export const McpApprovalPolicyScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  integrationSlug: 'integrationSlug',
+  toolName: 'toolName',
+  mode: 'mode',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpApprovalPolicyScalarFieldEnum = (typeof McpApprovalPolicyScalarFieldEnum)[keyof typeof McpApprovalPolicyScalarFieldEnum]
+
+
+export const McpPlayScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  playId: 'playId',
+  schedule: 'schedule',
+  enabled: 'enabled',
+  createdByUserId: 'createdByUserId',
+  lastRunAt: 'lastRunAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpPlayScalarFieldEnum = (typeof McpPlayScalarFieldEnum)[keyof typeof McpPlayScalarFieldEnum]
 
 
 export const PublishedPostScalarFieldEnum = {
@@ -5157,6 +5523,20 @@ export type ListEnumMcpConnectionStatusFieldRefInput<$PrismaModel> = FieldRefInp
 
 
 /**
+ * Reference to a field of type 'McpActionSource'
+ */
+export type EnumMcpActionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpActionSource'>
+    
+
+
+/**
+ * Reference to a field of type 'McpActionSource[]'
+ */
+export type ListEnumMcpActionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpActionSource[]'>
+    
+
+
+/**
  * Reference to a field of type 'McpPendingActionStatus'
  */
 export type EnumMcpPendingActionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpPendingActionStatus'>
@@ -5167,6 +5547,34 @@ export type EnumMcpPendingActionStatusFieldRefInput<$PrismaModel> = FieldRefInpu
  * Reference to a field of type 'McpPendingActionStatus[]'
  */
 export type ListEnumMcpPendingActionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpPendingActionStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'McpTriggerEventStatus'
+ */
+export type EnumMcpTriggerEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpTriggerEventStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'McpTriggerEventStatus[]'
+ */
+export type ListEnumMcpTriggerEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpTriggerEventStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'McpApprovalMode'
+ */
+export type EnumMcpApprovalModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpApprovalMode'>
+    
+
+
+/**
+ * Reference to a field of type 'McpApprovalMode[]'
+ */
+export type ListEnumMcpApprovalModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpApprovalMode[]'>
     
 
 
@@ -5400,6 +5808,10 @@ export type GlobalOmitConfig = {
   mcpToolPreference?: Prisma.McpToolPreferenceOmit
   mcpActionLog?: Prisma.McpActionLogOmit
   mcpDashboardTile?: Prisma.McpDashboardTileOmit
+  mcpTriggerSubscription?: Prisma.McpTriggerSubscriptionOmit
+  mcpTriggerEvent?: Prisma.McpTriggerEventOmit
+  mcpApprovalPolicy?: Prisma.McpApprovalPolicyOmit
+  mcpPlay?: Prisma.McpPlayOmit
   publishedPost?: Prisma.PublishedPostOmit
   mayaContentIdea?: Prisma.MayaContentIdeaOmit
   sageSavedKeyword?: Prisma.SageSavedKeywordOmit

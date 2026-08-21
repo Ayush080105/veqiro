@@ -7,12 +7,12 @@ export const qk = {
   mcpConnectionProof: (slug: string) => ["mcp", "connection-proof", slug] as const,
   mcpCommandCenter: () => ["mcp", "command-center"] as const,
   mcpValueReport: () => ["mcp", "value-report"] as const,
-  mcpDashboardTiles: () => ["mcp", "dashboard-tiles"] as const,
-  mcpAvailableWidgets: () => ["mcp", "available-widgets"] as const,
-  mcpWidgetPreview: (widgetId: string, inputs: string) =>
-    ["mcp", "widget-preview", widgetId, inputs] as const,
   mcpPendingAction: (id: string) => ["mcp", "pending-action", id] as const,
   mcpToolPreference: (agent: string) => ["mcp", "tool-preference", agent] as const,
+  mcpTriggers: () => ["mcp", "triggers"] as const,
+  mcpActionLog: (filters: string) => ["mcp", "action-log", filters] as const,
+  mcpApprovalPolicies: () => ["mcp", "approval-policies"] as const,
+  mcpPlays: () => ["mcp", "plays"] as const,
   assistantStatuses: (organizationId: string) =>
     ["assistant-statuses", organizationId] as const,
   lastMessages: () => ["last-messages"] as const,

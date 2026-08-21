@@ -9,11 +9,14 @@ import {
   pendingActionParamSchema,
   agentParamSchema,
   toolPreferenceBodySchema,
-  runWidgetBodySchema,
-  addTileBodySchema,
-  tileIdParamSchema,
+  actionLogQuerySchema,
+  approvalPolicyBodySchema,
+  policyIdParamSchema,
+  playIdParamSchema,
+  playEnabledBodySchema,
 } from "./mcp.schema.js";
 import * as mcpService from "./mcp.service.js";
+import * as playsService from "./mcp.plays.service.js";
 
 const requireAuth = (req: Request): { userId: string; organizationId: string } => {
   if (!req.userId || !req.organizationId) {
@@ -49,7 +52,7 @@ export const getCommandCenter = async (req: Request, res: Response) => {
   // ?refresh=1 skips the server cache — the customer pressed refresh because
   // they know something changed, so honour it rather than serving a cached read.
   const forceRefresh = req.query.refresh === "1";
-  const summary = await mcpService.getCommandCenter(organizationId, { forceRefresh });
+  const summary = await mcpService.getCommandCenter(organizationId);
   // Server-cached with its own TTL; no-store keeps the browser from stacking a
   // second, staler cache on top of it.
   res.set("Cache-Control", "no-store");
@@ -63,43 +66,7 @@ export const getValueReport = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(report);
 };
 
-export const listAvailableWidgets = async (req: Request, res: Response) => {
-  const { organizationId } = requireAuth(req);
-  const widgets = await mcpService.listAvailableWidgets(organizationId);
-  res.set("Cache-Control", "no-store");
-  res.status(StatusCodes.OK).json(widgets);
-};
-
 // POST because a widget run carries structured inputs and is never cacheable.
-export const runWidget = async (req: Request, res: Response) => {
-  const { organizationId } = requireAuth(req);
-  const { widgetId, inputs } = runWidgetBodySchema.parse(req.body ?? {});
-  const result = await mcpService.runWidget(organizationId, widgetId, inputs ?? {});
-  res.set("Cache-Control", "no-store");
-  res.status(StatusCodes.OK).json(result);
-};
-
-export const listTiles = async (req: Request, res: Response) => {
-  const { organizationId } = requireAuth(req);
-  const tiles = await mcpService.listTiles(organizationId);
-  res.set("Cache-Control", "no-store");
-  res.status(StatusCodes.OK).json(tiles);
-};
-
-export const addTile = async (req: Request, res: Response) => {
-  const { organizationId } = requireAuth(req);
-  const body = addTileBodySchema.parse(req.body ?? {});
-  await mcpService.addTile(organizationId, body);
-  res.status(StatusCodes.CREATED).json(await mcpService.listTiles(organizationId));
-};
-
-export const removeTile = async (req: Request, res: Response) => {
-  const { organizationId } = requireAuth(req);
-  const { id } = tileIdParamSchema.parse(req.params);
-  await mcpService.removeTile(organizationId, id);
-  res.status(StatusCodes.OK).json(await mcpService.listTiles(organizationId));
-};
-
 export const getProof = async (req: Request, res: Response) => {
   const { organizationId } = requireAuth(req);
   const { slug } = slugParamSchema.parse(req.params);
@@ -184,5 +151,56 @@ export const callToolInternal = async (req: Request, res: Response) => {
   const { organizationId, connectionId } = requireInternalOrgAndConnection(req);
   const { toolName, args } = callToolBodySchema.parse(req.body ?? {});
   const result = await mcpService.callTool(organizationId, connectionId, toolName, args);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const getActionLog = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const query = actionLogQuerySchema.parse(req.query);
+  const page = await mcpService.getActionLog({ organizationId, ...query });
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(page);
+};
+
+export const listApprovalPolicies = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const policies = await mcpService.listApprovalPolicies(organizationId);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(policies);
+};
+
+export const setApprovalPolicy = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const body = approvalPolicyBodySchema.parse(req.body);
+  const policy = await mcpService.setApprovalPolicy({ organizationId, userId, ...body });
+  res.status(StatusCodes.OK).json(policy);
+};
+
+export const deleteApprovalPolicy = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = policyIdParamSchema.parse(req.params);
+  await mcpService.deleteApprovalPolicy(organizationId, id);
+  res.status(StatusCodes.NO_CONTENT).send();
+};
+
+export const listPlays = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const plays = await playsService.listPlays(organizationId);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(plays);
+};
+
+export const setPlayEnabled = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const { id } = playIdParamSchema.parse(req.params);
+  const { enabled } = playEnabledBodySchema.parse(req.body);
+  const play = await playsService.setPlayEnabled(organizationId, userId, id, enabled);
+  res.status(StatusCodes.OK).json(play);
+};
+
+export const runPlayNow = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const { id } = playIdParamSchema.parse(req.params);
+  const result = await playsService.runPlayNow(organizationId, userId, id);
   res.status(StatusCodes.OK).json(result);
 };

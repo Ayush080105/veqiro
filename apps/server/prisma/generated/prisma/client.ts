@@ -189,6 +189,55 @@ export type McpActionLog = Prisma.McpActionLogModel
  */
 export type McpDashboardTile = Prisma.McpDashboardTileModel
 /**
+ * Model McpTriggerSubscription
+ * An inbound provider event the org has asked an agent to act on — "when a
+ * new email arrives, have Vega draft a reply". The counterpart to everything
+ * else in this module: every other MCP call starts with a human asking.
+ * 
+ * Composio holds the real subscription; this row is the local mirror plus the
+ * policy (which agent, whose identity, enabled or not). `composioTriggerId`
+ * is null between creating the row and Composio accepting it, so a failed
+ * remote create leaves a visibly-broken row rather than a silent no-op.
+ */
+export type McpTriggerSubscription = Prisma.McpTriggerSubscriptionModel
+/**
+ * Model McpTriggerEvent
+ * One inbound event, recorded before it is handled. Exists for idempotency:
+ * providers retry, and Composio retries anything not acknowledged fast, so
+ * without a dedupe key on the provider's own event id a slow handler sends
+ * the same email twice.
+ * 
+ * Deliberately stores no payload. Trigger payloads carry email bodies and
+ * calendar contents — the same reason McpActionLog stores no arguments.
+ */
+export type McpTriggerEvent = Prisma.McpTriggerEventModel
+/**
+ * Model McpApprovalPolicy
+ * Per-org rule for whether a proposed write needs a human.
+ * 
+ * Veqiro's whole safety story is that an agent proposes and a person decides.
+ * That is right for sending an email and absurd for adding a calendar hold the
+ * owner asked for ten times this week, so the rule is configurable — but only
+ * downward from ALWAYS_ASK, deliberately, and only by explicit choice.
+ * 
+ * `"*"` is the wildcard rather than NULL: Postgres treats NULLs as distinct in
+ * unique indexes, so a nullable column would happily accept ten conflicting
+ * "applies to everything" rules.
+ */
+export type McpApprovalPolicy = Prisma.McpApprovalPolicyModel
+/**
+ * Model McpPlay
+ * A named, repeatable job an org has switched on — "Monday briefing",
+ * "Inbox triage". The unit customers actually think in: they do not want
+ * "an agent with Gmail access", they want their Monday morning handled.
+ * 
+ * The definition lives in code (mcp.plays.ts), not here: the prompt and the
+ * tools a play needs are product decisions that get revised, and revising them
+ * should not require migrating every org's row. This table holds only what is
+ * per-org — whether it runs, when, and under whose identity.
+ */
+export type McpPlay = Prisma.McpPlayModel
+/**
  * Model PublishedPost
  * Maya social post publication record.
  */
