@@ -97,15 +97,44 @@ export const PLAY_DEFINITIONS: PlayDefinition[] = [
   {
     id: "content-plan",
     name: "Weekly content plan",
-    description: "Next week's posts drafted and ready for you to approve.",
+    description:
+      "Next week's posts and reels planned out, each with the reason it's there.",
     agent: Agent.MAYA,
     requires: ["instagram"],
     schedule: "0 11 * * 5",
     scheduleLabel: "Fridays at 11am",
-    prompt:
-      "Plan next week's social content. Propose specific posts with captions, " +
-      "informed by what performed well recently. Do not publish anything — " +
-      "these are for review.",
+    // A plan, not the content. Generating a week of images and video up front
+    // would burn real money on work that gets edited or dropped at review — and
+    // the useful output of planning is the reasoning, which is what makes the
+    // plan arguable instead of a list of guesses.
+    //
+    // The reasoning is also the easy thing to fake: asked for a rationale, a
+    // model will write "this is trending" having checked nothing. Hence the
+    // explicit instruction to name the source and to admit when there isn't
+    // one — an honest "no signal, this is a gap-filler" is more useful than a
+    // confident invention, because the owner can tell the two apart.
+    prompt: [
+      "Plan next week's social content. This is a plan, not the content — do not",
+      "generate images or video, and do not publish anything.",
+      "",
+      "Propose roughly 5-7 items across the week. Mix the formats: static posts",
+      "and short video/reels both, and say why each item is that format rather",
+      "than the other.",
+      "",
+      "Every item must carry a reason, and the reason must come from something",
+      "you actually checked this run. Good reasons look like: a specific recent",
+      "post of ours that outperformed and what it had in common; a real trend or",
+      "conversation you found; a date or event next week worth posting around.",
+      "Name the source — which post, which trend, which date.",
+      "",
+      "If you cannot find a real signal for an item, say so plainly: call it a",
+      "gap-filler and explain what it is for. Never invent traction, trends or",
+      "news to justify a slot. An honest 'no strong signal here' is more useful",
+      "than a confident guess, because it tells the owner where to weigh in.",
+      "",
+      "For each item give: the format, the hook or angle, roughly what the",
+      "caption should say, the day to post it, and the reason.",
+    ].join("\n"),
   },
 ];
 
