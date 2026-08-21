@@ -21,6 +21,16 @@ interface AgentCallOptions {
   extraPayload?: Record<string, unknown>
   /** Spread at root of request body — use for action endpoints that expect params at top level */
   topLevelPayload?: Record<string, unknown>
+  /**
+   * Skip writing this turn into the agent's conversational memory.
+   *
+   * For unattended runs (triggers, plays). Those are not conversation: the
+   * "user message" is a raw provider payload, and recording it would both fill
+   * long-term memory with email and calendar JSON — degrading the agent's real
+   * conversations — and cost ~17 KB of embeddings per event, which at the
+   * trigger rate cap is tens of MB a day.
+   */
+  skipMemory?: boolean
 }
 
 const chatResponseSchema = z.object({
@@ -281,7 +291,7 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
   // 4. Monitored async context write for chat-shaped responses. Direct action
   // endpoints return action-specific schemas and are recorded by repositories.
   const chatResponse = chatResponseSchema.safeParse(response)
-  if (chatResponse.success) {
+  if (chatResponse.success && !opts.skipMemory) {
     // Await so memory is reliably persisted before the response is returned.
     // On serverless runtimes that support waitUntil, migrate this there to
     // avoid adding latency; the durable fix (queue) is Phase 3.

@@ -351,6 +351,8 @@ const processEvent = async (
       conversationId: `trigger-${eventRowId}`,
       userMessage: buildAgentPrompt(def, event.data),
       rawHistory: [],
+      // Not a conversation — see AgentCallOptions.skipMemory.
+      skipMemory: true,
     });
 
     // Surfaced in the agent's own conversation, so the owner meets it where

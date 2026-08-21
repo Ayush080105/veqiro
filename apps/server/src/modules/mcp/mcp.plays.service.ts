@@ -119,6 +119,8 @@ export const runPlay = async (params: {
     conversationId: `play-${def.id}-${Date.now()}`,
     userMessage: def.prompt,
     rawHistory: [],
+    // Not a conversation — see AgentCallOptions.skipMemory.
+    skipMemory: true,
   });
 
   const message = await prisma.message.create({
