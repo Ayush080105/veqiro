@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { CalendarDays, Film, HelpCircle, Image as ImageIcon, Sparkles } from "lucide-react"
+import { CalendarDays, Film, HelpCircle, Image as ImageIcon, Sparkles, Wand2 } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { qk } from "@/lib/query-keys"
 import {
@@ -103,7 +103,13 @@ function DayCell({
 }
 
 /** The full argument for one slot — the part that can't live in a cell. */
-function ItemDetail({ item }: { item: ContentPlanItem }) {
+function ItemDetail({
+  item,
+  onCreate,
+}: {
+  item: ContentPlanItem
+  onCreate?: (item: ContentPlanItem) => void
+}) {
   const meta = FORMAT[item.format] ?? FORMAT.post
   const { Icon } = meta
 
@@ -148,11 +154,30 @@ function ItemDetail({ item }: { item: ContentPlanItem }) {
           )}
         </div>
       )}
+
+      {/* The plan is only worth having if acting on it is one click. Opens the
+          existing generator with this slot's angle already filled in, rather
+          than making the owner retype what Maya just proposed. */}
+      {onCreate && (
+        <button
+          onClick={() => onCreate(item)}
+          className="flex w-fit items-center gap-1.5 rounded-full bg-[#111] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+        >
+          <Wand2 className="size-3" />
+          {item.format === "reel" ? "Make this reel" : "Make this post"}
+        </button>
+      )}
     </div>
   )
 }
 
-function PlanView({ plan }: { plan: ContentPlan }) {
+function PlanView({
+  plan,
+  onCreate,
+}: {
+  plan: ContentPlan
+  onCreate?: (item: ContentPlanItem) => void
+}) {
   const weekStart = new Date(plan.weekStart)
   const fmt = (d: Date) =>
     d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })
@@ -233,9 +258,11 @@ function PlanView({ plan }: { plan: ContentPlan }) {
           </div>
         </div>
 
-        {/* Seven columns once there's room for them; below that the grid stops
-            being readable and the same cells stack into a list. */}
-        <div className="grid grid-cols-1 sm:grid-cols-7">
+        {/* Seven columns need real width. In a narrow chat panel they collapse
+            to ~85px and clip mid-word, so the grid keeps a minimum width and
+            scrolls sideways instead of shrinking past legibility. */}
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-7 sm:min-w-[720px]">
           {DAY_LABELS.map((label, i) => {
             const date = new Date(weekStart)
             date.setUTCDate(date.getUTCDate() + i)
@@ -251,6 +278,7 @@ function PlanView({ plan }: { plan: ContentPlan }) {
             )
           })}
         </div>
+        </div>
       </div>
 
       {/* The note carries the caveats — how thin the data was, what wasn't
@@ -261,12 +289,17 @@ function PlanView({ plan }: { plan: ContentPlan }) {
         </p>
       )}
 
-      {selectedItem && <ItemDetail item={selectedItem} />}
+      {selectedItem && <ItemDetail item={selectedItem} onCreate={onCreate} />}
     </div>
   )
 }
 
-export function MayaContentPlanTab() {
+export function MayaContentPlanTab({
+  onCreate,
+}: {
+  /** Opens the matching generator with this slot prefilled. */
+  onCreate?: (item: ContentPlanItem) => void
+} = {}) {
   // useActiveOrganization, not useSession — the session object carries no
   // activeOrganization, so reading it there yields "" and leaves the query
   // disabled, which react-query reports as `pending` forever rather than as an
@@ -336,7 +369,7 @@ export function MayaContentPlanTab() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {latest && <PlanView plan={latest} />}
+          {latest && <PlanView plan={latest} onCreate={onCreate} />}
 
           {older.length > 0 && (
             <div className="flex flex-col gap-3">
@@ -350,7 +383,7 @@ export function MayaContentPlanTab() {
                     {new Date(plan.weekStart).toLocaleDateString(undefined, { timeZone: "UTC" })}
                   </summary>
                   <div className="pt-3">
-                    <PlanView plan={plan} />
+                    <PlanView plan={plan} onCreate={onCreate} />
                   </div>
                 </details>
               ))}

@@ -33,6 +33,7 @@ import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import { MayaContentPlanTab } from "@/components/agents/maya/content-plan-tab"
+import type { ContentPlanItem } from "@/lib/api/assistants"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
 import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
@@ -914,6 +915,41 @@ export default function AssistantChatPage() {
     setActiveActionId(actionId)
   }, [])
 
+  /**
+   * Turns one slot of the content plan into a running generator.
+   *
+   * A plan whose items have to be retyped into a form is a document, not a
+   * tool — this is what makes it the latter. Reels go to the video generator
+   * and posts to the drafter, each carrying the angle Maya already argued for.
+   *
+   * Prefill keys must match the defaultValue shapes in RunActionDialog; a
+   * mismatch fails silently as an empty form rather than an error.
+   */
+  const handleCreateFromPlan = useCallback(
+    (item: ContentPlanItem) => {
+      const brief = [item.hook, item.captionDirection].filter(Boolean).join(" — ")
+      if (item.format === "reel") {
+        openAction("maya:generate-video", {
+          prompt: brief,
+          platform: "instagram",
+          aspect_ratio: "9:16",
+          duration_seconds: 8,
+          use_logo: false,
+        })
+      } else {
+        openAction("maya:draft-content", {
+          topic: brief,
+          platforms: ["instagram"],
+          word_count_target: 200,
+          include_image: true,
+          use_logo: true,
+          use_brand_colors: true,
+        })
+      }
+    },
+    [openAction],
+  )
+
   // Cross-agent handoff: navigate to the target agent's page with the action pre-loaded.
   // Same-agent follow-ups open the dialog inline as before.
   const handleFollowUp = useCallback(
@@ -1325,7 +1361,7 @@ export default function AssistantChatPage() {
         </div>
       ) : isMaya && mayaTab === "plan" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
-          <MayaContentPlanTab />
+          <MayaContentPlanTab onCreate={handleCreateFromPlan} />
         </div>
       ) : isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
