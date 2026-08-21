@@ -253,6 +253,29 @@ export const ensureWebhookSubscription = async (): Promise<string> => {
   return webhookUrl;
 };
 
+/**
+ * Refuses to arm a trigger that could never fire.
+ *
+ * The webhook endpoint rejects every delivery when COMPOSIO_WEBHOOK_SECRET is
+ * unset — correctly, since parse() accepts unsigned payloads without one. But
+ * subscribing did not check, so turning a trigger on succeeded, Composio
+ * happily delivered, and every event died at the door with nothing on screen
+ * to explain it.
+ *
+ * Checked here rather than at delivery time because this is the last moment a
+ * human is present to read the answer.
+ */
+const assertWebhookConfigured = (): void => {
+  if (!process.env.COMPOSIO_WEBHOOK_SECRET) {
+    throw new BadRequestError(
+      "Triggers aren't set up on this server yet: COMPOSIO_WEBHOOK_SECRET is " +
+        "missing, so incoming events can't be verified and would be rejected. " +
+        "Set it from the secret returned by Composio's webhook subscription, " +
+        "then try again.",
+    );
+  }
+};
+
 export const subscribeTrigger = async (
   organizationId: string,
   userId: string,
@@ -261,6 +284,10 @@ export const subscribeTrigger = async (
 ): Promise<TriggerSummary> => {
   const def = await resolveTrigger(organizationId, triggerId);
   if (!def) throw new NotFoundError("Unknown trigger");
+
+  // Before creating anything, local or remote: an armed trigger whose events
+  // are all rejected is worse than a trigger that refused to arm.
+  assertWebhookConfigured();
 
   const connection = await prisma.mcpConnection.findFirst({
     where: { organizationId, integrationSlug: def.integrationSlug, status: "CONNECTED" },
