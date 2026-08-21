@@ -236,28 +236,54 @@ export const getConnectionsForAgent = async (
  * Keyed by toolkit instead, one fetch serves the entire deployment, and the
  * TTL can be long because catalogs only change when Composio ships new tools.
  */
-const TOOL_CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
-const toolCatalogCache = new Map<
-  string,
-  { expiresAt: number; tools: Awaited<ReturnType<McpProviderAdapter["listTools"]>> }
->();
+type ToolCatalog = Awaited<ReturnType<McpProviderAdapter["listTools"]>>;
 
-export const listToolsForConnection = async (organizationId: string, connectionId: string) => {
+/** In-process tier. Serves the overwhelming majority of reads at no cost. */
+const TOOL_CATALOG_MEMORY_TTL_MS = 6 * 60 * 60 * 1000;
+/** Database tier. Longer, because it exists to survive restarts and deploys. */
+const TOOL_CATALOG_DB_TTL_MS = 24 * 60 * 60 * 1000;
+const toolCatalogCache = new Map<string, { expiresAt: number; tools: ToolCatalog }>();
+
+export const listToolsForConnection = async (
+  organizationId: string,
+  connectionId: string,
+): Promise<ToolCatalog> => {
   const row = await repo.findByConnectionId(connectionId);
   if (!row || row.organizationId !== organizationId) {
     // Never leak whether a connectionId exists for a DIFFERENT org. This check
-    // stays ahead of the cache: the cache is shared across orgs, so skipping
-    // the lookup would turn a shared catalog into a tenancy hole.
+    // stays ahead of both caches: they are shared across orgs, so skipping the
+    // lookup would turn a shared catalog into a tenancy hole.
     throw new NotFoundError("Connection not found");
   }
 
   const cacheKey = `${row.provider}:${row.toolkitSlug}`;
-  const cached = toolCatalogCache.get(cacheKey);
-  if (cached && Date.now() < cached.expiresAt) return cached.tools;
+  const memoryHit = toolCatalogCache.get(cacheKey);
+  if (memoryHit && Date.now() < memoryHit.expiresAt) return memoryHit.tools;
+
+  // Second tier: survives restarts and is shared between instances. Only read
+  // on a memory miss — deserializing 233 KB on every chat turn would cost more
+  // than the API call it saves.
+  const stored = await repo.findToolCatalog(row.toolkitSlug);
+  if (stored && Date.now() - stored.fetchedAt.getTime() < TOOL_CATALOG_DB_TTL_MS) {
+    const tools = stored.tools as ToolCatalog;
+    toolCatalogCache.set(cacheKey, {
+      expiresAt: Date.now() + TOOL_CATALOG_MEMORY_TTL_MS,
+      tools,
+    });
+    return tools;
+  }
 
   const adapter = PROVIDER_ADAPTER_BY_ENUM[row.provider];
   const tools = await adapter.listTools({ toolkitSlug: row.toolkitSlug, connectionId });
-  toolCatalogCache.set(cacheKey, { expiresAt: Date.now() + TOOL_CATALOG_TTL_MS, tools });
+  toolCatalogCache.set(cacheKey, {
+    expiresAt: Date.now() + TOOL_CATALOG_MEMORY_TTL_MS,
+    tools,
+  });
+  // Best-effort: a catalog that fails to persist costs one refetch next time,
+  // not a failed chat turn.
+  await repo
+    .upsertToolCatalog(row.toolkitSlug, row.provider, tools)
+    .catch((err) => console.error("[mcp] tool catalog persist failed", err));
   return tools;
 };
 

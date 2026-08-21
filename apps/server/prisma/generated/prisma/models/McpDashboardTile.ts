@@ -14,6 +14,11 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model McpDashboardTile
+ * UNUSED — the dashboard's live tiles were removed (see CommandCenter.tsx for
+ * why: one provider call per tile, against a number that rarely changed what
+ * anyone did). The table is kept rather than dropped so existing rows aren't
+ * destroyed on a decision that could be revisited; nothing reads it.
+ * 
  * A metric the org chose to pin to its dashboard, e.g. "Gmail · unread" or
  * "Razorpay · customers". Exists because no heuristic can guess which of a
  * toolkit's ~60-200 read tools matters to a given business — verified

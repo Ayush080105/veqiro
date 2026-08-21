@@ -179,6 +179,11 @@ export type McpToolPreference = Prisma.McpToolPreferenceModel
 export type McpActionLog = Prisma.McpActionLogModel
 /**
  * Model McpDashboardTile
+ * UNUSED — the dashboard's live tiles were removed (see CommandCenter.tsx for
+ * why: one provider call per tile, against a number that rarely changed what
+ * anyone did). The table is kept rather than dropped so existing rows aren't
+ * destroyed on a decision that could be revisited; nothing reads it.
+ * 
  * A metric the org chose to pin to its dashboard, e.g. "Gmail · unread" or
  * "Razorpay · customers". Exists because no heuristic can guess which of a
  * toolkit's ~60-200 read tools matters to a given business — verified
@@ -237,6 +242,21 @@ export type McpApprovalPolicy = Prisma.McpApprovalPolicyModel
  * per-org — whether it runs, when, and under whose identity.
  */
 export type McpPlay = Prisma.McpPlayModel
+/**
+ * Model McpToolCatalog
+ * A toolkit's tool catalog, cached across restarts and instances.
+ * 
+ * composioAdapter.listTools resolves on the toolkit slug alone — granted
+ * scopes decide whether a *call* succeeds, not which tools exist — so one row
+ * serves every org, agent and user. Slack's is 167 tools and 233 KB.
+ * 
+ * This is the second tier behind an in-process cache, not a replacement for
+ * it: reading 233 KB of JSON on every chat turn would be worse than the API
+ * call it replaces. It exists so a restart or a new instance doesn't refetch
+ * every catalog from Composio, which was the one real gap in caching this
+ * purely in memory.
+ */
+export type McpToolCatalog = Prisma.McpToolCatalogModel
 /**
  * Model PublishedPost
  * Maya social post publication record.

@@ -276,3 +276,28 @@ export const countRecentActions = (organizationId: string, since: Date) =>
   prisma.mcpActionLog.count({
     where: { organizationId, successful: true, createdAt: { gte: since } },
   });
+
+// --- Tool catalog cache (shared across orgs; keyed by toolkit) -------------
+
+export const findToolCatalog = (toolkitSlug: string) =>
+  prisma.mcpToolCatalog.findUnique({ where: { toolkitSlug } });
+
+export const upsertToolCatalog = (
+  toolkitSlug: string,
+  provider: McpProvider,
+  tools: unknown,
+) =>
+  prisma.mcpToolCatalog.upsert({
+    where: { toolkitSlug },
+    create: {
+      toolkitSlug,
+      provider,
+      tools: tools as Prisma.InputJsonValue,
+      toolCount: Array.isArray(tools) ? tools.length : 0,
+    },
+    update: {
+      tools: tools as Prisma.InputJsonValue,
+      toolCount: Array.isArray(tools) ? tools.length : 0,
+      fetchedAt: new Date(),
+    },
+  });

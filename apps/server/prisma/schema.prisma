@@ -1124,6 +1124,34 @@ model McpPlay {
   @@map("mcp_play")
 }
 
+/// A toolkit's tool catalog, cached across restarts and instances.
+///
+/// composioAdapter.listTools resolves on the toolkit slug alone — granted
+/// scopes decide whether a *call* succeeds, not which tools exist — so one row
+/// serves every org, agent and user. Slack's is 167 tools and 233 KB.
+///
+/// This is the second tier behind an in-process cache, not a replacement for
+/// it: reading 233 KB of JSON on every chat turn would be worse than the API
+/// call it replaces. It exists so a restart or a new instance doesn't refetch
+/// every catalog from Composio, which was the one real gap in caching this
+/// purely in memory.
+model McpToolCatalog {
+  /// Provider's toolkit slug, e.g. "slack" — the natural key, since the
+  /// catalog is a property of the toolkit and nothing else.
+  toolkitSlug String      @id
+  /// Which provider this came from.
+  provider    McpProvider @default(COMPOSIO)
+  /// The tool definitions as returned by the adapter.
+  tools       Json
+  /// Denormalized for cheap "is this suspiciously empty" checks without
+  /// deserializing the payload.
+  toolCount   Int
+  /// When this was last read from the provider.
+  fetchedAt   DateTime    @default(now())
+
+  @@map("mcp_tool_catalog")
+}
+
 /// Maya social post publication record.
 model PublishedPost {
   /// Published post id.
