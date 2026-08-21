@@ -119,11 +119,15 @@ function PlanView({ plan }: { plan: ContentPlan }) {
 }
 
 export function MayaContentPlanTab() {
-  const { data: session } = authClient.useSession()
-  const activeOrg = (session as { activeOrganization?: { id?: string } } | null)?.activeOrganization
+  // useActiveOrganization, not useSession — the session object carries no
+  // activeOrganization, so reading it there yields "" and leaves the query
+  // disabled, which react-query reports as `pending` forever rather than as an
+  // error. That renders as a tab stuck on "Loading…" with nothing in the
+  // console.
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
 
-  const { data: plans = [], isPending } = useContentPlans(organizationId)
+  const { data: plans = [], isPending, isError, error } = useContentPlans(organizationId)
   const queryClient = useQueryClient()
   const [generating, setGenerating] = useState(false)
 
@@ -147,9 +151,9 @@ export function MayaContentPlanTab() {
   const [latest, ...older] = plans
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
+    <div className="flex h-full min-w-0 flex-col overflow-y-auto p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="text-sm font-semibold">Content plan</h2>
           <p className="text-xs text-muted-foreground">
             Next week&apos;s posts and reels, each with the reason it&apos;s there.
@@ -166,14 +170,22 @@ export function MayaContentPlanTab() {
         </button>
       </div>
 
-      {isPending ? (
+      {!organizationId ? (
+        <p className="text-xs text-muted-foreground">
+          No workspace selected.
+        </p>
+      ) : isError ? (
+        <p className="text-xs text-destructive">
+          Couldn&apos;t load plans: {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+      ) : isPending ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
       ) : plans.length === 0 ? (
         <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-[#D4C9B0] p-4">
           <CalendarDays className="size-4 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
-            No plan yet. Generate one, or switch on the weekly play in Settings →
-            Integrations and it&apos;ll arrive every Friday.
+            No plan yet. Generate one, or switch on the weekly play under Tasks →
+            Recurring and it&apos;ll arrive every Friday.
           </p>
         </div>
       ) : (
