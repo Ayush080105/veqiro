@@ -25,15 +25,30 @@ import * as mcpService from "./mcp.service.js";
  * fire, and never executes a write — it only proposes one.
  */
 
-/** Public base URL Composio posts events to. ngrok in dev, the real host in prod. */
+/**
+ * Where Composio posts trigger events.
+ *
+ * The production host is a constant rather than a required env var, because a
+ * missing var here fails in the worst possible way: subscribing appears to
+ * succeed and events simply never arrive, with nothing on screen saying why.
+ * A default means production cannot be misconfigured by omission.
+ *
+ * COMPOSIO_WEBHOOK_URL still overrides it, which is what makes local testing
+ * possible at all — an ngrok URL changes every restart.
+ *
+ * One hazard that override brings, worth knowing before using it:
+ * setWebhookSubscription is account-level on Composio, one URL per API key.
+ * Pointing it at a laptop repoints EVERY environment sharing that key, so
+ * production stops receiving events until someone notices. Use a separate
+ * Composio API key for local work rather than borrowing production's.
+ */
+const PRODUCTION_WEBHOOK_BASE_URL = "https://api.veqiro.com";
+
 const webhookBaseUrl = (): string => {
-  const url = process.env.COMPOSIO_WEBHOOK_URL ?? process.env.PUBLIC_API_URL;
-  if (!url) {
-    throw new BadRequestError(
-      "No public webhook URL configured. Set COMPOSIO_WEBHOOK_URL to a publicly " +
-        "reachable HTTPS address before enabling triggers.",
-    );
-  }
+  const url =
+    process.env.COMPOSIO_WEBHOOK_URL ??
+    process.env.PUBLIC_API_URL ??
+    PRODUCTION_WEBHOOK_BASE_URL;
   return url.replace(/\/+$/, "");
 };
 
