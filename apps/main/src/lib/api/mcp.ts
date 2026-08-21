@@ -236,7 +236,21 @@ export function useMcpConnectionStatus(slug: string, opts: { enabled: boolean })
       return result
     },
     enabled: opts.enabled,
-    refetchInterval: (query) => (query.state.data?.status === "CONNECTED" ? false : 2000),
+    // Each poll is a real Composio call, so this backs off and then gives up
+    // rather than asking forever. A connect screen left open on a flat 2s
+    // interval cost ~1,800 calls an hour while nothing was happening.
+    //
+    // OAuth normally completes in well under a minute; past roughly three
+    // minutes the user has abandoned the tab, and reopening the modal starts a
+    // fresh query anyway.
+    refetchInterval: (query) => {
+      if (query.state.data?.status === "CONNECTED") return false
+      const attempts = query.state.dataUpdateCount
+      if (attempts < 15) return 2_000   // first ~30s: the common case
+      if (attempts < 30) return 5_000   // next ~75s: slow auth, still plausible
+      if (attempts < 45) return 10_000  // tapering off
+      return false                      // abandoned — stop asking
+    },
   })
 }
 

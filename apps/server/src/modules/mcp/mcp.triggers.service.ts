@@ -44,6 +44,13 @@ const webhookBaseUrl = (): string => {
  * ceiling shows up in the event log instead of being silently swallowed.
  */
 const MAX_EVENTS_PER_SUBSCRIPTION_PER_HOUR = 20;
+/**
+ * A second ceiling across every subscription in an org. The per-subscription
+ * cap alone bounds one noisy channel; it does not bound seven of them at once,
+ * and each event is a full agent run with its own provider calls. This is the
+ * number that stops a runaway configuration from quietly costing a fortune.
+ */
+const MAX_EVENTS_PER_ORG_PER_HOUR = 60;
 
 export interface TriggerSummary {
   id: string;
@@ -268,16 +275,29 @@ export const acceptInboundEvent = async (
   }
 
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  const recentCount = await prisma.mcpTriggerEvent.count({
-    where: { subscriptionId: subscription.id, createdAt: { gte: oneHourAgo } },
-  });
+  const [recentCount, orgCount] = await Promise.all([
+    prisma.mcpTriggerEvent.count({
+      where: { subscriptionId: subscription.id, createdAt: { gte: oneHourAgo } },
+    }),
+    prisma.mcpTriggerEvent.count({
+      where: { organizationId: subscription.organizationId, createdAt: { gte: oneHourAgo } },
+    }),
+  ]);
   if (recentCount > MAX_EVENTS_PER_SUBSCRIPTION_PER_HOUR) {
     await finishEvent(
       eventRow.id,
       McpTriggerEventStatus.SKIPPED,
-      `Rate cap reached (${MAX_EVENTS_PER_SUBSCRIPTION_PER_HOUR}/hour)`,
+      `Rate cap reached (${MAX_EVENTS_PER_SUBSCRIPTION_PER_HOUR}/hour for this trigger)`,
     );
     return { accepted: false, reason: "rate cap" };
+  }
+  if (orgCount > MAX_EVENTS_PER_ORG_PER_HOUR) {
+    await finishEvent(
+      eventRow.id,
+      McpTriggerEventStatus.SKIPPED,
+      `Rate cap reached (${MAX_EVENTS_PER_ORG_PER_HOUR}/hour across all triggers)`,
+    );
+    return { accepted: false, reason: "org rate cap" };
   }
 
   await prisma.mcpTriggerSubscription.update({
