@@ -71,6 +71,17 @@ export const ModelName = {
   OrgMemory: 'OrgMemory',
   SocialAccount: 'SocialAccount',
   McpConnection: 'McpConnection',
+  McpPendingAction: 'McpPendingAction',
+  McpToolPreference: 'McpToolPreference',
+  McpActionLog: 'McpActionLog',
+  McpDashboardTile: 'McpDashboardTile',
+  McpTriggerSubscription: 'McpTriggerSubscription',
+  McpTriggerEvent: 'McpTriggerEvent',
+  McpApprovalPolicy: 'McpApprovalPolicy',
+  McpPlay: 'McpPlay',
+  McpToolCatalog: 'McpToolCatalog',
+  McpTriggerCatalog: 'McpTriggerCatalog',
+  MayaContentPlan: 'MayaContentPlan',
   PublishedPost: 'PublishedPost',
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
@@ -444,6 +455,172 @@ export const McpConnectionScalarFieldEnum = {
 } as const
 
 export type McpConnectionScalarFieldEnum = (typeof McpConnectionScalarFieldEnum)[keyof typeof McpConnectionScalarFieldEnum]
+
+
+export const McpPendingActionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  agent: 'agent',
+  messageId: 'messageId',
+  connectionId: 'connectionId',
+  integrationSlug: 'integrationSlug',
+  toolName: 'toolName',
+  arguments: 'arguments',
+  summary: 'summary',
+  source: 'source',
+  triggerEventId: 'triggerEventId',
+  status: 'status',
+  resultJson: 'resultJson',
+  errorMessage: 'errorMessage',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpPendingActionScalarFieldEnum = (typeof McpPendingActionScalarFieldEnum)[keyof typeof McpPendingActionScalarFieldEnum]
+
+
+export const McpToolPreferenceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  preferredIntegrationSlug: 'preferredIntegrationSlug',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpToolPreferenceScalarFieldEnum = (typeof McpToolPreferenceScalarFieldEnum)[keyof typeof McpToolPreferenceScalarFieldEnum]
+
+
+export const McpActionLogScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  integrationSlug: 'integrationSlug',
+  toolName: 'toolName',
+  isWrite: 'isWrite',
+  successful: 'successful',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type McpActionLogScalarFieldEnum = (typeof McpActionLogScalarFieldEnum)[keyof typeof McpActionLogScalarFieldEnum]
+
+
+export const McpDashboardTileScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  widgetId: 'widgetId',
+  integrationSlug: 'integrationSlug',
+  inputs: 'inputs',
+  label: 'label',
+  position: 'position',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpDashboardTileScalarFieldEnum = (typeof McpDashboardTileScalarFieldEnum)[keyof typeof McpDashboardTileScalarFieldEnum]
+
+
+export const McpTriggerSubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  integrationSlug: 'integrationSlug',
+  connectionId: 'connectionId',
+  triggerSlug: 'triggerSlug',
+  composioTriggerId: 'composioTriggerId',
+  agent: 'agent',
+  instruction: 'instruction',
+  createdByUserId: 'createdByUserId',
+  enabled: 'enabled',
+  lastEventAt: 'lastEventAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpTriggerSubscriptionScalarFieldEnum = (typeof McpTriggerSubscriptionScalarFieldEnum)[keyof typeof McpTriggerSubscriptionScalarFieldEnum]
+
+
+export const McpTriggerEventScalarFieldEnum = {
+  id: 'id',
+  providerEventId: 'providerEventId',
+  organizationId: 'organizationId',
+  subscriptionId: 'subscriptionId',
+  triggerSlug: 'triggerSlug',
+  status: 'status',
+  error: 'error',
+  createdAt: 'createdAt',
+  processedAt: 'processedAt'
+} as const
+
+export type McpTriggerEventScalarFieldEnum = (typeof McpTriggerEventScalarFieldEnum)[keyof typeof McpTriggerEventScalarFieldEnum]
+
+
+export const McpApprovalPolicyScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  integrationSlug: 'integrationSlug',
+  toolName: 'toolName',
+  mode: 'mode',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpApprovalPolicyScalarFieldEnum = (typeof McpApprovalPolicyScalarFieldEnum)[keyof typeof McpApprovalPolicyScalarFieldEnum]
+
+
+export const McpPlayScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  playId: 'playId',
+  schedule: 'schedule',
+  enabled: 'enabled',
+  createdByUserId: 'createdByUserId',
+  lastRunAt: 'lastRunAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpPlayScalarFieldEnum = (typeof McpPlayScalarFieldEnum)[keyof typeof McpPlayScalarFieldEnum]
+
+
+export const McpToolCatalogScalarFieldEnum = {
+  toolkitSlug: 'toolkitSlug',
+  provider: 'provider',
+  tools: 'tools',
+  toolCount: 'toolCount',
+  fetchedAt: 'fetchedAt'
+} as const
+
+export type McpToolCatalogScalarFieldEnum = (typeof McpToolCatalogScalarFieldEnum)[keyof typeof McpToolCatalogScalarFieldEnum]
+
+
+export const McpTriggerCatalogScalarFieldEnum = {
+  toolkitSlug: 'toolkitSlug',
+  provider: 'provider',
+  triggers: 'triggers',
+  triggerCount: 'triggerCount',
+  fetchedAt: 'fetchedAt'
+} as const
+
+export type McpTriggerCatalogScalarFieldEnum = (typeof McpTriggerCatalogScalarFieldEnum)[keyof typeof McpTriggerCatalogScalarFieldEnum]
+
+
+export const MayaContentPlanScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  weekStart: 'weekStart',
+  note: 'note',
+  items: 'items',
+  rawText: 'rawText',
+  createdAt: 'createdAt'
+} as const
+
+export type MayaContentPlanScalarFieldEnum = (typeof MayaContentPlanScalarFieldEnum)[keyof typeof MayaContentPlanScalarFieldEnum]
 
 
 export const PublishedPostScalarFieldEnum = {

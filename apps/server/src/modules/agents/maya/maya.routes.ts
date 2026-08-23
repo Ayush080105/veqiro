@@ -23,6 +23,8 @@ import {
   getMayaUsage,
   getLogoAnimationStyles,
   createLogoAnimation,
+  listContentPlans,
+  generateContentPlan,
 } from "./maya.controller.js";
 
 const router = Router();
@@ -50,5 +52,7 @@ router.post("/campaign-video", createCampaignVideo);
 router.post("/campaign-video/storyboard", createCampaignVideoStoryboard);
 router.get("/logo-animation/styles", getLogoAnimationStyles);
 router.post("/logo-animation", createLogoAnimation);
+router.get("/content-plan", listContentPlans);
+router.post("/content-plan/generate", generateContentPlan);
 
 export default router;

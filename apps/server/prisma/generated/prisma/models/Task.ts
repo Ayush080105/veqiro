@@ -15,6 +15,12 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 /**
  * Model Task
  * Scheduled task owned by an organization — agent-automated or user-defined.
+ * UNUSED — the Task feature was removed. Recurring work is now McpPlay and
+ * event-driven work is McpTriggerSubscription; see the Tasks page.
+ * 
+ * The table is kept rather than dropped so the 48 rows that existed across 16
+ * organizations aren't destroyed by a decision that could be revisited. The
+ * cron that fired them is gone, so nothing here runs any more.
  */
 export type TaskModel = runtime.Types.Result.DefaultSelection<Prisma.$TaskPayload>
 

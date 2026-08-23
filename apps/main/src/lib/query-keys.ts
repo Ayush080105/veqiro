@@ -4,6 +4,15 @@ export const qk = {
   mcpConnections: () => ["mcp", "connections"] as const,
   mcpConfigSchema: (slug: string) => ["mcp", "config-schema", slug] as const,
   mcpConnectionStatus: (slug: string) => ["mcp", "connection-status", slug] as const,
+  mcpConnectionProof: (slug: string) => ["mcp", "connection-proof", slug] as const,
+  mcpCommandCenter: () => ["mcp", "command-center"] as const,
+  mcpValueReport: () => ["mcp", "value-report"] as const,
+  mcpPendingAction: (id: string) => ["mcp", "pending-action", id] as const,
+  mcpToolPreference: (agent: string) => ["mcp", "tool-preference", agent] as const,
+  mcpTriggers: () => ["mcp", "triggers"] as const,
+  mcpActionLog: (filters: string) => ["mcp", "action-log", filters] as const,
+  mcpApprovalPolicies: () => ["mcp", "approval-policies"] as const,
+  mcpPlays: () => ["mcp", "plays"] as const,
   assistantStatuses: (organizationId: string) =>
     ["assistant-statuses", organizationId] as const,
   lastMessages: () => ["last-messages"] as const,
@@ -12,6 +21,8 @@ export const qk = {
   lexSources: () => ["lex", "sources"] as const,
   mayaPublishedPosts: (organizationId: string) =>
     ["maya", "published-posts", organizationId] as const,
+  mayaContentPlans: (organizationId: string) =>
+    ["maya", "content-plans", organizationId] as const,
   mayaUsage: (organizationId: string) =>
     ["maya", "usage", organizationId] as const,
   mayaLogoAnimationStyles: () => ["maya", "logo-animation-styles"] as const,

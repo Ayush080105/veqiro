@@ -6,7 +6,8 @@ import { CONTEXT_HISTORY_LIMIT, SUMMARIZE_THRESHOLD } from "../../config/constan
 import type { BuildContextResponse } from "../../modules/context/context.types.js"
 import { z } from "zod"
 import { prisma } from "../../config/prisma.js"
-import { getConnectionsForAgent } from "../../modules/mcp/mcp.service.js"
+import { getConnectionsForAgent, getToolPreference } from "../../modules/mcp/mcp.service.js"
+import { getIntegrationsByAgent, type AgentSlug } from "@repo/integrations-catalog"
 
 interface AgentCallOptions {
   agentApiPath: string            // e.g. "/ai/sage/chat"
@@ -20,6 +21,16 @@ interface AgentCallOptions {
   extraPayload?: Record<string, unknown>
   /** Spread at root of request body — use for action endpoints that expect params at top level */
   topLevelPayload?: Record<string, unknown>
+  /**
+   * Skip writing this turn into the agent's conversational memory.
+   *
+   * For unattended runs (triggers, plays). Those are not conversation: the
+   * "user message" is a raw provider payload, and recording it would both fill
+   * long-term memory with email and calendar JSON — degrading the agent's real
+   * conversations — and cost ~17 KB of embeddings per event, which at the
+   * trigger rate cap is tens of MB a day.
+   */
+  skipMemory?: boolean
 }
 
 const chatResponseSchema = z.object({
@@ -32,11 +43,26 @@ const chatResponseSchema = z.object({
   image: z.unknown().nullable().optional(),
   action_id: z.string().nullable().optional(),
   action_result: z.record(z.string(), z.unknown()).nullable().optional(),
+  // What the agent actually did this turn, for the chat UI's visible trace.
+  // Built by apps/ai's _build_tool_trace; kept permissive here so adding a
+  // field on the Python side never fails validation for the whole response.
+  tool_trace: z
+    .array(
+      z.object({
+        label: z.string(),
+        integration: z.string().nullable().optional(),
+        status: z.enum(["ok", "error", "pending"]).catch("ok"),
+        detail: z.string().optional(),
+        durationMs: z.number().nullable().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
 })
 
 export type AgentChatResponse = z.infer<typeof chatResponseSchema>
 
-const agentRoles: Record<Agent, string> = {
+export const agentRoles: Record<Agent, string> = {
   [Agent.MAYA]: "Maya: Social media content creation assistant",
   [Agent.SAGE]: "Sage: SEO and content strategy assistant",
   [Agent.LEX]: "Lex: Legal and compliance assistant",
@@ -219,14 +245,29 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
     ? [...built.hot_messages, ...built.semantic_messages]
     : [...rawHistory].reverse()  // fallback: also reverse to ASC
 
-  // 2.5. Resolve this org's connected MCP tools relevant to this agent.
-  // Cheap no-op (no DB/provider call beyond one indexed query) for the
-  // common case of an org with zero connections.
+  // 2.5. Resolve this org's connected MCP tools relevant to this agent, plus
+  // the agent's full connectable catalog (each entry tagged connected:
+  // true/false) so it can accurately answer "what can you connect to" even
+  // when nothing — or only some things — are connected yet. Cheap no-op (no
+  // extra DB/provider call beyond one indexed query) for the common case of
+  // an org with zero connections.
   let mcpMeta: Record<string, unknown> = {}
   try {
     const connections = await getConnectionsForAgent(organizationId, agentEnum)
-    if (connections.length > 0) {
-      mcpMeta = { mcp_connections: connections }
+    const agentSlug = agentEnum.toLowerCase() as AgentSlug
+    const connectedSlugs = new Set(connections.map((c) => c.integrationSlug))
+    const catalog = getIntegrationsByAgent(agentSlug)
+      .filter((e) => e.status === "composio")
+      .map((e) => ({ slug: e.slug, name: e.name, connected: connectedSlugs.has(e.slug) }))
+    // Deterministic override for agents whose native tools can't reliably be
+    // prompted to "prefer" a connected MCP tool (see agents/base.py's
+    // SUPERSEDABLE_BY_MCP) — which integration, if any, should replace this
+    // agent's default data source entirely.
+    const { preferredIntegrationSlug } = await getToolPreference(organizationId, agentSlug)
+    mcpMeta = {
+      ...(connections.length > 0 ? { mcp_connections: connections } : {}),
+      ...(catalog.length > 0 ? { mcp_catalog: catalog } : {}),
+      ...(preferredIntegrationSlug ? { mcp_tool_preference: preferredIntegrationSlug } : {}),
     }
   } catch (err) {
     console.error("[context] mcp connection resolution failed — continuing without MCP tools", err)
@@ -250,7 +291,7 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
   // 4. Monitored async context write for chat-shaped responses. Direct action
   // endpoints return action-specific schemas and are recorded by repositories.
   const chatResponse = chatResponseSchema.safeParse(response)
-  if (chatResponse.success) {
+  if (chatResponse.success && !opts.skipMemory) {
     // Await so memory is reliably persisted before the response is returned.
     // On serverless runtimes that support waitUntil, migrate this there to
     // avoid adding latency; the durable fix (queue) is Phase 3.

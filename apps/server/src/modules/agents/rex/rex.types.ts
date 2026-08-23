@@ -1,3 +1,4 @@
+import type { ToolTraceEntry } from "../../mcp/mcp.types.js";
 import { z } from "zod";
 import {
   sendMessageSchema,
@@ -33,6 +34,8 @@ export interface AssistantMessagePayload {
   action_id?: string;
   action_result?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+  /** Visible tool trace for this turn — see mcp.service.ts's withToolTrace. */
+  tool_trace?: ToolTraceEntry[];
 }
 
 // AI service response shapes (snake_case preserved — proxied verbatim)

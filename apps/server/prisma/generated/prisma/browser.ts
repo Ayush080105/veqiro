@@ -124,6 +124,138 @@ export type SocialAccount = Prisma.SocialAccountModel
  */
 export type McpConnection = Prisma.McpConnectionModel
 /**
+ * Model McpPendingAction
+ * A write-capable MCP tool call the LLM proposed mid-conversation, staged
+ * here instead of executed immediately — requires an explicit user
+ * confirm/reject click (see mcp.service.ts confirmPendingAction /
+ * rejectPendingAction) before the underlying provider call actually runs.
+ */
+export type McpPendingAction = Prisma.McpPendingActionModel
+/**
+ * Model McpToolPreference
+ * Per-(org, agent) override of which connected MCP integration an agent's
+ * native tools should prefer over their built-in default data source (e.g.
+ * Scout's research tools use native Serper search by default; toggling this
+ * to "tavily" makes them source from the connected Tavily integration
+ * instead). Deterministic override — exists because prompt-level "prefer
+ * the MCP tool" guidance proved unreliable for tools that call their own
+ * data source internally rather than choosing between exposed tool options.
+ */
+export type McpToolPreference = Prisma.McpToolPreferenceModel
+/**
+ * Model McpActionLog
+ * One executed MCP tool call. Written for every call that actually reaches a
+ * provider — reads and writes alike — because three separate things need it
+ * and none of them can be reconstructed after the fact: the customer-facing
+ * audit trail, the monthly value report ("N actions across M systems"), and
+ * usage metering for action-based billing. Deliberately does NOT store tool
+ * arguments or results: those routinely carry the customer's own email
+ * bodies and financial records, and this table is retained long-term.
+ */
+export type McpActionLog = Prisma.McpActionLogModel
+/**
+ * Model McpDashboardTile
+ * UNUSED — the dashboard's live tiles were removed (see CommandCenter.tsx for
+ * why: one provider call per tile, against a number that rarely changed what
+ * anyone did). The table is kept rather than dropped so existing rows aren't
+ * destroyed on a decision that could be revisited; nothing reads it.
+ * 
+ * A metric the org chose to pin to its dashboard, e.g. "Gmail · unread" or
+ * "Razorpay · customers". Exists because no heuristic can guess which of a
+ * toolkit's ~60-200 read tools matters to a given business — verified
+ * empirically: auto-picking the first argument-free read tool across 14 live
+ * connections produced a usable figure for only 2, and chose meaningless
+ * tools (DISCORD_GET_GATEWAY, TAVILY_GET_USAGE) for the rest. So the choice
+ * is the customer's, made once, from a previewed shortlist.
+ */
+export type McpDashboardTile = Prisma.McpDashboardTileModel
+/**
+ * Model McpTriggerSubscription
+ * An inbound provider event the org has asked an agent to act on — "when a
+ * new email arrives, have Vega draft a reply". The counterpart to everything
+ * else in this module: every other MCP call starts with a human asking.
+ * 
+ * Composio holds the real subscription; this row is the local mirror plus the
+ * policy (which agent, whose identity, enabled or not). `composioTriggerId`
+ * is null between creating the row and Composio accepting it, so a failed
+ * remote create leaves a visibly-broken row rather than a silent no-op.
+ */
+export type McpTriggerSubscription = Prisma.McpTriggerSubscriptionModel
+/**
+ * Model McpTriggerEvent
+ * One inbound event, recorded before it is handled. Exists for idempotency:
+ * providers retry, and Composio retries anything not acknowledged fast, so
+ * without a dedupe key on the provider's own event id a slow handler sends
+ * the same email twice.
+ * 
+ * Deliberately stores no payload. Trigger payloads carry email bodies and
+ * calendar contents — the same reason McpActionLog stores no arguments.
+ */
+export type McpTriggerEvent = Prisma.McpTriggerEventModel
+/**
+ * Model McpApprovalPolicy
+ * Per-org rule for whether a proposed write needs a human.
+ * 
+ * Veqiro's whole safety story is that an agent proposes and a person decides.
+ * That is right for sending an email and absurd for adding a calendar hold the
+ * owner asked for ten times this week, so the rule is configurable — but only
+ * downward from ALWAYS_ASK, deliberately, and only by explicit choice.
+ * 
+ * `"*"` is the wildcard rather than NULL: Postgres treats NULLs as distinct in
+ * unique indexes, so a nullable column would happily accept ten conflicting
+ * "applies to everything" rules.
+ */
+export type McpApprovalPolicy = Prisma.McpApprovalPolicyModel
+/**
+ * Model McpPlay
+ * A named, repeatable job an org has switched on — "Monday briefing",
+ * "Inbox triage". The unit customers actually think in: they do not want
+ * "an agent with Gmail access", they want their Monday morning handled.
+ * 
+ * The definition lives in code (mcp.plays.ts), not here: the prompt and the
+ * tools a play needs are product decisions that get revised, and revising them
+ * should not require migrating every org's row. This table holds only what is
+ * per-org — whether it runs, when, and under whose identity.
+ */
+export type McpPlay = Prisma.McpPlayModel
+/**
+ * Model McpToolCatalog
+ * A toolkit's tool catalog, cached across restarts and instances.
+ * 
+ * composioAdapter.listTools resolves on the toolkit slug alone — granted
+ * scopes decide whether a *call* succeeds, not which tools exist — so one row
+ * serves every org, agent and user. Slack's is 167 tools and 233 KB.
+ * 
+ * This is the second tier behind an in-process cache, not a replacement for
+ * it: reading 233 KB of JSON on every chat turn would be worse than the API
+ * call it replaces. It exists so a restart or a new instance doesn't refetch
+ * every catalog from Composio, which was the one real gap in caching this
+ * purely in memory.
+ */
+export type McpToolCatalog = Prisma.McpToolCatalogModel
+/**
+ * Model McpTriggerCatalog
+ * A toolkit's available trigger types, cached like its tool catalog and for
+ * the same reason: listTypes resolves on the toolkit slug alone, so one row
+ * serves every org. Verified across the catalog — 21 of 46 toolkits expose
+ * triggers at all, 191 types between them.
+ */
+export type McpTriggerCatalog = Prisma.McpTriggerCatalogModel
+/**
+ * Model MayaContentPlan
+ * A week's content plan — the artifact Maya's planning play produces.
+ * 
+ * Stored rather than left in chat because a plan is something you come back
+ * to, tick through, and act on across a week; a markdown blob in a message
+ * list is unreadable by Wednesday.
+ * 
+ * `rawText` is always kept and `items` may be null: the plan is generated by
+ * a model asked for JSON, and when that parse fails the answer is to show the
+ * prose it did produce, not an error. A plan that renders plainly beats a
+ * plan that vanished.
+ */
+export type MayaContentPlan = Prisma.MayaContentPlanModel
+/**
  * Model PublishedPost
  * Maya social post publication record.
  */
@@ -216,6 +348,12 @@ export type WaitlistEntry = Prisma.WaitlistEntryModel
 /**
  * Model Task
  * Scheduled task owned by an organization — agent-automated or user-defined.
+ * UNUSED — the Task feature was removed. Recurring work is now McpPlay and
+ * event-driven work is McpTriggerSubscription; see the Tasks page.
+ * 
+ * The table is kept rather than dropped so the 48 rows that existed across 16
+ * organizations aren't destroyed by a decision that could be revisited. The
+ * cron that fired them is gone, so nothing here runs any more.
  */
 export type Task = Prisma.TaskModel
 /**

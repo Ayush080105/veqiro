@@ -162,6 +162,110 @@ html, body {
   gap: clamp(24px, 5vw, 48px);
 }
 
+/* ---- Integrations timeline: spine with alternating left/right rows ---- */
+.vq-timeline {
+  position: relative;
+}
+
+.vq-timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: #111;
+  transform: translateX(-50%);
+}
+
+.vq-timeline-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: clamp(24px, 4vw, 64px);
+  align-items: start;
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+
+.vq-timeline-row:last-child {
+  margin-bottom: 0;
+}
+
+.vq-timeline-node {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  transform: translateX(-50%);
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #111;
+}
+
+.vq-category-pill {
+  display: inline-block;
+  background: var(--accent);
+  border: 2px solid #111;
+  border-radius: 999px;
+  padding: 5px 16px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #111;
+  margin-bottom: 14px;
+}
+
+.vq-timeline-row.left .vq-timeline-content {
+  grid-column: 1;
+  justify-self: end;
+  text-align: right;
+}
+
+.vq-timeline-row.right .vq-timeline-content {
+  grid-column: 2;
+  justify-self: start;
+  text-align: left;
+}
+
+.vq-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vq-timeline-row.left .vq-chip-row {
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .vq-timeline::before {
+    left: 17px;
+  }
+
+  .vq-timeline-row {
+    display: block;
+    padding-left: 42px;
+  }
+
+  .vq-timeline-node {
+    left: 17px;
+  }
+
+  .vq-timeline-row.left .vq-timeline-content,
+  .vq-timeline-row.right .vq-timeline-content {
+    grid-column: unset;
+    justify-self: unset;
+    text-align: left;
+  }
+
+  .vq-timeline-row.left .vq-chip-row {
+    justify-content: flex-start;
+  }
+}
+
 /* ---- Mobile phone frame ---- */
 .vq-phone-frame {
   --vq-scale: clamp(10px, 2.6vw, 12px);

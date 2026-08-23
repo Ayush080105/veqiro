@@ -11,6 +11,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@repo/integrations-catalog": "workspace:*",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.7.0",

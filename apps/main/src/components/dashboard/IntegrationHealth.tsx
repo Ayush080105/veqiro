@@ -6,6 +6,8 @@ import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useIntegrations } from "@/lib/api/integrations"
 import type { SocialAccount } from "@/lib/api/integrations"
+import { useMcpConnections, type McpConnectionSummary } from "@/lib/api/mcp"
+import { getIntegrationBySlug } from "@repo/integrations-catalog"
 
 type Row = {
   id: string
@@ -50,13 +52,50 @@ const stateClasses: Record<
   "coming-soon": { row: "bg-background border-foreground", metaColor: "#777777" },
 }
 
+/** MCP connections carry their own status, so they don't need the token-expiry
+ *  reasoning the native OAuth rows above do — only ERROR is worth surfacing as
+ *  a warning; anything not CONNECTED reads as simply not connected. */
+function mcpRow(conn: McpConnectionSummary): Row {
+  const label = getIntegrationBySlug(conn.slug)?.name ?? conn.slug
+  if (conn.status === "CONNECTED") {
+    return { id: conn.slug, label, state: "connected" }
+  }
+  if (conn.status === "ERROR") {
+    return { id: conn.slug, label, state: "expiring", meta: "needs attention" }
+  }
+  return { id: conn.slug, label, state: "disconnected" }
+}
+
+/** Cap the grid so one heavily-connected org doesn't push the rest of the
+ *  dashboard off-screen — the overflow is reported as a count instead. */
+const MAX_ROWS = 6
+
 export function IntegrationHealth() {
   const { data: accounts = [] } = useIntegrations()
+  const { data: mcpConnections = [] } = useMcpConnections()
 
-  const rows: Row[] = [
+  // Native OAuth platforms and MCP connections are separate systems (see the
+  // Legacy vs. catalog split in settings/integrations), so both are listed —
+  // previously this widget showed only the two native rows and told an org
+  // with eight live MCP connections that it had two integrations.
+  const allRows: Row[] = [
     platformRow("twitter", "Twitter", "TWITTER", accounts),
     platformRow("linkedin", "LinkedIn", "LINKEDIN", accounts),
+    ...mcpConnections.map(mcpRow),
   ]
+
+  // Connected first, then anything needing attention — a disconnected row is
+  // the least urgent thing here and shouldn't consume the visible slots.
+  const rank: Record<Row["state"], number> = {
+    expiring: 0,
+    connected: 1,
+    disconnected: 2,
+    "coming-soon": 3,
+  }
+  const sorted = [...allRows].sort((a, b) => rank[a.state] - rank[b.state])
+  const rows = sorted.slice(0, MAX_ROWS)
+  const hiddenCount = sorted.length - rows.length
+  const connectedCount = allRows.filter((r) => r.state === "connected").length
 
   return (
     <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
@@ -64,7 +103,7 @@ export function IntegrationHealth() {
         [ integrations ]
       </div>
       <div className="font-display text-[26px] tracking-tight text-foreground mt-0.5 mb-3">
-        plugged in?
+        {connectedCount > 0 ? `${connectedCount} connected` : "plugged in?"}
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -104,7 +143,10 @@ export function IntegrationHealth() {
         })}
       </div>
 
-      <div className="mt-4 pt-3.5 border-t-2 border-foreground/10 flex justify-end">
+      <div className="mt-4 pt-3.5 border-t-2 border-foreground/10 flex items-center justify-between gap-2">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {hiddenCount > 0 ? `+${hiddenCount} more` : ""}
+        </div>
         <Button asChild variant="brand-ghost" size="brand-sm">
           <Link href="/settings/integrations">manage →</Link>
         </Button>

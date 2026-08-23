@@ -111,7 +111,11 @@ export async function expandCampaignBrief(
 }
 
 export interface PublishPostInput {
-  socialAccountId: string
+  /** Native OAuth account. Omit for platforms that publish over MCP. */
+  socialAccountId?: string
+  /** Publishes over the Composio MCP connection instead of a SocialAccount.
+   *  Exactly one of this and socialAccountId must be set. */
+  platform?: "instagram"
   caption: string
   hashtags?: string[]
   imageUrl?: string
@@ -140,7 +144,10 @@ export async function publishPost(
 }
 
 export interface PublishCarouselInput {
-  socialAccountId: string
+  /** Native OAuth account. Omit for platforms that publish over MCP. */
+  socialAccountId?: string
+  /** See PublishPostInput.platform. */
+  platform?: "instagram"
   caption?: string
   hashtags?: string[]
   imageUrls: string[]
@@ -407,5 +414,51 @@ export function usePublishedPosts(organizationId: string) {
     queryFn: () => getPublishedPosts(organizationId),
     enabled: !!organizationId,
     placeholderData: (prev) => prev,
+  })
+}
+
+export type ContentFormat = "post" | "reel"
+
+export interface ContentPlanItem {
+  date: string
+  day: string
+  format: ContentFormat
+  hook: string
+  captionDirection: string
+  reason: string
+  /** True when Maya found no real signal and said so, rather than inventing one. */
+  isGapFiller: boolean
+  formatReason?: string
+}
+
+export interface ContentPlan {
+  id: string
+  weekStart: string
+  note: string | null
+  /** Null when the model's JSON couldn't be parsed — render rawText instead. */
+  items: ContentPlanItem[] | null
+  rawText: string
+  createdAt: string
+}
+
+export async function listContentPlans(organizationId: string): Promise<ContentPlan[]> {
+  return apiFetch<ContentPlan[]>(`/agents/maya/content-plan?organizationId=${encodeURIComponent(organizationId)}`, {
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export async function generateContentPlan(organizationId: string): Promise<ContentPlan> {
+  return apiFetch<ContentPlan>("/agents/maya/content-plan/generate", {
+    method: "POST",
+    body: { organizationId },
+    agentSlugForNotFound: "maya",
+  })
+}
+
+export function useContentPlans(organizationId: string) {
+  return useQuery({
+    queryKey: qk.mayaContentPlans(organizationId),
+    queryFn: () => listContentPlans(organizationId),
+    enabled: !!organizationId,
   })
 }

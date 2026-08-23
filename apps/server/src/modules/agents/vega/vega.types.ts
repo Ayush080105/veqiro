@@ -1,3 +1,4 @@
+import type { ToolTraceEntry } from "../../mcp/mcp.types.js";
 import { z } from "zod";
 import { sendMessageSchema } from "./vega.schema.js";
 
@@ -10,4 +11,7 @@ export interface AssistantMessagePayload {
   model_used?: string;
   action_id?: string;
   action_result?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  /** Visible tool trace for this turn — see mcp.service.ts's withToolTrace. */
+  tool_trace?: ToolTraceEntry[];
 }

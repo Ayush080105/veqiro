@@ -25,7 +25,6 @@ import billingRouter, { publicRouter as billingPublicRouter } from "./modules/bi
 import adminRouter from "./modules/admin/admin.routes.js";
 import { adminMiddleware } from "./modules/admin/admin.middleware.js";
 import feedbackRouter from "./modules/feedback/feedback.routes.js";
-import tasksRouter from "./modules/tasks/tasks.routes.js";
 import expensesRouter from "./modules/expenses/expenses.routes.js";
 import waitlistRouter from "./modules/waitlist/waitlist.router.js";
 import contactRouter from "./modules/contact/contact.router.js";
@@ -70,7 +69,6 @@ router.use("/uploads", authMiddleware, uploadsRouter);
 router.use("/billing", authMiddleware, billingRouter);
 router.use("/admin", adminMiddleware, adminRouter);
 router.use("/feedback", authMiddleware, feedbackRouter);
-router.use("/tasks", authMiddleware, tasksRouter);
 router.use("/expenses", adminMiddleware, expensesRouter);
 
 // Public OAuth callbacks (state-verified) mounted BEFORE the protected router

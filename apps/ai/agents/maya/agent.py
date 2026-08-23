@@ -121,7 +121,7 @@ class MayaAgent(BaseAgent):
         "creative direction, and always have a reason for every choice. Enthusiastic but not over the top."
     )
     default_provider = "openai"
-    default_model = "gpt-4.1-mini"
+    default_model = "gpt-5.6-luna"
 
     async def build_system_prompt(
         self,
@@ -183,6 +183,7 @@ class MayaAgent(BaseAgent):
             "6. Hashtags must be platform-appropriate (count and style)\n"
             "7. Write in the brand voice — never generic\n"
         )
+        prompt += self._current_date_block()
         prompt += self._core_response_style_block()
         prompt += (
             "\n## Tool Output Rules\n"
@@ -219,13 +220,21 @@ class MayaAgent(BaseAgent):
             "- Email management, calendar, scheduling, meeting notes → "
             "'Vega manages your inbox and calendar. That's Vega's domain.'\n"
             "RULE: Never fabricate business metrics, legal advice, or financial figures — redirect instead.\n"
-            "\n## Connected Tools (e.g. Facebook Pages, Reddit, Google Business Profile, Coolors)\n"
-            "You may have extra tools available for other social/publishing destinations or design "
-            "utilities the user has connected, beyond LinkedIn/Instagram/Twitter above. These are "
-            "publish-capable by design — that's the point, same as your existing draft_content flow — "
-            "but confirm the exact destination (e.g. which page, which subreddit) and the content before "
-            "posting if either isn't unambiguous from context. Don't assume a tool exists unless it's "
-            "actually present in your tool list this turn.\n"
+            "\n## Connected Tools\n"
+            "You may have MCP tools beyond LinkedIn/Instagram/Twitter above — each one's LLM-facing "
+            "name is prefixed `mcp_<slug>_`. Only use a tool if it's actually present in your tool list "
+            "this turn — never assume one exists just because it's listed here.\n"
+            "**Publishing** — `mcp_linkedin_*`, `mcp_facebook-pages_*`, `mcp_reddit_*` — these are "
+            "publish-capable by design, same as your native `draft_content` flow. Confirm the exact "
+            "destination (which page, which subreddit) and the content before posting if either isn't "
+            "unambiguous from context.\n"
+            "**Marketing & CRM (shared with Rex)** — `mcp_google-ads_*`, `mcp_hubspot-marketing_*`, "
+            "`mcp_mailchimp_*`, `mcp_zoho_*` — Rex reads these for spend/ROAS/campaign metrics; your "
+            "job with the same connection is different: pull existing campaign copy, audience/segment "
+            "names, or brand voice cues to draft on-brand ad creative, email copy, or campaign content. "
+            "Read-only for you — use the read/list actions to gather context, never create/send/launch "
+            "a live campaign or email blast through these tools unless the user explicitly asks for "
+            "that exact action.\n"
         )
         if brand_kit.logo_url or brand_kit.mascot_url:
             has_logo = "Logo: available." if brand_kit.logo_url else "Logo: not configured."
@@ -311,6 +320,14 @@ class MayaAgent(BaseAgent):
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
         response = await super().chat_sync(request)
         if request.metadata.get("_cross_agent_call", False):
+            return response
+        # Callers that want words, not pictures. Image generation below is not
+        # a tool the model chooses — it is post-processing keyed off which tool
+        # was called — so a prompt saying "do not generate images" cannot
+        # prevent it. The content-plan run hit exactly that: planning calls
+        # generate_ideas, which fired an image and spent credits on a request
+        # that asked for a plan.
+        if request.metadata.get("_skip_auto_image", False):
             return response
 
         tool_calls = response.metadata.get("tool_calls", [])

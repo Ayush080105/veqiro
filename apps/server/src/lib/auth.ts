@@ -15,7 +15,6 @@ import {
   handlePaymentFailed,
   handleMayaTopupPaymentSucceeded,
 } from "../modules/billing/billing.webhooks.js";
-import { seedDefaultTasks } from "../modules/tasks/tasks.service.js";
 import { logActivity, ActivityAction } from "../modules/activity/activity.service.js";
 
 const auth = betterAuth({
@@ -100,11 +99,6 @@ const auth = betterAuth({
         organization: {
           create: {
             after: async (org: { id: string }) => {
-              try {
-                await seedDefaultTasks(org.id);
-              } catch (err) {
-                console.error(`[tasks] Failed to seed default tasks for org ${org.id}:`, err);
-              }
             },
           },
         },

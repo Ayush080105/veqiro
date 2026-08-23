@@ -13,6 +13,8 @@ import { UsageBar } from "@/components/billing/UsageBar"
 import { AgentPeriodList } from "@/components/billing/AgentPeriodList"
 import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
 import { Info, Sparkles } from "lucide-react"
+import { ValueReportCard } from "@/components/dashboard/ValueReportCard"
+import { ActionLogCard } from "@/components/settings/ActionLogCard"
 
 type AugmentedSession = {
   activeOrganization?: { id?: string } | null
@@ -76,6 +78,13 @@ export default function UsagePage() {
       />
 
       <SettingsNav />
+
+      {/* Cross-system work leads this page: it is the record a customer checks
+          at renewal. Plan consumption (below) answers a different question —
+          how much of what you bought is left — and is deliberately secondary. */}
+      <ValueReportCard />
+
+      <ActionLogCard />
 
       {isLoading && (
         <Card variant="brand">

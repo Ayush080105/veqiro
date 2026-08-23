@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } fr
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useMutationState, useQueryClient } from "@tanstack/react-query"
-import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug } from "lucide-react"
+import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug, CalendarDays } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -16,6 +16,8 @@ import {
   AgentNotAvailableError,
 } from "@/lib/api/assistants"
 import { useBrandKit } from "@/lib/api/brain"
+import { useMcpConnections, useMcpToolPreference, useSetMcpToolPreference } from "@/lib/api/mcp"
+import { getIntegrationsByAgent } from "@repo/integrations-catalog"
 
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
@@ -30,6 +32,8 @@ import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-ta
 import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
 import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
+import { MayaContentPlanTab } from "@/components/agents/maya/content-plan-tab"
+import type { ContentPlanItem } from "@/lib/api/assistants"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
 import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
@@ -55,6 +59,52 @@ import type {
 } from "@/lib/types"
 import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult, MayaContentRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
+
+// Scout's native research tools call their own default data source (Serper)
+// internally and can't reliably be prompted to prefer a connected MCP tool
+// instead — see SUPERSEDABLE_BY_MCP in apps/ai/agents/base.py. This toggle
+// lets the org explicitly override the source rather than leaving it to the
+// LLM. Scout-only for now; a separate component so its hooks only run when
+// actually mounted (i.e. only for the scout agent page).
+function ScoutSearchSourceToggle() {
+  const { data: connections } = useMcpConnections()
+  const { data: preference } = useMcpToolPreference("scout")
+  const setPreference = useSetMcpToolPreference("scout")
+
+  const options = getIntegrationsByAgent("scout")
+    .filter((e) => e.status === "composio")
+    .map((e) => ({
+      slug: e.slug,
+      name: e.name,
+      connected: connections?.some((c) => c.slug === e.slug && c.status === "CONNECTED") ?? false,
+    }))
+    .filter((e) => e.connected)
+
+  if (options.length === 0) return null
+
+  return (
+    <select
+      value={preference?.preferredIntegrationSlug ?? ""}
+      onChange={(e) => setPreference.mutate(e.target.value || null)}
+      disabled={setPreference.isPending}
+      title="Which research source Scout should use"
+      style={{
+        background: "transparent",
+        border: "1px solid rgba(0,0,0,0.15)",
+        borderRadius: 8,
+        padding: "6px 8px",
+        fontSize: 12,
+        color: "#555",
+        cursor: setPreference.isPending ? "default" : "pointer",
+      }}
+    >
+      <option value="">Default search</option>
+      {options.map((o) => (
+        <option key={o.slug} value={o.slug}>{o.name}</option>
+      ))}
+    </select>
+  )
+}
 
 function ChatHeader({
   agent,
@@ -157,6 +207,7 @@ function ChatHeader({
           online
         </div>
       </button>
+      {agent.id === "scout" && <ScoutSearchSourceToggle />}
       <button
         suppressHydrationWarning
         type="button"
@@ -449,7 +500,7 @@ export default function AssistantChatPage() {
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
-  const [mayaTab, setMayaTab] = useState<"chat" | "published">("chat")
+  const [mayaTab, setMayaTab] = useState<"chat" | "published" | "plan">("chat")
 
   const conversationIdRef = useRef<string>(genConversationId())
   const chatScrollRef = useRef<HTMLDivElement>(null)
@@ -864,6 +915,47 @@ export default function AssistantChatPage() {
     setActiveActionId(actionId)
   }, [])
 
+  /**
+   * Turns one slot of the content plan into a running generator.
+   *
+   * A plan whose items have to be retyped into a form is a document, not a
+   * tool — this is what makes it the latter. Reels go to the video generator
+   * and posts to the drafter, each carrying the angle Maya already argued for.
+   *
+   * Prefill keys must match the defaultValue shapes in RunActionDialog; a
+   * mismatch fails silently as an empty form rather than an error.
+   */
+  const handleCreateFromPlan = useCallback(
+    (item: ContentPlanItem) => {
+      if (item.format === "reel") {
+        // The video form is a single free-text prompt, so the angle and the
+        // detail belong in one description.
+        openAction("maya:generate-video", {
+          prompt: [item.hook, item.captionDirection].filter(Boolean).join(". "),
+          platform: "instagram",
+          aspect_ratio: "9:16",
+          duration_seconds: 8,
+          use_logo: false,
+        })
+      } else {
+        // Topic is a one-line subject — it renders in a single-line input and
+        // reads as the post's title. The caption direction is guidance about
+        // how to treat it, which is what "Additional context" is for; pushing
+        // both into topic produced an unreadable sentence in a text field.
+        openAction("maya:draft-content", {
+          topic: item.hook,
+          additional_context: item.captionDirection,
+          platforms: ["instagram"],
+          word_count_target: 200,
+          include_image: true,
+          use_logo: true,
+          use_brand_colors: true,
+        })
+      }
+    },
+    [openAction],
+  )
+
   // Cross-agent handoff: navigate to the target agent's page with the action pre-loaded.
   // Same-agent follow-ups open the dialog inline as before.
   const handleFollowUp = useCallback(
@@ -1250,6 +1342,18 @@ export default function AssistantChatPage() {
           >
             <FolderOpen className="size-3" /> Published Posts
           </button>
+          <button
+            suppressHydrationWarning
+            type="button"
+            onClick={() => setMayaTab("plan")}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              mayaTab === "plan"
+                ? "bg-[#111] text-white"
+                : "bg-transparent text-[#111]"
+            }`}
+          >
+            <CalendarDays className="size-3" /> Content Plan
+          </button>
           <div className="flex items-center gap-1.5" style={{ marginLeft: "auto" }}>
             <MayaCreditsPill organizationId={organizationId} />
             <MayaTopUpButton organizationId={organizationId} />
@@ -1260,6 +1364,10 @@ export default function AssistantChatPage() {
       {isMaya && mayaTab === "published" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <MayaPublishedPostsTab />
+        </div>
+      ) : isMaya && mayaTab === "plan" ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <MayaContentPlanTab onCreate={handleCreateFromPlan} />
         </div>
       ) : isLex && lexTab === "documents" ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
@@ -1393,7 +1501,7 @@ export default function AssistantChatPage() {
         {!(isLex && lexTab === "documents") &&
           !(isSage && sageTab === "favourites") &&
           !(isRex && rexTab === "data") &&
-          !(isMaya && mayaTab === "published") && (
+          !(isMaya && mayaTab !== "chat") && (
           <ChatInput
             value={content}
             onChange={setContent}

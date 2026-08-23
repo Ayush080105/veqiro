@@ -13,6 +13,9 @@ import { Breadcrumbs } from '@/components/veqiro/breadcrumbs';
 import { personAgentJsonLd, faqPageJsonLd } from '@/lib/jsonld';
 import { SITE_URL, AGENT_META } from '@/lib/seo';
 import { agentPricing } from '@/lib/site-config';
+import { ToolTile } from './tool-logo';
+import type { AgentSlug } from '@repo/integrations-catalog';
+import { getAllToolsByAgent } from './native-tools';
 
 interface Props {
   employee: Employee;
@@ -21,6 +24,7 @@ interface Props {
 export function AgentPage({ employee }: Props) {
   const Comp = CHARACTER_COMPONENTS[employee.key];
   const agentMonthlyPrice = agentPricing.find((a) => a.key === employee.key)?.monthly;
+  const connectedTools = getAllToolsByAgent(employee.key as AgentSlug);
   const crumbs = [
     { name: 'Home', url: SITE_URL },
     { name: 'Agents', url: `${SITE_URL}/#crew` },
@@ -234,6 +238,47 @@ export function AgentPage({ employee }: Props) {
           </div>
         </div>
       </section>
+
+      {/* ── CONNECTED TOOLS ── */}
+      {connectedTools.length > 0 && (
+        <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
+              <div style={{
+                fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
+                textTransform: 'uppercase' as const, color: '#666', marginBottom: 16,
+              }}>
+                [ {employee.name.toUpperCase()}&apos;S TOOLKIT ]
+              </div>
+              <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
+                plugs right into<br />
+                <span style={{
+                  background: employee.color, padding: '0 16px', display: 'inline-block',
+                  transform: 'rotate(-1.5deg)', border: '3px solid #111', borderRadius: 8, boxShadow: '4px 4px 0 #111',
+                }}>
+                  your stack.
+                </span>
+              </h2>
+              <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 1.9vw, 18px)', color: '#333', marginTop: 20, maxWidth: 640, lineHeight: 1.6 }}>
+                {employee.name} already speaks {connectedTools.length}+ of the tools your team runs on — connect them in a click, no setup work required.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))',
+                gap: 'clamp(16px, 2.5vw, 28px) clamp(12px, 2vw, 20px)',
+                justifyItems: 'center',
+              }}
+            >
+              {connectedTools.map(tool => (
+                <ToolTile key={tool.slug} name={tool.name} logoUrl={tool.logoUrl} accent={employee.color} size={80} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── ACTIONS ── */}
       <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>

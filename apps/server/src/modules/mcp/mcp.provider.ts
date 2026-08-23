@@ -30,7 +30,7 @@ export interface McpProviderAdapter {
   listTools(args: {
     toolkitSlug: string;
     connectionId: string;
-  }): Promise<{ name: string; description?: string; inputSchema?: unknown }[]>;
+  }): Promise<{ name: string; description?: string; inputSchema?: unknown; isWrite: boolean; important: boolean }[]>;
 
   callTool(args: {
     organizationId: string;

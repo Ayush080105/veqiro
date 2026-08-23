@@ -1,8 +1,8 @@
 import cron from "node-cron";
-import { runFollowUpCheck } from "../agents/vega/vega.cron.js";
-import { runDailyAlertsNow } from "../agents/rex/rex.cron.js";
-import { startMayaScheduledPostsCron } from "../agents/maya/maya.cron.js";
-import { sweepExpiredEntitlements } from "../../jobs/entitlementSweeper.job.js";
+import { runFollowUpCheck } from "../modules/agents/vega/vega.cron.js";
+import { runDailyAlertsNow } from "../modules/agents/rex/rex.cron.js";
+import { startMayaScheduledPostsCron } from "../modules/agents/maya/maya.cron.js";
+import { sweepExpiredEntitlements } from "./entitlementSweeper.job.js";
 
 export function startSystemCrons() {
   // Vega follow-up overdue check — 09:00 UTC daily

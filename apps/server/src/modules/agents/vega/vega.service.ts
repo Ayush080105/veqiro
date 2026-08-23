@@ -3,6 +3,8 @@ import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as vegaRepository from "./vega.repository.js";
+import * as mcpService from "../../mcp/mcp.service.js";
+import type { RawPendingAction } from "../../mcp/mcp.types.js";
 import type { SendMessageInput, AssistantMessagePayload } from "./vega.types.js";
 
 export const sendMessage = async (
@@ -32,10 +34,17 @@ export const sendMessage = async (
   })) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
-  const customInput =
+  const pendingActions = responseData.metadata?.pending_actions as RawPendingAction[] | undefined
+  const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
+
+  const customInput = mcpService.withToolTrace(
     responseData.action_id && responseData.action_result
-      ? { actionId: responseData.action_id, input: {}, result: responseData.action_result }
-      : undefined;
+      ? { actionId: responseData.action_id, input: {}, result: responseData.action_result, pendingActions: pendingActionsSnapshot }
+      : pendingActionsSnapshot
+        ? { pendingActions: pendingActionsSnapshot }
+        : undefined,
+    responseData.tool_trace,
+  );
 
   const assistantMessage = await vegaRepository.createAssistantMessage({
     organizationId,
@@ -46,6 +55,16 @@ export const sendMessage = async (
     model: responseData.model_used,
     customInput,
   });
+
+  if (pendingActions?.length) {
+    await mcpService.stagePendingActions({
+      organizationId,
+      userId,
+      agent: Agent.VEGA,
+      messageId: assistantMessage.id,
+      pendingActions,
+    });
+  }
 
   return assistantMessage;
 };

@@ -9,6 +9,7 @@ import { useDashboardSummary, ALL_SLUGS, type Range } from "@/lib/api/dashboard"
 import { CrewLeaderboard } from "@/components/dashboard/CrewLeaderboard"
 import { ContentPipeline } from "@/components/dashboard/ContentPipeline"
 import { IntegrationHealth } from "@/components/dashboard/IntegrationHealth"
+import { CommandCenter } from "@/components/dashboard/CommandCenter"
 import { BrandSnapshot } from "@/components/dashboard/BrandSnapshot"
 import { MayaUsageCard } from "@/components/dashboard/MayaUsageCard"
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters"
@@ -110,6 +111,12 @@ export default function DashboardPage() {
           />
         }
       />
+
+      {/* The customer's own business leads the page; Veqiro's activity metrics
+          follow below it. Rendered outside the isError branch above because it
+          has an entirely separate data source and must survive a failed
+          dashboard-summary fetch. */}
+      <CommandCenter />
 
       {isError && (
         <div

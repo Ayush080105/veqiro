@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useIntegrations } from "@/lib/api/integrations"
+import { useMcpConnections } from "@/lib/api/mcp"
 import { publishPost, publishCarousel } from "@/lib/api/assistants"
 import type { ContentPlatform, ImageResult, VideoResult } from "@/lib/types/agents"
 
@@ -71,6 +72,20 @@ export interface CampaignPublishDialogProps {
   hashtags?: string[]
 }
 
+/**
+ * Instagram publishes over its Composio MCP connection, which has no
+ * SocialAccount — so it never appears in useIntegrations() and both dialogs
+ * used to report "No Instagram account connected yet" for a perfectly good
+ * connection.
+ */
+function useInstagramViaMcp(enabled: boolean): boolean {
+  const { data: mcpConnections = [] } = useMcpConnections()
+  return (
+    enabled &&
+    mcpConnections.some((c) => c.slug === "instagram" && c.status === "CONNECTED")
+  )
+}
+
 export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags }: CampaignPublishDialogProps) {
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
@@ -84,8 +99,10 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
     () => accounts.filter((a) => String(a.platform ?? "").toUpperCase() === "INSTAGRAM"),
     [accounts]
   )
+  const instagramViaMcp = useInstagramViaMcp(true)
+  const hasTarget = eligible.length > 0 || instagramViaMcp
 
-  const handlePublish = async (accountId: string) => {
+  const handlePublish = async (accountId: string | null) => {
     if (!organizationId) {
       toast.error("No active organization selected")
       return
@@ -96,7 +113,8 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
         .filter(Boolean)
         .join("\n\n")
       const result = await publishCarousel(organizationId, {
-        socialAccountId: accountId,
+        // Exactly one target: a native account, or the MCP platform.
+        ...(accountId ? { socialAccountId: accountId } : { platform: "instagram" as const }),
         caption: fullCaption,
         hashtags: [],
         imageUrls,
@@ -139,7 +157,7 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
             <p className="text-xs text-destructive">
               Couldn&apos;t load accounts: {error instanceof Error ? error.message : "Unknown error"}
             </p>
-          ) : eligible.length === 0 ? (
+          ) : !hasTarget ? (
             <div className="flex flex-col gap-2 text-xs">
               <p className="text-muted-foreground">No Instagram account connected yet.</p>
               <a
@@ -151,6 +169,18 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
             </div>
           ) : (
             <div className="flex flex-col gap-2">
+              {instagramViaMcp && (
+                <button
+                  onClick={() => handlePublish(null)}
+                  disabled={publishing}
+                  className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+                >
+                  <span className="font-medium">Instagram</span>
+                  <span className="text-muted-foreground">
+                    {publishing ? "Publishing…" : "Publish"}
+                  </span>
+                </button>
+              )}
               {eligible.map((a) => (
                 <button
                   key={a.id}
@@ -200,15 +230,17 @@ export function PublishDialog({ platform, caption, hashtags, image, video }: Pub
     () => accounts.filter((a) => String(a.platform ?? "").toUpperCase() === target),
     [accounts, target]
   )
+  const instagramViaMcp = useInstagramViaMcp(normalizedPlatform === "instagram")
+  const hasTarget = eligible.length > 0 || instagramViaMcp
 
-  if (open && accounts.length > 0 && eligible.length === 0) {
+  if (open && accounts.length > 0 && !hasTarget) {
     console.warn("PublishDialog: no eligible accounts for platform", {
       platform: normalizedPlatform,
       platforms: accounts.map((a) => a.platform),
     })
   }
 
-  const handlePublish = async (accountId: string) => {
+  const handlePublish = async (accountId: string | null) => {
     if (!organizationId) {
       toast.error("No active organization selected")
       return
@@ -216,7 +248,8 @@ export function PublishDialog({ platform, caption, hashtags, image, video }: Pub
     setPublishing(true)
     try {
       const result = await publishPost(organizationId, {
-        socialAccountId: accountId,
+        // Exactly one target: a native account, or the MCP platform.
+        ...(accountId ? { socialAccountId: accountId } : { platform: "instagram" as const }),
         caption,
         hashtags,
         imageUrl: video ? undefined : image?.image_url,
@@ -266,7 +299,7 @@ export function PublishDialog({ platform, caption, hashtags, image, video }: Pub
           <p className="text-xs text-destructive">
             Couldn&apos;t load accounts: {error instanceof Error ? error.message : "Unknown error"}
           </p>
-        ) : eligible.length === 0 ? (
+        ) : !hasTarget ? (
           <div className="flex flex-col gap-2 text-xs">
             <p className="text-muted-foreground">
               No {platformLabel} account connected yet.
@@ -280,6 +313,18 @@ export function PublishDialog({ platform, caption, hashtags, image, video }: Pub
           </div>
         ) : (
           <div className="flex flex-col gap-2">
+            {instagramViaMcp && (
+              <button
+                onClick={() => handlePublish(null)}
+                disabled={publishing}
+                className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+              >
+                <span className="font-medium">Instagram</span>
+                <span className="text-muted-foreground">
+                  {publishing ? "Publishing…" : "Publish"}
+                </span>
+              </button>
+            )}
             {eligible.map((a) => (
               <button
                 key={a.id}

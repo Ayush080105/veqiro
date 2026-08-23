@@ -2,8 +2,21 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
-import { slugParamSchema, connectBodySchema, callToolBodySchema } from "./mcp.schema.js";
+import {
+  slugParamSchema,
+  connectBodySchema,
+  callToolBodySchema,
+  pendingActionParamSchema,
+  agentParamSchema,
+  toolPreferenceBodySchema,
+  actionLogQuerySchema,
+  approvalPolicyBodySchema,
+  policyIdParamSchema,
+  playIdParamSchema,
+  playEnabledBodySchema,
+} from "./mcp.schema.js";
 import * as mcpService from "./mcp.service.js";
+import * as playsService from "./mcp.plays.service.js";
 
 const requireAuth = (req: Request): { userId: string; organizationId: string } => {
   if (!req.userId || !req.organizationId) {
@@ -34,6 +47,36 @@ export const connect = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(result);
 };
 
+export const getCommandCenter = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  // ?refresh=1 skips the server cache — the customer pressed refresh because
+  // they know something changed, so honour it rather than serving a cached read.
+  const forceRefresh = req.query.refresh === "1";
+  const summary = await mcpService.getCommandCenter(organizationId);
+  // Server-cached with its own TTL; no-store keeps the browser from stacking a
+  // second, staler cache on top of it.
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(summary);
+};
+
+export const getValueReport = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const report = await mcpService.getValueReport(organizationId);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(report);
+};
+
+// POST because a widget run carries structured inputs and is never cacheable.
+export const getProof = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { slug } = slugParamSchema.parse(req.params);
+  const proof = await mcpService.getConnectionProof(organizationId, slug);
+  // Always fresh: this is read once, on the connect success screen, and a
+  // cached count from a previous connection would defeat the entire point.
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(proof);
+};
+
 export const getStatus = async (req: Request, res: Response) => {
   const { organizationId } = requireAuth(req);
   const { slug } = slugParamSchema.parse(req.params);
@@ -47,6 +90,44 @@ export const disconnect = async (req: Request, res: Response) => {
   const { slug } = slugParamSchema.parse(req.params);
   await mcpService.disconnect(organizationId, slug);
   res.status(StatusCodes.NO_CONTENT).send();
+};
+
+export const getPendingAction = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = pendingActionParamSchema.parse(req.params);
+  const result = await mcpService.getPendingAction(organizationId, id);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const confirmPendingAction = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = pendingActionParamSchema.parse(req.params);
+  const result = await mcpService.confirmPendingAction(organizationId, id);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const rejectPendingAction = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = pendingActionParamSchema.parse(req.params);
+  const result = await mcpService.rejectPendingAction(organizationId, id);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const getToolPreference = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { agent } = agentParamSchema.parse(req.params);
+  const result = await mcpService.getToolPreference(organizationId, agent);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const setToolPreference = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { agent } = agentParamSchema.parse(req.params);
+  const { preferredIntegrationSlug } = toolPreferenceBodySchema.parse(req.body ?? {});
+  const result = await mcpService.setToolPreference(organizationId, agent, preferredIntegrationSlug);
+  res.status(StatusCodes.OK).json(result);
 };
 
 // --- Internal (apps/ai only, internalKeyMiddleware-protected) ---
@@ -70,5 +151,56 @@ export const callToolInternal = async (req: Request, res: Response) => {
   const { organizationId, connectionId } = requireInternalOrgAndConnection(req);
   const { toolName, args } = callToolBodySchema.parse(req.body ?? {});
   const result = await mcpService.callTool(organizationId, connectionId, toolName, args);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const getActionLog = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const query = actionLogQuerySchema.parse(req.query);
+  const page = await mcpService.getActionLog({ organizationId, ...query });
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(page);
+};
+
+export const listApprovalPolicies = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const policies = await mcpService.listApprovalPolicies(organizationId);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(policies);
+};
+
+export const setApprovalPolicy = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const body = approvalPolicyBodySchema.parse(req.body);
+  const policy = await mcpService.setApprovalPolicy({ organizationId, userId, ...body });
+  res.status(StatusCodes.OK).json(policy);
+};
+
+export const deleteApprovalPolicy = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id } = policyIdParamSchema.parse(req.params);
+  await mcpService.deleteApprovalPolicy(organizationId, id);
+  res.status(StatusCodes.NO_CONTENT).send();
+};
+
+export const listPlays = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const plays = await playsService.listPlays(organizationId);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(plays);
+};
+
+export const setPlayEnabled = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const { id } = playIdParamSchema.parse(req.params);
+  const { enabled } = playEnabledBodySchema.parse(req.body);
+  const play = await playsService.setPlayEnabled(organizationId, userId, id, enabled);
+  res.status(StatusCodes.OK).json(play);
+};
+
+export const runPlayNow = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const { id } = playIdParamSchema.parse(req.params);
+  const result = await playsService.runPlayNow(organizationId, userId, id);
   res.status(StatusCodes.OK).json(result);
 };

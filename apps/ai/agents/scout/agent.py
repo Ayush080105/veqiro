@@ -26,6 +26,15 @@ class ScoutAgent(BaseAgent):
     default_provider = "openai"
     default_model = settings.SCOUT_MODEL
 
+    # Dropped from the tool list when the org sets an mcp_tool_preference for
+    # Scout (e.g. "tavily") — these all source data via native Serper search
+    # internally and have no way to be steered toward a connected MCP tool by
+    # prompting alone. See BaseAgent.SUPERSEDABLE_BY_MCP.
+    SUPERSEDABLE_BY_MCP = {
+        "web_search", "research_topic", "research_company",
+        "trending_topics", "discover_competitors",
+    }
+
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)
 
@@ -92,7 +101,11 @@ class ScoutAgent(BaseAgent):
         prompt += (
             "\n## Research Standards\n"
             "1. **BLUF first** — open every response with a 1-2 sentence bottom line. Evidence follows.\n"
-            "2. **Label every claim in free-text prose**: [FACT] for verified data, [INFERRED] for logical conclusions, [ESTIMATED] for approximations.\n"
+            "2. **Distinguish verified data from your own inference or estimate in free-text prose — without visible "
+            "tags.** Do NOT write literal [FACT]/[INFERRED]/[ESTIMATED] labels in your response text; they clutter "
+            "the read. Instead convey it naturally in the sentence itself when it matters — e.g. 'ServiceNow "
+            "reported...' / 'according to...' for sourced data, 'likely', 'this suggests', 'my read is' for your "
+            "own analysis. Never present a guess or inference as if it were confirmed data.\n"
             "3. **Cite inline in free-text prose** — link source URLs directly after any claim that came from the web.\n"
             "4. **Use tables** for any comparison of 2+ companies or data points.\n"
             f"5. **Strategic implications** — end every competitive analysis with a 'So what for {company_name}?' block.\n"
@@ -107,7 +120,7 @@ class ScoutAgent(BaseAgent):
             "For competitive analyses:\n"
             "  - Bottom line (1-2 sentences)\n"
             "  - Comparison table (if multiple companies)\n"
-            "  - Key findings with [FACT/INFERRED/ESTIMATED] labels and source links\n"
+            "  - Key findings with source links (no [FACT]/[INFERRED]/[ESTIMATED] tags — see Research Standards #2)\n"
             f"  - Strategic implications for {company_name}\n\n"
             "For market research:\n"
             "  - Bottom line\n"
@@ -132,6 +145,7 @@ class ScoutAgent(BaseAgent):
             "'perfect', 'got it', 'nice work', or anything casual — respond naturally, warmly, and briefly in plain text. "
             "No tools, no cards, no reports. Just a real human reply that matches their energy.\n"
         )
+        prompt += self._current_date_block()
         prompt += self._core_response_style_block()
         _greeting = (
             "When greeting at the start of a conversation: be warm, curious, and visibly excited to dig in. "
@@ -155,16 +169,19 @@ class ScoutAgent(BaseAgent):
             "'Lex handles legal matters.'\n"
             "- Email, calendar, scheduling → "
             "'Vega manages inbox and scheduling. That's Vega's domain.'\n"
-            "RULE: Only report what is verifiable. In free-text prose, label inferences [INFERRED] and estimates "
-            "[ESTIMATED]. In structured JSON output, keep field values clean — no tags or citations (see Research "
-            "Standards #8). Never fabricate market size numbers or funding figures.\n"
-            "\n## Connected Tools (e.g. Tavily, Exa, Perplexity, SerpApi, Firecrawl, Apify, Bright Data, "
-            "Crunchbase, PitchBook, LinkedIn Sales Navigator, Apollo.io, G2)\n"
-            "You may have extra research/data tools available beyond your native ones — prefer them over "
-            "your native `web_search` when one is a better fit (e.g. a Crunchbase-shaped tool for funding "
-            "data, an Apollo/Sales-Navigator-shaped tool for contact/prospect data, a Firecrawl/Apify-shaped "
-            "tool for structured site scraping). Data from these is [FACT], not [ESTIMATED]. Don't assume a "
-            "tool exists unless it's actually present in your tool list this turn.\n"
+            "RULE: Only report what is verifiable. Distinguish your own inference/estimate from sourced data "
+            "naturally in the sentence, without visible tags (see Research Standards #2). Never fabricate market "
+            "size numbers or funding figures.\n"
+            "\n## Connected Tools\n"
+            "You may have MCP tools beyond your native ones — each one's LLM-facing name is prefixed "
+            "`mcp_<slug>_`. Only use a tool if it's actually present in your tool list this turn — never "
+            "assume one exists just because it's listed here.\n"
+            "**Research & grounding** — `mcp_tavily_*`, `mcp_exa_*` — prefer these over your native "
+            "`web_search` when available; they give faster, cleaner grounding (Tavily) or neural/semantic "
+            "discovery (Exa) for competitor and market research.\n"
+            "**Structured extraction** — `mcp_apify_*`, `mcp_bright-data_*` — use for structured site "
+            "scraping or large-scale resilient data pulls a plain web search can't reliably do.\n"
+            "Data from these is real/sourced, not a guess — no need to flag it as an estimate.\n"
         )
         if extra_context:
             prompt += f"\nAdditional Context:\n{extra_context}\n"

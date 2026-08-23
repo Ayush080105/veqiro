@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ApprovalPolicySection } from "@/components/settings/ApprovalPolicySection"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import {
   authorizeUrl,
@@ -34,8 +35,8 @@ import { qk } from "@/lib/query-keys"
 import { PageHeader } from "@/components/ui/page-header"
 
 // ─── Legacy (native) integrations — X/LinkedIn/Instagram connect through their
-// original mechanism (the bespoke SocialAccount OAuth module). Instagram
-// publishes via the native Meta Graph API provider, not MCP. Google has no
+// original mechanism (the bespoke SocialAccount OAuth module). Instagram is
+// no longer here — it moved to Composio for both analytics and publishing. Google has no
 // native integration anymore (see the Vega/Google removal plan) — Gmail/Google
 // Calendar render below as normal, Composio-backed catalog cards.
 
@@ -67,15 +68,6 @@ const LEGACY_INTEGRATIONS: LegacyIntegrationDef[] = [
     requiredBy: ["Maya"],
     platformSlug: "linkedin",
     logoUrl: "https://logos.composio.dev/api/linkedin",
-  },
-  {
-    id: "instagram",
-    name: "Instagram",
-    description:
-      "Publish Maya's photos, reels, and carousels straight to your Instagram Business account.",
-    requiredBy: ["Maya"],
-    platformSlug: "instagram",
-    logoUrl: "https://cdn.jsdelivr.net/gh/ComposioHQ/open-logos@master/instagram.svg",
   },
 ]
 
@@ -262,6 +254,8 @@ export default function IntegrationsPage() {
           )
         })}
       </div>
+
+      <ApprovalPolicySection />
 
       <div className="flex flex-col gap-3 pt-2">
         <div className="flex flex-col gap-0.5">

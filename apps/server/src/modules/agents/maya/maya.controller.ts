@@ -22,6 +22,7 @@ import {
 } from "./maya.schema.js";
 import * as mayaService from "./maya.service.js";
 import * as mayaUsageService from "./maya.usage.service.js";
+import * as contentPlanService from "./maya.contentplan.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { UnauthenticatedError } from "../../../common/errors/unauthenticated.js";
 
@@ -192,4 +193,17 @@ export const createLogoAnimation = async (req: Request, res: Response) => {
   const input = logoAnimationSchema.parse(req.body);
   const result = await mayaService.createLogoAnimation(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
+};
+
+export const generateContentPlan = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const plan = await contentPlanService.generateContentPlan(organizationId, userId);
+  res.status(StatusCodes.OK).json(plan);
+};
+
+export const listContentPlans = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuthContext(req);
+  const plans = await contentPlanService.listContentPlans(organizationId);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(plans);
 };

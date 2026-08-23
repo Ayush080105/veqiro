@@ -7,6 +7,8 @@ import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64, uploadBuffer } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsService from "../../integrations/integrations.service.js";
+import * as mcpService from "../../mcp/mcp.service.js";
+import type { RawPendingAction } from "../../mcp/mcp.types.js";
 import { logActivity, ActivityAction } from "../../activity/activity.service.js";
 import type {
   SendMessageInput,
@@ -51,6 +53,10 @@ import type {
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
 import { SocialPlatform, SocialAccount } from "../../../../prisma/generated/prisma/client.js";
+import {
+  publishViaComposio,
+  publishCarouselViaComposio,
+} from "../../integrations/providers/instagram.composio.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import type { PlatformSlug, SocialProvider } from "../../integrations/integrations.types.js";
 import {
@@ -64,6 +70,12 @@ const platformToEnum: Record<string, SocialPlatform> = {
   twitter: SocialPlatform.TWITTER,
   linkedin: SocialPlatform.LINKEDIN,
   instagram: SocialPlatform.INSTAGRAM,
+};
+
+const enumToPlatform: Record<SocialPlatform, PlatformSlug> = {
+  [SocialPlatform.TWITTER]: "twitter",
+  [SocialPlatform.LINKEDIN]: "linkedin",
+  [SocialPlatform.INSTAGRAM]: "instagram",
 };
 
 const hostImage = async (
@@ -144,6 +156,14 @@ export const sendMessage = async (
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
+  const pendingActions = responseData.metadata?.pending_actions as RawPendingAction[] | undefined
+  const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
+  const stageIfNeeded = async (messageId: string) => {
+    if (pendingActions?.length) {
+      await mcpService.stagePendingActions({ organizationId, userId, agent: Agent.MAYA, messageId, pendingActions })
+    }
+  }
+
   let imageUrl: string | undefined = responseData.image?.url;
   if (!imageUrl && responseData.image?.image_base64 && isR2Configured()) {
     try {
@@ -170,7 +190,7 @@ export const sendMessage = async (
         prompt_used: responseData.image?.prompt_used ?? "",
       });
     }
-    return mayaRepository.createAssistantMessage({
+    const modifyImageMessage = await mayaRepository.createAssistantMessage({
       organizationId,
       userId,
       content: responseData.response,
@@ -189,9 +209,14 @@ export const sendMessage = async (
                 prompt_used: responseData.image?.prompt_used ?? "",
               },
             },
+            pendingActions: pendingActionsSnapshot,
           }
-        : undefined,
+        : pendingActionsSnapshot
+          ? { pendingActions: pendingActionsSnapshot }
+          : undefined,
     });
+    await stageIfNeeded(modifyImageMessage.id);
+    return modifyImageMessage;
   }
 
   // Build customInput for rich card rendering. For content actions inject the
@@ -212,7 +237,7 @@ export const sendMessage = async (
         prompt_used: responseData.image?.prompt_used ?? "",
       };
     }
-    customInput = { actionId: responseData.action_id, input: {}, result };
+    customInput = { actionId: responseData.action_id, input: {}, result, pendingActions: pendingActionsSnapshot };
   }
 
   // When the AI modified an image via chat (e.g. modify_image tool for logo/mascot
@@ -230,8 +255,13 @@ export const sendMessage = async (
           prompt_used: responseData.image?.prompt_used ?? "",
         },
       },
+      pendingActions: pendingActionsSnapshot,
     };
   }
+  if (!customInput && pendingActionsSnapshot) {
+    customInput = { pendingActions: pendingActionsSnapshot };
+  }
+  customInput = mcpService.withToolTrace(customInput, responseData.tool_trace);
 
   const assistantMessage = await mayaRepository.createAssistantMessage({
     organizationId,
@@ -242,6 +272,8 @@ export const sendMessage = async (
     model: responseData.model_used,
     customInput,
   });
+
+  await stageIfNeeded(assistantMessage.id);
 
   return assistantMessage;
 };
@@ -643,6 +675,9 @@ export interface FirablePost {
   id: string;
   organizationId: string;
   userId: string;
+  /** Routes the publish: Instagram goes through Composio, everything else
+   *  through the native SocialAccount providers. */
+  platform: SocialPlatform;
   socialAccountId: string | null;
   caption: string;
   imageUrl: string | null;
@@ -656,6 +691,55 @@ interface ResolvedAccount {
   platform: PlatformSlug;
 }
 
+
+/**
+ * Resolves where a post is going. Instagram publishes over its Composio MCP
+ * connection and therefore has no SocialAccount, so `platform: "instagram"`
+ * is a valid target on its own — everything else still resolves a native
+ * account (and its OAuth token) up front.
+ */
+const resolvePublishTarget = async (
+  organizationId: string,
+  input: { socialAccountId?: string; platform?: string },
+): Promise<{
+  platform: SocialPlatform;
+  account: SocialAccount | null;
+  resolved: ResolvedAccount | null;
+}> => {
+  if (input.platform === "instagram") {
+    // Fail here rather than at fire time, so the user is told before a
+    // PublishedPost row is created and left dangling.
+    const connected = (await mcpService.listConnections(organizationId)).some(
+      (c) => c.slug === "instagram" && c.status === "CONNECTED",
+    );
+    if (!connected) {
+      throw new BadRequestError(
+        "Instagram isn't connected. Connect it from Settings → Integrations.",
+      );
+    }
+    return { platform: SocialPlatform.INSTAGRAM, account: null, resolved: null };
+  }
+  if (!input.socialAccountId) {
+    throw new BadRequestError("No publish target provided");
+  }
+  const resolved = await integrationsService.getUsableSocialAccount(
+    organizationId,
+    input.socialAccountId,
+  );
+  return { platform: resolved.account.platform, account: resolved.account, resolved };
+};
+
+/** Records a Composio publish failure on the post the same way the native path
+ *  does, so a failed Instagram post is not left sitting at "pending". */
+const markPublishFailed = async (postId: string, err: unknown): Promise<never> => {
+  const message = err instanceof Error ? err.message : String(err);
+  await prisma.publishedPost.update({
+    where: { id: postId },
+    data: { status: "failed", errorMessage: message.slice(0, 500) },
+  });
+  throw err;
+};
+
 // Calls the provider (with one retry on auth-token expiry) and updates the
 // PublishedPost row to success/failed. Shared by the synchronous publish path
 // (which already has a freshly-resolved account) and the scheduled-post cron
@@ -665,6 +749,34 @@ export const firePublishedPost = async (
   post: FirablePost,
   resolved?: ResolvedAccount
 ): Promise<PublishResponse> => {
+  // Instagram publishes through the Composio MCP connection, which has no
+  // SocialAccount — so it is routed before the account lookup below. Verified
+  // end to end against a live business account.
+  if (post.platform === SocialPlatform.INSTAGRAM) {
+    try {
+      const result = await publishViaComposio({
+        organizationId: post.organizationId,
+        caption: post.caption,
+        imageUrl: post.imageUrl ?? undefined,
+        videoUrl: post.videoUrl ?? undefined,
+        postType: post.postType as "post" | "reel" | undefined,
+      });
+      const publishedAt = new Date();
+      await prisma.publishedPost.update({
+        where: { id: post.id },
+        data: { status: "success", platformPostId: result.platformPostId, publishedAt },
+      });
+      return {
+        platform: "instagram",
+        platformPostId: result.platformPostId,
+        url: result.url,
+        publishedAt: publishedAt.toISOString(),
+      };
+    } catch (err) {
+      return markPublishFailed(post.id, err);
+    }
+  }
+
   if (!post.socialAccountId) throw new BadRequestError("No social account associated with this post");
   let { account: activeAccount, provider, platform } =
     resolved ?? await integrationsService.getUsableSocialAccount(post.organizationId, post.socialAccountId);
@@ -773,11 +885,12 @@ export const publish = async (
     videoUrl = uploaded.url;
   }
 
-  const resolved = await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
+  const target = await resolvePublishTarget(organizationId, input);
+  const resolved = target.resolved;
 
   // Pre-flight: Instagram's Graph API rejects text-only posts — Twitter and
   // LinkedIn both support them, so only gate Instagram here.
-  if (resolved.account.platform === SocialPlatform.INSTAGRAM && !imageUrl && !videoUrl) {
+  if (target.platform === SocialPlatform.INSTAGRAM && !imageUrl && !videoUrl) {
     throw new BadRequestError("Publishing to Instagram requires an image or video");
   }
 
@@ -787,8 +900,8 @@ export const publish = async (
     data: {
       organizationId,
       userId,
-      socialAccountId: resolved.account.id,
-      platform: resolved.account.platform,
+      socialAccountId: target.account?.id ?? null,
+      platform: target.platform,
       caption,
       hashtags: input.hashtags ?? [],
       imageUrl,
@@ -804,13 +917,14 @@ export const publish = async (
         id: pending.id,
         organizationId,
         userId,
+        platform: pending.platform,
         socialAccountId: pending.socialAccountId,
         caption,
         imageUrl: imageUrl ?? null,
         videoUrl: videoUrl ?? null,
         postType: input.postType ?? null,
       },
-      resolved
+      resolved ?? undefined
     );
 
     await logActivity({
@@ -866,14 +980,12 @@ export const schedulePost = async (
     videoUrl = uploaded.url;
   }
 
-  const { account, platform } = await integrationsService.getUsableSocialAccount(
-    organizationId,
-    input.socialAccountId
-  );
+  const target = await resolvePublishTarget(organizationId, input);
+  const account = target.account;
 
   // Instagram's Graph API rejects text-only posts — Twitter and LinkedIn both
   // support them, so only gate Instagram here.
-  if (account.platform === SocialPlatform.INSTAGRAM && !imageUrl && !videoUrl) {
+  if (target.platform === SocialPlatform.INSTAGRAM && !imageUrl && !videoUrl) {
     throw new BadRequestError("Scheduling to Instagram requires an image or video");
   }
   const caption = normalizeCaption(input.caption, input.hashtags);
@@ -882,8 +994,8 @@ export const schedulePost = async (
     data: {
       organizationId,
       userId,
-      socialAccountId: account.id,
-      platform: account.platform,
+      socialAccountId: account?.id ?? null,
+      platform: target.platform,
       caption,
       hashtags: input.hashtags ?? [],
       imageUrl,
@@ -894,7 +1006,7 @@ export const schedulePost = async (
     },
   });
 
-  return { id: row.id, scheduledAt: row.scheduledAt!.toISOString(), platform };
+  return { id: row.id, scheduledAt: row.scheduledAt!.toISOString(), platform: enumToPlatform[target.platform] };
 };
 
 export const cancelScheduledPost = async (organizationId: string, id: string) => {
@@ -1015,6 +1127,8 @@ export interface FirableCarouselPost {
   id: string;
   organizationId: string;
   userId: string;
+  /** See FirablePost.platform. */
+  platform: SocialPlatform;
   socialAccountId: string | null;
   caption: string;
   imageUrls: string[];
@@ -1025,6 +1139,30 @@ export const firePublishedCarousel = async (
   post: FirableCarouselPost,
   resolved?: { account: SocialAccount; provider: SocialProvider }
 ): Promise<PublishCarouselResponse> => {
+  // Instagram carousels go through Composio, same as single posts.
+  if (post.platform === SocialPlatform.INSTAGRAM) {
+    try {
+      const result = await publishCarouselViaComposio({
+        organizationId: post.organizationId,
+        caption: post.caption,
+        imageUrls: post.imageUrls,
+      });
+      const publishedAt = new Date();
+      await prisma.publishedPost.update({
+        where: { id: post.id },
+        data: { status: "success", platformPostId: result.platformPostId, publishedAt },
+      });
+      return {
+        platform: "instagram",
+        platformPostId: result.platformPostId,
+        url: result.url,
+        publishedAt: publishedAt.toISOString(),
+      };
+    } catch (err) {
+      return markPublishFailed(post.id, err);
+    }
+  }
+
   if (!post.socialAccountId) throw new BadRequestError("No social account associated with this post");
   let { account, provider } =
     resolved ?? await integrationsService.getUsableSocialAccount(post.organizationId, post.socialAccountId);
@@ -1092,11 +1230,14 @@ export const publishCarousel = async (
   organizationId: string,
   input: PublishCarouselInput
 ): Promise<PublishCarouselResponse> => {
-  const resolved = await integrationsService.getUsableSocialAccount(organizationId, input.socialAccountId);
-  if (resolved.account.platform !== SocialPlatform.INSTAGRAM) {
+  const target = await resolvePublishTarget(organizationId, input);
+  const resolved = target.resolved;
+  if (target.platform !== SocialPlatform.INSTAGRAM) {
     throw new BadRequestError("Carousel publishing is only supported for Instagram");
   }
-  if (!resolved.provider.publishCarousel) {
+  // Only the native path needs a carousel-capable provider; the MCP path has
+  // its own carousel publisher.
+  if (resolved && !resolved.provider.publishCarousel) {
     throw new BadRequestError("Carousel publishing not supported by this provider");
   }
 
@@ -1106,7 +1247,7 @@ export const publishCarousel = async (
     data: {
       organizationId,
       userId,
-      socialAccountId: resolved.account.id,
+      socialAccountId: target.account?.id ?? null,
       platform: SocialPlatform.INSTAGRAM,
       caption,
       hashtags: input.hashtags ?? [],
@@ -1122,11 +1263,12 @@ export const publishCarousel = async (
         id: pending.id,
         organizationId,
         userId,
+        platform: pending.platform,
         socialAccountId: pending.socialAccountId,
         caption,
         imageUrls: input.imageUrls,
       },
-      resolved
+      resolved ?? undefined
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -1139,14 +1281,13 @@ export const scheduleCarousel = async (
   organizationId: string,
   input: ScheduleCarouselInput
 ): Promise<ScheduleResponse> => {
-  const { account, provider } = await integrationsService.getUsableSocialAccount(
-    organizationId,
-    input.socialAccountId
-  );
-  if (account.platform !== SocialPlatform.INSTAGRAM) {
+  const target = await resolvePublishTarget(organizationId, input);
+  if (target.platform !== SocialPlatform.INSTAGRAM) {
     throw new BadRequestError("Carousel publishing is only supported for Instagram");
   }
-  if (!provider.publishCarousel) {
+  // Only the native path needs a provider capable of carousels; the MCP path
+  // has its own carousel publisher.
+  if (target.resolved && !target.resolved.provider.publishCarousel) {
     throw new BadRequestError("Carousel publishing not supported by this provider");
   }
 
@@ -1156,7 +1297,7 @@ export const scheduleCarousel = async (
     data: {
       organizationId,
       userId,
-      socialAccountId: account.id,
+      socialAccountId: target.account?.id ?? null,
       platform: SocialPlatform.INSTAGRAM,
       caption,
       hashtags: input.hashtags ?? [],
