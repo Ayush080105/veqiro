@@ -27,7 +27,12 @@ COPY packages/integrations-catalog/ ./packages/integrations-catalog/
 RUN pnpm --filter @repo/integrations-catalog build
 
 # Generate Prisma client then compile TypeScript
+# DATABASE_URL only needs to *resolve* here — `prisma generate` never opens a
+# connection (unlike `migrate deploy`, which runs for real at container start
+# with the actual value). A placeholder keeps the real secret out of the
+# build args/logs entirely.
 WORKDIR /repo/apps/server
+ARG DATABASE_URL=postgresql://user:password@localhost:5432/placeholder
 RUN pnpm exec prisma generate
 RUN pnpm run build
 
