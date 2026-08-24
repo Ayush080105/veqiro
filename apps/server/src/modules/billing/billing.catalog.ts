@@ -88,3 +88,21 @@ export function resolveAgentFromProductId(productId: string): Agent | null {
   return null;
 }
 
+/**
+ * Fails fast at boot if any required Dodo product id is missing, instead of
+ * only surfacing it the first time a real customer checks out for that
+ * agent (agentProductId/mayaTopupUnitProductId both throw lazily, at request
+ * time). Call once at server startup — see server.ts.
+ */
+export function validateBillingEnv(): void {
+  const missing = [
+    ...ALL_AGENTS
+      .filter((agent) => !process.env[AGENT_PRODUCT_ENV_KEYS[agent]])
+      .map((agent) => AGENT_PRODUCT_ENV_KEYS[agent]),
+    ...(process.env.DODO_PRODUCT_MAYA_TOPUP_UNIT ? [] : ["DODO_PRODUCT_MAYA_TOPUP_UNIT"]),
+  ];
+  if (missing.length) {
+    throw new Error(`Missing Dodo product id env var(s): ${missing.join(", ")}`);
+  }
+}
+

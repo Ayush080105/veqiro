@@ -87,13 +87,27 @@ export async function cancelAgentAutoPay(organizationId: string, agent: Agent) {
 
   await dodoClient.subscriptions.update(bs.dodoSubscriptionId, { cancel_at_next_billing_date: true });
 
-  await prisma.$transaction([
-    prisma.entitlement.updateMany({
-      where: { billingSubscriptionId: bs.id, status: { in: ["ACTIVE", "PAST_DUE"] } },
-      data: { cancelAtPeriodEnd: true },
-    }),
-    prisma.billingSubscription.update({ where: { id: bs.id }, data: { cancelAtPeriodEnd: true } }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.entitlement.updateMany({
+        where: { billingSubscriptionId: bs.id, status: { in: ["ACTIVE", "PAST_DUE"] } },
+        data: { cancelAtPeriodEnd: true },
+      }),
+      prisma.billingSubscription.update({ where: { id: bs.id }, data: { cancelAtPeriodEnd: true } }),
+    ]);
+  } catch (err) {
+    // Dodo has ALREADY been told to stop renewing (call above succeeded) —
+    // access is unaffected either way (still governed by currentPeriodEnd),
+    // but the local cancelAtPeriodEnd flag is now stale (says "will renew"
+    // when Dodo will not). Loud, specific log rather than a generic 500 so
+    // this is discoverable and the row can be corrected by hand.
+    console.error(
+      "[billing] cancelAgentAutoPay: Dodo update succeeded but the local write failed — cancelAtPeriodEnd is now stale",
+      { organizationId, agent, billingSubscriptionId: bs.id, dodoSubscriptionId: bs.dodoSubscriptionId },
+      err,
+    );
+    throw err;
+  }
 
   return { activeUntil: row.currentPeriodEnd };
 }
@@ -112,13 +126,24 @@ export async function resumeAgentAutoPay(organizationId: string, agent: Agent) {
 
   await dodoClient.subscriptions.update(bs.dodoSubscriptionId, { cancel_at_next_billing_date: false });
 
-  await prisma.$transaction([
-    prisma.entitlement.updateMany({
-      where: { billingSubscriptionId: bs.id, status: { in: ["ACTIVE", "PAST_DUE"] } },
-      data: { cancelAtPeriodEnd: false },
-    }),
-    prisma.billingSubscription.update({ where: { id: bs.id }, data: { cancelAtPeriodEnd: false } }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.entitlement.updateMany({
+        where: { billingSubscriptionId: bs.id, status: { in: ["ACTIVE", "PAST_DUE"] } },
+        data: { cancelAtPeriodEnd: false },
+      }),
+      prisma.billingSubscription.update({ where: { id: bs.id }, data: { cancelAtPeriodEnd: false } }),
+    ]);
+  } catch (err) {
+    // Same divergence risk as cancelAgentAutoPay's catch, mirrored here:
+    // Dodo has already been told to resume renewing.
+    console.error(
+      "[billing] resumeAgentAutoPay: Dodo update succeeded but the local write failed — cancelAtPeriodEnd is now stale",
+      { organizationId, agent, billingSubscriptionId: bs.id, dodoSubscriptionId: bs.dodoSubscriptionId },
+      err,
+    );
+    throw err;
+  }
 
   return { renewsOn: row.currentPeriodEnd };
 }

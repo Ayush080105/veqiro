@@ -15,7 +15,7 @@ import type { Agent, SubscriptionPlan } from "../../../prisma/generated/prisma/c
  * lightweight prisma mocks in unit tests, not just real Prisma error
  * instances — the two are otherwise indistinguishable at the call site.
  */
-function isUniqueConstraintError(err: unknown): boolean {
+export function isUniqueConstraintError(err: unknown): boolean {
   return typeof err === "object" && err !== null && "code" in err && err.code === "P2002";
 }
 
@@ -52,6 +52,23 @@ async function findOrgIdByCustomer(customerId: string | undefined): Promise<stri
 function findOrgIdFromPayload(payload: WebhookPayload): string | null {
   const value = payload.data.metadata?.organizationId;
   return typeof value === "string" && value ? value : null;
+}
+
+/**
+ * Resolves the owning org for a known Dodo subscription, purely so the
+ * BillingWebhookEvent ledger row can be tagged with it. This is a read-only
+ * lookup done BEFORE the idempotency claim (withWebhookEvent's `create`), so
+ * it's safe to run on every delivery including redeliveries — it has no
+ * side effect of its own. Returns null for an unknown subscription (the
+ * handler itself logs/returns "ignored-unknown-subscription"; the ledger row
+ * for that event is simply left unattributed, same as before).
+ */
+async function resolveOrgIdForSubscription(dodoSubId: string): Promise<string | null> {
+  const bs = await prisma.billingSubscription.findUnique({
+    where: { dodoSubscriptionId: dodoSubId },
+    select: { organizationId: true },
+  });
+  return bs?.organizationId ?? null;
 }
 
 function parsePeriodEnd(p: WebhookPayload["data"]): Date | null {
@@ -401,7 +418,8 @@ export async function handleSubscriptionRenewed(payload: WebhookPayload) {
   const dodoSubId = payload.data.subscription_id;
   if (!dodoSubId || !periodEnd) return;
 
-  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+  const orgId = await resolveOrgIdForSubscription(dodoSubId);
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, orgId, async () => {
     const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
     if (!bs) return "ignored-unknown-subscription";
     // Out-of-order guard: never move a period backwards.
@@ -431,7 +449,8 @@ export async function handleSubscriptionCancelled(payload: WebhookPayload) {
   const dodoSubId = payload.data.subscription_id;
   if (!dodoSubId) return;
 
-  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+  const orgId = await resolveOrgIdForSubscription(dodoSubId);
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, orgId, async () => {
     const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
     if (!bs) return "ignored-unknown-subscription";
 
@@ -455,7 +474,8 @@ async function expireBillingSubscription(payload: WebhookPayload, resultTag: str
   const dodoSubId = payload.data.subscription_id;
   if (!dodoSubId) return;
 
-  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+  const orgId = await resolveOrgIdForSubscription(dodoSubId);
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, orgId, async () => {
     const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
     if (!bs) return "ignored-unknown-subscription";
 
@@ -487,7 +507,8 @@ export async function handlePaymentFailed(payload: WebhookPayload) {
   const dodoSubId = payload.data.subscription_id;
   if (!dodoSubId) return;
 
-  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, null, async () => {
+  const orgId = await resolveOrgIdForSubscription(dodoSubId);
+  return withWebhookEvent(providerEventId(payload), payload.type, dodoSubId, orgId, async () => {
     const bs = await prisma.billingSubscription.findUnique({ where: { dodoSubscriptionId: dodoSubId } });
     if (!bs) return "ignored-unknown-subscription";
 

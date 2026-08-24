@@ -134,8 +134,10 @@ const {
   applyAgentActivation,
   handleSubscriptionActive,
   handleSubscriptionRenewed,
+  handleSubscriptionCancelled,
   handlePaymentFailed,
   handleSubscriptionExpired,
+  handleSubscriptionFailed,
 } = await import("../../modules/billing/billing.webhooks.js");
 
 function daysFromNow(days: number) {
@@ -409,5 +411,122 @@ describe("handleSubscriptionExpired", () => {
     const rex = ents.find((e) => e.id === "ent_rex")!;
     assert.equal(maya.status, "ACTIVE");
     assert.equal(rex.status, "EXPIRED");
+  });
+});
+
+describe("handleSubscriptionCancelled", () => {
+  test("cancelling one agent's subscription does not touch a sibling agent's entitlement", async () => {
+    billingSubs = [
+      { id: "bs_maya", organizationId: "o1", dodoSubscriptionId: "sub_maya", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20), cancelAtPeriodEnd: false },
+      { id: "bs_rex", organizationId: "o1", dodoSubscriptionId: "sub_rex", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(10), cancelAtPeriodEnd: false },
+    ];
+    ents = [
+      { id: "ent_maya", organizationId: "o1", agent: "MAYA", source: "AGENT", status: "ACTIVE", currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_maya", cancelAtPeriodEnd: false },
+      { id: "ent_rex", organizationId: "o1", agent: "REX", source: "AGENT", status: "ACTIVE", currentPeriodEnd: daysFromNow(10), billingSubscriptionId: "bs_rex", cancelAtPeriodEnd: false },
+    ];
+
+    const result = await handleSubscriptionCancelled({
+      type: "subscription.cancelled",
+      data: { subscription_id: "sub_rex" },
+    } as never);
+
+    assert.equal(result, "applied-cancelled");
+    const maya = ents.find((e) => e.id === "ent_maya")!;
+    const rex = ents.find((e) => e.id === "ent_rex")!;
+    assert.equal(maya.cancelAtPeriodEnd, false, "Maya must be unaffected by Rex's cancellation");
+    assert.equal(maya.status, "ACTIVE", "cancellation must not revoke access — the paid period is retained");
+    assert.equal(rex.cancelAtPeriodEnd, true);
+    assert.equal(rex.status, "ACTIVE", "access is retained to period end; only the renewal stops");
+    assert.equal(billingSubs.find((b) => b.id === "bs_rex")!.cancelAtPeriodEnd, true);
+  });
+});
+
+describe("handleSubscriptionFailed", () => {
+  test("failing one agent's subscription does not expire a sibling agent's entitlement", async () => {
+    billingSubs = [
+      { id: "bs_maya", organizationId: "o1", dodoSubscriptionId: "sub_maya", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) },
+      { id: "bs_rex", organizationId: "o1", dodoSubscriptionId: "sub_rex", plan: "MONTHLY", status: "PAST_DUE", currentPeriodEnd: daysFromNow(1) },
+    ];
+    ents = [
+      { id: "ent_maya", organizationId: "o1", agent: "MAYA", source: "AGENT", status: "ACTIVE", currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_maya" },
+      { id: "ent_rex", organizationId: "o1", agent: "REX", source: "AGENT", status: "PAST_DUE", currentPeriodEnd: daysFromNow(1), billingSubscriptionId: "bs_rex" },
+    ];
+
+    const result = await handleSubscriptionFailed({
+      type: "subscription.failed",
+      data: { subscription_id: "sub_rex" },
+    } as never);
+
+    assert.equal(result, "applied-failed", "handleSubscriptionFailed must be independently exercised, not just its shared helper via Expired");
+    const maya = ents.find((e) => e.id === "ent_maya")!;
+    const rex = ents.find((e) => e.id === "ent_rex")!;
+    assert.equal(maya.status, "ACTIVE");
+    assert.equal(rex.status, "EXPIRED");
+    assert.equal(billingSubs.find((b) => b.id === "bs_rex")!.status, "EXPIRED");
+  });
+});
+
+describe("unknown-subscription webhooks are handled gracefully (no crash, no state change)", () => {
+  const cases: Array<[string, (payload: never) => Promise<unknown>, string]> = [
+    ["subscription.renewed", handleSubscriptionRenewed, "sub_ghost"],
+    ["subscription.cancelled", handleSubscriptionCancelled, "sub_ghost"],
+    ["subscription.expired", handleSubscriptionExpired, "sub_ghost"],
+    ["subscription.failed", handleSubscriptionFailed, "sub_ghost"],
+    ["payment.failed", handlePaymentFailed, "sub_ghost"],
+  ];
+
+  for (const [type, handler, subId] of cases) {
+    test(`${type} for a subscription with no local BillingSubscription row is ignored, not thrown`, async () => {
+      billingSubs = [];
+      ents = [];
+
+      const result = await handler({
+        type,
+        data: { subscription_id: subId, next_billing_date: daysFromNow(30).toISOString() },
+      } as never);
+
+      assert.equal(result, "ignored-unknown-subscription");
+      assert.equal(billingSubs.length, 0);
+      assert.equal(ents.length, 0);
+    });
+  }
+});
+
+describe("BillingWebhookEvent ledger organizationId attribution", () => {
+  test("REGRESSION: handleSubscriptionRenewed backfills organizationId onto the ledger row instead of leaving it null", async () => {
+    billingSubs = [{ id: "bs_maya", organizationId: "o1", dodoSubscriptionId: "sub_maya", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
+    ents = [{ id: "ent_maya", organizationId: "o1", agent: "MAYA", source: "AGENT", status: "ACTIVE", currentPeriodEnd: daysFromNow(20), billingSubscriptionId: "bs_maya" }];
+
+    await handleSubscriptionRenewed({
+      type: "subscription.renewed",
+      data: { subscription_id: "sub_maya", next_billing_date: daysFromNow(30).toISOString() },
+    } as never);
+
+    assert.equal(webhookEvents.length, 1);
+    assert.equal(webhookEvents[0]!.organizationId, "o1", "the ledger row must be attributed to the org, not left null");
+  });
+
+  test("REGRESSION: handleSubscriptionCancelled backfills organizationId onto the ledger row", async () => {
+    billingSubs = [{ id: "bs_maya", organizationId: "o1", dodoSubscriptionId: "sub_maya", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
+    ents = [];
+
+    await handleSubscriptionCancelled({
+      type: "subscription.cancelled",
+      data: { subscription_id: "sub_maya" },
+    } as never);
+
+    assert.equal(webhookEvents[0]!.organizationId, "o1");
+  });
+
+  test("REGRESSION: handlePaymentFailed backfills organizationId onto the ledger row", async () => {
+    billingSubs = [{ id: "bs_maya", organizationId: "o1", dodoSubscriptionId: "sub_maya", plan: "MONTHLY", status: "ACTIVE", currentPeriodEnd: daysFromNow(20) }];
+    ents = [];
+
+    await handlePaymentFailed({
+      type: "payment.failed",
+      data: { subscription_id: "sub_maya" },
+    } as never);
+
+    assert.equal(webhookEvents[0]!.organizationId, "o1");
   });
 });

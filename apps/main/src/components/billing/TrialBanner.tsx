@@ -14,7 +14,13 @@ export function TrialBanner() {
   const sub = billing?.subscription
 
   if (!sub) return null
-  if (sub.status !== "TRIALING") return null
+  // sub.status is the legacy Subscription.status column — it can never be
+  // "TRIALING" (trial state lives on Entitlement rows now; see
+  // deriveStatusFields's doc comment in billing.controller.ts), so gating on
+  // it here meant this banner never rendered for any trialing org. Mirrors
+  // settings/billing/page.tsx's isTrialing derivation.
+  const isTrialing = sub.entitlements?.some((e) => e.source === "TRIAL") ?? false
+  if (!isTrialing) return null
 
   const days = sub.daysRemaining ?? 0
 

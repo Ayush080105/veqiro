@@ -37,6 +37,7 @@ import type { ContentPlanItem } from "@/lib/api/assistants"
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
 import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
+import { getBillingStatus } from "@/lib/api/billing"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 import { qk } from "@/lib/query-keys"
 
@@ -986,18 +987,46 @@ export default function AssistantChatPage() {
   // Return redirect from a Maya credit top-up checkout (billing.topup.ts's
   // return_url/cancel_url both point back here). Mirrors the status=success/
   // cancelled handling on settings/billing/page.tsx.
+  const [toppingUp, setToppingUp] = useState(false)
   useEffect(() => {
     const topup = searchParams.get("topup")
     if (!topup) return
     if (topup === "success") {
-      toast.success("Credits added", { description: "Check your balance above." })
-      if (organizationId) void queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
+      toast.info("Payment complete", { description: "Syncing your credits..." })
+      setToppingUp(true)
     } else if (topup === "cancelled") {
       toast.info("Top-up cancelled", { description: "No charge was made." })
     }
     router.replace(`/assistants/${id}`)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount only
+
+  // Polls for the top-up webhook to land instead of declaring "Credits
+  // added" immediately on the redirect — the payment can be captured seconds
+  // before handleMayaTopupPaymentSucceeded actually grants the credits, so an
+  // instant success toast could show a stale (pre-purchase) balance. Mirrors
+  // settings/billing/page.tsx's syncingCheckout poll: capped at ~30s (15 * 2s).
+  useEffect(() => {
+    if (!toppingUp) return
+    let attempts = 0
+    const interval = window.setInterval(() => {
+      attempts += 1
+      void getBillingStatus().then((status) => {
+        const pending = status.subscription?.pendingCheckout
+        if (!pending || pending.kind !== "MAYA_TOPUP") {
+          setToppingUp(false)
+          toast.success("Credits added", { description: "Check your balance above." })
+          if (organizationId) void queryClient.invalidateQueries({ queryKey: qk.mayaUsage(organizationId) })
+        } else if (attempts >= 15) {
+          setToppingUp(false)
+          toast.warning("Still syncing", {
+            description: "This is taking longer than usual — refresh the page or contact support if it doesn't update soon.",
+          })
+        }
+      })
+    }, 2000)
+    return () => window.clearInterval(interval)
+  }, [toppingUp, organizationId, queryClient])
 
   const discoverCompetitorsPrefill = useMemo(() =>
     brandKit

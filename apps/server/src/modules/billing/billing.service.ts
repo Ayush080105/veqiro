@@ -14,6 +14,7 @@ import {
 } from "./billing.catalog.js";
 import { ACCESS_STATUSES, getActiveEntitlements } from "./entitlement.service.js";
 import { resumeAgentAutoPay } from "./billing.cancel.js";
+import { isUniqueConstraintError } from "./billing.webhooks.js";
 import type { Agent } from "../../../prisma/generated/prisma/client.js";
 
 class ForbiddenError extends CustomApiError {
@@ -195,6 +196,40 @@ export function assertAgentPurchasable(active: ActiveEntitlement[], agent: Agent
   if (blocking) throw new ConflictError(`already-entitled:${agent}`);
 }
 
+const PENDING_CHECKOUT_STALE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Rejects starting a second checkout for an agent while one from this org is
+ * already in flight. Closes the double-purchase race: a double-click or two
+ * open tabs can fire two checkout requests before either has an entitlement
+ * to block on, so assertAgentPurchasable alone lets both through — the first
+ * to complete provisions normally, the second mints a SECOND Dodo
+ * subscription for the same agent (double charge), and a later cancel only
+ * ever finds the newer of the two, leaving the other billing forever.
+ *
+ * A pending checkout older than PENDING_CHECKOUT_STALE_MS is treated as
+ * abandoned and does not block — same staleness bound cleanupPendingCheckouts
+ * uses on the webhook side.
+ *
+ * Pure — takes the already-fetched pending checkout row so it can be tested
+ * without a database. This check alone still has a race window between the
+ * read and the write; the DB-level unique constraint on
+ * PendingCheckout(organizationId, agent) that createCheckoutForOrg's
+ * `.create()` relies on is the actual backstop for a true concurrent race —
+ * see the catch around that call.
+ */
+export function assertNoPendingCheckout(
+  existing: { agent: Agent | null; kind: string; createdAt: Date } | null,
+  agent: Agent,
+  now: Date = new Date(),
+): void {
+  if (!existing) return;
+  if (existing.kind !== "AGENT" || existing.agent !== agent) return;
+  if (now.getTime() - existing.createdAt.getTime() < PENDING_CHECKOUT_STALE_MS) {
+    throw new ConflictError(`checkout-already-pending:${agent}`);
+  }
+}
+
 /**
  * Buys ONE agent. Dodo rejects multi-product checkouts (422 "Only one
  * subscription product allowed per checkout"), so there is no cart — buying
@@ -227,6 +262,18 @@ export async function createCheckoutForOrg(
 
   assertAgentPurchasable(active, agent);
 
+  // Closes the double-purchase race (see assertNoPendingCheckout's doc
+  // comment): reject, or clear if stale, an existing in-flight checkout for
+  // this exact agent before minting a second Dodo checkout session.
+  const existingPending = await prisma.pendingCheckout.findFirst({
+    where: { organizationId, agent, kind: "AGENT" },
+    orderBy: { createdAt: "desc" },
+  });
+  assertNoPendingCheckout(existingPending, agent);
+  if (existingPending) {
+    await prisma.pendingCheckout.delete({ where: { id: existingPending.id } }).catch(() => {});
+  }
+
   const baseUrl = process.env.CLIENT_URL || "http://localhost:3001";
   const session = await dodoClient.checkoutSessions.create({
     product_cart: [{ product_id: agentProductId(agent), quantity: 1 }],
@@ -242,8 +289,19 @@ export async function createCheckoutForOrg(
   });
 
   if (!session.checkout_url) throw new BadRequestError("checkout-url-missing");
-  await prisma.pendingCheckout.create({
-    data: { organizationId, sessionId: session.session_id, kind: "AGENT", agent, plan: "MONTHLY" },
-  });
+
+  try {
+    await prisma.pendingCheckout.create({
+      data: { organizationId, sessionId: session.session_id, kind: "AGENT", agent, plan: "MONTHLY" },
+    });
+  } catch (err) {
+    // Backstop for a TRUE concurrent race that slipped past the check above
+    // (two requests both saw no existing row, both got this far): the DB's
+    // unique constraint on PendingCheckout(organizationId, agent) rejects
+    // the second insert. The minted-but-orphaned Dodo checkout session from
+    // this request is harmless — it simply expires unused.
+    if (isUniqueConstraintError(err)) throw new ConflictError(`checkout-already-pending:${agent}`);
+    throw err;
+  }
   return { resumed: false as const, url: session.checkout_url };
 }

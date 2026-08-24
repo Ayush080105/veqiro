@@ -17,6 +17,19 @@ import {
 } from "../modules/billing/billing.webhooks.js";
 import { logActivity, ActivityAction } from "../modules/activity/activity.service.js";
 
+// DODO_WEBHOOK_SECRET is a deprecated fallback name kept for existing
+// deployments — DODO_PAYMENTS_WEBHOOK_SECRET is canonical. Failing loudly at
+// boot if NEITHER is set beats the alternative: passing `undefined` into the
+// plugin and having every real webhook silently fail signature verification
+// in production with no startup error to point at.
+const dodoWebhookSecret = process.env.DODO_PAYMENTS_WEBHOOK_SECRET ?? process.env.DODO_WEBHOOK_SECRET;
+if (!dodoWebhookSecret) {
+  throw new Error(
+    "Missing DODO_PAYMENTS_WEBHOOK_SECRET — set it before starting the server. " +
+    "(DODO_WEBHOOK_SECRET is accepted as a deprecated fallback name.)",
+  );
+}
+
 const auth = betterAuth({
 
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
@@ -108,7 +121,7 @@ const auth = betterAuth({
       client: dodoClient,
       use: [
         webhooks({
-          webhookKey: (process.env.DODO_PAYMENTS_WEBHOOK_SECRET ?? process.env.DODO_WEBHOOK_SECRET)!,
+          webhookKey: dodoWebhookSecret,
           onSubscriptionActive: handleSubscriptionActive as any,
           onSubscriptionRenewed: handleSubscriptionRenewed as any,
           onSubscriptionCancelled: handleSubscriptionCancelled as any,

@@ -12,7 +12,7 @@ vi.mock("../../lib/auth.js", () => ({
 vi.mock("../../lib/dodo.js", () => ({ dodoClient: {} }));
 vi.mock("../../config/prisma.js", () => ({ prisma: {} }));
 
-const { assertAgentPurchasable } = await import("../../modules/billing/billing.service.js");
+const { assertAgentPurchasable, assertNoPendingCheckout } = await import("../../modules/billing/billing.service.js");
 
 const future = new Date(Date.now() + 10 * 86400_000);
 const ent = (agent: string, source: string, extra: Record<string, unknown> = {}) => ({
@@ -51,6 +51,46 @@ describe("assertAgentPurchasable", () => {
   test("owning Maya and Sage does not block buying Rex", () => {
     assert.doesNotThrow(
       () => assertAgentPurchasable([ent("MAYA", "AGENT"), ent("SAGE", "AGENT")], "REX" as never),
+    );
+  });
+});
+
+describe("assertNoPendingCheckout", () => {
+  test("no existing pending checkout: allowed", () => {
+    assert.doesNotThrow(() => assertNoPendingCheckout(null, "MAYA" as never));
+  });
+
+  test("REGRESSION: a fresh pending checkout for the same agent is rejected (closes the double-purchase race)", () => {
+    assert.throws(
+      () => assertNoPendingCheckout({ agent: "MAYA" as never, kind: "AGENT", createdAt: new Date() }, "MAYA" as never),
+      /checkout-already-pending:MAYA/,
+    );
+  });
+
+  test("a pending checkout for a different agent does not block", () => {
+    assert.doesNotThrow(() =>
+      assertNoPendingCheckout({ agent: "REX" as never, kind: "AGENT", createdAt: new Date() }, "MAYA" as never),
+    );
+  });
+
+  test("a MAYA_TOPUP pending checkout (kind mismatch) never blocks an agent checkout", () => {
+    assert.doesNotThrow(() =>
+      assertNoPendingCheckout({ agent: null, kind: "MAYA_TOPUP", createdAt: new Date() }, "MAYA" as never),
+    );
+  });
+
+  test("a stale (>24h) pending checkout is treated as abandoned and does not block", () => {
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    assert.doesNotThrow(() =>
+      assertNoPendingCheckout({ agent: "MAYA" as never, kind: "AGENT", createdAt: old }, "MAYA" as never),
+    );
+  });
+
+  test("a pending checkout just under the 24h staleness bound still blocks", () => {
+    const almost24h = new Date(Date.now() - 23 * 60 * 60 * 1000);
+    assert.throws(
+      () => assertNoPendingCheckout({ agent: "MAYA" as never, kind: "AGENT", createdAt: almost24h }, "MAYA" as never),
+      /checkout-already-pending:MAYA/,
     );
   });
 });

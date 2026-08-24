@@ -1,18 +1,29 @@
 /**
- * One-time backfill: fixes orgs whose subscription went active while the
- * DodoPayments webhook handler was broken (event_id/event_type field-name bug,
- * commit 941a5a1 → fix 00a4a16). During that window every webhook delivery
- * threw before syncOrgEntitlement ran, so affected orgs are stuck showing
- * "No agents unlocked" even though Dodo has them as a paying customer.
- *
- * Candidates: orgs that started a real checkout (pendingCheckoutSessionId set)
- * but never got the activation flip (dodoSubscriptionId still null, status
- * still TRIALING/EXPIRED). For each, checks Dodo's live API and — if Dodo
- * confirms an active subscription — reapplies exactly what
+ * Break-glass reconciliation: finds orgs whose AGENT checkout succeeded at
+ * Dodo but never got provisioned locally — e.g. the `subscription.active`
+ * webhook was dropped, or its handler threw and the retry never landed.
+ * For each candidate, checks Dodo's live API and — if Dodo confirms an
+ * active subscription for that agent's product — reapplies exactly what
  * handleSubscriptionActive() would have applied.
  *
- * Safe to re-run: once a candidate is fixed, dodoSubscriptionId is set, so it
- * no longer matches the candidate query.
+ * Rewritten (2026-08-24) for the per-agent Entitlement model. The previous
+ * version targeted the retired single-row Subscription model
+ * (`syncOrgEntitlement`, `billing.types.ts` — both deleted) and no longer
+ * ran at all; it failed at import time.
+ *
+ * Candidates: PendingCheckout rows (kind=AGENT) older than STALE_MINUTES.
+ * Unlike the webhook handler — which deliberately never lets PendingCheckout
+ * decide `agent`/`plan` (see resolveActivationIntent's doc comment in
+ * billing.webhooks.ts) — this script MAY use it as a lead, because a human
+ * reviews the dry-run output before `--apply`, and every candidate is
+ * independently cross-checked against Dodo's own subscription status and
+ * product_id before anything is written.
+ *
+ * Safe to re-run: a fixed candidate's PendingCheckout row is deleted once
+ * applied, so it won't be picked up again. An already-provisioned match
+ * (dodoSubscriptionId already has a BillingSubscription — e.g. the original
+ * webhook actually succeeded and only left a stray PendingCheckout row) is
+ * skipped for provisioning but still has its stale row cleared.
  *
  * Usage:
  *   pnpm --filter server reconcile:subscriptions            # dry run, no writes
@@ -21,77 +32,76 @@
 import "dotenv/config";
 import { prisma } from "../src/config/prisma.js";
 import { dodoClient } from "../src/lib/dodo.js";
-import { syncOrgEntitlement } from "../src/modules/billing/billing.service.js";
-import { resolvePlan, resolveEntitlementMode } from "../src/modules/billing/billing.types.js";
-import { ALL_AGENTS } from "../src/modules/billing/billing.catalog.js";
+import { applyAgentActivation } from "../src/modules/billing/billing.webhooks.js";
+import { resolveAgentFromProductId } from "../src/modules/billing/billing.catalog.js";
 
 const APPLY = process.argv.includes("--apply");
+const STALE_MINUTES = 10;
 
 async function main() {
   console.log(APPLY ? "Running in APPLY mode — writes will be made." : "Running in DRY-RUN mode — no writes will be made (pass --apply to write).");
 
-  const candidates = await prisma.subscription.findMany({
-    where: {
-      dodoSubscriptionId: null,
-      status: { in: ["TRIALING", "EXPIRED"] },
-      pendingCheckoutSessionId: { not: null },
-    },
+  const staleBefore = new Date(Date.now() - STALE_MINUTES * 60 * 1000);
+  const candidates = await prisma.pendingCheckout.findMany({
+    where: { kind: "AGENT", createdAt: { lt: staleBefore } },
     include: { organization: { select: { name: true } } },
   });
 
-  console.log(`Found ${candidates.length} candidate org(s) with an unconfirmed checkout.\n`);
+  console.log(`Found ${candidates.length} candidate pending checkout(s) older than ${STALE_MINUTES}m.\n`);
 
   let fixed = 0;
   let skipped = 0;
 
-  for (const sub of candidates) {
-    const orgLabel = `${sub.organization.name} (${sub.organizationId})`;
+  for (const pc of candidates) {
+    const orgLabel = `${pc.organization.name} (${pc.organizationId})`;
+
+    if (!pc.agent) {
+      console.log(`  [skip] ${orgLabel} — pending checkout has no agent`);
+      skipped++;
+      continue;
+    }
+
+    const sub = await prisma.subscription.findUnique({ where: { organizationId: pc.organizationId } });
+    if (!sub) {
+      console.log(`  [skip] ${orgLabel} — no Dodo customer on file`);
+      skipped++;
+      continue;
+    }
 
     const dodoSubs = await dodoClient.subscriptions.list({ customer_id: sub.dodoCustomerId });
-    const active = dodoSubs.items?.find((s) => s.status === "active") ?? null;
+    const match = dodoSubs.items?.find(
+      (s) => s.status === "active" && resolveAgentFromProductId(s.product_id) === pc.agent,
+    ) ?? null;
 
-    if (!active) {
-      console.log(`  [skip] ${orgLabel} — no active Dodo subscription found (checkout likely abandoned)`);
+    if (!match) {
+      console.log(`  [skip] ${orgLabel} — no active Dodo subscription found for ${pc.agent} (checkout likely abandoned)`);
       skipped++;
       continue;
     }
 
-    const plan = resolvePlan(active.product_id) ?? sub.pendingPlan;
-    const entitlementMode = resolveEntitlementMode(active.product_id) ?? sub.pendingEntitlementMode;
-    const selectedAgents = entitlementMode === "CREW" ? ALL_AGENTS : sub.pendingSelectedAgents;
-
-    if (!plan || !entitlementMode || !selectedAgents?.length) {
-      console.log(`  [skip] ${orgLabel} — active in Dodo but couldn't resolve plan/entitlement (product_id=${active.product_id}), needs manual review`);
+    const alreadyProvisioned = await prisma.billingSubscription.findUnique({
+      where: { dodoSubscriptionId: match.subscription_id },
+    });
+    if (alreadyProvisioned) {
+      console.log(`  [skip] ${orgLabel} — ${pc.agent} already provisioned (dodoSubscriptionId=${match.subscription_id}); clearing stale PendingCheckout only`);
+      if (APPLY) await prisma.pendingCheckout.delete({ where: { id: pc.id } }).catch(() => {});
       skipped++;
       continue;
     }
 
-    const currentPeriodEnd = new Date(active.next_billing_date);
-
+    const periodEnd = new Date(match.next_billing_date);
     console.log(
-      `  [${APPLY ? "fix" : "would fix"}] ${orgLabel} — plan=${plan} mode=${entitlementMode} agents=${selectedAgents.join(",")} dodoSubscriptionId=${active.subscription_id} periodEnd=${currentPeriodEnd.toISOString()}`
+      `  [${APPLY ? "fix" : "would fix"}] ${orgLabel} — agent=${pc.agent} dodoSubscriptionId=${match.subscription_id} periodEnd=${periodEnd.toISOString()}`,
     );
 
     if (APPLY) {
-      await syncOrgEntitlement(sub.organizationId, {
-        status: "ACTIVE",
-        plan,
-        entitlementMode,
-        selectedAgents,
-        dodoSubscriptionId: active.subscription_id,
-        currentPeriodEnd,
-        trialEndsAt: null,
-        cancelAtPeriodEnd: active.cancel_at_next_billing_date,
-        pendingCheckoutSessionId: null,
-        pendingPlan: null,
-        pendingEntitlementMode: null,
-        pendingSelectedAgents: [],
-        pendingProductId: null,
-        pendingCheckoutCreatedAt: null,
+      await applyAgentActivation({
+        organizationId: pc.organizationId,
+        dodoSubscriptionId: match.subscription_id,
+        agent: pc.agent,
+        periodEnd,
       });
-      await prisma.mayaUsage.create({
-        data: { organizationId: sub.organizationId, periodStart: new Date(), periodEnd: currentPeriodEnd },
-      });
+      await prisma.pendingCheckout.delete({ where: { id: pc.id } }).catch(() => {});
     }
     fixed++;
   }

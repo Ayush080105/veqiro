@@ -484,6 +484,11 @@ model PendingCheckout {
   /// Creation timestamp.
   createdAt      DateTime         @default(now())
 
+  // Closes the double-purchase race at the DB level: at most one in-flight
+  // AGENT checkout per org+agent. MAYA_TOPUP rows are unaffected — `agent` is
+  // always null for them, and Postgres never treats two NULLs as equal, so
+  // this constraint imposes no limit on concurrent top-ups.
+  @@unique([organizationId, agent])
   @@index([organizationId, createdAt])
   @@map("pending_checkout")
 }
