@@ -2,7 +2,7 @@ import { prisma } from "../../config/prisma.js";
 import { dodoClient } from "../../lib/dodo.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { mayaTopupUnitProductId } from "./billing.catalog.js";
-import { ensureBillingCustomerForOrg } from "./billing.service.js";
+import { ensureBillingCustomerForOrg, withCustomerRecovery } from "./billing.service.js";
 import { getMayaEntitlement } from "./entitlement.service.js";
 import { creditsForTopUpDollars, isAllowedTopupDollars, TOPUP_DOLLAR_UNIT } from "../agents/maya/maya.quotas.js";
 
@@ -41,19 +41,23 @@ export async function createMayaTopupCheckout(organizationId: string, dollarsInp
   const units = dollars / TOPUP_DOLLAR_UNIT;
 
   const baseUrl = process.env.CLIENT_URL || "http://localhost:3001";
-  const session = await dodoClient.checkoutSessions.create({
-    product_cart: [{ product_id: mayaTopupUnitProductId(), quantity: units }],
-    customer: { customer_id: sub.dodoCustomerId } as never,
-    show_saved_payment_methods: true,
-    return_url: `${baseUrl}/assistants/maya?topup=success`,
-    cancel_url: `${baseUrl}/assistants/maya?topup=cancelled`,
-    // Our catalog is USD-only — lock the checkout page's displayed currency
-    // to USD instead of letting Dodo auto-convert to the buyer's local
-    // currency, so the number shown always matches what the app quoted.
-    billing_currency: "USD",
-    feature_flags: { allow_currency_selection: false },
-    metadata: { organizationId, kind: "MAYA_TOPUP", credits: String(credits) },
-  });
+  // See withCustomerRecovery's doc comment in billing.service.ts: an org that
+  // topped up before a test->live cutover has a stale dodoCustomerId here too.
+  const session = await withCustomerRecovery(organizationId, sub.dodoCustomerId, (customerId) =>
+    dodoClient.checkoutSessions.create({
+      product_cart: [{ product_id: mayaTopupUnitProductId(), quantity: units }],
+      customer: { customer_id: customerId } as never,
+      show_saved_payment_methods: true,
+      return_url: `${baseUrl}/assistants/maya?topup=success`,
+      cancel_url: `${baseUrl}/assistants/maya?topup=cancelled`,
+      // Our catalog is USD-only — lock the checkout page's displayed currency
+      // to USD instead of letting Dodo auto-convert to the buyer's local
+      // currency, so the number shown always matches what the app quoted.
+      billing_currency: "USD",
+      feature_flags: { allow_currency_selection: false },
+      metadata: { organizationId, kind: "MAYA_TOPUP", credits: String(credits) },
+    }),
+  );
 
   if (!session.checkout_url) throw new BadRequestError("checkout-url-missing");
   await prisma.pendingCheckout.create({

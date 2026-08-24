@@ -1,5 +1,6 @@
 import type { Request } from "express";
 import { fromNodeHeaders } from "better-auth/node";
+import { NotFoundError } from "dodopayments";
 import auth from "../../lib/auth.js";
 import { prisma } from "../../config/prisma.js";
 import { dodoClient } from "../../lib/dodo.js";
@@ -78,6 +79,61 @@ export async function ensureBillingCustomerForOrg(organizationId: string) {
       selectedAgents: [],
     },
   });
+}
+
+/**
+ * True for Dodo's "this customer id doesn't exist" 404 specifically — not
+ * any 404 (e.g. an unrelated missing product id must never trigger the
+ * recovery below). Dodo customer records are per-environment: a customer id
+ * created under test_mode simply does not exist against live_mode, and
+ * there is no cross-environment lookup.
+ */
+function isCustomerNotFoundError(err: unknown): boolean {
+  return err instanceof NotFoundError && /customer/i.test(err.message);
+}
+
+/**
+ * REGRESSION (found 2026-08-24, live-mode cutover): every org that touched
+ * billing before switching DODO_ENV from test to live has a
+ * Subscription.dodoCustomerId created in the TEST environment.
+ * ensureBillingCustomerForOrg reuses that id as-is once the row exists, so
+ * the very first live-mode checkout/portal/topup call for that org fails
+ * with an unhandled "404 Customer ... not found" from Dodo's live API — a
+ * bare 500, since nothing in the checkout path expected a customer id to
+ * ever go stale.
+ *
+ * withCustomerRecovery wraps any single Dodo call that takes a customer id:
+ * on that specific error it mints a fresh customer against whichever
+ * environment is CURRENTLY configured, persists it (so every later call for
+ * this org is fixed for good, not just this one), and retries exactly once.
+ * A second failure is not retried again — that would indicate a different,
+ * genuine problem (bad API key, Dodo outage, ...) and must propagate.
+ */
+async function recreateBillingCustomer(organizationId: string) {
+  const owner = await findOrgOwner(organizationId);
+  const customer = await dodoClient.customers.create({
+    email: owner.user.email,
+    name: owner.user.name,
+    metadata: { organizationId, type: "organization" },
+  });
+  return prisma.subscription.update({
+    where: { organizationId },
+    data: { dodoCustomerId: customer.customer_id },
+  });
+}
+
+export async function withCustomerRecovery<T>(
+  organizationId: string,
+  customerId: string,
+  fn: (customerId: string) => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn(customerId);
+  } catch (err) {
+    if (!isCustomerNotFoundError(err)) throw err;
+    const refreshed = await recreateBillingCustomer(organizationId);
+    return fn(refreshed.dodoCustomerId);
+  }
 }
 
 const TRIAL_DAYS = 7;
@@ -275,18 +331,20 @@ export async function createCheckoutForOrg(
   }
 
   const baseUrl = process.env.CLIENT_URL || "http://localhost:3001";
-  const session = await dodoClient.checkoutSessions.create({
-    product_cart: [{ product_id: agentProductId(agent), quantity: 1 }],
-    customer: { customer_id: sub.dodoCustomerId } as never,
-    // Second and later purchases reuse the card saved on the first, so only
-    // the first checkout requires card entry.
-    show_saved_payment_methods: true,
-    return_url: `${baseUrl}/settings/billing?status=success`,
-    cancel_url: `${baseUrl}/settings/billing?status=cancelled`,
-    billing_currency: "USD",
-    feature_flags: { allow_currency_selection: false },
-    metadata: { organizationId, kind: "AGENT", agent },
-  });
+  const session = await withCustomerRecovery(organizationId, sub.dodoCustomerId, (customerId) =>
+    dodoClient.checkoutSessions.create({
+      product_cart: [{ product_id: agentProductId(agent), quantity: 1 }],
+      customer: { customer_id: customerId } as never,
+      // Second and later purchases reuse the card saved on the first, so only
+      // the first checkout requires card entry.
+      show_saved_payment_methods: true,
+      return_url: `${baseUrl}/settings/billing?status=success`,
+      cancel_url: `${baseUrl}/settings/billing?status=cancelled`,
+      billing_currency: "USD",
+      feature_flags: { allow_currency_selection: false },
+      metadata: { organizationId, kind: "AGENT", agent },
+    }),
+  );
 
   if (!session.checkout_url) throw new BadRequestError("checkout-url-missing");
 

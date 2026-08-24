@@ -6,6 +6,7 @@ import {
   createCheckoutForOrg,
   requireOrgOwner,
   startTrialForOrg,
+  withCustomerRecovery,
 } from "./billing.service.js";
 import { cancelAgentAutoPay, resumeAgentAutoPay } from "./billing.cancel.js";
 import { createMayaTopupCheckout } from "./billing.topup.js";
@@ -150,9 +151,12 @@ export async function openPortal(req: Request, res: Response) {
   });
   if (!sub?.dodoCustomerId) throw new BadRequestError("no-customer");
 
-  const portal = await dodoClient.customers.customerPortal.create(sub.dodoCustomerId, {
-    send_email: false,
-  });
+  // See withCustomerRecovery's doc comment in billing.service.ts: an org
+  // that only ever touched billing before a test->live cutover has a stale
+  // dodoCustomerId here too — self-heal the same way checkout does.
+  const portal = await withCustomerRecovery(orgId, sub.dodoCustomerId, (customerId) =>
+    dodoClient.customers.customerPortal.create(customerId, { send_email: false }),
+  );
   res.status(StatusCodes.OK).json({ url: portal.link });
 }
 
