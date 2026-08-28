@@ -49,6 +49,10 @@ export interface RunStepView {
   outputText: string | null;
   actionId: string | null;
   actionResult: unknown;
+  /** Action this step paused on, for the user to review in its own form. */
+  proposedActionId: string | null;
+  /** Arguments the model proposed, used to prefill that form. */
+  proposedArgs: unknown;
   errorMessage: string | null;
   startedAt: Date | null;
   finishedAt: Date | null;

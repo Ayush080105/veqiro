@@ -30,6 +30,8 @@ export const updateStep = async (
     status?: AgentRunStepStatus;
     outputText?: string | null;
     actionId?: string | null;
+    proposedActionId?: string | null;
+    proposedArgs?: unknown;
     actionResult?: unknown;
     toolTrace?: unknown;
     errorMessage?: string | null;
@@ -50,6 +52,10 @@ export const updateStep = async (
   }
   if (fields.outputText !== undefined) data.outputText = fields.outputText;
   if (fields.actionId !== undefined) data.actionId = fields.actionId;
+  if (fields.proposedActionId !== undefined) data.proposedActionId = fields.proposedActionId;
+  if (fields.proposedArgs !== undefined) {
+    data.proposedArgs = (fields.proposedArgs ?? Prisma.JsonNull) as Prisma.InputJsonValue;
+  }
   if (fields.errorMessage !== undefined) data.errorMessage = fields.errorMessage;
   if (fields.attempt !== undefined) data.attempt = fields.attempt;
   if (fields.actionResult !== undefined) {

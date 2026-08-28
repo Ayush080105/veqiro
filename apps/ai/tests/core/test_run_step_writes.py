@@ -223,3 +223,83 @@ async def test_the_step_is_told_nobody_can_answer_it():
 
     assert "UNATTENDED" in captured["system"]
     assert "Nobody will read a question" in captured["system"]
+
+
+# ── Review gate ─────────────────────────────────────────────────────────────
+
+class _MayaAgent(_Agent):
+    slug = "maya"
+
+
+@pytest.mark.asyncio
+async def test_a_maya_tool_pauses_for_review_instead_of_running():
+    """Her tools spend image credits and produce work whose taste matters, so
+    approving the plan is not approval of the arguments a model picked."""
+    agent = _MayaAgent(
+        [_Resp(tool_calls=[_Call("draft_content", {"topic": "launch"})],
+               finish_reason="tool_calls")],
+        _Bundle(),
+    )
+
+    outcome = await _run(agent, is_write=False)
+
+    assert outcome.needs_approval
+    assert outcome.review_request == {
+        "action_id": "maya:draft-content",
+        "tool_name": "draft_content",
+        "arguments": {"topic": "launch"},
+    }
+
+
+@pytest.mark.asyncio
+async def test_a_non_maya_tool_with_the_same_name_is_not_gated():
+    """The gate is Maya's, not the tool name's — another agent must not
+    inherit it."""
+    agent = _Agent(  # slug is not "maya"
+        [
+            _Resp(tool_calls=[_Call("draft_content")], finish_reason="tool_calls"),
+            _Resp(content="done"),
+        ],
+        _Bundle(),
+    )
+
+    outcome = await _run(agent, is_write=False)
+
+    assert outcome.review_request is None
+    assert outcome.needs_approval is None
+
+
+@pytest.mark.asyncio
+async def test_an_ungated_maya_tool_still_runs():
+    """modify_image has no dialog of its own, so pausing on it would show a
+    form that cannot be rendered."""
+    agent = _MayaAgent(
+        [
+            _Resp(tool_calls=[_Call("modify_image")], finish_reason="tool_calls"),
+            _Resp(content="edited"),
+        ],
+        _Bundle(),
+    )
+
+    outcome = await _run(agent, is_write=False)
+
+    assert outcome.review_request is None
+
+
+@pytest.mark.asyncio
+async def test_review_can_be_disabled_per_run():
+    agent = _MayaAgent(
+        [
+            _Resp(tool_calls=[_Call("draft_content")], finish_reason="tool_calls"),
+            _Resp(content="drafted"),
+        ],
+        _Bundle(),
+    )
+
+    outcome = await run_step(
+        agent, request=_request(), run_id="r", step_key="s1", intent="i",
+        system_prompt="sys", store=InMemoryRunStore(), review_tools={},
+    )
+
+    assert outcome.review_request is None
+    assert outcome.error is None

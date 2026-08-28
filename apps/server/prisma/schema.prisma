@@ -2168,6 +2168,11 @@ model AgentRunStep {
   actionId        String?
   /// Card payload.
   actionResult    Json?
+  /// Frontend AgentActionId this step paused on for the user to review, when
+  /// it reached a tool whose inputs they confirm in that action's own form.
+  proposedActionId String?
+  /// Arguments the model proposed for that action, used to prefill the form.
+  proposedArgs    Json?
   /// Failure detail.
   errorMessage    String?
   /// When the step began.

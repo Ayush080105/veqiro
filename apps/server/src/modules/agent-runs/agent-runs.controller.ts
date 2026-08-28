@@ -5,6 +5,8 @@ import {
   runIdParamSchema,
   approveRunBodySchema,
   listRunsQuerySchema,
+  stepKeyParamSchema,
+  submitStepActionSchema,
 } from "./agent-runs.schema.js";
 import * as runsService from "./agent-runs.service.js";
 
@@ -50,4 +52,13 @@ export const cancelRun = async (req: Request, res: Response) => {
   const { organizationId } = requireAuth(req);
   const { id } = runIdParamSchema.parse(req.params);
   res.status(StatusCodes.OK).json(await runsService.cancelRun(organizationId, id));
+};
+
+/** Completes a step that paused for the user to review a native action. */
+export const submitStepAction = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const { id, key } = stepKeyParamSchema.parse(req.params);
+  const body = submitStepActionSchema.parse(req.body ?? {});
+  const run = await runsService.submitStepAction(organizationId, id, key, body);
+  res.status(StatusCodes.OK).json(run);
 };

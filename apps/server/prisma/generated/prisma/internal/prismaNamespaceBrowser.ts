@@ -1050,6 +1050,8 @@ export const AgentRunStepScalarFieldEnum = {
   outputText: 'outputText',
   actionId: 'actionId',
   actionResult: 'actionResult',
+  proposedActionId: 'proposedActionId',
+  proposedArgs: 'proposedArgs',
   errorMessage: 'errorMessage',
   startedAt: 'startedAt',
   finishedAt: 'finishedAt',

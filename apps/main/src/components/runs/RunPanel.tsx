@@ -5,7 +5,16 @@ import dynamic from "next/dynamic"
 import { Loader2, PenLine } from "lucide-react"
 import { toast } from "sonner"
 
-import { useAgentRun, useApproveRun, useRejectRun, useCancelRun } from "@/lib/api/runs"
+import {
+  useAgentRun,
+  useApproveRun,
+  useRejectRun,
+  useCancelRun,
+  useSubmitStepAction,
+} from "@/lib/api/runs"
+import { RunActionDialog } from "@/components/chat/RunActionDialog"
+import { authClient } from "@/lib/auth-client"
+import type { AgentActionId } from "@/lib/types/agents"
 import type { AgentRun, AgentRunStatus, AgentRunStep } from "@/lib/types/runs"
 import { getAgent } from "@/lib/config/agents"
 
@@ -130,10 +139,18 @@ export function RunPanel({ runId }: { runId: string }) {
   const agentColor =
     (getAgent(run.agent.toLowerCase())?.color as string) ?? "var(--vq-yellow)"
 
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const organizationId = activeOrg?.id ?? ""
+
   const offKeys = new Set([...explicitlyDisabled, ...cascaded])
   const enabled = steps.filter((s) => !offKeys.has(s.key))
   const writeCount = enabled.filter((s) => s.isWrite).length
   const awaitingApproval = run.status === "AWAITING_PLAN_APPROVAL"
+  // One at a time: the executor pauses the whole run on the first step that
+  // needs input, so a second cannot be waiting yet.
+  const reviewStep = steps.find(
+    (s) => s.status === "AWAITING_APPROVAL" && s.proposedActionId,
+  )
   const isLive = !awaitingApproval && run.status !== "REJECTED"
   const busy = approve.isPending || reject.isPending || cancel.isPending
 
@@ -199,6 +216,15 @@ export function RunPanel({ runId }: { runId: string }) {
               </>
             )}
           </p>
+        )}
+
+        {reviewStep && (
+          <StepReviewBar
+            key={reviewStep.key}
+            runId={run.id}
+            step={reviewStep}
+            organizationId={organizationId}
+          />
         )}
 
         {run.errorMessage && (
@@ -291,3 +317,92 @@ export function RunPanel({ runId }: { runId: string }) {
 }
 
 export type { AgentRun }
+
+/**
+ * A step that stopped to let the user check the inputs before the work runs.
+ *
+ * Maya's tools spend image credits and produce work whose taste matters, so
+ * approving the plan is not by itself approval of the arguments a model chose
+ * for them. The action runs through its own dialog — the same one the chat
+ * uses — prefilled with what the model proposed; the result is then reported
+ * back so the run continues with it as context.
+ */
+function StepReviewBar({
+  runId,
+  step,
+  organizationId,
+}: {
+  runId: string
+  step: AgentRunStep
+  organizationId: string
+}) {
+  const [open, setOpen] = useState(false)
+  const submit = useSubmitStepAction(runId, step.key)
+
+  const prefill = (step.proposedArgs ?? undefined) as Record<string, unknown> | undefined
+
+  return (
+    <div
+      style={{
+        margin: "10px 0 0",
+        padding: "10px 12px",
+        borderRadius: 10,
+        border: "1px solid rgba(245,197,24,0.55)",
+        background: "rgba(245,197,24,0.12)",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap",
+      }}
+    >
+      <span style={{ fontSize: 12.5, color: "#5A4A10", flex: 1, minWidth: 180 }}>
+        <strong>{step.title}</strong> is ready to run — check the details first.
+      </span>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={submit.isPending}
+        style={{
+          background: "#14120E",
+          color: "#F2ECE0",
+          border: "none",
+          borderRadius: 9,
+          padding: "7px 14px",
+          fontSize: 12.5,
+          cursor: submit.isPending ? "not-allowed" : "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+        }}
+      >
+        {submit.isPending && <Loader2 size={12} className="animate-spin" />}
+        Review and run
+      </button>
+
+      <RunActionDialog
+        open={open}
+        onOpenChange={setOpen}
+        actionId={step.proposedActionId as AgentActionId | null}
+        organizationId={organizationId}
+        conversationId={`run-${runId}`}
+        prefill={prefill}
+        onComplete={async (ctx) => {
+          try {
+            await submit.mutateAsync({
+              // The dialog may resolve a sibling action (a draft switched to a
+              // carousel); the server checks it against what the step proposed.
+              actionId: ctx.actionId ?? (step.proposedActionId as string),
+              result: ctx.result,
+              outputText:
+                typeof ctx.result === "string" ? ctx.result : JSON.stringify(ctx.result),
+            })
+            setOpen(false)
+            toast.success("Step done — carrying on with the run")
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not continue the run")
+          }
+        }}
+      />
+    </div>
+  )
+}

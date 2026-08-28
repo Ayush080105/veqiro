@@ -62,6 +62,9 @@ class RunSpec:
     #: rather than merged so a step can only ever reach integrations its own
     #: agent owns, matching what the planner assigned.
     connections_by_agent: dict = field(default_factory=dict)
+    #: Overrides which native tools pause for review. None means the default
+    #: set; an empty dict disables review entirely.
+    review_tools: dict | None = None
 
 
 @dataclass
@@ -193,16 +196,22 @@ class RunExecutor:
                 integration_slug=s.integration_slug,
                 write_mode=spec.write_mode,  # type: ignore[arg-type]
                 is_write=s.is_write,
+                review_tools=spec.review_tools,
                 tool_budget=min(STEP_TOOL_BUDGET, RUN_TOOL_CALL_BUDGET - tool_calls_used),
             )
             tool_calls_used += outcome.tool_calls_used
 
             if outcome.needs_approval:
                 state[s.key].status = "AWAITING_APPROVAL"
+                review = outcome.review_request or {}
                 await self._store.update_step(
                     spec.run_id, s.key, status="AWAITING_APPROVAL",
                     errorMessage=f"waiting on approval: {outcome.needs_approval}",
                     toolTrace=outcome.tool_trace,
+                    # The arguments the model proposed become the prefilled
+                    # form the user is shown, so they must survive to Node.
+                    proposedActionId=review.get("action_id"),
+                    proposedArgs=review.get("arguments"),
                 )
                 return
 

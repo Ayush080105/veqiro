@@ -89,3 +89,14 @@ export const useApproveRun = (runId: string) =>
 export const useRejectRun = (runId: string) => useRunMutation(runId, "reject")
 
 export const useCancelRun = (runId: string) => useRunMutation(runId, "cancel")
+
+/**
+ * Reports the result of a native action the user reviewed and ran, so the run
+ * can continue with it as context. The action itself runs through its normal
+ * endpoint first — this only hands the outcome back to the run.
+ */
+export const useSubmitStepAction = (runId: string, stepKey: string) =>
+  useRunMutation<{ actionId: string; result: unknown; outputText?: string }>(
+    runId,
+    `steps/${stepKey}/action`,
+  )

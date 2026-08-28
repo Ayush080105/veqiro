@@ -106,3 +106,36 @@ describe("isTerminal", () => {
     }
   });
 });
+
+/**
+ * The sibling-action allowance on a reviewed step.
+ *
+ * A user can switch a draft to a carousel inside the form, which the dialog
+ * resolves to a different action id than the step proposed. That one swap is
+ * legitimate; substituting anything else would run work the plan never
+ * described.
+ */
+describe("reviewed step action matching", () => {
+  const SIBLINGS: Record<string, string[]> = {
+    "maya:draft-content": ["maya:draft-carousel"],
+    "maya:draft-carousel": ["maya:draft-content"],
+  }
+  const allows = (proposed: string, submitted: string) =>
+    new Set([proposed, ...(SIBLINGS[proposed] ?? [])]).has(submitted)
+
+  it("accepts the action the step proposed", () => {
+    expect(allows("maya:draft-content", "maya:draft-content")).toBe(true)
+  })
+
+  it("accepts a carousel switched on inside the draft form", () => {
+    expect(allows("maya:draft-content", "maya:draft-carousel")).toBe(true)
+  })
+
+  it("refuses an unrelated action", () => {
+    expect(allows("maya:draft-content", "maya:generate-video")).toBe(false)
+  })
+
+  it("refuses another agent's action entirely", () => {
+    expect(allows("maya:draft-content", "rex:investor-update")).toBe(false)
+  })
+})

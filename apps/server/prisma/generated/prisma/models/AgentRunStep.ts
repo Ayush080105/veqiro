@@ -52,6 +52,7 @@ export type AgentRunStepMinAggregateOutputType = {
   attempt: number | null
   outputText: string | null
   actionId: string | null
+  proposedActionId: string | null
   errorMessage: string | null
   startedAt: Date | null
   finishedAt: Date | null
@@ -75,6 +76,7 @@ export type AgentRunStepMaxAggregateOutputType = {
   attempt: number | null
   outputText: string | null
   actionId: string | null
+  proposedActionId: string | null
   errorMessage: string | null
   startedAt: Date | null
   finishedAt: Date | null
@@ -101,6 +103,8 @@ export type AgentRunStepCountAggregateOutputType = {
   outputText: number
   actionId: number
   actionResult: number
+  proposedActionId: number
+  proposedArgs: number
   errorMessage: number
   startedAt: number
   finishedAt: number
@@ -136,6 +140,7 @@ export type AgentRunStepMinAggregateInputType = {
   attempt?: true
   outputText?: true
   actionId?: true
+  proposedActionId?: true
   errorMessage?: true
   startedAt?: true
   finishedAt?: true
@@ -159,6 +164,7 @@ export type AgentRunStepMaxAggregateInputType = {
   attempt?: true
   outputText?: true
   actionId?: true
+  proposedActionId?: true
   errorMessage?: true
   startedAt?: true
   finishedAt?: true
@@ -185,6 +191,8 @@ export type AgentRunStepCountAggregateInputType = {
   outputText?: true
   actionId?: true
   actionResult?: true
+  proposedActionId?: true
+  proposedArgs?: true
   errorMessage?: true
   startedAt?: true
   finishedAt?: true
@@ -298,6 +306,8 @@ export type AgentRunStepGroupByOutputType = {
   outputText: string | null
   actionId: string | null
   actionResult: runtime.JsonValue | null
+  proposedActionId: string | null
+  proposedArgs: runtime.JsonValue | null
   errorMessage: string | null
   startedAt: Date | null
   finishedAt: Date | null
@@ -347,6 +357,8 @@ export type AgentRunStepWhereInput = {
   outputText?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   actionId?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   actionResult?: Prisma.JsonNullableFilter<"AgentRunStep">
+  proposedActionId?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
+  proposedArgs?: Prisma.JsonNullableFilter<"AgentRunStep">
   errorMessage?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   startedAt?: Prisma.DateTimeNullableFilter<"AgentRunStep"> | Date | string | null
   finishedAt?: Prisma.DateTimeNullableFilter<"AgentRunStep"> | Date | string | null
@@ -375,6 +387,8 @@ export type AgentRunStepOrderByWithRelationInput = {
   outputText?: Prisma.SortOrderInput | Prisma.SortOrder
   actionId?: Prisma.SortOrderInput | Prisma.SortOrder
   actionResult?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedActionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedArgs?: Prisma.SortOrderInput | Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   finishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -407,6 +421,8 @@ export type AgentRunStepWhereUniqueInput = Prisma.AtLeast<{
   outputText?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   actionId?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   actionResult?: Prisma.JsonNullableFilter<"AgentRunStep">
+  proposedActionId?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
+  proposedArgs?: Prisma.JsonNullableFilter<"AgentRunStep">
   errorMessage?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   startedAt?: Prisma.DateTimeNullableFilter<"AgentRunStep"> | Date | string | null
   finishedAt?: Prisma.DateTimeNullableFilter<"AgentRunStep"> | Date | string | null
@@ -435,6 +451,8 @@ export type AgentRunStepOrderByWithAggregationInput = {
   outputText?: Prisma.SortOrderInput | Prisma.SortOrder
   actionId?: Prisma.SortOrderInput | Prisma.SortOrder
   actionResult?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedActionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  proposedArgs?: Prisma.SortOrderInput | Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   finishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -469,6 +487,8 @@ export type AgentRunStepScalarWhereWithAggregatesInput = {
   outputText?: Prisma.StringNullableWithAggregatesFilter<"AgentRunStep"> | string | null
   actionId?: Prisma.StringNullableWithAggregatesFilter<"AgentRunStep"> | string | null
   actionResult?: Prisma.JsonNullableWithAggregatesFilter<"AgentRunStep">
+  proposedActionId?: Prisma.StringNullableWithAggregatesFilter<"AgentRunStep"> | string | null
+  proposedArgs?: Prisma.JsonNullableWithAggregatesFilter<"AgentRunStep">
   errorMessage?: Prisma.StringNullableWithAggregatesFilter<"AgentRunStep"> | string | null
   startedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AgentRunStep"> | Date | string | null
   finishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AgentRunStep"> | Date | string | null
@@ -494,6 +514,8 @@ export type AgentRunStepCreateInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -522,6 +544,8 @@ export type AgentRunStepUncheckedCreateInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -548,6 +572,8 @@ export type AgentRunStepUpdateInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -576,6 +602,8 @@ export type AgentRunStepUncheckedUpdateInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -603,6 +631,8 @@ export type AgentRunStepCreateManyInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -628,6 +658,8 @@ export type AgentRunStepUpdateManyMutationInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -654,6 +686,8 @@ export type AgentRunStepUncheckedUpdateManyInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -700,6 +734,8 @@ export type AgentRunStepCountOrderByAggregateInput = {
   outputText?: Prisma.SortOrder
   actionId?: Prisma.SortOrder
   actionResult?: Prisma.SortOrder
+  proposedActionId?: Prisma.SortOrder
+  proposedArgs?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrder
@@ -728,6 +764,7 @@ export type AgentRunStepMaxOrderByAggregateInput = {
   attempt?: Prisma.SortOrder
   outputText?: Prisma.SortOrder
   actionId?: Prisma.SortOrder
+  proposedActionId?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrder
@@ -751,6 +788,7 @@ export type AgentRunStepMinOrderByAggregateInput = {
   attempt?: Prisma.SortOrder
   outputText?: Prisma.SortOrder
   actionId?: Prisma.SortOrder
+  proposedActionId?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrder
@@ -852,6 +890,8 @@ export type AgentRunStepCreateWithoutPendingActionsInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -879,6 +919,8 @@ export type AgentRunStepUncheckedCreateWithoutPendingActionsInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -920,6 +962,8 @@ export type AgentRunStepUpdateWithoutPendingActionsInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -947,6 +991,8 @@ export type AgentRunStepUncheckedUpdateWithoutPendingActionsInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -972,6 +1018,8 @@ export type AgentRunStepCreateWithoutRunInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -998,6 +1046,8 @@ export type AgentRunStepUncheckedCreateWithoutRunInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -1054,6 +1104,8 @@ export type AgentRunStepScalarWhereInput = {
   outputText?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   actionId?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   actionResult?: Prisma.JsonNullableFilter<"AgentRunStep">
+  proposedActionId?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
+  proposedArgs?: Prisma.JsonNullableFilter<"AgentRunStep">
   errorMessage?: Prisma.StringNullableFilter<"AgentRunStep"> | string | null
   startedAt?: Prisma.DateTimeNullableFilter<"AgentRunStep"> | Date | string | null
   finishedAt?: Prisma.DateTimeNullableFilter<"AgentRunStep"> | Date | string | null
@@ -1079,6 +1131,8 @@ export type AgentRunStepCreateManyRunInput = {
   outputText?: string | null
   actionId?: string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: string | null
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -1104,6 +1158,8 @@ export type AgentRunStepUpdateWithoutRunInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1130,6 +1186,8 @@ export type AgentRunStepUncheckedUpdateWithoutRunInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1156,6 +1214,8 @@ export type AgentRunStepUncheckedUpdateManyWithoutRunInput = {
   outputText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actionResult?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  proposedActionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposedArgs?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1213,6 +1273,8 @@ export type AgentRunStepSelect<ExtArgs extends runtime.Types.Extensions.Internal
   outputText?: boolean
   actionId?: boolean
   actionResult?: boolean
+  proposedActionId?: boolean
+  proposedArgs?: boolean
   errorMessage?: boolean
   startedAt?: boolean
   finishedAt?: boolean
@@ -1242,6 +1304,8 @@ export type AgentRunStepSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   outputText?: boolean
   actionId?: boolean
   actionResult?: boolean
+  proposedActionId?: boolean
+  proposedArgs?: boolean
   errorMessage?: boolean
   startedAt?: boolean
   finishedAt?: boolean
@@ -1269,6 +1333,8 @@ export type AgentRunStepSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   outputText?: boolean
   actionId?: boolean
   actionResult?: boolean
+  proposedActionId?: boolean
+  proposedArgs?: boolean
   errorMessage?: boolean
   startedAt?: boolean
   finishedAt?: boolean
@@ -1296,6 +1362,8 @@ export type AgentRunStepSelectScalar = {
   outputText?: boolean
   actionId?: boolean
   actionResult?: boolean
+  proposedActionId?: boolean
+  proposedArgs?: boolean
   errorMessage?: boolean
   startedAt?: boolean
   finishedAt?: boolean
@@ -1303,7 +1371,7 @@ export type AgentRunStepSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AgentRunStepOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "runId" | "key" | "seq" | "agent" | "title" | "intent" | "integrationSlug" | "isWrite" | "expectedScope" | "dependsOn" | "status" | "enabled" | "attempt" | "toolTrace" | "outputText" | "actionId" | "actionResult" | "errorMessage" | "startedAt" | "finishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["agentRunStep"]>
+export type AgentRunStepOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "runId" | "key" | "seq" | "agent" | "title" | "intent" | "integrationSlug" | "isWrite" | "expectedScope" | "dependsOn" | "status" | "enabled" | "attempt" | "toolTrace" | "outputText" | "actionId" | "actionResult" | "proposedActionId" | "proposedArgs" | "errorMessage" | "startedAt" | "finishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["agentRunStep"]>
 export type AgentRunStepInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   run?: boolean | Prisma.AgentRunDefaultArgs<ExtArgs>
   pendingActions?: boolean | Prisma.AgentRunStep$pendingActionsArgs<ExtArgs>
@@ -1401,6 +1469,15 @@ export type $AgentRunStepPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * Card payload.
      */
     actionResult: runtime.JsonValue | null
+    /**
+     * Frontend AgentActionId this step paused on for the user to review, when
+     * it reached a tool whose inputs they confirm in that action's own form.
+     */
+    proposedActionId: string | null
+    /**
+     * Arguments the model proposed for that action, used to prefill the form.
+     */
+    proposedArgs: runtime.JsonValue | null
     /**
      * Failure detail.
      */
@@ -1864,6 +1941,8 @@ export interface AgentRunStepFieldRefs {
   readonly outputText: Prisma.FieldRef<"AgentRunStep", 'String'>
   readonly actionId: Prisma.FieldRef<"AgentRunStep", 'String'>
   readonly actionResult: Prisma.FieldRef<"AgentRunStep", 'Json'>
+  readonly proposedActionId: Prisma.FieldRef<"AgentRunStep", 'String'>
+  readonly proposedArgs: Prisma.FieldRef<"AgentRunStep", 'Json'>
   readonly errorMessage: Prisma.FieldRef<"AgentRunStep", 'String'>
   readonly startedAt: Prisma.FieldRef<"AgentRunStep", 'DateTime'>
   readonly finishedAt: Prisma.FieldRef<"AgentRunStep", 'DateTime'>

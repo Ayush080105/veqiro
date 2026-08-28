@@ -34,6 +34,8 @@ export const updateStepBodySchema = z.object({
   outputText: z.string().nullable().optional(),
   errorMessage: z.string().nullable().optional(),
   actionId: z.string().nullable().optional(),
+  proposedActionId: z.string().nullable().optional(),
+  proposedArgs: z.unknown().optional(),
   attempt: z.number().int().min(0).max(10).optional(),
   // Opaque provider payloads — stored verbatim for the graph and audit trail,
   // so they are deliberately not shape-validated.
@@ -56,4 +58,16 @@ export const finishRunBodySchema = z.object({
   status: z.enum(AgentRunStatus),
   summary: z.string().default(""),
   errorMessage: z.string().nullable().optional(),
+});
+
+export const stepKeyParamSchema = runIdParamSchema.extend({
+  key: z.string().min(1).max(64),
+});
+
+export const submitStepActionSchema = z.object({
+  actionId: z.string().min(1).max(100),
+  // The action's own payload — shape varies per action, so it is stored as
+  // given rather than validated here.
+  result: z.unknown(),
+  outputText: z.string().max(50_000).optional(),
 });

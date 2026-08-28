@@ -4,6 +4,7 @@ import {
   Agent,
   AgentRunStatus,
   AgentRunStepStatus,
+  Prisma,
 } from "../../../prisma/generated/prisma/client.js";
 import * as repo from "./agent-runs.repository.js";
 import type { RunView, RunStepView, CreateRunInput } from "./agent-runs.types.js";
@@ -68,6 +69,8 @@ const toStepView = (s: repo.RunWithSteps["steps"][number]): RunStepView => ({
   outputText: s.outputText,
   actionId: s.actionId,
   actionResult: s.actionResult,
+  proposedActionId: s.proposedActionId,
+  proposedArgs: s.proposedArgs,
   errorMessage: s.errorMessage,
   startedAt: s.startedAt,
   finishedAt: s.finishedAt,
@@ -228,5 +231,81 @@ export const cancelRun = async (organizationId: string, runId: string) => {
     status: AgentRunStatus.CANCELLED,
     finishedAt: new Date(),
   });
+  return getRun(organizationId, runId);
+};
+
+/** Actions a form may legitimately resolve to instead of the one proposed. */
+const SIBLING_ACTIONS: Record<string, string[]> = {
+  "maya:draft-content": ["maya:draft-carousel"],
+  "maya:draft-carousel": ["maya:draft-content"],
+};
+
+/** Upstream context is budgeted in the executor; this only bounds the column. */
+const MAX_STEP_OUTPUT_CHARS = 20_000;
+
+
+/**
+ * Completes a step that paused for the user to review a native action.
+ *
+ * The console runs the action through its normal `/agents/:agent/:endpoint`
+ * route — the same path the chat dialog uses — and then reports the result
+ * here so the run can carry on with it as context.
+ *
+ * The result is therefore client-supplied. That is a deliberate trade: the
+ * per-action submit logic (platform fan-out, carousel resolution) lives in the
+ * console, and duplicating it here would guarantee the two drift. Nothing that
+ * costs money or touches a third party is taken on trust — credits, writes and
+ * provider calls all still happen inside the real action endpoint under its own
+ * auth. What a tampered payload could corrupt is this org's own run summary,
+ * which the user could equally achieve by typing into the chat. `actionId` is
+ * still pinned to what the step proposed, so a different action cannot be
+ * substituted for the one the plan approved.
+ */
+export const submitStepAction = async (
+  organizationId: string,
+  runId: string,
+  key: string,
+  body: { actionId: string; result: unknown; outputText?: string },
+) => {
+  const run = await requireRun(organizationId, runId);
+  if (run.status !== AgentRunStatus.AWAITING_ACTION_APPROVAL) {
+    throw new BadRequestError(`Run is ${run.status.toLowerCase()}, not awaiting input`);
+  }
+
+  const step = run.steps.find((s) => s.key === key);
+  if (!step) throw new NotFoundError("Step not found");
+  if (step.status !== AgentRunStepStatus.AWAITING_APPROVAL) {
+    throw new BadRequestError("That step is not waiting for input");
+  }
+  if (!step.proposedActionId) {
+    throw new BadRequestError("That step did not propose an action");
+  }
+  // The user may switch a draft to a carousel inside the form, which the
+  // dialog resolves to a sibling action. Anything further afield is refused.
+  const allowed = new Set([step.proposedActionId, ...SIBLING_ACTIONS[step.proposedActionId] ?? []]);
+  if (!allowed.has(body.actionId)) {
+    throw new BadRequestError("That action does not match what this step proposed");
+  }
+
+  await repo.updateStep(runId, key, {
+    status: AgentRunStepStatus.SUCCEEDED,
+    actionId: body.actionId,
+    actionResult: (body.result ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+    outputText: body.outputText?.slice(0, MAX_STEP_OUTPUT_CHARS) ?? null,
+    // Cleared so the graph stops offering a form for work already done.
+    proposedActionId: null,
+    proposedArgs: Prisma.JsonNull,
+    finishedAt: new Date(),
+  });
+
+  await repo.updateRun(runId, {
+    status: AgentRunStatus.RUNNING,
+    heartbeatAt: new Date(),
+  });
+
+  // Picks up from here: steps that already succeeded are replayed as such, so
+  // this one is not run again.
+  void dispatchApprovedRun(runId);
+
   return getRun(organizationId, runId);
 };

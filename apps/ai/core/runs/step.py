@@ -44,6 +44,22 @@ MAX_TOOL_RESULT_CHARS = 100_000
 MAX_WRITES_PER_STEP = 10
 
 
+#: Native tools whose arguments the user reviews in that tool's own form
+#: before it runs. Scoped to Maya deliberately: her tools spend image credits
+#: and produce work whose taste matters, so one plan-level approval is not
+#: enough. Everything else in a run stays autonomous - gating every native
+#: tool would turn "approve the plan once" into a wizard.
+#:
+#: `modify_image` is absent on purpose: it has no dialog spec of its own
+#: (the console offers maya:regenerate-image, a different action), so pausing
+#: on it would show the user a form that cannot be rendered.
+REVIEW_BEFORE_RUN: dict[str, str] = {
+    "generate_ideas": "maya:generate-ideas",
+    "draft_content": "maya:draft-content",
+    "generate_variants": "maya:generate-variants",
+    "revise_content": "maya:revise",
+}
+
 #: A step runs unattended inside a background run. There is no one on the
 #: other end mid-run, so a clarifying question is not a pause - it is a dead
 #: end that burns the step and strands everything downstream.
@@ -74,6 +90,10 @@ class StepOutcome:
     error: str | None = None
     #: Set when a write fell outside the approved plan; the run must pause.
     needs_approval: str | None = None
+    #: Set when a step reached a tool the user reviews first. Carries the
+    #: action id and the arguments the model proposed, which become the
+    #: prefilled form they are shown.
+    review_request: dict | None = None
 
 
 def build_upstream_block(upstream: list[UpstreamContext]) -> str:
@@ -110,11 +130,13 @@ async def run_step(
     integration_slug: str | None = None,
     write_mode: Literal["stage", "execute"] = "stage",
     is_write: bool = False,
+    review_tools: dict[str, str] | None = None,
     tool_budget: int = 20,
     max_iterations: int = STEP_MAX_ITERATIONS,
 ) -> StepOutcome:
     """Run one node to completion and report what it did."""
     upstream = upstream or []
+    review_tools = REVIEW_BEFORE_RUN if review_tools is None else review_tools
     outcome = StepOutcome()
 
     bundle = await agent._assemble_tools(
@@ -210,6 +232,20 @@ async def run_step(
                 return await agent._execute_mcp_tool(
                     tc.name, tc.arguments, request.organization_id, bundle.mcp_alias_map
                 )
+            review_action = review_tools.get(tc.name)
+            # Only pause when the tool belongs to this agent, so a future
+            # same-named tool on another agent cannot inherit Maya's gate.
+            if review_action and review_action.split(":")[0] == getattr(agent, "slug", ""):
+                outcome.review_request = {
+                    "action_id": review_action,
+                    "tool_name": tc.name,
+                    "arguments": tc.arguments,
+                }
+                outcome.needs_approval = f"review the inputs for {tc.name}"
+                return json.dumps({
+                    "status": "awaiting_review",
+                    "message": "Paused for the user to review these inputs. Do not retry it.",
+                })
             return await agent.execute_tool(
                 tc.name, tc.arguments, request.user_id, request.organization_id
             )
