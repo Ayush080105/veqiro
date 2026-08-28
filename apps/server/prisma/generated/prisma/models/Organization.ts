@@ -32,6 +32,7 @@ export type OrganizationMinAggregateOutputType = {
   createdAt: Date | null
   metadata: string | null
   onboarded: boolean | null
+  plannedRunsEnabled: boolean | null
   subscriptionStatus: $Enums.SubscriptionStatus | null
   entitlementExpiresAt: Date | null
   trialStartedAt: Date | null
@@ -45,6 +46,7 @@ export type OrganizationMaxAggregateOutputType = {
   createdAt: Date | null
   metadata: string | null
   onboarded: boolean | null
+  plannedRunsEnabled: boolean | null
   subscriptionStatus: $Enums.SubscriptionStatus | null
   entitlementExpiresAt: Date | null
   trialStartedAt: Date | null
@@ -58,6 +60,7 @@ export type OrganizationCountAggregateOutputType = {
   createdAt: number
   metadata: number
   onboarded: number
+  plannedRunsEnabled: number
   subscriptionStatus: number
   entitlementExpiresAt: number
   unlockedAgents: number
@@ -74,6 +77,7 @@ export type OrganizationMinAggregateInputType = {
   createdAt?: true
   metadata?: true
   onboarded?: true
+  plannedRunsEnabled?: true
   subscriptionStatus?: true
   entitlementExpiresAt?: true
   trialStartedAt?: true
@@ -87,6 +91,7 @@ export type OrganizationMaxAggregateInputType = {
   createdAt?: true
   metadata?: true
   onboarded?: true
+  plannedRunsEnabled?: true
   subscriptionStatus?: true
   entitlementExpiresAt?: true
   trialStartedAt?: true
@@ -100,6 +105,7 @@ export type OrganizationCountAggregateInputType = {
   createdAt?: true
   metadata?: true
   onboarded?: true
+  plannedRunsEnabled?: true
   subscriptionStatus?: true
   entitlementExpiresAt?: true
   unlockedAgents?: true
@@ -187,6 +193,7 @@ export type OrganizationGroupByOutputType = {
   createdAt: Date
   metadata: string | null
   onboarded: boolean
+  plannedRunsEnabled: boolean
   subscriptionStatus: $Enums.SubscriptionStatus | null
   entitlementExpiresAt: Date | null
   unlockedAgents: $Enums.Agent[]
@@ -222,6 +229,7 @@ export type OrganizationWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Organization"> | Date | string
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
   onboarded?: Prisma.BoolFilter<"Organization"> | boolean
+  plannedRunsEnabled?: Prisma.BoolFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
   unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
@@ -246,6 +254,7 @@ export type OrganizationOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   onboarded?: Prisma.SortOrder
+  plannedRunsEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   unlockedAgents?: Prisma.SortOrder
@@ -273,6 +282,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Organization"> | Date | string
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
   onboarded?: Prisma.BoolFilter<"Organization"> | boolean
+  plannedRunsEnabled?: Prisma.BoolFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
   unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
@@ -297,6 +307,7 @@ export type OrganizationOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   onboarded?: Prisma.SortOrder
+  plannedRunsEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   unlockedAgents?: Prisma.SortOrder
@@ -317,6 +328,7 @@ export type OrganizationScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Organization"> | Date | string
   metadata?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
   onboarded?: Prisma.BoolWithAggregatesFilter<"Organization"> | boolean
+  plannedRunsEnabled?: Prisma.BoolWithAggregatesFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableWithAggregatesFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Organization"> | Date | string | null
   unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
@@ -331,6 +343,7 @@ export type OrganizationCreateInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -355,6 +368,7 @@ export type OrganizationUncheckedCreateInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -379,6 +393,7 @@ export type OrganizationUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -403,6 +418,7 @@ export type OrganizationUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -427,6 +443,7 @@ export type OrganizationCreateManyInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -441,6 +458,7 @@ export type OrganizationUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -455,6 +473,7 @@ export type OrganizationUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -477,6 +496,7 @@ export type OrganizationCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   onboarded?: Prisma.SortOrder
+  plannedRunsEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrder
   unlockedAgents?: Prisma.SortOrder
@@ -491,6 +511,7 @@ export type OrganizationMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   onboarded?: Prisma.SortOrder
+  plannedRunsEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrder
   trialStartedAt?: Prisma.SortOrder
@@ -504,6 +525,7 @@ export type OrganizationMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   onboarded?: Prisma.SortOrder
+  plannedRunsEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrder
   trialStartedAt?: Prisma.SortOrder
@@ -675,6 +697,7 @@ export type OrganizationCreateWithoutSubscriptionInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -698,6 +721,7 @@ export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -737,6 +761,7 @@ export type OrganizationUpdateWithoutSubscriptionInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -760,6 +785,7 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -783,6 +809,7 @@ export type OrganizationCreateWithoutEntitlementsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -806,6 +833,7 @@ export type OrganizationUncheckedCreateWithoutEntitlementsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -845,6 +873,7 @@ export type OrganizationUpdateWithoutEntitlementsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -868,6 +897,7 @@ export type OrganizationUncheckedUpdateWithoutEntitlementsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -891,6 +921,7 @@ export type OrganizationCreateWithoutBillingSubscriptionsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -914,6 +945,7 @@ export type OrganizationUncheckedCreateWithoutBillingSubscriptionsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -953,6 +985,7 @@ export type OrganizationUpdateWithoutBillingSubscriptionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -976,6 +1009,7 @@ export type OrganizationUncheckedUpdateWithoutBillingSubscriptionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -999,6 +1033,7 @@ export type OrganizationCreateWithoutPendingCheckoutsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1022,6 +1057,7 @@ export type OrganizationUncheckedCreateWithoutPendingCheckoutsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1061,6 +1097,7 @@ export type OrganizationUpdateWithoutPendingCheckoutsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1084,6 +1121,7 @@ export type OrganizationUncheckedUpdateWithoutPendingCheckoutsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1107,6 +1145,7 @@ export type OrganizationCreateWithoutMembersInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1130,6 +1169,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1169,6 +1209,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1192,6 +1233,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1215,6 +1257,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1238,6 +1281,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1277,6 +1321,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1300,6 +1345,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1323,6 +1369,7 @@ export type OrganizationCreateWithoutAgentMemoryInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1346,6 +1393,7 @@ export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1385,6 +1433,7 @@ export type OrganizationUpdateWithoutAgentMemoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1408,6 +1457,7 @@ export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1431,6 +1481,7 @@ export type OrganizationCreateWithoutOrgMemoryInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1454,6 +1505,7 @@ export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1493,6 +1545,7 @@ export type OrganizationUpdateWithoutOrgMemoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1516,6 +1569,7 @@ export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1539,6 +1593,7 @@ export type OrganizationCreateWithoutTasksInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1562,6 +1617,7 @@ export type OrganizationUncheckedCreateWithoutTasksInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1601,6 +1657,7 @@ export type OrganizationUpdateWithoutTasksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1624,6 +1681,7 @@ export type OrganizationUncheckedUpdateWithoutTasksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1647,6 +1705,7 @@ export type OrganizationCreateWithoutMayaUsagesInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1670,6 +1729,7 @@ export type OrganizationUncheckedCreateWithoutMayaUsagesInput = {
   createdAt: Date | string
   metadata?: string | null
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1709,6 +1769,7 @@ export type OrganizationUpdateWithoutMayaUsagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1732,6 +1793,7 @@ export type OrganizationUncheckedUpdateWithoutMayaUsagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1849,6 +1911,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   createdAt?: boolean
   metadata?: boolean
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
@@ -1874,6 +1937,7 @@ export type OrganizationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   createdAt?: boolean
   metadata?: boolean
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
@@ -1888,6 +1952,7 @@ export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   createdAt?: boolean
   metadata?: boolean
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
@@ -1902,13 +1967,14 @@ export type OrganizationSelectScalar = {
   createdAt?: boolean
   metadata?: boolean
   onboarded?: boolean
+  plannedRunsEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
   trialStartedAt?: boolean
 }
 
-export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata" | "onboarded" | "subscriptionStatus" | "entitlementExpiresAt" | "unlockedAgents" | "trialStartedAt", ExtArgs["result"]["organization"]>
+export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata" | "onboarded" | "plannedRunsEnabled" | "subscriptionStatus" | "entitlementExpiresAt" | "unlockedAgents" | "trialStartedAt", ExtArgs["result"]["organization"]>
 export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
@@ -1998,6 +2064,11 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * Whether onboarding/brand kit setup is complete.
      */
     onboarded: boolean
+    /**
+     * Opt-in to the planner + DAG run engine. Off means every turn takes the
+     * existing single-pass path, so the feature can be rolled out per org.
+     */
+    plannedRunsEnabled: boolean
     /**
      * Fast entitlement status used by middleware.
      */
@@ -2454,6 +2525,7 @@ export interface OrganizationFieldRefs {
   readonly createdAt: Prisma.FieldRef<"Organization", 'DateTime'>
   readonly metadata: Prisma.FieldRef<"Organization", 'String'>
   readonly onboarded: Prisma.FieldRef<"Organization", 'Boolean'>
+  readonly plannedRunsEnabled: Prisma.FieldRef<"Organization", 'Boolean'>
   readonly subscriptionStatus: Prisma.FieldRef<"Organization", 'SubscriptionStatus'>
   readonly entitlementExpiresAt: Prisma.FieldRef<"Organization", 'DateTime'>
   readonly unlockedAgents: Prisma.FieldRef<"Organization", 'Agent[]'>

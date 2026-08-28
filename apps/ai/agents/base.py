@@ -4,6 +4,7 @@ import logging
 import time
 import uuid
 from abc import ABC
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import AsyncGenerator
 
@@ -170,6 +171,46 @@ def _build_tool_trace(
 # this too) — a pagination/field-projection approach would scale better than
 # repeatedly raising a hardcoded cap, but wasn't the chosen fix today.
 MAX_TOOL_RESULT_CHARS = 100000
+
+
+@dataclass
+class ToolBundle:
+    """Everything a turn needs to dispatch and describe its tools.
+
+    Extracted from chat_sync so the run executor can assemble the same tool
+    surface per step without also re-running chat_sync's RAG retrieval and
+    brand-kit assembly, which are per-request, not per-step.
+
+    Every field is per-call state and must stay local to the caller — agents
+    are process-wide singletons (see registry.py).
+    """
+
+    tools: list[ToolDefinition]
+    mcp_alias_map: dict[str, tuple[str, str]]
+    mcp_write_set: set[str]
+    integration_by_connection: dict[str, str]
+    mcp_connections: list[dict]
+    superseded_names: list[str]
+    replacement_mcp_names: list[str]
+
+
+@dataclass
+class CrossAgentSink:
+    """Collects the structured half of a delegated agent's turn.
+
+    `_execute_cross_agent_call` used to return only `result.response`, which
+    silently dropped the callee's staged writes: "Maya, have Vega email this
+    draft" staged a pending action inside Vega that Node never saw, so the
+    email was never sent and no confirmation card ever appeared.
+
+    Owned by the caller as a LOCAL, never on `self` — agents are process-wide
+    singletons shared across every org's concurrent requests (see the note in
+    chat_sync and registry.py).
+    """
+
+    pending_actions: list[dict] = field(default_factory=list)
+    tool_trace: list[dict] = field(default_factory=list)
+    rich_results: list[tuple[str, dict]] = field(default_factory=list)
 _TOOL_TIMEOUT = 300.0       # seconds — safety net for tools with no internal timeout
 _MEMORY_HARD_CAP = 8000     # chars (~2k tokens) — prevents context overflow on any message
 
@@ -564,6 +605,83 @@ class BaseAgent(ABC):
 
     # ── Smart sync chat (with tool calling) ─────────────────────────────
 
+    async def _assemble_tools(
+        self,
+        request: ChatRequest,
+        *,
+        include_ask_agent: bool,
+        restrict_to_integration: str | None = None,
+    ) -> ToolBundle:
+        """Build this call's tool surface: native + ask_agent + connected MCP.
+
+        `restrict_to_integration` narrows the MCP connections to a single
+        integration. chat_sync passes the org's mcp_tool_preference; the run
+        executor passes the step's own target so a step can't reach for a
+        neighbouring integration's tools.
+        """
+        from agents.registry import get_ask_agent_tool
+
+        tools = self.get_tools()
+        if include_ask_agent:
+            ask_agent_tool = get_ask_agent_tool()
+            # Remove own agent from ask_agent enum to prevent self-calls
+            for p in ask_agent_tool.parameters:
+                if p.name == "agent_slug" and p.enum:
+                    p.enum = [s for s in p.enum if s != self.slug]
+            tools.append(ask_agent_tool)
+
+        # Merge in this org's connected MCP tools for this agent (resolved
+        # and org-scoped by Node's contextService.ts — see mcp_connections).
+        mcp_connections = request.metadata.get("mcp_connections") or []
+        mcp_alias_map: dict[str, tuple[str, str]] = {}
+        # connectionId -> integrationSlug, so the visible tool trace can name
+        # the system each call went to ("Gmail") rather than a bare tool slug.
+        integration_by_connection: dict[str, str] = {
+            c["connectionId"]: c.get("integrationSlug") or c.get("toolkitSlug") or "mcp"
+            for c in mcp_connections
+            if c.get("connectionId")
+        }
+        mcp_write_set: set[str] = set()
+
+        # Deterministic override (see SUPERSEDABLE_BY_MCP): when set, only the
+        # preferred integration's tools get merged in, and this agent's own
+        # supersedable native tools are dropped below — forcing the LLM to use
+        # the preferred MCP tool directly instead of a native default it can't
+        # reliably be prompted away from.
+        if restrict_to_integration and mcp_connections:
+            mcp_connections = [
+                c for c in mcp_connections
+                if c.get("integrationSlug") == restrict_to_integration
+            ]
+        if mcp_connections:
+            mcp_tools, mcp_alias_map = await get_mcp_tools(
+                request.organization_id, self.slug, mcp_connections,
+                reserved_tools=len(tools),
+            )
+            tools.extend(mcp_tools)
+            mcp_write_set = {td.name for td in mcp_tools if td.is_write}
+
+        superseded_names: list[str] = []
+        replacement_mcp_names: list[str] = []
+        if restrict_to_integration and self.SUPERSEDABLE_BY_MCP:
+            superseded_names = [t.name for t in tools if t.name in self.SUPERSEDABLE_BY_MCP]
+            if superseded_names:
+                tools = [t for t in tools if t.name not in self.SUPERSEDABLE_BY_MCP]
+                replacement_mcp_names = [
+                    n for n in mcp_alias_map
+                    if n.startswith(f"mcp_{restrict_to_integration}_")
+                ]
+
+        return ToolBundle(
+            tools=tools,
+            mcp_alias_map=mcp_alias_map,
+            mcp_write_set=mcp_write_set,
+            integration_by_connection=integration_by_connection,
+            mcp_connections=mcp_connections,
+            superseded_names=superseded_names,
+            replacement_mcp_names=replacement_mcp_names,
+        )
+
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
         """Tool-calling chat loop. LLM decides when to call tools autonomously."""
         _turn_start = time.monotonic()
@@ -581,58 +699,23 @@ class BaseAgent(ABC):
             f"| org={request.organization_id[:8] or '(none)'}{_X}"
         )
 
-        from agents.registry import get_ask_agent_tool
+        bundle = await self._assemble_tools(
+            request,
+            include_ask_agent=not request.metadata.get("_cross_agent_call", False),
+            restrict_to_integration=request.metadata.get("mcp_tool_preference"),
+        )
+        tools = bundle.tools
+        mcp_alias_map = bundle.mcp_alias_map
+        mcp_write_set = bundle.mcp_write_set
+        integration_by_connection = bundle.integration_by_connection
+        mcp_connections = bundle.mcp_connections
+        superseded_names = bundle.superseded_names
+        replacement_mcp_names = bundle.replacement_mcp_names
 
-        tools = self.get_tools()
-        if not request.metadata.get("_cross_agent_call", False):
-            ask_agent_tool = get_ask_agent_tool()
-            # Remove own agent from ask_agent enum to prevent self-calls
-            for p in ask_agent_tool.parameters:
-                if p.name == "agent_slug" and p.enum:
-                    p.enum = [s for s in p.enum if s != self.slug]
-            tools.append(ask_agent_tool)
-
-        # Merge in this org's connected MCP tools for this agent (resolved
-        # and org-scoped by Node's contextService.ts — see mcp_connections).
-        # mcp_alias_map is a LOCAL var, not self.state: agents are singletons
-        # shared across every org's concurrent requests (see registry.py), so
-        # per-call state must never live on self.
-        mcp_connections = request.metadata.get("mcp_connections") or []
-        mcp_alias_map: dict[str, tuple[str, str]] = {}
-        # connectionId -> integrationSlug, so the visible tool trace can name
-        # the system each call went to ("Gmail") rather than a bare tool slug.
-        integration_by_connection: dict[str, str] = {
-            c["connectionId"]: c.get("integrationSlug") or c.get("toolkitSlug") or "mcp"
-            for c in mcp_connections
-            if c.get("connectionId")
-        }
-        # Write-capable MCP tools (see Node's classifyWrite) get staged for
-        # user confirmation instead of executed immediately — see _run_one
-        # below and mcp_pending_actions.
-        mcp_write_set: set[str] = set()
+        # Per-call accumulators. Local, never self — agents are singletons
+        # shared across every org's concurrent requests (see registry.py).
         mcp_pending_actions: list[dict] = []
-        # Deterministic override (see SUPERSEDABLE_BY_MCP): when set, only the
-        # preferred integration's tools get merged in, and this agent's own
-        # supersedable native tools are dropped below — forcing the LLM to use
-        # the preferred MCP tool directly instead of a native default it can't
-        # reliably be prompted away from.
-        tool_preference = request.metadata.get("mcp_tool_preference")
-        if tool_preference and mcp_connections:
-            mcp_connections = [c for c in mcp_connections if c.get("integrationSlug") == tool_preference]
-        if mcp_connections:
-            mcp_tools, mcp_alias_map = await get_mcp_tools(
-                request.organization_id, self.slug, mcp_connections,
-                reserved_tools=len(tools),
-            )
-            tools.extend(mcp_tools)
-            mcp_write_set = {td.name for td in mcp_tools if td.is_write}
-        superseded_names: list[str] = []
-        replacement_mcp_names: list[str] = []
-        if tool_preference and self.SUPERSEDABLE_BY_MCP:
-            superseded_names = [t.name for t in tools if t.name in self.SUPERSEDABLE_BY_MCP]
-            if superseded_names:
-                tools = [t for t in tools if t.name not in self.SUPERSEDABLE_BY_MCP]
-                replacement_mcp_names = [n for n in mcp_alias_map if n.startswith(f"mcp_{tool_preference}_")]
+        cross_agent_sink = CrossAgentSink()
 
         # If no tools defined (shouldn't happen, but safety), fall back
         if len(tools) <= 1:  # only ask_agent
@@ -725,10 +808,17 @@ class BaseAgent(ABC):
                 metadata: dict = {}
                 if all_tool_calls:
                     metadata["tool_calls"] = all_tool_calls
-                if mcp_pending_actions:
-                    metadata["pending_actions"] = mcp_pending_actions
-                # Surface the last rich tool result as a card payload
-                action_id_out, action_result = _pick_rich_result(all_tool_calls)
+                _trace = _build_tool_trace(
+                    all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
+                )
+                _pending, _trace, (action_id_out, action_result) = self._merge_cross_agent(
+                    cross_agent_sink,
+                    mcp_pending_actions,
+                    _trace,
+                    _pick_rich_result(all_tool_calls),
+                )
+                if _pending:
+                    metadata["pending_actions"] = _pending
                 elapsed = time.monotonic() - _turn_start
                 print(
                     f"  {_G}[done] conversational reply{_X}  "
@@ -745,9 +835,7 @@ class BaseAgent(ABC):
                     metadata=metadata,
                     action_id=action_id_out,
                     action_result=action_result,
-                    tool_trace=_build_tool_trace(
-                        all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
-                    ),
+                    tool_trace=_trace,
                 )
 
             # Validate calls before executing — reject structurally invalid ones.
@@ -805,7 +893,8 @@ class BaseAgent(ABC):
             async def _run_one(tc) -> str:
                 if tc.name == "ask_agent":
                     coro = self._execute_cross_agent_call(
-                        tc.arguments, request.user_id, request.organization_id, mcp_connections
+                        tc.arguments, request.user_id, request.organization_id,
+                        mcp_connections, sink=cross_agent_sink,
                     )
                 elif tc.name in mcp_alias_map:
                     if tc.name in mcp_write_set:
@@ -907,7 +996,15 @@ class BaseAgent(ABC):
             system=system_prompt,
             messages=messages,
         )
-        action_id_out, action_result = _pick_rich_result(all_tool_calls)
+        _trace = _build_tool_trace(
+            all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
+        )
+        _pending, _trace, (action_id_out, action_result) = self._merge_cross_agent(
+            cross_agent_sink,
+            mcp_pending_actions,
+            _trace,
+            _pick_rich_result(all_tool_calls),
+        )
         elapsed = time.monotonic() - _turn_start
         print(
             f"  {_G}[done] circuit-breaker reply{_X}  "
@@ -922,13 +1019,11 @@ class BaseAgent(ABC):
             metadata={
                 "tool_calls": all_tool_calls,
                 "max_iterations_reached": True,
-                **({"pending_actions": mcp_pending_actions} if mcp_pending_actions else {}),
+                **({"pending_actions": _pending} if _pending else {}),
             },
             action_id=action_id_out,
             action_result=action_result,
-            tool_trace=_build_tool_trace(
-                all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
-            ),
+            tool_trace=_trace,
         )
 
     # ── MCP tool execution ───────────────────────────────────────────────
@@ -951,12 +1046,34 @@ class BaseAgent(ABC):
 
     # ── Cross-agent execution ───────────────────────────────────────────
 
+    @staticmethod
+    def _merge_cross_agent(
+        sink: "CrossAgentSink",
+        pending: list[dict],
+        trace: list[dict],
+        picked: tuple,
+    ) -> tuple[list[dict], list[dict], tuple]:
+        """Fold a delegate's structured output into this turn's own.
+
+        Delegated work is invisible to Node otherwise: its staged writes never
+        reach stagePendingActions, and its trace entries never reach the UI.
+        """
+        if sink.pending_actions:
+            pending = pending + sink.pending_actions
+        if sink.tool_trace:
+            trace = trace + sink.tool_trace
+        # Only fall back to a delegate's card when this agent produced none.
+        if picked[0] is None and sink.rich_results:
+            picked = sink.rich_results[0]
+        return pending, trace, picked
+
     async def _execute_cross_agent_call(
         self,
         arguments: dict,
         user_id: str,
         organization_id: str = "",
         mcp_connections: list | None = None,
+        sink: CrossAgentSink | None = None,
     ) -> str:
         """Execute a cross-agent call via the agent registry."""
         from agents.registry import get_agent
@@ -989,6 +1106,28 @@ class BaseAgent(ABC):
             },
         )
         result = await target_agent.chat_sync(inner_request)
+
+        # Carry the callee's structured output back to the caller. Without
+        # this, anything the delegate staged or produced is lost — see
+        # CrossAgentSink.
+        if sink is not None:
+            inner_pending = (result.metadata or {}).get("pending_actions") or []
+            sink.pending_actions.extend(inner_pending)
+            sink.tool_trace.extend(
+                {**entry, "viaAgent": target_slug} for entry in (result.tool_trace or [])
+            )
+            if result.action_id and result.action_result:
+                sink.rich_results.append((result.action_id, result.action_result))
+            if inner_pending:
+                # Tell the caller's LLM the writes are already staged, so it
+                # does not re-propose them itself.
+                staged = ", ".join(a.get("summary", "an action") for a in inner_pending)
+                return (
+                    f"{result.response}\n\n"
+                    f"[{target_slug} staged {len(inner_pending)} action(s) awaiting "
+                    f"the user's approval: {staged}. Do not propose them again.]"
+                )
+
         return result.response
 
     # ── Safe fire-and-forget RAG ingest ─────────────────────────────────

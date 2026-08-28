@@ -50,7 +50,7 @@ export const createAssistantMessage = (data: {
 
 export const findRecentMessages = (organizationId: string, limit: number) =>
   prisma.message.findMany({
-    where: { organizationId, agent: Agent.MAYA },
+    where: { organizationId, agent: Agent.MAYA, isTeam: false },
     take: limit,
     orderBy: { createdAt: "desc" },
     select: { id: true, role: true, content: true, imageUrl: true },

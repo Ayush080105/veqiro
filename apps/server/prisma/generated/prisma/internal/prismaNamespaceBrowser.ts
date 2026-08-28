@@ -106,7 +106,9 @@ export const ModelName = {
   Expense: 'Expense',
   ExpenseSplit: 'ExpenseSplit',
   MayaUsage: 'MayaUsage',
-  Settlement: 'Settlement'
+  Settlement: 'Settlement',
+  AgentRun: 'AgentRun',
+  AgentRunStep: 'AgentRunStep'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -197,6 +199,7 @@ export const OrganizationScalarFieldEnum = {
   createdAt: 'createdAt',
   metadata: 'metadata',
   onboarded: 'onboarded',
+  plannedRunsEnabled: 'plannedRunsEnabled',
   subscriptionStatus: 'subscriptionStatus',
   entitlementExpiresAt: 'entitlementExpiresAt',
   unlockedAgents: 'unlockedAgents',
@@ -384,7 +387,8 @@ export const MessageScalarFieldEnum = {
   tokensUsed: 'tokensUsed',
   model: 'model',
   userId: 'userId',
-  customInput: 'customInput'
+  customInput: 'customInput',
+  isTeam: 'isTeam'
 } as const
 
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
@@ -474,7 +478,8 @@ export const McpPendingActionScalarFieldEnum = {
   resultJson: 'resultJson',
   errorMessage: 'errorMessage',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  runStepId: 'runStepId'
 } as const
 
 export type McpPendingActionScalarFieldEnum = (typeof McpPendingActionScalarFieldEnum)[keyof typeof McpPendingActionScalarFieldEnum]
@@ -994,6 +999,65 @@ export const SettlementScalarFieldEnum = {
 } as const
 
 export type SettlementScalarFieldEnum = (typeof SettlementScalarFieldEnum)[keyof typeof SettlementScalarFieldEnum]
+
+
+export const AgentRunScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  agent: 'agent',
+  isTeam: 'isTeam',
+  trigger: 'trigger',
+  requestText: 'requestText',
+  status: 'status',
+  goal: 'goal',
+  planVersion: 'planVersion',
+  plannerMeta: 'plannerMeta',
+  approvedWrites: 'approvedWrites',
+  approvedByUserId: 'approvedByUserId',
+  approvedAt: 'approvedAt',
+  messageId: 'messageId',
+  summary: 'summary',
+  errorMessage: 'errorMessage',
+  heartbeatAt: 'heartbeatAt',
+  resumeCount: 'resumeCount',
+  toolCallsUsed: 'toolCallsUsed',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentRunScalarFieldEnum = (typeof AgentRunScalarFieldEnum)[keyof typeof AgentRunScalarFieldEnum]
+
+
+export const AgentRunStepScalarFieldEnum = {
+  id: 'id',
+  runId: 'runId',
+  key: 'key',
+  seq: 'seq',
+  agent: 'agent',
+  title: 'title',
+  intent: 'intent',
+  integrationSlug: 'integrationSlug',
+  isWrite: 'isWrite',
+  expectedScope: 'expectedScope',
+  dependsOn: 'dependsOn',
+  status: 'status',
+  enabled: 'enabled',
+  attempt: 'attempt',
+  toolTrace: 'toolTrace',
+  outputText: 'outputText',
+  actionId: 'actionId',
+  actionResult: 'actionResult',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentRunStepScalarFieldEnum = (typeof AgentRunStepScalarFieldEnum)[keyof typeof AgentRunStepScalarFieldEnum]
 
 
 export const SortOrder = {

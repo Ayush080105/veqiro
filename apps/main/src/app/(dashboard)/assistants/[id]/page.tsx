@@ -1429,7 +1429,21 @@ export default function AssistantChatPage() {
       ) : historyLoaded && !hasMessages && !isBusy ? (
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
-        <div className="relative flex-1 min-h-0">
+        <div
+          className="relative flex-1 min-h-0"
+          style={{
+            // The pattern lives on this wrapper, not the scroll container, so
+            // it stays put while the thread scrolls over it. The flat colour
+            // is the base layer so the thread reads correctly before the
+            // image loads; the cream gradient on top knocks the line art back
+            // so it never competes with message text.
+            background: `
+              linear-gradient(rgba(239,231,214,0.82), rgba(239,231,214,0.82)),
+              url('/chat-bg.webp') repeat
+            `,
+            backgroundSize: "auto, 560px auto",
+          }}
+        >
           <div
             ref={chatScrollRef}
             className="h-full overflow-y-auto"
@@ -1438,7 +1452,7 @@ export default function AssistantChatPage() {
               flexDirection: "column",
               gap: 0,
               padding: "16px 20px",
-              background: "#EFE7D6",
+              background: "transparent",
             }}
             onScroll={(e) => {
               const el = e.currentTarget

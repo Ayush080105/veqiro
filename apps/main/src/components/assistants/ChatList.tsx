@@ -7,19 +7,12 @@ import { Search, Lock } from "lucide-react"
 import { useMutationState } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth-client"
-import { AGENTS } from "@/lib/config/agents"
+import { AGENTS, AGENT_PHOTOS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
 import { useUpcomingAgents, type UpcomingAgent } from "@/lib/api/feedback"
 import { stripMarkdown } from "@/lib/utils"
-const AGENT_PHOTOS: Record<string, string> = {
-  maya:  "/agents/maya.jpeg",
-  rex:   "/agents/rex.jpeg",
-  sage:  "/agents/sage.jpeg",
-  scout: "/agents/scout.jpeg",
-  lex:   "/agents/lex.jpeg",
-  vega:  "/agents/vega.jpeg",
-}
 import { FONT } from "@/lib/fonts"
+import { TeamRow } from "./TeamRow"
 import type {
   AgentStatusData,
   AgentConfig,
@@ -484,6 +477,10 @@ export default function ChatList() {
       </div>
 
       <div style={{ flex: 1, overflow: "auto" }}>
+        {/* Pinned above the six: one room where the agents you own work a
+            single task together. Not filtered by search — it is a place, not
+            an agent. */}
+        <TeamRow />
         {filtered.map((agent) => {
           const active = pathname === `/assistants/${agent.id}`
           return (

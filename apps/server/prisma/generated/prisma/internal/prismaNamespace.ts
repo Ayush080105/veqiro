@@ -439,7 +439,9 @@ export const ModelName = {
   Expense: 'Expense',
   ExpenseSplit: 'ExpenseSplit',
   MayaUsage: 'MayaUsage',
-  Settlement: 'Settlement'
+  Settlement: 'Settlement',
+  AgentRun: 'AgentRun',
+  AgentRunStep: 'AgentRunStep'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -455,7 +457,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4603,6 +4605,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AgentRun: {
+      payload: Prisma.$AgentRunPayload<ExtArgs>
+      fields: Prisma.AgentRunFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AgentRunFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AgentRunFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>
+        }
+        findFirst: {
+          args: Prisma.AgentRunFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AgentRunFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>
+        }
+        findMany: {
+          args: Prisma.AgentRunFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+        }
+        create: {
+          args: Prisma.AgentRunCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>
+        }
+        createMany: {
+          args: Prisma.AgentRunCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AgentRunCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+        }
+        delete: {
+          args: Prisma.AgentRunDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>
+        }
+        update: {
+          args: Prisma.AgentRunUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>
+        }
+        deleteMany: {
+          args: Prisma.AgentRunDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AgentRunUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AgentRunUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+        }
+        upsert: {
+          args: Prisma.AgentRunUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunPayload>
+        }
+        aggregate: {
+          args: Prisma.AgentRunAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAgentRun>
+        }
+        groupBy: {
+          args: Prisma.AgentRunGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentRunGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AgentRunCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentRunCountAggregateOutputType> | number
+        }
+      }
+    }
+    AgentRunStep: {
+      payload: Prisma.$AgentRunStepPayload<ExtArgs>
+      fields: Prisma.AgentRunStepFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AgentRunStepFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AgentRunStepFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>
+        }
+        findFirst: {
+          args: Prisma.AgentRunStepFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AgentRunStepFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>
+        }
+        findMany: {
+          args: Prisma.AgentRunStepFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>[]
+        }
+        create: {
+          args: Prisma.AgentRunStepCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>
+        }
+        createMany: {
+          args: Prisma.AgentRunStepCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AgentRunStepCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>[]
+        }
+        delete: {
+          args: Prisma.AgentRunStepDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>
+        }
+        update: {
+          args: Prisma.AgentRunStepUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>
+        }
+        deleteMany: {
+          args: Prisma.AgentRunStepDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AgentRunStepUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AgentRunStepUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>[]
+        }
+        upsert: {
+          args: Prisma.AgentRunStepUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentRunStepPayload>
+        }
+        aggregate: {
+          args: Prisma.AgentRunStepAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAgentRunStep>
+        }
+        groupBy: {
+          args: Prisma.AgentRunStepGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentRunStepGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AgentRunStepCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentRunStepCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4714,6 +4864,7 @@ export const OrganizationScalarFieldEnum = {
   createdAt: 'createdAt',
   metadata: 'metadata',
   onboarded: 'onboarded',
+  plannedRunsEnabled: 'plannedRunsEnabled',
   subscriptionStatus: 'subscriptionStatus',
   entitlementExpiresAt: 'entitlementExpiresAt',
   unlockedAgents: 'unlockedAgents',
@@ -4901,7 +5052,8 @@ export const MessageScalarFieldEnum = {
   tokensUsed: 'tokensUsed',
   model: 'model',
   userId: 'userId',
-  customInput: 'customInput'
+  customInput: 'customInput',
+  isTeam: 'isTeam'
 } as const
 
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]
@@ -4991,7 +5143,8 @@ export const McpPendingActionScalarFieldEnum = {
   resultJson: 'resultJson',
   errorMessage: 'errorMessage',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  runStepId: 'runStepId'
 } as const
 
 export type McpPendingActionScalarFieldEnum = (typeof McpPendingActionScalarFieldEnum)[keyof typeof McpPendingActionScalarFieldEnum]
@@ -5513,6 +5666,65 @@ export const SettlementScalarFieldEnum = {
 export type SettlementScalarFieldEnum = (typeof SettlementScalarFieldEnum)[keyof typeof SettlementScalarFieldEnum]
 
 
+export const AgentRunScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  agent: 'agent',
+  isTeam: 'isTeam',
+  trigger: 'trigger',
+  requestText: 'requestText',
+  status: 'status',
+  goal: 'goal',
+  planVersion: 'planVersion',
+  plannerMeta: 'plannerMeta',
+  approvedWrites: 'approvedWrites',
+  approvedByUserId: 'approvedByUserId',
+  approvedAt: 'approvedAt',
+  messageId: 'messageId',
+  summary: 'summary',
+  errorMessage: 'errorMessage',
+  heartbeatAt: 'heartbeatAt',
+  resumeCount: 'resumeCount',
+  toolCallsUsed: 'toolCallsUsed',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentRunScalarFieldEnum = (typeof AgentRunScalarFieldEnum)[keyof typeof AgentRunScalarFieldEnum]
+
+
+export const AgentRunStepScalarFieldEnum = {
+  id: 'id',
+  runId: 'runId',
+  key: 'key',
+  seq: 'seq',
+  agent: 'agent',
+  title: 'title',
+  intent: 'intent',
+  integrationSlug: 'integrationSlug',
+  isWrite: 'isWrite',
+  expectedScope: 'expectedScope',
+  dependsOn: 'dependsOn',
+  status: 'status',
+  enabled: 'enabled',
+  attempt: 'attempt',
+  toolTrace: 'toolTrace',
+  outputText: 'outputText',
+  actionId: 'actionId',
+  actionResult: 'actionResult',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentRunStepScalarFieldEnum = (typeof AgentRunStepScalarFieldEnum)[keyof typeof AgentRunStepScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -5951,6 +6163,48 @@ export type EnumSplitTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 export type ListEnumSplitTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SplitType[]'>
     
 
+
+/**
+ * Reference to a field of type 'AgentRunTrigger'
+ */
+export type EnumAgentRunTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunTrigger'>
+    
+
+
+/**
+ * Reference to a field of type 'AgentRunTrigger[]'
+ */
+export type ListEnumAgentRunTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunTrigger[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AgentRunStatus'
+ */
+export type EnumAgentRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'AgentRunStatus[]'
+ */
+export type ListEnumAgentRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AgentRunStepStatus'
+ */
+export type EnumAgentRunStepStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunStepStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'AgentRunStepStatus[]'
+ */
+export type ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunStepStatus[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -6102,6 +6356,8 @@ export type GlobalOmitConfig = {
   expenseSplit?: Prisma.ExpenseSplitOmit
   mayaUsage?: Prisma.MayaUsageOmit
   settlement?: Prisma.SettlementOmit
+  agentRun?: Prisma.AgentRunOmit
+  agentRunStep?: Prisma.AgentRunStepOmit
 }
 
 /* Types for Logging */

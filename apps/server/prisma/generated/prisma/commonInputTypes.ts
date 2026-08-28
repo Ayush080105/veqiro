@@ -786,6 +786,57 @@ export type EnumSplitTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumSplitTypeFilter<$PrismaModel>
 }
 
+export type EnumAgentRunTriggerFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunTrigger | Prisma.EnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunTriggerFilter<$PrismaModel> | $Enums.AgentRunTrigger
+}
+
+export type EnumAgentRunStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStatus | Prisma.EnumAgentRunStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStatusFilter<$PrismaModel> | $Enums.AgentRunStatus
+}
+
+export type EnumAgentRunTriggerWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunTrigger | Prisma.EnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunTriggerWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunTrigger
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentRunTriggerFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentRunTriggerFilter<$PrismaModel>
+}
+
+export type EnumAgentRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStatus | Prisma.EnumAgentRunStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentRunStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentRunStatusFilter<$PrismaModel>
+}
+
+export type EnumAgentRunStepStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStepStatus | Prisma.EnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStepStatusFilter<$PrismaModel> | $Enums.AgentRunStepStatus
+}
+
+export type EnumAgentRunStepStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStepStatus | Prisma.EnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStepStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunStepStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentRunStepStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentRunStepStatusFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1504,6 +1555,57 @@ export type NestedEnumSplitTypeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumSplitTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumSplitTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumAgentRunTriggerFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunTrigger | Prisma.EnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunTriggerFilter<$PrismaModel> | $Enums.AgentRunTrigger
+}
+
+export type NestedEnumAgentRunStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStatus | Prisma.EnumAgentRunStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStatusFilter<$PrismaModel> | $Enums.AgentRunStatus
+}
+
+export type NestedEnumAgentRunTriggerWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunTrigger | Prisma.EnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunTrigger[] | Prisma.ListEnumAgentRunTriggerFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunTriggerWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunTrigger
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentRunTriggerFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentRunTriggerFilter<$PrismaModel>
+}
+
+export type NestedEnumAgentRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStatus | Prisma.EnumAgentRunStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStatus[] | Prisma.ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentRunStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentRunStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumAgentRunStepStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStepStatus | Prisma.EnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStepStatusFilter<$PrismaModel> | $Enums.AgentRunStepStatus
+}
+
+export type NestedEnumAgentRunStepStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentRunStepStatus | Prisma.EnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentRunStepStatus[] | Prisma.ListEnumAgentRunStepStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentRunStepStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunStepStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentRunStepStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentRunStepStatusFilter<$PrismaModel>
 }
 
 

@@ -6,8 +6,8 @@ import { CONTEXT_HISTORY_LIMIT, SUMMARIZE_THRESHOLD } from "../../config/constan
 import type { BuildContextResponse } from "../../modules/context/context.types.js"
 import { z } from "zod"
 import { prisma } from "../../config/prisma.js"
-import { getConnectionsForAgent, getToolPreference } from "../../modules/mcp/mcp.service.js"
-import { getIntegrationsByAgent, type AgentSlug } from "@repo/integrations-catalog"
+import { getConnectionsForAgent, getToolPreference, getCatalogForAgent } from "../../modules/mcp/mcp.service.js"
+import { type AgentSlug } from "@repo/integrations-catalog"
 
 interface AgentCallOptions {
   agentApiPath: string            // e.g. "/ai/sage/chat"
@@ -54,6 +54,9 @@ const chatResponseSchema = z.object({
         status: z.enum(["ok", "error", "pending"]).catch("ok"),
         detail: z.string().optional(),
         durationMs: z.number().nullable().optional(),
+        // Set when the call happened inside a delegated agent's turn, so the
+        // UI can attribute it. zod strips unknown keys, so it must be declared.
+        viaAgent: z.string().optional(),
       }),
     )
     .optional()
@@ -255,10 +258,7 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
   try {
     const connections = await getConnectionsForAgent(organizationId, agentEnum)
     const agentSlug = agentEnum.toLowerCase() as AgentSlug
-    const connectedSlugs = new Set(connections.map((c) => c.integrationSlug))
-    const catalog = getIntegrationsByAgent(agentSlug)
-      .filter((e) => e.status === "composio")
-      .map((e) => ({ slug: e.slug, name: e.name, connected: connectedSlugs.has(e.slug) }))
+    const catalog = getCatalogForAgent(agentEnum, connections)
     // Deterministic override for agents whose native tools can't reliably be
     // prompted to "prefer" a connected MCP tool (see agents/base.py's
     // SUPERSEDABLE_BY_MCP) — which integration, if any, should replace this

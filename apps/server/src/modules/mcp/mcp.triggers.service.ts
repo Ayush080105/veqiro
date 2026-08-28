@@ -520,7 +520,7 @@ const processEvent = async (
   try {
     const response = await callAgentWithContext<{
       response: string;
-      mcp_pending_actions?: unknown[];
+      metadata?: Record<string, unknown> | null;
     }>({
       agentApiPath: `/ai/${def.agent.toLowerCase()}/chat`,
       agentEnum: def.agent,
@@ -547,9 +547,7 @@ const processEvent = async (
       },
     });
 
-    const pending = (response.mcp_pending_actions ?? []) as Parameters<
-      typeof mcpService.stagePendingActions
-    >[0]["pendingActions"];
+    const pending = mcpService.readPendingActions(response);
     if (pending.length > 0) {
       await mcpService.stagePendingActions({
         organizationId: subscription.organizationId,

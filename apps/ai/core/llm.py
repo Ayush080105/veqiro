@@ -14,7 +14,9 @@ from core.tools import (
 
 # Provider + model constants
 GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
-GPT4O_MINI = ("openai", "gpt-4.1-mini")
+# Historically the cheap model. Repointed at the main model: quality is
+# preferred over cost on every call that used it.
+GPT4O_MINI = ("openai", "gpt-5.6-luna")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
 # Models whose Chat Completions API only accepts the default temperature (1) —
@@ -602,13 +604,26 @@ class LLMClient:
                 yield chunk.text
 
     async def _openai_stream(self, model, system, messages, temperature):
+        """Token stream over the plain `create(stream=True)` API.
+
+        Not `client.chat.completions.stream(...).text_stream`: that helper's
+        `text_stream` attribute was removed in the openai v3 SDK, so the call
+        raised AttributeError on every attempt and the retry loop turned it
+        into "LLM stream failed after retries". `create(stream=True)` has the
+        same shape across v1-v3.
+        """
         import openai as _openai
         client = _openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         oai_messages = [{"role": "system", "content": system}] + messages
         stream_kwargs = _openai_completion_kwargs(model, temperature)
         stream_kwargs["messages"] = oai_messages
-        async with client.chat.completions.stream(**stream_kwargs) as stream:
-            async for text in stream.text_stream:
+        stream_kwargs["stream"] = True
+        stream = await client.chat.completions.create(**stream_kwargs)
+        async for chunk in stream:
+            if not chunk.choices:
+                continue
+            text = chunk.choices[0].delta.content
+            if text:
                 yield text
 
     # ── Tool-calling completion ───────────────────────────────────────────

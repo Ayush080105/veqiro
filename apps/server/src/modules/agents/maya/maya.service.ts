@@ -8,7 +8,6 @@ import { isR2Configured, uploadImageBase64, uploadBuffer } from "../../../common
 import * as mayaRepository from "./maya.repository.js";
 import * as integrationsService from "../../integrations/integrations.service.js";
 import * as mcpService from "../../mcp/mcp.service.js";
-import type { RawPendingAction } from "../../mcp/mcp.types.js";
 import { logActivity, ActivityAction } from "../../activity/activity.service.js";
 import type {
   SendMessageInput,
@@ -65,6 +64,7 @@ import {
   assertVideoGenerationAllowed,
 } from "./maya.usage.service.js";
 import { imageCreditsFor, videoCreditsFor } from "./maya.quotas.js";
+import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
 
 const platformToEnum: Record<string, SocialPlatform> = {
   twitter: SocialPlatform.TWITTER,
@@ -143,6 +143,17 @@ export const sendMessage = async (
     userId,
     content: input.content,
   });
+
+  // A multi-step request becomes a planned run the user approves as a
+  // graph. Returns null for everything else, including any failure, so
+  // the normal single-pass path below stays the default.
+  const plannedRun = await maybeStartPlannedRun({
+    organizationId,
+    userId,
+    agent: Agent.MAYA,
+    content: input.content,
+  });
+  if (plannedRun) return plannedRun;
   const responseData = await callAgentWithContext({
     agentApiPath: "/ai/maya/chat",
     agentEnum: Agent.MAYA,
@@ -156,7 +167,7 @@ export const sendMessage = async (
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
-  const pendingActions = responseData.metadata?.pending_actions as RawPendingAction[] | undefined
+  const pendingActions = mcpService.readPendingActions(responseData)
   const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
   const stageIfNeeded = async (messageId: string) => {
     if (pendingActions?.length) {

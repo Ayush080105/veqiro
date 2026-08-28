@@ -223,3 +223,43 @@ export const SplitType = {
 } as const
 
 export type SplitType = (typeof SplitType)[keyof typeof SplitType]
+
+
+export const AgentRunStatus = {
+  PLANNING: 'PLANNING',
+  AWAITING_PLAN_APPROVAL: 'AWAITING_PLAN_APPROVAL',
+  RUNNING: 'RUNNING',
+  AWAITING_ACTION_APPROVAL: 'AWAITING_ACTION_APPROVAL',
+  REPLANNING: 'REPLANNING',
+  COMPLETED: 'COMPLETED',
+  PARTIAL: 'PARTIAL',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type AgentRunStatus = (typeof AgentRunStatus)[keyof typeof AgentRunStatus]
+
+
+export const AgentRunStepStatus = {
+  PLANNED: 'PLANNED',
+  DISABLED: 'DISABLED',
+  BLOCKED: 'BLOCKED',
+  READY: 'READY',
+  RUNNING: 'RUNNING',
+  AWAITING_APPROVAL: 'AWAITING_APPROVAL',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED'
+} as const
+
+export type AgentRunStepStatus = (typeof AgentRunStepStatus)[keyof typeof AgentRunStepStatus]
+
+
+export const AgentRunTrigger = {
+  CHAT: 'CHAT',
+  TRIGGER: 'TRIGGER',
+  PLAY: 'PLAY'
+} as const
+
+export type AgentRunTrigger = (typeof AgentRunTrigger)[keyof typeof AgentRunTrigger]

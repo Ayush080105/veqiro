@@ -289,7 +289,7 @@ async def build_carousel_content(
     try:
         data = await llm.complete_json(
             provider="openai",
-            model="gpt-4.1-mini",
+            model="gpt-5.6-luna",
             system=system,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.6,

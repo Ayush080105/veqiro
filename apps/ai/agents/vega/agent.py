@@ -1,21 +1,6 @@
-import asyncio
-import json
-
 from agents.base import BaseAgent
-from core.llm import LLMClient
-from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
-from core.tools import ToolDefinition, ToolParameter
-
-DEFAULT_LABEL_DEFINITIONS = [
-    {"name": "Investors", "rationale": "Investor, fundraising, diligence, metrics, deck, term sheet, VC, angel, shareholder, or board-related communication."},
-    {"name": "Sales Leads", "rationale": "Prospects, demos, pricing, trials, purchasing intent, inbound leads, customer evaluation, or sales follow-up."},
-    {"name": "Newsletters", "rationale": "Subscriptions, digests, marketing newsletters, product updates, event roundups, or automated broadcasts with no direct action required."},
-    {"name": "Team", "rationale": "Internal teammates, collaborators, hiring, operations, project coordination, status updates, or work planning."},
-    {"name": "Legal", "rationale": "Contracts, compliance, terms, privacy, legal notices, signatures, policies, or regulatory matters."},
-    {"name": "Finance", "rationale": "Invoices, receipts, payments, accounting, payroll, banking, taxes, or financial operations."},
-    {"name": "Other", "rationale": "Use only when the email does not clearly match another configured label."},
-]
+from core.tools import ToolDefinition
 
 
 class VegaAgent(BaseAgent):
@@ -31,48 +16,6 @@ class VegaAgent(BaseAgent):
     )
     default_provider = "openai"
     default_model = "gpt-5.6-luna"
-
-    def __init__(self, llm_client: LLMClient, rag_service: RAGService):
-        super().__init__(llm_client, rag_service)
-        self._node_actions_buffer: list[dict] = []
-        self._google_token: str = ""
-        self._label_definitions: list[dict] = DEFAULT_LABEL_DEFINITIONS
-
-    def _coerce_label_definitions(self, metadata: dict) -> list[dict]:
-        definitions = []
-        for item in metadata.get("label_definitions") or []:
-            if not isinstance(item, dict):
-                continue
-            name = str(item.get("name", "")).strip()
-            if name:
-                definitions.append({
-                    "name": name,
-                    "rationale": str(item.get("rationale", "") or "No rationale provided.").strip(),
-                })
-        if definitions:
-            return definitions
-        custom_labels = metadata.get("custom_labels") or []
-        if custom_labels:
-            return [{"name": str(name), "rationale": "No rationale provided."} for name in custom_labels if str(name).strip()]
-        return DEFAULT_LABEL_DEFINITIONS
-
-    def _label_names(self) -> list[str]:
-        return [label["name"] for label in self._label_definitions]
-
-    def _label_prompt(self) -> str:
-        return "\n".join(
-            f"- {label['name']}: {label.get('rationale') or 'No rationale provided.'}"
-            for label in self._label_definitions
-        )
-
-    def _normalize_label(self, label: str | None) -> str:
-        names = self._label_names()
-        if label:
-            lower = label.lower().removeprefix("vega/")
-            for name in names:
-                if name.lower() == lower:
-                    return name
-        return next((name for name in names if name.lower() == "other"), names[0] if names else "Other")
 
     # ── Tool-use instructions ────────────────────────────────────────────
 
@@ -268,19 +211,11 @@ class VegaAgent(BaseAgent):
     # ── Chat override: collect node_actions from tool calls ──────────────
 
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
-        self._node_actions_buffer = []
-        self._google_token = request.metadata.get("google_access_token", "")
-        self._label_definitions = self._coerce_label_definitions(request.metadata)
-
         response = await super().chat_sync(request)
 
-        # Inject any node_actions accumulated during execute_tool() calls
-        if self._node_actions_buffer:
-            response.metadata["node_actions"] = list(self._node_actions_buffer)
-            self._node_actions_buffer = []
-
-        # Strip internal node_action key from action_result before it hits the DB
-        # (the card never needs it; node_actions are already in metadata above)
+        # Strip the internal node_action key from action_result before it hits
+        # the DB — the card never needs it. Reachable now that a delegated
+        # agent's card can surface here (see BaseAgent's CrossAgentSink).
         if response.action_result and "node_action" in response.action_result:
             response.action_result = {
                 k: v for k, v in response.action_result.items() if k != "node_action"

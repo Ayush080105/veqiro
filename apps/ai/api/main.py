@@ -17,6 +17,7 @@ from agents.router import router as agent_router
 from briefing import router as briefing_router
 from core.context_routes import router as context_router
 from core.mcp.routes import router as mcp_router
+from core.runs.routes import router as runs_router
 
 @asynccontextmanager
 async def lifespan(app):
@@ -54,6 +55,7 @@ app.include_router(vega_router,     dependencies=_auth)   # /ai/vega/...
 app.include_router(briefing_router, dependencies=_auth)   # /ai/briefing
 app.include_router(context_router,  dependencies=_auth)   # /ai/context/...
 app.include_router(mcp_router,      dependencies=_auth)   # /ai/mcp/...
+app.include_router(runs_router,     dependencies=_auth)   # /ai/runs/...
 
 
 # ── Health endpoints ──────────────────────────────────────────────────────────

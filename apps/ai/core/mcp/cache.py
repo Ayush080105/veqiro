@@ -6,6 +6,7 @@ on every chat turn — see MCP_INTEGRATIONS_FINAL.pdf-derived plan, Risk #6
 
 from __future__ import annotations
 
+import hashlib
 import time
 
 from core.tools import ToolDefinition
@@ -28,12 +29,48 @@ _SAFETY_MARGIN = 3
 # though it's tagged important. Computing the real per-agent budget (below)
 # fixes this generically instead of guessing a fixed number.
 
-# key "{organization_id}:{agent_slug}" -> (expires_at, tool_defs, alias_map)
+# Bound so a long-lived process can't accumulate an entry per (org, agent,
+# connection-set, budget) forever. Evicted oldest-expiry-first once exceeded.
+_MAX_CACHE_ENTRIES = 500
+
+# key -> (expires_at, tool_defs, alias_map); see _cache_key for what's in it.
 _cache: dict[str, tuple[float, list[ToolDefinition], dict[str, tuple[str, str]]]] = {}
 
 
-def _cache_key(organization_id: str, agent_slug: str) -> str:
-    return f"{organization_id}:{agent_slug}"
+def _cache_key(
+    organization_id: str,
+    agent_slug: str,
+    connections: list[dict],
+    reserved_tools: int,
+) -> str:
+    """Identify a cache entry by everything that changes its contents.
+
+    Keying on (org, agent) alone was wrong in both directions:
+
+    * `connections` is filtered before this call — by mcp_tool_preference in
+      chat_sync, and per-step by the run executor. A narrowed call would
+      populate the entry, and the next unfiltered call would then read that
+      starved list back for the rest of the TTL.
+    * `reserved_tools` feeds `max_mcp_tools`, so a call with a different native
+      tool count computes a different truncation and must not reuse another's.
+    """
+    conn_sig = ",".join(sorted(str(c.get("connectionId", "")) for c in connections))
+    digest = hashlib.sha1(conn_sig.encode("utf-8")).hexdigest()[:12]
+    return f"{organization_id}:{agent_slug}:{digest}:{reserved_tools}"
+
+
+def _evict_if_needed() -> None:
+    if len(_cache) <= _MAX_CACHE_ENTRIES:
+        return
+    now = time.monotonic()
+    for key in [k for k, (exp, _, _) in _cache.items() if exp <= now]:
+        del _cache[key]
+    if len(_cache) <= _MAX_CACHE_ENTRIES:
+        return
+    for key, _ in sorted(_cache.items(), key=lambda kv: kv[1][0])[
+        : len(_cache) - _MAX_CACHE_ENTRIES
+    ]:
+        del _cache[key]
 
 
 async def get_mcp_tools(
@@ -54,7 +91,7 @@ async def get_mcp_tools(
         return [], {}
 
     max_mcp_tools = max(_OPENAI_TOOL_LIMIT - reserved_tools - _SAFETY_MARGIN, 0)
-    key = _cache_key(organization_id, agent_slug)
+    key = _cache_key(organization_id, agent_slug, connections, reserved_tools)
     cached = _cache.get(key)
     if cached and time.monotonic() < cached[0]:
         return cached[1], cached[2]
@@ -95,6 +132,7 @@ async def get_mcp_tools(
         alias_map = {name: target for name, target in alias_map.items() if name in kept_names}
 
     _cache[key] = (time.monotonic() + _TTL_SECONDS, tool_defs, alias_map)
+    _evict_if_needed()
     return tool_defs, alias_map
 
 

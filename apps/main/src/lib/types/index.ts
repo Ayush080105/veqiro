@@ -16,6 +16,9 @@ export interface Message {
   model?: string | null
   /** Rich structured action result. When set, the chat renders the matching result card. */
   customInput?: {
+    /** Set when this message renders a planned multi-step run's task graph. */
+    runId?: string
+    planVersion?: number
     actionId?: string
     input?: unknown
     result?: unknown
@@ -34,6 +37,8 @@ export interface ToolTraceEntry {
   status: "ok" | "error" | "pending"
   detail?: string
   durationMs?: number | null
+  /** Slug of the delegate that ran this call, when it came from a cross-agent hop. */
+  viaAgent?: string
 }
 
 export interface AgentStat {

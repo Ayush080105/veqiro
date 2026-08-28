@@ -43,6 +43,7 @@ export type McpPendingActionMinAggregateOutputType = {
   errorMessage: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  runStepId: string | null
 }
 
 export type McpPendingActionMaxAggregateOutputType = {
@@ -61,6 +62,7 @@ export type McpPendingActionMaxAggregateOutputType = {
   errorMessage: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  runStepId: string | null
 }
 
 export type McpPendingActionCountAggregateOutputType = {
@@ -81,6 +83,7 @@ export type McpPendingActionCountAggregateOutputType = {
   errorMessage: number
   createdAt: number
   updatedAt: number
+  runStepId: number
   _all: number
 }
 
@@ -101,6 +104,7 @@ export type McpPendingActionMinAggregateInputType = {
   errorMessage?: true
   createdAt?: true
   updatedAt?: true
+  runStepId?: true
 }
 
 export type McpPendingActionMaxAggregateInputType = {
@@ -119,6 +123,7 @@ export type McpPendingActionMaxAggregateInputType = {
   errorMessage?: true
   createdAt?: true
   updatedAt?: true
+  runStepId?: true
 }
 
 export type McpPendingActionCountAggregateInputType = {
@@ -139,6 +144,7 @@ export type McpPendingActionCountAggregateInputType = {
   errorMessage?: true
   createdAt?: true
   updatedAt?: true
+  runStepId?: true
   _all?: true
 }
 
@@ -232,6 +238,7 @@ export type McpPendingActionGroupByOutputType = {
   errorMessage: string | null
   createdAt: Date
   updatedAt: Date
+  runStepId: string | null
   _count: McpPendingActionCountAggregateOutputType | null
   _min: McpPendingActionMinAggregateOutputType | null
   _max: McpPendingActionMaxAggregateOutputType | null
@@ -273,7 +280,9 @@ export type McpPendingActionWhereInput = {
   errorMessage?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"McpPendingAction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"McpPendingAction"> | Date | string
+  runStepId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   message?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
+  runStep?: Prisma.XOR<Prisma.AgentRunStepNullableScalarRelationFilter, Prisma.AgentRunStepWhereInput> | null
 }
 
 export type McpPendingActionOrderByWithRelationInput = {
@@ -294,7 +303,9 @@ export type McpPendingActionOrderByWithRelationInput = {
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  runStepId?: Prisma.SortOrderInput | Prisma.SortOrder
   message?: Prisma.MessageOrderByWithRelationInput
+  runStep?: Prisma.AgentRunStepOrderByWithRelationInput
 }
 
 export type McpPendingActionWhereUniqueInput = Prisma.AtLeast<{
@@ -318,7 +329,9 @@ export type McpPendingActionWhereUniqueInput = Prisma.AtLeast<{
   errorMessage?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"McpPendingAction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"McpPendingAction"> | Date | string
+  runStepId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   message?: Prisma.XOR<Prisma.MessageNullableScalarRelationFilter, Prisma.MessageWhereInput> | null
+  runStep?: Prisma.XOR<Prisma.AgentRunStepNullableScalarRelationFilter, Prisma.AgentRunStepWhereInput> | null
 }, "id">
 
 export type McpPendingActionOrderByWithAggregationInput = {
@@ -339,6 +352,7 @@ export type McpPendingActionOrderByWithAggregationInput = {
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  runStepId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.McpPendingActionCountOrderByAggregateInput
   _max?: Prisma.McpPendingActionMaxOrderByAggregateInput
   _min?: Prisma.McpPendingActionMinOrderByAggregateInput
@@ -365,6 +379,7 @@ export type McpPendingActionScalarWhereWithAggregatesInput = {
   errorMessage?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"McpPendingAction"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"McpPendingAction"> | Date | string
+  runStepId?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
 }
 
 export type McpPendingActionCreateInput = {
@@ -385,6 +400,7 @@ export type McpPendingActionCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   message?: Prisma.MessageCreateNestedOneWithoutPendingActionsInput
+  runStep?: Prisma.AgentRunStepCreateNestedOneWithoutPendingActionsInput
 }
 
 export type McpPendingActionUncheckedCreateInput = {
@@ -405,6 +421,7 @@ export type McpPendingActionUncheckedCreateInput = {
   errorMessage?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  runStepId?: string | null
 }
 
 export type McpPendingActionUpdateInput = {
@@ -425,6 +442,7 @@ export type McpPendingActionUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   message?: Prisma.MessageUpdateOneWithoutPendingActionsNestedInput
+  runStep?: Prisma.AgentRunStepUpdateOneWithoutPendingActionsNestedInput
 }
 
 export type McpPendingActionUncheckedUpdateInput = {
@@ -445,6 +463,7 @@ export type McpPendingActionUncheckedUpdateInput = {
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  runStepId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type McpPendingActionCreateManyInput = {
@@ -465,6 +484,7 @@ export type McpPendingActionCreateManyInput = {
   errorMessage?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  runStepId?: string | null
 }
 
 export type McpPendingActionUpdateManyMutationInput = {
@@ -504,6 +524,7 @@ export type McpPendingActionUncheckedUpdateManyInput = {
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  runStepId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type McpPendingActionListRelationFilter = {
@@ -534,6 +555,7 @@ export type McpPendingActionCountOrderByAggregateInput = {
   errorMessage?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  runStepId?: Prisma.SortOrder
 }
 
 export type McpPendingActionMaxOrderByAggregateInput = {
@@ -552,6 +574,7 @@ export type McpPendingActionMaxOrderByAggregateInput = {
   errorMessage?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  runStepId?: Prisma.SortOrder
 }
 
 export type McpPendingActionMinOrderByAggregateInput = {
@@ -570,6 +593,7 @@ export type McpPendingActionMinOrderByAggregateInput = {
   errorMessage?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  runStepId?: Prisma.SortOrder
 }
 
 export type McpPendingActionCreateNestedManyWithoutMessageInput = {
@@ -622,6 +646,48 @@ export type EnumMcpPendingActionStatusFieldUpdateOperationsInput = {
   set?: $Enums.McpPendingActionStatus
 }
 
+export type McpPendingActionCreateNestedManyWithoutRunStepInput = {
+  create?: Prisma.XOR<Prisma.McpPendingActionCreateWithoutRunStepInput, Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput> | Prisma.McpPendingActionCreateWithoutRunStepInput[] | Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput[]
+  connectOrCreate?: Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput | Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput[]
+  createMany?: Prisma.McpPendingActionCreateManyRunStepInputEnvelope
+  connect?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+}
+
+export type McpPendingActionUncheckedCreateNestedManyWithoutRunStepInput = {
+  create?: Prisma.XOR<Prisma.McpPendingActionCreateWithoutRunStepInput, Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput> | Prisma.McpPendingActionCreateWithoutRunStepInput[] | Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput[]
+  connectOrCreate?: Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput | Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput[]
+  createMany?: Prisma.McpPendingActionCreateManyRunStepInputEnvelope
+  connect?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+}
+
+export type McpPendingActionUpdateManyWithoutRunStepNestedInput = {
+  create?: Prisma.XOR<Prisma.McpPendingActionCreateWithoutRunStepInput, Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput> | Prisma.McpPendingActionCreateWithoutRunStepInput[] | Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput[]
+  connectOrCreate?: Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput | Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput[]
+  upsert?: Prisma.McpPendingActionUpsertWithWhereUniqueWithoutRunStepInput | Prisma.McpPendingActionUpsertWithWhereUniqueWithoutRunStepInput[]
+  createMany?: Prisma.McpPendingActionCreateManyRunStepInputEnvelope
+  set?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  disconnect?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  delete?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  connect?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  update?: Prisma.McpPendingActionUpdateWithWhereUniqueWithoutRunStepInput | Prisma.McpPendingActionUpdateWithWhereUniqueWithoutRunStepInput[]
+  updateMany?: Prisma.McpPendingActionUpdateManyWithWhereWithoutRunStepInput | Prisma.McpPendingActionUpdateManyWithWhereWithoutRunStepInput[]
+  deleteMany?: Prisma.McpPendingActionScalarWhereInput | Prisma.McpPendingActionScalarWhereInput[]
+}
+
+export type McpPendingActionUncheckedUpdateManyWithoutRunStepNestedInput = {
+  create?: Prisma.XOR<Prisma.McpPendingActionCreateWithoutRunStepInput, Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput> | Prisma.McpPendingActionCreateWithoutRunStepInput[] | Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput[]
+  connectOrCreate?: Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput | Prisma.McpPendingActionCreateOrConnectWithoutRunStepInput[]
+  upsert?: Prisma.McpPendingActionUpsertWithWhereUniqueWithoutRunStepInput | Prisma.McpPendingActionUpsertWithWhereUniqueWithoutRunStepInput[]
+  createMany?: Prisma.McpPendingActionCreateManyRunStepInputEnvelope
+  set?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  disconnect?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  delete?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  connect?: Prisma.McpPendingActionWhereUniqueInput | Prisma.McpPendingActionWhereUniqueInput[]
+  update?: Prisma.McpPendingActionUpdateWithWhereUniqueWithoutRunStepInput | Prisma.McpPendingActionUpdateWithWhereUniqueWithoutRunStepInput[]
+  updateMany?: Prisma.McpPendingActionUpdateManyWithWhereWithoutRunStepInput | Prisma.McpPendingActionUpdateManyWithWhereWithoutRunStepInput[]
+  deleteMany?: Prisma.McpPendingActionScalarWhereInput | Prisma.McpPendingActionScalarWhereInput[]
+}
+
 export type McpPendingActionCreateWithoutMessageInput = {
   id?: string
   organizationId: string
@@ -639,6 +705,7 @@ export type McpPendingActionCreateWithoutMessageInput = {
   errorMessage?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  runStep?: Prisma.AgentRunStepCreateNestedOneWithoutPendingActionsInput
 }
 
 export type McpPendingActionUncheckedCreateWithoutMessageInput = {
@@ -658,6 +725,7 @@ export type McpPendingActionUncheckedCreateWithoutMessageInput = {
   errorMessage?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  runStepId?: string | null
 }
 
 export type McpPendingActionCreateOrConnectWithoutMessageInput = {
@@ -707,6 +775,73 @@ export type McpPendingActionScalarWhereInput = {
   errorMessage?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"McpPendingAction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"McpPendingAction"> | Date | string
+  runStepId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
+}
+
+export type McpPendingActionCreateWithoutRunStepInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  connectionId: string
+  integrationSlug: string
+  toolName: string
+  arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
+  status?: $Enums.McpPendingActionStatus
+  resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorMessage?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  message?: Prisma.MessageCreateNestedOneWithoutPendingActionsInput
+}
+
+export type McpPendingActionUncheckedCreateWithoutRunStepInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  messageId?: string | null
+  connectionId: string
+  integrationSlug: string
+  toolName: string
+  arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
+  status?: $Enums.McpPendingActionStatus
+  resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorMessage?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type McpPendingActionCreateOrConnectWithoutRunStepInput = {
+  where: Prisma.McpPendingActionWhereUniqueInput
+  create: Prisma.XOR<Prisma.McpPendingActionCreateWithoutRunStepInput, Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput>
+}
+
+export type McpPendingActionCreateManyRunStepInputEnvelope = {
+  data: Prisma.McpPendingActionCreateManyRunStepInput | Prisma.McpPendingActionCreateManyRunStepInput[]
+  skipDuplicates?: boolean
+}
+
+export type McpPendingActionUpsertWithWhereUniqueWithoutRunStepInput = {
+  where: Prisma.McpPendingActionWhereUniqueInput
+  update: Prisma.XOR<Prisma.McpPendingActionUpdateWithoutRunStepInput, Prisma.McpPendingActionUncheckedUpdateWithoutRunStepInput>
+  create: Prisma.XOR<Prisma.McpPendingActionCreateWithoutRunStepInput, Prisma.McpPendingActionUncheckedCreateWithoutRunStepInput>
+}
+
+export type McpPendingActionUpdateWithWhereUniqueWithoutRunStepInput = {
+  where: Prisma.McpPendingActionWhereUniqueInput
+  data: Prisma.XOR<Prisma.McpPendingActionUpdateWithoutRunStepInput, Prisma.McpPendingActionUncheckedUpdateWithoutRunStepInput>
+}
+
+export type McpPendingActionUpdateManyWithWhereWithoutRunStepInput = {
+  where: Prisma.McpPendingActionScalarWhereInput
+  data: Prisma.XOR<Prisma.McpPendingActionUpdateManyMutationInput, Prisma.McpPendingActionUncheckedUpdateManyWithoutRunStepInput>
 }
 
 export type McpPendingActionCreateManyMessageInput = {
@@ -726,6 +861,7 @@ export type McpPendingActionCreateManyMessageInput = {
   errorMessage?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  runStepId?: string | null
 }
 
 export type McpPendingActionUpdateWithoutMessageInput = {
@@ -745,6 +881,7 @@ export type McpPendingActionUpdateWithoutMessageInput = {
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  runStep?: Prisma.AgentRunStepUpdateOneWithoutPendingActionsNestedInput
 }
 
 export type McpPendingActionUncheckedUpdateWithoutMessageInput = {
@@ -764,6 +901,7 @@ export type McpPendingActionUncheckedUpdateWithoutMessageInput = {
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  runStepId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type McpPendingActionUncheckedUpdateManyWithoutMessageInput = {
@@ -771,6 +909,87 @@ export type McpPendingActionUncheckedUpdateManyWithoutMessageInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
+  toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
+  resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  runStepId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type McpPendingActionCreateManyRunStepInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  messageId?: string | null
+  connectionId: string
+  integrationSlug: string
+  toolName: string
+  arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  summary: string
+  source?: $Enums.McpActionSource
+  triggerEventId?: string | null
+  status?: $Enums.McpPendingActionStatus
+  resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorMessage?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type McpPendingActionUpdateWithoutRunStepInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
+  toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
+  resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  message?: Prisma.MessageUpdateOneWithoutPendingActionsNestedInput
+}
+
+export type McpPendingActionUncheckedUpdateWithoutRunStepInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
+  toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumMcpPendingActionStatusFieldUpdateOperationsInput | $Enums.McpPendingActionStatus
+  resultJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type McpPendingActionUncheckedUpdateManyWithoutRunStepInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
@@ -805,7 +1024,9 @@ export type McpPendingActionSelect<ExtArgs extends runtime.Types.Extensions.Inte
   errorMessage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  runStepId?: boolean
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
+  runStep?: boolean | Prisma.McpPendingAction$runStepArgs<ExtArgs>
 }, ExtArgs["result"]["mcpPendingAction"]>
 
 export type McpPendingActionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -826,7 +1047,9 @@ export type McpPendingActionSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   errorMessage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  runStepId?: boolean
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
+  runStep?: boolean | Prisma.McpPendingAction$runStepArgs<ExtArgs>
 }, ExtArgs["result"]["mcpPendingAction"]>
 
 export type McpPendingActionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -847,7 +1070,9 @@ export type McpPendingActionSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   errorMessage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  runStepId?: boolean
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
+  runStep?: boolean | Prisma.McpPendingAction$runStepArgs<ExtArgs>
 }, ExtArgs["result"]["mcpPendingAction"]>
 
 export type McpPendingActionSelectScalar = {
@@ -868,17 +1093,21 @@ export type McpPendingActionSelectScalar = {
   errorMessage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  runStepId?: boolean
 }
 
-export type McpPendingActionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "messageId" | "connectionId" | "integrationSlug" | "toolName" | "arguments" | "summary" | "source" | "triggerEventId" | "status" | "resultJson" | "errorMessage" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpPendingAction"]>
+export type McpPendingActionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "messageId" | "connectionId" | "integrationSlug" | "toolName" | "arguments" | "summary" | "source" | "triggerEventId" | "status" | "resultJson" | "errorMessage" | "createdAt" | "updatedAt" | "runStepId", ExtArgs["result"]["mcpPendingAction"]>
 export type McpPendingActionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
+  runStep?: boolean | Prisma.McpPendingAction$runStepArgs<ExtArgs>
 }
 export type McpPendingActionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
+  runStep?: boolean | Prisma.McpPendingAction$runStepArgs<ExtArgs>
 }
 export type McpPendingActionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
+  runStep?: boolean | Prisma.McpPendingAction$runStepArgs<ExtArgs>
 }
 
 export type $McpPendingActionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -888,6 +1117,10 @@ export type $McpPendingActionPayload<ExtArgs extends runtime.Types.Extensions.In
      * Owning message relation.
      */
     message: Prisma.$MessagePayload<ExtArgs> | null
+    /**
+     * The step that proposed it.
+     */
+    runStep: Prisma.$AgentRunStepPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
@@ -959,6 +1192,11 @@ export type $McpPendingActionPayload<ExtArgs extends runtime.Types.Extensions.In
      * Update timestamp.
      */
     updatedAt: Date
+    /**
+     * Run step that proposed this write, when it came from a planned run.
+     * Also discriminates run-sourced writes from chat ones — no enum needed.
+     */
+    runStepId: string | null
   }, ExtArgs["result"]["mcpPendingAction"]>
   composites: {}
 }
@@ -1354,6 +1592,7 @@ readonly fields: McpPendingActionFieldRefs;
 export interface Prisma__McpPendingActionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   message<T extends Prisma.McpPendingAction$messageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.McpPendingAction$messageArgs<ExtArgs>>): Prisma.Prisma__MessageClient<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  runStep<T extends Prisma.McpPendingAction$runStepArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.McpPendingAction$runStepArgs<ExtArgs>>): Prisma.Prisma__AgentRunStepClient<runtime.Types.Result.GetResult<Prisma.$AgentRunStepPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1400,6 +1639,7 @@ export interface McpPendingActionFieldRefs {
   readonly errorMessage: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly createdAt: Prisma.FieldRef<"McpPendingAction", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"McpPendingAction", 'DateTime'>
+  readonly runStepId: Prisma.FieldRef<"McpPendingAction", 'String'>
 }
     
 
@@ -1817,6 +2057,25 @@ export type McpPendingAction$messageArgs<ExtArgs extends runtime.Types.Extension
    */
   include?: Prisma.MessageInclude<ExtArgs> | null
   where?: Prisma.MessageWhereInput
+}
+
+/**
+ * McpPendingAction.runStep
+ */
+export type McpPendingAction$runStepArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AgentRunStep
+   */
+  select?: Prisma.AgentRunStepSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentRunStep
+   */
+  omit?: Prisma.AgentRunStepOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentRunStepInclude<ExtArgs> | null
+  where?: Prisma.AgentRunStepWhereInput
 }
 
 /**

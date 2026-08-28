@@ -147,6 +147,16 @@ export const AGENTS: AgentConfig[] = [
   },
 ]
 
+/** Portrait per agent. Shared by the sidebar rows and the team room. */
+export const AGENT_PHOTOS: Record<string, string> = {
+  maya: "/agents/maya.jpeg",
+  rex: "/agents/rex.jpeg",
+  sage: "/agents/sage.jpeg",
+  scout: "/agents/scout.jpeg",
+  lex: "/agents/lex.jpeg",
+  vega: "/agents/vega.jpeg",
+}
+
 export function getAgent(id: string): AgentConfig | undefined {
   return AGENTS.find((a) => a.id === id)
 }

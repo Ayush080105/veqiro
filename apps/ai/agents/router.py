@@ -54,7 +54,7 @@ class ClassifyResponse(BaseModel):
                 "confidence": 0.92,
                 "reasoning": "Message contains keywords related to content creation and LinkedIn posting.",
                 "tokens_used": 148,
-                "model_used": "gpt-4.1-mini",
+                "model_used": "gpt-5.6-luna",
             }
         }
     )

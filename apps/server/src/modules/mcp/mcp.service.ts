@@ -202,6 +202,24 @@ export const disconnect = async (organizationId: string, slug: string): Promise<
  * Provider-blind by design — apps/ai never needs to know which provider
  * backs a connection.
  */
+/**
+ * The agent's Composio integrations, each flagged with whether this org has
+ * connected it. Lets an agent answer "what can you connect to?" and gives the
+ * planner the exact set it is allowed to plan against.
+ *
+ * Shared by contextService (per chat turn) and the run planner so the two can
+ * never disagree about what is connected.
+ */
+export const getCatalogForAgent = (
+  agentEnum: Agent,
+  connections: { integrationSlug: string }[],
+): { slug: string; name: string; connected: boolean }[] => {
+  const connectedSlugs = new Set(connections.map((c) => c.integrationSlug));
+  return getIntegrationsByAgent(agentEnum.toLowerCase() as AgentSlug)
+    .filter((e) => e.status === "composio")
+    .map((e) => ({ slug: e.slug, name: e.name, connected: connectedSlugs.has(e.slug) }));
+};
+
 export const getConnectionsForAgent = async (
   organizationId: string,
   agentEnum: Agent
@@ -810,6 +828,21 @@ const toPendingActionSummary = (row: {
   resultJson: row.resultJson,
   errorMessage: row.errorMessage,
 });
+
+/**
+ * The one way to read staged write proposals off an agent response.
+ *
+ * apps/ai emits these at `metadata.pending_actions` (see agents/base.py's
+ * mcp_pending_actions). Two callers previously read `mcp_pending_actions` off
+ * the top level instead, which could never work: it is both the wrong key and
+ * a key `chatResponseSchema` strips, since zod drops unknown properties. That
+ * silently disabled write proposals for every trigger and play. Centralised
+ * here so the mistake cannot be made a ninth time.
+ */
+export const readPendingActions = (
+  response: { metadata?: Record<string, unknown> | null } | null | undefined,
+): RawPendingAction[] =>
+  (response?.metadata?.pending_actions as RawPendingAction[] | undefined) ?? [];
 
 /** Lightweight snapshot each agent's *.service.ts stores on Message.customInput
  * so the chat UI can render pending-action cards without an extra fetch. */

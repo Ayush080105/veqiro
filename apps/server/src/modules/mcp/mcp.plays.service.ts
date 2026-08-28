@@ -119,7 +119,7 @@ export const runPlay = async (params: {
 
   const response = await callAgentWithContext<{
     response: string;
-    mcp_pending_actions?: unknown[];
+    metadata?: Record<string, unknown> | null;
   }>({
     agentApiPath: `/ai/${def.agent.toLowerCase()}/chat`,
     agentEnum: def.agent,
@@ -144,9 +144,7 @@ export const runPlay = async (params: {
     },
   });
 
-  const pending = (response.mcp_pending_actions ?? []) as Parameters<
-    typeof mcpService.stagePendingActions
-  >[0]["pendingActions"];
+  const pending = mcpService.readPendingActions(response);
   if (pending.length > 0) {
     // TRIGGER, not CHAT: nobody was watching when this ran, which is what the
     // confirm UI needs to know to present it with its own context.

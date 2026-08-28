@@ -220,7 +220,7 @@ async def plan_report_sections(
 
     from core.utils import safe_json_loads
     raw = await llm.complete(
-        provider="openai", model="gpt-4.1-mini",
+        provider="openai", model="gpt-5.6-luna",
         system="You plan professional business data reports. Return only valid JSON.",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1,
@@ -479,7 +479,7 @@ async def write_section_narrative(section: dict, agg_data: list[dict], llm) -> l
     )
     from core.utils import safe_json_loads
     raw = await llm.complete(
-        provider="openai", model="gpt-4.1-mini",
+        provider="openai", model="gpt-5.6-luna",
         system="You are a data analyst. Return only valid JSON.",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
@@ -513,7 +513,7 @@ async def write_takeaways(
     )
     from core.utils import safe_json_loads
     raw = await llm.complete(
-        provider="openai", model="gpt-4.1-mini",
+        provider="openai", model="gpt-5.6-luna",
         system="You are a strategic analyst. Return only valid JSON.",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,

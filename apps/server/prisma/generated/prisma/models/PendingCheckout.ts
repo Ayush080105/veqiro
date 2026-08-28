@@ -268,6 +268,7 @@ export type PendingCheckoutOrderByWithRelationInput = {
 export type PendingCheckoutWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   sessionId?: string
+  organizationId_agent?: Prisma.PendingCheckoutOrganizationIdAgentCompoundUniqueInput
   AND?: Prisma.PendingCheckoutWhereInput | Prisma.PendingCheckoutWhereInput[]
   OR?: Prisma.PendingCheckoutWhereInput[]
   NOT?: Prisma.PendingCheckoutWhereInput | Prisma.PendingCheckoutWhereInput[]
@@ -279,7 +280,7 @@ export type PendingCheckoutWhereUniqueInput = Prisma.AtLeast<{
   credits?: Prisma.IntNullableFilter<"PendingCheckout"> | number | null
   createdAt?: Prisma.DateTimeFilter<"PendingCheckout"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
-}, "id" | "sessionId">
+}, "id" | "sessionId" | "organizationId_agent">
 
 export type PendingCheckoutOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -404,6 +405,11 @@ export type PendingCheckoutListRelationFilter = {
 
 export type PendingCheckoutOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type PendingCheckoutOrganizationIdAgentCompoundUniqueInput = {
+  organizationId: string
+  agent: $Enums.Agent
 }
 
 export type PendingCheckoutCountOrderByAggregateInput = {

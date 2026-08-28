@@ -5,7 +5,6 @@ import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import { callAgentWithContext, recordAgentTurnContext } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as mcpService from "../../mcp/mcp.service.js";
-import type { RawPendingAction } from "../../mcp/mcp.types.js";
 import {
   deleteObject,
   getPublicUrl,
@@ -37,6 +36,7 @@ import type {
   QueryDocumentInput,
   QueryDocumentResponse,
 } from "./lex.types.js";
+import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
 
 export const sendMessage = async (
   userId: string,
@@ -53,6 +53,17 @@ export const sendMessage = async (
     content: input.content,
   });
 
+  // A multi-step request becomes a planned run the user approves as a
+  // graph. Returns null for everything else, including any failure, so
+  // the normal single-pass path below stays the default.
+  const plannedRun = await maybeStartPlannedRun({
+    organizationId,
+    userId,
+    agent: Agent.LEX,
+    content: input.content,
+  });
+  if (plannedRun) return plannedRun;
+
   const responseData = await callAgentWithContext({
     agentApiPath: "/ai/lex/chat",
     agentEnum: Agent.LEX,
@@ -65,7 +76,7 @@ export const sendMessage = async (
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
 
-  const pendingActions = responseData.metadata?.pending_actions as RawPendingAction[] | undefined
+  const pendingActions = mcpService.readPendingActions(responseData)
   const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
 
   const customInput = mcpService.withToolTrace(

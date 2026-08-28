@@ -5,6 +5,7 @@ import { Download, Copy, Check } from "lucide-react"
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
 import { ChatImage } from "@/components/chat/ChatImage"
+import { RunPanel } from "@/components/runs/RunPanel"
 import { PendingMcpActionCard } from "@/components/chat/PendingMcpActionCard"
 import { FONT } from "@/lib/fonts"
 import type { Message } from "@/lib/types"
@@ -176,6 +177,7 @@ function ChatMessageComponent({
   const isUser = message.role === "user"
   const time = formatMessageTime(message.createdAt)
   const actionId = message.customInput?.actionId as AgentActionId | undefined
+  const runId = message.customInput?.runId
 
   const inlineTimestamp = (isUserMsg: boolean) => (
     <div
@@ -233,8 +235,31 @@ function ChatMessageComponent({
       ) : (
         <div style={{ width: 32, flexShrink: 0 }} />
       )}
-      <div className="flex flex-col min-w-0" style={{ maxWidth: actionId ? "520px" : "min(85%, 600px)" }}>
-        {actionId && message.customInput?.result != null ? (
+      <div className="flex flex-col min-w-0" style={{ maxWidth: runId ? "680px" : actionId ? "520px" : "min(85%, 600px)" }}>
+        {runId ? (
+          // A planned run owns the whole bubble: the graph carries the step
+          // detail that the action card and tool-trace strip would otherwise
+          // show, so rendering those alongside it would just duplicate it.
+          <>
+            <div
+              style={{
+                background: `color-mix(in srgb, ${agentColor} 40%, #FFF9ED)`,
+                borderLeft: `3px solid ${agentColor}`,
+                color: "#111",
+                borderRadius: "18px 18px 18px 4px",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                padding: "10px 14px 8px",
+                fontFamily: FONT.body,
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              <MarkdownMessage content={message.content} />
+              {inlineTimestamp(false)}
+            </div>
+            <RunPanel runId={runId} />
+          </>
+        ) : actionId && message.customInput?.result != null ? (
           <>
             <ActionResultRenderer
               actionId={actionId}

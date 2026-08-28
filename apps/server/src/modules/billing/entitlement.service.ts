@@ -31,6 +31,27 @@ export async function getActiveEntitlements(organizationId: string) {
 }
 
 /**
+ * Every agent this organization currently has access to.
+ *
+ * The team room is built from exactly this set: an agent the org has not
+ * bought must not appear in it, contribute its connected integrations, or be
+ * assignable by the planner. Derived from live entitlement rows rather than
+ * Organization.unlockedAgents so it cannot drift from what billing says.
+ */
+export async function getEntitledAgents(organizationId: string): Promise<Agent[]> {
+  const rows = await prisma.entitlement.findMany({
+    where: {
+      organizationId,
+      currentPeriodEnd: { gt: new Date() },
+      status: { in: ACCESS_STATUSES },
+    },
+    select: { agent: true },
+    distinct: ["agent"],
+  });
+  return rows.map((r) => r.agent);
+}
+
+/**
  * Access check for one agent. Any covering row grants access — overlapping
  * rows (an AGENT row and a lingering TRIAL row for the same agent) are legal.
  */

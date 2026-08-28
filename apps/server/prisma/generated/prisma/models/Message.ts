@@ -45,6 +45,7 @@ export type MessageMinAggregateOutputType = {
   tokensUsed: number | null
   model: string | null
   userId: string | null
+  isTeam: boolean | null
 }
 
 export type MessageMaxAggregateOutputType = {
@@ -58,6 +59,7 @@ export type MessageMaxAggregateOutputType = {
   tokensUsed: number | null
   model: string | null
   userId: string | null
+  isTeam: boolean | null
 }
 
 export type MessageCountAggregateOutputType = {
@@ -72,6 +74,7 @@ export type MessageCountAggregateOutputType = {
   model: number
   userId: number
   customInput: number
+  isTeam: number
   _all: number
 }
 
@@ -95,6 +98,7 @@ export type MessageMinAggregateInputType = {
   tokensUsed?: true
   model?: true
   userId?: true
+  isTeam?: true
 }
 
 export type MessageMaxAggregateInputType = {
@@ -108,6 +112,7 @@ export type MessageMaxAggregateInputType = {
   tokensUsed?: true
   model?: true
   userId?: true
+  isTeam?: true
 }
 
 export type MessageCountAggregateInputType = {
@@ -122,6 +127,7 @@ export type MessageCountAggregateInputType = {
   model?: true
   userId?: true
   customInput?: true
+  isTeam?: true
   _all?: true
 }
 
@@ -223,6 +229,7 @@ export type MessageGroupByOutputType = {
   model: string | null
   userId: string | null
   customInput: runtime.JsonValue | null
+  isTeam: boolean
   _count: MessageCountAggregateOutputType | null
   _avg: MessageAvgAggregateOutputType | null
   _sum: MessageSumAggregateOutputType | null
@@ -260,7 +267,9 @@ export type MessageWhereInput = {
   model?: Prisma.StringNullableFilter<"Message"> | string | null
   userId?: Prisma.StringNullableFilter<"Message"> | string | null
   customInput?: Prisma.JsonNullableFilter<"Message">
+  isTeam?: Prisma.BoolFilter<"Message"> | boolean
   pendingActions?: Prisma.McpPendingActionListRelationFilter
+  runs?: Prisma.AgentRunListRelationFilter
 }
 
 export type MessageOrderByWithRelationInput = {
@@ -275,7 +284,9 @@ export type MessageOrderByWithRelationInput = {
   model?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   customInput?: Prisma.SortOrderInput | Prisma.SortOrder
+  isTeam?: Prisma.SortOrder
   pendingActions?: Prisma.McpPendingActionOrderByRelationAggregateInput
+  runs?: Prisma.AgentRunOrderByRelationAggregateInput
 }
 
 export type MessageWhereUniqueInput = Prisma.AtLeast<{
@@ -293,7 +304,9 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   model?: Prisma.StringNullableFilter<"Message"> | string | null
   userId?: Prisma.StringNullableFilter<"Message"> | string | null
   customInput?: Prisma.JsonNullableFilter<"Message">
+  isTeam?: Prisma.BoolFilter<"Message"> | boolean
   pendingActions?: Prisma.McpPendingActionListRelationFilter
+  runs?: Prisma.AgentRunListRelationFilter
 }, "id">
 
 export type MessageOrderByWithAggregationInput = {
@@ -308,6 +321,7 @@ export type MessageOrderByWithAggregationInput = {
   model?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   customInput?: Prisma.SortOrderInput | Prisma.SortOrder
+  isTeam?: Prisma.SortOrder
   _count?: Prisma.MessageCountOrderByAggregateInput
   _avg?: Prisma.MessageAvgOrderByAggregateInput
   _max?: Prisma.MessageMaxOrderByAggregateInput
@@ -330,6 +344,7 @@ export type MessageScalarWhereWithAggregatesInput = {
   model?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   userId?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   customInput?: Prisma.JsonNullableWithAggregatesFilter<"Message">
+  isTeam?: Prisma.BoolWithAggregatesFilter<"Message"> | boolean
 }
 
 export type MessageCreateInput = {
@@ -344,7 +359,9 @@ export type MessageCreateInput = {
   model?: string | null
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: boolean
   pendingActions?: Prisma.McpPendingActionCreateNestedManyWithoutMessageInput
+  runs?: Prisma.AgentRunCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateInput = {
@@ -359,7 +376,9 @@ export type MessageUncheckedCreateInput = {
   model?: string | null
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: boolean
   pendingActions?: Prisma.McpPendingActionUncheckedCreateNestedManyWithoutMessageInput
+  runs?: Prisma.AgentRunUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUpdateInput = {
@@ -374,7 +393,9 @@ export type MessageUpdateInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
   pendingActions?: Prisma.McpPendingActionUpdateManyWithoutMessageNestedInput
+  runs?: Prisma.AgentRunUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateInput = {
@@ -389,7 +410,9 @@ export type MessageUncheckedUpdateInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
   pendingActions?: Prisma.McpPendingActionUncheckedUpdateManyWithoutMessageNestedInput
+  runs?: Prisma.AgentRunUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageCreateManyInput = {
@@ -404,6 +427,7 @@ export type MessageCreateManyInput = {
   model?: string | null
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: boolean
 }
 
 export type MessageUpdateManyMutationInput = {
@@ -418,6 +442,7 @@ export type MessageUpdateManyMutationInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type MessageUncheckedUpdateManyInput = {
@@ -432,6 +457,7 @@ export type MessageUncheckedUpdateManyInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type MessageCountOrderByAggregateInput = {
@@ -446,6 +472,7 @@ export type MessageCountOrderByAggregateInput = {
   model?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   customInput?: Prisma.SortOrder
+  isTeam?: Prisma.SortOrder
 }
 
 export type MessageAvgOrderByAggregateInput = {
@@ -463,6 +490,7 @@ export type MessageMaxOrderByAggregateInput = {
   tokensUsed?: Prisma.SortOrder
   model?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  isTeam?: Prisma.SortOrder
 }
 
 export type MessageMinOrderByAggregateInput = {
@@ -476,6 +504,7 @@ export type MessageMinOrderByAggregateInput = {
   tokensUsed?: Prisma.SortOrder
   model?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  isTeam?: Prisma.SortOrder
 }
 
 export type MessageSumOrderByAggregateInput = {
@@ -503,6 +532,22 @@ export type MessageUpdateOneWithoutPendingActionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.MessageUpdateToOneWithWhereWithoutPendingActionsInput, Prisma.MessageUpdateWithoutPendingActionsInput>, Prisma.MessageUncheckedUpdateWithoutPendingActionsInput>
 }
 
+export type MessageCreateNestedOneWithoutRunsInput = {
+  create?: Prisma.XOR<Prisma.MessageCreateWithoutRunsInput, Prisma.MessageUncheckedCreateWithoutRunsInput>
+  connectOrCreate?: Prisma.MessageCreateOrConnectWithoutRunsInput
+  connect?: Prisma.MessageWhereUniqueInput
+}
+
+export type MessageUpdateOneWithoutRunsNestedInput = {
+  create?: Prisma.XOR<Prisma.MessageCreateWithoutRunsInput, Prisma.MessageUncheckedCreateWithoutRunsInput>
+  connectOrCreate?: Prisma.MessageCreateOrConnectWithoutRunsInput
+  upsert?: Prisma.MessageUpsertWithoutRunsInput
+  disconnect?: Prisma.MessageWhereInput | boolean
+  delete?: Prisma.MessageWhereInput | boolean
+  connect?: Prisma.MessageWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MessageUpdateToOneWithWhereWithoutRunsInput, Prisma.MessageUpdateWithoutRunsInput>, Prisma.MessageUncheckedUpdateWithoutRunsInput>
+}
+
 export type MessageCreateWithoutPendingActionsInput = {
   id?: string
   organizationId: string
@@ -515,6 +560,8 @@ export type MessageCreateWithoutPendingActionsInput = {
   model?: string | null
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: boolean
+  runs?: Prisma.AgentRunCreateNestedManyWithoutMessageInput
 }
 
 export type MessageUncheckedCreateWithoutPendingActionsInput = {
@@ -529,6 +576,8 @@ export type MessageUncheckedCreateWithoutPendingActionsInput = {
   model?: string | null
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: boolean
+  runs?: Prisma.AgentRunUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type MessageCreateOrConnectWithoutPendingActionsInput = {
@@ -559,6 +608,8 @@ export type MessageUpdateWithoutPendingActionsInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  runs?: Prisma.AgentRunUpdateManyWithoutMessageNestedInput
 }
 
 export type MessageUncheckedUpdateWithoutPendingActionsInput = {
@@ -573,6 +624,88 @@ export type MessageUncheckedUpdateWithoutPendingActionsInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  runs?: Prisma.AgentRunUncheckedUpdateManyWithoutMessageNestedInput
+}
+
+export type MessageCreateWithoutRunsInput = {
+  id?: string
+  organizationId: string
+  role?: string
+  content: string
+  createdAt?: Date | string
+  imageUrl?: string | null
+  agent: $Enums.Agent
+  tokensUsed?: number
+  model?: string | null
+  userId?: string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: boolean
+  pendingActions?: Prisma.McpPendingActionCreateNestedManyWithoutMessageInput
+}
+
+export type MessageUncheckedCreateWithoutRunsInput = {
+  id?: string
+  organizationId: string
+  role?: string
+  content: string
+  createdAt?: Date | string
+  imageUrl?: string | null
+  agent: $Enums.Agent
+  tokensUsed?: number
+  model?: string | null
+  userId?: string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: boolean
+  pendingActions?: Prisma.McpPendingActionUncheckedCreateNestedManyWithoutMessageInput
+}
+
+export type MessageCreateOrConnectWithoutRunsInput = {
+  where: Prisma.MessageWhereUniqueInput
+  create: Prisma.XOR<Prisma.MessageCreateWithoutRunsInput, Prisma.MessageUncheckedCreateWithoutRunsInput>
+}
+
+export type MessageUpsertWithoutRunsInput = {
+  update: Prisma.XOR<Prisma.MessageUpdateWithoutRunsInput, Prisma.MessageUncheckedUpdateWithoutRunsInput>
+  create: Prisma.XOR<Prisma.MessageCreateWithoutRunsInput, Prisma.MessageUncheckedCreateWithoutRunsInput>
+  where?: Prisma.MessageWhereInput
+}
+
+export type MessageUpdateToOneWithWhereWithoutRunsInput = {
+  where?: Prisma.MessageWhereInput
+  data: Prisma.XOR<Prisma.MessageUpdateWithoutRunsInput, Prisma.MessageUncheckedUpdateWithoutRunsInput>
+}
+
+export type MessageUpdateWithoutRunsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  tokensUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pendingActions?: Prisma.McpPendingActionUpdateManyWithoutMessageNestedInput
+}
+
+export type MessageUncheckedUpdateWithoutRunsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  tokensUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pendingActions?: Prisma.McpPendingActionUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 
@@ -582,10 +715,12 @@ export type MessageUncheckedUpdateWithoutPendingActionsInput = {
 
 export type MessageCountOutputType = {
   pendingActions: number
+  runs: number
 }
 
 export type MessageCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   pendingActions?: boolean | MessageCountOutputTypeCountPendingActionsArgs
+  runs?: boolean | MessageCountOutputTypeCountRunsArgs
 }
 
 /**
@@ -605,6 +740,13 @@ export type MessageCountOutputTypeCountPendingActionsArgs<ExtArgs extends runtim
   where?: Prisma.McpPendingActionWhereInput
 }
 
+/**
+ * MessageCountOutputType without action
+ */
+export type MessageCountOutputTypeCountRunsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AgentRunWhereInput
+}
+
 
 export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -618,7 +760,9 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   model?: boolean
   userId?: boolean
   customInput?: boolean
+  isTeam?: boolean
   pendingActions?: boolean | Prisma.Message$pendingActionsArgs<ExtArgs>
+  runs?: boolean | Prisma.Message$runsArgs<ExtArgs>
   _count?: boolean | Prisma.MessageCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["message"]>
 
@@ -634,6 +778,7 @@ export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   model?: boolean
   userId?: boolean
   customInput?: boolean
+  isTeam?: boolean
 }, ExtArgs["result"]["message"]>
 
 export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -648,6 +793,7 @@ export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   model?: boolean
   userId?: boolean
   customInput?: boolean
+  isTeam?: boolean
 }, ExtArgs["result"]["message"]>
 
 export type MessageSelectScalar = {
@@ -662,11 +808,13 @@ export type MessageSelectScalar = {
   model?: boolean
   userId?: boolean
   customInput?: boolean
+  isTeam?: boolean
 }
 
-export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "role" | "content" | "createdAt" | "imageUrl" | "agent" | "tokensUsed" | "model" | "userId" | "customInput", ExtArgs["result"]["message"]>
+export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "role" | "content" | "createdAt" | "imageUrl" | "agent" | "tokensUsed" | "model" | "userId" | "customInput" | "isTeam", ExtArgs["result"]["message"]>
 export type MessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   pendingActions?: boolean | Prisma.Message$pendingActionsArgs<ExtArgs>
+  runs?: boolean | Prisma.Message$runsArgs<ExtArgs>
   _count?: boolean | Prisma.MessageCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type MessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -679,6 +827,10 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
      * Write-capable MCP tool calls this message staged for confirmation.
      */
     pendingActions: Prisma.$McpPendingActionPayload<ExtArgs>[]
+    /**
+     * Planned multi-step runs rendered on this message.
+     */
+    runs: Prisma.$AgentRunPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
@@ -725,6 +877,16 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
      * Structured action input/result metadata for cards.
      */
     customInput: runtime.JsonValue | null
+    /**
+     * True for messages in the shared team thread.
+     * 
+     * A team message still carries a real `agent` (whoever led the reply), so
+     * this is what keeps it out of that agent's own conversation. Deliberately
+     * a flag rather than a TEAM member on the Agent enum: that enum drives
+     * entitlements, billing and the MCP catalog, and none of those have a
+     * meaningful answer for "the team".
+     */
+    isTeam: boolean
   }, ExtArgs["result"]["message"]>
   composites: {}
 }
@@ -1120,6 +1282,7 @@ readonly fields: MessageFieldRefs;
 export interface Prisma__MessageClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   pendingActions<T extends Prisma.Message$pendingActionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Message$pendingActionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$McpPendingActionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  runs<T extends Prisma.Message$runsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Message$runsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1160,6 +1323,7 @@ export interface MessageFieldRefs {
   readonly model: Prisma.FieldRef<"Message", 'String'>
   readonly userId: Prisma.FieldRef<"Message", 'String'>
   readonly customInput: Prisma.FieldRef<"Message", 'Json'>
+  readonly isTeam: Prisma.FieldRef<"Message", 'Boolean'>
 }
     
 
@@ -1574,6 +1738,30 @@ export type Message$pendingActionsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.McpPendingActionScalarFieldEnum | Prisma.McpPendingActionScalarFieldEnum[]
+}
+
+/**
+ * Message.runs
+ */
+export type Message$runsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AgentRun
+   */
+  select?: Prisma.AgentRunSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentRun
+   */
+  omit?: Prisma.AgentRunOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentRunInclude<ExtArgs> | null
+  where?: Prisma.AgentRunWhereInput
+  orderBy?: Prisma.AgentRunOrderByWithRelationInput | Prisma.AgentRunOrderByWithRelationInput[]
+  cursor?: Prisma.AgentRunWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AgentRunScalarFieldEnum | Prisma.AgentRunScalarFieldEnum[]
 }
 
 /**

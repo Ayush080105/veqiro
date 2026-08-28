@@ -410,3 +410,13 @@ export type MayaUsage = Prisma.MayaUsageModel
  * A recorded debt payment between two group members.
  */
 export type Settlement = Prisma.SettlementModel
+/**
+ * Model AgentRun
+ * One planned, approved and executed multi-step request.
+ */
+export type AgentRun = Prisma.AgentRunModel
+/**
+ * Model AgentRunStep
+ * One node in a run's DAG.
+ */
+export type AgentRunStep = Prisma.AgentRunStepModel

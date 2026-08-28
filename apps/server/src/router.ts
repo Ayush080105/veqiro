@@ -9,6 +9,8 @@ import scoutRouter from "./modules/agents/scout/scout.routes.js";
 import mayaRouter from "./modules/agents/maya/maya.routes.js";
 import lexRouter from "./modules/agents/lex/lex.routes.js";
 import vegaRouter from "./modules/agents/vega/vega.routes.js";
+import { agentRunsRouter } from "./modules/agent-runs/agent-runs.routes.js";
+import { teamRouter } from "./modules/agent-runs/team.routes.js";
 import contextRouter from "./modules/context/context.routes.js";
 import integrationsProtectedRouter, {
   integrationsPublicRouter,
@@ -51,6 +53,8 @@ router.use("/agents/scout", authMiddleware, entitlementMiddlewareForAgent(Agent.
 router.use("/agents/maya",  authMiddleware, entitlementMiddlewareForAgent(Agent.MAYA), mayaRouter);
 router.use("/agents/lex",   authMiddleware, entitlementMiddlewareForAgent(Agent.LEX), lexRouter);
 router.use("/agents/vega",  authMiddleware, entitlementMiddlewareForAgent(Agent.VEGA), vegaRouter);
+router.use("/agents/runs", authMiddleware, entitlementMiddleware, agentRunsRouter);
+router.use("/agents/team", authMiddleware, teamRouter);
 router.use("/agents/context/:agent", authMiddleware, contextRouter);
 router.use("/agents",       authMiddleware, entitlementMiddleware, messagesRouter);
 router.use("/dashboard", authMiddleware, dashboardRouter);

@@ -117,7 +117,7 @@ async def _extract_agent_briefing(slug: str, messages: list[Message]) -> tuple[s
     )
 
     raw = await _llm.complete(
-        provider="openai", model="gpt-4.1-mini",
+        provider="openai", model="gpt-5.6-luna",
         system="You are a precise summarization engine. Extract structured data from AI agent conversations.",
         messages=[{"role": "user", "content": prompt}],
     )
@@ -176,7 +176,7 @@ async def _synthesize_briefing(
     )
 
     raw = await _llm.complete(
-        provider="openai", model="gpt-4.1-mini",
+        provider="openai", model="gpt-5.6-luna",
         system="You are a chief of staff writing a concise but complete executive daily briefing.",
         messages=[{"role": "user", "content": prompt}],
     )
@@ -351,5 +351,5 @@ async def daily_briefing(request: BriefingRequest) -> DailyBriefing:
         key_decisions=key_decisions,
         pending_actions=pending_actions,
         tokens_used=total_tokens,
-        model_used="gpt-4.1-mini",
+        model_used="gpt-5.6-luna",
     )

@@ -293,6 +293,9 @@ model Organization {
   metadata             String?
   /// Whether onboarding/brand kit setup is complete.
   onboarded            Boolean               @default(false)
+  /// Opt-in to the planner + DAG run engine. Off means every turn takes the
+  /// existing single-pass path, so the feature can be rolled out per org.
+  plannedRunsEnabled   Boolean               @default(false)
   /// Users belonging to this organization.
   members              Member[]
   /// Pending invitations for this organization.
@@ -691,8 +694,18 @@ model Message {
   userId         String?
   /// Structured action input/result metadata for cards.
   customInput    Json?
+  /// True for messages in the shared team thread.
+  ///
+  /// A team message still carries a real `agent` (whoever led the reply), so
+  /// this is what keeps it out of that agent's own conversation. Deliberately
+  /// a flag rather than a TEAM member on the Agent enum: that enum drives
+  /// entitlements, billing and the MCP catalog, and none of those have a
+  /// meaningful answer for "the team".
+  isTeam         Boolean            @default(false)
   /// Write-capable MCP tool calls this message staged for confirmation.
   pendingActions McpPendingAction[]
+  /// Planned multi-step runs rendered on this message.
+  runs           AgentRun[]
 
   @@index([agent, organizationId])
   @@index([organizationId, agent, createdAt])
@@ -700,6 +713,7 @@ model Message {
   @@index([organizationId, role, createdAt])
   @@index([role, createdAt])
   @@index([agent, role, createdAt])
+  @@index([organizationId, isTeam, createdAt])
   @@map("message")
 }
 
@@ -876,8 +890,15 @@ model McpPendingAction {
   /// Update timestamp.
   updatedAt       DateTime               @updatedAt
 
+  /// Run step that proposed this write, when it came from a planned run.
+  /// Also discriminates run-sourced writes from chat ones — no enum needed.
+  runStepId       String?
+  /// The step that proposed it.
+  runStep         AgentRunStep?          @relation(fields: [runStepId], references: [id], onDelete: SetNull)
+
   @@index([organizationId, status])
   @@index([messageId])
+  @@index([runStepId])
   @@map("mcp_pending_action")
 }
 
@@ -1972,4 +1993,195 @@ model Settlement {
   @@index([fromMemberId])
   @@index([toMemberId])
   @@map("settlement")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Planned multi-step runs
+//
+// A run is one user request decomposed by the planner into a DAG of steps,
+// approved as a whole, then executed in the background by apps/ai. Node owns
+// this state and all authorisation; apps/ai reports transitions over the
+// internal REST channel and never writes these rows itself.
+//
+// Two tables rather than one row with the DAG as JSON: steps transition
+// independently and often concurrently, so a JSON blob would make every
+// transition a read-modify-write and two branches finishing in the same tick
+// a lost update. Separate rows also let McpPendingAction carry a real FK.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Lifecycle of a planned run.
+enum AgentRunStatus {
+  /// Planner is decomposing the request.
+  PLANNING
+  /// Plan is built and waiting for the user to approve it.
+  AWAITING_PLAN_APPROVAL
+  /// Executing approved steps.
+  RUNNING
+  /// A replan introduced a write the user never approved.
+  AWAITING_ACTION_APPROVAL
+  /// Repairing the plan around a failed step.
+  REPLANNING
+  /// Every enabled step succeeded.
+  COMPLETED
+  /// Finished, but something failed, was blocked, or was skipped.
+  PARTIAL
+  /// Nothing useful completed.
+  FAILED
+  /// Cancelled by the user.
+  CANCELLED
+  /// Plan discarded before it ran.
+  REJECTED
+}
+
+/// Lifecycle of one node in a run's DAG.
+enum AgentRunStepStatus {
+  /// In the plan, not yet approved or scheduled.
+  PLANNED
+  /// Switched off by the user pre-approval, or cascaded from one that was.
+  DISABLED
+  /// A dependency failed, was disabled, or is awaiting approval.
+  BLOCKED
+  /// Dependencies satisfied, waiting for a scheduling slot.
+  READY
+  /// Currently executing.
+  RUNNING
+  /// Paused on a write the user has not authorised.
+  AWAITING_APPROVAL
+  /// Finished successfully.
+  SUCCEEDED
+  /// Failed after its retry.
+  FAILED
+  /// Never ran — run budget exhausted, or cancelled first.
+  SKIPPED
+}
+
+/// What started a run.
+enum AgentRunTrigger {
+  CHAT
+  TRIGGER
+  PLAY
+}
+
+/// One planned, approved and executed multi-step request.
+model AgentRun {
+  /// Run id.
+  id               String          @id @default(uuid())
+  /// Owning organization id.
+  organizationId   String
+  /// User who made the request.
+  userId           String
+  /// Agent the user was talking to. For a team run this is the lead — the
+  /// agent owning the first step — since the run itself spans several.
+  agent            Agent
+  /// True when planned from the shared team thread, where the planner sees
+  /// every agent and the union of their connected integrations.
+  isTeam           Boolean         @default(false)
+  /// Whether this came from chat, an inbound trigger, or a scheduled play.
+  trigger          AgentRunTrigger @default(CHAT)
+  /// Verbatim request that started the run.
+  requestText      String
+  /// Current lifecycle state.
+  status           AgentRunStatus  @default(PLANNING)
+  /// Planner's one-sentence restatement of the goal.
+  goal             String          @default("")
+  /// Bumped by every replan so a poll can detect the graph changed.
+  planVersion      Int             @default(1)
+  /// Model, gate score, token spend, replan count, unavailable integrations.
+  plannerMeta      Json?
+  /// Write identities the user authorised, as "agent|integrationSlug".
+  /// Deliberately excludes arguments: they are computed from data the user
+  /// has not seen at approval time, so including them would re-ask for every
+  /// write and defeat approve-once.
+  approvedWrites   String[]        @default([])
+  /// User who approved the plan.
+  approvedByUserId String?
+  /// When the plan was approved.
+  approvedAt       DateTime?
+  /// Assistant message that renders the graph and final summary.
+  messageId        String?
+  /// The message rendering this run.
+  message          Message?        @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  /// Final synthesis written when the run finishes.
+  summary          String?
+  /// Failure detail, when the run did not complete.
+  errorMessage     String?
+  /// Liveness signal from the executor; drives orphan recovery.
+  heartbeatAt      DateTime?
+  /// Times the sweeper re-dispatched this run. Capped so a poison run stops.
+  resumeCount      Int             @default(0)
+  /// Tool calls consumed across every step, against the run-wide budget.
+  toolCallsUsed    Int             @default(0)
+  /// When execution began.
+  startedAt        DateTime?
+  /// When the run reached a terminal state.
+  finishedAt       DateTime?
+  /// Creation timestamp.
+  createdAt        DateTime        @default(now())
+  /// Update timestamp.
+  updatedAt        DateTime        @updatedAt
+  /// The DAG.
+  steps            AgentRunStep[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, agent, createdAt])
+  @@index([status, heartbeatAt])
+  @@map("agent_run")
+}
+
+/// One node in a run's DAG.
+model AgentRunStep {
+  /// Step id.
+  id              String             @id @default(uuid())
+  /// Owning run id.
+  runId           String
+  /// The run this belongs to.
+  run             AgentRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  /// Planner-assigned stable key ("s1"); also the graph node id.
+  key             String
+  /// Layout ordering hint only — never execution order, which comes from dependsOn.
+  seq             Int
+  /// Specialist that executes this step.
+  agent           Agent
+  /// Short label shown on the graph node.
+  title           String
+  /// Instruction handed to that agent as its user message.
+  intent          String
+  /// Catalog slug this step should use, when it targets one integration.
+  integrationSlug String?
+  /// Whether this step changes anything outside Veqiro.
+  isWrite         Boolean            @default(false)
+  /// Planner-declared blast radius, shown on the approval card.
+  expectedScope   String?
+  /// Keys of steps that must succeed first.
+  dependsOn       String[]           @default([])
+  /// Current lifecycle state.
+  status          AgentRunStepStatus @default(PLANNED)
+  /// False once the user toggles it off, or a dependency is toggled off.
+  enabled         Boolean            @default(true)
+  /// Retry counter; a step gets exactly one retry.
+  attempt         Int                @default(0)
+  /// Same shape as apps/ai's _build_tool_trace output.
+  toolTrace       Json?
+  /// Text passed to dependent steps as context.
+  outputText      String?
+  /// Frontend AgentActionId, when this step produced a card.
+  actionId        String?
+  /// Card payload.
+  actionResult    Json?
+  /// Failure detail.
+  errorMessage    String?
+  /// When the step began.
+  startedAt       DateTime?
+  /// When the step settled.
+  finishedAt      DateTime?
+  /// Creation timestamp.
+  createdAt       DateTime           @default(now())
+  /// Update timestamp.
+  updatedAt       DateTime           @updatedAt
+  /// Writes this step proposed.
+  pendingActions  McpPendingAction[]
+
+  @@unique([runId, key])
+  @@index([runId, status])
+  @@map("agent_run_step")
 }
