@@ -44,6 +44,18 @@ MAX_TOOL_RESULT_CHARS = 100_000
 MAX_WRITES_PER_STEP = 10
 
 
+#: A step runs unattended inside a background run. There is no one on the
+#: other end mid-run, so a clarifying question is not a pause - it is a dead
+#: end that burns the step and strands everything downstream.
+STEP_AUTONOMY_BLOCK = (
+    "\n\nYOU ARE RUNNING UNATTENDED.\n"
+    "This step is one node of an approved plan running in the background. "
+    "Nobody will read a question you ask here and nobody can answer it.\n"
+    "Never end by asking what to do. If a detail is unspecified, choose the "
+    "most reasonable option, act on it, and say which option you chose. "
+    "Only if the step genuinely cannot be done, say plainly why."
+)
+
 @dataclass
 class UpstreamContext:
     key: str
@@ -117,7 +129,7 @@ async def run_step(
         outcome.error = "no tools available for this step"
         return outcome
 
-    system = system_prompt + build_upstream_block(upstream)
+    system = system_prompt + STEP_AUTONOMY_BLOCK + build_upstream_block(upstream)
     messages: list[dict] = [{"role": "user", "content": intent}]
     all_calls: list[dict] = []
     writes_done = 0
@@ -253,6 +265,22 @@ async def run_step(
     # acting. Reporting that as success is the worst outcome available: the
     # graph shows green, dependents run against nothing, and the final summary
     # hands over an artifact that was never created.
+    # A step that called nothing and ended on a question did not do its job -
+    # it stalled waiting for an answer that cannot arrive. Marking it succeeded
+    # is how "create the promotional image" produced no image and still showed
+    # green, with its dependents running against nothing.
+    if (
+        not all_calls
+        and not outcome.error
+        and not outcome.needs_approval
+        and outcome.text.strip().endswith("?")
+    ):
+        outcome.error = (
+            "this step ended by asking a question instead of doing the work. "
+            "Nobody can answer mid-run: choose the most reasonable option, do "
+            "it, and say which you chose."
+        )
+
     performed = writes_done + len(outcome.pending_actions)
     if is_write and not performed and not outcome.needs_approval and not outcome.error:
         outcome.error = (

@@ -10,6 +10,8 @@ import { PendingMcpActionCard } from "@/components/chat/PendingMcpActionCard"
 import { FONT } from "@/lib/fonts"
 import type { Message } from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
+import { useAgentRun } from "@/lib/api/runs"
+import { TERMINAL_RUN_STATUSES } from "@/lib/types/runs"
 
 function formatMessageTime(dateStr: string): string {
   const now = Date.now()
@@ -178,6 +180,12 @@ function ChatMessageComponent({
   const time = formatMessageTime(message.createdAt)
   const actionId = message.customInput?.actionId as AgentActionId | undefined
   const runId = message.customInput?.runId
+  // Shares the cache entry RunPanel already polls, so this costs no extra
+  // request. Needed here because the text swaps role when a run settles: it is
+  // the plan's preamble while the run is pending, and the run's answer once it
+  // has finished.
+  const run = useAgentRun(runId)
+  const runSettled = Boolean(run.data && TERMINAL_RUN_STATUSES.has(run.data.status))
 
   const inlineTimestamp = (isUserMsg: boolean) => (
     <div
@@ -240,25 +248,38 @@ function ChatMessageComponent({
           // A planned run owns the whole bubble: the graph carries the step
           // detail that the action card and tool-trace strip would otherwise
           // show, so rendering those alongside it would just duplicate it.
-          <>
-            <div
-              style={{
-                background: `color-mix(in srgb, ${agentColor} 40%, #FFF9ED)`,
-                borderLeft: `3px solid ${agentColor}`,
-                color: "#111",
-                borderRadius: "18px 18px 18px 4px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                padding: "10px 14px 8px",
-                fontFamily: FONT.body,
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
-              <MarkdownMessage content={message.content} />
-              {inlineTimestamp(false)}
-            </div>
-            <RunPanel runId={runId} />
-          </>
+          (() => {
+            const bubble = (
+              <div
+                style={{
+                  background: `color-mix(in srgb, ${agentColor} 40%, #FFF9ED)`,
+                  borderLeft: `3px solid ${agentColor}`,
+                  color: "#111",
+                  borderRadius: "18px 18px 18px 4px",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                  padding: "10px 14px 8px",
+                  fontFamily: FONT.body,
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  marginTop: runSettled ? 8 : 0,
+                  marginBottom: runSettled ? 0 : 8,
+                }}
+              >
+                <MarkdownMessage content={message.content} />
+                {inlineTimestamp(false)}
+              </div>
+            )
+            // Before the run settles this text introduces the plan, so it
+            // reads first. Afterwards it IS the answer, and an answer belongs
+            // under the work it came from.
+            return (
+              <>
+                {!runSettled && bubble}
+                <RunPanel runId={runId} />
+                {runSettled && bubble}
+              </>
+            )
+          })()
         ) : actionId && message.customInput?.result != null ? (
           <>
             <ActionResultRenderer

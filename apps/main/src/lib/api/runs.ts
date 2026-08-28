@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "./client"
 import type { AgentRun } from "@/lib/types/runs"
@@ -18,7 +19,10 @@ export const getRun = (id: string) => apiFetch<AgentRun>(`/agents/runs/${id}`)
  * waiting on a human — nothing will change until they click.
  */
 export function useAgentRun(runId: string | undefined) {
-  return useQuery({
+  const queryClient = useQueryClient()
+  const settled = useRef(false)
+
+  const query = useQuery({
     queryKey: qk.run(runId ?? ""),
     queryFn: () => getRun(runId!),
     enabled: Boolean(runId),
@@ -41,6 +45,24 @@ export function useAgentRun(runId: string | undefined) {
       return false                // ~18min, matches the executor's run timeout
     },
   })
+
+  // When a run finishes, the server rewrites the message that hosts this graph
+  // to hold the run's summary. Nothing else tells the client that happened, so
+  // without this the graph goes green while the bubble above it still shows the
+  // plan preamble until the page is reloaded.
+  const status = query.data?.status
+  useEffect(() => {
+    if (!status || !TERMINAL_RUN_STATUSES.has(status)) {
+      settled.current = false
+      return
+    }
+    if (settled.current) return
+    settled.current = true
+    queryClient.invalidateQueries({ queryKey: ["chat"] })
+    queryClient.invalidateQueries({ queryKey: ["teamMessages"] })
+  }, [status, queryClient])
+
+  return query
 }
 
 const useRunMutation = <TBody,>(

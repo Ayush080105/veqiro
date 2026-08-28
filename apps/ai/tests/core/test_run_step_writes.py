@@ -94,7 +94,24 @@ async def test_write_step_that_only_asks_a_question_fails():
 
     outcome = await _run(agent, is_write=True)
 
+    # Caught by the stalled-question rule, which is the more specific
+    # diagnosis; either way it must not be reported as a success.
     assert outcome.error, "a write step that wrote nothing is not a success"
+    assert "asking a question" in outcome.error
+
+
+@pytest.mark.asyncio
+async def test_write_step_that_narrates_without_writing_fails():
+    """No question mark, still no write — this is the one the write-check
+    exists for."""
+    agent = _Agent(
+        [_Resp(content="The spreadsheet has been prepared with all the columns.")],
+        _Bundle(write_alias="mcp_google_sheets_create"),
+    )
+
+    outcome = await _run(agent, is_write=True)
+
+    assert outcome.error
     assert "no write" in outcome.error
 
 
@@ -143,3 +160,66 @@ async def test_read_step_answering_in_prose_is_untouched():
 
     assert outcome.error is None
     assert outcome.text == "Here are the top queries."
+
+
+# ── Stalled steps ───────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_step_that_ends_on_a_question_fails():
+    """The live failure: "create promotional image" answered "Which platform —
+    LinkedIn, Instagram, or Twitter/X?", called nothing, and showed green. No
+    image was ever made, and the email step downstream had nothing to send."""
+    agent = _Agent(
+        [_Resp(content="Which platform — LinkedIn, Instagram, or Twitter/X?")],
+        _Bundle(),
+    )
+
+    outcome = await _run(agent, is_write=False)
+
+    assert outcome.error
+    assert "asking a question" in outcome.error
+
+
+@pytest.mark.asyncio
+async def test_a_step_that_used_tools_may_still_end_on_a_question():
+    """Only a step that did nothing at all counts as stalled — one that worked
+    and closed with a rhetorical question has still delivered."""
+    alias = "mcp_google_sheets_create"
+    agent = _Agent(
+        [
+            _Resp(tool_calls=[_Call(alias)], finish_reason="tool_calls"),
+            _Resp(content="Done. Want me to schedule it too?"),
+        ],
+        _Bundle(write_alias=alias),
+    )
+
+    outcome = await _run(agent, is_write=True)
+
+    assert outcome.error is None
+
+
+@pytest.mark.asyncio
+async def test_prose_answer_without_tools_is_still_fine():
+    """A synthesis step legitimately calls nothing — it must not be caught."""
+    agent = _Agent([_Resp(content="Here is the combined summary.")], _Bundle())
+
+    outcome = await _run(agent, is_write=False)
+
+    assert outcome.error is None
+
+
+@pytest.mark.asyncio
+async def test_the_step_is_told_nobody_can_answer_it():
+    """Prevention, not just detection — the model should not ask in the first
+    place."""
+    captured = {}
+
+    class _Capturing(_Agent):
+        async def complete_with_tools(self, **kw):
+            captured["system"] = kw["system"]
+            return _Resp(content="Picked Instagram and made the asset.")
+
+    await _run(_Capturing([], _Bundle()), is_write=False)
+
+    assert "UNATTENDED" in captured["system"]
+    assert "Nobody will read a question" in captured["system"]
