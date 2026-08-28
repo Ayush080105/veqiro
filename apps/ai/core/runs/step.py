@@ -69,7 +69,10 @@ STEP_AUTONOMY_BLOCK = (
     "Nobody will read a question you ask here and nobody can answer it.\n"
     "Never end by asking what to do. If a detail is unspecified, choose the "
     "most reasonable option, act on it, and say which option you chose. "
-    "Only if the step genuinely cannot be done, say plainly why."
+    "Only if the step genuinely cannot be done, say plainly why.\n"
+    "The plan already assigned this step to YOU, and you have the tools for "
+    "it. You cannot hand it to another agent - there is no one to hand it "
+    "to and suggesting it just loses the step. Do the work yourself."
 )
 
 @dataclass
@@ -240,6 +243,9 @@ async def run_step(
                     "action_id": review_action,
                     "tool_name": tc.name,
                     "arguments": tc.arguments,
+                    # What this step was asked to do, so the form can carry the
+                    # detail the tool's own arguments have no field for.
+                    "intent": intent,
                 }
                 outcome.needs_approval = f"review the inputs for {tc.name}"
                 return json.dumps({
@@ -301,6 +307,17 @@ async def run_step(
     # acting. Reporting that as success is the worst outcome available: the
     # graph shows green, dependents run against nothing, and the final summary
     # hands over an artifact that was never created.
+    # The planner attaches an integration to a step precisely because the step
+    # has to touch it. Answering from prose without ever calling it means the
+    # work did not happen - most often the model deflected to another agent,
+    # which inside a run is a dead end because ask_agent is disabled.
+    if integration_slug and not all_calls and not outcome.error and not outcome.needs_approval:
+        outcome.error = (
+            f"this step had to use {integration_slug} but never called it. Use "
+            "the tools you have and do the work yourself - you cannot pass this "
+            "step to another agent."
+        )
+
     # A step that called nothing and ended on a question did not do its job -
     # it stalled waiting for an answer that cannot arrive. Marking it succeeded
     # is how "create the promotional image" produced no image and still showed

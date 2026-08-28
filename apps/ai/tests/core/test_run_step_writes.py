@@ -248,6 +248,9 @@ async def test_a_maya_tool_pauses_for_review_instead_of_running():
         "action_id": "maya:draft-content",
         "tool_name": "draft_content",
         "arguments": {"topic": "launch"},
+        # The console fills the form's context field from this; no tool
+        # argument maps to it.
+        "intent": "Create a spreadsheet of the qualifying queries",
     }
 
 
@@ -303,3 +306,70 @@ async def test_review_can_be_disabled_per_run():
 
     assert outcome.review_request is None
     assert outcome.error is None
+
+
+# ── Deflection ──────────────────────────────────────────────────────────────
+
+async def _run_with_integration(agent, slug):
+    return await run_step(
+        agent, request=_request(), run_id="r", step_key="s1",
+        intent="Research this week's r/streetwear trends",
+        system_prompt="sys", store=InMemoryRunStore(), integration_slug=slug,
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_step_that_never_calls_its_integration_fails():
+    """The live failure: a Reddit step answered "Scout researches markets, ask
+    Scout" without calling anything, and was recorded SUCCEEDED. ask_agent is
+    disabled in a run, so that suggestion goes nowhere and the step is lost."""
+    agent = _MayaAgent(
+        [_Resp(content="Scout researches markets and trends. Ask Scout for this.")],
+        _Bundle(),
+    )
+
+    outcome = await _run_with_integration(agent, "reddit")
+
+    assert outcome.error
+    assert "reddit" in outcome.error
+
+
+@pytest.mark.asyncio
+async def test_a_step_that_calls_its_integration_is_fine():
+    alias = "mcp_reddit_search"
+    agent = _MayaAgent(
+        [
+            _Resp(tool_calls=[_Call(alias)], finish_reason="tool_calls"),
+            _Resp(content="Here are the trends."),
+        ],
+        _Bundle(write_alias=None),
+    )
+    agent._bundle.mcp_alias_map = {alias: ("conn-1", "REDDIT_SEARCH")}
+
+    outcome = await _run_with_integration(agent, "reddit")
+
+    assert outcome.error is None
+
+
+@pytest.mark.asyncio
+async def test_a_step_with_no_integration_may_answer_in_prose():
+    """A synthesis step has no integration and legitimately calls nothing."""
+    agent = _Agent([_Resp(content="Combined summary of both findings.")], _Bundle())
+
+    outcome = await _run_with_integration(agent, None)
+
+    assert outcome.error is None
+
+
+@pytest.mark.asyncio
+async def test_the_step_is_told_it_cannot_delegate():
+    captured = {}
+
+    class _Capturing(_MayaAgent):
+        async def complete_with_tools(self, **kw):
+            captured["system"] = kw["system"]
+            return _Resp(content="Did the work.")
+
+    await _run(_Capturing([], _Bundle()), is_write=False)
+
+    assert "cannot hand it to another agent" in captured["system"]

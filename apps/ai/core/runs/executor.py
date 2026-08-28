@@ -211,7 +211,12 @@ class RunExecutor:
                     # The arguments the model proposed become the prefilled
                     # form the user is shown, so they must survive to Node.
                     proposedActionId=review.get("action_id"),
-                    proposedArgs=review.get("arguments"),
+                    # The step's intent rides along so the console can fill the
+                    # form's context field, which no tool argument maps to.
+                    proposedArgs={
+                        **(review.get("arguments") or {}),
+                        "_intent": review.get("intent"),
+                    },
                 )
                 return
 

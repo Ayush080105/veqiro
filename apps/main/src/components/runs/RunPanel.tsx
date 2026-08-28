@@ -15,6 +15,7 @@ import {
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import { authClient } from "@/lib/auth-client"
 import type { AgentActionId } from "@/lib/types/agents"
+import { toolArgsToPrefill } from "./prefill"
 import type { AgentRun, AgentRunStatus, AgentRunStep } from "@/lib/types/runs"
 import { getAgent } from "@/lib/config/agents"
 
@@ -341,7 +342,7 @@ function StepReviewBar({
   const [open, setOpen] = useState(false)
   const submit = useSubmitStepAction(runId, step.key)
 
-  const prefill = (step.proposedArgs ?? undefined) as Record<string, unknown> | undefined
+  const prefill = toolArgsToPrefill(step.proposedActionId, step.proposedArgs)
 
   return (
     <div
