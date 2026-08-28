@@ -29,6 +29,7 @@ agentRunsRouter.post("/:id/steps/:key/action", submitStepAction);
 export const runsInternalRouter = Router();
 runsInternalRouter.use(internalKeyMiddleware);
 runsInternalRouter.post("/:id/heartbeat", internalController.heartbeat);
+runsInternalRouter.post("/:id/steps", internalController.addSteps);
 runsInternalRouter.post("/:id/finish", internalController.finishRun);
 runsInternalRouter.post("/:id/steps/:key/write", internalController.executeWrite);
 runsInternalRouter.post("/:id/steps/:key", internalController.updateStep);

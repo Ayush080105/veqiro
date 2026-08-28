@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from core.models import ChatRequest
 from core.runs.step import UpstreamContext, run_step
 from core.runs.store import RunStore
+from agents.planner import MAX_REPLANS
 
 logger = logging.getLogger("run_executor")
 
@@ -65,6 +66,13 @@ class RunSpec:
     #: Overrides which native tools pause for review. None means the default
     #: set; an empty dict disables review entirely.
     review_tools: dict | None = None
+    #: Called once when steps have failed, to plan a way around them. None
+    #: disables repair, which is what an unattended run wants: nobody is there
+    #: to approve a write the detour introduces.
+    repair: object | None = None
+    #: agent|integration pairs the user approved. A repair step whose write
+    #: falls outside these pauses the run rather than performing it.
+    approved_writes: tuple = ()
 
 
 @dataclass
@@ -101,6 +109,7 @@ class RunExecutor:
         by_key = {s.key: s for s in spec.steps}
         tool_calls_used = 0
         cancelled = False
+        replans_used = 0
         # Built once per agent per run: the system prompt is per-request work,
         # not per-step, and rebuilding it each node is what makes reusing
         # chat_sync wasteful.
@@ -266,6 +275,34 @@ class RunExecutor:
                 break
             await asyncio.gather(*(_run(s) for s in wave))
 
+        # -- Repair -------------------------------------------------------
+        # One pass, and only once the waves have drained: every step that
+        # could still run has run, so what is left is genuinely stuck.
+        if (
+            spec.repair is not None
+            and not cancelled
+            and replans_used < MAX_REPLANS
+            and any(st.status == "FAILED" for st in state.values())
+            and tool_calls_used < RUN_TOOL_CALL_BUDGET
+        ):
+            replans_used += 1
+            added = await self._repair(spec, state, by_key)
+            for s_new in added:
+                spec.steps.append(s_new)
+                by_key[s_new.key] = s_new
+                state[s_new.key] = _StepState(status="PLANNED")
+            # Blocked steps stay blocked: the repair replaces them rather than
+            # reviving work whose inputs never arrived.
+            while added:
+                if await _beat():
+                    break
+                if tool_calls_used >= RUN_TOOL_CALL_BUDGET:
+                    break
+                wave = _ready()[:MAX_PARALLEL_STEPS]
+                if not wave:
+                    break
+                await asyncio.gather(*(_run(s) for s in wave))
+
         # Anything never reached is skipped, with an honest reason.
         for s in spec.steps:
             if state[s.key].status in ("PLANNED", "RUNNING"):
@@ -281,6 +318,92 @@ class RunExecutor:
 
         return RunResult(status=self._terminal_status(spec, state, cancelled),
                          summary="", steps=state)
+
+    async def _repair(self, spec: RunSpec, state: dict, by_key: dict) -> list[StepSpec]:
+        """Plan around the failures, and register the detour with Node.
+
+        Returns the steps to run, or an empty list to stop and report the
+        failures honestly - the right answer when a failure has no way around
+        it, which is common (an integration is disconnected, an account lacks
+        permission).
+        """
+        def _rows(status: str) -> list[dict]:
+            return [
+                {
+                    "key": k,
+                    "title": by_key[k].title,
+                    "agent": by_key[k].agent,
+                    "error": st.error,
+                    "output": st.output_text,
+                }
+                for k, st in state.items()
+                if st.status == status and k in by_key
+            ]
+
+        try:
+            plan = await spec.repair(
+                goal=spec.goal,
+                succeeded=_rows("SUCCEEDED"),
+                failed=_rows("FAILED"),
+                blocked=_rows("BLOCKED"),
+                existing_keys=set(state),
+            )
+        except Exception:
+            logger.warning("repair planning failed | run=%s", spec.run_id, exc_info=True)
+            return []
+        if plan is None or not plan.nodes:
+            return []
+
+        def _signature(node) -> str:
+            return node.agent.upper() + "|" + (node.integration_slug or "")
+
+        # A detour that writes something the user never approved is precisely
+        # what plan-level approval does not cover, so it is dropped rather than
+        # performed. Dropping only the write keeps the readable half of a
+        # repair usable.
+        approved = set(spec.approved_writes)
+        usable = [n for n in plan.nodes if not n.is_write or _signature(n) in approved]
+        if not usable:
+            return []
+        kept = {n.key for n in usable}
+
+        def _deps(node) -> tuple:
+            # A dependency on a dropped step, or on one that never succeeded,
+            # would leave the new step permanently unready.
+            done = {k for k, st in state.items() if st.status == "SUCCEEDED"}
+            return tuple(d for d in node.depends_on if d in kept or d in done)
+
+        steps = [
+            StepSpec(
+                key=n.key,
+                agent=n.agent,
+                title=n.title,
+                intent=n.intent,
+                integration_slug=n.integration_slug,
+                depends_on=_deps(n),
+                is_write=n.is_write,
+            )
+            for n in usable
+        ]
+
+        ok = await self._store.add_steps(
+            spec.run_id,
+            [
+                {
+                    "key": st.key,
+                    "agent": st.agent,
+                    "title": st.title,
+                    "intent": st.intent,
+                    "integrationSlug": st.integration_slug,
+                    "dependsOn": list(st.depends_on),
+                    "isWrite": st.is_write,
+                }
+                for st in steps
+            ],
+        )
+        # Without a row per step the user would watch a graph that never
+        # mentions the work being done, so a failure here stops the repair.
+        return steps if ok else []
 
     @staticmethod
     def _terminal_status(spec: RunSpec, state: dict[str, _StepState], cancelled: bool) -> str:

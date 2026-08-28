@@ -5,6 +5,7 @@ import {
   AgentRunStepStatus,
 } from "../../../prisma/generated/prisma/client.js";
 import * as mcpService from "../mcp/mcp.service.js";
+import type { McpConnectionRef } from "../mcp/mcp.types.js";
 
 /**
  * Handing an approved run to apps/ai to execute.
@@ -60,7 +61,7 @@ export const dispatchRun = async (
   // let a Vega step reach a Sage connection and undo the ownership boundary
   // the planner enforces.
   const agentsInRun = [...new Set(run.steps.map((s) => s.agent))];
-  const connectionsByAgent: Record<string, unknown[]> = {};
+  const connectionsByAgent: Record<string, McpConnectionRef[]> = {};
   await Promise.all(
     agentsInRun.map(async (agent) => {
       connectionsByAgent[agent.toLowerCase()] =
@@ -79,6 +80,14 @@ export const dispatchRun = async (
         steps,
         write_mode: writeMode,
         connections_by_agent: connectionsByAgent,
+        // A repair pass replans against these: what the user approved, and
+        // what is actually connected. Without them it would invent steps for
+        // integrations the org does not have.
+        approved_writes: run.approvedWrites,
+        allowed_agents: agentsInRun.map((a) => a.toLowerCase()),
+        mcp_catalog: mcpService.getCatalogForAgent(run.agent, connectionsByAgent[
+          run.agent.toLowerCase()
+        ] ?? []),
       },
       { timeout: DISPATCH_TIMEOUT_MS },
     );

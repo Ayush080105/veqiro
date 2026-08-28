@@ -314,3 +314,140 @@ async def test_step_for_an_agent_with_no_connections_gets_an_empty_list(harness,
         )
     )
     assert seen["a"] == []
+
+
+# ── Repair ──────────────────────────────────────────────────────────────────
+
+def _plan(nodes):
+    """A minimal stand-in for planner.Plan — only .nodes is read."""
+    return type("P", (), {"nodes": nodes})()
+
+
+def _node(key, agent="sage", is_write=False, integration=None, deps=()):
+    return type("N", (), {
+        "key": key, "agent": agent, "title": f"Repair {key}",
+        "intent": f"do {key}", "integration_slug": integration,
+        "depends_on": tuple(deps), "is_write": is_write,
+        "expected_scope": None,
+    })()
+
+
+def _repairing(nodes, calls=None):
+    async def repair(**kw):
+        if calls is not None:
+            calls.append(kw)
+        return _plan(nodes)
+    return repair
+
+
+@pytest.mark.asyncio
+async def test_repair_runs_a_detour_around_a_failed_step(harness):
+    harness["script"]["a"] = {"error": "gsc is disconnected"}
+    result = await harness["runner"].execute(
+        _spec([_step("a")], repair=_repairing([_node("r1")]))
+    )
+    assert "r1" in harness["order"], "the detour should actually run"
+    assert result.steps["r1"].status == "SUCCEEDED"
+    assert harness["store"].added_steps, "Node must have a row for the new step"
+
+
+@pytest.mark.asyncio
+async def test_repair_happens_only_once(harness):
+    """A plan that fails twice is wrong about the world, not unlucky."""
+    calls = []
+    harness["script"]["a"] = {"error": "boom"}
+    harness["script"]["r1"] = {"error": "boom again"}
+    await harness["runner"].execute(
+        _spec([_step("a")], repair=_repairing([_node("r1")], calls))
+    )
+    assert len(calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_no_repair_when_nothing_failed(harness):
+    calls = []
+    await harness["runner"].execute(
+        _spec([_step("a")], repair=_repairing([_node("r1")], calls))
+    )
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_repair_is_told_what_already_succeeded(harness):
+    """It must not replan finished work — a repeated write would happen twice."""
+    calls = []
+    harness["script"]["b"] = {"error": "boom"}
+    await harness["runner"].execute(
+        _spec([_step("a"), _step("b")], repair=_repairing([_node("r1")], calls))
+    )
+    assert [r["key"] for r in calls[0]["succeeded"]] == ["a"]
+    assert [r["key"] for r in calls[0]["failed"]] == ["b"]
+
+
+@pytest.mark.asyncio
+async def test_repair_drops_a_write_the_user_never_approved(harness):
+    """Plan approval covered the original writes, not one a detour invents."""
+    harness["script"]["a"] = {"error": "boom"}
+    result = await harness["runner"].execute(
+        _spec(
+            [_step("a")],
+            repair=_repairing([_node("r1", agent="vega", is_write=True, integration="gmail")]),
+            approved_writes=(),
+        )
+    )
+    assert "r1" not in harness["order"]
+    assert result.status == "FAILED"
+
+
+@pytest.mark.asyncio
+async def test_repair_keeps_a_write_that_was_approved(harness):
+    harness["script"]["a"] = {"error": "boom"}
+    await harness["runner"].execute(
+        _spec(
+            [_step("a")],
+            repair=_repairing([_node("r1", agent="vega", is_write=True, integration="gmail")]),
+            approved_writes=("VEGA|gmail",),
+        )
+    )
+    assert "r1" in harness["order"]
+
+
+@pytest.mark.asyncio
+async def test_repair_that_cannot_be_recorded_does_not_run(harness):
+    """Running steps Node has no row for would leave the user watching a graph
+    that never mentions the work."""
+    harness["store"].add_steps_ok = False
+    harness["script"]["a"] = {"error": "boom"}
+    await harness["runner"].execute(
+        _spec([_step("a")], repair=_repairing([_node("r1")]))
+    )
+    assert "r1" not in harness["order"]
+
+
+@pytest.mark.asyncio
+async def test_repair_returning_nothing_reports_the_failure_honestly(harness):
+    async def gives_up(**kw):
+        return None
+
+    harness["script"]["a"] = {"error": "gsc is disconnected"}
+    result = await harness["runner"].execute(_spec([_step("a")], repair=gives_up))
+
+    assert result.status == "FAILED"
+    assert result.steps["a"].error == "gsc is disconnected"
+
+
+@pytest.mark.asyncio
+async def test_repair_dependency_on_a_dropped_step_is_pruned(harness):
+    """Otherwise the new step waits forever on a step that was never added."""
+    harness["script"]["a"] = {"error": "boom"}
+    await harness["runner"].execute(
+        _spec(
+            [_step("a")],
+            repair=_repairing([
+                _node("r1", agent="vega", is_write=True, integration="gmail"),  # dropped
+                _node("r2", deps=["r1"]),
+            ]),
+            approved_writes=(),
+        )
+    )
+    assert "r2" in harness["order"], "r2 must not wait on the dropped write"

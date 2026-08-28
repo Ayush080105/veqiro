@@ -3,6 +3,7 @@ import {
   Prisma,
   AgentRunStatus,
   AgentRunStepStatus,
+  Agent,
 } from "../../../prisma/generated/prisma/client.js";
 import type { CreateRunInput } from "./agent-runs.types.js";
 
@@ -124,3 +125,44 @@ export const findStaleRuns = (cutoff: Date, limit: number) =>
     take: limit,
     select: { id: true, resumeCount: true },
   });
+
+/**
+ * Appends steps a repair pass planned.
+ *
+ * `seq` continues from the highest existing step so the graph lays the detour
+ * out after the work it replaces rather than interleaving it. skipDuplicates
+ * guards the unique [runId, key]: a retried dispatch must not fail the whole
+ * repair over a step that already landed.
+ */
+export const addSteps = async (
+  runId: string,
+  steps: {
+    key: string;
+    agent: Agent;
+    title: string;
+    intent: string;
+    integrationSlug?: string | null;
+    dependsOn: string[];
+    isWrite: boolean;
+  }[],
+) => {
+  const last = await prisma.agentRunStep.aggregate({
+    where: { runId },
+    _max: { seq: true },
+  });
+  const base = (last._max.seq ?? 0) + 1;
+  return prisma.agentRunStep.createMany({
+    data: steps.map((s, i) => ({
+      runId,
+      key: s.key,
+      seq: base + i,
+      agent: s.agent,
+      title: s.title,
+      intent: s.intent,
+      integrationSlug: s.integrationSlug ?? null,
+      dependsOn: s.dependsOn,
+      isWrite: s.isWrite,
+    })),
+    skipDuplicates: true,
+  });
+};

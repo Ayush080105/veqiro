@@ -7,6 +7,7 @@ import {
   heartbeatBodySchema,
   executeWriteBodySchema,
   finishRunBodySchema,
+  addStepsBodySchema,
 } from "./agent-runs.schema.js";
 import * as internalService from "./agent-runs.internal.service.js";
 
@@ -43,5 +44,12 @@ export const finishRun = async (req: Request, res: Response) => {
   const { id } = internalRunParamsSchema.parse(req.params);
   const { status, summary, errorMessage } = finishRunBodySchema.parse(req.body ?? {});
   await internalService.finishRun(id, status, summary, errorMessage);
+  res.status(StatusCodes.OK).json({ ok: true });
+};
+
+export const addSteps = async (req: Request, res: Response) => {
+  const { id } = internalRunParamsSchema.parse(req.params);
+  const { steps } = addStepsBodySchema.parse(req.body ?? {});
+  await internalService.addSteps(id, steps);
   res.status(StatusCodes.OK).json({ ok: true });
 };

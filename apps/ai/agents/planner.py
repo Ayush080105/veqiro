@@ -393,6 +393,117 @@ def build_system_prompt(
     )
 
 
+#: How much of a step's error or output the repair prompt carries.
+REPAIR_DETAIL_CHARS = 600
+
+#: One repair pass per run. A plan that fails twice is wrong about the world,
+#: not unlucky, and replanning again just spends tool calls to fail again.
+MAX_REPLANS = 1
+
+
+async def repair_plan(
+    llm: LLMClient,
+    *,
+    goal: str,
+    succeeded: list[dict],
+    failed: list[dict],
+    blocked: list[dict],
+    agent_descriptions: dict[str, str],
+    catalog: list[dict],
+    tool_names_by_slug: dict[str, list[str]],
+    connected_slugs: set[str],
+    native_tools_by_agent: dict[str, list[str]] | None = None,
+    existing_keys: set[str] | None = None,
+) -> Plan | None:
+    """Plan a way around steps that failed, or None to give up honestly.
+
+    Called once, after a step has already failed its retry. The work that
+    succeeded is kept and described to the model as context - the point is to
+    reach the goal another way, not to start over and repeat writes that have
+    already happened.
+
+    Returning None is a normal outcome: some failures have no way around them
+    (an integration is disconnected, an account lacks permission), and a run
+    that reports that plainly is better than one that invents a detour.
+    """
+    existing_keys = existing_keys or set()
+    if not failed:
+        return None
+
+    def _block(label: str, rows: list[dict]) -> str:
+        if not rows:
+            return ""
+        lines = []
+        for r in rows:
+            detail = (r.get("error") or r.get("output") or "").strip()
+            if len(detail) > REPAIR_DETAIL_CHARS:
+                detail = detail[:REPAIR_DETAIL_CHARS] + "...[truncated]"
+            lines.append(f"- {r.get('key')}: {r.get('title')} ({r.get('agent')})\n  {detail}")
+        return f"\n{label}:\n" + "\n".join(lines)
+
+    system = build_system_prompt(
+        agent_descriptions=agent_descriptions,
+        catalog=catalog,
+        tool_names_by_slug=tool_names_by_slug,
+        native_tools_by_agent=native_tools_by_agent,
+    ) + (
+        "\n\nYOU ARE REPAIRING A RUN THAT PARTLY FAILED.\n"
+        "Some steps already ran. Do NOT plan them again - anything they wrote "
+        "has already happened, and repeating it would duplicate real work.\n"
+        "Plan only the steps needed to reach the goal despite the failures, "
+        "using what already succeeded as input.\n"
+        "If a failure has no way around it - the integration is not connected, "
+        "the account cannot do it - return an empty `nodes` list and say why in "
+        "`unavailable`. An honest stop beats a detour that cannot work.\n"
+        "Use fresh step keys; the ones listed above are taken."
+    )
+
+    user = (
+        f"Goal: {goal}"
+        + _block("Already done - do not repeat", succeeded)
+        + _block("Failed", failed)
+        + _block("Blocked by those failures", blocked)
+        + f"\n\nKeys already in use: {', '.join(sorted(existing_keys)) or 'none'}"
+    )
+
+    provider, model = PLANNER_MODEL
+    try:
+        raw = await llm.complete_json(
+            provider=provider,
+            model=model,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            temperature=0.2,
+        )
+    except Exception:
+        logger.warning("repair planner call failed", exc_info=True)
+        return None
+
+    owners_by_slug = {
+        str(c.get("slug", "")).lower(): [str(a).lower() for a in (c.get("agents") or [])]
+        for c in catalog
+    }
+    plan = validate_plan(
+        raw,
+        known_agents=set(agent_descriptions),
+        connected_slugs=connected_slugs,
+        model_used=model,
+        # A repair is allowed to be a single step; the floor exists to stop the
+        # planner turning a one-shot question into a run, which is settled by now.
+        min_nodes=1,
+        owners_by_slug=owners_by_slug,
+    )
+    if plan is None:
+        return None
+
+    # A repair node that collides with an existing key would silently overwrite
+    # a finished step, losing its result and its audit trail.
+    if any(n.key in existing_keys for n in plan.nodes):
+        logger.warning("repair plan reused existing step keys; discarding")
+        return None
+    return plan
+
+
 async def build_plan(
     llm: LLMClient,
     message: str,

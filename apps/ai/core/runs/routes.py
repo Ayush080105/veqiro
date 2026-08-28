@@ -244,6 +244,13 @@ class ExecuteRequest(BaseModel):
     write_mode: str = "stage"
     # agent slug -> connections, as Node resolved them per agent.
     connections_by_agent: dict = Field(default_factory=dict)
+    # agent|integration pairs the user approved at plan time. A repair step
+    # whose write falls outside these is dropped rather than performed.
+    approved_writes: list[str] = Field(default_factory=list)
+    # Catalog and tool names, so a repair can replan against what is actually
+    # connected instead of guessing.
+    mcp_catalog: list[dict] = Field(default_factory=list)
+    allowed_agents: list[str] = Field(default_factory=list)
 
 
 class ExecuteResponse(BaseModel):
@@ -399,6 +406,53 @@ async def _summarize(spec: "RunSpec", result) -> str:
         return head + "\n\n".join(blocks)
 
 
+def _make_repair(body: "ExecuteRequest"):
+    """Binds one repair pass to this run's own agents and connections.
+
+    Without this the repair would replan against nothing and invent steps for
+    integrations the org has not connected.
+    """
+    allowed = [a.lower() for a in body.allowed_agents] or list(
+        {s.agent.lower() for s in body.steps}
+    )
+    agent_descriptions = {
+        slug: desc for slug, desc in _AGENT_DESCRIPTIONS.items() if slug in allowed
+    }
+    catalog = body.mcp_catalog or []
+    connected = {str(c.get("slug", "")) for c in catalog if c.get("connected")}
+    if not connected:
+        connected = {
+            str(c.get("integrationSlug") or c.get("toolkitSlug") or "")
+            for conns in body.connections_by_agent.values()
+            for c in conns
+        }
+        connected.discard("")
+
+    async def repair(*, goal, succeeded, failed, blocked, existing_keys):
+        tool_names = await _tool_names_by_slug(
+            body.organization_id,
+            allowed[0] if allowed else "",
+            [c for conns in body.connections_by_agent.values() for c in conns],
+        )
+        return await planner.repair_plan(
+            _llm,
+            goal=goal,
+            succeeded=succeeded,
+            failed=failed,
+            blocked=blocked,
+            agent_descriptions=agent_descriptions,
+            catalog=catalog or [
+                {"slug": s, "name": s, "connected": True} for s in connected
+            ],
+            tool_names_by_slug=tool_names,
+            connected_slugs=connected,
+            native_tools_by_agent=_native_tools(allowed),
+            existing_keys=existing_keys,
+        )
+
+    return repair
+
+
 async def _execute(spec: "RunSpec", run_id: str) -> None:
     store = HttpRunStore()
     try:
@@ -457,6 +511,10 @@ async def execute_run(body: ExecuteRequest) -> ExecuteResponse:
         steps=steps,
         write_mode=body.write_mode,
         connections_by_agent=body.connections_by_agent,
+        approved_writes=tuple(body.approved_writes),
+        # Only an attended run repairs itself. Unattended, nobody is there to
+        # approve what a detour proposes, so it reports the failure instead.
+        repair=_make_repair(body) if body.write_mode == "execute" else None,
     )
     _inflight.add(body.run_id)
     # Held so the task is not garbage-collected mid-run: asyncio keeps only a

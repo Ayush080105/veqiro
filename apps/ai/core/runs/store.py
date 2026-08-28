@@ -57,6 +57,8 @@ class RunStore(Protocol):
         self, run_id: str, key: str, call: WriteRequest
     ) -> WriteResult: ...
 
+    async def add_steps(self, run_id: str, steps: list[dict]) -> bool: ...
+
     async def finish(
         self, run_id: str, status: str, summary: str, error: str | None = None
     ) -> None: ...
@@ -119,6 +121,20 @@ class HttpRunStore:
             requires_approval=bool(data.get("requiresApproval")),
         )
 
+    async def add_steps(self, run_id: str, steps: list[dict]) -> bool:
+        """Persist steps a repair pass added, so the graph shows them.
+
+        Failing here is not fatal to the work but is fatal to the record: the
+        executor would run steps Node has no row for, and the user would watch
+        a graph that never mentions them. So a failure stops the repair.
+        """
+        try:
+            await self._post(f"{run_id}/steps", {"steps": steps})
+            return True
+        except Exception:
+            logger.error("adding repair steps failed | run=%s", run_id, exc_info=True)
+            return False
+
     async def finish(
         self, run_id: str, status: str, summary: str, error: str | None = None
     ) -> None:
@@ -143,6 +159,10 @@ class InMemoryRunStore:
     cancelled: bool = False
     #: key -> WriteResult, consulted by execute_write.
     write_results: dict[str, WriteResult] = field(default_factory=dict)
+    #: Steps a repair pass added.
+    added_steps: list[dict] = field(default_factory=list)
+    #: Set False to simulate Node refusing to record repair steps.
+    add_steps_ok: bool = True
 
     async def update_step(self, run_id: str, key: str, **fields: Any) -> None:
         self.steps.setdefault(key, {}).update(fields)
@@ -154,6 +174,10 @@ class InMemoryRunStore:
     async def execute_write(self, run_id: str, key: str, call: WriteRequest) -> WriteResult:
         self.writes.append((key, call))
         return self.write_results.get(key, WriteResult(executed=True, result={"ok": True}))
+
+    async def add_steps(self, run_id: str, steps: list[dict]) -> bool:
+        self.added_steps.extend(steps)
+        return self.add_steps_ok
 
     async def finish(
         self, run_id: str, status: str, summary: str, error: str | None = None

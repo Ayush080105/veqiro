@@ -214,3 +214,19 @@ export const finishRun = async (
     }).catch(() => undefined);
   }
 };
+
+/** Records steps a repair pass added, so the graph shows the detour. */
+export const addSteps = async (
+  runId: string,
+  steps: Parameters<typeof repo.addSteps>[1],
+) => {
+  const run = await prisma.agentRun.findUnique({
+    where: { id: runId },
+    select: { status: true },
+  });
+  if (!run) throw new NotFoundError("Run not found");
+  if (run.status !== AgentRunStatus.RUNNING) {
+    throw new BadRequestError(`Run is ${run.status.toLowerCase()}, not running`);
+  }
+  await repo.addSteps(runId, steps);
+};

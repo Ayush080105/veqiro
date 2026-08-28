@@ -71,3 +71,22 @@ export const submitStepActionSchema = z.object({
   result: z.unknown(),
   outputText: z.string().max(50_000).optional(),
 });
+
+export const addStepsBodySchema = z.object({
+  steps: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(64),
+        agent: z.enum(Agent),
+        title: z.string().min(1).max(200),
+        intent: z.string().min(1).max(4000),
+        integrationSlug: z.string().max(100).nullable().optional(),
+        dependsOn: z.array(z.string().max(64)).default([]),
+        isWrite: z.boolean().default(false),
+      }),
+    )
+    .min(1)
+    // A repair is a detour, not a second plan. More than this and something
+    // has gone wrong with the model rather than with the run.
+    .max(8),
+});
