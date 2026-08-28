@@ -112,6 +112,11 @@ export function RunPanel({ runId }: { runId: string }) {
     [steps, explicitlyDisabled],
   )
 
+  // Must sit above the loading guard below — a hook after an early return
+  // changes the hook order between renders.
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const organizationId = activeOrg?.id ?? ""
+
   const approve = useApproveRun(runId)
   const reject = useRejectRun(runId)
   const cancel = useCancelRun(runId)
@@ -138,9 +143,6 @@ export function RunPanel({ runId }: { runId: string }) {
   // throwing, and an unrecognised agent must not blow up a chat bubble.
   const agentColor =
     (getAgent(run.agent.toLowerCase())?.color as string) ?? "var(--vq-yellow)"
-
-  const { data: activeOrg } = authClient.useActiveOrganization()
-  const organizationId = activeOrg?.id ?? ""
 
   const offKeys = new Set([...explicitlyDisabled, ...cascaded])
   const enabled = steps.filter((s) => !offKeys.has(s.key))
