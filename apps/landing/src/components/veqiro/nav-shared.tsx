@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { FONT } from './shared';
+import { FONT, T } from './shared';
+import { BrandMark } from './brand-mark';
 import { EMPLOYEES } from './data';
 import { consoleUrl, isPreLaunch, waitlistUrl, nav as navLinks, useCaseNavItems } from '@/lib/site-config';
 
@@ -17,11 +17,29 @@ function resolveNavHref(href: string): string {
 type Variant = 'hero' | 'page';
 
 interface Props {
+  /** 'hero' sits over the dark hero image and inverts its colours. */
   variant?: Variant;
 }
 
+const Chevron = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+    strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginLeft: 1 }} aria-hidden>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 export function NavShared({ variant = 'page' }: Props) {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  const dark = variant === 'hero';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -37,197 +55,231 @@ export function NavShared({ variant = 'page' }: Props) {
     };
   }, [open]);
 
-  const margin = variant === 'hero' ? '0 auto 22px' : '0 auto';
-  const padding = variant === 'hero' ? '0' : 'clamp(20px, 4vw, 32px)';
+  const fg = dark ? T.inkInv : T.ink;
+  const fgMuted = dark ? T.inkInv2 : T.ink2;
 
   return (
-    <nav
-      data-testid="site-nav"
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        maxWidth: 1400,
-        margin,
-        padding,
-        gap: 16,
-      }}
+    <div
+      className="vq-nav-wrap"
+      data-scrolled={scrolled}
+      data-tone={dark ? 'dark' : 'light'}
     >
       <style>{`
-        .nav-pill-link { color: #111; text-decoration: none; font-family: var(--font-archivo), sans-serif; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; padding: 10px 18px; display: block; border-radius: 999px; transition: background 150ms, color 150ms; }
-        .nav-pill-link:hover { background: #111 !important; color: #EFE7D6 !important; }
-        .nav-crew-wrap { position: relative; color: #111; font-family: var(--font-archivo), sans-serif; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; padding: 10px 18px; border-radius: 999px; transition: background 150ms, color 150ms; cursor: pointer; user-select: none; }
-        .nav-crew-wrap:hover { background: #111 !important; color: #EFE7D6 !important; }
-        .nav-crew-wrap::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 14px; }
-        .nav-crew-menu { display: none; position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%); background: #fff; border: 2.5px solid #111; border-radius: 14px; padding: 6px; box-shadow: 4px 4px 0 #111; min-width: 248px; z-index: 200; }
-        .nav-crew-wrap:hover .nav-crew-menu { display: flex; flex-direction: column; }
-        .nav-crew-menu-right { left: auto; right: 0; transform: none; }
-        .nav-crew-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; text-decoration: none; color: #111 !important; transition: background 120ms; }
-        .nav-crew-item:hover { background: #F5F0E8; }
+        .nav-link {
+          color: ${fgMuted};
+          text-decoration: none;
+          font-family: var(--font-body), sans-serif;
+          font-size: 14px;
+          font-weight: 450;
+          letter-spacing: -0.005em;
+          padding: 8px 12px;
+          border-radius: 8px;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          transition: color 140ms ease, background 140ms ease;
+          cursor: pointer;
+          user-select: none;
+          white-space: nowrap;
+        }
+        .nav-link:hover { color: ${fg}; background: ${dark ? 'rgba(242,236,224,0.07)' : 'rgba(20,18,14,0.05)'}; }
+
+        .nav-menu-wrap { position: relative; }
+        .nav-menu-wrap::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 12px; }
+        .nav-menu {
+          display: none;
+          position: absolute;
+          top: calc(100% + 12px);
+          left: 50%;
+          transform: translateX(-50%);
+          background: #FBF7EF;
+          border: 1px solid ${T.line};
+          border-radius: 14px;
+          padding: 6px;
+          box-shadow: ${T.shadowLg};
+          min-width: 288px;
+          z-index: 200;
+        }
+        .nav-menu-wrap:hover .nav-menu,
+        .nav-menu-wrap:focus-within .nav-menu { display: flex; flex-direction: column; }
+        .nav-menu-right { left: auto; right: 0; transform: none; }
+        .nav-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          padding: 9px 10px;
+          border-radius: 9px;
+          text-decoration: none;
+          color: ${T.ink} !important;
+          transition: background 120ms;
+        }
+        .nav-menu-item:hover { background: ${T.surface2}; }
       `}</style>
 
-      {/* Logo */}
-      <Link
-        href="/"
-        style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit', flexShrink: 0 }}
+      <nav
+        data-testid="site-nav"
+        className="vq-shell"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 20,
+          height: 66,
+        }}
       >
-        <Image
-          src="/logo.png"
-          alt="Veqiro"
-          width={1285}
-          height={659}
-          priority={variant === 'hero'}
-          style={{
-            display: 'block',
-            width: 'clamp(150px, 20vw, 210px)',
-            height: 'auto',
-          }}
-        />
-      </Link>
+        {/* Logo */}
+        <Link
+          href="/"
+          style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
+          aria-label="Veqiro home"
+        >
+          <BrandMark tone={dark ? 'dark' : 'light'} size={27} />
+        </Link>
 
-      {/* Desktop pill nav */}
-      <div className="vq-nav-desktop">
-        {navLinks.map(({ href, label }) => (
-          <Link
-            key={href}
-            href={resolveNavHref(href)}
-            className="nav-pill-link"
-          >
-            {label}
-          </Link>
-        ))}
-        <div className="nav-crew-wrap">
-          The Employees ▾
-          <div className="nav-crew-menu">
-            {EMPLOYEES.map(emp => (
-              <Link key={emp.key} href={`/agents/${emp.key}`} className="nav-crew-item">
-                <img
-                  src={`/${emp.name}.jpeg`}
-                  alt={emp.name}
-                  style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #111', objectFit: 'cover', flexShrink: 0, display: 'inline-block' }}
-                />
-                <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>{emp.name}</span>
-                <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{emp.role}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div className="nav-crew-wrap">
-          Use Cases ▾
-          <div className="nav-crew-menu">
-            {useCaseNavItems.map(uc => (
-              <Link key={uc.slug} href={`/use-cases/${uc.slug}`} className="nav-crew-item">
-                <span
-                  aria-hidden
-                  style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    border: '2px solid #111', background: uc.color,
-                    flexShrink: 0, display: 'inline-block',
-                  }}
-                />
-                <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>{uc.persona}</span>
-                <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{uc.tagline}</span>
-              </Link>
-            ))}
-            <div
-              style={{
-                height: 1,
-                background: '#eee',
-                margin: '4px 6px',
-              }}
-            />
-            <Link href="/use-cases" className="nav-crew-item">
-              <span
-                aria-hidden
-                style={{
-                  width: 28, height: 28, borderRadius: '50%',
-                  border: '2px dashed #111', display: 'inline-flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  fontFamily: FONT.display, fontSize: 16, color: '#111', flexShrink: 0,
-                }}
-              >
-                →
-              </span>
-              <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>All use cases</span>
+        {/* Desktop nav */}
+        <div className="vq-nav-desktop">
+          {navLinks.map(({ href, label }) => (
+            <Link key={href} href={resolveNavHref(href)} className="nav-link">
+              {label}
             </Link>
-          </div>
-        </div>
+          ))}
 
-        {/* More dropdown */}
-        <div className="nav-crew-wrap">
-          More ▾
-          <div className="nav-crew-menu nav-crew-menu-right">
-            {[
-              { href: '/#faq',       label: 'FAQ',     sub: 'Common questions',   color: '#F5C518' },
-              { href: '/compare',    label: 'Compare',  sub: 'Veqiro vs others',   color: '#6FCDE8' },
-              { href: '/about',      label: 'About',    sub: 'Who we are',         color: '#F06464' },
-              { href: '/about#contact', label: 'Contact', sub: 'Talk to us',       color: '#1DBC87' },
-              { href: '/blog',       label: 'Blog',     sub: 'Guides & playbooks', color: '#8A8AF0' },
-            ].map(item => (
-              <Link key={item.href} href={item.href} className="nav-crew-item">
-                <span
-                  aria-hidden
-                  style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    border: '2px solid #111', background: item.color,
-                    flexShrink: 0, display: 'inline-block',
-                  }}
-                />
-                <span style={{ fontFamily: FONT.head, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>{item.label}</span>
-                <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{item.sub}</span>
+          <div className="nav-menu-wrap">
+            <span className="nav-link" tabIndex={0} role="button">Agents <Chevron /></span>
+            <div className="nav-menu">
+              {EMPLOYEES.map(emp => (
+                <Link key={emp.key} href={`/agents/${emp.key}`} className="nav-menu-item">
+                  <span style={{
+                    width: 30, height: 30, borderRadius: 8, overflow: 'hidden',
+                    border: `1px solid ${T.line}`, flexShrink: 0, display: 'block',
+                    background: T.surface2,
+                  }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- small static avatar, no layout shift risk */}
+                    <img
+                      src={`/${emp.name}.jpeg`}
+                      alt=""
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  </span>
+                  <span style={{ display: 'grid', gap: 1 }}>
+                    <span style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                      {emp.name}
+                    </span>
+                    <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3 }}>
+                      {emp.role.replace(/\n/g, ' ')}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="nav-menu-wrap">
+            <span className="nav-link" tabIndex={0} role="button">Use cases <Chevron /></span>
+            <div className="nav-menu">
+              {useCaseNavItems.map(uc => (
+                <Link key={uc.slug} href={`/use-cases/${uc.slug}`} className="nav-menu-item">
+                  <span aria-hidden style={{
+                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                    background: `${uc.color}22`, border: `1px solid ${uc.color}55`,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: uc.color }} />
+                  </span>
+                  <span style={{ display: 'grid', gap: 1 }}>
+                    <span style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                      {uc.persona}
+                    </span>
+                    <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3 }}>{uc.tagline}</span>
+                  </span>
+                </Link>
+              ))}
+              <div style={{ height: 1, background: T.line, margin: '5px 8px' }} />
+              <Link href="/use-cases" className="nav-menu-item">
+                <span aria-hidden style={{
+                  width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                  border: `1px dashed ${T.line2}`, display: 'inline-flex',
+                  alignItems: 'center', justifyContent: 'center', fontSize: 13, color: T.ink2,
+                }}>→</span>
+                <span style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                  All use cases
+                </span>
               </Link>
-            ))}
+            </div>
+          </div>
+
+          <div className="nav-menu-wrap">
+            <span className="nav-link" tabIndex={0} role="button">Resources <Chevron /></span>
+            <div className="nav-menu nav-menu-right">
+              {[
+                { href: '/compare',       label: 'Compare',  sub: 'Veqiro vs. the alternatives' },
+                { href: '/blog',          label: 'Blog',     sub: 'Guides and playbooks' },
+                { href: '/#faq',          label: 'FAQ',      sub: 'Common questions' },
+                { href: '/about',         label: 'About',    sub: 'Who we are' },
+                { href: '/about#contact', label: 'Contact',  sub: 'Talk to the team' },
+              ].map(item => (
+                <Link key={item.href} href={item.href} className="nav-menu-item">
+                  <span style={{ display: 'grid', gap: 1 }}>
+                    <span style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                      {item.label}
+                    </span>
+                    <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3 }}>{item.sub}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Right actions + hamburger */}
-      <div className="vq-nav-right">
-        <a
-          className="vq-nav-login"
-          href={isPreLaunch ? waitlistUrl : `${consoleUrl}/login`}
-          style={{
-            color: '#555', textDecoration: 'none',
-            fontFamily: FONT.head, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase',
-          }}
-        >
-          Log in
-        </a>
-        <a
-          className="vq-nav-cta"
-          href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
-          style={{
-            background: '#111', color: '#EFE7D6', padding: '14px 26px', borderRadius: 12,
-            fontFamily: FONT.head, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase',
-            textDecoration: 'none', border: '2.5px solid #111', boxShadow: '4px 4px 0 #6FCDE8',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Start free →
-        </a>
-        <button
-          type="button"
-          className="vq-hamburger"
-          aria-label="Open menu"
-          aria-expanded={open}
-          data-testid="nav-hamburger"
-          onClick={() => setOpen(true)}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="4" y1="7" x2="20" y2="7" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="17" x2="20" y2="17" />
-          </svg>
-        </button>
-      </div>
+        {/* Right actions */}
+        <div className="vq-nav-right">
+          <a
+            className="vq-nav-login nav-link"
+            href={isPreLaunch ? waitlistUrl : `${consoleUrl}/login`}
+          >
+            Log in
+          </a>
+          <a
+            className="vq-nav-cta"
+            href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
+            style={{
+              background: dark ? T.inkInv : T.ink,
+              color: dark ? T.ink : T.inkInv,
+              padding: '9px 17px',
+              borderRadius: 9,
+              fontFamily: FONT.body,
+              fontSize: 14,
+              fontWeight: 500,
+              letterSpacing: '-0.005em',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              transition: 'opacity 140ms ease',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.86')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            {isPreLaunch ? 'Join waitlist' : 'Start free'}
+          </a>
+          <button
+            type="button"
+            className="vq-hamburger"
+            aria-label="Open menu"
+            aria-expanded={open}
+            data-testid="nav-hamburger"
+            onClick={() => setOpen(true)}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+          </button>
+        </div>
+      </nav>
 
       {open && (
         <>
-          <div
-            className="vq-drawer-backdrop"
-            onClick={() => setOpen(false)}
-            aria-hidden
-          />
+          <div className="vq-drawer-backdrop" onClick={() => setOpen(false)} aria-hidden />
           <aside
             className="vq-drawer"
             role="dialog"
@@ -236,13 +288,7 @@ export function NavShared({ variant = 'page' }: Props) {
             data-testid="nav-drawer"
           >
             <div className="vq-drawer-header">
-              <Image
-                src="/logo.png"
-                alt="Veqiro"
-                width={1285}
-                height={659}
-                style={{ width: 168, height: 'auto', display: 'block' }}
-              />
+              <BrandMark size={25} />
               <button
                 type="button"
                 className="vq-drawer-close"
@@ -250,7 +296,7 @@ export function NavShared({ variant = 'page' }: Props) {
                 data-testid="nav-drawer-close"
                 onClick={() => setOpen(false)}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <line x1="6" y1="6" x2="18" y2="18" />
                   <line x1="6" y1="18" x2="18" y2="6" />
                 </svg>
@@ -259,97 +305,55 @@ export function NavShared({ variant = 'page' }: Props) {
 
             <nav className="vq-drawer-nav" aria-label="Primary">
               {navLinks.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={resolveNavHref(href)}
-                  className="vq-drawer-link"
-                  onClick={() => setOpen(false)}
-                >
+                <Link key={href} href={resolveNavHref(href)} className="vq-drawer-link" onClick={() => setOpen(false)}>
                   {label}
                 </Link>
               ))}
 
-              <div className="vq-drawer-section">The Employees</div>
+              <div className="vq-drawer-section">Agents</div>
               {EMPLOYEES.map(emp => (
-                <Link
-                  key={emp.key}
-                  href={`/agents/${emp.key}`}
-                  className="vq-drawer-crew"
-                  onClick={() => setOpen(false)}
-                >
-                  <img
-                    src={`/${emp.name}.jpeg`}
-                    alt={emp.name}
-                    style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid #111', objectFit: 'cover', flexShrink: 0 }}
-                  />
-                  <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>{emp.name}</span>
-                  <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{emp.role}</span>
+                <Link key={emp.key} href={`/agents/${emp.key}`} className="vq-drawer-crew" onClick={() => setOpen(false)}>
+                  <span style={{
+                    width: 34, height: 34, borderRadius: 9, overflow: 'hidden',
+                    border: `1px solid ${T.line}`, flexShrink: 0, display: 'block',
+                  }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- small static avatar */}
+                    <img src={`/${emp.name}.jpeg`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </span>
+                  <span style={{ display: 'grid', gap: 1 }}>
+                    <span style={{ fontFamily: FONT.display, fontSize: 14.5, fontWeight: 600 }}>{emp.name}</span>
+                    <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3 }}>{emp.role.replace(/\n/g, ' ')}</span>
+                  </span>
                 </Link>
               ))}
 
-              <div className="vq-drawer-section">Use Cases</div>
+              <div className="vq-drawer-section">Use cases</div>
               {useCaseNavItems.map(uc => (
-                <Link
-                  key={uc.slug}
-                  href={`/use-cases/${uc.slug}`}
-                  className="vq-drawer-crew"
-                  onClick={() => setOpen(false)}
-                >
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      border: '2px solid #111', background: uc.color,
-                      flexShrink: 0, display: 'inline-block',
-                    }}
-                  />
-                  <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>{uc.persona}</span>
-                  <span style={{ marginLeft: 'auto', fontFamily: FONT.mono, fontSize: 10, color: '#888' }}>{uc.tagline}</span>
+                <Link key={uc.slug} href={`/use-cases/${uc.slug}`} className="vq-drawer-crew" onClick={() => setOpen(false)}>
+                  <span aria-hidden style={{
+                    width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                    background: `${uc.color}22`, border: `1px solid ${uc.color}55`,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: uc.color }} />
+                  </span>
+                  <span style={{ fontFamily: FONT.display, fontSize: 14.5, fontWeight: 600 }}>{uc.persona}</span>
                 </Link>
               ))}
-              <Link
-                href="/use-cases"
-                className="vq-drawer-crew"
-                onClick={() => setOpen(false)}
-              >
-                <span
-                  aria-hidden
-                  style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    border: '2px dashed #111', display: 'inline-flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    fontFamily: FONT.display, fontSize: 20, color: '#111',
-                    flexShrink: 0,
-                  }}
-                >
-                  →
-                </span>
-                <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>All use cases</span>
+              <Link href="/use-cases" className="vq-drawer-link" onClick={() => setOpen(false)}>
+                All use cases
               </Link>
 
-              <div className="vq-drawer-section">More</div>
+              <div className="vq-drawer-section">Resources</div>
               {[
-                { href: '/#faq',          label: 'FAQ',     color: '#F5C518' },
-                { href: '/compare',       label: 'Compare', color: '#6FCDE8' },
-                { href: '/about',         label: 'About',   color: '#F06464' },
-                { href: '/about#contact', label: 'Contact', color: '#1DBC87' },
-                { href: '/blog',          label: 'Blog',    color: '#8A8AF0' },
+                { href: '/compare',       label: 'Compare' },
+                { href: '/blog',          label: 'Blog' },
+                { href: '/#faq',          label: 'FAQ' },
+                { href: '/about',         label: 'About' },
+                { href: '/about#contact', label: 'Contact' },
               ].map(item => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="vq-drawer-crew"
-                  onClick={() => setOpen(false)}
-                >
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      border: '2px solid #111', background: item.color,
-                      flexShrink: 0, display: 'inline-block',
-                    }}
-                  />
-                  <span style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' }}>{item.label}</span>
+                <Link key={item.href} href={item.href} className="vq-drawer-link" onClick={() => setOpen(false)}>
+                  {item.label}
                 </Link>
               ))}
 
@@ -369,19 +373,18 @@ export function NavShared({ variant = 'page' }: Props) {
                 href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
                 onClick={() => setOpen(false)}
                 style={{
-                  background: '#111', color: '#EFE7D6',
-                  padding: '16px 20px', borderRadius: 12,
-                  fontFamily: FONT.head, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
-                  textDecoration: 'none', border: '2.5px solid #111', boxShadow: '4px 4px 0 #6FCDE8',
-                  textAlign: 'center',
+                  background: T.ink, color: T.inkInv,
+                  padding: '13px 20px', borderRadius: 10,
+                  fontFamily: FONT.body, fontSize: 15, fontWeight: 500,
+                  textDecoration: 'none', textAlign: 'center',
                 }}
               >
-                Start free →
+                {isPreLaunch ? 'Join the waitlist' : 'Start free'}
               </a>
             </div>
           </aside>
         </>
       )}
-    </nav>
+    </div>
   );
 }

@@ -83,8 +83,8 @@ export function MobileChatDemo({ employee }: Props) {
         {/* Chat header */}
         <div style={{
           padding: 'clamp(4px, 1vw, 6px) clamp(12px, 3vw, 16px) clamp(8px, 2vw, 12px)',
-          borderBottom: '2px solid #111',
-          borderTop: '2px solid #111',
+          borderBottom: '1px solid rgba(20,18,14,0.10)',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
           background: '#fff',
           display: 'flex',
           alignItems: 'center',
@@ -96,7 +96,7 @@ export function MobileChatDemo({ employee }: Props) {
             alt={employee.name}
             style={{
               width: 'clamp(26px, 6.5vw, 34px)', height: 'clamp(26px, 6.5vw, 34px)', borderRadius: '50%',
-              border: '2px solid #111', objectFit: 'cover', flexShrink: 0,
+              border: '1px solid rgba(20,18,14,0.10)', objectFit: 'cover', flexShrink: 0,
             }}
           />
           <div style={{ minWidth: 0 }}>
@@ -145,8 +145,8 @@ export function MobileChatDemo({ employee }: Props) {
                 fontFamily: FONT.body,
                 fontSize: 'clamp(10px, 2.4vw, 12px)',
                 lineHeight: 1.5,
-                border: '2px solid #111',
-                boxShadow: msg.role === 'agent' ? `2px 2px 0 ${employee.color}` : '2px 2px 0 #111',
+                border: '1px solid rgba(20,18,14,0.10)',
+                boxShadow: '0 1px 2px rgba(20,18,14,0.05)',
               }}>
                 {msg.content}
               </div>
@@ -159,8 +159,8 @@ export function MobileChatDemo({ employee }: Props) {
                 background: '#fff',
                 borderRadius: '16px 16px 16px 4px',
                 padding: 'clamp(8px, 2vw, 11px) clamp(12px, 3vw, 16px)',
-                border: '2px solid #111',
-                boxShadow: `2px 2px 0 ${employee.color}`,
+                border: '1px solid rgba(20,18,14,0.10)',
+                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                 display: 'flex',
                 gap: 5,
                 alignItems: 'center',
@@ -186,7 +186,7 @@ export function MobileChatDemo({ employee }: Props) {
         {/* Input bar */}
         <div style={{
           padding: 'clamp(8px, 2vw, 10px) clamp(10px, 2.4vw, 12px)',
-          borderTop: '2px solid #111',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
           background: '#fff',
           display: 'flex',
           gap: 8,
@@ -201,7 +201,7 @@ export function MobileChatDemo({ employee }: Props) {
             color: '#888',
             fontFamily: FONT.body,
             fontSize: 'clamp(10px, 2.4vw, 12px)',
-            border: '2px solid #111',
+            border: '1px solid rgba(20,18,14,0.10)',
             minWidth: 0,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -214,8 +214,8 @@ export function MobileChatDemo({ employee }: Props) {
             height: 'clamp(26px, 6.5vw, 32px)',
             borderRadius: '50%',
             background: employee.color,
-            border: '2px solid #111',
-            boxShadow: '2px 2px 0 #111',
+            border: '1px solid rgba(20,18,14,0.10)',
+            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
@@ -231,7 +231,7 @@ export function MobileChatDemo({ employee }: Props) {
           onClick={() => setRunKey(k => k + 1)}
           style={{
             background: 'transparent',
-            border: '2px solid #111',
+            border: '1px solid rgba(20,18,14,0.10)',
             borderRadius: 999,
             padding: '8px 20px',
             fontFamily: FONT.head,
@@ -239,7 +239,7 @@ export function MobileChatDemo({ employee }: Props) {
             textTransform: 'uppercase',
             letterSpacing: 1,
             cursor: 'pointer',
-            boxShadow: '3px 3px 0 #111',
+            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
           }}
         >
           ↺ Replay demo

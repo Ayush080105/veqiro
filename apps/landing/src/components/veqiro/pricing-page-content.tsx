@@ -59,8 +59,8 @@ export default function PricingPageContent() {
 
       {/* ── HERO ── */}
       <section className="vq-section-pad" style={{
-        borderTop: '3px solid #111',
-        borderBottom: '3px solid #111',
+        borderTop: '1px solid rgba(20,18,14,0.10)',
+        borderBottom: '1px solid rgba(20,18,14,0.10)',
         background: '#111',
         textAlign: 'center',
       }}>
@@ -69,13 +69,13 @@ export default function PricingPageContent() {
             fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
             textTransform: 'uppercase', color: '#F5C518', marginBottom: 16,
           }}>
-            [ PRICING ]
+            Pricing
           </div>
           <h1 style={{
-            fontFamily: FONT.display, fontSize: 'clamp(52px, 8vw, 112px)',
-            margin: 0, lineHeight: 0.9, letterSpacing: -2, color: '#EFE7D6',
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(52px, 8vw, 112px)',
+            margin: 0, lineHeight: 0.9, color: '#EFE7D6',
           }}>
-            less than<br />
+            Less than<br />
             <span style={{ color: '#F5C518' }}>a bad hire.</span>
           </h1>
           <p style={{
@@ -100,7 +100,7 @@ export default function PricingPageContent() {
               { v: 'Cancel', k: 'anytime' },
             ].map(s => (
               <div key={s.k} style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: FONT.display, fontSize: 28, color: '#F5C518', lineHeight: 1 }}>{s.v}</div>
+                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 28, color: '#F5C518', lineHeight: 1 }}>{s.v}</div>
                 <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#555', marginTop: 5 }}>{s.k}</div>
               </div>
             ))}
@@ -109,16 +109,16 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── PRICING ── */}
-      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
           <div style={{ marginBottom: 32, textAlign: 'center' }}>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 12 }}>
-              [ PICK YOUR AGENTS ]
+              Pick your agents
             </div>
-            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(38px, 6vw, 76px)', margin: 0, lineHeight: 0.92 }}>
-              start with one.<br />
-              <span style={{ background: '#6FCDE8', border: '3px solid #111', borderRadius: 8, boxShadow: '5px 5px 0 #111', padding: '0 14px', display: 'inline-block' }}>
-                add the rest later.
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(38px, 6vw, 76px)', margin: 0, lineHeight: 0.92 }}>
+              Start with one.<br />
+              <span>
+                Add the rest later.
               </span>
             </h2>
             <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: '#444', maxWidth: 620, margin: '18px auto 0' }}>
@@ -135,26 +135,28 @@ export default function PricingPageContent() {
                   key={emp.key}
                   style={{
                     textAlign: 'left',
-                    border: '3px solid #111',
+                    border: '1px solid rgba(20,18,14,0.10)',
                     borderRadius: 12,
                     overflow: 'hidden',
                     background: '#fff',
-                    boxShadow: '5px 5px 0 #111',
+                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                     display: 'flex',
                     flexDirection: 'column',
                   }}
                 >
-                  <div style={{ position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', background: emp.color, borderBottom: '3px solid #111' }}>
+                  <div style={{ position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', background: emp.color, borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
                     <Comp size="100%" />
                   </div>
                   <div style={{ padding: 14, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                    <div style={{ fontFamily: FONT.display, fontSize: 22, lineHeight: 1, color: emp.color }}>
+                    {/* emp.ink, not emp.color: the light accents (amber, pink)
+                        fall below 2:1 against a white card. */}
+                    <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 22, lineHeight: 1, color: emp.ink }}>
                       {emp.name}
                     </div>
                     <div style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: '#777', marginTop: 6, lineHeight: 1.5 }}>
                       <TwoLineBlurb text={AGENT_BLURBS[emp.key]} />
                     </div>
-                    <div style={{ fontFamily: FONT.display, fontSize: 24, color: '#111', marginTop: 12 }}>
+                    <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 24, color: '#111', marginTop: 12 }}>
                       {monthlyPrice == null ? '—' : `$${monthlyPrice}`}
                       <span style={{ fontFamily: FONT.body, fontSize: 12, color: '#888', marginLeft: 4 }}>/mo</span>
                     </div>
@@ -167,7 +169,7 @@ export default function PricingPageContent() {
                         marginTop: 12, display: 'block', textAlign: 'center',
                         padding: '10px 14px', background: '#111', color: '#EFE7D6',
                         fontFamily: FONT.head, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1,
-                        border: '3px solid #111', borderRadius: 8, textDecoration: 'none',
+                        border: '1px solid rgba(20,18,14,0.10)', borderRadius: 8, textDecoration: 'none',
                         boxSizing: 'border-box',
                       } as React.CSSProperties}
                     >
@@ -181,19 +183,19 @@ export default function PricingPageContent() {
 
           {/* Enterprise — separate from per-agent pricing, not a per-agent card */}
           <div style={{
-            border: '3px solid #111', borderRadius: 20, overflow: 'hidden',
-            boxShadow: `10px 10px 0 ${enterpriseTier.color}`,
+            border: '1px solid rgba(20,18,14,0.10)', borderRadius: 20, overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
             display: 'flex', flexWrap: 'wrap',
           }}>
-            <div style={{ flex: '1 1 260px', background: enterpriseTier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderRight: '3px solid #111' }}>
-              <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 6vw, 52px)', margin: 0, lineHeight: 1, color: '#111' }}>
+            <div style={{ flex: '1 1 260px', background: enterpriseTier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderRight: '1px solid rgba(20,18,14,0.10)' }}>
+              <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 6vw, 52px)', margin: 0, lineHeight: 1, color: '#111' }}>
                 {enterpriseTier.name}
               </h2>
               <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
                 {enterpriseTier.tag}
               </p>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginTop: 20 }}>
-                <div style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 8vw, 56px)', color: '#111', lineHeight: 1 }}>
+                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(40px, 8vw, 56px)', color: '#111', lineHeight: 1 }}>
                   ${enterpriseTier.monthly}+
                 </div>
                 <div style={{ fontFamily: FONT.body, fontSize: 15, color: '#111', opacity: 0.7, paddingBottom: 6 }}>
@@ -201,7 +203,7 @@ export default function PricingPageContent() {
                 </div>
               </div>
             </div>
-            <div style={{ flex: '2 1 360px', background: '#FFF9ED', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20 }}>
+            <div style={{ flex: '2 1 360px', background: '#FBF7EF', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20 }}>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
                 {enterpriseTier.includes.map(f => (
                   <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -216,8 +218,8 @@ export default function PricingPageContent() {
                   style={{
                     display: 'inline-block', padding: '14px 24px', background: '#111', color: '#EFE7D6',
                     fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1,
-                    border: '3px solid #111', borderRadius: 10, textDecoration: 'none',
-                    boxShadow: `5px 5px 0 ${enterpriseTier.color}`,
+                    border: '1px solid rgba(20,18,14,0.10)', borderRadius: 10, textDecoration: 'none',
+                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                   } as React.CSSProperties}
                 >
                   Talk to sales →
@@ -232,20 +234,20 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── WHO YOU GET ── */}
-      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#F5C518', marginBottom: 16,
             }}>
-              [ WHO YOU GET ]
+              Who you get
             </div>
             <h2 style={{
-              fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)',
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 5vw, 64px)',
               margin: 0, color: '#EFE7D6', lineHeight: 0.95,
             }}>
-              six specialists.<br />
+              Six specialists.<br />
               <span style={{ color: '#F5C518' }}>no bundle required.</span>
             </h2>
           </div>
@@ -257,16 +259,17 @@ export default function PricingPageContent() {
                 <Link key={emp.key} href={`/agents/${emp.key}`} style={{ textDecoration: 'none' }}>
                   <div
                     style={{
-                      border: '3px solid #333', borderRadius: 12,
+                      border: '1px solid #333', borderRadius: 12,
                       overflow: 'hidden', background: '#1a1a1a',
                       transition: 'border-color 160ms, box-shadow 160ms',
                     }}
                     onMouseEnter={e => {
                       (e.currentTarget as HTMLDivElement).style.borderColor = emp.color;
-                      (e.currentTarget as HTMLDivElement).style.boxShadow = `4px 4px 0 ${emp.color}`;
+                      (e.currentTarget as HTMLDivElement).style.boxShadow =
+                        '0 1px 3px rgba(0,0,0,0.25), 0 12px 28px -8px rgba(0,0,0,0.45)';
                     }}
                     onMouseLeave={e => {
-                      (e.currentTarget as HTMLDivElement).style.borderColor = '#333';
+                      (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(242,236,224,0.14)';
                       (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
                     }}
                   >
@@ -274,10 +277,10 @@ export default function PricingPageContent() {
                       <Comp size="100%" />
                     </div>
                     <div style={{ padding: '14px 16px' }}>
-                      <div style={{ fontFamily: FONT.display, fontSize: 24, color: emp.color, lineHeight: 1 }}>
+                      <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 24, color: emp.color, lineHeight: 1 }}>
                         {emp.name}
                       </div>
-                      <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#666', marginTop: 5 }}>
+                      <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#A9A192', marginTop: 5 }}>
                         {AGENT_BLURBS[emp.key]}
                       </div>
                     </div>
@@ -290,19 +293,16 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── FEATURES BREAKDOWN ── */}
-      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 16 }}>
-              [ WHAT'S INCLUDED ]
+              What's included
             </div>
-            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
-              everything.<br />
-              <span style={{
-                background: '#F06464', padding: '0 16px', display: 'inline-block',
-                border: '3px solid #111', borderRadius: 8, boxShadow: '4px 4px 0 #111', transform: 'rotate(-1deg)',
-              }}>
-                day one.
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
+              Everything.<br />
+              <span>
+                Day one.
               </span>
             </h2>
           </div>
@@ -310,11 +310,10 @@ export default function PricingPageContent() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             {FEATURES.map((f, i) => (
               <div key={f.title} style={{
-                border: '3px solid #111', borderRadius: 12, padding: '22px 20px',
-                background: '#EFE7D6', boxShadow: '4px 4px 0 #111',
-                transform: `rotate(${i % 2 === 0 ? -0.4 : 0.4}deg)`,
+                border: '1px solid rgba(20,18,14,0.10)', borderRadius: 12, padding: '22px 20px',
+                background: '#EFE7D6', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
               }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: f.color, border: '2px solid #111', marginBottom: 14 }} />
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: f.color, border: '1px solid rgba(20,18,14,0.10)', marginBottom: 14 }} />
                 <h3 style={{ fontFamily: FONT.head, fontSize: 17, margin: '0 0 8px' }}>{f.title}</h3>
                 <p style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 1.6, color: '#444', margin: 0 }}>{f.desc}</p>
               </div>
@@ -324,22 +323,22 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
             <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 16 }}>
-              [ COMMON QUESTIONS ]
+              Common questions
             </div>
-            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(32px, 4vw, 56px)', margin: 0, lineHeight: 0.95 }}>
-              honest answers.
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(32px, 4vw, 56px)', margin: 0, lineHeight: 0.95 }}>
+              Honest answers.
             </h2>
           </div>
           <div style={{ display: 'grid', gap: 16 }}>
             {PRICING_FAQ.map(item => (
               <div key={item.q} style={{
-                border: '3px solid #111', borderRadius: 12,
+                border: '1px solid rgba(20,18,14,0.10)', borderRadius: 12,
                 padding: 'clamp(18px, 3.4vw, 22px) clamp(18px, 3.4vw, 24px)',
-                background: '#fff', boxShadow: '4px 4px 0 #111',
+                background: '#fff', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
               }}>
                 <div style={{ fontFamily: FONT.head, fontSize: 16, marginBottom: 8 }}>{item.q}</div>
                 <div style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65, color: '#444' }}>{item.a}</div>
@@ -352,13 +351,10 @@ export default function PricingPageContent() {
       {/* ── FINAL CTA ── */}
       <section className="vq-section-pad">
         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 7vw, 96px)', margin: '0 0 28px', lineHeight: 0.9 }}>
-            start free.<br />
-            <span style={{
-              background: '#F5C518', padding: '0 18px', display: 'inline-block',
-              border: '3px solid #111', borderRadius: 8, boxShadow: '5px 5px 0 #111',
-            }}>
-              hire today.
+          <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(40px, 7vw, 96px)', margin: '0 0 28px', lineHeight: 0.9 }}>
+            Start free.<br />
+            <span>
+              Hire today.
             </span>
           </h2>
           <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#555', marginBottom: 44 }}>

@@ -1,15 +1,29 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Bagel_Fat_One, Archivo_Black, Space_Grotesk } from "next/font/google";
+import { JetBrains_Mono, Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { SITE_URL, SITE_KEYWORDS } from "@/lib/seo";
 import { JsonLd } from "@/components/veqiro/json-ld";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 
-const bagelFatOne = Bagel_Fat_One({ weight: "400", subsets: ["latin"], variable: "--font-bagel" });
-const archivoBl = Archivo_Black({ weight: "400", subsets: ["latin"], variable: "--font-archivo" });
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
-const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
+// Inter Tight carries headings (tight, editorial), Inter the body copy, and
+// JetBrains Mono the eyebrows/metrics. Replaces the previous display stack
+// (Bagel Fat One / Archivo Black / Space Grotesk).
+const interTight = Inter_Tight({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["400", "500", "600", "700"],
+});
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "600"],
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "500"],
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -80,10 +94,9 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={cn(
         "h-full antialiased",
+        interTight.variable,
+        inter.variable,
         jetbrainsMono.variable,
-        bagelFatOne.variable,
-        archivoBl.variable,
-        spaceGrotesk.variable,
       )}
     >
       <body className="min-h-full flex flex-col">

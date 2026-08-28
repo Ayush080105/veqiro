@@ -143,6 +143,9 @@ export const EMPLOYEES: Employee[] = [
       "Compose an email to [address] about [topic] with a clear ask",
       "Add [name] at [email] to my VIP contacts",
       "Create a label 'Client Escalations' with auto-draft turned on",
+      "When a meeting is about to start, brief me on the attendees first",
+      "Every weekday at 8am, triage my inbox and hold anything needing a decision",
+      "Ask me before anything goes out externally — never auto-send",
     ],
   },
   {
@@ -237,6 +240,8 @@ export const EMPLOYEES: Employee[] = [
       "Discover my competitors — here's our product: [description]",
       "Tear down [competitor] — pricing, positioning, recent moves",
       "Find companies that raised in our category in the last 90 days",
+      "When a competitor posts something material, summarise it and flag it",
+      "Every Friday, wrap up what moved in our market this week",
     ],
   },
   {
@@ -339,6 +344,8 @@ export const EMPLOYEES: Employee[] = [
       "Write a LinkedIn post about [topic] and generate a matching visual",
       "Take this post and rewrite it natively for Instagram and Twitter with new images",
       "Publish this campaign to my Instagram now",
+      "Build next week's content plan every Sunday evening",
+      "When a Zoom recording lands, pull the highlights into a LinkedIn draft",
     ],
   },
   {
@@ -436,6 +443,8 @@ export const EMPLOYEES: Employee[] = [
       "Generate 5 blog ideas from my saved keyword list",
       "Run a full page audit on [URL] — technical, speed, E-E-A-T, and competitor scores",
       "Audit my entire site — sitemap is at [url]",
+      "Run a weekly search check and tell me which pages slipped",
+      "When Search Console shows a ranking drop, open a fix-list in Linear",
     ],
   },
   {
@@ -513,7 +522,7 @@ export const EMPLOYEES: Employee[] = [
       },
       {
         q: "What's the best AI for NDA review for startups?",
-        a: "Standard mutual NDAs are Lex's sweet spot — she reads them in 2 minutes, flags unusual confidentiality terms, and tells you whether it's safe to sign without counsel. Most founders stop routing routine NDAs to their lawyer.",
+        a: "Standard mutual NDAs are Lex's sweet spot — he reads them in 2 minutes, flags unusual confidentiality terms, and tells you whether it's safe to sign without counsel. Most founders stop routing routine NDAs to their lawyer.",
       },
       {
         q: "Will Lex replace our legal counsel?",
@@ -533,6 +542,8 @@ export const EMPLOYEES: Employee[] = [
       "Run a GDPR and CCPA compliance check on our data practices",
       "Explain what this clause means in plain English: [paste clause]",
       "Stamp our company letterhead on this vendor agreement PDF",
+      "When a new contract lands in Drive, review it and flag non-standard clauses",
+      "Always ask me before sending anything to a counterparty",
     ],
   },
   {
@@ -632,6 +643,8 @@ export const EMPLOYEES: Employee[] = [
       "Generate my board deck for [month] — pull from my latest dataset",
       "Run a variance analysis: actual results vs budget for last quarter",
       "Give me my Monday CFO digest — what moved and what looks weird",
+      "When new rows land in the revenue sheet, reconcile them and flag anomalies",
+      "Every Monday, post the weekly numbers digest to Slack",
     ],
   },
 ];

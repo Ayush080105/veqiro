@@ -5,9 +5,9 @@ import { Footer } from './sections';
 import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 
 const F = {
-  display: 'var(--font-bagel), cursive',
-  head: 'var(--font-archivo), sans-serif',
-  body: 'var(--font-space), sans-serif',
+  display: 'var(--font-display), system-ui, sans-serif',
+  head: 'var(--font-display), system-ui, sans-serif',
+  body: 'var(--font-body), system-ui, sans-serif',
   mono: 'var(--font-mono), monospace',
 };
 
@@ -144,8 +144,8 @@ function CellContent({ val }: { val: CellVal }) {
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 28, height: 28, borderRadius: '50%',
-          background: '#1DBC87', border: '2px solid #111',
-          color: '#fff', fontSize: 14, fontWeight: 900, flexShrink: 0,
+          background: '#1DBC87', border: '1px solid rgba(20,18,14,0.10)',
+          color: '#fff', fontSize: 14, fontWeight: 600, flexShrink: 0,
         }}
       >
         ✓
@@ -158,7 +158,7 @@ function CellContent({ val }: { val: CellVal }) {
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 28, height: 28, borderRadius: '50%',
-          background: '#F5F0E8', border: '2px solid #ddd',
+          background: '#F5F0E8', border: '1px solid #ddd',
           color: '#bbb', fontSize: 14,
         }}
       >
@@ -172,7 +172,7 @@ function CellContent({ val }: { val: CellVal }) {
         style={{
           display: 'inline-block',
           background: '#FEF3C7', color: '#92400E',
-          border: '1.5px solid #D97706',
+          border: '1px solid #D97706',
           borderRadius: 999, padding: '3px 10px',
           fontFamily: F.mono, fontSize: 10,
           letterSpacing: 1, textTransform: 'uppercase',
@@ -187,7 +187,7 @@ function CellContent({ val }: { val: CellVal }) {
       style={{
         display: 'inline-block',
         background: '#F3F4F6', color: '#666',
-        border: '1.5px solid #ccc',
+        border: '1px solid #ccc',
         borderRadius: 999, padding: '3px 10px',
         fontFamily: F.mono, fontSize: 10,
         letterSpacing: 1, textTransform: 'uppercase',
@@ -268,7 +268,7 @@ export function ComparePageContent() {
       {/* ── HERO ── */}
       <section
         className="vq-section-pad"
-        style={{ background: '#111', borderBottom: '3px solid #111', textAlign: 'center' }}
+        style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)', textAlign: 'center' }}
       >
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <div
@@ -277,7 +277,7 @@ export function ComparePageContent() {
               textTransform: 'uppercase', color: '#F5C518', marginBottom: 20,
             }}
           >
-            [ COMPARE ]
+            Compare
           </div>
           <h1
             style={{
@@ -286,10 +286,10 @@ export function ComparePageContent() {
               lineHeight: 0.88,
               color: '#EFE7D6',
               margin: '0 0 28px',
-              letterSpacing: -2,
+
             }}
           >
-            the honest<br />
+            The honest<br />
             <span style={{ color: '#F5C518' }}>comparison.</span>
           </h1>
           <p
@@ -325,12 +325,12 @@ export function ComparePageContent() {
       {/* ── VERDICT CARDS ── */}
       <section
         className="vq-section-pad"
-        style={{ borderBottom: '3px solid #111', background: '#FFF9ED' }}
+        style={{ borderBottom: '1px solid rgba(20,18,14,0.10)', background: '#FBF7EF' }}
       >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 48, textAlign: 'center' }}>
             <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#888', marginBottom: 14 }}>
-              [ QUICK VERDICT ]
+              Quick verdict
             </div>
             <h2
               style={{
@@ -339,15 +339,8 @@ export function ComparePageContent() {
                 margin: 0, lineHeight: 0.95,
               }}
             >
-              what each one<br />
-              <span
-                style={{
-                  background: '#F06464', padding: '0 14px',
-                  display: 'inline-block', border: '3px solid #111',
-                  borderRadius: 8, boxShadow: '4px 4px 0 #111',
-                  transform: 'rotate(-1deg)',
-                }}
-              >
+              What each one<br />
+              <span>
                 actually is.
               </span>
             </h2>
@@ -364,10 +357,10 @@ export function ComparePageContent() {
               <div
                 key={p.name}
                 style={{
-                  border: `3px solid #111`,
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 16,
                   overflow: 'hidden',
-                  boxShadow: p.highlight ? '8px 8px 0 #111' : '4px 4px 0 #ccc',
+                  boxShadow: p.highlight ? '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)' : '0 1px 2px rgba(20,18,14,0.05)',
                   transform: p.highlight ? 'translateY(-6px)' : 'none',
                   background: p.highlight ? '#111' : '#EFE7D6',
                   transition: 'transform 180ms',
@@ -377,7 +370,7 @@ export function ComparePageContent() {
                 <div
                   style={{
                     padding: '20px 24px',
-                    borderBottom: '3px solid #111',
+                    borderBottom: '1px solid rgba(20,18,14,0.10)',
                     background: p.highlight ? '#1a1a1a' : '#F5F0E8',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   }}
@@ -389,7 +382,7 @@ export function ComparePageContent() {
                     style={{
                       fontFamily: F.mono, fontSize: 10, letterSpacing: 1.5,
                       textTransform: 'uppercase', padding: '4px 12px', borderRadius: 999,
-                      background: p.tagColor, color: '#111', border: '2px solid #111',
+                      background: p.tagColor, color: '#111', border: '1px solid rgba(20,18,14,0.10)',
                     }}
                   >
                     {p.tag}
@@ -400,7 +393,7 @@ export function ComparePageContent() {
                 <div
                   style={{
                     padding: '20px 24px',
-                    borderBottom: '3px solid #111',
+                    borderBottom: '1px solid rgba(20,18,14,0.10)',
                     background: p.highlight ? '#F5C518' : '#EFE7D6',
                   }}
                 >
@@ -413,7 +406,7 @@ export function ComparePageContent() {
                 </div>
 
                 {/* Body */}
-                <div style={{ padding: '20px 24px', borderBottom: '3px solid #111' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
                   <p
                     style={{
                       fontFamily: F.body, fontSize: 14, lineHeight: 1.65,
@@ -443,18 +436,18 @@ export function ComparePageContent() {
       </section>
 
       {/* ── THE BIG TABLE ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 40 }}>
             <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#888', marginBottom: 14 }}>
-              [ FULL BREAKDOWN ]
+              Full breakdown
             </div>
             <h2 style={{ fontFamily: F.display, fontSize: 'clamp(34px, 5vw, 60px)', margin: 0, lineHeight: 0.95 }}>
               feature by<br />feature.
             </h2>
           </div>
 
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: 16, border: '3px solid #111', boxShadow: '6px 6px 0 #111' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: 16, border: '1px solid rgba(20,18,14,0.10)', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
               <thead>
                 <tr>
@@ -464,7 +457,7 @@ export function ComparePageContent() {
                       fontFamily: F.mono, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase',
                       padding: '16px 20px', textAlign: 'left', position: 'sticky', top: 0,
                       whiteSpace: 'nowrap', minWidth: 220, zIndex: 10,
-                      borderRight: '2px solid #222',
+                      borderRight: '1px solid #222',
                     }}
                   >
                     Feature
@@ -505,7 +498,7 @@ export function ComparePageContent() {
                           color: section.color === '#111' ? '#EFE7D6' : '#111',
                           fontFamily: F.head, fontSize: 12, letterSpacing: 2,
                           textTransform: 'uppercase', padding: '10px 20px',
-                          borderTop: si > 0 ? '3px solid #111' : undefined,
+                          borderTop: si > 0 ? '1px solid rgba(20,18,14,0.10)' : undefined,
                         }}
                       >
                         <span style={{ marginRight: 8 }}>{section.emoji}</span>
@@ -522,8 +515,8 @@ export function ComparePageContent() {
                             style={{
                               padding: '14px 20px',
                               fontFamily: F.body, fontSize: 14, color: '#111',
-                              background: even ? '#FFF9ED' : '#EFE7D6',
-                              borderRight: '2px solid #111',
+                              background: even ? '#FBF7EF' : '#EFE7D6',
+                              borderRight: '1px solid rgba(20,18,14,0.10)',
                               borderTop: '1px solid rgba(17,17,17,0.08)',
                             }}
                           >
@@ -582,12 +575,12 @@ export function ComparePageContent() {
       {/* ── VEQIRO EXCLUSIVES ── */}
       <section
         className="vq-section-pad"
-        style={{ background: '#111', borderBottom: '3px solid #111' }}
+        style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}
       >
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ marginBottom: 48, textAlign: 'center' }}>
             <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 14 }}>
-              [ ONLY IN VEQIRO ]
+              Only in veqiro
             </div>
             <h2
               style={{
@@ -612,17 +605,16 @@ export function ComparePageContent() {
               <div
                 key={f}
                 style={{
-                  border: '2.5px solid #333',
+                  border: '1px solid #333',
                   borderRadius: 12, padding: '16px 18px',
                   background: '#1a1a1a',
                   display: 'flex', alignItems: 'flex-start', gap: 12,
-                  transform: `rotate(${i % 3 === 0 ? -0.4 : i % 3 === 1 ? 0.3 : -0.2}deg)`,
                 }}
               >
                 <span
                   style={{
                     width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                    background: EXCLUSIVE_COLORS[i], border: '2px solid #555', marginTop: 3,
+                    background: EXCLUSIVE_COLORS[i], border: '1px solid #555', marginTop: 3,
                   }}
                 />
                 <span style={{ fontFamily: F.body, fontSize: 13, color: '#EFE7D6', lineHeight: 1.4 }}>
@@ -635,22 +627,16 @@ export function ComparePageContent() {
       </section>
 
       {/* ── PRICING COMPARISON ── */}
-      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ marginBottom: 48, textAlign: 'center' }}>
             <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#888', marginBottom: 14 }}>
-              [ PRICING ]
+              Pricing
             </div>
             <h2 style={{ fontFamily: F.display, fontSize: 'clamp(34px, 5vw, 60px)', margin: 0, lineHeight: 0.95 }}>
-              no bundle.<br />
-              <span
-                style={{
-                  background: '#F5C518', padding: '0 14px',
-                  display: 'inline-block', border: '3px solid #111',
-                  borderRadius: 8, boxShadow: '4px 4px 0 #111',
-                }}
-              >
-                six employees.
+              No bundle.<br />
+              <span>
+                Six employees.
               </span>
             </h2>
           </div>
@@ -694,9 +680,9 @@ export function ComparePageContent() {
               <div
                 key={p.name}
                 style={{
-                  border: '3px solid #111',
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 14, overflow: 'hidden',
-                  boxShadow: p.highlight ? '8px 8px 0 #111' : '4px 4px 0 #ccc',
+                  boxShadow: p.highlight ? '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)' : '0 1px 2px rgba(20,18,14,0.05)',
                   transform: p.highlight ? 'translateY(-4px)' : 'none',
                 }}
               >
@@ -704,7 +690,7 @@ export function ComparePageContent() {
                   style={{
                     padding: '18px 24px',
                     background: p.highlight ? '#111' : '#EFE7D6',
-                    borderBottom: '3px solid #111',
+                    borderBottom: '1px solid rgba(20,18,14,0.10)',
                   }}
                 >
                   <div style={{ fontFamily: F.head, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: p.highlight ? '#888' : '#555' }}>
@@ -746,7 +732,7 @@ export function ComparePageContent() {
               color: '#EFE7D6', margin: '0 0 16px', lineHeight: 0.9,
             }}
           >
-            made up<br />
+            Made up<br />
             <span style={{ color: '#F5C518' }}>your mind?</span>
           </h2>
           <p
@@ -762,10 +748,10 @@ export function ComparePageContent() {
               href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
               style={{
                 display: 'inline-block', background: '#F5C518', color: '#111',
-                border: '3px solid #F5C518', borderRadius: 12,
+                border: '1px solid #F5C518', borderRadius: 12,
                 padding: '16px 36px', fontFamily: F.head,
                 fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
-                textDecoration: 'none', boxShadow: '5px 5px 0 #b89400',
+                textDecoration: 'none', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
               }}
             >
               {isPreLaunch ? 'Join the waitlist →' : 'Start free — 7 days on us →'}
@@ -774,7 +760,7 @@ export function ComparePageContent() {
               href="/pricing"
               style={{
                 display: 'inline-block', background: 'transparent', color: '#EFE7D6',
-                border: '3px solid #333', borderRadius: 12,
+                border: '1px solid #333', borderRadius: 12,
                 padding: '16px 36px', fontFamily: F.head,
                 fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
                 textDecoration: 'none',

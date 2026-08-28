@@ -50,11 +50,11 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
             marginBottom: 16,
           }}
         >
-          [ the crew&apos;s notes ]
+          Blog
         </p>
         <h1
           style={{
-            fontFamily: 'var(--font-bagel), cursive',
+            fontFamily: 'var(--font-display), system-ui, sans-serif',
             fontSize: 'clamp(48px, 8vw, 108px)',
             lineHeight: 0.92,
             color: 'var(--vq-cream)',
@@ -62,13 +62,13 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
             maxWidth: 900,
           }}
         >
-          from the desk of the crew.
+          Guides, playbooks, and field notes.
         </h1>
         <p
           style={{
-            fontFamily: 'var(--font-space), sans-serif',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 'clamp(15px, 1.8vw, 18px)',
-            color: '#777',
+            color: '#A9A192',
             maxWidth: 560,
             lineHeight: 1.65,
             margin: 0,
@@ -83,7 +83,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
       <section
         style={{
           background: 'var(--vq-bg)',
-          borderTop: '3px solid #111',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
           padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
         }}
       >
@@ -97,7 +97,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
             marginBottom: 28,
           }}
         >
-          [ featured read ]
+          Featured
         </p>
         <div style={{ maxWidth: 800 }}>
           <BlogCard post={featured} index={0} variant="featured" />
@@ -108,13 +108,13 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
       <section
         style={{
           background: 'var(--vq-cream)',
-          borderTop: '3px solid #111',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
           padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
         }}
       >
         <h2
           style={{
-            fontFamily: 'var(--font-bagel), cursive',
+            fontFamily: 'var(--font-display), system-ui, sans-serif',
             fontSize: 'clamp(28px, 4vw, 48px)',
             color: '#111',
             margin: '0 0 40px',
@@ -134,27 +134,27 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
       <section
         style={{
           background: '#111',
-          borderTop: '3px solid #111',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
           padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 80px)',
           textAlign: 'center',
         }}
       >
         <h2
           style={{
-            fontFamily: 'var(--font-bagel), cursive',
+            fontFamily: 'var(--font-display), system-ui, sans-serif',
             fontSize: 'clamp(36px, 5vw, 64px)',
             color: 'var(--vq-cream)',
             margin: '0 0 16px',
             lineHeight: 1,
           }}
         >
-          your crew is waiting.
+          Your crew is waiting.
         </h2>
         <p
           style={{
-            fontFamily: 'var(--font-space), sans-serif',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 17,
-            color: '#777',
+            color: '#A9A192',
             margin: '0 0 32px',
             lineHeight: 1.6,
           }}
@@ -172,18 +172,15 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
           <a
             href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
             style={{
-              background: 'var(--vq-yellow)',
-              color: '#111',
-              border: '3px solid var(--vq-yellow)',
-              borderRadius: 999,
-              padding: '14px 32px',
-              fontFamily: 'var(--font-mono), monospace',
-              fontSize: 13,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              fontWeight: 700,
+              background: 'var(--vq-ink-inv)',
+              color: 'var(--vq-ink)',
+              border: '1px solid var(--vq-ink-inv)',
+              borderRadius: 11,
+              padding: '14px 28px',
+              fontFamily: 'var(--font-body), system-ui, sans-serif',
+              fontSize: 15,
+              fontWeight: 550,
               textDecoration: 'none',
-              boxShadow: '4px 4px 0 #b89400',
             }}
           >
             Start free — 7 days on us →
@@ -191,15 +188,14 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
           <Link
             href="/pricing"
             style={{
-              background: 'transparent',
-              color: 'var(--vq-cream)',
-              border: '3px solid #444',
-              borderRadius: 999,
-              padding: '14px 32px',
-              fontFamily: 'var(--font-mono), monospace',
-              fontSize: 13,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
+              background: 'rgba(242,236,224,0.08)',
+              color: 'var(--vq-ink-inv)',
+              border: '1px solid var(--vq-line-inv-2)',
+              borderRadius: 11,
+              padding: '14px 28px',
+              fontFamily: 'var(--font-body), system-ui, sans-serif',
+              fontSize: 15,
+              fontWeight: 500,
               textDecoration: 'none',
             }}
           >

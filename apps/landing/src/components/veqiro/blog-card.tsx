@@ -32,9 +32,8 @@ interface BlogCardProps {
   variant?: 'default' | 'featured';
 }
 
-export function BlogCard({ post, index = 0, variant = 'default' }: BlogCardProps) {
+export function BlogCard({ post, variant = 'default' }: BlogCardProps) {
   const color = CATEGORY_COLORS[post.category];
-  const rotation = index % 2 === 0 ? '-0.5deg' : '0.5deg';
   const isFeatured = variant === 'featured';
 
   return (
@@ -43,24 +42,23 @@ export function BlogCard({ post, index = 0, variant = 'default' }: BlogCardProps
       style={{
         display: 'block',
         background: 'var(--vq-cream)',
-        border: '3px solid #111',
+        border: '1px solid rgba(20,18,14,0.10)',
         borderRadius: 16,
         padding: isFeatured ? '40px 36px' : '28px 24px',
-        boxShadow: `6px 6px 0 ${color.shadow}`,
-        transform: `rotate(${rotation})`,
+        boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
         transition: 'transform 140ms ease, box-shadow 140ms ease',
         textDecoration: 'none',
         color: 'inherit',
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
-        el.style.transform = `translateY(-4px) rotate(${rotation})`;
-        el.style.boxShadow = `8px 10px 0 ${color.shadow}`;
+        el.style.transform = 'translateY(-3px)';
+        el.style.boxShadow = '0 2px 6px rgba(20,18,14,0.06), 0 24px 48px -12px rgba(20,18,14,0.14)';
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget as HTMLElement;
-        el.style.transform = `rotate(${rotation})`;
-        el.style.boxShadow = `6px 6px 0 ${color.shadow}`;
+        el.style.transform = 'none';
+        el.style.boxShadow = '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)';
       }}
     >
       <span
@@ -77,9 +75,9 @@ export function BlogCard({ post, index = 0, variant = 'default' }: BlogCardProps
 
       <h3
         style={{
-          fontFamily: 'var(--font-archivo), sans-serif',
+          fontFamily: 'var(--font-display), system-ui, sans-serif',
           fontSize: isFeatured ? 'clamp(22px, 2.8vw, 32px)' : 'clamp(18px, 2.2vw, 22px)',
-          fontWeight: 900,
+          fontWeight: 600,
           lineHeight: 1.1,
           letterSpacing: '-0.02em',
           color: '#111',
@@ -91,7 +89,7 @@ export function BlogCard({ post, index = 0, variant = 'default' }: BlogCardProps
 
       <p
         style={{
-          fontFamily: 'var(--font-space), sans-serif',
+          fontFamily: 'var(--font-body), system-ui, sans-serif',
           fontSize: 14,
           lineHeight: 1.6,
           color: '#555',
@@ -118,7 +116,7 @@ export function BlogCard({ post, index = 0, variant = 'default' }: BlogCardProps
         }}
       >
         <span>
-          [ {post.readingTime} min ] · {formatDate(post.date)}
+          {post.readingTime} min · {formatDate(post.date)}
         </span>
         <span style={{ color: '#111', fontWeight: 700 }}>→</span>
       </div>

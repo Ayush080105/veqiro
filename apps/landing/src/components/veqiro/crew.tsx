@@ -1,128 +1,146 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
 import { EMPLOYEES, Employee } from './data';
-import { CHARACTER_COMPONENTS } from './characters';
-import { FONT } from './shared';
-import { crewReplies, crewFollows, consoleUrl } from '@/lib/site-config';
+import { FONT, T, SectionHead } from './shared';
+import { crewReplies, crewFollows } from '@/lib/site-config';
 
-function CrewCard({ emp, i, active, onClick }: { emp: Employee; i: number; active: boolean; onClick: () => void }) {
+function roleOf(emp: Employee): string {
+  return emp.role.replace(/\n/g, ' ');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Agent roster
+   ────────────────────────────────────────────────────────────── */
+
+function AgentCard({ emp, active, onSelect }: {
+  emp: Employee; active: boolean; onSelect: () => void;
+}) {
   const [hover, setHover] = useState(false);
-  const Comp = CHARACTER_COMPONENTS[emp.key];
-  const rot = [-2, 1.5, -1, 2, -2, 1][i % 6];
 
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={onClick}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       style={{
-        background: '#111', border: '3px solid #111', borderRadius: 8,
-        padding: 0, cursor: 'pointer',
-        transform: `rotate(${hover ? 0 : rot}deg) translateY(${hover ? -6 : 0}px)`,
-        transition: 'transform 220ms cubic-bezier(.2,.9,.3,1.2), box-shadow 220ms',
-        boxShadow: hover ? `10px 10px 0 ${emp.color}` : `6px 6px 0 #111`,
+        background: T.surface,
+        border: `1px solid ${active ? T.line2 : T.line}`,
+        borderRadius: 16,
         overflow: 'hidden',
-        outline: active ? `4px solid ${emp.color}` : 'none',
-        outlineOffset: active ? 4 : 0,
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: hover || active ? T.shadow : T.shadowSm,
+        transform: hover ? 'translateY(-3px)' : 'none',
+        transition: 'transform 200ms cubic-bezier(0.32,0.72,0,1), box-shadow 200ms ease, border-color 200ms ease',
+        outline: active ? `1.5px solid ${emp.color}` : 'none',
+        outlineOffset: -1,
+      }}
+    >
+      {/* Portrait */}
+      <div style={{
         position: 'relative',
+        aspectRatio: '4 / 3',
+        overflow: 'hidden',
+        background: `${emp.color}1A`,
+        borderBottom: `1px solid ${T.line}`,
       }}>
-      <Link
-        href={`/agents/${emp.key}`}
-        onClick={e => e.stopPropagation()}
-        aria-label={`Open ${emp.name}'s page in the app`}
-        style={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-          zIndex: 2,
-          width: 34,
-          height: 34,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#fff',
-          color: '#111',
-          border: '2px solid #111',
-          borderRadius: 8,
-          boxShadow: `3px 3px 0 ${emp.color}`,
-          textDecoration: 'none',
-        }}
-      >
-        <ExternalLink size={16} strokeWidth={2.5} />
-      </Link>
-      <div style={{ background: emp.color }}>
-        <Comp size="100%" />
+        <Image
+          src={`/${emp.name}.jpeg`}
+          alt={`${emp.name} — ${roleOf(emp)}`}
+          fill
+          sizes="(max-width: 700px) 100vw, 380px"
+          style={{
+            objectFit: 'cover',
+            objectPosition: 'center 22%',
+            transform: hover ? 'scale(1.03)' : 'scale(1)',
+            transition: 'transform 400ms cubic-bezier(0.32,0.72,0,1)',
+          }}
+        />
       </div>
-      <div style={{ padding: '16px 18px 20px', background: '#111', color: '#EFE7D6' }}>
-        <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.7 }}>
-          {emp.role}
+
+      {/* Meta */}
+      <div style={{ padding: '18px 20px 20px', display: 'grid', gap: 8, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span aria-hidden style={{
+            width: 7, height: 7, borderRadius: 2, background: emp.color, flexShrink: 0,
+          }} />
+          <span style={{
+            fontFamily: FONT.mono, fontSize: 10.5, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: T.ink3,
+          }}>
+            {roleOf(emp)}
+          </span>
         </div>
-        <div style={{ fontFamily: FONT.display, fontSize: 56, lineHeight: 1, color: emp.color, marginTop: 4 }}>
+
+        <div style={{
+          fontFamily: FONT.display, fontSize: 22, fontWeight: 600,
+          letterSpacing: '-0.03em', color: T.ink, lineHeight: 1.1,
+        }}>
           {emp.name}
         </div>
+
+        <p style={{
+          fontFamily: FONT.body, fontSize: 14.5, lineHeight: 1.6,
+          color: T.ink2, margin: 0, flex: 1,
+        }}>
+          {emp.tag}
+        </p>
+
         <Link
           href={`/agents/${emp.key}`}
           onClick={e => e.stopPropagation()}
           style={{
-            display: 'inline-block',
-            marginTop: 12,
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            textTransform: 'uppercase',
-            letterSpacing: 2,
-            color: emp.color,
-            textDecoration: 'none',
-            borderBottom: `1px solid ${emp.color}`,
-            paddingBottom: 1,
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontFamily: FONT.body, fontSize: 13.5, fontWeight: 500,
+            color: T.ink, textDecoration: 'none', marginTop: 4,
           }}
         >
-          {/* Meet {emp.name} → */}
+          What {emp.name} does
+          <ArrowRight size={14} strokeWidth={2} />
         </Link>
       </div>
     </div>
   );
 }
 
-export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => void; activeKey: string }) {
-  const cards = [...EMPLOYEES, ...EMPLOYEES];
-
+export function CrewSection({ onSelect, activeKey }: {
+  onSelect: (k: string) => void; activeKey: string;
+}) {
   return (
-    <section id="crew" style={{ background: '#111', padding: 'clamp(56px, 8vw, 80px) 0', color: '#EFE7D6' }}>
-      <style>{`
-        @keyframes crew-scroll {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        .crew-track { animation: crew-scroll 22s linear infinite; }
-        .crew-track:hover { animation-play-state: paused; }
-      `}</style>
+    <section id="agents" className="vq-section-pad" style={{ background: T.bg }}>
+      <div className="vq-shell">
+        <SectionHead
+          eyebrow="The team"
+          title="Six specialists, each with one job"
+          lede="Every agent owns a function end to end — its own tools, its own outputs, its own price. Take one, or take all six."
+        />
 
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 clamp(16px, 4vw, 32px)' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, marginBottom: 'clamp(32px, 5vw, 48px)' }}>
-          <div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 12 }}>
-              [ THE CREW ]
-            </div>
-            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(44px, 7vw, 104px)', margin: 0, lineHeight: 0.9, letterSpacing: -1, color: '#EFE7D6' }}>
-              your crew, <span style={{ color: '#F5C518' }}>no bundle.</span>
-            </h2>
-          </div>
-          <p style={{ maxWidth: 420, fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', lineHeight: 1.5, color: '#CFC6B2', margin: 0 }}>
-            Each one has a specialty, a personality, and opinions about your brand voice.
-            Click a card to put them to work.
-          </p>
-        </div>
-      </div>
-
-      {/* Carousel — full bleed, overflows the section padding */}
-      <div style={{ overflow: 'hidden' }}>
-        <div className="crew-track" style={{ display: 'flex', gap: 'clamp(14px, 2.5vw, 24px)', width: 'max-content' }}>
-          {cards.map((emp, i) => (
-            <div key={`${emp.key}-${i}`} className="vq-crew-card">
-              <CrewCard emp={emp} i={i % EMPLOYEES.length} active={activeKey === emp.key} onClick={() => onSelect(emp.key)} />
-            </div>
+        <div style={{
+          marginTop: 'clamp(36px, 5vw, 56px)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 'clamp(16px, 2vw, 24px)',
+        }}>
+          {EMPLOYEES.map(emp => (
+            <AgentCard
+              key={emp.key}
+              emp={emp}
+              active={activeKey === emp.key}
+              onSelect={() => onSelect(emp.key)}
+            />
           ))}
         </div>
       </div>
@@ -130,174 +148,213 @@ export function CrewSection({ onSelect, activeKey }: { onSelect: (k: string) => 
   );
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Working session — a real exchange with the selected agent
+   ────────────────────────────────────────────────────────────── */
+
 function getReply(k: string): string {
-  return crewReplies[k] ?? "Got it.";
+  return crewReplies[k] ?? 'Got it.';
 }
 
 function getFollow(k: string): string {
-  return crewFollows[k] ?? "On it.";
+  return crewFollows[k] ?? 'On it.';
 }
 
-export function DeskPanel({ active, onNavigate }: { active: string; onNavigate: (key: string) => void }) {
-  const emp = EMPLOYEES.find(e => e.key === active)!;
-  const idx = EMPLOYEES.findIndex(e => e.key === active);
-  const prevKey = EMPLOYEES[(idx - 1 + EMPLOYEES.length) % EMPLOYEES.length].key;
-  const nextKey = EMPLOYEES[(idx + 1) % EMPLOYEES.length].key;
+export function DeskPanel({ active, onNavigate }: {
+  active: string; onNavigate: (key: string) => void;
+}) {
+  const emp = EMPLOYEES.find(e => e.key === active) ?? EMPLOYEES[0];
   const [msgs, setMsgs] = useState<{ who: string; text: string }[]>([]);
   const [typing, setTyping] = useState(false);
-  const Comp = CHARACTER_COMPONENTS[emp.key];
-  const sectionRef = useRef<HTMLElement>(null);
   const firstRunRef = useRef(true);
 
   useEffect(() => {
-    // Replay chat animation when active employee changes.
+    // Replay the exchange whenever the selected agent changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMsgs([]);
     setTyping(true);
-    const t1 = setTimeout(() => { setTyping(false); setMsgs([{ who: emp.name, text: emp.quote }]); }, 900);
-    const t2 = setTimeout(() => { setMsgs(m => [...m, { who: 'you', text: getReply(emp.key) }]); }, 2400);
-    const t3 = setTimeout(() => { setTyping(true); }, 2800);
-    const t4 = setTimeout(() => { setTyping(false); setMsgs(m => [...m, { who: emp.name, text: getFollow(emp.key) }]); }, 3800);
+    const t1 = setTimeout(() => { setTyping(false); setMsgs([{ who: emp.name, text: emp.quote }]); }, 700);
+    const t2 = setTimeout(() => { setMsgs(m => [...m, { who: 'you', text: getReply(emp.key) }]); }, 2000);
+    const t3 = setTimeout(() => setTyping(true), 2400);
+    const t4 = setTimeout(() => { setTyping(false); setMsgs(m => [...m, { who: emp.name, text: getFollow(emp.key) }]); }, 3400);
 
-    // Smooth-scroll the panel into view on every change except the first mount,
-    // so visiting the landing page doesn't jump past the hero.
-    if (firstRunRef.current) {
-      firstRunRef.current = false;
-    } else if (sectionRef.current) {
-      const reduceMotion =
-        typeof window !== 'undefined' &&
-        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      sectionRef.current.scrollIntoView({
-        behavior: reduceMotion ? 'auto' : 'smooth',
-        block: 'start',
-      });
-    }
+    if (firstRunRef.current) firstRunRef.current = false;
 
     return () => [t1, t2, t3, t4].forEach(clearTimeout);
   }, [active, emp.name, emp.quote, emp.key]);
 
   return (
-    <section ref={sectionRef} style={{ background: '#EFE7D6', padding: 'clamp(56px, 8vw, 80px) clamp(16px, 4vw, 32px)', borderTop: '3px solid #111' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <section
+      className="vq-section-pad"
+      style={{ background: T.surface2, borderTop: `1px solid ${T.line}` }}
+    >
+      <div className="vq-shell">
         <div className="desk-grid">
-          {/* LEFT: portrait + meta */}
+          {/* Left: who you're working with */}
           <div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: '#111', opacity: 0.7, marginBottom: 12 }}>
-              {`>`} currently working with:
+            <div className="vq-eyebrow" style={{ marginBottom: 18 }}>
+              Working with
             </div>
-            <div style={{ position: 'relative', maxWidth: 'min(420px, 90vw)' }}>
-              <div style={{ background: emp.color, border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #111', overflow: 'hidden' }}>
-                <Comp size="100%" />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <span style={{
+                width: 72, height: 72, borderRadius: 16, overflow: 'hidden',
+                border: `1px solid ${T.line}`, flexShrink: 0, display: 'block',
+                boxShadow: T.shadowSm,
+              }}>
+                <Image
+                  src={`/${emp.name}.jpeg`}
+                  alt={`${emp.name} — ${roleOf(emp)}`}
+                  width={144}
+                  height={144}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              </span>
+              <div>
+                <div style={{
+                  fontFamily: FONT.display, fontSize: 'clamp(26px, 3.4vw, 36px)',
+                  fontWeight: 600, letterSpacing: '-0.035em', lineHeight: 1.05, color: T.ink,
+                }}>
+                  {emp.name}
+                </div>
+                <div style={{
+                  fontFamily: FONT.body, fontSize: 14.5, color: T.ink2, marginTop: 5,
+                }}>
+                  {roleOf(emp)}
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => onNavigate(prevKey)}
-                aria-label={`Switch to previous agent (${EMPLOYEES.find(e => e.key === prevKey)?.name})`}
-                style={{
-                  position: 'absolute', top: '50%', left: -22,
-                  transform: 'translateY(-50%)',
-                  width: 44, height: 44, borderRadius: '50%',
-                  background: '#fff', color: '#111',
-                  border: '3px solid #111', boxShadow: '3px 3px 0 #111',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0,
-                }}
-              >
-                <ChevronLeft size={22} strokeWidth={2.5} />
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate(nextKey)}
-                aria-label={`Switch to next agent (${EMPLOYEES.find(e => e.key === nextKey)?.name})`}
-                style={{
-                  position: 'absolute', top: '50%', right: -22,
-                  transform: 'translateY(-50%)',
-                  width: 44, height: 44, borderRadius: '50%',
-                  background: '#fff', color: '#111',
-                  border: '3px solid #111', boxShadow: '3px 3px 0 #111',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0,
-                }}
-              >
-                <ChevronRight size={22} strokeWidth={2.5} />
-              </button>
             </div>
-            <h3 style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 12vw, 96px)', lineHeight: 0.9, margin: '24px 0 0', color: '#111' }}>
-              {emp.name}
-            </h3>
-            <div style={{ fontFamily: FONT.head, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', marginTop: 8, color: emp.ink, display: 'inline-block', background: emp.color, padding: '6px 12px', border: '2px solid #111', borderRadius: 6 }}>
-              {emp.role}
-            </div>
-            <p style={{ fontFamily: FONT.body, fontSize: 'clamp(16px, 2.2vw, 20px)', fontStyle: 'italic', marginTop: 20, color: '#333' }}>
-              &ldquo;{emp.tag}&rdquo;
+
+            <p style={{
+              fontFamily: FONT.body, fontSize: 'clamp(15px, 1.6vw, 16.5px)',
+              lineHeight: 1.68, color: T.ink2, marginTop: 22, maxWidth: '46ch',
+            }}>
+              {emp.description}
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 22 }}>
               {emp.skills.map(s => (
-                <span key={s} style={{ fontFamily: FONT.mono, fontSize: 12, padding: '6px 12px', background: '#fff', border: '2px solid #111', borderRadius: 999 }}>
+                <span key={s} style={{
+                  fontFamily: FONT.body, fontSize: 13, color: T.ink2,
+                  padding: '5px 11px', background: T.surface,
+                  border: `1px solid ${T.line}`, borderRadius: 999,
+                }}>
                   {s}
                 </span>
               ))}
             </div>
+
+            {/* Agent switcher */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 26 }}>
+              {EMPLOYEES.map(e => (
+                <button
+                  key={e.key}
+                  type="button"
+                  onClick={() => onNavigate(e.key)}
+                  aria-pressed={e.key === active}
+                  style={{
+                    fontFamily: FONT.body, fontSize: 13, fontWeight: 500,
+                    padding: '7px 13px', borderRadius: 999, cursor: 'pointer',
+                    background: e.key === active ? T.ink : 'transparent',
+                    color: e.key === active ? T.inkInv : T.ink2,
+                    border: `1px solid ${e.key === active ? T.ink : T.line2}`,
+                    transition: 'background 140ms ease, color 140ms ease',
+                  }}
+                >
+                  {e.name}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* RIGHT: chat mock */}
-          <div style={{ background: '#fff', border: '3px solid #111', borderRadius: 16, boxShadow: '10px 10px 0 #111', overflow: 'hidden', transform: 'rotate(-0.6deg)', marginTop: 'clamp(24px, 5vw, 60px)' }}>
-            <div style={{ background: emp.color, padding: '14px 18px', borderBottom: '3px solid #111', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid #111', background: '#fff', flexShrink: 0 }}>
-                <Comp size={40} />
-              </div>
-              <div>
-                <div style={{ fontFamily: FONT.head, fontSize: 15 }}>{emp.name} · {emp.role}</div>
-                <div style={{ fontFamily: FONT.mono, fontSize: 11, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1DBC87', boxShadow: '0 0 0 2px #fff', display: 'inline-block' }} />
-                  online · typing...
-                </div>
-              </div>
+          {/* Right: the exchange */}
+          <div style={{
+            background: T.surface,
+            border: `1px solid ${T.line}`,
+            borderRadius: 18,
+            boxShadow: T.shadow,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: `1px solid ${T.line}`,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span aria-hidden style={{
+                width: 7, height: 7, borderRadius: '50%', background: T.green,
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontFamily: FONT.mono, fontSize: 11, letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: T.ink3,
+              }}>
+                {emp.name} · active
+              </span>
             </div>
-            <div style={{ padding: 'clamp(16px, 3vw, 24px) clamp(14px, 3vw, 20px)', minHeight: 320, display: 'flex', flexDirection: 'column', gap: 14, background: '#FFF9ED' }}>
-              {msgs.map((m, i) => (
-                <div key={i} style={{
-                  alignSelf: m.who === 'you' ? 'flex-end' : 'flex-start', maxWidth: '78%',
-                  background: m.who === 'you' ? '#111' : emp.color,
-                  color: m.who === 'you' ? '#EFE7D6' : '#111',
-                  padding: '12px 16px', border: '2.5px solid #111',
-                  borderRadius: m.who === 'you' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  fontFamily: FONT.body, fontSize: 16, lineHeight: 1.4,
-                  boxShadow: '3px 3px 0 #111', animation: 'pop 260ms cubic-bezier(.2,.9,.3,1.4)',
-                }}>
-                  {m.who !== 'you' && (
-                    <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginBottom: 4 }}>
-                      {m.who}
-                    </div>
-                  )}
-                  {m.text}
-                </div>
-              ))}
+
+            <div style={{
+              padding: 'clamp(18px, 3vw, 24px)',
+              minHeight: 300,
+              display: 'flex', flexDirection: 'column', gap: 12,
+              flex: 1,
+            }}>
+              {msgs.map((m, i) => {
+                const mine = m.who === 'you';
+                return (
+                  <div key={i} style={{
+                    alignSelf: mine ? 'flex-end' : 'flex-start',
+                    maxWidth: '84%',
+                    background: mine ? T.ink : T.surface2,
+                    color: mine ? T.inkInv : T.ink,
+                    border: mine ? 'none' : `1px solid ${T.line}`,
+                    padding: '12px 15px',
+                    borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                    fontFamily: FONT.body, fontSize: 14.5, lineHeight: 1.6,
+                    animation: 'pop 240ms cubic-bezier(0.32,0.72,0,1)',
+                  }}>
+                    {m.text}
+                  </div>
+                );
+              })}
               {typing && (
-                <div style={{ alignSelf: 'flex-start', background: emp.color, padding: '12px 16px', border: '2.5px solid #111', borderRadius: '16px 16px 16px 4px', boxShadow: '3px 3px 0 #111', display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{
+                  alignSelf: 'flex-start', background: T.surface2,
+                  border: `1px solid ${T.line}`, padding: '13px 15px',
+                  borderRadius: '14px 14px 14px 4px',
+                  display: 'flex', gap: 4, alignItems: 'center',
+                }}>
                   {[0, 1, 2].map(i => (
-                    <span key={i} style={{ width: 8, height: 8, background: '#111', borderRadius: '50%', display: 'inline-block', animation: `bounce 1.2s ${i * 0.15}s infinite ease-in-out` }} />
+                    <span key={i} style={{
+                      width: 5, height: 5, background: T.ink3, borderRadius: '50%',
+                      display: 'inline-block',
+                      animation: `bounce 1.2s ${i * 0.15}s infinite ease-in-out`,
+                    }} />
                   ))}
                 </div>
               )}
             </div>
-            <div style={{ padding: '12px 16px', borderTop: '3px solid #111', background: '#EFE7D6', display: 'flex', gap: 10 }}>
-              <input readOnly placeholder={`Message ${emp.name}...`} style={{ flex: 1, border: '2px solid #111', borderRadius: 999, padding: '10px 16px', fontFamily: FONT.body, fontSize: 14, background: '#fff' }} />
-              <button style={{ background: '#111', color: '#EFE7D6', border: 'none', borderRadius: 999, padding: '10px 18px', fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, cursor: 'pointer' }}>
-                Send →
-              </button>
+
+            <div style={{
+              padding: '12px 16px',
+              borderTop: `1px solid ${T.line}`,
+              display: 'flex', gap: 10, alignItems: 'center',
+            }}>
+              <span style={{
+                flex: 1, fontFamily: FONT.body, fontSize: 14, color: T.ink3,
+              }}>
+                Message {emp.name}…
+              </span>
+              <span aria-hidden style={{
+                width: 28, height: 28, borderRadius: '50%', background: T.ink,
+                color: T.inkInv, display: 'inline-flex', alignItems: 'center',
+                justifyContent: 'center', flexShrink: 0, fontSize: 14,
+              }}>
+                ↑
+              </span>
             </div>
           </div>
-        </div>
-
-        {/* stats strip */}
-        <div className="stats-grid" style={{ marginTop: 'clamp(32px, 6vw, 64px)' }}>
-          {emp.stats.map(s => (
-            <div key={s.k} style={{ border: '3px solid #111', borderRadius: 12, padding: 'clamp(18px, 3vw, 24px) clamp(16px, 3vw, 20px)', background: '#fff', boxShadow: `6px 6px 0 ${emp.color}` }}>
-              <div style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 6vw, 56px)', lineHeight: 1, color: emp.ink }}>{s.v}</div>
-              <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', marginTop: 6 }}>{s.k}</div>
-            </div>
-          ))}
         </div>
       </div>
     </section>

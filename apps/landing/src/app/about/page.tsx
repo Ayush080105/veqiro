@@ -84,8 +84,8 @@ export default function AboutPage() {
 
       {/* ── HERO ── */}
       <section className="vq-section-pad" style={{
-        borderTop: '3px solid #111',
-        borderBottom: '3px solid #111',
+        borderTop: '1px solid rgba(20,18,14,0.10)',
+        borderBottom: '1px solid rgba(20,18,14,0.10)',
         background: '#111',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
@@ -97,23 +97,23 @@ export default function AboutPage() {
             color: '#F5C518',
             marginBottom: 16,
           }}>
-            [ ABOUT VEQIRO ]
+            About veqiro
           </div>
           <h1 style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(56px, 8vw, 120px)',
             margin: 0,
             lineHeight: 0.9,
             color: '#EFE7D6',
           }}>
-            made by humans.<br />
+            Made by humans.<br />
             <span style={{ color: '#F5C518' }}>(mostly.)</span>
           </h1>
         </div>
       </section>
 
       {/* ── MISSION ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono,
@@ -123,10 +123,10 @@ export default function AboutPage() {
             color: '#666',
             marginBottom: 24,
           }}>
-            [ THE WHY ]
+            The why
           </div>
           <p style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(28px, 3.5vw, 48px)',
             lineHeight: 1.2,
             margin: '0 0 36px',
@@ -143,7 +143,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── WHAT IS VEQIRO ── */}
-      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)', maxWidth: 820 }}>
             <div style={{
@@ -154,26 +154,18 @@ export default function AboutPage() {
               color: '#666',
               marginBottom: 16,
             }}>
-              [ WHAT VEQIRO IS ]
+              What veqiro is
             </div>
             <h2 style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(32px, 5vw, 64px)',
               margin: '0 0 24px',
               lineHeight: 0.95,
-              letterSpacing: -1,
+
             }}>
               an AI workforce,<br />
-              <span style={{
-                background: '#F5C518',
-                padding: '0 16px',
-                display: 'inline-block',
-                border: '3px solid #111',
-                borderRadius: 8,
-                boxShadow: '4px 4px 0 #111',
-                transform: 'rotate(-1deg)',
-              }}>
-                not another tool.
+              <span>
+                Not another tool.
               </span>
             </h2>
             <p style={{
@@ -211,15 +203,15 @@ export default function AboutPage() {
               <div
                 key={f.label}
                 style={{
-                  border: '3px solid #111',
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 12,
                   background: '#EFE7D6',
                   padding: '18px 20px',
-                  boxShadow: `4px 4px 0 ${f.accent}`,
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                 }}
               >
                 <div style={{
-                  fontFamily: FONT.display,
+                  fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
                   fontSize: 'clamp(22px, 3.2vw, 32px)',
                   color: '#111',
                   lineHeight: 1,
@@ -243,7 +235,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── VALUES ── */}
-      <section className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono,
@@ -253,27 +245,26 @@ export default function AboutPage() {
             color: '#666',
             marginBottom: 56,
           }}>
-            [ HOW WE THINK ]
+            How we think
           </div>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: 24,
           }}>
-            {VALUES.map((v, i) => (
+            {VALUES.map((v) => (
               <div key={v.title} style={{
-                border: '3px solid #111',
+                border: '1px solid rgba(20,18,14,0.10)',
                 borderRadius: 14,
                 padding: '28px 24px',
                 background: '#EFE7D6',
-                boxShadow: '6px 6px 0 #111',
-                transform: `rotate(${i % 2 === 0 ? -0.5 : 0.5}deg)`,
+                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
               }}>
                 <div style={{
                   width: 32,
                   height: 5,
                   background: v.color,
-                  border: '2px solid #111',
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 4,
                   marginBottom: 18,
                 }} />
@@ -286,16 +277,16 @@ export default function AboutPage() {
       </section>
 
       {/* ── MEET THE CREW ── */}
-      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#666', marginBottom: 16,
             }}>
-              [ THE CREW ]
+              The crew
             </div>
-            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
               meet your new<br />team members.
             </h2>
           </div>
@@ -305,10 +296,10 @@ export default function AboutPage() {
       </section>
 
       {/* ── ORIGIN ── */}
-      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center' }}>
           <p style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(24px, 3vw, 42px)',
             color: '#EFE7D6',
             lineHeight: 1.3,
@@ -330,7 +321,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(28px, 4vw, 40px)' }}>
             <div style={{
@@ -341,15 +332,15 @@ export default function AboutPage() {
               color: '#666',
               marginBottom: 16,
             }}>
-              [ COMMON QUESTIONS ]
+              Common questions
             </div>
             <h2 style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(32px, 4.5vw, 56px)',
               margin: 0,
               lineHeight: 0.95,
             }}>
-              about Veqiro.
+              About Veqiro.
             </h2>
           </div>
 
@@ -358,10 +349,10 @@ export default function AboutPage() {
               <details
                 key={item.q}
                 style={{
-                  border: '3px solid #111',
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 12,
                   background: '#EFE7D6',
-                  boxShadow: '4px 4px 0 #111',
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                   overflow: 'hidden',
                 }}
               >
@@ -381,7 +372,7 @@ export default function AboutPage() {
                   <span
                     aria-hidden
                     style={{
-                      fontFamily: FONT.display,
+                      fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
                       fontSize: 22,
                       color: '#111',
                       flexShrink: 0,
@@ -407,16 +398,16 @@ export default function AboutPage() {
       </section>
 
       {/* ── CONTACT ── */}
-      <section id="contact" className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '3px solid #111' }}>
+      <section id="contact" className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
           <div style={{ marginBottom: 40 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#666', marginBottom: 16,
             }}>
-              [ GET IN TOUCH ]
+              Get in touch
             </div>
-            <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(36px, 5vw, 64px)', margin: '0 0 16px', lineHeight: 0.95 }}>
+            <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 5vw, 64px)', margin: '0 0 16px', lineHeight: 0.95 }}>
               let&apos;s talk.
             </h2>
             <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#555', margin: 0, lineHeight: 1.65 }}>
@@ -427,9 +418,9 @@ export default function AboutPage() {
             </div>
           </div>
           <div style={{
-            background: '#FFF9ED', border: '3px solid #111',
+            background: '#FBF7EF', border: '1px solid rgba(20,18,14,0.10)',
             borderRadius: 16, padding: 'clamp(24px, 4vw, 40px)',
-            boxShadow: '6px 6px 0 #111',
+            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
           }}>
             <ContactPageForm />
           </div>
@@ -447,24 +438,17 @@ export default function AboutPage() {
             color: '#666',
             marginBottom: 20,
           }}>
-            [ MEET THE CREW ]
+            Meet the crew
           </div>
           <h2 style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(48px, 7vw, 96px)',
             margin: '0 0 36px',
             lineHeight: 0.9,
           }}>
-            six hires.<br />
-            <span style={{
-              background: '#F5C518',
-              padding: '0 18px',
-              display: 'inline-block',
-              border: '3px solid #111',
-              borderRadius: 8,
-              boxShadow: '5px 5px 0 #111',
-            }}>
-              one bill.
+            Six hires.<br />
+            <span>
+              One bill.
             </span>
           </h2>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>

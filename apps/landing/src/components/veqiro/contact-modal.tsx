@@ -37,10 +37,10 @@ export function ContactModal({ open, onClose }: Props) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#FFF9ED', border: '3px solid #111',
+          background: '#FBF7EF', border: '1px solid rgba(20,18,14,0.10)',
           borderRadius: 16, padding: 'clamp(28px, 5vw, 44px)',
           maxWidth: 520, width: '100%', position: 'relative',
-          boxShadow: '8px 8px 0 #111',
+          boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
         }}
       >
         <button
@@ -58,7 +58,7 @@ export function ContactModal({ open, onClose }: Props) {
 
         {success ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{ fontFamily: FONT.display, fontSize: 40, lineHeight: 1, marginBottom: 16 }}>
+            <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 40, lineHeight: 1, marginBottom: 16 }}>
               message sent.
             </div>
             <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#555', margin: 0 }}>
@@ -72,9 +72,9 @@ export function ContactModal({ open, onClose }: Props) {
                 fontFamily: FONT.mono, fontSize: 11, letterSpacing: 3,
                 textTransform: 'uppercase', color: '#888', marginBottom: 10,
               }}>
-                [ GET IN TOUCH ]
+                Get in touch
               </div>
-              <div style={{ fontFamily: FONT.display, fontSize: 'clamp(32px, 6vw, 48px)', lineHeight: 0.95 }}>
+              <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(32px, 6vw, 48px)', lineHeight: 0.95 }}>
                 let&apos;s talk.
               </div>
             </div>

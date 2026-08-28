@@ -33,13 +33,13 @@ function CountdownBox({ value, label }: { value: number; label: string }) {
         color: '#F5C518',
         lineHeight: 1,
         background: '#111',
-        border: '3px solid #111',
+        border: '1px solid rgba(20,18,14,0.10)',
         borderRadius: 10,
         padding: '14px 18px',
-        boxShadow: '4px 4px 0 #F5C518',
+        boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
         minWidth: 68,
         display: 'inline-block',
-        letterSpacing: -1,
+
       }}>
         {String(value).padStart(2, '0')}
       </div>
@@ -128,17 +128,17 @@ export default function WaitlistPageContent({ count, max }: Props) {
 
           {/* Headline */}
           <h1 style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(48px, 10vw, 96px)',
             lineHeight: 0.9,
             margin: '0 0 20px',
-            letterSpacing: -2,
+
             color: '#111',
           }}>
             {cd?.launched ? (
-              <>your crew<br />is ready.</>
+              <>Your crew<br />is ready.</>
             ) : (
-              <>almost open<br />for business.</>
+              <>Almost open<br />for business.</>
             )}
           </h1>
 
@@ -173,7 +173,12 @@ export default function WaitlistPageContent({ count, max }: Props) {
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', margin: '-32px 0 44px' }}>
             {['✓ Start free', '7-day trial', 'No payment method needed'].map((label) => (
-              <span key={label} style={{ background: '#F5C518', color: '#111', fontFamily: FONT.head, fontWeight: 700, fontSize: 11, padding: '3px 10px', borderRadius: 99, letterSpacing: 0.5 }}>{label}</span>
+              <span key={label} style={{
+                background: '#FBF7EF', color: '#56514A',
+                border: '1px solid rgba(20,18,14,0.10)',
+                fontFamily: FONT.body, fontWeight: 500, fontSize: 12.5,
+                padding: '5px 12px', borderRadius: 99,
+              }}>{label}</span>
             ))}
           </div>
 
@@ -183,17 +188,16 @@ export default function WaitlistPageContent({ count, max }: Props) {
               href={`${consoleUrl}/signup`}
               style={{
                 display: 'inline-block',
-                background: '#111',
-                color: '#F5C518',
-                padding: '18px 40px',
-                border: '3px solid #111',
-                borderRadius: 12,
-                fontFamily: FONT.head,
+                background: '#14120E',
+                color: '#F2ECE0',
+                padding: '15px 30px',
+                border: '1px solid #14120E',
+                borderRadius: 11,
+                fontFamily: FONT.body,
                 fontSize: 15,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
+                fontWeight: 550,
                 textDecoration: 'none',
-                boxShadow: '6px 6px 0 #F5C518',
+                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
               }}
             >
               Hire the crew →
@@ -228,13 +232,13 @@ export default function WaitlistPageContent({ count, max }: Props) {
               {/* Email form */}
               {status === 'success' ? (
                 <div style={{
-                  border: '3px solid #1DBC87',
+                  border: '1px solid #1DBC87',
                   borderRadius: 14,
                   padding: '28px 32px',
-                  background: '#FFF9ED',
-                  boxShadow: '5px 5px 0 #1DBC87',
+                  background: '#FBF7EF',
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                 }}>
-                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(28px, 5vw, 40px)', marginBottom: 8 }}>
+                  <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(28px, 5vw, 40px)', marginBottom: 8 }}>
                     you&apos;re in.
                   </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
@@ -244,13 +248,13 @@ export default function WaitlistPageContent({ count, max }: Props) {
                 </div>
               ) : status === 'already' ? (
                 <div style={{
-                  border: '3px solid #F5C518',
+                  border: '1px solid #F5C518',
                   borderRadius: 14,
                   padding: '28px 32px',
-                  background: '#FFF9ED',
-                  boxShadow: '5px 5px 0 #F5C518',
+                  background: '#FBF7EF',
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                 }}>
-                  <div style={{ fontFamily: FONT.display, fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8 }}>
+                  <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8 }}>
                     already in line.
                   </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
@@ -260,15 +264,15 @@ export default function WaitlistPageContent({ count, max }: Props) {
               ) : status === 'full' || count >= max ? (
                 <div style={{ maxWidth: 520, margin: '0 auto' }}>
                   <div style={{
-                    border: '3px solid #F06464',
+                    border: '1px solid #F06464',
                     borderRadius: 14,
                     padding: '28px 32px',
-                    background: '#FFF9ED',
-                    boxShadow: '5px 5px 0 #F06464',
+                    background: '#FBF7EF',
+                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                     textAlign: 'center',
                     marginBottom: 24,
                   }}>
-                    <div style={{ fontFamily: FONT.display, fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8, color: '#111' }}>
+                    <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8, color: '#111' }}>
                       founding spots filled.
                     </div>
                     <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: '0 0 16px', lineHeight: 1.5 }}>
@@ -310,7 +314,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                       height: 8,
                       background: '#D9D0BF',
                       borderRadius: 999,
-                      border: '2px solid #111',
+                      border: '1px solid rgba(20,18,14,0.10)',
                       overflow: 'hidden',
                     }}>
                       <div style={{
@@ -344,7 +348,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                       type="submit"
                       variant="dark"
                       disabled={status === 'loading' || !email.trim()}
-                      style={{ boxShadow: '4px 4px 0 #F5C518', whiteSpace: 'nowrap' }}
+                      style={{ boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)', whiteSpace: 'nowrap' }}
                     >
                       {status === 'loading' ? 'Saving…' : 'Save my spot →'}
                     </Button>
@@ -376,7 +380,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                       height: 8,
                       background: '#D9D0BF',
                       borderRadius: 999,
-                      border: '2px solid #111',
+                      border: '1px solid rgba(20,18,14,0.10)',
                       overflow: 'hidden',
                     }}>
                       <div style={{

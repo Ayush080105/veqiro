@@ -19,7 +19,7 @@ function Section({ n, title, children }: { n: string; title: string; children: R
         margin: '0 0 16px',
         textTransform: 'uppercase',
         letterSpacing: 1,
-        borderBottom: '3px solid #111',
+        borderBottom: '1px solid rgba(20,18,14,0.10)',
         paddingBottom: 8,
         display: 'flex',
         alignItems: 'baseline',
@@ -59,15 +59,15 @@ export default function TermsPage() {
       {/* Header */}
       <section style={{
         padding: 'clamp(40px, 7vw, 64px) clamp(16px, 4vw, 32px) clamp(32px, 5vw, 48px)',
-        borderTop: '3px solid #111',
-        borderBottom: '3px solid #111',
+        borderTop: '1px solid rgba(20,18,14,0.10)',
+        borderBottom: '1px solid rgba(20,18,14,0.10)',
         background: '#111',
       }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
           <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 16 }}>
-            [ LEGAL ]
+            Legal
           </div>
-          <h1 style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 6vw, 80px)', margin: 0, color: '#EFE7D6', lineHeight: 0.9 }}>
+          <h1 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(40px, 6vw, 80px)', margin: 0, color: '#EFE7D6', lineHeight: 0.9 }}>
             Terms of Service
           </h1>
           <p style={{ fontFamily: FONT.mono, fontSize: 13, color: '#666', marginTop: 20, marginBottom: 0 }}>
@@ -85,8 +85,8 @@ export default function TermsPage() {
 
           {/* TL;DR */}
           <div style={{
-            background: '#FFF9ED', border: '3px solid #111', borderRadius: 14,
-            padding: '24px 28px', boxShadow: '5px 5px 0 #F5C518', marginBottom: 56,
+            background: '#FBF7EF', border: '1px solid rgba(20,18,14,0.10)', borderRadius: 14,
+            padding: '24px 28px', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)', marginBottom: 56,
           }}>
             <div style={{ fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase', letterSpacing: 2, color: '#666', marginBottom: 12 }}>
               Short version

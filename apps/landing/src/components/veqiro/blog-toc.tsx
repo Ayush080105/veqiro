@@ -33,10 +33,10 @@ export function BlogToc({ items }: BlogTocProps) {
       aria-label="Table of contents"
       style={{
         background: 'var(--vq-cream)',
-        border: '2px solid #111',
+        border: '1px solid rgba(20,18,14,0.10)',
         borderRadius: 12,
         padding: 20,
-        boxShadow: '4px 4px 0 #111',
+        boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
       }}
     >
       <p
@@ -49,7 +49,7 @@ export function BlogToc({ items }: BlogTocProps) {
           margin: '0 0 12px',
         }}
       >
-        [ in this post ]
+        In this post
       </p>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 4 }}>
         {items.map((item) => (
@@ -58,12 +58,12 @@ export function BlogToc({ items }: BlogTocProps) {
               href={`#${item.id}`}
               style={{
                 display: 'block',
-                fontFamily: 'var(--font-space), sans-serif',
+                fontFamily: 'var(--font-body), system-ui, sans-serif',
                 fontSize: 13,
                 lineHeight: 1.4,
                 color: activeId === item.id ? '#111' : '#666',
                 fontWeight: activeId === item.id ? 600 : 400,
-                borderLeft: `2px solid ${activeId === item.id ? 'var(--vq-red)' : 'transparent'}`,
+                borderLeft: `1px solid ${activeId === item.id ? 'var(--vq-red)' : 'transparent'}`,
                 paddingLeft: 8,
                 paddingTop: 4,
                 paddingBottom: 4,

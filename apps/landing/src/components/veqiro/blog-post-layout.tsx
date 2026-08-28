@@ -72,7 +72,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
 
         <h1
           style={{
-            fontFamily: 'var(--font-bagel), cursive',
+            fontFamily: 'var(--font-display), system-ui, sans-serif',
             fontSize: 'clamp(34px, 5.5vw, 68px)',
             lineHeight: 0.96,
             color: 'var(--vq-cream)',
@@ -94,12 +94,12 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
             margin: '0 0 16px',
           }}
         >
-          [ {post.readingTime} min read ] · {formatDate(post.date)} · Veqiro
+          {post.readingTime} min read · {formatDate(post.date)} · Veqiro
         </p>
 
         <p
           style={{
-            fontFamily: 'var(--font-space), sans-serif',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 'clamp(15px, 1.8vw, 18px)',
             color: '#888',
             maxWidth: 640,
@@ -115,7 +115,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
       <section
         style={{
           background: 'var(--vq-bg)',
-          borderTop: '3px solid #111',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
           padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
         }}
       >
@@ -139,14 +139,14 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
         <section
           style={{
             background: 'var(--vq-cream)',
-            borderTop: '3px solid #111',
+            borderTop: '1px solid rgba(20,18,14,0.10)',
             padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
           }}
         >
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
             <h2
               style={{
-                fontFamily: 'var(--font-bagel), cursive',
+                fontFamily: 'var(--font-display), system-ui, sans-serif',
                 fontSize: 'clamp(30px, 4vw, 50px)',
                 color: '#111',
                 margin: '0 0 40px',
@@ -161,17 +161,17 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
                   key={i}
                   style={{
                     background: 'var(--vq-bg)',
-                    border: '3px solid #111',
+                    border: '1px solid rgba(20,18,14,0.10)',
                     borderRadius: 12,
                     padding: '24px 28px',
-                    boxShadow: '4px 4px 0 #111',
+                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                   }}
                 >
                   <h3
                     style={{
-                      fontFamily: 'var(--font-archivo), sans-serif',
+                      fontFamily: 'var(--font-display), system-ui, sans-serif',
                       fontSize: 'clamp(16px, 1.8vw, 18px)',
-                      fontWeight: 900,
+                      fontWeight: 600,
                       color: '#111',
                       margin: '0 0 10px',
                     }}
@@ -180,7 +180,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
                   </h3>
                   <p
                     style={{
-                      fontFamily: 'var(--font-space), sans-serif',
+                      fontFamily: 'var(--font-body), system-ui, sans-serif',
                       fontSize: 15,
                       lineHeight: 1.7,
                       color: '#444',
@@ -200,27 +200,27 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
       <section
         style={{
           background: '#111',
-          borderTop: '3px solid #111',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
           padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 80px)',
           textAlign: 'center',
         }}
       >
         <h2
           style={{
-            fontFamily: 'var(--font-bagel), cursive',
+            fontFamily: 'var(--font-display), system-ui, sans-serif',
             fontSize: 'clamp(36px, 5vw, 64px)',
             color: 'var(--vq-cream)',
             margin: '0 0 16px',
             lineHeight: 1,
           }}
         >
-          your crew is waiting.
+          Your crew is waiting.
         </h2>
         <p
           style={{
-            fontFamily: 'var(--font-space), sans-serif',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 17,
-            color: '#777',
+            color: '#A9A192',
             margin: '0 0 32px',
           }}
         >
@@ -230,18 +230,15 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
           href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
           style={{
             display: 'inline-block',
-            background: 'var(--vq-yellow)',
-            color: '#111',
-            border: '3px solid var(--vq-yellow)',
-            borderRadius: 999,
-            padding: '14px 36px',
-            fontFamily: 'var(--font-mono), monospace',
-            fontSize: 13,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            fontWeight: 700,
+            background: 'var(--vq-ink-inv)',
+            color: 'var(--vq-ink)',
+            border: '1px solid var(--vq-ink-inv)',
+            borderRadius: 11,
+            padding: '14px 28px',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
+            fontSize: 15,
+            fontWeight: 550,
             textDecoration: 'none',
-            boxShadow: '4px 4px 0 #b89400',
           }}
         >
           Start free — 7 days on us →
@@ -253,20 +250,21 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
         <section
           style={{
             background: 'var(--vq-bg)',
-            borderTop: '3px solid #111',
+            borderTop: '1px solid rgba(20,18,14,0.10)',
             padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
           }}
         >
           <h2
             style={{
-              fontFamily: 'var(--font-archivo), sans-serif',
+              fontFamily: 'var(--font-display), system-ui, sans-serif',
               fontSize: 'clamp(22px, 2.6vw, 30px)',
-              fontWeight: 900,
-              color: '#111',
+              fontWeight: 600,
+              letterSpacing: '-0.03em',
+              color: '#14120E',
               margin: '0 0 32px',
             }}
           >
-            more from the crew
+            More from the crew
           </h2>
           <div className="blog-card-grid">
             {related.map((p, i) => (

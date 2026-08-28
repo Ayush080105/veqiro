@@ -15,17 +15,18 @@ export function AboutCrewGrid() {
             <div
               className="crew-card"
               onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.boxShadow = `6px 10px 0 ${emp.color}`;
+                (e.currentTarget as HTMLDivElement).style.boxShadow =
+                  '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)';
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.boxShadow = '5px 5px 0 #111';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 2px rgba(20,18,14,0.05)';
               }}
             >
               <div style={{ aspectRatio: '1/1', overflow: 'hidden', background: emp.color }}>
                 <Comp size="100%" />
               </div>
               <div style={{ padding: '14px 16px' }}>
-                <div style={{ fontFamily: FONT.display, fontSize: 26, color: '#111', lineHeight: 1 }}>
+                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 26, color: '#111', lineHeight: 1 }}>
                   {emp.name}
                 </div>
                 <div style={{

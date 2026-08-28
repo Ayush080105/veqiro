@@ -69,8 +69,8 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       {/* ── HERO ── */}
       <section style={{
         background: '#111',
-        borderTop: '3px solid #111',
-        borderBottom: '3px solid #111',
+        borderTop: '1px solid rgba(20,18,14,0.10)',
+        borderBottom: '1px solid rgba(20,18,14,0.10)',
         padding: 'clamp(40px, 7vw, 80px) clamp(20px, 4vw, 40px)',
       }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -80,15 +80,15 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
             fontFamily: FONT.mono, fontSize: 12, letterSpacing: 3,
             textTransform: 'uppercase', color: '#555', marginBottom: 20, marginTop: 20,
           }}>
-            [ USE CASE ]
+            Use case
           </div>
 
           <h1 style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(44px, 8vw, 104px)',
             margin: '0 0 22px',
             lineHeight: 0.9,
-            letterSpacing: -2,
+
             color: '#EFE7D6',
           }}>
             {content.hero.h1}
@@ -109,7 +109,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 52 }}>
             {content.hero.stats.map((stat, i) => (
               <div key={i} style={{
-                border: `2px solid ${content.accentColor}`,
+                border: `1px solid ${content.accentColor}`,
                 borderRadius: 999,
                 padding: '8px 20px',
                 fontFamily: FONT.mono,
@@ -125,60 +125,54 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           </div>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>
-            <Button variant="ghost" href="/pricing">View pricing</Button>
+            {/* This hero sits on #111 — `dark`/`ghost` would be invisible here. */}
+            <Button variant="light" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>
+            <Button variant="ghost-light" href="/pricing">View pricing</Button>
           </div>
         </div>
       </section>
 
       {/* ── PAIN-POINT MARQUEE ── */}
       <div style={{
-        background: content.accentColor,
-        borderBottom: '3px solid #111',
-        padding: '16px 0',
+        background: '#FBF7EF',
+        borderTop: '1px solid rgba(20,18,14,0.10)',
+        borderBottom: '1px solid rgba(20,18,14,0.10)',
+        padding: '14px 0',
         overflow: 'hidden',
       }}>
         <div
           className="vq-marquee-row"
           style={{
             animation: 'marquee 28s linear infinite',
-            color: content.accentInk,
+            color: '#56514A',
           }}
         >
           <span>
             {[...content.painPoints, ...content.painPoints, ...content.painPoints, ...content.painPoints].map((p, i) => (
-              <span key={i} style={{ marginRight: 'clamp(24px, 5vw, 48px)' }}>★ {p}</span>
+              <span key={i} style={{ marginRight: 'clamp(24px, 5vw, 48px)' }}>{p}</span>
             ))}
           </span>
         </div>
       </div>
 
       {/* ── WHY NOW ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
             textTransform: 'uppercase', color: '#666', marginBottom: 16,
           }}>
-            [ WHY THIS MATTERS ]
+            Why this matters
           </div>
           <h2 style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(32px, 4.5vw, 56px)',
             margin: '0 0 24px',
             lineHeight: 1.05,
-            letterSpacing: -1,
+
           }}>
-            the real job Veqiro does for{' '}
-            <span style={{
-              background: content.accentColor,
-              color: content.accentInk,
-              padding: '0 14px',
-              display: 'inline-block',
-              border: '3px solid #111',
-              borderRadius: 8,
-              boxShadow: '4px 4px 0 #111',
-            }}>
+            The real job Veqiro does for{' '}
+            <span>
               {content.persona.toLowerCase()}.
             </span>
           </h2>
@@ -195,32 +189,23 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── YOUR AI CREW ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 52px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#666', marginBottom: 16,
             }}>
-              [ YOUR AI CREW ]
+              Your AI crew
             </div>
             <h2 style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(40px, 6vw, 80px)',
               margin: 0, lineHeight: 0.92,
             }}>
-              your crew.<br />
-              <span style={{
-                background: content.accentColor,
-                color: content.accentInk,
-                padding: '0 18px',
-                display: 'inline-block',
-                transform: 'rotate(-1.5deg)',
-                border: '3px solid #111',
-                borderRadius: 8,
-                boxShadow: '5px 5px 0 #111',
-              }}>
-                ready now.
+              Your crew.<br />
+              <span>
+                Ready now.
               </span>
             </h2>
           </div>
@@ -239,12 +224,11 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                 style={{
                   textDecoration: 'none',
                   color: 'inherit',
-                  border: '3px solid #111',
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 14,
                   overflow: 'hidden',
-                  boxShadow: '6px 6px 0 #111',
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                   display: 'block',
-                  transform: `rotate(${i % 2 === 0 ? -0.6 : 0.6}deg)`,
                   animation: `fadeInUp 0.5s ease ${i * 0.08}s both`,
                 }}
               >
@@ -257,8 +241,8 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                     style={{ objectFit: 'cover' }}
                   />
                 </div>
-                <div style={{ background: '#111', padding: '12px 14px', borderTop: '2px solid #222' }}>
-                  <div style={{ fontFamily: FONT.display, fontSize: 20, color: agent.color, lineHeight: 1 }}>
+                <div style={{ background: '#111', padding: '12px 14px', borderTop: '1px solid #222' }}>
+                  <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 20, color: agent.color, lineHeight: 1 }}>
                     {agent.name}
                   </div>
                 </div>
@@ -276,20 +260,20 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
               <div
                 key={agent.key}
                 style={{
-                  border: '2.5px solid #111',
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 10,
                   padding: '16px 18px',
-                  background: i % 3 === 0 ? '#EFE7D6' : '#FFF9ED',
+                  background: i % 3 === 0 ? '#EFE7D6' : '#FBF7EF',
                   display: 'flex',
                   gap: 12,
                   alignItems: 'flex-start',
-                  boxShadow: '3px 3px 0 #111',
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                   animation: `fadeInUp 0.5s ease ${0.3 + i * 0.07}s both`,
                 }}
               >
                 <div style={{
                   width: 10, height: 10, borderRadius: '50%',
-                  background: agent.color, border: '2px solid #111',
+                  background: agent.color, border: '1px solid rgba(20,18,14,0.10)',
                   marginTop: 4, flexShrink: 0,
                 }} />
                 <div>
@@ -307,21 +291,21 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 52px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#444', marginBottom: 16,
             }}>
-              [ HOW IT WORKS ]
+              How it works
             </div>
             <h2 style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(36px, 5.5vw, 72px)',
               margin: 0, lineHeight: 0.92, color: '#EFE7D6',
             }}>
-              simple by design.
+              Simple by design.
             </h2>
           </div>
 
@@ -334,17 +318,16 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
               <div
                 key={step.n}
                 style={{
-                  border: '3px solid #222',
+                  border: '1px solid #222',
                   borderRadius: 14,
                   padding: '32px 24px',
                   background: '#181818',
-                  boxShadow: `6px 6px 0 ${step.color}`,
-                  transform: `rotate(${i % 2 === 0 ? -0.5 : 0.5}deg)`,
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                   animation: `fadeInUp 0.6s ease ${i * 0.15}s both`,
                 }}
               >
                 <div style={{
-                  fontFamily: FONT.display,
+                  fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
                   fontSize: 'clamp(48px, 6vw, 72px)',
                   color: step.color,
                   lineHeight: 1,
@@ -376,21 +359,21 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── SCENARIO: BEFORE / AFTER ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)', maxWidth: 720 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#666', marginBottom: 16,
             }}>
-              [ A REAL SCENARIO ]
+              A real scenario
             </div>
             <h2 style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(32px, 4.5vw, 56px)',
               margin: 0,
               lineHeight: 1.02,
-              letterSpacing: -1,
+
             }}>
               {content.scenario.title}
             </h2>
@@ -403,17 +386,17 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           }}>
             {/* Before */}
             <div style={{
-              border: '3px solid #111',
+              border: '1px solid rgba(20,18,14,0.10)',
               borderRadius: 14,
               padding: '28px 26px',
               background: '#EFE7D6',
-              boxShadow: '6px 6px 0 #111',
+              boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
             }}>
               <div style={{
                 display: 'inline-block',
                 background: '#111',
                 color: '#EFE7D6',
-                border: '2px solid #111',
+                border: '1px solid rgba(20,18,14,0.10)',
                 borderRadius: 999,
                 padding: '5px 14px',
                 fontFamily: FONT.mono,
@@ -459,17 +442,17 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
 
             {/* After */}
             <div style={{
-              border: '3px solid #111',
+              border: '1px solid rgba(20,18,14,0.10)',
               borderRadius: 14,
               padding: '28px 26px',
               background: content.accentColor,
-              boxShadow: `6px 6px 0 #111`,
+              boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
             }}>
               <div style={{
                 display: 'inline-block',
                 background: '#111',
                 color: content.accentColor,
-                border: '2px solid #111',
+                border: '1px solid rgba(20,18,14,0.10)',
                 borderRadius: 999,
                 padding: '5px 14px',
                 fontFamily: FONT.mono,
@@ -504,7 +487,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                       lineHeight: 1,
                       flexShrink: 0,
                       marginTop: 2,
-                      fontWeight: 900,
+                      fontWeight: 600,
                     }}>
                       ✓
                     </span>
@@ -518,31 +501,22 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── OUTCOMES ── */}
-      <section className="vq-section-pad" style={{ background: '#FFF9ED', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#666', marginBottom: 16,
             }}>
-              [ OUTCOMES ]
+              Outcomes
             </div>
             <h2 style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(36px, 5vw, 64px)',
               margin: 0, lineHeight: 0.95,
             }}>
-              what changes<br />
-              <span style={{
-                background: content.accentColor,
-                color: content.accentInk,
-                padding: '0 16px',
-                display: 'inline-block',
-                border: '3px solid #111',
-                borderRadius: 8,
-                boxShadow: '4px 4px 0 #111',
-                transform: 'rotate(-1deg)',
-              }}>
+              What changes<br />
+              <span>
                 in week one.
               </span>
             </h2>
@@ -555,15 +529,14 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           }}>
             {content.outcomes.map((out, i) => (
               <div key={out.title} style={{
-                border: '3px solid #111',
+                border: '1px solid rgba(20,18,14,0.10)',
                 borderRadius: 12,
                 padding: '24px 22px',
                 background: '#EFE7D6',
-                boxShadow: '5px 5px 0 #111',
-                transform: `rotate(${i % 2 === 0 ? -0.4 : 0.4}deg)`,
+                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
               }}>
                 <div style={{
-                  fontFamily: FONT.display,
+                  fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
                   fontSize: 36,
                   color: content.accentInk,
                   lineHeight: 1,
@@ -595,21 +568,21 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
               textTransform: 'uppercase', color: '#666', marginBottom: 16,
             }}>
-              [ FAQ ]
+              FAQ
             </div>
             <h2 style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(36px, 5vw, 64px)',
               margin: 0, lineHeight: 0.95,
             }}>
-              good questions.
+              Good questions.
             </h2>
           </div>
           <UseCaseFaq items={content.faq} accentColor={content.accentColor} />
@@ -623,23 +596,15 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
             fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
             textTransform: 'uppercase', color: '#666', marginBottom: 20,
           }}>
-            [ READY TO HIRE? ]
+            Get started
           </div>
           <h2 style={{
-            fontFamily: FONT.display,
+            fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(48px, 7vw, 96px)',
             margin: '0 0 28px', lineHeight: 0.9,
           }}>
-            hire your<br />
-            <span style={{
-              background: content.accentColor,
-              color: content.accentInk,
-              padding: '0 18px',
-              display: 'inline-block',
-              border: '3px solid #111',
-              borderRadius: 8,
-              boxShadow: '5px 5px 0 #111',
-            }}>
+            Hire your<br />
+            <span>
               AI crew.
             </span>
           </h2>

@@ -103,8 +103,8 @@ export default function UseCasesHubPage() {
       <section
         style={{
           background: '#111',
-          borderTop: '3px solid #111',
-          borderBottom: '3px solid #111',
+          borderTop: '1px solid rgba(20,18,14,0.10)',
+          borderBottom: '1px solid rgba(20,18,14,0.10)',
           padding: 'clamp(40px, 7vw, 80px) clamp(20px, 4vw, 40px)',
         }}
       >
@@ -122,20 +122,20 @@ export default function UseCasesHubPage() {
               marginBottom: 20,
             }}
           >
-            [ USE CASES ]
+            Use cases
           </div>
 
           <h1
             style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(48px, 8vw, 112px)',
               margin: '0 0 24px',
               lineHeight: 0.9,
-              letterSpacing: -2,
+
               color: '#EFE7D6',
             }}
           >
-            one crew.<br />
+            One crew.<br />
             <span style={{ color: '#F5C518' }}>four playbooks.</span>
           </h1>
 
@@ -155,7 +155,7 @@ export default function UseCasesHubPage() {
       </section>
 
       {/* ── GRID OF USE CASES ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '3px solid #111' }}>
+      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div
             style={{
@@ -164,7 +164,7 @@ export default function UseCasesHubPage() {
               gap: 28,
             }}
           >
-            {USE_CASES.map((uc, i) => (
+            {USE_CASES.map((uc) => (
               <Link
                 key={uc.slug}
                 href={`/use-cases/${uc.slug}`}
@@ -172,12 +172,11 @@ export default function UseCasesHubPage() {
                   textDecoration: 'none',
                   color: 'inherit',
                   display: 'block',
-                  background: '#FFF9ED',
-                  border: '3px solid #111',
+                  background: '#FBF7EF',
+                  border: '1px solid rgba(20,18,14,0.10)',
                   borderRadius: 16,
                   padding: '32px 28px',
-                  boxShadow: `8px 8px 0 ${uc.accent}`,
-                  transform: `rotate(${i % 2 === 0 ? -0.4 : 0.4}deg)`,
+                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
                   transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 }}
               >
@@ -186,7 +185,7 @@ export default function UseCasesHubPage() {
                     display: 'inline-block',
                     background: uc.accent,
                     color: uc.ink,
-                    border: '2px solid #111',
+                    border: '1px solid rgba(20,18,14,0.10)',
                     borderRadius: 999,
                     padding: '5px 14px',
                     fontFamily: FONT.mono,
@@ -200,11 +199,11 @@ export default function UseCasesHubPage() {
                 </div>
                 <h2
                   style={{
-                    fontFamily: FONT.display,
+                    fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
                     fontSize: 'clamp(26px, 3.2vw, 36px)',
                     margin: '0 0 14px',
                     lineHeight: 1.05,
-                    letterSpacing: -1,
+
                   }}
                 >
                   {uc.headline}
@@ -248,7 +247,7 @@ export default function UseCasesHubPage() {
                           height: 8,
                           borderRadius: '50%',
                           background: uc.accent,
-                          border: '2px solid #111',
+                          border: '1px solid rgba(20,18,14,0.10)',
                           marginTop: 7,
                           flexShrink: 0,
                         }}
@@ -288,28 +287,19 @@ export default function UseCasesHubPage() {
               marginBottom: 20,
             }}
           >
-            [ ONE PLAN FOR ALL ]
+            One plan for all
           </div>
           <h2
             style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(40px, 6vw, 80px)',
               margin: '0 0 28px',
               lineHeight: 0.92,
             }}
           >
-            no matter which fits —<br />
-            <span
-              style={{
-                background: '#F5C518',
-                padding: '0 18px',
-                display: 'inline-block',
-                border: '3px solid #111',
-                borderRadius: 8,
-                boxShadow: '5px 5px 0 #111',
-              }}
-            >
-              same crew.
+            No matter which fits —<br />
+            <span>
+              Same crew.
             </span>
           </h2>
           <p

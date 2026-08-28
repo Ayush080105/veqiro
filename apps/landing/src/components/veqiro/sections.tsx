@@ -1,7 +1,9 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { FONT } from './shared';
+import { Plus } from 'lucide-react';
+import { FONT, T, SectionHead } from './shared';
+import { BrandMark } from './brand-mark';
 import {
   consoleUrl,
   isPreLaunch,
@@ -19,43 +21,59 @@ import { useBillingCatalog } from '@/lib/use-billing-catalog';
 import { EMPLOYEES } from './data';
 import { ContactModal } from './contact-modal';
 
+/* ──────────────────────────────────────────────────────────────
+   How it works
+   ────────────────────────────────────────────────────────────── */
+
 export function HowItWorks() {
   return (
-    <section id="how" className="vq-section-pad" style={{ background: '#EFE7D6', borderTop: '3px solid #111' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 'clamp(40px, 6vw, 64px)' }}>
-          <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, color: '#666' }}>
-            [ HOW IT WORKS ]
-          </div>
-          <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 96px)', margin: 0, lineHeight: 0.9, letterSpacing: -1 }}>
-            onboarding takes<br />
-            <span style={{ background: '#F79FD4', padding: '0 16px', display: 'inline-block', transform: 'rotate(-2deg)', border: '3px solid #111', borderRadius: 8, boxShadow: '4px 4px 0 #111' }}>
-              nine minutes.
-            </span>
-          </h2>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-          {howItWorksSteps.map((s, i) => (
-            <div key={s.n} style={{
-              background: '#fff', border: '3px solid #111', borderRadius: 14,
-              padding: 'clamp(24px, 4vw, 32px) clamp(20px, 4vw, 28px)',
-              boxShadow: '8px 8px 0 #111', transform: `rotate(${i % 2 === 0 ? -1 : 1}deg)`, position: 'relative',
-            }}>
+    <section id="how" className="vq-section-pad" style={{ background: T.bg, borderTop: `1px solid ${T.line}` }}>
+      <div className="vq-shell">
+        <SectionHead
+          eyebrow="How it works"
+          title="Running work in under ten minutes"
+          lede="No implementation project, no solutions engineer, no six-week onboarding. Three steps, once."
+        />
+
+        <ol style={{
+          marginTop: 'clamp(40px, 5vw, 64px)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+          gap: 'clamp(20px, 3vw, 40px)',
+          listStyle: 'none',
+          padding: 0,
+        }}>
+          {howItWorksSteps.map(step => (
+            <li key={step.n} style={{ borderTop: `2px solid ${step.c}`, paddingTop: 20 }}>
               <div style={{
-                position: 'absolute', top: -18, left: 'clamp(-14px, 0vw, -18px)',
-                width: 56, height: 56, background: s.c,
-                border: '3px solid #111', borderRadius: '50%', display: 'grid', placeItems: 'center',
-                fontFamily: FONT.display, fontSize: 20, boxShadow: '3px 3px 0 #111',
-              }}>{s.n}</div>
-              <h3 style={{ fontFamily: FONT.head, fontSize: 'clamp(20px, 3vw, 26px)', margin: '8px 0 12px' }}>{s.t}</h3>
-              <p style={{ fontFamily: FONT.body, fontSize: 'clamp(14px, 2vw, 16px)', lineHeight: 1.5, color: '#333', margin: 0 }}>{s.d}</p>
-            </div>
+                fontFamily: FONT.mono, fontSize: 11, letterSpacing: '0.14em',
+                color: T.ink3, marginBottom: 12,
+              }}>
+                {step.n}
+              </div>
+              <h3 style={{
+                fontFamily: FONT.display, fontSize: 'clamp(19px, 2.1vw, 23px)',
+                fontWeight: 600, letterSpacing: '-0.025em', color: T.ink, margin: '0 0 10px',
+              }}>
+                {step.t}
+              </h3>
+              <p style={{
+                fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65,
+                color: T.ink2, margin: 0,
+              }}>
+                {step.d}
+              </p>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Pricing
+   ────────────────────────────────────────────────────────────── */
 
 export function Pricing() {
   const catalog = useBillingCatalog();
@@ -64,62 +82,124 @@ export function Pricing() {
     : Object.fromEntries(agentPricing.map(item => [item.key, item.monthly]));
 
   return (
-    <section id="pricing" className="vq-section-pad" style={{ background: '#111', color: '#EFE7D6' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, color: '#F5C518' }}>
-            [ PRICING ]
-          </div>
-          <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 96px)', margin: 0, lineHeight: 0.9, letterSpacing: -1 }}>
-            less than<br /><span style={{ color: '#F5C518' }}>a bad intern.</span>
-          </h2>
-          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', color: '#CFC6B2', marginTop: 20 }}>
-            Every agent bills on its own, starting at $9/mo. No bundle required.
-          </p>
-        </div>
+    <section id="pricing" className="vq-section-pad" style={{ background: T.bg, borderTop: `1px solid ${T.line}` }}>
+      <div className="vq-shell">
+        <SectionHead
+          center
+          eyebrow="Pricing"
+          title="Pay for the agents you actually use"
+          lede="Every agent is billed independently. Start with one, add others when the workload calls for it, and cancel any of them without touching the rest."
+        />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 32 }}>
+        {/* Per-agent grid */}
+        <div style={{
+          marginTop: 'clamp(40px, 5vw, 56px)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: 1,
+          background: T.line,
+          border: `1px solid ${T.line}`,
+          borderRadius: 18,
+          overflow: 'hidden',
+        }}>
           {EMPLOYEES.map(emp => (
-            <div key={emp.key} style={{
-              background: '#1a1a1a', border: `3px solid ${emp.color}`, borderRadius: 14,
-              padding: '18px 16px', textAlign: 'center', boxShadow: `4px 4px 0 ${emp.color}`,
-            }}>
-              <div style={{ fontFamily: FONT.head, fontSize: 18, color: emp.color }}>{emp.name}</div>
-              <div style={{ fontFamily: FONT.display, fontSize: 28, marginTop: 8 }}>
-                {priceByAgent[emp.key] == null ? '—' : `$${priceByAgent[emp.key]}`}
+            <Link
+              key={emp.key}
+              href={`/agents/${emp.key}`}
+              style={{
+                background: T.surface,
+                padding: 'clamp(20px, 2.6vw, 26px)',
+                textDecoration: 'none',
+                display: 'grid',
+                gap: 6,
+                transition: 'background 150ms ease',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = T.surface2)}
+              onMouseLeave={e => (e.currentTarget.style.background = T.surface)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span aria-hidden style={{
+                  width: 7, height: 7, borderRadius: 2, background: emp.color, flexShrink: 0,
+                }} />
+                <span style={{
+                  fontFamily: FONT.display, fontSize: 16, fontWeight: 600,
+                  letterSpacing: '-0.02em', color: T.ink,
+                }}>
+                  {emp.name}
+                </span>
               </div>
-              <div style={{ fontFamily: FONT.mono, fontSize: 10, color: '#888', marginTop: 2 }}>/month</div>
-            </div>
+
+              <div style={{
+                fontFamily: FONT.body, fontSize: 12.5, color: T.ink3,
+                lineHeight: 1.4, minHeight: '2.8em',
+              }}>
+                {emp.role.replace(/\n/g, ' ')}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+                <span style={{
+                  fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
+                  letterSpacing: '-0.035em', color: T.ink, lineHeight: 1,
+                }}>
+                  {priceByAgent[emp.key] == null ? '—' : `$${priceByAgent[emp.key]}`}
+                </span>
+                <span style={{ fontFamily: FONT.body, fontSize: 13, color: T.ink3 }}>/mo</span>
+              </div>
+            </Link>
           ))}
         </div>
 
+        {/* Enterprise */}
         <div style={{
-          background: '#1a1a1a', color: '#EFE7D6',
-          border: `3px solid ${enterpriseTier.color}`, borderRadius: 20,
-          padding: 'clamp(24px, 5vw, 40px) clamp(20px, 5vw, 36px)',
-          boxShadow: `10px 10px 0 ${enterpriseTier.color}`,
-          display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between',
+          marginTop: 20,
+          background: T.dark,
+          color: T.inkInv,
+          borderRadius: 18,
+          padding: 'clamp(26px, 4vw, 40px)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 28,
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}>
-          <div>
-            <div style={{ fontFamily: FONT.head, fontSize: 24 }}>{enterpriseTier.name}</div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7, marginTop: 4 }}>{enterpriseTier.tag}</div>
-            <div style={{ marginTop: 16, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontFamily: FONT.display, fontSize: 'clamp(40px, 8vw, 56px)', lineHeight: 1, color: enterpriseTier.color }}>${enterpriseTier.monthly}+</span>
-              <span style={{ fontFamily: FONT.body, fontSize: 15 }}>/month and up</span>
+          <div style={{ maxWidth: '46ch' }}>
+            <div style={{
+              fontFamily: FONT.display, fontSize: 'clamp(20px, 2.4vw, 26px)',
+              fontWeight: 600, letterSpacing: '-0.028em',
+            }}>
+              {enterpriseTier.name}
             </div>
+            <p style={{
+              fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65,
+              color: T.inkInv2, margin: '10px 0 0',
+            }}>
+              {enterpriseTier.tag} — custom SLAs, dedicated onboarding, bespoke
+              integrations, and volume pricing.
+            </p>
           </div>
-          <a href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`} style={{
-            display: 'inline-block', textDecoration: 'none',
-            background: '#EFE7D6', color: '#111', padding: '16px 26px',
-            border: '3px solid #111', borderRadius: 12, boxShadow: `5px 5px 0 ${enterpriseTier.color}`,
-            fontFamily: FONT.head, fontSize: 14, textTransform: 'uppercase', letterSpacing: 1,
-          } as React.CSSProperties}>Talk to sales →</a>
+          <a
+            href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`}
+            style={{
+              background: T.inkInv, color: T.ink,
+              padding: '13px 24px', borderRadius: 10,
+              fontFamily: FONT.body, fontSize: 15, fontWeight: 500,
+              textDecoration: 'none', whiteSpace: 'nowrap',
+              transition: 'opacity 140ms ease',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Talk to sales
+          </a>
         </div>
 
-        <p style={{ textAlign: 'center', fontFamily: FONT.mono, fontSize: 13, marginTop: 32, color: '#EFE7D6', opacity: 0.8 }}>
-          Want the whole team?{' '}
-          <Link href="/pricing" style={{ color: '#F5C518', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-            See every agent →
+        <p style={{
+          textAlign: 'center', marginTop: 24,
+          fontFamily: FONT.body, fontSize: 14.5, color: T.ink2,
+        }}>
+          Seven-day free trial on every agent, no card required.{' '}
+          <Link href="/pricing" style={{ color: T.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            Full pricing details
           </Link>
         </p>
       </div>
@@ -127,41 +207,80 @@ export function Pricing() {
   );
 }
 
+/* ──────────────────────────────────────────────────────────────
+   FAQ
+   ────────────────────────────────────────────────────────────── */
+
 export function FAQ() {
-  const [open, setOpen] = useState(0);
+  const [open, setOpen] = useState<number>(0);
+
   return (
-    <section id="faq" className="vq-section-pad" style={{ background: '#EFE7D6' }}>
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
-          <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, color: '#666' }}>
-            [ FAQ ]
-          </div>
-          <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(48px, 7vw, 88px)', margin: 0, lineHeight: 0.9, letterSpacing: -1 }}>
-            questions you&apos;re<br />too cool to ask.
-          </h2>
-        </div>
-        <div style={{ display: 'grid', gap: 16 }}>
-          {faqItems.map((it, i) => {
+    <section id="faq" className="vq-section-pad" style={{ background: T.bg, borderTop: `1px solid ${T.line}` }}>
+      <div className="vq-shell" style={{ maxWidth: 880 }}>
+        <SectionHead
+          eyebrow="FAQ"
+          title="Questions worth asking before you buy"
+        />
+
+        <div style={{ marginTop: 'clamp(32px, 4vw, 48px)', borderTop: `1px solid ${T.line}` }}>
+          {faqItems.map((item, i) => {
             const isOpen = open === i;
             return (
-              <div key={i} onClick={() => setOpen(isOpen ? -1 : i)} style={{
-                background: '#fff', border: '3px solid #111', borderRadius: 14,
-                padding: 'clamp(16px, 3vw, 20px) clamp(18px, 3vw, 24px)',
-                cursor: 'pointer', boxShadow: isOpen ? '8px 8px 0 #F06464' : '4px 4px 0 #111', transition: 'box-shadow 180ms',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <div style={{ fontFamily: FONT.head, fontSize: 'clamp(15px, 2.4vw, 20px)' }}>{it.q}</div>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                    background: isOpen ? '#F06464' : '#EFE7D6', border: '2.5px solid #111',
-                    display: 'grid', placeItems: 'center', fontFamily: FONT.display, fontSize: 20,
-                    transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform 200ms, background 200ms',
-                  }}>+</div>
-                </div>
+              <div key={i} style={{ borderBottom: `1px solid ${T.line}` }}>
+                <button
+                  type="button"
+                  onClick={() => setOpen(isOpen ? -1 : i)}
+                  aria-expanded={isOpen}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 20,
+                    padding: '22px 0',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{
+                    fontFamily: FONT.display,
+                    fontSize: 'clamp(16px, 1.9vw, 19px)',
+                    fontWeight: 550,
+                    letterSpacing: '-0.02em',
+                    color: T.ink,
+                    lineHeight: 1.4,
+                  }}>
+                    {item.q}
+                  </span>
+                  <span
+                    aria-hidden
+                    style={{
+                      flexShrink: 0,
+                      color: T.ink3,
+                      transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+                      transition: 'transform 220ms cubic-bezier(0.32,0.72,0,1)',
+                      marginTop: 2,
+                    }}
+                  >
+                    <Plus size={18} strokeWidth={1.75} />
+                  </span>
+                </button>
+
                 {isOpen && (
-                  <div style={{ fontFamily: FONT.body, fontSize: 'clamp(14px, 2vw, 16px)', lineHeight: 1.6, color: '#333', marginTop: 14, paddingRight: 'clamp(8px, 3vw, 40px)' }}>
-                    {it.a}
-                  </div>
+                  <p style={{
+                    fontFamily: FONT.body,
+                    fontSize: 'clamp(14.5px, 1.6vw, 16px)',
+                    lineHeight: 1.7,
+                    color: T.ink2,
+                    margin: '0 0 24px',
+                    maxWidth: '68ch',
+                    paddingRight: 40,
+                    animation: 'pop 200ms ease',
+                  }}>
+                    {item.a}
+                  </p>
                 )}
               </div>
             );
@@ -172,43 +291,106 @@ export function FAQ() {
   );
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Final CTA
+   ────────────────────────────────────────────────────────────── */
+
 export function FinalCTA() {
   const [isContactOpen, setIsContactOpen] = useState(false);
+
   return (
-    <section id="hire" style={{ padding: 'clamp(72px, 11vw, 120px) clamp(20px, 4vw, 32px)', background: '#F5C518', borderTop: '3px solid #111', borderBottom: '3px solid #111', position: 'relative', overflow: 'hidden' }}>
+    <section
+      id="hire"
+      style={{
+        position: 'relative',
+        background: T.dark,
+        color: T.inkInv,
+        padding: 'clamp(72px, 10vw, 128px) var(--vq-gutter)',
+        overflow: 'hidden',
+        isolation: 'isolate',
+      }}
+    >
+      {/* A warm glow anchored to the amber accent, rather than a photo — the
+          hero already carries the imagery and a second scrimmed photo muddied it. */}
       <div aria-hidden style={{
-        position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
-        fontFamily: FONT.display, fontSize: '38vw', color: '#111',
-        opacity: 0.06, lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
-      }}>hire</div>
-      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center', position: 'relative' }}>
-        <h2 style={{ fontFamily: FONT.display, fontSize: 'clamp(56px, 9vw, 144px)', margin: 0, lineHeight: 0.88, letterSpacing: -2 }}>
-          your new team<br />is waiting.
+        position: 'absolute', inset: 0, zIndex: -1,
+        background: 'radial-gradient(120% 90% at 50% 0%, rgba(245,197,24,0.16), transparent 62%)',
+      }} />
+
+      <div className="vq-shell" style={{ textAlign: 'center', maxWidth: 760 }}>
+        <h2 style={{
+          fontFamily: FONT.display,
+          fontSize: 'clamp(30px, 5vw, 56px)',
+          fontWeight: 600,
+          letterSpacing: '-0.035em',
+          lineHeight: 1.05,
+          margin: 0,
+          color: T.inkInv,
+        }}>
+          Your next six hires start today
         </h2>
-        <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 20px)', marginTop: 24, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto' }}>
-          Seven days free. No credit card. No weird onboarding call. Just the work.
+
+        <p style={{
+          fontFamily: FONT.body,
+          fontSize: 'clamp(16px, 1.8vw, 18.5px)',
+          lineHeight: 1.65,
+          color: T.inkInv2,
+          margin: '20px auto 0',
+          maxWidth: '54ch',
+        }}>
+          Seven days free on every agent. No credit card, no onboarding call —
+          connect a tool and give one of them something to do.
         </p>
-        <div style={{ marginTop: 36, display: 'flex', gap: 'clamp(10px, 2vw, 16px)', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`} style={{
-            background: '#111', color: '#F5C518', padding: 'clamp(14px, 2.5vw, 20px) clamp(24px, 5vw, 40px)',
-            fontFamily: FONT.head, fontSize: 'clamp(14px, 2vw, 18px)', textTransform: 'uppercase', letterSpacing: 1,
-            textDecoration: 'none', border: '3px solid #111', borderRadius: 12, boxShadow: '8px 8px 0 #EFE7D6',
-          }}>{isPreLaunch ? 'Save my spot →' : 'Hire the crew →'}</a>
-          <button onClick={() => setIsContactOpen(true)} style={{
-            background: 'transparent', color: '#111', padding: 'clamp(14px, 2.5vw, 20px) clamp(24px, 5vw, 40px)',
-            fontFamily: FONT.head, fontSize: 'clamp(14px, 2vw, 18px)', textTransform: 'uppercase', letterSpacing: 1,
-            border: '3px solid #111', borderRadius: 12, cursor: 'pointer',
-          }}>Contact us</button>
+
+        <div style={{
+          display: 'flex', gap: 12, justifyContent: 'center',
+          flexWrap: 'wrap', marginTop: 34,
+        }}>
+          <a
+            href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
+            style={{
+              background: T.inkInv, color: T.ink,
+              padding: '14px 28px', borderRadius: 11,
+              fontFamily: FONT.body, fontSize: 15, fontWeight: 550,
+              textDecoration: 'none', transition: 'opacity 140ms ease',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            {isPreLaunch ? 'Join the waitlist' : 'Start free — 7 days'}
+          </a>
+          <button
+            type="button"
+            onClick={() => setIsContactOpen(true)}
+            style={{
+              background: 'rgba(242,236,224,0.07)',
+              color: T.inkInv,
+              border: `1px solid ${T.lineInv2}`,
+              padding: '14px 28px', borderRadius: 11,
+              fontFamily: FONT.body, fontSize: 15, fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 140ms ease',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,236,224,0.13)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(242,236,224,0.07)')}
+          >
+            Talk to us
+          </button>
         </div>
       </div>
+
       <ContactModal open={isContactOpen} onClose={() => setIsContactOpen(false)} />
     </section>
   );
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Footer
+   ────────────────────────────────────────────────────────────── */
+
 const iconProps = {
-  width: 16,
-  height: 16,
+  width: 15,
+  height: 15,
   viewBox: '0 0 24 24',
   fill: 'currentColor',
   'aria-hidden': true as const,
@@ -246,26 +428,31 @@ const SOCIAL_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
 
 export function Footer() {
   return (
-    <footer style={{ background: '#111', color: '#EFE7D6', padding: 'clamp(48px, 8vw, 72px) clamp(20px, 4vw, 32px) 36px' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-
-        {/* Top grid: brand + columns */}
+    <footer style={{
+      background: T.bg,
+      borderTop: `1px solid ${T.line}`,
+      padding: 'clamp(48px, 6vw, 72px) var(--vq-gutter) 32px',
+    }}>
+      <div className="vq-shell" style={{ padding: 0 }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: 'clamp(24px, 4vw, 40px)',
-          marginBottom: 'clamp(36px, 6vw, 56px)',
+          gridTemplateColumns: 'minmax(200px, 1.4fr) repeat(auto-fit, minmax(140px, 1fr))',
+          gap: 'clamp(28px, 4vw, 48px)',
+          marginBottom: 'clamp(40px, 5vw, 56px)',
         }}>
           {/* Brand */}
           <div>
-            <Link href="/" style={{ textDecoration: 'none' }}>
-              <div style={{ fontFamily: FONT.display, fontSize: 'clamp(28px, 5vw, 40px)', color: '#EFE7D6', lineHeight: 1 }}>veqiro</div>
+            <Link href="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
+              <BrandMark size={24} />
             </Link>
-            <p style={{ fontFamily: FONT.body, fontSize: 14, marginTop: 14, color: '#CFC6B2', lineHeight: 1.65, maxWidth: 200 }}>
-              AI employees that do real work. Made in a small room, loud.
+            <p style={{
+              fontFamily: FONT.body, fontSize: 14, lineHeight: 1.65,
+              color: T.ink2, margin: '16px 0 0', maxWidth: 260,
+            }}>
+              Six AI employees that share one company brain and work inside the
+              tools your team already uses.
             </p>
-            {/* Social icons */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               {SOCIAL_LINKS.map(s => (
                 <a
                   key={s.label}
@@ -274,29 +461,19 @@ export function Footer() {
                   rel="noopener noreferrer"
                   aria-label={s.label}
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    border: '2px solid #333',
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: '#CFC6B2',
-                    textDecoration: 'none',
-                    transition: 'border-color 150ms, color 150ms, background 150ms, transform 150ms',
+                    width: 32, height: 32, borderRadius: 8,
+                    border: `1px solid ${T.line2}`,
+                    display: 'grid', placeItems: 'center',
+                    color: T.ink2, textDecoration: 'none',
+                    transition: 'background 150ms ease, color 150ms ease',
                   }}
                   onMouseEnter={e => {
-                    const el = e.currentTarget as HTMLAnchorElement;
-                    el.style.borderColor = '#F5C518';
-                    el.style.color = '#111';
-                    el.style.background = '#F5C518';
-                    el.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.background = T.ink;
+                    e.currentTarget.style.color = T.inkInv;
                   }}
                   onMouseLeave={e => {
-                    const el = e.currentTarget as HTMLAnchorElement;
-                    el.style.borderColor = '#333';
-                    el.style.color = '#CFC6B2';
-                    el.style.background = 'transparent';
-                    el.style.transform = 'translateY(0)';
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = T.ink2;
                   }}
                 >
                   {s.icon}
@@ -309,12 +486,8 @@ export function Footer() {
           {footerColumns.map(col => (
             <div key={col.h}>
               <div style={{
-                fontFamily: FONT.head,
-                fontSize: 11,
-                textTransform: 'uppercase' as const,
-                letterSpacing: 2,
-                color: '#F5C518',
-                marginBottom: 18,
+                fontFamily: FONT.mono, fontSize: 10.5, letterSpacing: '0.14em',
+                textTransform: 'uppercase', color: T.ink3, marginBottom: 16,
               }}>
                 {col.h}
               </div>
@@ -322,12 +495,15 @@ export function Footer() {
                 {col.links.map(link => {
                   const isInternal = link.href.startsWith('/') || link.href.startsWith('#');
                   const linkStyle: React.CSSProperties = {
-                    color: '#AAA',
+                    color: T.ink2,
                     textDecoration: 'none',
                     fontFamily: FONT.body,
                     fontSize: 14,
-                    lineHeight: 1,
+                    lineHeight: 1.4,
                     transition: 'color 120ms',
+                  };
+                  const hover = (e: React.MouseEvent<HTMLAnchorElement>, on: boolean) => {
+                    e.currentTarget.style.color = on ? T.ink : T.ink2;
                   };
                   return (
                     <li key={link.label}>
@@ -335,8 +511,8 @@ export function Footer() {
                         <Link
                           href={link.href}
                           style={linkStyle}
-                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#EFE7D6')}
-                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#AAA')}
+                          onMouseEnter={e => hover(e, true)}
+                          onMouseLeave={e => hover(e, false)}
                         >
                           {link.label}
                         </Link>
@@ -344,8 +520,8 @@ export function Footer() {
                         <a
                           href={link.href}
                           style={linkStyle}
-                          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#EFE7D6')}
-                          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = '#AAA')}
+                          onMouseEnter={e => hover(e, true)}
+                          onMouseLeave={e => hover(e, false)}
                         >
                           {link.label}
                         </a>
@@ -361,42 +537,43 @@ export function Footer() {
         {/* Bottom bar */}
         <div style={{
           paddingTop: 24,
-          borderTop: '1px solid #2a2a2a',
+          borderTop: `1px solid ${T.line}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 20,
         }}>
-          <div style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555' }}>
+          <div style={{ fontFamily: FONT.body, fontSize: 13, color: T.ink3 }}>
             {footerBottom.copyright}
           </div>
+
           <a
             href="https://openhunts.com"
             target="_blank"
             rel="noopener noreferrer"
             title="OpenHunts Club"
-            style={{ display: 'inline-flex', flexShrink: 0 }}
+            style={{ display: 'inline-flex', flexShrink: 0, opacity: 0.75 }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element -- external badge host */}
             <img
               alt="OpenHunts Club Member"
               height="105"
               src="https://cdn.openhunts.com/badges/club.webp"
-              style={{ width: '195px', height: 'auto' }}
+              style={{ width: '150px', height: 'auto' }}
               width="486"
             />
           </a>
-          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-            <Link href="/privacy" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+
+          <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+            <Link href="/privacy" style={{ fontFamily: FONT.body, fontSize: 13, color: T.ink3, textDecoration: 'none' }}>
               Privacy
             </Link>
-            <span style={{ color: '#333' }}>·</span>
-            <Link href="/terms" style={{ fontFamily: FONT.mono, fontSize: 11, color: '#555', textDecoration: 'none' }}>
+            <Link href="/terms" style={{ fontFamily: FONT.body, fontSize: 13, color: T.ink3, textDecoration: 'none' }}>
               Terms
             </Link>
           </div>
         </div>
-
       </div>
     </footer>
   );

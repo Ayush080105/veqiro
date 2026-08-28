@@ -17,10 +17,10 @@ export function BlogAgentCta({ agentKey }: { agentKey: AgentKey }) {
       style={{
         margin: '3em 0',
         background: agent.color,
-        border: '3px solid #111',
+        border: '1px solid rgba(20,18,14,0.10)',
         borderRadius: 16,
         padding: '28px 32px',
-        boxShadow: '8px 8px 0 #111',
+        boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
         display: 'grid',
         gridTemplateColumns: '1fr auto',
         gap: 20,
@@ -39,11 +39,11 @@ export function BlogAgentCta({ agentKey }: { agentKey: AgentKey }) {
             margin: '0 0 6px',
           }}
         >
-          [ meet the agent ]
+          Meet the agent
         </p>
         <h3
           style={{
-            fontFamily: 'var(--font-bagel), cursive',
+            fontFamily: 'var(--font-display), system-ui, sans-serif',
             fontSize: 'clamp(28px, 3.5vw, 40px)',
             color: '#111',
             margin: '0 0 6px',
@@ -54,7 +54,7 @@ export function BlogAgentCta({ agentKey }: { agentKey: AgentKey }) {
         </h3>
         <p
           style={{
-            fontFamily: 'var(--font-space), sans-serif',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 15,
             color: '#111',
             margin: '0 0 20px',
@@ -73,7 +73,7 @@ export function BlogAgentCta({ agentKey }: { agentKey: AgentKey }) {
             textTransform: 'uppercase',
             background: '#111',
             color: 'var(--vq-cream)',
-            border: '3px solid #111',
+            border: '1px solid rgba(20,18,14,0.10)',
             borderRadius: 999,
             padding: '8px 20px',
             textDecoration: 'none',
@@ -88,13 +88,13 @@ export function BlogAgentCta({ agentKey }: { agentKey: AgentKey }) {
           width: 64,
           height: 64,
           background: '#111',
-          border: '3px solid #111',
+          border: '1px solid rgba(20,18,14,0.10)',
           borderRadius: 12,
           boxShadow: '4px 4px 0 rgba(0,0,0,0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'var(--font-bagel), cursive',
+          fontFamily: 'var(--font-display), system-ui, sans-serif',
           fontSize: 28,
           color: agent.color,
           flexShrink: 0,

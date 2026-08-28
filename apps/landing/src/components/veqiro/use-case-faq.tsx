@@ -11,10 +11,12 @@ export function UseCaseFaq({ items, accentColor }: { items: { q: string; a: stri
         <div
           key={i}
           style={{
-            border: '3px solid #111',
+            border: '1px solid rgba(20,18,14,0.10)',
             borderRadius: 12,
             overflow: 'hidden',
-            boxShadow: open === i ? `6px 6px 0 ${accentColor}` : '3px 3px 0 #111',
+            boxShadow: open === i
+              ? '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)'
+              : '0 1px 2px rgba(20,18,14,0.05)',
             transition: 'box-shadow 0.2s ease',
           }}
         >
@@ -43,7 +45,7 @@ export function UseCaseFaq({ items, accentColor }: { items: { q: string; a: stri
               {item.q}
             </span>
             <span style={{
-              fontFamily: FONT.display,
+              fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 22,
               color: open === i ? accentColor : '#111',
               flexShrink: 0,
@@ -58,8 +60,8 @@ export function UseCaseFaq({ items, accentColor }: { items: { q: string; a: stri
           {open === i && (
             <div style={{
               padding: '18px 22px',
-              background: '#FFF9ED',
-              borderTop: '2px solid #111',
+              background: '#FBF7EF',
+              borderTop: '1px solid rgba(20,18,14,0.10)',
               fontFamily: FONT.body,
               fontSize: 15,
               lineHeight: 1.75,
