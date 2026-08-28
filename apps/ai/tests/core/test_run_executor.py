@@ -49,6 +49,7 @@ def harness(monkeypatch):
             text=cfg.get("text", f"{step_key} done"),
             error=cfg.get("error"),
             needs_approval=cfg.get("needs_approval"),
+            pending_actions=cfg.get("pending_actions", []),
             tool_calls_used=cfg.get("tool_calls_used", 1),
         )
 
@@ -451,3 +452,66 @@ async def test_repair_dependency_on_a_dropped_step_is_pruned(harness):
         )
     )
     assert "r2" in harness["order"], "r2 must not wait on the dropped write"
+
+
+# ── Unattended runs ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_a_staged_write_is_handed_to_node(harness):
+    """The whole point of an unattended run: nobody was watching, so the write
+    becomes a card. Dropping it turns a useful run into one that read a lot and
+    offered nothing."""
+    harness["script"]["a"] = {
+        "pending_actions": [{"id": "p1", "connection_id": "c1",
+                             "tool_name": "GMAIL_SEND", "arguments": {},
+                             "summary": "Send the digest"}],
+    }
+    await harness["runner"].execute(_spec([_step("a")]))
+
+    assert harness["store"].staged, "the proposal must reach Node"
+    key, actions = harness["store"].staged[0]
+    assert key == "a"
+    assert actions[0]["summary"] == "Send the digest"
+
+
+@pytest.mark.asyncio
+async def test_a_step_that_staged_a_write_is_not_reported_as_done(harness):
+    """The write has not happened yet — calling the step succeeded would claim
+    work that is still waiting on a human."""
+    harness["script"]["a"] = {
+        "pending_actions": [{"id": "p1", "connection_id": "c1",
+                             "tool_name": "GMAIL_SEND", "arguments": {}, "summary": "s"}],
+    }
+    result = await harness["runner"].execute(_spec([_step("a")]))
+
+    assert result.steps["a"].status == "AWAITING_APPROVAL"
+    assert result.status == "AWAITING_ACTION_APPROVAL"
+
+
+@pytest.mark.asyncio
+async def test_dependents_of_a_staged_write_do_not_run(harness):
+    """A step downstream of a write that has not happened would run against a
+    world it wrongly assumes changed."""
+    harness["script"]["a"] = {
+        "pending_actions": [{"id": "p1", "connection_id": "c1",
+                             "tool_name": "GMAIL_SEND", "arguments": {}, "summary": "s"}],
+    }
+    result = await harness["runner"].execute(
+        _spec([_step("a"), _step("b", ["a"])])
+    )
+
+    assert "b" not in harness["order"]
+    assert result.steps["b"].status in ("BLOCKED", "SKIPPED")
+
+
+@pytest.mark.asyncio
+async def test_reads_still_run_alongside_a_staged_write(harness):
+    """An unattended run must not stall entirely — the readable half is the
+    part that can be delivered without asking anyone."""
+    harness["script"]["a"] = {
+        "pending_actions": [{"id": "p1", "connection_id": "c1",
+                             "tool_name": "GMAIL_SEND", "arguments": {}, "summary": "s"}],
+    }
+    result = await harness["runner"].execute(_spec([_step("a"), _step("b")]))
+
+    assert result.steps["b"].status == "SUCCEEDED"

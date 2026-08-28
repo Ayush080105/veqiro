@@ -1017,6 +1017,7 @@ export const AgentRunScalarFieldEnum = {
   approvedByUserId: 'approvedByUserId',
   approvedAt: 'approvedAt',
   messageId: 'messageId',
+  triggerEventId: 'triggerEventId',
   summary: 'summary',
   errorMessage: 'errorMessage',
   heartbeatAt: 'heartbeatAt',

@@ -3,6 +3,7 @@ import { prisma } from "../../config/prisma.js";
 import * as mcpService from "../mcp/mcp.service.js";
 import * as runsService from "./agent-runs.service.js";
 import { getEntitledAgents } from "../billing/entitlement.service.js";
+import type { AgentRunTrigger } from "../../../prisma/generated/prisma/client.js";
 import type { PlanNodeInput } from "./agent-runs.types.js";
 import { Agent } from "../../../prisma/generated/prisma/client.js";
 
@@ -109,6 +110,22 @@ export interface MaybeStartPlannedRunInput {
    * and the agent whose tool cache the planner reads through.
    */
   team?: boolean;
+  /**
+   * Nobody is watching. The run starts immediately with no approval step,
+   * every write is staged as a card instead of performed, and the message it
+   * creates carries the caller's own customInput rather than a chat preamble.
+   *
+   * The single-step pre-filter still applies. Triggers fire on every matching
+   * event, and paying for a planner round trip to be told "this is one step"
+   * each time is exactly the cost that filter exists to avoid.
+   */
+  unattended?: boolean;
+  /** Extra keys for the created message, so a play keeps its own identity. */
+  messageCustomInput?: Record<string, unknown>;
+  /** How the run was started; defaults to CHAT. */
+  trigger?: AgentRunTrigger;
+  /** The trigger event that caused it, when trigger is TRIGGER. */
+  triggerEventId?: string;
 }
 
 /**
@@ -267,6 +284,8 @@ export const maybeStartPlannedRun = async (
       agent: input.agent,
       requestText: input.content,
       isTeam: Boolean(input.team),
+      trigger: input.trigger,
+      triggerEventId: input.triggerEventId ?? null,
       goal: data.plan.goal ?? "",
       plannerMeta: data.plan.planner_meta ?? {},
       nodes,
@@ -283,11 +302,24 @@ export const maybeStartPlannedRun = async (
         content: buildPreamble(run.goal, nodes.length, writeCount),
         // The graph is rendered from the run, fetched live by id. The snapshot
         // here is only the handle — never the state.
-        customInput: { runId: run.id, planVersion: run.planVersion },
+        customInput: {
+          ...(input.messageCustomInput ?? {}),
+          runId: run.id,
+          planVersion: run.planVersion,
+        },
       },
     });
 
     await runsService.attachMessage(run.id, assistantMessage.id);
+
+    // Unattended, there is nobody to approve a plan, so the run starts on its
+    // own. It is dispatched in stage mode: reads execute, and every write
+    // becomes a card the user confirms later. approvedWrites stays empty
+    // precisely because nothing here was approved.
+    if (input.unattended) {
+      await runsService.startUnattendedRun(run.id);
+    }
+
     return assistantMessage;
   } catch (err) {
     // Never fail a chat turn because planning failed.

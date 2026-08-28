@@ -3,6 +3,7 @@ import { prisma } from "../../config/prisma.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
 import { callAgentWithContext, agentRoles } from "../../common/utils/contextService.js";
+import { maybeStartPlannedRun } from "../agent-runs/agent-runs.planner.js";
 import { PLAY_DEFINITIONS, findPlayDefinition, type PlayDefinition } from "./mcp.plays.js";
 import * as mcpService from "./mcp.service.js";
 import { generateContentPlan } from "../agents/maya/maya.contentplan.js";
@@ -116,6 +117,20 @@ export const runPlay = async (params: {
     const plan = await generateContentPlan(organizationId, userId, { skipIfExists: true });
     return { messageId: plan.id };
   }
+
+  // A play is often several steps ("pull X, compare to Y, draft Z"), which is
+  // exactly what the run engine is for. It returns null when the org has the
+  // feature off or the request is single-step, and the original path below
+  // then runs unchanged.
+  const planned = await maybeStartPlannedRun({
+    organizationId,
+    userId,
+    agent: def.agent,
+    content: def.prompt,
+    unattended: true,
+    messageCustomInput: { playId: def.id, playName: def.name },
+  });
+  if (planned) return { messageId: planned.id };
 
   const response = await callAgentWithContext<{
     response: string;

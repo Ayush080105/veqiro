@@ -3,12 +3,14 @@ import {
   McpActionSource,
   McpProvider,
   McpTriggerEventStatus,
+  AgentRunTrigger,
 } from "../../../prisma/generated/prisma/client.js";
 import { prisma } from "../../config/prisma.js";
 import { composioClient } from "../../lib/composio.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
 import { callAgentWithContext, agentRoles } from "../../common/utils/contextService.js";
+import { maybeStartPlannedRun } from "../agent-runs/agent-runs.planner.js";
 import {
   TRIGGER_DEFINITIONS,
   findTriggerDefinition,
@@ -518,6 +520,22 @@ const processEvent = async (
   };
 
   try {
+    // Most triggers are one step ("an invoice arrived, summarise it"), and the
+    // pre-filter inside sends those straight down the path below. A genuinely
+    // multi-step instruction gets the run engine instead, with every write
+    // staged as a card exactly as it would be here.
+    const planned = await maybeStartPlannedRun({
+      organizationId: subscription.organizationId,
+      userId: subscription.createdByUserId,
+      agent: def.agent,
+      content: buildAgentPrompt(def.prompt, event.data),
+      unattended: true,
+      trigger: AgentRunTrigger.TRIGGER,
+      triggerEventId: eventRowId,
+      messageCustomInput: { triggeredBy: def.label, triggerEventId: eventRowId },
+    });
+    if (planned) return;
+
     const response = await callAgentWithContext<{
       response: string;
       metadata?: Record<string, unknown> | null;

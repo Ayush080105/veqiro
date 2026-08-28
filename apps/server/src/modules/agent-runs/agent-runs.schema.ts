@@ -90,3 +90,18 @@ export const addStepsBodySchema = z.object({
     // has gone wrong with the model rather than with the run.
     .max(8),
 });
+
+export const stageActionsBodySchema = z.object({
+  actions: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        connection_id: z.string().min(1),
+        tool_name: z.string().min(1),
+        arguments: z.record(z.string(), z.unknown()).default({}),
+        summary: z.string().default(""),
+      }),
+    )
+    .min(1)
+    .max(20),
+});

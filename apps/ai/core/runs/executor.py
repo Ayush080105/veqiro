@@ -249,6 +249,28 @@ class RunExecutor:
                 _block_dependents(s.key, f"depends on {s.key}, which failed")
                 return
 
+            # An unattended step proposes writes instead of performing them.
+            # They are the run's real output, so they go to Node as approval
+            # cards, and the step is honest about not being finished: the write
+            # has not happened, so anything depending on it cannot proceed.
+            if outcome.pending_actions:
+                await self._store.stage_actions(
+                    spec.run_id, s.key, outcome.pending_actions
+                )
+                state[s.key].status = "AWAITING_APPROVAL"
+                state[s.key].output_text = outcome.text
+                await self._store.update_step(
+                    spec.run_id, s.key, status="AWAITING_APPROVAL",
+                    outputText=outcome.text, toolTrace=outcome.tool_trace,
+                    errorMessage=(
+                        f"proposed {len(outcome.pending_actions)} action"
+                        f"{'' if len(outcome.pending_actions) == 1 else 's'} "
+                        "for you to approve"
+                    ),
+                )
+                _block_dependents(s.key, f"depends on {s.key}, which is awaiting approval")
+                return
+
             state[s.key].status = "SUCCEEDED"
             state[s.key].output_text = outcome.text
             action_id, action_result = (

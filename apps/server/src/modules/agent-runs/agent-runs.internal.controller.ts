@@ -8,6 +8,7 @@ import {
   executeWriteBodySchema,
   finishRunBodySchema,
   addStepsBodySchema,
+  stageActionsBodySchema,
 } from "./agent-runs.schema.js";
 import * as internalService from "./agent-runs.internal.service.js";
 
@@ -51,5 +52,12 @@ export const addSteps = async (req: Request, res: Response) => {
   const { id } = internalRunParamsSchema.parse(req.params);
   const { steps } = addStepsBodySchema.parse(req.body ?? {});
   await internalService.addSteps(id, steps);
+  res.status(StatusCodes.OK).json({ ok: true });
+};
+
+export const stageStepActions = async (req: Request, res: Response) => {
+  const { id, key } = internalStepParamsSchema.parse(req.params);
+  const { actions } = stageActionsBodySchema.parse(req.body ?? {});
+  await internalService.stageStepActions(id, key, actions);
   res.status(StatusCodes.OK).json({ ok: true });
 };

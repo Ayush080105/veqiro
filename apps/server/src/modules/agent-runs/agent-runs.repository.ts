@@ -63,6 +63,8 @@ export const createRunWithSteps = (input: CreateRunInput) =>
       ...(input.trigger ? { trigger: input.trigger } : {}),
       requestText: input.requestText,
       ...(input.isTeam ? { isTeam: true } : {}),
+      ...(input.trigger ? { trigger: input.trigger } : {}),
+      ...(input.triggerEventId ? { triggerEventId: input.triggerEventId } : {}),
       goal: input.goal,
       status: AgentRunStatus.AWAITING_PLAN_APPROVAL,
       ...(input.plannerMeta !== undefined

@@ -25,6 +25,8 @@ export interface CreateRunInput {
   requestText: string;
   /** Planned from the shared team thread rather than one agent's chat. */
   isTeam?: boolean;
+  /** The trigger event that started it, so staged actions trace back to it. */
+  triggerEventId?: string | null;
   goal: string;
   plannerMeta?: unknown;
   nodes: PlanNodeInput[];

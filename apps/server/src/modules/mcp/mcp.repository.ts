@@ -118,6 +118,8 @@ export interface CreatePendingActionInput {
   /** Defaults to CHAT — only trigger-originated actions pass this. */
   source?: McpActionSource;
   triggerEventId?: string;
+  /** Links the action to the run step that proposed it. */
+  runStepId?: string;
 }
 
 export const createPendingActions = (rows: CreatePendingActionInput[]) =>
@@ -135,6 +137,7 @@ export const createPendingActions = (rows: CreatePendingActionInput[]) =>
       summary: r.summary,
       source: r.source ?? McpActionSource.CHAT,
       triggerEventId: r.triggerEventId ?? null,
+      runStepId: r.runStepId ?? null,
     })),
   });
 

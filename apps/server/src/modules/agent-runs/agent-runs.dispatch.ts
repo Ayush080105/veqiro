@@ -114,3 +114,21 @@ export const dispatchApprovedRun = async (runId: string) => {
     });
   }
 };
+
+/**
+ * Dispatch for a run nobody approved. Stage mode: reads execute, writes become
+ * approval cards. A failure leaves the run FAILED rather than RUNNING, so the
+ * sweeper does not keep retrying a play that cannot start.
+ */
+export const dispatchUnattendedRun = async (runId: string) => {
+  const run = await repo.findRunById(runId);
+  if (!run) return;
+  const ok = await dispatchRun(run, "stage");
+  if (!ok) {
+    await repo.updateRun(runId, {
+      status: AgentRunStatus.FAILED,
+      errorMessage: "Could not reach the execution service. Nothing was run.",
+      finishedAt: new Date(),
+    });
+  }
+};

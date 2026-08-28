@@ -8,7 +8,7 @@ import {
 } from "../../../prisma/generated/prisma/client.js";
 import * as repo from "./agent-runs.repository.js";
 import type { RunView, RunStepView, CreateRunInput } from "./agent-runs.types.js";
-import { dispatchApprovedRun } from "./agent-runs.dispatch.js";
+import { dispatchApprovedRun, dispatchUnattendedRun } from "./agent-runs.dispatch.js";
 
 /** Runs past these are immutable. */
 const TERMINAL: ReadonlySet<AgentRunStatus> = new Set([
@@ -308,4 +308,22 @@ export const submitStepAction = async (
   void dispatchApprovedRun(runId);
 
   return getRun(organizationId, runId);
+};
+
+/**
+ * Starts a run nobody approved, because nobody was there to.
+ *
+ * The difference from approvePlan is what it does NOT do: it records no
+ * approvedWrites and grants no write authority. Dispatched in stage mode,
+ * every write the run reaches becomes a card the user confirms later, which
+ * is the whole contract of an unattended run — it may read freely and change
+ * nothing on its own.
+ */
+export const startUnattendedRun = async (runId: string) => {
+  await repo.updateRun(runId, {
+    status: AgentRunStatus.RUNNING,
+    startedAt: new Date(),
+    heartbeatAt: new Date(),
+  });
+  void dispatchUnattendedRun(runId);
 };

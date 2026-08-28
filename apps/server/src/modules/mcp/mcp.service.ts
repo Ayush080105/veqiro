@@ -885,11 +885,14 @@ export const stagePendingActions = async (params: {
   organizationId: string;
   userId: string;
   agent: Agent;
-  messageId: string;
+  /** Null when nothing was said in a conversation — an unattended run. */
+  messageId: string | null;
   pendingActions: RawPendingAction[];
   /** Omitted for chat turns; TRIGGER marks an action proposed with nobody watching. */
   source?: McpActionSource;
   triggerEventId?: string;
+  /** Set when the action came from a run step, so the graph can link to it. */
+  runStepId?: string;
 }): Promise<void> => {
   if (params.pendingActions.length === 0) return;
   const connectionIds = [...new Set(params.pendingActions.map((a) => a.connection_id))];
@@ -910,6 +913,7 @@ export const stagePendingActions = async (params: {
       summary: a.summary,
       source: params.source,
       triggerEventId: params.triggerEventId,
+      runStepId: params.runStepId,
     }))
   );
 

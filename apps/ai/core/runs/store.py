@@ -59,6 +59,10 @@ class RunStore(Protocol):
 
     async def add_steps(self, run_id: str, steps: list[dict]) -> bool: ...
 
+    async def stage_actions(
+        self, run_id: str, key: str, actions: list[dict]
+    ) -> bool: ...
+
     async def finish(
         self, run_id: str, status: str, summary: str, error: str | None = None
     ) -> None: ...
@@ -121,6 +125,20 @@ class HttpRunStore:
             requires_approval=bool(data.get("requiresApproval")),
         )
 
+    async def stage_actions(self, run_id: str, key: str, actions: list[dict]) -> bool:
+        """Hand writes an unattended run proposed to Node, as approval cards.
+
+        These are the whole point of an unattended run: nobody was watching, so
+        the writes become proposals the user confirms later. Losing them turns
+        a useful run into one that read a lot and offered nothing.
+        """
+        try:
+            await self._post(f"{run_id}/steps/{key}/stage", {"actions": actions})
+            return True
+        except Exception:
+            logger.error("staging actions failed | run=%s step=%s", run_id, key, exc_info=True)
+            return False
+
     async def add_steps(self, run_id: str, steps: list[dict]) -> bool:
         """Persist steps a repair pass added, so the graph shows them.
 
@@ -161,6 +179,8 @@ class InMemoryRunStore:
     write_results: dict[str, WriteResult] = field(default_factory=dict)
     #: Steps a repair pass added.
     added_steps: list[dict] = field(default_factory=list)
+    #: (step key, actions) an unattended run proposed.
+    staged: list = field(default_factory=list)
     #: Set False to simulate Node refusing to record repair steps.
     add_steps_ok: bool = True
 
@@ -178,6 +198,10 @@ class InMemoryRunStore:
     async def add_steps(self, run_id: str, steps: list[dict]) -> bool:
         self.added_steps.extend(steps)
         return self.add_steps_ok
+
+    async def stage_actions(self, run_id: str, key: str, actions: list[dict]) -> bool:
+        self.staged.append((key, actions))
+        return True
 
     async def finish(
         self, run_id: str, status: str, summary: str, error: str | None = None

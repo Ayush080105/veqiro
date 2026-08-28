@@ -230,3 +230,42 @@ export const addSteps = async (
   }
   await repo.addSteps(runId, steps);
 };
+
+/**
+ * Records writes an unattended step proposed, as ordinary approval cards.
+ *
+ * This is what an unattended run is for: nobody was watching, so the writes
+ * become proposals rather than actions. They go through the same staging path
+ * a trigger uses, which means the org's approval policy still applies — an
+ * AUTO_RUN integration runs, a NEVER one is refused, and everything else waits
+ * for the user exactly as it would from a chat turn.
+ */
+export const stageStepActions = async (
+  runId: string,
+  key: string,
+  actions: { id: string; connection_id: string; tool_name: string; arguments: Record<string, unknown>; summary: string }[],
+) => {
+  const run = await prisma.agentRun.findUnique({
+    where: { id: runId },
+    include: { steps: { where: { key } } },
+  });
+  if (!run) throw new NotFoundError("Run not found");
+  const step = run.steps[0];
+  if (!step) throw new NotFoundError("Step not found");
+  if (run.status !== AgentRunStatus.RUNNING) {
+    throw new BadRequestError(`Run is ${run.status.toLowerCase()}, not running`);
+  }
+
+  await mcpService.stagePendingActions({
+    organizationId: run.organizationId,
+    userId: run.userId,
+    agent: step.agent,
+    messageId: run.messageId,
+    pendingActions: actions,
+    // TRIGGER regardless of how the run started: what the confirm UI needs to
+    // know is that nobody was watching when this was proposed.
+    source: McpActionSource.TRIGGER,
+    triggerEventId: run.triggerEventId ?? undefined,
+    runStepId: step.id,
+  });
+};

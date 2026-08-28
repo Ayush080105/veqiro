@@ -52,6 +52,7 @@ export type AgentRunMinAggregateOutputType = {
   approvedByUserId: string | null
   approvedAt: Date | null
   messageId: string | null
+  triggerEventId: string | null
   summary: string | null
   errorMessage: string | null
   heartbeatAt: Date | null
@@ -77,6 +78,7 @@ export type AgentRunMaxAggregateOutputType = {
   approvedByUserId: string | null
   approvedAt: Date | null
   messageId: string | null
+  triggerEventId: string | null
   summary: string | null
   errorMessage: string | null
   heartbeatAt: Date | null
@@ -104,6 +106,7 @@ export type AgentRunCountAggregateOutputType = {
   approvedByUserId: number
   approvedAt: number
   messageId: number
+  triggerEventId: number
   summary: number
   errorMessage: number
   heartbeatAt: number
@@ -143,6 +146,7 @@ export type AgentRunMinAggregateInputType = {
   approvedByUserId?: true
   approvedAt?: true
   messageId?: true
+  triggerEventId?: true
   summary?: true
   errorMessage?: true
   heartbeatAt?: true
@@ -168,6 +172,7 @@ export type AgentRunMaxAggregateInputType = {
   approvedByUserId?: true
   approvedAt?: true
   messageId?: true
+  triggerEventId?: true
   summary?: true
   errorMessage?: true
   heartbeatAt?: true
@@ -195,6 +200,7 @@ export type AgentRunCountAggregateInputType = {
   approvedByUserId?: true
   approvedAt?: true
   messageId?: true
+  triggerEventId?: true
   summary?: true
   errorMessage?: true
   heartbeatAt?: true
@@ -309,6 +315,7 @@ export type AgentRunGroupByOutputType = {
   approvedByUserId: string | null
   approvedAt: Date | null
   messageId: string | null
+  triggerEventId: string | null
   summary: string | null
   errorMessage: string | null
   heartbeatAt: Date | null
@@ -359,6 +366,7 @@ export type AgentRunWhereInput = {
   approvedByUserId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   approvedAt?: Prisma.DateTimeNullableFilter<"AgentRun"> | Date | string | null
   messageId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
+  triggerEventId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   summary?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   errorMessage?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   heartbeatAt?: Prisma.DateTimeNullableFilter<"AgentRun"> | Date | string | null
@@ -388,6 +396,7 @@ export type AgentRunOrderByWithRelationInput = {
   approvedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   messageId?: Prisma.SortOrderInput | Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   heartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -420,6 +429,7 @@ export type AgentRunWhereUniqueInput = Prisma.AtLeast<{
   approvedByUserId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   approvedAt?: Prisma.DateTimeNullableFilter<"AgentRun"> | Date | string | null
   messageId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
+  triggerEventId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   summary?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   errorMessage?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   heartbeatAt?: Prisma.DateTimeNullableFilter<"AgentRun"> | Date | string | null
@@ -449,6 +459,7 @@ export type AgentRunOrderByWithAggregationInput = {
   approvedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   messageId?: Prisma.SortOrderInput | Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   heartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -484,6 +495,7 @@ export type AgentRunScalarWhereWithAggregatesInput = {
   approvedByUserId?: Prisma.StringNullableWithAggregatesFilter<"AgentRun"> | string | null
   approvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AgentRun"> | Date | string | null
   messageId?: Prisma.StringNullableWithAggregatesFilter<"AgentRun"> | string | null
+  triggerEventId?: Prisma.StringNullableWithAggregatesFilter<"AgentRun"> | string | null
   summary?: Prisma.StringNullableWithAggregatesFilter<"AgentRun"> | string | null
   errorMessage?: Prisma.StringNullableWithAggregatesFilter<"AgentRun"> | string | null
   heartbeatAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AgentRun"> | Date | string | null
@@ -510,6 +522,7 @@ export type AgentRunCreateInput = {
   approvedWrites?: Prisma.AgentRunCreateapprovedWritesInput | string[]
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -539,6 +552,7 @@ export type AgentRunUncheckedCreateInput = {
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
   messageId?: string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -566,6 +580,7 @@ export type AgentRunUpdateInput = {
   approvedWrites?: Prisma.AgentRunUpdateapprovedWritesInput | string[]
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -595,6 +610,7 @@ export type AgentRunUncheckedUpdateInput = {
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -623,6 +639,7 @@ export type AgentRunCreateManyInput = {
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
   messageId?: string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -649,6 +666,7 @@ export type AgentRunUpdateManyMutationInput = {
   approvedWrites?: Prisma.AgentRunUpdateapprovedWritesInput | string[]
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -676,6 +694,7 @@ export type AgentRunUncheckedUpdateManyInput = {
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -713,6 +732,7 @@ export type AgentRunCountOrderByAggregateInput = {
   approvedByUserId?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   heartbeatAt?: Prisma.SortOrder
@@ -744,6 +764,7 @@ export type AgentRunMaxOrderByAggregateInput = {
   approvedByUserId?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   heartbeatAt?: Prisma.SortOrder
@@ -769,6 +790,7 @@ export type AgentRunMinOrderByAggregateInput = {
   approvedByUserId?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  triggerEventId?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   heartbeatAt?: Prisma.SortOrder
@@ -879,6 +901,7 @@ export type AgentRunCreateWithoutMessageInput = {
   approvedWrites?: Prisma.AgentRunCreateapprovedWritesInput | string[]
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -906,6 +929,7 @@ export type AgentRunUncheckedCreateWithoutMessageInput = {
   approvedWrites?: Prisma.AgentRunCreateapprovedWritesInput | string[]
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -963,6 +987,7 @@ export type AgentRunScalarWhereInput = {
   approvedByUserId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   approvedAt?: Prisma.DateTimeNullableFilter<"AgentRun"> | Date | string | null
   messageId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
+  triggerEventId?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   summary?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   errorMessage?: Prisma.StringNullableFilter<"AgentRun"> | string | null
   heartbeatAt?: Prisma.DateTimeNullableFilter<"AgentRun"> | Date | string | null
@@ -989,6 +1014,7 @@ export type AgentRunCreateWithoutStepsInput = {
   approvedWrites?: Prisma.AgentRunCreateapprovedWritesInput | string[]
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -1017,6 +1043,7 @@ export type AgentRunUncheckedCreateWithoutStepsInput = {
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
   messageId?: string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -1059,6 +1086,7 @@ export type AgentRunUpdateWithoutStepsInput = {
   approvedWrites?: Prisma.AgentRunUpdateapprovedWritesInput | string[]
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1087,6 +1115,7 @@ export type AgentRunUncheckedUpdateWithoutStepsInput = {
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1113,6 +1142,7 @@ export type AgentRunCreateManyMessageInput = {
   approvedWrites?: Prisma.AgentRunCreateapprovedWritesInput | string[]
   approvedByUserId?: string | null
   approvedAt?: Date | string | null
+  triggerEventId?: string | null
   summary?: string | null
   errorMessage?: string | null
   heartbeatAt?: Date | string | null
@@ -1139,6 +1169,7 @@ export type AgentRunUpdateWithoutMessageInput = {
   approvedWrites?: Prisma.AgentRunUpdateapprovedWritesInput | string[]
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1166,6 +1197,7 @@ export type AgentRunUncheckedUpdateWithoutMessageInput = {
   approvedWrites?: Prisma.AgentRunUpdateapprovedWritesInput | string[]
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1193,6 +1225,7 @@ export type AgentRunUncheckedUpdateManyWithoutMessageInput = {
   approvedWrites?: Prisma.AgentRunUpdateapprovedWritesInput | string[]
   approvedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  triggerEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   heartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1251,6 +1284,7 @@ export type AgentRunSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   approvedByUserId?: boolean
   approvedAt?: boolean
   messageId?: boolean
+  triggerEventId?: boolean
   summary?: boolean
   errorMessage?: boolean
   heartbeatAt?: boolean
@@ -1281,6 +1315,7 @@ export type AgentRunSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   approvedByUserId?: boolean
   approvedAt?: boolean
   messageId?: boolean
+  triggerEventId?: boolean
   summary?: boolean
   errorMessage?: boolean
   heartbeatAt?: boolean
@@ -1309,6 +1344,7 @@ export type AgentRunSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   approvedByUserId?: boolean
   approvedAt?: boolean
   messageId?: boolean
+  triggerEventId?: boolean
   summary?: boolean
   errorMessage?: boolean
   heartbeatAt?: boolean
@@ -1337,6 +1373,7 @@ export type AgentRunSelectScalar = {
   approvedByUserId?: boolean
   approvedAt?: boolean
   messageId?: boolean
+  triggerEventId?: boolean
   summary?: boolean
   errorMessage?: boolean
   heartbeatAt?: boolean
@@ -1348,7 +1385,7 @@ export type AgentRunSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AgentRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "isTeam" | "trigger" | "requestText" | "status" | "goal" | "planVersion" | "plannerMeta" | "approvedWrites" | "approvedByUserId" | "approvedAt" | "messageId" | "summary" | "errorMessage" | "heartbeatAt" | "resumeCount" | "toolCallsUsed" | "startedAt" | "finishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["agentRun"]>
+export type AgentRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "isTeam" | "trigger" | "requestText" | "status" | "goal" | "planVersion" | "plannerMeta" | "approvedWrites" | "approvedByUserId" | "approvedAt" | "messageId" | "triggerEventId" | "summary" | "errorMessage" | "heartbeatAt" | "resumeCount" | "toolCallsUsed" | "startedAt" | "finishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["agentRun"]>
 export type AgentRunInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   message?: boolean | Prisma.AgentRun$messageArgs<ExtArgs>
   steps?: boolean | Prisma.AgentRun$stepsArgs<ExtArgs>
@@ -1439,6 +1476,12 @@ export type $AgentRunPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
      * Assistant message that renders the graph and final summary.
      */
     messageId: string | null
+    /**
+     * Trigger event that caused this run, when trigger is TRIGGER. Kept so a
+     * staged action still traces back to the event, exactly as it does on the
+     * direct path.
+     */
+    triggerEventId: string | null
     /**
      * Final synthesis written when the run finishes.
      */
@@ -1915,6 +1958,7 @@ export interface AgentRunFieldRefs {
   readonly approvedByUserId: Prisma.FieldRef<"AgentRun", 'String'>
   readonly approvedAt: Prisma.FieldRef<"AgentRun", 'DateTime'>
   readonly messageId: Prisma.FieldRef<"AgentRun", 'String'>
+  readonly triggerEventId: Prisma.FieldRef<"AgentRun", 'String'>
   readonly summary: Prisma.FieldRef<"AgentRun", 'String'>
   readonly errorMessage: Prisma.FieldRef<"AgentRun", 'String'>
   readonly heartbeatAt: Prisma.FieldRef<"AgentRun", 'DateTime'>

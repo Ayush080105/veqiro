@@ -2101,6 +2101,10 @@ model AgentRun {
   messageId        String?
   /// The message rendering this run.
   message          Message?        @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  /// Trigger event that caused this run, when trigger is TRIGGER. Kept so a
+  /// staged action still traces back to the event, exactly as it does on the
+  /// direct path.
+  triggerEventId   String?
   /// Final synthesis written when the run finishes.
   summary          String?
   /// Failure detail, when the run did not complete.
