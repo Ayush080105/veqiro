@@ -6,7 +6,6 @@ import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
 import { ChatImage } from "@/components/chat/ChatImage"
 import { PendingMcpActionCard } from "@/components/chat/PendingMcpActionCard"
-import { ToolTraceStrip } from "@/components/chat/ToolTraceStrip"
 import { FONT } from "@/lib/fonts"
 import type { Message } from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
@@ -288,9 +287,6 @@ function ChatMessageComponent({
             )}
             {inlineTimestamp(false)}
           </div>
-        )}
-        {message.customInput?.toolTrace && (
-          <ToolTraceStrip trace={message.customInput.toolTrace} />
         )}
         {message.customInput?.pendingActions?.map((pa) => (
           <PendingMcpActionCard key={pa.id} id={pa.id} summary={pa.summary} status={pa.status} />
