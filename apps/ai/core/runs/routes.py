@@ -115,6 +115,25 @@ async def _tool_names_by_slug(
     return {slug: names for slug, names in results if names}
 
 
+def _native_tools(slugs: list[str]) -> dict[str, list[str]]:
+    """Each agent's own tool names, for the planner.
+
+    Without these the planner only sees what an agent can reach in a
+    third-party system, so the work Veqiro does itself - generating an image,
+    drafting copy - is invisible to it and never gets a step.
+    """
+    out: dict[str, list[str]] = {}
+    for slug in slugs:
+        agent = get_agent(slug)
+        if agent is None:
+            continue
+        try:
+            out[slug] = [t.name for t in agent.get_tools()]
+        except Exception:
+            logger.warning("could not list native tools for %s", slug, exc_info=True)
+    return out
+
+
 @router.post("/plan", response_model=PlanResponse)
 async def plan_run(body: PlanRequest) -> PlanResponse:
     """Decide whether a request is multi-step, and decompose it if so."""
@@ -159,6 +178,7 @@ async def plan_run(body: PlanRequest) -> PlanResponse:
         _llm,
         body.message,
         agent_descriptions=agent_descriptions,
+        native_tools_by_agent=_native_tools(allowed),
         catalog=catalog,
         tool_names_by_slug=tool_names,
         connected_slugs=set(connected),

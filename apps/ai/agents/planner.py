@@ -332,8 +332,22 @@ def build_system_prompt(
     agent_descriptions: dict[str, str],
     catalog: list[dict],
     tool_names_by_slug: dict[str, list[str]],
+    native_tools_by_agent: dict[str, list[str]] | None = None,
 ) -> str:
-    agents_block = "\n".join(f"- {k}: {v}" for k, v in agent_descriptions.items())
+    native_tools_by_agent = native_tools_by_agent or {}
+
+    def _agent_line(slug: str, desc: str) -> str:
+        # Native tools matter as much as MCP ones here. Without them the
+        # planner only knows what an agent can reach in a third-party system,
+        # so it cannot plan the half of the work Veqiro does itself - Maya
+        # generating an image is invisible, and a post step gets planned with
+        # no way to produce the media it needs.
+        native = ", ".join(native_tools_by_agent.get(slug, []))
+        return f"- {slug}: {desc}" + (f"; built-in tools: {native}" if native else "")
+
+    agents_block = "\n".join(
+        _agent_line(k, v) for k, v in agent_descriptions.items()
+    )
     connected = [c for c in catalog if c.get("connected")]
     if connected:
         lines = []
@@ -365,6 +379,7 @@ def build_system_prompt(
         "- Never plan a step against an integration that is not connected. Put "
         "it in `unavailable` with a reason instead.\n"
         "- `integration_slug` must be one of the connected slugs above, or null.\n"
+        "- A step that uses an agent's built-in tools (generating an image, drafting copy, analysing data) takes `integration_slug: null`. Plan those steps too - they are how the work gets made before it is published anywhere.\n"
         "- A step's `agent` MUST be one of the agents listed as able to use "
         "its `integration_slug`. Assigning an integration to an agent that "
         "cannot reach it produces a step that fails.\n\n"
@@ -386,6 +401,7 @@ async def build_plan(
     catalog: list[dict],
     tool_names_by_slug: dict[str, list[str]],
     connected_slugs: set[str],
+    native_tools_by_agent: dict[str, list[str]] | None = None,
     gate_score: int = 0,
     min_nodes: int = MIN_NODES,
 ) -> Plan | None:
@@ -399,6 +415,7 @@ async def build_plan(
         agent_descriptions=agent_descriptions,
         catalog=catalog,
         tool_names_by_slug=tool_names_by_slug,
+        native_tools_by_agent=native_tools_by_agent,
     )
     provider, model = PLANNER_MODEL
     try:

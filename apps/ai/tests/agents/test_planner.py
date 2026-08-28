@@ -9,6 +9,7 @@ import pytest
 
 from agents.planner import (
     MAX_NODES,
+    build_system_prompt,
     GateResult,
     should_plan,
     validate_plan,
@@ -350,3 +351,52 @@ def test_prompt_is_explicit_when_nothing_is_connected():
         agent_descriptions={"sage": "SEO"}, catalog=[], tool_names_by_slug={},
     )
     assert "(none connected)" in prompt
+
+
+# ── Native tool visibility ──────────────────────────────────────────────────
+
+def test_prompt_lists_an_agents_built_in_tools():
+    """Without these the planner only knows what an agent can reach in a
+    third-party system — so Maya generating an image is invisible to it, and a
+    post step gets planned with no way to produce the media it needs."""
+    prompt = build_system_prompt(
+        agent_descriptions={"maya": "Content creation"},
+        catalog=[],
+        tool_names_by_slug={},
+        native_tools_by_agent={"maya": ["generate_variants", "modify_image"]},
+    )
+
+    assert "generate_variants" in prompt
+    assert "modify_image" in prompt
+
+
+def test_prompt_omits_the_clause_for_an_agent_with_no_native_tools():
+    prompt = build_system_prompt(
+        agent_descriptions={"maya": "Content creation"},
+        catalog=[],
+        tool_names_by_slug={},
+        native_tools_by_agent={},
+    )
+
+    assert "built-in tools:" not in prompt
+    assert "- maya: Content creation" in prompt
+
+
+def test_prompt_tells_the_planner_built_in_steps_carry_no_integration():
+    """A built-in step must not be given an integration_slug, or validation
+    would bind it to a connection it never uses."""
+    prompt = build_system_prompt(
+        agent_descriptions={"maya": "d"}, catalog=[], tool_names_by_slug={},
+    )
+
+    assert "`integration_slug: null`" in prompt
+
+
+def test_prompt_forbids_splitting_creation_from_population():
+    """The live failure: 'create a sheet' and 'populate the sheet' were split,
+    and the populate step stalled asking for an id the first never returned."""
+    prompt = build_system_prompt(
+        agent_descriptions={"maya": "d"}, catalog=[], tool_names_by_slug={},
+    )
+
+    assert "Do NOT split creating" in prompt
