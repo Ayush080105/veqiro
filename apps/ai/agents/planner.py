@@ -233,6 +233,7 @@ def validate_plan(
     gate_score: int = 0,
     model_used: str = "",
     min_nodes: int = MIN_NODES,
+    owners_by_slug: dict[str, list[str]] | None = None,
 ) -> Plan | None:
     """Turn model output into a Plan, or None if it cannot be trusted."""
     if not isinstance(raw, dict):
@@ -261,6 +262,14 @@ def validate_plan(
             # Never plan against something the org has not connected.
             if slug not in connected_slugs:
                 slug = None
+
+        # Integrations are owned by specific agents. If the model picked one
+        # that cannot reach this integration, move the step to an owner instead
+        # of shipping a node guaranteed to fail once steps actually execute.
+        if slug is not None and owners_by_slug:
+            owners = [o for o in owners_by_slug.get(slug, []) if o in known_agents]
+            if owners and agent not in owners:
+                agent = owners[0]
 
         is_write = bool(item.get("is_write"))
         scope = item.get("expected_scope")
@@ -333,7 +342,10 @@ def build_system_prompt(
             # Names only, never schemas: this is what stops the planner
             # inventing a step against a tool the org does not actually have.
             tools = ", ".join(tool_names_by_slug.get(slug, [])[:40]) or "(tools not listed)"
-            lines.append(f"- {slug} ({c.get('name', slug)}): {tools}")
+            owners = ", ".join(c.get("agents") or []) or "unknown"
+            lines.append(
+                f"- {slug} ({c.get('name', slug)}) — usable by: {owners}; tools: {tools}"
+            )
         connected_block = "\n".join(lines)
     else:
         connected_block = "(none connected)"
@@ -352,7 +364,10 @@ def build_system_prompt(
         "describing the blast radius (e.g. 'one issue per page, at most 20').\n"
         "- Never plan a step against an integration that is not connected. Put "
         "it in `unavailable` with a reason instead.\n"
-        "- `integration_slug` must be one of the connected slugs above, or null.\n\n"
+        "- `integration_slug` must be one of the connected slugs above, or null.\n"
+        "- A step's `agent` MUST be one of the agents listed as able to use "
+        "its `integration_slug`. Assigning an integration to an agent that "
+        "cannot reach it produces a step that fails.\n\n"
         "Respond in JSON:\n"
         '{"goal": "...", "nodes": [{"key": "s1", "title": "...", "agent": "...", '
         '"intent": "...", "integration_slug": "..."|null, "depends_on": [], '
@@ -373,6 +388,11 @@ async def build_plan(
     min_nodes: int = MIN_NODES,
 ) -> Plan | None:
     """Ask for a DAG and validate it. None means 'take the normal path'."""
+    owners_by_slug = {
+        str(c.get("slug", "")).lower(): [str(a).lower() for a in (c.get("agents") or [])]
+        for c in catalog
+        if c.get("slug")
+    }
     system = build_system_prompt(
         agent_descriptions=agent_descriptions,
         catalog=catalog,
@@ -398,4 +418,5 @@ async def build_plan(
         gate_score=gate_score,
         model_used=model,
         min_nodes=min_nodes,
+        owners_by_slug=owners_by_slug,
     )

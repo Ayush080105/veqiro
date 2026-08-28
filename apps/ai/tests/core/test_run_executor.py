@@ -205,3 +205,112 @@ async def test_progress_is_reported_for_every_step(harness):
     assert harness["store"].steps["a"]["status"] == "SUCCEEDED"
     assert harness["store"].steps["b"]["status"] == "SUCCEEDED"
     assert harness["store"].heartbeats, "run must report liveness"
+
+
+# ── Resume ──────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_resume_does_not_rerun_finished_steps(harness):
+    """The whole point of resume: a write must never happen twice."""
+    result = await harness["runner"].execute(
+        _spec([
+            _step("a", prior_status="SUCCEEDED", prior_output="earlier result"),
+            _step("b", ["a"]),
+        ])
+    )
+    assert "a" not in harness["order"], "a finished before the crash"
+    assert harness["order"] == ["b"]
+    assert result.steps["a"].status == "SUCCEEDED"
+    assert result.status == "COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_resume_keeps_dependents_runnable(harness):
+    """Regression: seeding a finished step as DISABLED blocked everything
+    downstream, so a resumed run stalled exactly where it crashed."""
+    result = await harness["runner"].execute(
+        _spec([
+            _step("a", prior_status="SUCCEEDED", prior_output="x"),
+            _step("b", ["a"]),
+            _step("c", ["b"]),
+        ])
+    )
+    assert result.steps["b"].status == "SUCCEEDED"
+    assert result.steps["c"].status == "SUCCEEDED"
+
+
+@pytest.mark.asyncio
+async def test_resume_feeds_prior_output_to_dependents(harness, monkeypatch):
+    """A resumed step's output is the input its dependents read — losing it
+    would make them run against nothing."""
+    seen: list[str] = []
+
+    async def capture(agent, *, step_key, upstream=(), **kwargs):
+        seen.extend(u.text for u in upstream)
+        return StepOutcome(text=f"{step_key} done", tool_calls_used=1)
+
+    monkeypatch.setattr(ex, "run_step", capture)
+    await harness["runner"].execute(
+        _spec([
+            _step("a", prior_status="SUCCEEDED", prior_output="the earlier result"),
+            _step("b", ["a"]),
+        ])
+    )
+    assert "the earlier result" in seen
+
+
+@pytest.mark.asyncio
+async def test_user_disabled_step_still_blocks_dependents(harness):
+    """Disabled and already-finished must stay distinct: a step the user
+    switched off genuinely did not run."""
+    result = await harness["runner"].execute(
+        _spec([_step("a", enabled=False), _step("b", ["a"])])
+    )
+    assert result.steps["a"].status == "DISABLED"
+    assert result.steps["b"].status in ("BLOCKED", "SKIPPED")
+
+
+# ── Tool scoping ────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_each_step_sees_only_its_own_agent_connections(harness, monkeypatch):
+    """A merged connection list would let a step reach an integration its agent
+    does not own, undoing the ownership rule the planner enforces."""
+    seen: dict[str, list] = {}
+
+    async def capture(agent, *, step_key, request, **kwargs):
+        seen[step_key] = request.metadata.get("mcp_connections", [])
+        return StepOutcome(text="ok", tool_calls_used=1)
+
+    monkeypatch.setattr(ex, "run_step", capture)
+    await harness["runner"].execute(
+        RunSpec(
+            run_id="run-1", organization_id="org", user_id="user", goal="g",
+            steps=[_step("a", agent="vega"), _step("b", agent="sage")],
+            connections_by_agent={
+                "vega": [{"connectionId": "c1", "integrationSlug": "gmail"}],
+                "sage": [{"connectionId": "c2", "integrationSlug": "google-search-console"}],
+            },
+        )
+    )
+    assert [c["integrationSlug"] for c in seen["a"]] == ["gmail"]
+    assert [c["integrationSlug"] for c in seen["b"]] == ["google-search-console"]
+
+
+@pytest.mark.asyncio
+async def test_step_for_an_agent_with_no_connections_gets_an_empty_list(harness, monkeypatch):
+    seen = {}
+
+    async def capture(agent, *, step_key, request, **kwargs):
+        seen[step_key] = request.metadata.get("mcp_connections")
+        return StepOutcome(text="ok", tool_calls_used=1)
+
+    monkeypatch.setattr(ex, "run_step", capture)
+    await harness["runner"].execute(
+        RunSpec(
+            run_id="run-1", organization_id="org", user_id="user", goal="g",
+            steps=[_step("a", agent="lex")],
+            connections_by_agent={"vega": [{"connectionId": "c1"}]},
+        )
+    )
+    assert seen["a"] == []

@@ -9,7 +9,10 @@ import scoutRouter from "./modules/agents/scout/scout.routes.js";
 import mayaRouter from "./modules/agents/maya/maya.routes.js";
 import lexRouter from "./modules/agents/lex/lex.routes.js";
 import vegaRouter from "./modules/agents/vega/vega.routes.js";
-import { agentRunsRouter } from "./modules/agent-runs/agent-runs.routes.js";
+import {
+  agentRunsRouter,
+  runsInternalRouter,
+} from "./modules/agent-runs/agent-runs.routes.js";
 import { teamRouter } from "./modules/agent-runs/team.routes.js";
 import contextRouter from "./modules/context/context.routes.js";
 import integrationsProtectedRouter, {
@@ -61,6 +64,7 @@ router.use("/dashboard", authMiddleware, dashboardRouter);
 
 router.use("/brand-kit", authMiddleware, brandKitRouter);
 router.use("/brand-images", authMiddleware, brandImagesRouter);
+router.use("/internal/runs", runsInternalRouter);
 router.get("/internal/brand-kit/:organizationId", internalKeyMiddleware, getBrandKitInternal);
 router.post("/internal/cron/rex-weekly-digest", internalKeyMiddleware, (_req, res) => {
   void runWeeklyDigestNow().then(() => res.json({ ok: true }));

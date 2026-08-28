@@ -4,6 +4,7 @@ import env from "./config/env.js";
 import { startSystemCrons } from "./jobs/system.cron.js";
 import { startPlaysCron } from "./modules/mcp/mcp.plays.cron.js";
 import { startMcpRetentionCron } from "./modules/mcp/mcp.retention.js";
+import { startAgentRunsCron } from "./modules/agent-runs/agent-runs.cron.js";
 import { validateBillingEnv } from "./modules/billing/billing.catalog.js";
 
 if (process.env.NODE_ENV !== "test") {
@@ -19,5 +20,6 @@ app.listen(env.PORT, () => {
     startSystemCrons();
     startPlaysCron();
     startMcpRetentionCron();
+    startAgentRunsCron();
   }
 });

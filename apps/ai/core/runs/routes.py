@@ -18,9 +18,11 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from agents import planner
-from agents.registry import _AGENT_DESCRIPTIONS
+from agents.registry import _AGENT_DESCRIPTIONS, get_agent
 from core.llm import LLMClient
 from core.mcp.cache import get_mcp_tools
+from core.runs.executor import RunExecutor, RunSpec, StepSpec
+from core.runs.store import HttpRunStore
 
 logger = logging.getLogger("run_routes")
 
@@ -192,3 +194,178 @@ async def plan_run(body: PlanRequest) -> PlanResponse:
             },
         ),
     )
+
+
+# ── Execution ───────────────────────────────────────────────────────────────
+
+class ExecuteStepIn(BaseModel):
+    key: str
+    agent: str
+    title: str
+    intent: str
+    integration_slug: str | None = None
+    depends_on: list[str] = Field(default_factory=list)
+    is_write: bool = False
+    enabled: bool = True
+    # Present only on a resume, so finished work is not repeated.
+    prior_status: str | None = None
+    prior_output: str = ""
+
+
+class ExecuteRequest(BaseModel):
+    run_id: str
+    organization_id: str
+    user_id: str
+    goal: str
+    steps: list[ExecuteStepIn]
+    # "stage" for unattended runs (writes become PENDING cards); "execute" for
+    # a plan the user approved in the UI.
+    write_mode: str = "stage"
+    # agent slug -> connections, as Node resolved them per agent.
+    connections_by_agent: dict = Field(default_factory=dict)
+
+
+class ExecuteResponse(BaseModel):
+    accepted: bool
+    reason: str = ""
+
+
+#: Runs this process is currently executing. The sweeper re-dispatches a run
+#: whose heartbeat has gone quiet, and a re-dispatch that lands while the
+#: original task is merely slow — not dead — would run every step twice.
+_inflight: set[str] = set()
+
+
+async def _build_step_prompt(agent, organization_id: str, user_id: str) -> str:
+    """The agent's own prompt, built once per agent per run.
+
+    Deliberately without RAG or memory: a planned step is given its intent and
+    its upstream results explicitly, and re-running retrieval for every node is
+    the per-step cost the planner exists to avoid.
+    """
+    prompt = await agent.build_system_prompt(user_id, organization_id)
+    prompt += agent.get_tool_instructions()
+    return prompt
+
+
+#: Deliberately the planner's model, not a cheap one: this text is the entire
+#: answer the user reads, and it must not overstate a partial run.
+SUMMARY_MAX_CHARS_PER_STEP = 4_000
+
+
+async def _summarize(spec: "RunSpec", result) -> str:
+    """Turn finished step outputs into the answer the user actually reads."""
+    done = [(s, result.steps[s.key]) for s in spec.steps if s.key in result.steps]
+    succeeded = [(s, st) for s, st in done if st.status == "SUCCEEDED"]
+    problems = [
+        (s, st) for s, st in done
+        if st.status in ("FAILED", "BLOCKED", "SKIPPED", "AWAITING_APPROVAL")
+    ]
+    if not succeeded and not problems:
+        return ""
+
+    blocks = []
+    for s, st in succeeded:
+        text = (st.output_text or "").strip()[:SUMMARY_MAX_CHARS_PER_STEP]
+        blocks.append(f"### {s.title} ({s.agent})\n{text}")
+    for s, st in problems:
+        blocks.append(f"### {s.title} ({s.agent}) - {st.status}\n{st.error or ''}")
+
+    provider, model = planner.PLANNER_MODEL
+    try:
+        return await _llm.complete(
+            provider=provider,
+            model=model,
+            system=(
+                "You are writing the final answer for a multi-step task that has "
+                "just finished. Write it for the person who asked, in their terms.\n\n"
+                "Rules:\n"
+                "- Lead with what they asked for, not with a description of the process.\n"
+                "- Use only what the step results below actually say. Never invent a "
+                "detail, a number, or a link that is not there.\n"
+                "- Any step marked FAILED, BLOCKED, SKIPPED or AWAITING_APPROVAL did "
+                "NOT happen. Say so plainly and say what is missing because of it. "
+                "Never describe such a step as done.\n"
+                "- No preamble, no sign-off."
+            ),
+            messages=[{
+                "role": "user",
+                "content": f"The task was: {spec.goal}\n\n" + "\n\n".join(blocks),
+            }],
+        )
+    except Exception:
+        logger.warning("summary generation failed | run=%s", spec.run_id, exc_info=True)
+        # Falling back to the raw blocks keeps a finished run readable rather
+        # than losing every result to one failed LLM call.
+        return "\n\n".join(blocks)
+
+
+async def _execute(spec: "RunSpec", run_id: str) -> None:
+    store = HttpRunStore()
+    try:
+        result = await RunExecutor(
+            store,
+            get_agent=get_agent,
+            build_system_prompt=_build_step_prompt,
+        ).execute(spec)
+        summary = await _summarize(spec, result)
+        await store.finish(run_id, result.status, summary)
+    except Exception as exc:
+        logger.exception("run execution crashed | run=%s", run_id)
+        # Node must never be left with a RUNNING row no one is advancing: the
+        # sweeper would keep re-dispatching a run that crashes deterministically.
+        await store.finish(run_id, "FAILED", "", str(exc))
+    finally:
+        _inflight.discard(run_id)
+
+
+@router.post("/execute", response_model=ExecuteResponse)
+async def execute_run(body: ExecuteRequest) -> ExecuteResponse:
+    """Start executing an approved plan, in the background.
+
+    Returns as soon as the task is scheduled — a run takes minutes, and Node's
+    approve request cannot wait for it. Progress arrives back over the internal
+    run routes.
+    """
+    if body.run_id in _inflight:
+        return ExecuteResponse(accepted=False, reason="already running in this process")
+
+    steps = [
+        StepSpec(
+            key=s.key,
+            agent=s.agent,
+            title=s.title,
+            intent=s.intent,
+            integration_slug=s.integration_slug,
+            depends_on=tuple(s.depends_on),
+            is_write=s.is_write,
+            enabled=s.enabled,
+            prior_status=s.prior_status,
+            prior_output=s.prior_output,
+        )
+        for s in body.steps
+    ]
+    # A resume whose remaining work is empty has nothing to do — every enabled
+    # step already succeeded.
+    if not any(s.enabled and s.prior_status != "SUCCEEDED" for s in steps):
+        return ExecuteResponse(accepted=False, reason="nothing left to run")
+
+    spec = RunSpec(
+        run_id=body.run_id,
+        organization_id=body.organization_id,
+        user_id=body.user_id,
+        goal=body.goal,
+        steps=steps,
+        write_mode=body.write_mode,
+        connections_by_agent=body.connections_by_agent,
+    )
+    _inflight.add(body.run_id)
+    # Held so the task is not garbage-collected mid-run: asyncio keeps only a
+    # weak reference to bare tasks.
+    task = asyncio.create_task(_execute(spec, body.run_id))
+    _running_tasks.add(task)
+    task.add_done_callback(_running_tasks.discard)
+    return ExecuteResponse(accepted=True)
+
+
+_running_tasks: set[asyncio.Task] = set()

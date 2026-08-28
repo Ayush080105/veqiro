@@ -7,6 +7,7 @@ import {
 } from "../../../prisma/generated/prisma/client.js";
 import * as repo from "./agent-runs.repository.js";
 import type { RunView, RunStepView, CreateRunInput } from "./agent-runs.types.js";
+import { dispatchApprovedRun } from "./agent-runs.dispatch.js";
 
 /** Runs past these are immutable. */
 const TERMINAL: ReadonlySet<AgentRunStatus> = new Set([
@@ -177,8 +178,15 @@ export const approvePlan = async (
     heartbeatAt: new Date(),
   });
 
+  const view = await getRun(organizationId, runId);
+
+  // Not awaited: execution takes minutes and the user is waiting on this
+  // response to see the graph go live. dispatchApprovedRun fails the run
+  // itself if apps/ai cannot be reached, so a lost dispatch is still visible.
+  void dispatchApprovedRun(runId);
+
   return {
-    run: await getRun(organizationId, runId),
+    run: view,
     disabledKeys: [...offKeys],
     approvedWrites,
   };

@@ -260,6 +260,73 @@ def test_keeps_only_deliverables_that_exist():
     assert plan.final_deliverables == ("s2",)
 
 
+# ── Integration ownership ───────────────────────────────────────────────────
+
+OWNERS = {"google-docs": ["lex"], "gmail": ["vega"], "linear": ["rex"]}
+
+
+def _validate_owned(raw):
+    return validate_plan(
+        raw,
+        known_agents=AGENTS,
+        connected_slugs={"google-docs", "gmail", "linear"},
+        owners_by_slug=OWNERS,
+    )
+
+
+def test_step_is_reassigned_to_an_agent_that_owns_the_integration():
+    """The bug this exists for: the planner gave Vega a Google Docs step, but
+    Docs belongs to Lex. Vega has no Docs tool, so that step could only fail
+    once execution was real. The prompt asks; this enforces."""
+    plan = _validate_owned(_raw([
+        _node("s1", agent="vega", slug="gmail"),
+        _node("s2", agent="vega", slug="google-docs"),
+    ]))
+    assert plan is not None
+    assert plan.nodes[0].agent == "vega"   # vega does own gmail
+    assert plan.nodes[1].agent == "lex"    # reassigned to the owner
+
+
+def test_a_correct_assignment_is_left_alone():
+    plan = _validate_owned(_raw([
+        _node("s1", agent="vega", slug="gmail"),
+        _node("s2", agent="rex", slug="linear"),
+    ]))
+    assert [n.agent for n in plan.nodes] == ["vega", "rex"]
+
+
+def test_owners_outside_the_room_are_ignored():
+    """In the team room `known_agents` is what the org actually bought. An
+    integration whose only owner is not in the room must not pull that agent
+    into the plan."""
+    plan = validate_plan(
+        _raw([_node("s1", agent="vega", slug="gmail"),
+              _node("s2", agent="vega", slug="google-docs")]),
+        known_agents={"vega"},
+        connected_slugs={"gmail", "google-docs"},
+        owners_by_slug=OWNERS,
+    )
+    assert plan is not None
+    assert plan.nodes[1].agent == "vega"
+
+
+def test_steps_without_an_integration_keep_their_agent():
+    plan = _validate_owned(_raw([
+        _node("s1", agent="maya"), _node("s2", agent="scout"),
+    ]))
+    assert [n.agent for n in plan.nodes] == ["maya", "scout"]
+
+
+def test_prompt_states_who_can_use_each_integration():
+    prompt = build_system_prompt(
+        agent_descriptions={"lex": "Legal"},
+        catalog=[{"slug": "google-docs", "name": "Google Docs",
+                  "connected": True, "agents": ["lex"]}],
+        tool_names_by_slug={"google-docs": ["GOOGLEDOCS_CREATE_DOCUMENT"]},
+    )
+    assert "usable by: lex" in prompt
+
+
 # ── Prompt ──────────────────────────────────────────────────────────────────
 
 def test_prompt_lists_only_connected_integrations_and_their_tools():

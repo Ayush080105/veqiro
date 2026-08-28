@@ -153,9 +153,17 @@ const resolveScope = async (
   const catalogBySlug = new Map<string, ReturnType<typeof mcpService.getCatalogForAgent>[number]>();
   for (const a of agents) {
     for (const e of mcpService.getCatalogForAgent(a, connections)) {
-      // Connected anywhere in the team means connected for the team.
       const prev = catalogBySlug.get(e.slug);
-      catalogBySlug.set(e.slug, prev?.connected ? prev : e);
+      catalogBySlug.set(e.slug, {
+        ...e,
+        // Connected anywhere in the team means connected for the team.
+        connected: Boolean(prev?.connected || e.connected),
+        // Union the owners, and keep only those actually in this room — the
+        // planner must not assign a step to an agent the org has not bought.
+        agents: [...new Set([...(prev?.agents ?? []), ...e.agents])].filter((slug) =>
+          agents.some((owned) => owned.toLowerCase() === slug.toLowerCase()),
+        ),
+      });
     }
   }
   return { agents, connections, catalog: [...catalogBySlug.values()] };

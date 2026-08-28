@@ -42,6 +42,12 @@ class StepSpec:
     depends_on: tuple[str, ...]
     is_write: bool
     enabled: bool = True
+    #: Set when a resumed run replays a step that already finished. Such a
+    #: step is seeded as SUCCEEDED rather than re-run, so a write is never
+    #: performed twice — and, unlike marking it disabled, its dependents stay
+    #: runnable and can still read its output.
+    prior_status: str | None = None
+    prior_output: str = ""
 
 
 @dataclass
@@ -52,6 +58,10 @@ class RunSpec:
     goal: str
     steps: list[StepSpec]
     write_mode: str = "stage"
+    #: agent slug -> that agent's connected MCP connections. Kept per agent
+    #: rather than merged so a step can only ever reach integrations its own
+    #: agent owns, matching what the planner assigned.
+    connections_by_agent: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -77,10 +87,14 @@ class RunExecutor:
 
     async def execute(self, spec: RunSpec) -> RunResult:
         started = time.monotonic()
-        state: dict[str, _StepState] = {
-            s.key: _StepState(status="PLANNED" if s.enabled else "DISABLED")
-            for s in spec.steps
-        }
+        def _seed(s: StepSpec) -> _StepState:
+            if not s.enabled:
+                return _StepState(status="DISABLED")
+            if s.prior_status == "SUCCEEDED":
+                return _StepState(status="SUCCEEDED", output_text=s.prior_output)
+            return _StepState(status="PLANNED")
+
+        state: dict[str, _StepState] = {s.key: _seed(s) for s in spec.steps}
         by_key = {s.key: s for s in spec.steps}
         tool_calls_used = 0
         cancelled = False
@@ -150,7 +164,11 @@ class RunExecutor:
                 conversation_id=f"run-{spec.run_id}",
                 message=s.intent,
                 history=[],
-                metadata={},
+                # _assemble_tools reads connections from here, exactly as a
+                # chat turn does. Without them a step sees no MCP tools at all.
+                metadata={
+                    "mcp_connections": spec.connections_by_agent.get(s.agent.lower(), []),
+                },
             )
 
             upstream = [

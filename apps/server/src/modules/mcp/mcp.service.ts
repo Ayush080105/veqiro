@@ -213,11 +213,20 @@ export const disconnect = async (organizationId: string, slug: string): Promise<
 export const getCatalogForAgent = (
   agentEnum: Agent,
   connections: { integrationSlug: string }[],
-): { slug: string; name: string; connected: boolean }[] => {
+): { slug: string; name: string; connected: boolean; agents: string[] }[] => {
   const connectedSlugs = new Set(connections.map((c) => c.integrationSlug));
   return getIntegrationsByAgent(agentEnum.toLowerCase() as AgentSlug)
     .filter((e) => e.status === "composio")
-    .map((e) => ({ slug: e.slug, name: e.name, connected: connectedSlugs.has(e.slug) }));
+    .map((e) => ({
+      slug: e.slug,
+      name: e.name,
+      connected: connectedSlugs.has(e.slug),
+      // Which agents can actually reach this integration. The team planner
+      // needs it: an integration being connected does not mean any agent may
+      // use it, and assigning a Google Docs step to Vega produces a step that
+      // cannot run, since Docs belongs to Lex.
+      agents: [...e.agents],
+    }));
 };
 
 export const getConnectionsForAgent = async (

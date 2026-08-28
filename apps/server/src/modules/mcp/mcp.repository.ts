@@ -106,7 +106,10 @@ export interface CreatePendingActionInput {
   organizationId: string;
   userId: string;
   agent: Agent;
-  messageId: string;
+  /** Null for actions with no originating message — triggers, and steps of an
+   *  unattended run. The column is nullable; this type used to be stricter
+   *  than the schema. */
+  messageId?: string | null;
   connectionId: string;
   integrationSlug: string;
   toolName: string;
@@ -124,7 +127,7 @@ export const createPendingActions = (rows: CreatePendingActionInput[]) =>
       organizationId: r.organizationId,
       userId: r.userId,
       agent: r.agent,
-      messageId: r.messageId,
+      messageId: r.messageId ?? null,
       connectionId: r.connectionId,
       integrationSlug: r.integrationSlug,
       toolName: r.toolName,
