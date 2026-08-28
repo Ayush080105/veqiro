@@ -97,6 +97,7 @@ async def run_step(
     upstream: list[UpstreamContext] | None = None,
     integration_slug: str | None = None,
     write_mode: Literal["stage", "execute"] = "stage",
+    is_write: bool = False,
     tool_budget: int = 20,
     max_iterations: int = STEP_MAX_ITERATIONS,
 ) -> StepOutcome:
@@ -246,6 +247,20 @@ async def run_step(
         # Ran out of iterations without a final answer. Say so rather than
         # letting the caller present a partial result as complete.
         outcome.error = outcome.error or "step did not finish within its iteration budget"
+
+    # A step the plan marked as a write, that performed none, did not do its
+    # job — most often it answered with a clarifying question instead of
+    # acting. Reporting that as success is the worst outcome available: the
+    # graph shows green, dependents run against nothing, and the final summary
+    # hands over an artifact that was never created.
+    performed = writes_done + len(outcome.pending_actions)
+    if is_write and not performed and not outcome.needs_approval and not outcome.error:
+        outcome.error = (
+            "this step was supposed to create or change something, but it made "
+            "no write. Do not ask the user a question here - use the data from "
+            "the earlier steps and perform the write, or state plainly that it "
+            "cannot be done."
+        )
 
     outcome.tool_calls = all_calls
     from agents.base import _build_tool_trace, _pick_rich_result

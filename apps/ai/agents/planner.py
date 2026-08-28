@@ -368,6 +368,8 @@ def build_system_prompt(
         "- A step's `agent` MUST be one of the agents listed as able to use "
         "its `integration_slug`. Assigning an integration to an agent that "
         "cannot reach it produces a step that fails.\n\n"
+        "- Do NOT split creating a document, sheet or issue from filling it in. One step creates it AND populates it. A separate populate step has no way to reference what the first one made, so it stalls asking for an id.\n"
+        "- Any step that uses data an earlier step produced MUST list that step in `depends_on`. A write step that reports findings almost always depends on the step that found them.\n\n"
         "Respond in JSON:\n"
         '{"goal": "...", "nodes": [{"key": "s1", "title": "...", "agent": "...", '
         '"intent": "...", "integration_slug": "..."|null, "depends_on": [], '

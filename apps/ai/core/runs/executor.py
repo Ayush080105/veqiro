@@ -192,6 +192,7 @@ class RunExecutor:
                 upstream=upstream,
                 integration_slug=s.integration_slug,
                 write_mode=spec.write_mode,  # type: ignore[arg-type]
+                is_write=s.is_write,
                 tool_budget=min(STEP_TOOL_BUDGET, RUN_TOOL_CALL_BUDGET - tool_calls_used),
             )
             tool_calls_used += outcome.tool_calls_used

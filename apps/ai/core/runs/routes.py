@@ -342,11 +342,19 @@ async def _summarize(spec: "RunSpec", result) -> str:
     # The run already put its output somewhere the user can open. Restating
     # that artifact in chat makes them read the same analysis twice and
     # buries the one thing they actually need.
-    delivered = bool(links) and any(
-        s.is_write
-        and s.key in result.steps
-        and result.steps[s.key].status == "SUCCEEDED"
-        for s in spec.steps
+    # `not problems` matters as much as the rest: a run that half-worked must
+    # not open with a link as though it finished. The handover prompt is for
+    # handing over finished work, and leading with an artifact built from
+    # partial data is how a broken run reads as a successful one.
+    delivered = (
+        bool(links)
+        and not problems
+        and any(
+            s.is_write
+            and s.key in result.steps
+            and result.steps[s.key].status == "SUCCEEDED"
+            for s in spec.steps
+        )
     )
 
     sections = [f"The task was: {spec.goal}"]

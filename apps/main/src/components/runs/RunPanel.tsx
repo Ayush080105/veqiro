@@ -278,8 +278,11 @@ export function RunPanel({ runId }: { runId: string }) {
             Stop
           </button>
         ) : (
+          // Only the status. The summary is rendered as markdown in the
+          // message bubble above, where its links are clickable — repeating it
+          // here as plain text both duplicated it and made those links dead.
           <span style={{ fontSize: 12, color: "#8B857A" }}>
-            {run.summary || STATUS_LABEL[run.status]}
+            {STATUS_LABEL[run.status]}
           </span>
         )}
       </div>
