@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -251,6 +252,72 @@ async def _build_step_prompt(agent, organization_id: str, user_id: str) -> str:
 #: Deliberately the planner's model, not a cheap one: this text is the entire
 #: answer the user reads, and it must not overstate a partial run.
 SUMMARY_MAX_CHARS_PER_STEP = 4_000
+#: Enough for a short answer, not enough to reproduce a spreadsheet in chat.
+SUMMARY_MAX_TOKENS = 700
+MAX_DELIVERABLE_LINKS = 5
+
+_URL_RE = re.compile(r"https?://[^\s\)\]\}<>\"']+")
+
+_SUMMARY_RULES = """
+- Use only what the step results say. Never invent a detail, a number, or a
+  link that is not there.
+- Any step marked FAILED, BLOCKED, SKIPPED or AWAITING_APPROVAL did NOT
+  happen. Say so plainly and say what is missing because of it. Never
+  describe such a step as done.
+- No preamble, no sign-off, and no account of the process you went through.
+"""
+
+#: Used when the run created something the user can open. The artifact is the
+#: answer; the message exists to hand it over, not to duplicate it.
+_SUMMARY_DELIVERED = (
+    "You are writing the chat message that hands over a finished piece of "
+    "work. The work itself already lives at the link below, and the person "
+    "is going to open it.\n\n"
+    "Write at most three short sentences.\n\n"
+    "Rules:\n"
+    "- Open with the link, as a markdown link with a descriptive label.\n"
+    "- Then say only what the link does not: at most two headline findings, "
+    "and only where they change what the person should do next.\n"
+    "- Do NOT reproduce the contents of the linked artifact. No bulleted "
+    "breakdowns, no tables, no per-item metrics, no restating its sections. "
+    "If a detail is already in there, leave it in there.\n"
+    "- Do not narrate which agent or which tool did what."
+    + _SUMMARY_RULES
+)
+
+#: Used when the run produced no artifact: the message itself is the
+#: deliverable, so it carries the findings, still tightly.
+_SUMMARY_PLAIN = (
+    "You are writing the final answer for a multi-step task that has just "
+    "finished. Write it for the person who asked, in their terms.\n\n"
+    "Keep it tight enough to read at a glance. Lead with what they asked "
+    "for, not with a description of how it was produced."
+    + _SUMMARY_RULES
+)
+
+
+def _deliverables(spec: "RunSpec", result) -> list[str]:
+    """Links the run produced, write steps first.
+
+    Pulled out structurally rather than left to the model to remember: when
+    a run ends in a created artifact, that link is the answer, and burying
+    it under a restatement of the artifact's own contents is exactly the
+    failure this guards against.
+    """
+    ordered = sorted(
+        (s for s in spec.steps if s.key in result.steps),
+        key=lambda s: (not s.is_write,),
+    )
+    links: list[str] = []
+    for s in ordered:
+        st = result.steps[s.key]
+        if st.status != "SUCCEEDED":
+            continue
+        for url in _URL_RE.findall(st.output_text or ""):
+            url = url.rstrip(".,;:)")
+            if url not in links:
+                links.append(url)
+    return links[:MAX_DELIVERABLE_LINKS]
 
 
 async def _summarize(spec: "RunSpec", result) -> str:
@@ -271,33 +338,37 @@ async def _summarize(spec: "RunSpec", result) -> str:
     for s, st in problems:
         blocks.append(f"### {s.title} ({s.agent}) - {st.status}\n{st.error or ''}")
 
+    links = _deliverables(spec, result)
+    # The run already put its output somewhere the user can open. Restating
+    # that artifact in chat makes them read the same analysis twice and
+    # buries the one thing they actually need.
+    delivered = bool(links) and any(
+        s.is_write
+        and s.key in result.steps
+        and result.steps[s.key].status == "SUCCEEDED"
+        for s in spec.steps
+    )
+
+    sections = [f"The task was: {spec.goal}"]
+    if links:
+        sections.append("Links this run produced:\n" + "\n".join(links))
+    sections.append("\n\n".join(blocks))
+
     provider, model = planner.PLANNER_MODEL
     try:
         return await _llm.complete(
             provider=provider,
             model=model,
-            system=(
-                "You are writing the final answer for a multi-step task that has "
-                "just finished. Write it for the person who asked, in their terms.\n\n"
-                "Rules:\n"
-                "- Lead with what they asked for, not with a description of the process.\n"
-                "- Use only what the step results below actually say. Never invent a "
-                "detail, a number, or a link that is not there.\n"
-                "- Any step marked FAILED, BLOCKED, SKIPPED or AWAITING_APPROVAL did "
-                "NOT happen. Say so plainly and say what is missing because of it. "
-                "Never describe such a step as done.\n"
-                "- No preamble, no sign-off."
-            ),
-            messages=[{
-                "role": "user",
-                "content": f"The task was: {spec.goal}\n\n" + "\n\n".join(blocks),
-            }],
+            system=_SUMMARY_DELIVERED if delivered else _SUMMARY_PLAIN,
+            messages=[{"role": "user", "content": "\n\n".join(sections)}],
+            max_tokens=SUMMARY_MAX_TOKENS,
         )
     except Exception:
         logger.warning("summary generation failed | run=%s", spec.run_id, exc_info=True)
-        # Falling back to the raw blocks keeps a finished run readable rather
-        # than losing every result to one failed LLM call.
-        return "\n\n".join(blocks)
+        # Falling back keeps a finished run readable rather than losing every
+        # result to one failed LLM call. Links lead here for the same reason.
+        head = ("\n".join(links) + "\n\n") if links else ""
+        return head + "\n\n".join(blocks)
 
 
 async def _execute(spec: "RunSpec", run_id: str) -> None:

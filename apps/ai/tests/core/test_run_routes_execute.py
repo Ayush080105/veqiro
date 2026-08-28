@@ -101,7 +101,8 @@ async def test_summary_reports_failed_steps_to_the_model(monkeypatch):
     # failed step means — otherwise a PARTIAL run reads as a completed one.
     assert "FAILED" in llm.content
     assert "Linear rejected the write" in llm.content
-    assert "did" in llm.system and "NOT happen" in llm.system
+    assert "did NOT" in llm.system
+    assert "describe such a step as done" in llm.system
 
 
 @pytest.mark.asyncio
@@ -126,3 +127,111 @@ async def test_summary_falls_back_to_raw_results_when_the_model_fails(monkeypatc
 async def test_summary_is_empty_when_nothing_ran(monkeypatch):
     monkeypatch.setattr(routes, "_llm", _RecordingLLM())
     assert await routes._summarize(_spec([]), RunResult("FAILED", "", {})) == ""
+
+
+# ── Deliverables ────────────────────────────────────────────────────────────
+
+def _wstep(key, **kw):
+    return StepSpec(
+        key=key, agent="sage", title=f"Step {key}", intent=f"do {key}",
+        integration_slug=None, depends_on=(), is_write=True, **kw,
+    )
+
+
+def test_links_from_write_steps_come_first():
+    """The artifact a run created is the deliverable; a link it merely read
+    about is not."""
+    spec = _spec([_step("s1"), _wstep("s2")])
+    result = RunResult("COMPLETED", "", {
+        "s1": _StepState(status="SUCCEEDED", output_text="see https://example.com/ref"),
+        "s2": _StepState(status="SUCCEEDED", output_text="made https://docs.google.com/x/edit"),
+    })
+
+    assert routes._deliverables(spec, result)[0] == "https://docs.google.com/x/edit"
+
+
+def test_trailing_punctuation_is_not_part_of_the_link():
+    spec = _spec([_wstep("s1")])
+    result = RunResult("COMPLETED", "", {
+        "s1": _StepState(status="SUCCEEDED", output_text="here: (https://a.com/b/edit)."),
+    })
+
+    assert routes._deliverables(spec, result) == ["https://a.com/b/edit"]
+
+
+def test_links_from_failed_steps_are_ignored():
+    """A step that failed did not produce anything to hand over."""
+    spec = _spec([_wstep("s1")])
+    result = RunResult("FAILED", "", {
+        "s1": _StepState(status="FAILED", output_text="https://a.com/x", error="boom"),
+    })
+
+    assert routes._deliverables(spec, result) == []
+
+
+@pytest.mark.asyncio
+async def test_a_run_that_produced_a_file_is_told_not_to_restate_it(monkeypatch):
+    """The regression this fixes: a run that built a spreadsheet answered by
+    reprinting the spreadsheet, burying the link on the last line."""
+    llm = _RecordingLLM()
+    monkeypatch.setattr(routes, "_llm", llm)
+    spec = _spec([_wstep("s1")])
+    result = RunResult("COMPLETED", "", {
+        "s1": _StepState(status="SUCCEEDED", output_text="Sheet: https://docs.google.com/x/edit"),
+    })
+
+    await routes._summarize(spec, result)
+
+    assert "Do NOT reproduce the contents" in llm.system
+    assert "three short sentences" in llm.system
+    # The link is handed over as data, not left for the model to find.
+    assert "https://docs.google.com/x/edit" in llm.content
+
+
+@pytest.mark.asyncio
+async def test_a_run_with_no_artifact_still_carries_the_findings(monkeypatch):
+    """When nothing was created, the message IS the deliverable — telling it to
+    hand over a link it does not have would lose the answer entirely."""
+    llm = _RecordingLLM()
+    monkeypatch.setattr(routes, "_llm", llm)
+    spec = _spec([_step("s1")])
+    result = RunResult("COMPLETED", "", {
+        "s1": _StepState(status="SUCCEEDED", output_text="24 clicks last week"),
+    })
+
+    await routes._summarize(spec, result)
+
+    assert "Do NOT reproduce the contents" not in llm.system
+    assert "Lead with what they asked" in llm.system
+
+
+@pytest.mark.asyncio
+async def test_read_only_run_mentioning_a_link_is_not_treated_as_a_handover(monkeypatch):
+    """A run that only read things may quote a URL; that is not a deliverable."""
+    llm = _RecordingLLM()
+    monkeypatch.setattr(routes, "_llm", llm)
+    spec = _spec([_step("s1")])
+    result = RunResult("COMPLETED", "", {
+        "s1": _StepState(status="SUCCEEDED", output_text="top page https://veqiro.com/"),
+    })
+
+    await routes._summarize(spec, result)
+
+    assert "Do NOT reproduce the contents" not in llm.system
+
+
+@pytest.mark.asyncio
+async def test_fallback_leads_with_the_link(monkeypatch):
+    class _Broken:
+        async def complete(self, **kw):
+            raise RuntimeError("model down")
+
+    monkeypatch.setattr(routes, "_llm", _Broken())
+    spec = _spec([_wstep("s1")])
+    result = RunResult("COMPLETED", "", {
+        "s1": _StepState(status="SUCCEEDED", output_text="done https://docs.google.com/x/edit"),
+    })
+
+    summary = await routes._summarize(spec, result)
+
+    assert summary.startswith("https://docs.google.com/x/edit")
