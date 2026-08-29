@@ -56,13 +56,6 @@ const bottomNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
-const monoLabelStyle: React.CSSProperties = {
-  fontFamily: FONT.mono,
-  fontSize: 11,
-  letterSpacing: 1.5,
-  textTransform: "uppercase",
-}
-
 const LANDING_URL =
   process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3000"
 const POST_LOGOUT_URL = LANDING_URL
@@ -127,9 +120,9 @@ export function AppSidebar() {
                     style={{
                       padding: "6px 10px",
                       background: "#FFF9ED",
-                      border: "2px solid #111",
-                      borderRadius: 8,
-                      boxShadow: "2px 2px 0 #111",
+                      border: "1px solid var(--vq-line-2)",
+                      borderRadius: 10,
+                      boxShadow: "var(--vq-shadow-sm)",
                       cursor: "pointer",
                     }}
                   />
@@ -164,7 +157,7 @@ export function AppSidebar() {
                     letterSpacing: 1.5,
                     textTransform: "uppercase",
                     padding: "2px 6px",
-                    border: "1.5px solid #111",
+                    border: "1px solid var(--vq-line-2)",
                     borderRadius: 999,
                     background: "#F5C518",
                     color: "#111",
@@ -176,7 +169,7 @@ export function AppSidebar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="w-64 border-2 border-foreground bg-white p-1 shadow-[4px_4px_0_#111]"
+                className="w-64 border border-[var(--vq-line-2)] bg-white p-1 shadow-[var(--vq-shadow-lg)]"
               >
                 {organizations?.map((organization) => {
                   const isCurrent = organization.id === activeOrg.id
@@ -274,7 +267,7 @@ export function AppSidebar() {
                   data-tour={`nav-${item.href.replace("/", "")}`}
                 >
                   <SidebarMenuButton
-                    render={<Link href={item.href} style={monoLabelStyle} />}
+                    render={<Link href={item.href} />}
                     tooltip={item.label}
                     isActive={
                       pathname === item.href ||
@@ -299,7 +292,7 @@ export function AppSidebar() {
                   data-tour={`nav-${item.href.replace("/", "")}`}
                 >
                   <SidebarMenuButton
-                    render={<Link href={item.href} style={monoLabelStyle} />}
+                    render={<Link href={item.href} />}
                     tooltip={item.label}
                     isActive={
                       pathname === item.href ||
@@ -329,8 +322,8 @@ export function AppSidebar() {
               height: 32,
               borderRadius: "50%",
               background: "#F5C518",
-              border: "2px solid #111",
-              boxShadow: "2px 2px 0 #111",
+              border: "1px solid var(--vq-line-2)",
+              boxShadow: "var(--vq-shadow-sm)",
               display: "grid",
               placeItems: "center",
               fontFamily: FONT.head,
