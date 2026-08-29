@@ -85,11 +85,23 @@ export type MayaCampaignValues = z.infer<typeof mayaCampaignSchema>
 
 export const videoAspectRatioSchema = z.enum(["16:9", "9:16"])
 
+// Gemini Omni renders one 10s shot per call and extends in 10s steps up to 40s.
+export const VIDEO_SEGMENT_SECONDS = 10
+export const MAX_VIDEO_SECONDS = 40
+export const VIDEO_DURATION_OPTIONS = [10, 20, 30, 40] as const
+
+const videoDurationSchema = z
+  .number()
+  .int()
+  .min(VIDEO_SEGMENT_SECONDS)
+  .max(MAX_VIDEO_SECONDS)
+  .multipleOf(VIDEO_SEGMENT_SECONDS)
+
 export const mayaGenerateVideoSchema = z.object({
   prompt: z.string().min(1, "Prompt is required").max(2000),
   platform: platformSchema,
   aspect_ratio: videoAspectRatioSchema,
-  duration_seconds: z.number().int().min(4).max(10),
+  duration_seconds: videoDurationSchema,
   use_logo: z.boolean(),
 })
 export type MayaGenerateVideoValues = z.infer<typeof mayaGenerateVideoSchema>
@@ -99,7 +111,7 @@ export const mayaCampaignVideoSchema = z.object({
   campaign_brief: z.string().min(1, "Campaign brief is required").max(5000),
   platform: platformSchema,
   aspect_ratio: videoAspectRatioSchema,
-  duration_seconds: z.number().int().min(4).max(10),
+  duration_seconds: videoDurationSchema,
   use_logo: z.boolean(),
 })
 export type MayaCampaignVideoValues = z.infer<typeof mayaCampaignVideoSchema>

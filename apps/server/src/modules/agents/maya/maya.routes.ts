@@ -19,6 +19,7 @@ import {
   expandBrief,
   generateVideo,
   createCampaignVideo,
+  createCampaignVideoPlan,
   createCampaignVideoStoryboard,
   getMayaUsage,
   getLogoAnimationStyles,
@@ -49,6 +50,7 @@ router.post("/campaign", createCampaign);
 router.post("/expand-brief", expandBrief);
 router.post("/generate-video", generateVideo);
 router.post("/campaign-video", createCampaignVideo);
+router.post("/campaign-video/plan", createCampaignVideoPlan);
 router.post("/campaign-video/storyboard", createCampaignVideoStoryboard);
 router.get("/logo-animation/styles", getLogoAnimationStyles);
 router.post("/logo-animation", createLogoAnimation);

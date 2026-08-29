@@ -17,6 +17,7 @@ import {
   expandBriefSchema,
   generateVideoSchema,
   campaignVideoSchema,
+  campaignVideoPlanSchema,
   campaignVideoStoryboardSchema,
   logoAnimationSchema,
 } from "./maya.schema.js";
@@ -160,6 +161,13 @@ export const createCampaignVideo = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const input = campaignVideoSchema.parse(req.body);
   const result = await mayaService.createCampaignVideo(userId, organizationId, input);
+  res.status(StatusCodes.OK).json(result);
+};
+
+export const createCampaignVideoPlan = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = campaignVideoPlanSchema.parse(req.body);
+  const result = await mayaService.createCampaignVideoPlan(userId, organizationId, input);
   res.status(StatusCodes.OK).json(result);
 };
 

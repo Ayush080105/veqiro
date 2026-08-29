@@ -1063,7 +1063,7 @@ export function VideoResultCard({
   const src = videoSrc(result?.video)
   const [captionBody, setCaptionBody] = React.useState(result?.caption?.body ?? "")
   const [showStoryboard, setShowStoryboard] = React.useState(false)
-  const storyboardUrl = (result as MayaCampaignVideoResult)?.storyboard_image_url
+  const storyboardUrls = (result as MayaCampaignVideoResult)?.storyboard_image_urls
 
   if (!src) return null
 
@@ -1071,7 +1071,7 @@ export function VideoResultCard({
     <AgentCard size="sm">
       <AgentCard.Header icon={<Clapperboard />} title={title ?? "Generated video"} />
       <AgentCard.Body className="flex flex-col gap-2">
-        {storyboardUrl && (
+        {!!storyboardUrls?.length && (
           <div className="flex flex-col gap-1.5">
             <button
               type="button"
@@ -1081,11 +1081,20 @@ export function VideoResultCard({
               {showStoryboard ? "Hide storyboard" : "View storyboard"}
             </button>
             {showStoryboard && (
-              <img
-                src={storyboardUrl}
-                alt="Storyboard"
-                className="max-h-48 rounded border border-border object-contain"
-              />
+              <div className="flex gap-1.5 overflow-x-auto">
+                {storyboardUrls.map((url, i) => (
+                  <img
+                    key={url}
+                    src={url}
+                    alt={
+                      storyboardUrls.length > 1
+                        ? `Storyboard sheet ${i + 1} of ${storyboardUrls.length}`
+                        : "Storyboard"
+                    }
+                    className="max-h-48 shrink-0 rounded border border-border object-contain"
+                  />
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -1144,35 +1153,56 @@ export function StoryboardResultCard({
   }
   onFollowUpAction?: FollowUpHandler
 }) {
-  const src =
-    result?.storyboard_image_url ??
-    (result?.storyboard_image_base64 ? `data:image/png;base64,${result.storyboard_image_base64}` : undefined)
+  // One sheet per 10s segment: a 10s video has a single sheet, a 40s video has four.
+  const sources =
+    result?.storyboard_image_urls?.length
+      ? result.storyboard_image_urls
+      : (result?.storyboard_images_base64 ?? []).map((b64) => `data:image/png;base64,${b64}`)
 
-  if (!src) return null
+  if (!sources.length) return null
+
+  const beatsPerSheet = sources.length > 0 ? Math.ceil((result.beats?.length ?? 0) / sources.length) : 0
 
   return (
     <AgentCard size="sm">
       <AgentCard.Header icon={<LayoutGrid />} title="Storyboard" />
       <AgentCard.Body className="flex flex-col gap-2">
-        <img
-          src={src}
-          alt="Storyboard"
-          className="w-full rounded border border-border object-contain"
-        />
-        {result.beats?.length > 0 && (
-          <ol className="flex flex-col gap-1 pl-4 text-xs text-muted-foreground list-decimal">
-            {result.beats.map((beat, i) => (
-              <li key={i}>{beat}</li>
-            ))}
-          </ol>
-        )}
+        {sources.map((sheetSrc, sheetIndex) => (
+          <div key={sheetSrc} className="flex flex-col gap-1">
+            {sources.length > 1 && (
+              <span className="text-[10px] font-medium text-muted-foreground">
+                {`Seconds ${sheetIndex * 10}–${(sheetIndex + 1) * 10}`}
+              </span>
+            )}
+            <img
+              src={sheetSrc}
+              alt={sources.length > 1 ? `Storyboard sheet ${sheetIndex + 1}` : "Storyboard"}
+              className="w-full rounded border border-border object-contain"
+            />
+            {result.beats?.length > 0 && (
+              <ol
+                start={sheetIndex * beatsPerSheet + 1}
+                className="flex flex-col gap-1 pl-4 text-xs text-muted-foreground list-decimal"
+              >
+                {result.beats
+                  .slice(sheetIndex * beatsPerSheet, (sheetIndex + 1) * beatsPerSheet)
+                  .map((beat, i) => (
+                    <li key={i}>{beat}</li>
+                  ))}
+              </ol>
+            )}
+          </div>
+        ))}
       </AgentCard.Body>
       <AgentCard.Footer>
-        <Button variant="chat-utility" asChild>
-          <a href={src} download="maya-storyboard.png">
-            <Download className="size-3" /> Download
-          </a>
-        </Button>
+        {sources.map((sheetSrc, i) => (
+          <Button key={sheetSrc} variant="chat-utility" asChild>
+            <a href={sheetSrc} download={`maya-storyboard${sources.length > 1 ? `-${i + 1}` : ""}.png`}>
+              <Download className="size-3" />
+              {sources.length > 1 ? `Sheet ${i + 1}` : "Download"}
+            </a>
+          </Button>
+        ))}
         {onFollowUpAction && input?.product_image_urls?.length && input?.campaign_brief && (
           <Button
             variant="chat-action"
@@ -1183,7 +1213,7 @@ export function StoryboardResultCard({
               onFollowUpAction("maya:campaign-video", {
                 ...input,
                 storyboard_beats: result.beats,
-                storyboard_image_url: result.storyboard_image_url,
+                storyboard_image_urls: result.storyboard_image_urls,
               })
             }}
           >

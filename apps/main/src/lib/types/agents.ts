@@ -1168,12 +1168,13 @@ export interface MayaCampaignVideoResult {
   caption?: VideoCaption | null
   tokens_used?: number
   model_used?: string
-  storyboard_image_url?: string
+  /** One 3x3 storyboard sheet per 10-second segment, in story order. */
+  storyboard_image_urls?: string[]
 }
 
 export interface MayaCampaignVideoStoryboardResult {
-  storyboard_image_url?: string
-  storyboard_image_base64?: string
+  storyboard_image_urls?: string[]
+  storyboard_images_base64?: string[]
   beats: string[]
   model_used?: string
 }

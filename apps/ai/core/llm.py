@@ -149,7 +149,21 @@ _RED_PNG_B64 = (
 )
 
 # Gemini Omni model used for video generation. Pin here so it's swappable without touching call sites.
-_OMNI_VIDEO_MODEL = "gemini-omni-flash-preview"
+_OMNI_VIDEO_MODEL = "gemini-omni-1.1-flash"
+
+# The model renders at most one 10-second shot per interaction; longer videos are built by
+# chaining extensions off the previous interaction, up to a hard 40s ceiling (the API refuses
+# to extend footage longer than 30s). Durations are therefore always a multiple of 10.
+VIDEO_SEGMENT_SECONDS = 10
+MAX_VIDEO_SECONDS = 40
+VIDEO_DURATION_OPTIONS = (10, 20, 30, 40)
+
+# Retries are scoped to a single segment, never the whole chain — each segment is its own
+# billed render, so restarting a 40s video from the top on a late failure would re-pay for
+# footage that already succeeded. Observed latency is ~30s for the opening shot and
+# ~100-150s per extension, so 300s per attempt is generous headroom.
+VIDEO_SEGMENT_ATTEMPTS = 3
+VIDEO_SEGMENT_TIMEOUT = 300
 
 # A minimal 1-second black H.264 MP4 (64x64), used as the MOCK_MODE response for generate_video.
 _MOCK_VIDEO_MP4_B64 = (
@@ -1056,17 +1070,77 @@ class LLMClient:
             prompt, [base64.b64decode(b64) for b64 in reference_images_b64], aspect_ratio
         )
 
+    async def _create_video_segment(
+        self,
+        client,
+        create_kwargs: dict,
+        index: int,
+        total: int,
+    ):
+        """Render one 10-second segment, retrying just that segment on failure.
+
+        Scoped to a single segment on purpose: each one is an independent billed render, and
+        the caller's `previous_interaction_id` still refers to the last SUCCESSFUL segment,
+        so a retry continues the existing footage rather than starting the video over.
+        """
+        last_err: BaseException | None = None
+        for attempt in range(VIDEO_SEGMENT_ATTEMPTS):
+            if attempt:
+                # Rate limits need real breathing room; anything else is likely transient.
+                is_rate_limited = "429" in str(last_err) or "RESOURCE_EXHAUSTED" in str(last_err).upper()
+                await asyncio.sleep(30 + attempt * 30 if is_rate_limited else 2 * attempt)
+            try:
+                interaction = await asyncio.wait_for(
+                    client.aio.interactions.create(**create_kwargs),
+                    timeout=VIDEO_SEGMENT_TIMEOUT,
+                )
+                if interaction.status not in ("completed", "incomplete"):
+                    raise LLMError(
+                        f"Gemini Omni interaction did not complete: status={interaction.status}"
+                    )
+                return interaction
+            except Exception as err:
+                last_err = err
+                logger.warning(
+                    "generate_video | segment %d/%d attempt %d/%d failed | error=%s",
+                    index + 1, total, attempt + 1, VIDEO_SEGMENT_ATTEMPTS, err,
+                )
+        logger.error(
+            "generate_video | segment %d/%d failed after %d attempts | %d segment(s) already "
+            "rendered are lost | error=%s",
+            index + 1, total, VIDEO_SEGMENT_ATTEMPTS, index, last_err,
+        )
+        raise LLMError(
+            f"Gemini Omni segment {index + 1}/{total} failed after "
+            f"{VIDEO_SEGMENT_ATTEMPTS} attempts: {last_err}"
+        )
+
     async def generate_video(
         self,
-        prompt: str,
+        segment_prompts: list[str],
         images: list[tuple[bytes, str]] | None = None,
         aspect_ratio: str = "16:9",
-        duration_seconds: int = 8,
         generate_audio: bool = True,
     ) -> bytes:
-        """Video generation via Gemini Omni (`interactions.create`). `images` (list of
-        (bytes, mime_type) pairs, up to 5 + an optional logo) present = image-to-video,
-        absent = text-to-video."""
+        """Video generation via Gemini Omni (`interactions.create`).
+
+        `segment_prompts` holds one prompt per 10-second segment: the first opens the shot,
+        each subsequent one extends the footage generated so far by another 10 seconds.
+        Extensions are chained with `previous_interaction_id` (which needs `store=True` on
+        the interaction it points at), and each extension returns the CUMULATIVE video — so
+        the final interaction's output is the whole clip, not just the last segment.
+
+        `images` (list of (bytes, mime_type) pairs, up to 5 + an optional logo) present =
+        image-to-video, absent = text-to-video. They are attached to the opening segment
+        only; later segments inherit them through the interaction chain."""
+        if not segment_prompts:
+            raise LLMError("generate_video requires at least one segment prompt")
+        duration_seconds = len(segment_prompts) * VIDEO_SEGMENT_SECONDS
+        if duration_seconds > MAX_VIDEO_SECONDS:
+            raise LLMError(
+                f"Video duration {duration_seconds}s exceeds the {MAX_VIDEO_SECONDS}s maximum"
+            )
+
         if settings.MOCK_MODE:
             await asyncio.sleep(0.05)
             return base64.b64decode(_MOCK_VIDEO_MP4_B64)
@@ -1092,7 +1166,7 @@ class LLMClient:
                     as_type="generation",
                     model=_OMNI_VIDEO_MODEL,
                     input={
-                        "prompt": prompt[:500],
+                        "segment_prompts": [p[:500] for p in segment_prompts],
                         "num_images": len(images) if images else 0,
                         "aspect_ratio": aspect_ratio,
                         "duration_seconds": duration_seconds,
@@ -1100,6 +1174,7 @@ class LLMClient:
                     model_parameters={
                         "aspect_ratio": aspect_ratio,
                         "duration_seconds": duration_seconds,
+                        "num_segments": len(segment_prompts),
                         "generate_audio": generate_audio,
                     },
                 )
@@ -1110,19 +1185,16 @@ class LLMClient:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
             logger.info(
-                "generate_video | num_images=%s prompt_len=%s duration=%s",
+                "generate_video | num_images=%s segments=%s duration=%s",
                 len(images) if images else 0,
-                len(prompt),
+                len(segment_prompts),
                 duration_seconds,
             )
 
-            full_prompt = (
-                f"{prompt}\n\n"
-                f"Video aspect ratio: {aspect_ratio}. Target duration: ~{duration_seconds}s. "
-                f"{'Include natural ambient/sync audio.' if generate_audio else 'No audio.'}"
+            audio_note = (
+                "Include natural ambient/sync audio." if generate_audio else "No audio."
             )
-
-            omni_input: list[dict] = [
+            image_parts: list[dict] = [
                 {
                     "type": "image",
                     "data": base64.b64encode(img_bytes).decode(),
@@ -1130,16 +1202,62 @@ class LLMClient:
                 }
                 for img_bytes, mime_type in (images or [])
             ]
-            omni_input.append({"type": "text", "text": full_prompt})
 
-            interaction = await client.aio.interactions.create(
-                model=_OMNI_VIDEO_MODEL,
-                input=omni_input,
-            )
+            interaction = None
+            previous_interaction_id: str | None = None
 
-            if interaction.status not in ("completed", "incomplete"):
-                raise LLMError(f"Gemini Omni interaction did not complete: status={interaction.status}")
+            for index, segment_prompt in enumerate(segment_prompts):
+                is_opening = index == 0
 
+                # `aspect_ratio` is only accepted on the opening shot — an extension
+                # inherits the framing of the footage it continues, and passing it again
+                # is rejected. `store` is what makes the interaction chainable.
+                response_format: dict = {
+                    "type": "video",
+                    "duration": f"{VIDEO_SEGMENT_SECONDS}s",
+                }
+                if is_opening:
+                    response_format["aspect_ratio"] = aspect_ratio
+
+                if is_opening:
+                    full_prompt = f"{segment_prompt}\n\nVideo aspect ratio: {aspect_ratio}. {audio_note}"
+                    segment_input = image_parts + [{"type": "text", "text": full_prompt}]
+                else:
+                    full_prompt = (
+                        f"{segment_prompt}\n\nContinue seamlessly from the final frame of the "
+                        f"footage so far, holding the same subject, wardrobe, setting, lighting, "
+                        f"colour grade, camera language, and sound world. {audio_note}"
+                    )
+                    segment_input = [{"type": "text", "text": full_prompt}]
+
+                create_kwargs: dict = {
+                    "model": _OMNI_VIDEO_MODEL,
+                    "input": segment_input,
+                    "response_format": response_format,
+                    "store": True,
+                }
+                if previous_interaction_id:
+                    create_kwargs["previous_interaction_id"] = previous_interaction_id
+
+                # Retrying happens HERE, per segment, not around the whole chain: every
+                # segment is a separate ~$1 render, and `previous_interaction_id` still
+                # points at the last segment that succeeded, so a retry resumes from the
+                # failure instead of re-rendering (and re-paying for) the footage already
+                # in the can.
+                interaction = await self._create_video_segment(
+                    client, create_kwargs, index, len(segment_prompts)
+                )
+
+                previous_interaction_id = interaction.id
+                logger.info(
+                    "generate_video | segment %d/%d done | %ds of %ds",
+                    index + 1,
+                    len(segment_prompts),
+                    (index + 1) * VIDEO_SEGMENT_SECONDS,
+                    duration_seconds,
+                )
+
+            # The last interaction carries the full cumulative clip, not just its own segment.
             video_content = interaction.output_video
             if video_content is None:
                 raise LLMError("Gemini Omni returned no video content")
@@ -1160,14 +1278,16 @@ class LLMClient:
                         output="[video generated]",
                         usage_details={
                             "input": 0,
-                            "output": 1,
-                            "total": 1,
+                            # One billable render per 10s segment, not per request.
+                            "output": len(segment_prompts),
+                            "total": len(segment_prompts),
                             "unit": "VIDEOS",
                         },
                         metadata={
                             "latency_ms": int((time.perf_counter() - t0) * 1000),
                             "aspect_ratio": aspect_ratio,
                             "duration_seconds": duration_seconds,
+                            "num_segments": len(segment_prompts),
                             "org_id": obs_ctx.org_id,
                             "agent": obs_ctx.agent_slug,
                         },

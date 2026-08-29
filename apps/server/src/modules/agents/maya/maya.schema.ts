@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_VIDEO_SECONDS, VIDEO_SEGMENT_SECONDS } from "./maya.quotas.js";
 
 const platformEnum = z.enum(["linkedin", "twitter", "instagram"]);
 
@@ -89,11 +90,21 @@ export const campaignSchema = z.object({
 
 const videoAspectRatioEnum = z.enum(["16:9", "9:16"]);
 
+// Omni renders 10s per call and extends in 10s steps to a hard 40s ceiling.
+const videoDurationSchema = z
+  .number()
+  .int()
+  .min(VIDEO_SEGMENT_SECONDS)
+  .max(MAX_VIDEO_SECONDS)
+  .multipleOf(VIDEO_SEGMENT_SECONDS)
+  .optional()
+  .default(VIDEO_SEGMENT_SECONDS);
+
 export const generateVideoSchema = z.object({
   prompt: z.string().min(1).max(2000),
   platform: platformEnum.default("instagram"),
   aspectRatio: videoAspectRatioEnum.default("9:16"),
-  durationSeconds: z.number().int().min(4).max(10).optional().default(8),
+  durationSeconds: videoDurationSchema,
   useLogo: z.boolean().optional().default(false),
 });
 
@@ -102,10 +113,30 @@ export const campaignVideoSchema = z.object({
   campaignBrief: z.string().min(1).max(5000),
   platform: platformEnum.default("instagram"),
   aspectRatio: videoAspectRatioEnum.default("9:16"),
-  durationSeconds: z.number().int().min(4).max(10).optional().default(8),
+  durationSeconds: videoDurationSchema,
   useLogo: z.boolean().optional().default(false),
-  storyboardBeats: z.array(z.string()).max(9).optional(),
-  storyboardImageUrl: z.string().url().optional(),
+  // 9 beats and one 3x3 storyboard sheet per 10-second segment.
+  storyboardBeats: z
+    .array(z.string())
+    .max(9 * (MAX_VIDEO_SECONDS / VIDEO_SEGMENT_SECONDS))
+    .optional(),
+  storyboardImageUrls: z
+    .array(z.string().url())
+    .max(MAX_VIDEO_SECONDS / VIDEO_SEGMENT_SECONDS)
+    .optional(),
+  // A plan already returned by /campaign-video/plan and shown to the user; skips re-planning.
+  segmentNarratives: z
+    .array(z.string().max(8000))
+    .max(MAX_VIDEO_SECONDS / VIDEO_SEGMENT_SECONDS)
+    .optional(),
+});
+
+export const campaignVideoPlanSchema = z.object({
+  productImageUrls: z.array(z.string().url()).min(1).max(5),
+  campaignBrief: z.string().min(1).max(5000),
+  platform: platformEnum.default("instagram"),
+  aspectRatio: videoAspectRatioEnum.default("9:16"),
+  durationSeconds: videoDurationSchema,
 });
 
 export const campaignVideoStoryboardSchema = z.object({
@@ -113,7 +144,7 @@ export const campaignVideoStoryboardSchema = z.object({
   campaignBrief: z.string().min(1).max(5000),
   platform: platformEnum.default("instagram"),
   aspectRatio: videoAspectRatioEnum.default("9:16"),
-  durationSeconds: z.number().int().min(4).max(10).optional().default(8),
+  durationSeconds: videoDurationSchema,
   useLogo: z.boolean().optional().default(false),
 });
 

@@ -22,7 +22,16 @@ from core.video_gen import (
     plan_video_scenes_from_storyboard,
     add_logo_instruction,
     add_product_fidelity_guardrail,
+    build_segment_prompts,
+    segments_for,
+    BEATS_PER_SEGMENT,
     LOGO_ANIMATION_STYLES,
+)
+from core.llm import (
+    MAX_VIDEO_SECONDS,
+    VIDEO_SEGMENT_SECONDS,
+    VIDEO_SEGMENT_ATTEMPTS,
+    VIDEO_SEGMENT_TIMEOUT,
 )
 from core.config import settings
 from agents.maya.agent import MayaAgent, PLATFORM_RULES
@@ -1808,7 +1817,10 @@ class GenerateVideoRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=2000)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
-    duration_seconds: int = Field(8, ge=4, le=10)
+    duration_seconds: int = Field(
+        VIDEO_SEGMENT_SECONDS, ge=VIDEO_SEGMENT_SECONDS, le=MAX_VIDEO_SECONDS,
+        multiple_of=VIDEO_SEGMENT_SECONDS,
+    )
     use_logo: bool = False
 
 
@@ -1825,10 +1837,23 @@ class CampaignVideoRequest(BaseModel):
     campaign_brief: str = Field(..., min_length=1, max_length=5000)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
-    duration_seconds: int = Field(8, ge=4, le=10)
+    duration_seconds: int = Field(
+        VIDEO_SEGMENT_SECONDS, ge=VIDEO_SEGMENT_SECONDS, le=MAX_VIDEO_SECONDS,
+        multiple_of=VIDEO_SEGMENT_SECONDS,
+    )
     use_logo: bool = False
-    storyboard_beats: list[str] | None = Field(None, max_length=9)
-    storyboard_image_url: str | None = None
+    # 9 beats and one 3x3 sheet per 10-second segment, so up to 4 sheets / 36 beats at 40s.
+    storyboard_beats: list[str] | None = Field(
+        None, max_length=BEATS_PER_SEGMENT * (MAX_VIDEO_SECONDS // VIDEO_SEGMENT_SECONDS)
+    )
+    storyboard_image_urls: list[str] | None = Field(
+        None, max_length=MAX_VIDEO_SECONDS // VIDEO_SEGMENT_SECONDS
+    )
+    # A plan already returned by /campaign-video/plan and shown to the user. When present the
+    # planning step is skipped so the rendered video matches the text they approved.
+    segment_narratives: list[str] | None = Field(
+        None, max_length=MAX_VIDEO_SECONDS // VIDEO_SEGMENT_SECONDS
+    )
 
 
 class CampaignVideoResponse(BaseModel):
@@ -1844,12 +1869,16 @@ class StoryboardRequest(BaseModel):
     campaign_brief: str = Field(..., min_length=1, max_length=5000)
     platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
     aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
-    duration_seconds: int = Field(8, ge=4, le=10)
+    duration_seconds: int = Field(
+        VIDEO_SEGMENT_SECONDS, ge=VIDEO_SEGMENT_SECONDS, le=MAX_VIDEO_SECONDS,
+        multiple_of=VIDEO_SEGMENT_SECONDS,
+    )
     use_logo: bool = False
 
 
 class StoryboardResponse(BaseModel):
-    storyboard_image_base64: str
+    """One 3x3 sheet per 10-second segment, in story order, plus the 9xN beats behind them."""
+    storyboard_images_base64: list[str]
     beats: list[str]
     model_used: str
 
@@ -1883,37 +1912,47 @@ async def _fetch_logo_image(brand_kit) -> tuple[bytes, str] | None:
         return None
 
 
-async def _generate_video_with_retry(
-    prompt: str,
+# Ceiling on how long a single video request may hold a worker. A clean 40s render is ~400s;
+# this leaves room for retries without letting a pathological case tie up a worker for over
+# an hour (which no browser or proxy would wait for anyway).
+_MAX_VIDEO_REQUEST_SECONDS = 1800
+
+
+async def _generate_video_guarded(
+    segment_prompts: list[str],
     images: list[tuple[bytes, str]] | None,
     aspect_ratio: str,
-    duration_seconds: int,
 ) -> VideoResult:
-    last_err: BaseException | None = None
-    for attempt in range(3):
-        if attempt and last_err:
-            last_err_str = str(last_err)
-            if "429" in last_err_str or "RESOURCE_EXHAUSTED" in last_err_str.upper():
-                await asyncio.sleep(30 + attempt * 30)
-            else:
-                await asyncio.sleep(2 * attempt)
-        try:
-            return await asyncio.wait_for(
-                generate_maya_video(
-                    _llm,
-                    prompt=prompt,
-                    images=images,
-                    aspect_ratio=aspect_ratio,
-                    duration_seconds=duration_seconds,
-                ),
-                timeout=300,
-            )
-        except Exception as err:
-            last_err = err
-            logger.warning("generate_video attempt %d/3 failed | error=%s", attempt + 1, err)
-            if attempt == 2:
-                logger.error("generate_video failed after 3 attempts | error=%s", err)
-    raise HTTPException(status_code=502, detail=f"Video generation failed: {last_err}")
+    """Outer timeout guard for a video render. Deliberately makes ONE attempt.
+
+    Retries live inside LLMClient.generate_video, per 10-second segment, because each
+    segment is a separate billed render: retrying out here would re-render (and re-pay for)
+    every segment that had already succeeded — on a 40s video that is 4x the waste.
+
+    The budget scales with the chain but is capped: each segment already enforces its own
+    timeout, so this only has to stop something OUTSIDE the loop (e.g. the final download)
+    hanging a worker forever. A render still going after the cap has failed in the user's
+    eyes regardless, and holding the request open longer helps nobody.
+    """
+    timeout = min(
+        120 + VIDEO_SEGMENT_ATTEMPTS * (VIDEO_SEGMENT_TIMEOUT + 90) * len(segment_prompts),
+        _MAX_VIDEO_REQUEST_SECONDS,
+    )
+    try:
+        return await asyncio.wait_for(
+            generate_maya_video(
+                _llm,
+                segment_prompts=segment_prompts,
+                images=images,
+                aspect_ratio=aspect_ratio,
+            ),
+            timeout=timeout,
+        )
+    except Exception as err:
+        logger.error(
+            "generate_video failed | segments=%d error=%s", len(segment_prompts), err
+        )
+        raise HTTPException(status_code=502, detail=f"Video generation failed: {err}")
 
 
 @router.post("/generate-video", response_model=GenerateVideoResponse)
@@ -1926,25 +1965,28 @@ async def generate_video_endpoint(request: GenerateVideoRequest):
             logger.warning("generate-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
 
     concept = build_video_prompt(request.prompt, request.platform, brand_kit)
-    prompt = await plan_video_scenes(
+    narratives = await plan_video_scenes(
         _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
     )
+    segment_prompts = build_segment_prompts(concept, narratives)
 
     images: list[tuple[bytes, str]] = []
     if request.use_logo:
         logo = await _fetch_logo_image(brand_kit)
         if logo:
             images.append(logo)
-            prompt = add_logo_instruction(prompt)
+            segment_prompts = add_logo_instruction(segment_prompts)
 
-    video = await _generate_video_with_retry(
-        prompt=prompt,
+    video = await _generate_video_guarded(
+        segment_prompts=segment_prompts,
         images=images or None,
         aspect_ratio=request.aspect_ratio,
-        duration_seconds=request.duration_seconds,
     )
 
-    logger.info("generate-video done | user=%s platform=%s", request.user_id, request.platform)
+    logger.info(
+        "generate-video done | user=%s platform=%s duration=%ss",
+        request.user_id, request.platform, request.duration_seconds,
+    )
     return GenerateVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
 
 
@@ -1992,51 +2034,131 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
     )
 
     product_images: list[tuple[bytes, str]] = []
-    storyboard_image: tuple[bytes, str] | None = None
+    storyboard_images: list[tuple[bytes, str]] = []
     if not settings.MOCK_MODE:
         fetched = await asyncio.gather(
             *[_fetch_image_with_mime(u) for u in request.product_image_urls]
         )
         product_images = [f for f in fetched if f is not None]
-        if request.storyboard_image_url:
-            storyboard_image = await _fetch_image_with_mime(request.storyboard_image_url)
+        if request.storyboard_image_urls:
+            fetched_sheets = await asyncio.gather(
+                *[_fetch_image_with_mime(u) for u in request.storyboard_image_urls]
+            )
+            storyboard_images = [f for f in fetched_sheets if f is not None]
 
-    has_storyboard = bool(storyboard_image and request.storyboard_beats)
-    if has_storyboard:
-        prompt = await plan_video_scenes_from_storyboard(
-            _llm, concept, request.storyboard_beats, storyboard_image, product_images,
+    has_storyboard = bool(storyboard_images and request.storyboard_beats)
+    if request.segment_narratives:
+        # Already planned and shown to the user by /campaign-video/plan — rendering the same
+        # text they were shown, rather than re-planning into something slightly different.
+        narratives = request.segment_narratives
+    elif has_storyboard:
+        narratives = await plan_video_scenes_from_storyboard(
+            _llm, concept, request.storyboard_beats, storyboard_images, product_images,
             request.duration_seconds, request.aspect_ratio, request.platform,
         )
-        prompt = add_product_fidelity_guardrail(prompt)
     elif product_images:
-        prompt = await plan_video_scenes_with_images(
+        narratives = await plan_video_scenes_with_images(
             _llm, concept, product_images,
             request.duration_seconds, request.aspect_ratio, request.platform,
         )
-        prompt = add_product_fidelity_guardrail(prompt)
     else:
-        prompt = await plan_video_scenes(
+        narratives = await plan_video_scenes(
             _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
         )
 
-    images = list(product_images)
-    if has_storyboard:
-        images.append(storyboard_image)
+    segment_prompts = build_segment_prompts(concept, narratives)
+    if product_images:
+        segment_prompts = add_product_fidelity_guardrail(segment_prompts)
+
+    # Only the opening segment is sent images; the storyboard sheets go with it so the very
+    # first frames lock the look, and the extensions inherit it from the footage itself.
+    images = list(product_images) + storyboard_images
     if request.use_logo:
         logo = await _fetch_logo_image(brand_kit)
         if logo:
             images.append(logo)
-            prompt = add_logo_instruction(prompt)
+            segment_prompts = add_logo_instruction(segment_prompts)
 
-    video = await _generate_video_with_retry(
-        prompt=prompt,
+    video = await _generate_video_guarded(
+        segment_prompts=segment_prompts,
         images=images or None,
         aspect_ratio=request.aspect_ratio,
-        duration_seconds=request.duration_seconds,
     )
 
-    logger.info("campaign-video done | user=%s platform=%s", request.user_id, request.platform)
+    logger.info(
+        "campaign-video done | user=%s platform=%s duration=%ss segments=%d",
+        request.user_id, request.platform, request.duration_seconds,
+        segments_for(request.duration_seconds),
+    )
     return CampaignVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
+
+
+class CampaignVideoPlanRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=128)
+    organization_id: str = Field("", max_length=128)
+    product_image_urls: list[str] = Field(..., min_length=1, max_length=5)
+    campaign_brief: str = Field(..., min_length=1, max_length=5000)
+    platform: str = Field("instagram", pattern="^(linkedin|twitter|instagram)$")
+    aspect_ratio: str = Field("9:16", pattern=_VIDEO_ASPECT_RATIOS)
+    duration_seconds: int = Field(
+        VIDEO_SEGMENT_SECONDS, ge=VIDEO_SEGMENT_SECONDS, le=MAX_VIDEO_SECONDS,
+        multiple_of=VIDEO_SEGMENT_SECONDS,
+    )
+
+
+class CampaignVideoPlanResponse(BaseModel):
+    """One narrative per 10-second segment, in order — cheap enough to show the user before
+    committing to the render, and handed straight back on /campaign-video so what they read
+    is what gets shot."""
+    segments: list[str]
+    model_used: str
+
+
+@router.post("/campaign-video/plan", response_model=CampaignVideoPlanResponse)
+async def campaign_video_plan_endpoint(request: CampaignVideoPlanRequest):
+    brand_kit = None
+    if request.organization_id:
+        try:
+            brand_kit = await load_brand_kit(request.organization_id)
+        except Exception as bk_err:
+            logger.warning("campaign-video-plan brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+
+    concept = _build_campaign_video_concept(
+        request.campaign_brief, brand_kit, len(request.product_image_urls),
+    )
+
+    product_images: list[tuple[bytes, str]] = []
+    if not settings.MOCK_MODE:
+        fetched = await asyncio.gather(
+            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
+        )
+        product_images = [f for f in fetched if f is not None]
+
+    try:
+        if product_images:
+            narratives = await asyncio.wait_for(
+                plan_video_scenes_with_images(
+                    _llm, concept, product_images,
+                    request.duration_seconds, request.aspect_ratio, request.platform,
+                ),
+                timeout=90,
+            )
+        else:
+            narratives = await asyncio.wait_for(
+                plan_video_scenes(
+                    _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
+                ),
+                timeout=90,
+            )
+    except Exception as err:
+        logger.warning("campaign-video-plan failed | user=%s error=%s", request.user_id, err)
+        raise HTTPException(status_code=502, detail=f"Video planning failed: {err}")
+
+    logger.info(
+        "campaign-video-plan done | user=%s platform=%s segments=%d",
+        request.user_id, request.platform, len(narratives),
+    )
+    return CampaignVideoPlanResponse(segments=narratives, model_used=_agent.default_model)
 
 
 @router.post("/campaign-video/storyboard", response_model=StoryboardResponse)
@@ -2064,21 +2186,26 @@ async def campaign_video_storyboard_endpoint(request: StoryboardRequest):
         logo_image = await _fetch_logo_image(brand_kit)
 
     try:
-        storyboard_b64, beats = await asyncio.wait_for(
+        # The opening sheet is drawn first and the rest follow in parallel off it, so the
+        # budget grows by about one extra sheet's worth of time rather than N sheets'.
+        storyboard_b64s, beats = await asyncio.wait_for(
             generate_video_storyboard(
                 _llm, concept, product_images,
                 request.duration_seconds, request.aspect_ratio, request.platform,
                 logo_image=logo_image,
             ),
-            timeout=90,
+            timeout=90 if segments_for(request.duration_seconds) == 1 else 180,
         )
     except Exception as err:
         logger.warning("campaign-video-storyboard generation failed | user=%s error=%s", request.user_id, err)
         raise HTTPException(status_code=502, detail=f"Storyboard generation failed: {err}")
 
-    logger.info("campaign-video-storyboard done | user=%s platform=%s", request.user_id, request.platform)
+    logger.info(
+        "campaign-video-storyboard done | user=%s platform=%s sheets=%d beats=%d",
+        request.user_id, request.platform, len(storyboard_b64s), len(beats),
+    )
     return StoryboardResponse(
-        storyboard_image_base64=storyboard_b64, beats=beats, model_used=_agent.default_model,
+        storyboard_images_base64=storyboard_b64s, beats=beats, model_used=_agent.default_model,
     )
 
 
@@ -2145,11 +2272,11 @@ async def logo_animation_endpoint(request: LogoAnimationRequest):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    video = await _generate_video_with_retry(
-        prompt=prompt,
+    # Logo animations are always a single 10s shot — no extension ladder.
+    video = await _generate_video_guarded(
+        segment_prompts=[prompt],
         images=[logo_image],
         aspect_ratio=request.aspect_ratio,
-        duration_seconds=10,
     )
 
     logger.info("logo-animation done | user=%s style_id=%s", request.user_id, request.style_id)

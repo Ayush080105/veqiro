@@ -935,7 +935,7 @@ export default function AssistantChatPage() {
           prompt: [item.hook, item.captionDirection].filter(Boolean).join(". "),
           platform: "instagram",
           aspect_ratio: "9:16",
-          duration_seconds: 8,
+          duration_seconds: 10,
           use_logo: false,
         })
       } else {

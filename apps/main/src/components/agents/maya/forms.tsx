@@ -35,6 +35,8 @@ import {
   type MayaCampaignVideoValues,
   mayaLogoAnimationSchema,
   type MayaLogoAnimationValues,
+  VIDEO_DURATION_OPTIONS,
+  VIDEO_SEGMENT_SECONDS,
 } from "@/lib/schemas/agents/maya"
 import type { ContentPlatform, VideoAspectRatio } from "@/lib/types/agents"
 import { uploadToR2 } from "@/lib/api/uploads"
@@ -1080,7 +1082,10 @@ function AspectRatioPicker({
   )
 }
 
-const DURATION_OPTIONS = [4, 6, 8, 10] as const
+const DURATION_OPTIONS = VIDEO_DURATION_OPTIONS
+
+/** Storyboard sheets (and Omni renders) needed for a duration — one per 10 seconds. */
+const segmentsFor = (seconds: number) => Math.max(1, Math.ceil(seconds / VIDEO_SEGMENT_SECONDS))
 
 function DurationPicker({
   value,
@@ -1242,21 +1247,17 @@ export function MayaCampaignVideoForm({
 
   const orgId = (value as Record<string, unknown>).organization_id as string
   const { creditsRemaining, isTrial } = useMayaRemainingCredits(orgId)
-  const storyboardImageUrl = (value as Record<string, unknown>).storyboard_image_url as string | undefined
-  const storyboardBeats = (value as Record<string, unknown>).storyboard_beats as string[] | undefined
   const durationSeconds = form.watch("duration_seconds")
 
-  // A storyboard image still needs to be generated unless this form was prefilled
-  // from a "Turn into video" reuse flow that already has both a URL and beats —
-  // matches RunActionDialog's customSubmit regeneration condition exactly, so
-  // the credit estimate here never under-predicts what actually gets charged.
-  // Both costs draw from the same shared credit pool, so they must be checked
-  // together — a duration that looks affordable on its own could still blow
-  // the combined budget once the storyboard cost is added.
-  const needsStoryboardImage = hideDuration === true || !storyboardImageUrl || !storyboardBeats?.length
-  const storyboardCredits = needsStoryboardImage ? 2 : 0
+  // Sheets are only drawn by the standalone storyboard action (hideDuration === true). The
+  // video flow plans its shots as text instead, which costs nothing — so this form charges
+  // for sheets only when it IS the storyboard form. One 3x3 sheet per 10-second segment.
+  const storyboardCredits = hideDuration === true ? segmentsFor(durationSeconds) * 2 : 0
   const videoCredits = !hideDuration ? durationSeconds * 4 : 0
   const requestedCredits = storyboardCredits + videoCredits
+  const creditBreakdown = hideDuration
+    ? `${segmentsFor(durationSeconds)} storyboard sheet${segmentsFor(durationSeconds) > 1 ? "s" : ""}`
+    : `${durationSeconds}s of video`
   const overLimit = creditsRemaining !== null && requestedCredits > creditsRemaining
   // Trial gate applies only to the actual video-generation step, never the
   // storyboard step (hideDuration === true) — the storyboard only produces a
@@ -1302,22 +1303,30 @@ export function MayaCampaignVideoForm({
     )
   }
 
-  const stageStoryboardUrl = (stage?.data as { storyboardImageUrl?: string } | undefined)?.storyboardImageUrl
+  // The planned shot list, shown while the render runs — a 40s video takes several minutes,
+  // so this is what the user reads instead of watching a bare spinner.
+  const stageSegments = (stage?.data as { segments?: string[] } | undefined)?.segments
 
   return (
     <FieldGroup>
       {submitting && stage && (
-        <div className="flex flex-col items-center gap-2 rounded border border-border bg-muted/40 p-3">
-          {stageStoryboardUrl ? (
-            <img
-              src={stageStoryboardUrl}
-              alt="Storyboard preview"
-              className="max-h-40 rounded border border-border object-contain"
-            />
-          ) : (
+        <div className="flex flex-col gap-2 rounded border border-border bg-muted/40 p-3">
+          <div className="flex items-center gap-2 self-center">
             <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="text-xs text-muted-foreground">{stage.label}</span>
+          </div>
+          {!!stageSegments?.length && (
+            <ol className="flex max-h-60 flex-col gap-2 overflow-y-auto">
+              {stageSegments.map((segment, i) => (
+                <li key={i} className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    {`Seconds ${i * 10}–${(i + 1) * 10}`}
+                  </span>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{segment}</p>
+                </li>
+              ))}
+            </ol>
           )}
-          <span className="text-xs text-muted-foreground">{stage.label}</span>
         </div>
       )}
       {/* Product Image Upload */}
@@ -1384,11 +1393,11 @@ export function MayaCampaignVideoForm({
           </p>
         ) : overLimit ? (
           <p className="text-xs text-destructive">
-            {`This would use ${requestedCredits} credits total (storyboard image${!hideDuration ? " + video" : ""}), but only ${creditsRemaining} remain this period.`}
+            {`This would use ${requestedCredits} credits (${creditBreakdown}), but only ${creditsRemaining} remain this period.`}
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            {`This will use ${requestedCredits} credits total (storyboard image${!hideDuration ? " + video" : ""}).`}
+            {`This will use ${requestedCredits} credits (${creditBreakdown}).`}
           </p>
         )}
       </div>

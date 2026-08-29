@@ -44,6 +44,8 @@ import type {
   GenerateVideoResponse,
   CampaignVideoInput,
   CampaignVideoResponse,
+  CampaignVideoPlanInput,
+  CampaignVideoPlanResponse,
   CampaignVideoStoryboardInput,
   CampaignVideoStoryboardResponse,
   LogoAnimationInput,
@@ -63,7 +65,7 @@ import {
   rollbackCredits,
   assertVideoGenerationAllowed,
 } from "./maya.usage.service.js";
-import { imageCreditsFor, videoCreditsFor } from "./maya.quotas.js";
+import { imageCreditsFor, storyboardCreditsFor, videoCreditsFor } from "./maya.quotas.js";
 import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
 
 const platformToEnum: Record<string, SocialPlatform> = {
@@ -1527,12 +1529,34 @@ export const generateVideo = async (
   }
 };
 
+// The plan step is a single text call — no images, no render — so it is free. It exists so
+// the user can read the four segments while the (expensive) video is being shot, and so the
+// video renders the exact text they read instead of a re-planned variant.
+export const createCampaignVideoPlan = async (
+  userId: string,
+  organizationId: string,
+  input: CampaignVideoPlanInput
+): Promise<CampaignVideoPlanResponse> => {
+  const { data } = await aiService.post<CampaignVideoPlanResponse>("/ai/maya/campaign-video/plan", {
+    user_id: userId,
+    organization_id: organizationId,
+    product_image_urls: input.productImageUrls,
+    campaign_brief: input.campaignBrief,
+    platform: input.platform,
+    aspect_ratio: input.aspectRatio,
+    duration_seconds: input.durationSeconds,
+  });
+  return data;
+};
+
 export const createCampaignVideoStoryboard = async (
   userId: string,
   organizationId: string,
   input: CampaignVideoStoryboardInput
 ): Promise<CampaignVideoStoryboardResponse> => {
-  await checkAndDeductCredits(organizationId, imageCreditsFor(1));
+  // One sheet is drawn per 10s segment, so a 40s storyboard costs four images.
+  const storyboardCredits = storyboardCreditsFor(input.durationSeconds);
+  await checkAndDeductCredits(organizationId, storyboardCredits);
 
   try {
   await mayaRepository.createUserMessage({
@@ -1543,7 +1567,7 @@ export const createCampaignVideoStoryboard = async (
   });
 
   const { data } = await aiService.post<{
-    storyboard_image_base64: string;
+    storyboard_images_base64: string[];
     beats: string[];
     model_used: string;
   }>("/ai/maya/campaign-video/storyboard", {
@@ -1557,15 +1581,22 @@ export const createCampaignVideoStoryboard = async (
     use_logo: input.useLogo,
   });
 
-  const hosted = await hostImage(organizationId, {
-    image_base64: data.storyboard_image_base64,
-    content_type: "image/png",
-    prompt_used: "",
-  });
+  const hostedSheets = await Promise.all(
+    data.storyboard_images_base64.map((image_base64) =>
+      hostImage(organizationId, { image_base64, content_type: "image/png", prompt_used: "" })
+    )
+  );
 
+  // Sheets are only usable as a set — if any one failed to upload, fall back to inline
+  // base64 for all of them rather than handing back a half-hosted storyboard.
+  const allHosted = hostedSheets.every((h) => h?.image_url);
   const result: CampaignVideoStoryboardResponse = {
-    storyboard_image_url: hosted?.image_url,
-    storyboard_image_base64: hosted?.image_url ? undefined : hosted?.image_base64,
+    storyboard_image_urls: allHosted
+      ? hostedSheets.map((h) => h!.image_url as string)
+      : undefined,
+    storyboard_images_base64: allHosted
+      ? undefined
+      : hostedSheets.map((h, i) => h?.image_base64 ?? data.storyboard_images_base64[i]),
     beats: data.beats,
     model_used: data.model_used,
   };
@@ -1584,12 +1615,12 @@ export const createCampaignVideoStoryboard = async (
     organizationId,
     action: ActivityAction.GENERATED_STORYBOARD,
     summary: `Generated a campaign video storyboard for ${input.platform}`,
-    metadata: { platform: input.platform, creditsUsed: imageCreditsFor(1) },
+    metadata: { platform: input.platform, creditsUsed: storyboardCredits },
   });
 
   return result;
   } catch (err) {
-    await rollbackCredits(organizationId, imageCreditsFor(1));
+    await rollbackCredits(organizationId, storyboardCredits);
     throw err;
   }
 };
@@ -1630,7 +1661,8 @@ export const createCampaignVideo = async (
         duration_seconds: input.durationSeconds,
         use_logo: input.useLogo,
         storyboard_beats: input.storyboardBeats,
-        storyboard_image_url: input.storyboardImageUrl,
+        storyboard_image_urls: input.storyboardImageUrls,
+        segment_narratives: input.segmentNarratives,
       },
     }),
     draftVideoCaption(userId, organizationId, input.campaignBrief, input.platform),
@@ -1640,7 +1672,7 @@ export const createCampaignVideo = async (
     ...data,
     video: (await hostVideo(organizationId, data.video)) ?? data.video,
     caption,
-    storyboard_image_url: input.storyboardImageUrl,
+    storyboard_image_urls: input.storyboardImageUrls,
   };
 
   await mayaRepository.createAssistantMessage({

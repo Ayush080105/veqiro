@@ -17,6 +17,7 @@ import {
   expandBriefSchema,
   generateVideoSchema,
   campaignVideoSchema,
+  campaignVideoPlanSchema,
   campaignVideoStoryboardSchema,
   logoAnimationSchema,
 } from "./maya.schema.js";
@@ -37,6 +38,7 @@ export type CampaignInput = z.infer<typeof campaignSchema>;
 export type ExpandBriefInput = z.infer<typeof expandBriefSchema>;
 export type GenerateVideoInput = z.infer<typeof generateVideoSchema>;
 export type CampaignVideoInput = z.infer<typeof campaignVideoSchema>;
+export type CampaignVideoPlanInput = z.infer<typeof campaignVideoPlanSchema>;
 export type CampaignVideoStoryboardInput = z.infer<typeof campaignVideoStoryboardSchema>;
 export type LogoAnimationInput = z.infer<typeof logoAnimationSchema>;
 
@@ -216,12 +218,19 @@ export interface CampaignVideoResponse {
   caption?: CampaignCaption | null;
   tokens_used: number;
   model_used: string;
-  storyboard_image_url?: string;
+  storyboard_image_urls?: string[];
+}
+
+export interface CampaignVideoPlanResponse {
+  /** One narrative per 10-second segment, in order. */
+  segments: string[];
+  model_used: string;
 }
 
 export interface CampaignVideoStoryboardResponse {
-  storyboard_image_url?: string;
-  storyboard_image_base64?: string;
+  /** One 3x3 sheet per 10-second segment, in story order. */
+  storyboard_image_urls?: string[];
+  storyboard_images_base64?: string[];
   beats: string[];
   model_used: string;
 }

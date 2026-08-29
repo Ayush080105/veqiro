@@ -11,6 +11,21 @@ export function videoCreditsFor(seconds: number): number {
   return seconds * CREDITS_PER_VIDEO_SECOND;
 }
 
+// ─── Video length ───────────────────────────────────────────────────────────
+// Gemini Omni renders one 10s shot per call and extends in 10s steps up to 40s,
+// so every video is a whole number of 10-second segments. The storyboard step
+// draws one 3x3 sheet per segment, which is why its cost scales the same way.
+export const VIDEO_SEGMENT_SECONDS = 10;
+export const MAX_VIDEO_SECONDS = 40;
+export const VIDEO_DURATION_OPTIONS = [10, 20, 30, 40] as const;
+
+export function videoSegmentsFor(seconds: number): number {
+  return Math.max(1, Math.ceil(seconds / VIDEO_SEGMENT_SECONDS));
+}
+export function storyboardCreditsFor(seconds: number): number {
+  return imageCreditsFor(videoSegmentsFor(seconds));
+}
+
 // ─── Top-up conversion ──────────────────────────────────────────────────────
 export const TOPUP_DOLLAR_UNIT = 3;
 export const TOPUP_CREDITS_PER_UNIT = 50;

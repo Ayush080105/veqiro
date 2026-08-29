@@ -58,10 +58,37 @@ export async function runAgentAction<TInput, TResult>(
 }
 
 export interface CampaignVideoStoryboardResult {
-  storyboard_image_url?: string
-  storyboard_image_base64?: string
+  /** One 3x3 sheet per 10-second segment, in story order. */
+  storyboard_image_urls?: string[]
+  storyboard_images_base64?: string[]
   beats: string[]
   model_used: string
+}
+
+export interface CampaignVideoPlanResult {
+  /** One narrative per 10-second segment, in order. */
+  segments: string[]
+  model_used: string
+}
+
+/** Plans the shot list before the (slow, expensive) render, so the user has something to read
+ * while it runs and the video is shot from exactly the text they saw. Costs no credits. */
+export async function generateCampaignVideoPlan(
+  organizationId: string,
+  input: {
+    product_image_urls: string[]
+    campaign_brief: string
+    platform: string
+    aspect_ratio: string
+    duration_seconds: number
+  },
+  conversationId?: string
+): Promise<CampaignVideoPlanResult> {
+  return apiFetch<CampaignVideoPlanResult>("/agents/maya/campaign-video/plan", {
+    method: "POST",
+    body: { organizationId, conversationId, ...input },
+    agentSlugForNotFound: "maya",
+  })
 }
 
 export async function generateCampaignVideoStoryboard(

@@ -8,7 +8,7 @@ import {
   type ActionStage,
 } from "@/components/chat/ActionDialog"
 import { findAction } from "@/lib/agents/actions"
-import { runAgentAction, generateCampaignVideoStoryboard } from "@/lib/api/assistants"
+import { runAgentAction, generateCampaignVideoPlan } from "@/lib/api/assistants"
 import type { AgentActionId, ContentPlatform } from "@/lib/types/agents"
 
 // Sage forms
@@ -200,7 +200,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       prompt: "",
       platform: "instagram",
       aspect_ratio: "9:16",
-      duration_seconds: 8,
+      duration_seconds: 10,
       use_logo: false,
     },
     Form: MayaGenerateVideoForm,
@@ -212,7 +212,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       campaign_brief: "",
       platform: "instagram",
       aspect_ratio: "9:16",
-      duration_seconds: 8,
+      duration_seconds: 10,
       use_logo: false,
     },
     Form: MayaCampaignVideoForm,
@@ -224,15 +224,18 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
           : null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     customSubmit: async (v: any, organizationId: string, conversationId?: string, onStage?: (stage: ActionStage | null) => void) => {
-      // If a storyboard was already generated for this exact input (e.g. "Turn into video"
-      // from an existing Storyboard result card), reuse it instead of regenerating.
-      let storyboardBeats: string[] | undefined = v.storyboard_beats
-      let storyboardImageUrl: string | undefined = v.storyboard_image_url
+      // A 40s video is ~7 minutes and 160 credits, so plan the shot list first (one cheap
+      // text call, no credits) and show it while the render runs. Storyboard SHEETS are not
+      // generated here — they cost credits, add a failure mode, and the video's continuity
+      // comes from the footage chain, not from a drawing. The standalone storyboard action
+      // still exists for when someone wants the sheets themselves, and "Turn into video"
+      // from that card passes its beats through below.
+      let segments: string[] | undefined = v.segment_narratives
 
-      if (!storyboardImageUrl || !storyboardBeats?.length) {
-        onStage?.({ label: "Generating storyboard for you…" })
+      if (!segments?.length && !v.storyboard_beats?.length) {
+        onStage?.({ label: "Planning the shots…" })
         try {
-          const storyboard = await generateCampaignVideoStoryboard(
+          const plan = await generateCampaignVideoPlan(
             organizationId,
             {
               product_image_urls: v.product_image_urls,
@@ -240,22 +243,20 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
               platform: v.platform,
               aspect_ratio: v.aspect_ratio,
               duration_seconds: v.duration_seconds,
-              use_logo: v.use_logo,
             },
             conversationId
           )
-          storyboardBeats = storyboard.beats
-          storyboardImageUrl = storyboard.storyboard_image_url
+          segments = plan.segments
         } catch {
-          // Storyboard generation is a nice-to-have preview — fall back silently to a
-          // plain video generation if it fails, rather than blocking the user.
+          // The plan is a preview, not a prerequisite — if it fails, let the video endpoint
+          // do its own planning rather than blocking the user.
         }
       }
-      onStage?.({ label: "Generating video…", data: { storyboardImageUrl } })
+      onStage?.({ label: "Generating video…", data: { segments } })
       return runAgentAction(
         "maya:campaign-video",
         organizationId,
-        { ...v, storyboard_beats: storyboardBeats, storyboard_image_url: storyboardImageUrl },
+        { ...v, segment_narratives: segments },
         conversationId
       )
     },
