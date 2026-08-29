@@ -231,9 +231,9 @@ html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
 /* which beats driver.js's single-class (0,1,0) rules regardless of order */
 .vq-tour.driver-popover {
   background: #FFF9ED;
-  border: 3px solid #111;
-  border-radius: 8px;
-  box-shadow: 5px 5px 0 #111;
+  border: 1px solid var(--vq-line-2);
+  border-radius: var(--vq-r);
+  box-shadow: var(--vq-shadow-lg);
   padding: 20px;
   min-width: 360px;
   max-width: 420px;
@@ -268,23 +268,21 @@ html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
   gap: 6px;
 }
 .vq-tour .driver-popover-footer button {
-  font-family: var(--font-mono), monospace;
-  font-size: 10px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
+  font-family: var(--font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 500;
   padding: 7px 14px;
-  border: 2px solid #111;
-  border-radius: 6px;
-  box-shadow: 2px 2px 0 #111;
+  border: 1px solid var(--vq-line-2);
+  border-radius: var(--vq-r-sm);
+  box-shadow: var(--vq-shadow-sm);
   cursor: pointer;
   background: #EFE7D6;
   color: #111;
-  transition: transform 80ms, box-shadow 80ms;
+  transition: box-shadow 120ms ease;
   line-height: 1;
 }
 .vq-tour .driver-popover-footer button:hover {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 #111;
+  box-shadow: var(--vq-shadow);
 }
 .vq-tour .driver-popover-next-btn {
   background: #111;
