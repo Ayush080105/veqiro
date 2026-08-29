@@ -52,7 +52,7 @@ const LoginBg = () => {
       <div className="relative z-10 grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] gap-4 p-6 xl:p-8">
         <div className="flex items-start justify-between gap-5">
           <div>
-            <div className="inline-flex rotate-[-2deg] items-center gap-2 border-[3px] border-foreground bg-accent px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] shadow-[4px_4px_0_var(--foreground)]">
+            <div className="inline-flex items-center gap-2 border border-[var(--vq-line-2)] bg-accent px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] shadow-[var(--vq-shadow)]">
               <Sparkles className="size-3.5" aria-hidden />
               Crew on shift
             </div>
@@ -66,12 +66,7 @@ const LoginBg = () => {
 
         <div className="grid min-h-0 items-center">
           <div className="relative min-h-0">
-            <div
-              className="absolute -left-4 top-5 h-full w-full border-[3px] border-foreground opacity-95"
-              style={{ backgroundColor: agent.accent }}
-              aria-hidden
-            />
-            <div className="relative grid min-h-[420px] grid-cols-[minmax(190px,245px)_minmax(0,1fr)] gap-5 border-[3px] border-foreground bg-card p-5 shadow-[8px_8px_0_var(--foreground)] xl:min-h-[440px] xl:grid-cols-[265px_minmax(0,1fr)]">
+            <div className="relative grid min-h-[420px] grid-cols-[minmax(190px,245px)_minmax(0,1fr)] gap-5 rounded-[var(--vq-r-lg)] border border-[var(--vq-line-2)] bg-card p-5 shadow-[var(--vq-shadow-lg)] xl:min-h-[440px] xl:grid-cols-[265px_minmax(0,1fr)]">
               <div className="grid min-h-0 content-between gap-4">
                 <div className="min-w-0">
                   <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -86,11 +81,7 @@ const LoginBg = () => {
                 </div>
 
                 <div className="relative">
-                  <div
-                    className="absolute -right-3 top-4 h-full w-full border-[3px] border-foreground bg-background"
-                    aria-hidden
-                  />
-                  <div className="relative overflow-hidden border-[3px] border-foreground bg-background shadow-[5px_5px_0_var(--foreground)]">
+                  <div className="relative overflow-hidden rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-background shadow-[var(--vq-shadow)]">
                     <div className="relative aspect-[4/5]">
                       <Image
                         key={agent.file}
@@ -103,7 +94,7 @@ const LoginBg = () => {
                       />
                     </div>
                     <div
-                      className="absolute bottom-3 left-3 border-[3px] border-foreground px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[3px_3px_0_var(--foreground)]"
+                      className="absolute bottom-3 left-3 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[var(--vq-shadow-sm)]"
                       style={{ backgroundColor: agent.accent }}
                     >
                       {agent.name}
@@ -115,7 +106,7 @@ const LoginBg = () => {
               <div className="grid min-h-0 content-between gap-4">
                 <div className="flex justify-end">
                   <div
-                    className="rotate-2 border-[3px] border-foreground px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[3px_3px_0_var(--foreground)]"
+                    className="border border-[var(--vq-line-2)] px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[var(--vq-shadow-sm)]"
                     style={{ backgroundColor: agent.accent }}
                   >
                     active now
@@ -123,19 +114,19 @@ const LoginBg = () => {
                 </div>
 
                 <div className="grid gap-4">
-                  <div className="border-[3px] border-foreground bg-background px-4 py-3 shadow-[4px_4px_0_var(--foreground)]">
-                    <div className="mb-3 inline-flex border-2 border-foreground bg-card px-2.5 py-1 font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-foreground/75">
+                  <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-background px-4 py-3 shadow-[var(--vq-shadow)]">
+                    <div className="mb-3 inline-flex rounded-full border border-[var(--vq-line-2)] bg-card px-2.5 py-1 font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-foreground/75">
                       What I handle
                     </div>
                     <p className="max-w-[30rem] text-balance font-body text-[19px] font-semibold leading-[1.18] tracking-normal text-foreground xl:text-[22px]">
                       {agent.does}
                     </p>
-                    <p className="mt-4 border-t-2 border-dashed border-foreground/25 pt-3 font-body text-[14px] leading-[1.45] text-foreground/70 xl:text-[15px]">
+                    <p className="mt-4 border-t border-dashed border-[var(--vq-line-2)] pt-3 font-body text-[14px] leading-[1.45] text-foreground/70 xl:text-[15px]">
                       {agent.saves}
                     </p>
                   </div>
 
-                  <div className="border-[3px] border-foreground bg-background px-4 py-3 shadow-[4px_4px_0_var(--foreground)]">
+                  <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-background px-4 py-3 shadow-[var(--vq-shadow)]">
                     <div className="mb-3 flex items-center gap-2 font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-muted-foreground">
                       <LayoutList className="size-4" aria-hidden />
                       My tasks
@@ -161,7 +152,7 @@ const LoginBg = () => {
                   </div>
 
                   <div
-                    className="border-[3px] border-foreground p-3 shadow-[4px_4px_0_var(--foreground)]"
+                    className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] p-3 shadow-[var(--vq-shadow)]"
                     style={{ backgroundColor: agent.accent }}
                   >
                     <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70">
@@ -178,7 +169,7 @@ const LoginBg = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-[3px] border-foreground bg-card px-4 py-3 shadow-[4px_4px_0_var(--foreground)]">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card px-4 py-3 shadow-[var(--vq-shadow)]">
           <div className="grid grid-cols-6 gap-2">
             {AGENT_PROOFS.map((item, index) => (
               <button
@@ -186,14 +177,14 @@ const LoginBg = () => {
                 type="button"
                 onClick={() => goTo(index)}
                 className={cn(
-                  "group grid min-w-0 gap-1 border-2 border-foreground bg-background px-2 py-1 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
-                  index === active && "translate-y-[-4px] shadow-[3px_3px_0_var(--foreground)]"
+                  "group grid min-w-0 gap-1 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] bg-background px-2 py-1 text-left transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                  index === active && "shadow-[var(--vq-shadow-sm)]"
                 )}
                 aria-label={`Show ${item.name}`}
                 aria-pressed={index === active}
               >
                 <span
-                  className="grid size-6 place-items-center border-2 border-foreground font-head text-[10px] uppercase"
+                  className="grid size-6 place-items-center rounded-full border border-[var(--vq-line-2)] font-head text-[10px] uppercase"
                   style={{ backgroundColor: item.accent }}
                   aria-hidden
                 >
