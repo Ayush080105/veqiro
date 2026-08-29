@@ -23,7 +23,7 @@ export function SettingsNav() {
         flexWrap: "wrap",
         alignItems: "center",
         gap: 10,
-        borderBottom: "3px solid #111",
+        borderBottom: "1px solid var(--vq-line)",
         paddingBottom: 14,
       }}
     >
@@ -39,16 +39,15 @@ export function SettingsNav() {
               gap: 8,
               padding: "8px 14px",
               borderRadius: 999,
-              border: "2.5px solid #111",
+              border: "1px solid var(--vq-line-2)",
               background: active ? color : "#FFF9ED",
-              boxShadow: active ? "3px 3px 0 #111" : "none",
+              boxShadow: active ? "var(--vq-shadow-sm)" : "none",
               color: "#111",
               textDecoration: "none",
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              letterSpacing: 1.5,
-              textTransform: "uppercase",
-              transition: "transform 120ms ease, box-shadow 120ms ease",
+              fontFamily: FONT.body,
+              fontSize: 13,
+              fontWeight: 500,
+              transition: "box-shadow 120ms ease",
             }}
           >
             <Icon className="size-3.5" />
