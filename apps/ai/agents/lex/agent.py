@@ -1,12 +1,16 @@
 import asyncio
 import json
+import logging
 
 from agents.base import BaseAgent
-from core.llm import LLMClient
+from core.llm import LLMClient, JSON_COMPLETION_MAX_TOKENS
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
 from core.utils import safe_json_loads
+
+logger = logging.getLogger("lex")
+
 
 class LexAgent(BaseAgent):
     slug = "lex"
@@ -415,7 +419,7 @@ class LexAgent(BaseAgent):
                 data = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
-                    max_tokens=3000,
+                    max_tokens=JSON_COMPLETION_MAX_TOKENS,
                 )
                 # Guard: if answer field itself looks like nested JSON, re-parse it
                 if isinstance(data.get("answer"), str) and data["answer"].strip().startswith("{"):
@@ -425,7 +429,14 @@ class LexAgent(BaseAgent):
                             data = inner
                     except Exception:
                         pass
-            except Exception:
+            except Exception as exc:
+                # This used to swallow the cause entirely, so a user-visible failure left
+                # nothing in the logs to debug from. The card below is still the graceful
+                # fallback, but the reason has to be recoverable.
+                logger.exception(
+                    "legal_research failed | user=%s org=%s query_len=%d jurisdiction=%s | %s",
+                    user_id, organization_id, len(query), jurisdiction, exc,
+                )
                 data = {
                     "answer": "Legal research failed — please retry.",
                     "sections": [],

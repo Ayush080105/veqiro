@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from core.llm import LLMClient
+from core.llm import LLMClient, JSON_COMPLETION_MAX_TOKENS
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
@@ -1371,7 +1371,7 @@ async def topical_map(request: TopicalMapRequest) -> TopicalMapResponse:
         raw = await _llm.complete(
             provider=_agent.default_provider, model=_agent.default_model,
             system=system, messages=[{"role": "user", "content": prompt}],
-            max_tokens=3000,
+            max_tokens=JSON_COMPLETION_MAX_TOKENS,
         )
         tokens_used = _llm.count_tokens(raw)
         data = safe_json_loads(raw)

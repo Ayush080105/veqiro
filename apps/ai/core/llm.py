@@ -28,6 +28,15 @@ _FIXED_TEMPERATURE_MODELS = {"gpt-5.6-luna"}
 # supported... use /v1/responses or set reasoning_effort to 'none'").
 _REASONING_EFFORT_REQUIRED_FOR_TOOLS = {"gpt-5.6-luna"}
 
+# Default budget for complete_json. On a reasoning model, max_completion_tokens covers
+# REASONING PLUS OUTPUT, and reasoning runs first — so a budget that only fits the answer
+# returns HTTP 200 with an empty string and finish_reason="length". Measured on
+# gpt-5.6-luna: at 3000 the model spent all 3000 tokens reasoning and emitted no content
+# (3/3 runs); at 8000 it reasoned for 107 and wrote the full answer. The cap is not a
+# charge — only generated tokens are billed — so headroom here is strictly cheaper than
+# paying for a burnt budget that produced nothing.
+JSON_COMPLETION_MAX_TOKENS = 8000
+
 
 def _openai_completion_kwargs(
     model: str, temperature: float, max_tokens: int | None = None, for_tools: bool = False
@@ -44,6 +53,26 @@ def _openai_completion_kwargs(
     if for_tools and model in _REASONING_EFFORT_REQUIRED_FOR_TOOLS:
         kwargs["reasoning_effort"] = "none"
     return kwargs
+
+def _is_transient_llm_error(exc: Exception) -> bool:
+    """Whether a provider call failed for a reason that retrying can fix.
+
+    Checked by explicit status code first (429 and 5xx), because matching on class name or
+    message alone would also catch permanent 4xx failures — retrying a malformed request
+    just burns time and returns the same error.
+    """
+    status = getattr(exc, "status_code", None)
+    if status is None:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    if isinstance(status, int):
+        return status == 429 or status >= 500
+
+    name = type(exc).__name__.lower()
+    if any(k in name for k in ("ratelimit", "timeout", "connection", "serviceunavailable", "internalserver")):
+        return True
+    text = str(exc).lower()
+    return any(m in text for m in ("rate limit", "timed out", "timeout", "overloaded", "temporarily unavailable"))
+
 
 def _aspect_ratio_hint(aspect_ratio: str) -> str:
     return {
@@ -358,18 +387,41 @@ class LLMClient:
         system: str,
         messages: list,
         temperature: float = 0.3,
-        max_tokens: int = 4096,
+        max_tokens: int = JSON_COMPLETION_MAX_TOKENS,
     ) -> dict | list:
         """Structured-output completion: enforces the provider's JSON mode, parses
-        the result, and retries once with corrective feedback on a parse failure.
+        the result, and retries on a parse failure, an empty response, or a transient
+        provider error.
 
         Use this instead of `complete` + manual json parsing for any call whose
         output must be machine-readable. Returns the parsed dict/list; raises
-        LLMError when both attempts fail.
+        LLMError when the retries are exhausted.
         """
         from core.utils import safe_json_loads
         response_format = {"type": "json_object"}
-        raw = await self.complete(provider, model, system, messages, temperature, max_tokens, response_format)
+        raw = await self._complete_retrying_transient(
+            provider, model, system, messages, temperature, max_tokens, response_format
+        )
+
+        # An empty body means the model never got to write anything — on a reasoning model
+        # that is the budget running out during reasoning. Corrective feedback cannot help a
+        # model that never spoke; only more room can, so retry with a bigger budget rather
+        # than falling through to the malformed-JSON path below.
+        if not (raw or "").strip():
+            roomier = max(max_tokens * 3, JSON_COMPLETION_MAX_TOKENS * 2)
+            logger.warning(
+                "complete_json got an empty response — retrying with max_tokens=%d (was %d) | model=%s",
+                roomier, max_tokens, model,
+            )
+            raw = await self._complete_retrying_transient(
+                provider, model, system, messages, temperature, roomier, response_format
+            )
+            if not (raw or "").strip():
+                raise LLMError(
+                    f"complete_json got an empty response from {model} even at "
+                    f"max_tokens={roomier} — the model produced no content"
+                )
+
         try:
             return safe_json_loads(raw)
         except Exception as first_err:
@@ -383,11 +435,42 @@ class LLMClient:
                     "object/array — no prose, no markdown fences, no explanation."
                 )},
             ]
-            raw = await self.complete(provider, model, system, retry_messages, temperature, max_tokens, response_format)
+            raw = await self._complete_retrying_transient(
+                provider, model, system, retry_messages, temperature, max_tokens, response_format
+            )
             try:
                 return safe_json_loads(raw)
             except Exception as second_err:
                 raise LLMError(f"complete_json returned unparseable JSON after retry: {second_err}")
+
+    async def _complete_retrying_transient(
+        self, provider, model, system, messages, temperature, max_tokens, response_format,
+        attempts: int = 3,
+    ) -> str:
+        """`complete`, retrying provider-side blips (429 / 5xx / timeouts) with backoff.
+
+        Without this a single rate-limit hiccup surfaces to the user as a hard failure —
+        agents that call complete_json turn the raised LLMError into a canned "failed,
+        please retry" card, which reads as permanently broken rather than momentarily busy.
+        Only transient statuses are retried; a 4xx is re-raised immediately.
+        """
+        last_err: Exception | None = None
+        for attempt in range(attempts):
+            if attempt:
+                await asyncio.sleep(2 ** attempt)  # 2s, 4s
+            try:
+                return await self.complete(
+                    provider, model, system, messages, temperature, max_tokens, response_format
+                )
+            except Exception as exc:
+                if not _is_transient_llm_error(exc):
+                    raise
+                last_err = exc
+                logger.warning(
+                    "complete_json transient provider error — attempt %d/%d | model=%s | %s",
+                    attempt + 1, attempts, model, exc,
+                )
+        raise LLMError(f"provider unavailable after {attempts} attempts: {last_err}")
 
     async def _real_complete(self, provider, model, system, messages, temperature, max_tokens, response_format):
         import time

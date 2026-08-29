@@ -5,7 +5,7 @@ import re
 
 from agents.base import BaseAgent
 from core.config import settings
-from core.llm import LLMClient
+from core.llm import LLMClient, JSON_COMPLETION_MAX_TOKENS
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
@@ -712,7 +712,7 @@ class SageAgent(BaseAgent):
                 data = await self.llm.complete_json(
                     provider=self.default_provider, model=self.default_model,
                     system=system, messages=[{"role": "user", "content": prompt}],
-                    max_tokens=3000,
+                    max_tokens=JSON_COMPLETION_MAX_TOKENS,
                 )
                 return json.dumps(data)
             except Exception as e:
