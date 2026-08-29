@@ -50,7 +50,7 @@ export function AgentBuyCard({
     <Card variant="brand" size="sm">
       <CardContent className="flex flex-col">
         <div className="flex items-center gap-3">
-          <div className="relative size-12 overflow-hidden rounded-full border-2 border-foreground bg-muted">
+          <div className="relative size-12 overflow-hidden rounded-full border border-[var(--vq-line-2)] bg-muted">
             <Image src={AGENT_IMAGES[agent]} alt={`${meta?.name ?? agent} portrait`}
                    fill sizes="48px" className="object-cover" />
           </div>
