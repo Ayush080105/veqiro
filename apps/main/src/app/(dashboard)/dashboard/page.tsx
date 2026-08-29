@@ -121,11 +121,11 @@ export default function DashboardPage() {
       {isError && (
         <div
           role="alert"
-          className="flex flex-col gap-3 rounded-md border-[3px] border-foreground bg-card p-4 shadow-[6px_6px_0_var(--destructive)] sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-3 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="min-w-0">
-            <div className="font-mono text-[11px] uppercase tracking-widest text-destructive">
-              dashboard data unavailable
+            <div className="text-sm font-medium text-destructive">
+              Dashboard data unavailable
             </div>
             <p className="m-0 mt-1 font-body text-sm leading-snug text-muted-foreground">
               We could not refresh your dashboard summary. Your workspace is still available.
@@ -133,8 +133,8 @@ export default function DashboardPage() {
           </div>
           <Button
             type="button"
-            variant="brand-dark"
-            size="brand-sm"
+            variant="outline"
+            size="sm"
             onClick={() => refetch()}
             className="self-start sm:self-auto"
           >
