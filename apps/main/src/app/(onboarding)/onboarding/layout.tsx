@@ -70,7 +70,7 @@ function OnboardingHeader({
   const profileLabel = user?.name ?? user?.email ?? "Profile"
 
   return (
-    <nav className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b-[3px] border-foreground bg-background px-5 py-4 sm:px-8 sm:py-5">
+    <nav className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--vq-line-2)] bg-background px-5 py-4 sm:px-8 sm:py-5">
       <Link href="/" className="flex items-center gap-2.5 text-foreground">
         <Logo className="w-10 h-10" />
         <span className="font-head text-xl tracking-tight">veqiro</span>
@@ -80,7 +80,7 @@ function OnboardingHeader({
         <button
           type="button"
           title={user?.email ?? profileLabel}
-          className="flex max-w-[180px] items-center gap-2 rounded-full border-2 border-foreground bg-white px-3 py-2 text-left font-mono text-[11px] uppercase tracking-[0.14em] text-foreground shadow-[2px_2px_0_#111] sm:max-w-[240px]"
+          className="flex max-w-[180px] items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-white px-3 py-2 text-left text-[13px] text-foreground shadow-[var(--vq-shadow-sm)] sm:max-w-[240px]"
         >
           {user?.image ? (
             <img
@@ -97,13 +97,13 @@ function OnboardingHeader({
         <button
           type="button"
           onClick={onLogout}
-          className="flex items-center gap-2 rounded-full border-2 border-foreground bg-destructive px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground shadow-[2px_2px_0_#111] transition-transform active:translate-x-0.5 active:translate-y-0.5"
+          className="flex items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-destructive px-3 py-2 text-[13px] text-foreground shadow-[var(--vq-shadow-sm)]"
         >
           <LogOut className="size-4" />
           Logout
         </button>
 
-        <div className="rounded-full border-2 border-foreground bg-secondary px-3.5 py-2 font-mono text-xs uppercase tracking-[0.18em] text-foreground">
+        <div className="rounded-full border border-[var(--vq-line-2)] bg-secondary px-3.5 py-2 font-mono text-xs uppercase tracking-[0.18em] text-foreground">
           Step {stepIndex} / {TOTAL_STEPS}
         </div>
       </div>
@@ -122,7 +122,7 @@ function Progress({ stepIndex }: { stepIndex: number }) {
           <div
             key={n}
             className={cn(
-              "h-2.5 flex-1 rounded-full border-2 border-foreground transition-colors duration-200",
+              "h-2.5 flex-1 rounded-full border border-[var(--vq-line-2)] transition-colors duration-200",
               n < stepIndex && "bg-[color:var(--vq-green)]",
               n === stepIndex && "bg-[color:var(--vq-yellow)]",
               n > stepIndex && "bg-background",
@@ -408,7 +408,7 @@ export default function OnboardingLayout({
           {currentStep && (
             <div className="mx-auto mb-7 max-w-2xl">
               <div className="mb-3 flex items-center justify-between">
-                <Sticker rotate={-4} tone="green">
+                <Sticker rotate={0} tone="green">
                   Step {stepIndex} of {TOTAL_STEPS}
                 </Sticker>
                 <div className="font-mono text-xs text-muted-foreground">
@@ -419,16 +419,6 @@ export default function OnboardingLayout({
             </div>
           )}
 
-          <div className="absolute left-[6%] top-40 z-0">
-            <Sticker rotate={-14} tone="yellow">
-              briefing in progress
-            </Sticker>
-          </div>
-          <div className="absolute right-[6%] top-56 z-0">
-            <Sticker rotate={10} tone="red">
-              auto-saved ✦
-            </Sticker>
-          </div>
 
           <div className="relative z-10">{children}</div>
 
