@@ -26,12 +26,12 @@ const RunGraph = dynamic(() => import("./RunGraph").then((m) => m.RunGraph), {
     <div
       style={{
         height: 180,
-        borderRadius: 12,
-        border: "1px solid rgba(20,18,14,0.10)",
-        background: "#F5EEE0",
+        borderRadius: "var(--vq-r)",
+        border: "1px solid var(--vq-line)",
+        background: "var(--vq-surface-2)",
         display: "grid",
         placeItems: "center",
-        color: "#8B857A",
+        color: "var(--vq-ink-3)",
         fontSize: 13,
       }}
     >
