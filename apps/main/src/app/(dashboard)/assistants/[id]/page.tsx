@@ -22,7 +22,7 @@ import { getIntegrationsByAgent } from "@repo/integrations-catalog"
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { MediaViewerProvider } from "@/components/chat/MediaViewer"
-import { PlusMenu } from "@/components/chat/PlusMenu"
+import { ToolsMenu } from "@/components/chat/ToolsMenu"
 import { HelpSheet } from "@/components/chat/HelpSheet"
 import { OnboardMeModal } from "@/components/assistants/OnboardMeModal"
 import { RunActionDialog } from "@/components/chat/RunActionDialog"
@@ -491,7 +491,7 @@ export default function AssistantChatPage() {
 
   const [content, setContent] = useState("")
   const [sendError, setSendError] = useState<ApiError | null>(null)
-  const [plusOpen, setPlusOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [onboardOpen, setOnboardOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -523,8 +523,12 @@ export default function AssistantChatPage() {
     onSuccess: (serverMsg) => {
       scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => {
-        const withoutOptimistic = prev.slice(0, -1)
-        const updated = [...withoutOptimistic, serverMsg]
+        // Append the reply and KEEP the user's message. This used to drop the last entry
+        // before appending, on the assumption it was the optimistic message being replaced —
+        // but the optimistic entry is the USER's message and serverMsg is the ASSISTANT's
+        // reply, so the user's own message was deleted from the list the moment the bot
+        // answered, and only came back on a refetch.
+        const updated = [...prev, serverMsg]
 
         // If the server updated an existing draft card image in-place, patch it
         // in React state so the user sees the new image without a page reload.
@@ -551,8 +555,10 @@ export default function AssistantChatPage() {
         return updated.slice(-WINDOW)
       })
     },
-    onError: () => {
-      setMsgWindow((prev) => prev.slice(0, -1))
+    onError: (optimisticId) => {
+      // Remove by id, not by position: anything appended while the request was in flight
+      // would otherwise make slice(0, -1) delete the wrong message.
+      setMsgWindow((prev) => prev.filter((m) => m.id !== optimisticId))
     },
   })
 
@@ -1036,7 +1042,7 @@ export default function AssistantChatPage() {
   )
 
   const handlePlusPick = (actionId: AgentActionId) => {
-    setPlusOpen(false)
+    setToolsOpen(false)
     if (actionId === "scout:discover-competitors") {
       openAction(actionId, discoverCompetitorsPrefill)
     } else {
@@ -1549,7 +1555,7 @@ export default function AssistantChatPage() {
             value={content}
             onChange={setContent}
             onSend={handleSend}
-            onPlusClick={() => setPlusOpen(true)}
+            onToolsClick={() => setToolsOpen(true)}
             onAttachClick={isLex ? openUploadAction : undefined}
             placeholder={`Message ${agent.name.toLowerCase()}…`}
             disabled={isLoading}
@@ -1565,9 +1571,9 @@ export default function AssistantChatPage() {
         organizationId={organizationId}
       />
 
-      <PlusMenu
-        open={plusOpen}
-        onOpenChange={setPlusOpen}
+      <ToolsMenu
+        open={toolsOpen}
+        onOpenChange={setToolsOpen}
         agentSlug={agentSlug}
         agentName={agent.name}
         onPick={(a) => handlePlusPick(a.id)}

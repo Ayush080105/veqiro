@@ -9,7 +9,7 @@ export interface AgentActionMeta {
   endpoint: string
   label: string
   description: string
-  /** Lucide icon name (resolved in PlusMenu) */
+  /** Lucide icon name (resolved in ToolsMenu) */
   icon: string
   /** Shown as an example prompt / hint */
   example?: string

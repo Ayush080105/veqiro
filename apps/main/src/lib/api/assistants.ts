@@ -307,9 +307,16 @@ export function useMessages(agentSlug: string, organizationId: string) {
 
 export type SendMessageCallbacks = {
   onOptimistic?: (msg: Message) => void
-  onSuccess?: (msg: Message) => void
-  onError?: () => void
+  /** `optimisticId` identifies the user message written by onOptimistic, so the caller can
+   * reconcile it by identity instead of by position in the list. */
+  onSuccess?: (msg: Message, optimisticId: string) => void
+  onError?: (optimisticId: string) => void
 }
+
+// Distinguishes optimistic user messages from persisted ones. Date.now() alone can repeat
+// within a millisecond, and a duplicate React key silently drops a message from the list.
+let optimisticSeq = 0
+const nextOptimisticId = () => `optimistic-${Date.now()}-${optimisticSeq++}`
 
 export function useSendMessage(
   agentSlug: string,
@@ -325,18 +332,22 @@ export function useSendMessage(
       sendMessage(agentSlug, organizationId, content, conversationId),
 
     onMutate: async (content: string) => {
+      const optimisticId = nextOptimisticId()
       const optimistic: Message = {
+        id: optimisticId,
         role: "user",
         content,
         imageUrl: null,
         createdAt: new Date().toISOString(),
       }
       callbacks?.onOptimistic?.(optimistic)
-      return { optimistic }
+      return { optimisticId }
     },
 
-    onSuccess: (serverMsg: Message, content: string) => {
-      callbacks?.onSuccess?.(serverMsg)
+    // `ctx` is undefined if onMutate itself threw — in which case no optimistic message was
+    // ever written, so an id that matches nothing is the correct thing to pass on.
+    onSuccess: (serverMsg: Message, content: string, ctx) => {
+      callbacks?.onSuccess?.(serverMsg, ctx?.optimisticId ?? "")
 
       queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(
         qk.lastMessages(),
@@ -355,8 +366,8 @@ export function useSendMessage(
       )
     },
 
-    onError: () => {
-      callbacks?.onError?.()
+    onError: (_err, _content, ctx) => {
+      callbacks?.onError?.(ctx?.optimisticId ?? "")
     },
   })
 }

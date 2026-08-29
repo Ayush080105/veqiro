@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Paperclip, Plus, Send } from "lucide-react"
+import { Paperclip, Send, Wrench } from "lucide-react"
 
 import { FONT } from "@/lib/fonts"
 import { CHAT_MESSAGE_MAX } from "@/lib/schemas/chat"
@@ -10,7 +10,7 @@ export interface ChatInputProps {
   value: string
   onChange: (v: string) => void
   onSend: () => void
-  onPlusClick: () => void
+  onToolsClick: () => void
   onAttachClick?: () => void
   attachIcon?: React.ReactNode
   attachTitle?: string
@@ -70,7 +70,7 @@ export function ChatInput({
   value,
   onChange,
   onSend,
-  onPlusClick,
+  onToolsClick,
   onAttachClick,
   attachIcon,
   attachTitle = "Attach PDF",
@@ -89,7 +89,7 @@ export function ChatInput({
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
       e.preventDefault()
-      if (!disabled) onPlusClick()
+      if (!disabled) onToolsClick()
     }
   }
 
@@ -106,14 +106,44 @@ export function ChatInput({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <IconButton
-          onClick={onPlusClick}
-          ariaLabel="Open actions menu"
-          title="Actions (Ctrl/Cmd+K)"
+        {/* Labelled rather than a bare "+": the menu opens this agent's structured
+            actions, which a plus sign reads as "attach" or "new chat" instead. */}
+        <button
+          suppressHydrationWarning
+          type="button"
+          onClick={onToolsClick}
+          aria-label="Open tools menu"
+          title="Tools (Ctrl/Cmd+K)"
           disabled={disabled}
+          style={{
+            height: 40,
+            flexShrink: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "0 14px",
+            background: "#EFE7D6",
+            border: "1.5px solid #D4C9B0",
+            borderRadius: 999,
+            cursor: disabled ? "not-allowed" : "pointer",
+            opacity: disabled ? 0.4 : 1,
+            color: "#5A5245",
+            fontFamily: FONT.body,
+            fontSize: 13,
+            fontWeight: 500,
+            transition: "background 120ms ease, border-color 150ms",
+          }}
+          onMouseEnter={(e) => {
+            if (!disabled) e.currentTarget.style.borderColor = "#9A8F7A"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "#D4C9B0"
+          }}
         >
-          <Plus className="size-5" />
-        </IconButton>
+          <Wrench className="size-4" />
+          {/* Icon-only on the narrowest screens so the composer keeps its width. */}
+          <span className="hidden sm:inline">Tools</span>
+        </button>
 
         {onAttachClick && (
           <IconButton

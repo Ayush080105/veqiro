@@ -18,7 +18,7 @@ function resolveIcon(name: string): React.ComponentType<{ className?: string }> 
   return lib[name] ?? Icons.Sparkles
 }
 
-export function PlusMenu({
+export function ToolsMenu({
   open,
   onOpenChange,
   agentSlug,
