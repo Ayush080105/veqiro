@@ -117,6 +117,11 @@
   --sidebar-accent-foreground: #111111;
   --sidebar-border: #111111;
   --sidebar-ring: #111111;
+
+  /* FONT.head (lib/fonts.ts) reads --font-archivo directly via inline style;
+     alias it to the same Inter Tight loaded under --font-bagel instead of
+     loading Inter Tight a second time. */
+  --font-archivo: var(--font-bagel);
 }
 
 @layer base {
