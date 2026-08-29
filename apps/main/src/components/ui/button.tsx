@@ -7,7 +7,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-none border border-transparent bg-clip-padding text-xs font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-xs font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -25,13 +25,13 @@ const buttonVariants = cva(
         // Chunky brutalist CTAs: 3px ink border, hard offset shadow, brand head font.
         // Press effect: translates 2px down/right + shadow shrinks 5→3 to feel pressed.
         brand:
-          "rounded-md border-[3px] border-foreground bg-destructive text-foreground font-head uppercase tracking-wider shadow-[5px_5px_0_var(--foreground)] hover:bg-destructive/90 active:not-aria-[haspopup]:translate-x-0.5 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--foreground)] disabled:opacity-45",
+          "rounded-lg border border-[var(--vq-line-2)] bg-destructive text-foreground font-display font-medium shadow-[var(--vq-shadow)] hover:bg-destructive/90 hover:shadow-[var(--vq-shadow-lg)] active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "brand-dark":
-          "rounded-md border-[3px] border-foreground bg-primary text-primary-foreground font-head uppercase tracking-wider shadow-[5px_5px_0_var(--accent)] hover:bg-primary/90 active:not-aria-[haspopup]:translate-x-0.5 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--accent)] disabled:opacity-45",
+          "rounded-lg border border-[var(--vq-line-2)] bg-primary text-primary-foreground font-display font-medium shadow-[var(--vq-shadow)] hover:bg-primary/90 hover:shadow-[var(--vq-shadow-lg)] active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "brand-yellow":
-          "rounded-md border-[3px] border-foreground bg-accent text-foreground font-head uppercase tracking-wider shadow-[5px_5px_0_var(--foreground)] hover:bg-accent/90 active:not-aria-[haspopup]:translate-x-0.5 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--foreground)] disabled:opacity-45",
+          "rounded-lg border border-[var(--vq-line-2)] bg-accent text-foreground font-display font-medium shadow-[var(--vq-shadow)] hover:bg-accent/90 hover:shadow-[var(--vq-shadow-lg)] active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "brand-ghost":
-          "rounded-md border-[3px] border-foreground bg-transparent text-foreground font-head uppercase tracking-wider hover:bg-foreground/5 active:not-aria-[haspopup]:translate-y-0.5 disabled:opacity-45",
+          "rounded-lg border border-[var(--vq-line-2)] bg-transparent text-foreground font-display font-medium hover:bg-foreground/5 active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         // ── Chat action button: dark pill CTA used inside agent result cards ──
         "chat-action":
           "h-auto rounded-full bg-[#111] px-3.5 py-1.5 text-[11px] font-medium text-[#FFF9ED] hover:opacity-80 gap-1.5 [&_svg:not([class*='size-'])]:size-3",
@@ -42,12 +42,12 @@ const buttonVariants = cva(
       size: {
         default:
           "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-none px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-none px-2.5 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+        xs: "h-6 gap-1 px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-7 gap-1 px-2.5 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
         icon: "size-8",
-        "icon-xs": "size-6 rounded-none [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-7 rounded-none",
+        "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-7",
         "icon-lg": "size-9",
         // ── Brand sizes ──────────────────────────────────────────────────────
         brand: "h-12 gap-2 px-6 text-sm",
