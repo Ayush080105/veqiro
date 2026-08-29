@@ -39,7 +39,7 @@ export default function OAuthButtons({
       size="brand"
       onClick={handleClick}
       disabled={googleLoading}
-      className="min-h-12 w-full whitespace-normal text-center leading-tight shadow-[5px_5px_0_var(--foreground)] active:not-aria-[haspopup]:shadow-[3px_3px_0_var(--foreground)] sm:whitespace-nowrap"
+      className="min-h-12 w-full whitespace-normal text-center leading-tight sm:whitespace-nowrap"
     >
       {googleLoading ? (
         <>

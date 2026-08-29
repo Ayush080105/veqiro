@@ -66,7 +66,7 @@ export function LoginForm() {
         {error && (
           <div
             role="alert"
-            className="rounded-md border-[3px] border-foreground bg-destructive/15 px-3.5 py-2.5 font-mono text-xs text-foreground shadow-[3px_3px_0_var(--destructive)]"
+            className="rounded-md border border-[var(--vq-line-2)] bg-destructive/15 px-3.5 py-2.5 text-xs text-foreground"
           >
             {error}
           </div>
@@ -167,7 +167,7 @@ export function LoginForm() {
                   checked={Boolean(field.value)}
                   onChange={(e) => field.onChange(e.target.checked)}
                   disabled={loading}
-                  className="peer size-5 cursor-pointer appearance-none border-2 border-foreground bg-card transition-colors checked:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="peer size-5 cursor-pointer appearance-none rounded-sm border border-[var(--vq-line-2)] bg-card transition-colors checked:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <svg
                   viewBox="0 0 12 12"
@@ -194,9 +194,9 @@ export function LoginForm() {
         </SubmitButton>
 
         <div className="flex items-center gap-3 py-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          <div className="h-0 flex-1 border-t-2 border-dashed border-foreground/40" />
+          <div className="h-0 flex-1 border-t border-dashed border-[var(--vq-line-2)]" />
           <span>or</span>
-          <div className="h-0 flex-1 border-t-2 border-dashed border-foreground/40" />
+          <div className="h-0 flex-1 border-t border-dashed border-[var(--vq-line-2)]" />
         </div>
 
         <OAuthButtons />
