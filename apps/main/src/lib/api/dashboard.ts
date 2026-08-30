@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/api/client"
 import type { AgentSlug } from "@/lib/types"
+import type { SocialAccount } from "@/lib/api/integrations"
+import type { McpConnectionSummary } from "@/lib/api/mcp"
+import { qk } from "@/lib/query-keys"
 
 export type DashboardSummary = {
   metrics: {
@@ -23,19 +26,11 @@ export type DashboardSummary = {
     byPlatform: { twitter: number; linkedin: number; instagram: number }
     byStatus: { draft: number; scheduled: number; published: number; failed: number }
   }
-  recentActivity: Array<{
-    type: "message" | "post"
-    agent?: AgentSlug
-    title: string
-    href?: string
-    at: string
-  }>
-  attention: Array<{
-    kind: "failed-posts" | "expiring-token"
-    message: string
-    href: string
-    severity: "warning" | "critical"
-  }>
+}
+
+export type DashboardIntegrationHealth = {
+  accounts: SocialAccount[]
+  mcpConnections: McpConnectionSummary[]
 }
 
 export type RangeKind = "24h" | "7d" | "30d"
@@ -94,8 +89,16 @@ export function useDashboardSummary(filters: DashboardFilters) {
     queryKey: cacheKey(filters),
     queryFn: () => getDashboardSummary(filters),
     staleTime: 10_000,
-    refetchOnMount: "always",
     placeholderData: (prev) => prev, // keep previous data on filter change
+  })
+}
+
+export function useDashboardIntegrationHealth() {
+  return useQuery({
+    queryKey: qk.dashboardIntegrationHealth(),
+    queryFn: () => apiFetch<DashboardIntegrationHealth>("/dashboard/integration-health"),
+    staleTime: 60_000,
+    placeholderData: (previous) => previous,
   })
 }
 

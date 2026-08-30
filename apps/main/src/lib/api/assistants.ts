@@ -24,13 +24,14 @@ export async function getMessages(
   agentSlug: string,
   organizationId: string,
   before?: string,
+  signal?: AbortSignal,
 ): Promise<Message[]> {
   try {
     const qs = new URLSearchParams({ organizationId, limit: "20" })
     if (before) qs.set("before", before)
     return await apiFetch<Message[]>(
       `/agents/${agentSlug}/chat?${qs.toString()}`,
-      { agentSlugForNotFound: agentSlug, cache: "no-store" }
+      { agentSlugForNotFound: agentSlug, cache: "no-store", signal }
     )
   } catch (err) {
     if (err instanceof AgentNotAvailableError) return []
@@ -306,11 +307,11 @@ export function useMessages(agentSlug: string, organizationId: string) {
 }
 
 export type SendMessageCallbacks = {
-  onOptimistic?: (msg: Message) => void
+  onOptimistic?: (msg: Message, chatKey: string) => void
   /** `optimisticId` identifies the user message written by onOptimistic, so the caller can
    * reconcile it by identity instead of by position in the list. */
-  onSuccess?: (msg: Message, optimisticId: string) => void
-  onError?: (optimisticId: string) => void
+  onSuccess?: (msg: Message, optimisticId: string, chatKey: string) => void
+  onError?: (optimisticId: string, chatKey: string) => void
 }
 
 // Distinguishes optimistic user messages from persisted ones. Date.now() alone can repeat
@@ -333,21 +334,23 @@ export function useSendMessage(
 
     onMutate: async (content: string) => {
       const optimisticId = nextOptimisticId()
+      const chatKey = `${organizationId}:${agentSlug}`
       const optimistic: Message = {
         id: optimisticId,
         role: "user",
         content,
         imageUrl: null,
         createdAt: new Date().toISOString(),
+        deliveryStatus: "sending",
       }
-      callbacks?.onOptimistic?.(optimistic)
-      return { optimisticId }
+      callbacks?.onOptimistic?.(optimistic, chatKey)
+      return { optimisticId, chatKey }
     },
 
     // `ctx` is undefined if onMutate itself threw — in which case no optimistic message was
     // ever written, so an id that matches nothing is the correct thing to pass on.
     onSuccess: (serverMsg: Message, content: string, ctx) => {
-      callbacks?.onSuccess?.(serverMsg, ctx?.optimisticId ?? "")
+      callbacks?.onSuccess?.(serverMsg, ctx?.optimisticId ?? "", ctx?.chatKey ?? "")
 
       queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(
         qk.lastMessages(),
@@ -367,7 +370,7 @@ export function useSendMessage(
     },
 
     onError: (_err, _content, ctx) => {
-      callbacks?.onError?.(ctx?.optimisticId ?? "")
+      callbacks?.onError?.(ctx?.optimisticId ?? "", ctx?.chatKey ?? "")
     },
   })
 }

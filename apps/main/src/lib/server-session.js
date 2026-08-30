@@ -3,12 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireSession = requireSession;
 exports.getSession = getSession;
 require("server-only");
+const react_1 = require("react");
 const headers_1 = require("next/headers");
 const navigation_1 = require("next/navigation");
 // Fetches the Better Auth session over HTTP, forwarding the browser cookies.
 // Importing the server's `auth` directly doesn't work here — the server uses
 // Node ESM `.js` import extensions that Next's webpack cannot resolve.
-async function fetchSession() {
+const fetchSession = (0, react_1.cache)(async () => {
     const forwarded = await (0, headers_1.headers)();
     const ua = forwarded.get("user-agent") ?? "";
     // Use the raw Cookie header so nothing is lost in parse/re-serialize
@@ -31,7 +32,7 @@ async function fetchSession() {
     catch {
         return null;
     }
-}
+});
 async function requireSession() {
     const sess = await fetchSession();
     if (!sess?.user) {

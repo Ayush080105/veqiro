@@ -153,11 +153,9 @@ export default function TeamPage() {
               <ChatMessage
                 key={m.id ?? `pending-${i}`}
                 message={m}
-                agentName={cfg?.name ?? "Team"}
                 agentInitials={cfg?.initials ?? "T"}
                 agentColor={(cfg?.color as string) ?? "var(--vq-yellow)"}
                 agentPhoto={AGENT_PHOTOS[(m.agent ?? "").toLowerCase()]}
-                isLex={(m.agent ?? "").toLowerCase() === "lex"}
               />
             )
           })

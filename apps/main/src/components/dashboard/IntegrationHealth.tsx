@@ -4,9 +4,9 @@ import Link from "next/link"
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { useIntegrations } from "@/lib/api/integrations"
 import type { SocialAccount } from "@/lib/api/integrations"
-import { useMcpConnections, type McpConnectionSummary } from "@/lib/api/mcp"
+import type { McpConnectionSummary } from "@/lib/api/mcp"
+import { useDashboardIntegrationHealth } from "@/lib/api/dashboard"
 import { getIntegrationBySlug } from "@repo/integrations-catalog"
 
 type Row = {
@@ -71,8 +71,9 @@ function mcpRow(conn: McpConnectionSummary): Row {
 const MAX_ROWS = 6
 
 export function IntegrationHealth() {
-  const { data: accounts = [] } = useIntegrations()
-  const { data: mcpConnections = [] } = useMcpConnections()
+  const { data } = useDashboardIntegrationHealth()
+  const accounts = data?.accounts ?? []
+  const mcpConnections = data?.mcpConnections ?? []
 
   // Native OAuth platforms and MCP connections are separate systems (see the
   // Legacy vs. catalog split in settings/integrations), so both are listed —

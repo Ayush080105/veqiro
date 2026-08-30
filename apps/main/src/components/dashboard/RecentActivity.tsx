@@ -1,9 +1,18 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { MessageSquare, Send } from "lucide-react"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
-import type { DashboardSummary } from "@/lib/api/dashboard"
+import type { AgentSlug } from "@/lib/types"
+
+type ActivityItem = {
+  type: "message" | "post"
+  agent?: AgentSlug
+  title: string
+  href?: string
+  at: string
+}
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -17,7 +26,7 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
-export function RecentActivity({ items }: { items: DashboardSummary["recentActivity"] }) {
+export function RecentActivity({ items }: { items: ActivityItem[] }) {
   return (
     <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5 flex flex-col gap-3">
       <div>
@@ -58,10 +67,12 @@ export function RecentActivity({ items }: { items: DashboardSummary["recentActiv
                 >
                   <Icon className="size-3.5 text-foreground absolute" />
                   {agentPhoto && (
-                    <img
+                    <Image
                       src={agentPhoto}
-                      alt={agent?.name}
-                      className="absolute inset-0 w-full h-full object-cover"
+                      alt={agent?.name ?? ""}
+                      fill
+                      sizes="32px"
+                      className="object-cover"
                       onError={(e) => {
                         ;(e.currentTarget as HTMLImageElement).style.display = "none"
                       }}

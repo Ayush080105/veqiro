@@ -30,3 +30,11 @@ export const summary = async (req: Request, res: Response) => {
   const data = await service.getDashboardSummary(req.organizationId, input);
   res.status(StatusCodes.OK).json(data);
 };
+
+export const integrationHealth = async (req: Request, res: Response) => {
+  if (!req.organizationId) {
+    throw new UnauthenticatedError("Missing organization context");
+  }
+  const data = await service.getDashboardIntegrationHealth(req.organizationId);
+  res.status(StatusCodes.OK).json(data);
+};

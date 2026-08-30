@@ -4,6 +4,8 @@ export type AgentSlug = "maya" | "rex" | "scout" | "sage" | "lex" | "vega"
 
 export type AgentStatus = "working" | "idle" | "needs-attention"
 
+export type MessageDeliveryStatus = "sending" | "failed"
+
 export interface Message {
   id?: string
   organizationId?: string
@@ -14,6 +16,8 @@ export interface Message {
   agent?: string
   tokensUsed?: number
   model?: string | null
+  /** Client-only state for an optimistic user message; never written by the API. */
+  deliveryStatus?: MessageDeliveryStatus
   /** Rich structured action result. When set, the chat renders the matching result card. */
   customInput?: {
     /** Set when this message renders a planned multi-step run's task graph. */

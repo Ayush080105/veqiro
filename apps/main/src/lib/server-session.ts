@@ -1,5 +1,6 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
+import { cache } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export interface ConsoleSession {
@@ -27,7 +28,7 @@ interface RawSessionResponse {
 // Fetches the Better Auth session over HTTP, forwarding the browser cookies.
 // Importing the server's `auth` directly doesn't work here — the server uses
 // Node ESM `.js` import extensions that Next's webpack cannot resolve.
-async function fetchSession(): Promise<RawSessionResponse | null> {
+const fetchSession = cache(async (): Promise<RawSessionResponse | null> => {
   const forwarded = await headers();
   const ua = forwarded.get("user-agent") ?? "";
   // Use the raw Cookie header so nothing is lost in parse/re-serialize
@@ -48,7 +49,7 @@ async function fetchSession(): Promise<RawSessionResponse | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireSession(): Promise<ConsoleSession> {
   const sess = await fetchSession();

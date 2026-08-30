@@ -1,6 +1,8 @@
 import * as repo from "./dashboard.repository.js";
 import type { AgentSlug, MessageRow } from "./dashboard.repository.js";
 import type { DashboardQueryInput } from "./dashboard.schema.js";
+import * as integrationsService from "../integrations/integrations.service.js";
+import * as mcpService from "../mcp/mcp.service.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -44,19 +46,14 @@ export type DashboardSummary = {
     byPlatform: { twitter: number; linkedin: number; instagram: number };
     byStatus: { draft: number; scheduled: number; published: number; failed: number };
   };
-  recentActivity: Array<{
-    type: "message" | "post";
-    agent?: AgentSlug;
-    title: string;
-    href?: string;
-    at: string;
-  }>;
-  attention: Array<{
-    kind: "failed-posts" | "expiring-token";
-    message: string;
-    href: string;
-    severity: "warning" | "critical";
-  }>;
+};
+
+export const getDashboardIntegrationHealth = async (organizationId: string) => {
+  const [accounts, mcpConnections] = await Promise.all([
+    integrationsService.list(organizationId),
+    mcpService.listConnections(organizationId),
+  ]);
+  return { accounts, mcpConnections };
 };
 
 const startOfDayUTC = (d: Date) =>
@@ -175,7 +172,6 @@ export async function getDashboardSummary(
   const prevFrom = new Date(window.from.getTime() - windowMs);
   const prevTo = window.from;
   const monthStart = new Date(window.to.getTime() - 30 * DAY_MS);
-  const expiringBefore = new Date(Date.now() + 7 * DAY_MS);
 
   // Short-circuit: if user explicitly selected zero agents, every message-driven count is 0.
   const zeroAgents = selectedSlugs !== undefined && selectedSlugs.length === 0;
@@ -189,10 +185,6 @@ export async function getDashboardSummary(
     tokensWindow,
     byPlatform,
     byStatus,
-    failedPostsCount,
-    expiringIntegrations,
-    recentPosts,
-    recentMessages,
   ] = await Promise.all([
     zeroAgents
       ? Promise.resolve([] as MessageRow[])
@@ -210,10 +202,6 @@ export async function getDashboardSummary(
       : repo.sumTokensSince(organizationId, monthStart, window.to, agentFilter),
     repo.groupPostsByPlatform(organizationId, { from: window.from, to: window.to }),
     repo.groupPostsByStatus(organizationId, { from: window.from, to: window.to }),
-    repo.countFailedPosts(organizationId),
-    repo.findExpiringIntegrations(organizationId, expiringBefore),
-    repo.findRecentPublishedPosts(organizationId, 10),
-    repo.findRecentMessages(organizationId, 10),
   ]);
 
   const buckets =
@@ -252,58 +240,6 @@ export async function getDashboardSummary(
     }
   }
 
-  type ActivityEntry = DashboardSummary["recentActivity"][number];
-  const activity: ActivityEntry[] = [
-    ...recentMessages.map<ActivityEntry>((m) => ({
-      type: "message" as const,
-      agent: repo.SLUG_BY_ENUM[m.agent],
-      title:
-        m.role === "user"
-          ? `You asked ${repo.SLUG_BY_ENUM[m.agent]}: ${m.content.slice(0, 80)}`
-          : `${repo.SLUG_BY_ENUM[m.agent]} replied: ${m.content.slice(0, 80)}`,
-      href: `/assistants/${repo.SLUG_BY_ENUM[m.agent]}`,
-      at: m.createdAt.toISOString(),
-    })),
-    ...recentPosts.map<ActivityEntry>((p) => ({
-      type: "post" as const,
-      title:
-        p.status === "success"
-          ? `Published to ${repo.PLATFORM_BY_ENUM[p.platform]}: ${p.caption.slice(0, 80)}`
-          : p.status === "failed"
-            ? `Failed ${repo.PLATFORM_BY_ENUM[p.platform]} post — retry`
-            : `${p.status} ${repo.PLATFORM_BY_ENUM[p.platform]} post`,
-      href: "/workspace/content",
-      at: (p.publishedAt ?? p.createdAt).toISOString(),
-    })),
-  ]
-    .sort((a, b) => (b.at > a.at ? 1 : -1))
-    .slice(0, 20);
-
-  const attention: DashboardSummary["attention"] = [];
-  if (failedPostsCount > 0) {
-    attention.push({
-      kind: "failed-posts",
-      message: `${failedPostsCount} post${failedPostsCount === 1 ? "" : "s"} failed to publish`,
-      href: "/workspace/content",
-      severity: "critical",
-    });
-  }
-  for (const ex of expiringIntegrations) {
-    const platform = repo.PLATFORM_BY_ENUM[ex.platform];
-    const days = ex.accessTokenExpiresAt
-      ? Math.max(
-          0,
-          Math.round((ex.accessTokenExpiresAt.getTime() - Date.now()) / DAY_MS),
-        )
-      : 0;
-    attention.push({
-      kind: "expiring-token",
-      message: `${platform} token expires in ${days}d — reconnect`,
-      href: "/settings/integrations",
-      severity: days < 2 ? "critical" : "warning",
-    });
-  }
-
   // Estimate hours saved by weighting each agent's OUTPUTS (assistant replies)
   // by the real-world time the equivalent manual task would take, plus a bonus
   // per published post. User prompts are excluded — they aren't "work saved".
@@ -331,7 +267,5 @@ export async function getDashboardSummary(
       byPlatform: platformCounts,
       byStatus: statusCounts,
     },
-    recentActivity: activity,
-    attention,
   };
 }

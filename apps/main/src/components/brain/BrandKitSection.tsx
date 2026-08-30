@@ -182,40 +182,42 @@ export function BrandKitSection({
 
       {/* Sub-tabs */}
       <Tabs defaultValue="identity">
-        <TabsList variant="line">
-          <TabsTrigger value="identity">
-            <Building2 className="size-3.5" />
-            Identity
-          </TabsTrigger>
-          <TabsTrigger value="audience">
-            <Target className="size-3.5" />
-            Audience
-          </TabsTrigger>
-          <TabsTrigger value="voice">
-            <MessageSquare className="size-3.5" />
-            Voice & Tone
-          </TabsTrigger>
-          <TabsTrigger value="visual">
-            <Palette className="size-3.5" />
-            Visual
-          </TabsTrigger>
-          <TabsTrigger value="assets">
-            <ImageIcon className="size-3.5" />
-            Assets
-          </TabsTrigger>
-          <TabsTrigger value="competitive">
-            <Trophy className="size-3.5" />
-            Competitive
-          </TabsTrigger>
-          <TabsTrigger value="site-context">
-            <Sparkles className="size-3.5" />
-            Site Context
-          </TabsTrigger>
-          <TabsTrigger value="brand-images">
-            <Images className="size-3.5" />
-            Brand Images
-          </TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
+          <TabsList variant="line" className="min-w-max flex-nowrap">
+            <TabsTrigger value="identity" className="flex-none shrink-0">
+              <Building2 className="size-3.5" />
+              Identity
+            </TabsTrigger>
+            <TabsTrigger value="audience" className="flex-none shrink-0">
+              <Target className="size-3.5" />
+              Audience
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex-none shrink-0">
+              <MessageSquare className="size-3.5" />
+              Voice & Tone
+            </TabsTrigger>
+            <TabsTrigger value="visual" className="flex-none shrink-0">
+              <Palette className="size-3.5" />
+              Visual
+            </TabsTrigger>
+            <TabsTrigger value="assets" className="flex-none shrink-0">
+              <ImageIcon className="size-3.5" />
+              Assets
+            </TabsTrigger>
+            <TabsTrigger value="competitive" className="flex-none shrink-0">
+              <Trophy className="size-3.5" />
+              Competitive
+            </TabsTrigger>
+            <TabsTrigger value="site-context" className="flex-none shrink-0">
+              <Sparkles className="size-3.5" />
+              Site Context
+            </TabsTrigger>
+            <TabsTrigger value="brand-images" className="flex-none shrink-0">
+              <Images className="size-3.5" />
+              Brand Images
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Identity */}
         <TabsContent value="identity">

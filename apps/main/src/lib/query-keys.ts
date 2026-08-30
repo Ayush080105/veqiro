@@ -16,6 +16,7 @@ export const qk = {
   assistantStatuses: (organizationId: string) =>
     ["assistant-statuses", organizationId] as const,
   lastMessages: () => ["last-messages"] as const,
+  dashboardIntegrationHealth: () => ["dashboard", "integration-health"] as const,
   chat: (agentSlug: string, organizationId: string) =>
     ["chat", agentSlug, organizationId] as const,
   lexSources: () => ["lex", "sources"] as const,
