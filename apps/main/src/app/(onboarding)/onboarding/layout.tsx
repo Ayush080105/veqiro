@@ -80,7 +80,7 @@ function OnboardingHeader({
         <button
           type="button"
           title={user?.email ?? profileLabel}
-          className="flex max-w-[180px] items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-white px-3 py-2 text-left text-[13px] text-foreground shadow-[var(--vq-shadow-sm)] sm:max-w-[240px]"
+          className="flex max-w-[180px] items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-white px-3 py-2 text-left text-[13px] font-body text-foreground shadow-[var(--vq-shadow-sm)] sm:max-w-[240px]"
         >
           {user?.image ? (
             <img
@@ -97,7 +97,7 @@ function OnboardingHeader({
         <button
           type="button"
           onClick={onLogout}
-          className="flex items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-destructive px-3 py-2 text-[13px] text-foreground shadow-[var(--vq-shadow-sm)]"
+          className="flex items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-destructive px-3 py-2 text-[13px] font-body text-foreground shadow-[var(--vq-shadow-sm)]"
         >
           <LogOut className="size-4" />
           Logout
@@ -418,7 +418,6 @@ export default function OnboardingLayout({
               <Progress stepIndex={stepIndex} />
             </div>
           )}
-
 
           <div className="relative z-10">{children}</div>
 

@@ -275,7 +275,7 @@ export function AppSidebar() {
                     }
                   >
                     <item.icon className="size-4" />
-                    <span>{item.label}</span>
+                    <span className="font-body">{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -300,7 +300,7 @@ export function AppSidebar() {
                     }
                   >
                     <item.icon className="size-4" />
-                    <span>{item.label}</span>
+                    <span className="font-body">{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

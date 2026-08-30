@@ -124,7 +124,7 @@ export default function DashboardPage() {
           className="flex flex-col gap-3 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="min-w-0">
-            <div className="text-sm font-medium text-destructive">
+            <div className="font-body text-sm font-medium text-destructive">
               Dashboard data unavailable
             </div>
             <p className="m-0 mt-1 font-body text-sm leading-snug text-muted-foreground">

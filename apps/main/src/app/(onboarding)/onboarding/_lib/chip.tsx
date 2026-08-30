@@ -16,7 +16,7 @@ export function Chip({ active, onClick, color = "#F06464", children }: ChipProps
       type="button"
       onClick={onClick}
       className={cn(
-        "cursor-pointer rounded-full border border-[var(--vq-line-2)] px-4 py-2.5 text-[13px] font-medium text-foreground transition-shadow",
+        "cursor-pointer rounded-full border border-[var(--vq-line-2)] px-4 py-2.5 text-[13px] font-body font-medium text-foreground transition-shadow",
         active
           ? "shadow-[var(--vq-shadow-sm)]"
           : "bg-white shadow-none",

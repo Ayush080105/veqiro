@@ -22,8 +22,8 @@ const buttonVariants = cva(
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
         // ── Veqiro brand variants ────────────────────────────────────────────
-        // Chunky brutalist CTAs: 3px ink border, hard offset shadow, brand head font.
-        // Press effect: translates 2px down/right + shadow shrinks 5→3 to feel pressed.
+        // Soft CTAs: hairline border, layered elevation shadow, display font.
+        // Press effect: nudges down 1px on click.
         brand:
           "rounded-lg border border-[var(--vq-line-2)] bg-destructive text-foreground font-display font-medium shadow-[var(--vq-shadow)] hover:bg-destructive/90 hover:shadow-[var(--vq-shadow-lg)] active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "brand-dark":

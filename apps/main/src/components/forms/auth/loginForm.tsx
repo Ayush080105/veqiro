@@ -66,7 +66,7 @@ export function LoginForm() {
         {error && (
           <div
             role="alert"
-            className="rounded-md border border-[var(--vq-line-2)] bg-destructive/15 px-3.5 py-2.5 text-xs text-foreground"
+            className="rounded-md border border-[var(--vq-line-2)] bg-destructive/15 px-3.5 py-2.5 font-body text-xs text-foreground"
           >
             {error}
           </div>
