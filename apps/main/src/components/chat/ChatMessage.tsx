@@ -247,9 +247,10 @@ function ChatMessageComponent({
                       type="button"
                       onClick={() => onRestoreDraft(message)}
                       title="Copy this message back to the composer without sending it again"
+                      aria-label="Edit and retry this message"
                       className="inline-flex items-center gap-1 rounded-full border border-destructive/40 px-2 py-1 text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <PencilLine className="size-3" /> restore draft
+                      <PencilLine className="size-3" /> edit &amp; retry
                     </button>
                   )}
                 </>

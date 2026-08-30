@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -28,6 +28,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   DropdownMenu,
@@ -64,6 +65,7 @@ const POST_LOGOUT_URL = LANDING_URL
 export function AppSidebar() {
   const router = useRouter()
   const pathname = usePathname()
+  const { setOpenMobile } = useSidebar()
   const { data: session } = authClient.useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: organizationList } = authClient.useListOrganizations()
@@ -72,8 +74,19 @@ export function AppSidebar() {
   const visibleActiveOrg = hydrated ? activeOrg : null
   const organizations = hydrated ? (organizationList ?? []) : []
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+
+  // A mobile sidebar is a temporary sheet, so navigation should dismiss it.
+  // The pathname effect also covers programmatic navigation from workspace
+  // actions; the click handler covers selecting the route already on screen.
+  useEffect(() => {
+    setOpenMobile(false)
+  }, [pathname, setOpenMobile])
+
+  const closeMobileSidebar = () => setOpenMobile(false)
+
   const switchOrg = async (organizationId: string) => {
     if (switchingId || organizationId === visibleActiveOrg?.id) return
+    closeMobileSidebar()
     setSwitchingId(organizationId)
     await switchToOrganization(organizationId, router)
     setSwitchingId(null)
@@ -81,6 +94,7 @@ export function AppSidebar() {
 
   const createOrg = async () => {
     if (switchingId) return
+    closeMobileSidebar()
     setSwitchingId("__new__")
     await clearActiveAndStartNew(router)
     setSwitchingId(null)
@@ -91,6 +105,7 @@ export function AppSidebar() {
       <SidebarHeader className="gap-1.5 px-3 pt-1 pb-2">
         <a
           href={LANDING_URL}
+          onClick={closeMobileSidebar}
           className="flex items-center group-data-[collapsible=icon]:justify-center"
           title="Back to veqiro.com"
         >
@@ -240,7 +255,10 @@ export function AppSidebar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={!!switchingId}
-                  onClick={() => router.push("/workspaces")}
+                  onClick={() => {
+                    closeMobileSidebar()
+                    router.push("/workspaces")
+                  }}
                   className="gap-2 rounded-md"
                 >
                   <ArrowUpRight className="size-4" />
@@ -271,7 +289,7 @@ export function AppSidebar() {
                   data-tour={`nav-${item.href.replace("/", "")}`}
                 >
                   <SidebarMenuButton
-                    render={<Link href={item.href} />}
+                    render={<Link href={item.href} onClick={closeMobileSidebar} />}
                     tooltip={item.label}
                     isActive={
                       pathname === item.href ||
@@ -296,7 +314,7 @@ export function AppSidebar() {
                   data-tour={`nav-${item.href.replace("/", "")}`}
                 >
                   <SidebarMenuButton
-                    render={<Link href={item.href} />}
+                    render={<Link href={item.href} onClick={closeMobileSidebar} />}
                     tooltip={item.label}
                     isActive={
                       pathname === item.href ||

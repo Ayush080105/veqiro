@@ -236,25 +236,23 @@ export async function cancelScheduledPost(organizationId: string, id: string): P
   })
 }
 
-// ─── Status (mock-fallback) ───────────────────────────────────────────────────
+// ─── Status fallback ──────────────────────────────────────────────────────────
 
-export async function getAssistantStatuses(
-  _organizationId: string
-): Promise<Record<AgentSlug, AgentStatusData>> {
-  try {
-    return await apiFetch<Record<AgentSlug, AgentStatusData>>(
-      `/assistants/status?organizationId=${encodeURIComponent(_organizationId)}`
-    )
-  } catch {
-    return {
-      maya: { status: "idle", lastActivity: "—" },
-      rex: { status: "idle", lastActivity: "—" },
-      scout: { status: "idle", lastActivity: "—" },
-      sage: { status: "idle", lastActivity: "—" },
-      lex: { status: "idle", lastActivity: "—" },
-      vega: { status: "idle", lastActivity: "—" },
-    }
-  }
+const IDLE_ASSISTANT_STATUSES: Record<AgentSlug, AgentStatusData> = {
+  maya: { status: "idle", lastActivity: "—" },
+  rex: { status: "idle", lastActivity: "—" },
+  scout: { status: "idle", lastActivity: "—" },
+  sage: { status: "idle", lastActivity: "—" },
+  lex: { status: "idle", lastActivity: "—" },
+  vega: { status: "idle", lastActivity: "—" },
+}
+
+export async function getAssistantStatuses(): Promise<Record<AgentSlug, AgentStatusData>> {
+  // There is no /assistants/status route in the server. The old call always
+  // produced a 404 and then returned these same values from its catch block.
+  // Keep the established UI behavior without issuing a known-bad request;
+  // per-chat in-flight work is still shown from React Query mutation state.
+  return { ...IDLE_ASSISTANT_STATUSES }
 }
 
 const EMPTY_LAST_MESSAGES: Record<AgentSlug, LastMessage | null> = {
@@ -283,17 +281,17 @@ export async function getLastMessages(): Promise<
 export function useAgentStatuses(organizationId: string) {
   return useQuery({
     queryKey: qk.assistantStatuses(organizationId),
-    queryFn: () => getAssistantStatuses(organizationId),
+    queryFn: () => getAssistantStatuses(),
     enabled: !!organizationId,
     placeholderData: (prev) => prev,
   })
 }
 
-export function useLastMessages() {
+export function useLastMessages(organizationId: string) {
   return useQuery({
-    queryKey: qk.lastMessages(),
+    queryKey: qk.lastMessages(organizationId),
     queryFn: () => getLastMessages(),
-    placeholderData: (prev) => prev,
+    enabled: !!organizationId,
   })
 }
 
@@ -353,7 +351,7 @@ export function useSendMessage(
       callbacks?.onSuccess?.(serverMsg, ctx?.optimisticId ?? "", ctx?.chatKey ?? "")
 
       queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(
-        qk.lastMessages(),
+        qk.lastMessages(organizationId),
         (prev) => {
           if (!prev) return prev
           const slug = agentSlug as AgentSlug
@@ -397,7 +395,7 @@ export function useRunAgentAction(organizationId: string) {
       queryClient.invalidateQueries({
         queryKey: qk.chat(agentSlug, organizationId),
       })
-      queryClient.invalidateQueries({ queryKey: qk.lastMessages() })
+      queryClient.invalidateQueries({ queryKey: qk.lastMessages(organizationId) })
     },
   })
 }

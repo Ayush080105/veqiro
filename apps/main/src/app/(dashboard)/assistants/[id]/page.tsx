@@ -35,6 +35,13 @@ import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
 import { FONT } from "@/lib/fonts"
 import { Sticker } from "@/components/ui/sticker"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 // Agent photos are served from /agents/{id}.jpeg (copied from landing/public)
 const AGENT_PHOTOS: Record<string, string> = {
   maya: "/agents/maya.jpeg", rex: "/agents/rex.jpeg", sage: "/agents/sage.jpeg",
@@ -91,27 +98,43 @@ function ScoutSearchSourceToggle() {
 
   if (options.length === 0) return null
 
+  const selectedSlug = options.some(
+    (option) => option.slug === preference?.preferredIntegrationSlug,
+  )
+    ? preference!.preferredIntegrationSlug!
+    : "__default"
+
   return (
-    <select
-      value={preference?.preferredIntegrationSlug ?? ""}
-      onChange={(e) => setPreference.mutate(e.target.value || null)}
+    <Select
+      value={selectedSlug}
+      onValueChange={(value) =>
+        setPreference.mutate(
+          !value || value === "__default" ? null : String(value),
+        )
+      }
       disabled={setPreference.isPending}
-      title="Which research source Scout should use"
-      style={{
-        background: "transparent",
-        border: "1px solid rgba(0,0,0,0.15)",
-        borderRadius: 8,
-        padding: "6px 8px",
-        fontSize: 12,
-        color: "#555",
-        cursor: setPreference.isPending ? "default" : "pointer",
-      }}
     >
-      <option value="">Default search</option>
-      {options.map((o) => (
-        <option key={o.slug} value={o.slug}>{o.name}</option>
-      ))}
-    </select>
+      <SelectTrigger
+        aria-label="Scout research source"
+        title="Which research source Scout should use"
+        className="h-7 w-[76px] shrink-0 rounded-md border-black/15 bg-transparent px-2 text-[11px] text-[#555] sm:w-[124px] sm:text-xs"
+      >
+        <SelectValue>
+          {(value) => {
+            if (!value || value === "__default") return "Default"
+            return options.find((option) => option.slug === value)?.name ?? String(value)
+          }}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent align="end" className="min-w-36 rounded-md">
+        <SelectItem value="__default">Default search</SelectItem>
+        {options.map((option) => (
+          <SelectItem key={option.slug} value={option.slug}>
+            {option.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -129,14 +152,15 @@ function ChatHeader({
   const agentPhoto = AGENT_PHOTOS[agent.id]
   return (
     <div
+      className="gap-1 px-2 sm:gap-2.5 sm:px-4"
       style={{
         background: "#FFF9ED",
         borderBottom: "1px solid #E5E5E5",
         borderLeft: `4px solid ${agent.color}`,
-        padding: "10px 16px",
+        paddingTop: 10,
+        paddingBottom: 10,
         display: "flex",
         alignItems: "center",
-        gap: 10,
       }}
     >
       {/* Mobile-only back button */}
@@ -246,6 +270,7 @@ function ChatHeader({
         suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
+        className="hidden sm:block"
         aria-label="Agent info"
         style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
         onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
@@ -746,7 +771,7 @@ export default function AssistantChatPage() {
       return
     }
     setContent(message.content)
-    toast.info("Draft restored. Review it before sending again.")
+    toast.info("Message restored. Review it, then press Send to retry.")
   }, [])
 
   // Writes an optimistic user message as soon as the dialog starts submitting,

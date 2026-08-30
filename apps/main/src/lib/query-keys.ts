@@ -15,7 +15,8 @@ export const qk = {
   mcpPlays: () => ["mcp", "plays"] as const,
   assistantStatuses: (organizationId: string) =>
     ["assistant-statuses", organizationId] as const,
-  lastMessages: () => ["last-messages"] as const,
+  lastMessages: (organizationId: string) =>
+    ["last-messages", organizationId] as const,
   dashboardIntegrationHealth: (organizationId?: string) =>
     organizationId
       ? (["dashboard", "integration-health", organizationId] as const)

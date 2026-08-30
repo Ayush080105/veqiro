@@ -246,7 +246,7 @@ export default function BillingPage() {
           <CardContent className="flex flex-col gap-4">
             {sub?.pendingCheckout && (
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary" className="w-fit">
                     Checkout syncing
                   </Badge>
