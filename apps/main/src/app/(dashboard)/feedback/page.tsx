@@ -277,29 +277,28 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
   return (
     <Card
       variant="brand"
-      className="group gap-0 overflow-hidden p-0 py-0 transition-shadow hover:shadow-[var(--vq-shadow-lg)]"
+      className="group flex-row gap-0 overflow-hidden p-0 py-0 transition-shadow hover:shadow-[var(--vq-shadow-lg)]"
     >
+      {/* Keep voting and navigation as sibling controls. Nesting a button in
+          the card link produces invalid interactive markup and unreliable
+          keyboard/click behavior in browsers. */}
+      <Button
+        type="button"
+        variant={post.hasVoted ? "secondary" : "ghost"}
+        onClick={() => onVote(post.id)}
+        aria-label={`${post.hasVoted ? "Remove vote from" : "Vote for"} ${post.title}`}
+        className="h-auto w-12 shrink-0 flex-col gap-0.5 self-stretch rounded-none border-0 border-r border-[var(--vq-line-2)] py-3 sm:w-14"
+      >
+        <ChevronUp className={cn("size-4", post.hasVoted && "fill-current")} />
+        <span className="font-mono text-[13px] font-medium leading-none">
+          {post.voteCount}
+        </span>
+      </Button>
+
       <Link
         href={`/feedback/${post.id}`}
-        className="flex items-stretch gap-0 no-underline"
+        className="flex min-w-0 flex-1 items-stretch gap-0 no-underline"
       >
-        {/* Vote button column */}
-        <Button
-          type="button"
-          variant={post.hasVoted ? "secondary" : "ghost"}
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            onVote(post.id)
-          }}
-          className="h-auto w-12 shrink-0 flex-col gap-0.5 self-stretch rounded-none border-0 border-r border-[var(--vq-line-2)] py-3 sm:w-14"
-        >
-          <ChevronUp className={cn("size-4", post.hasVoted && "fill-current")} />
-          <span className="font-mono text-[13px] font-medium leading-none">
-            {post.voteCount}
-          </span>
-        </Button>
-
         {/* Content */}
         <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 py-3 sm:px-4">
           <div className="flex flex-wrap items-start gap-1.5">

@@ -77,6 +77,6 @@
 
 - `pnpm exec tsc --noEmit` passed in `apps/main`.
 - `pnpm build` passed in `apps/main`, including route generation for all 33 routes.
-- Targeted ESLint found no new error in the Phase A changes; the brain page still reports its existing hydration-effect `setState` rule violation, and the repository-wide lint remains red on pre-existing files.
+- Targeted ESLint passed across every changed `apps/main` TypeScript/TSX/checked-in JavaScript file with zero errors or warnings. Brain's browser-storage hydration now runs in a cancellable microtask rather than synchronously cascading state from the effect.
 - Browser checks covered the named dashboard routes at approximately 375px, 768px, and 1440px. They exposed a shared `SidebarInset` width bug at tablet size; changing it from `w-full` to `min-w-0` removed the 1024px document overflow at a 768px viewport.
-- The temporary mock session allowed layout verification without live product data. Brain tab content itself remained behind organization hydration, so its tab scroller was additionally verified statically and through the successful production build.
+- The temporary authenticated organization mock exposed the full Brain form. At 375px, the page/main stayed exactly 375px wide while the tab viewport stayed 351px wide and independently scrolled its 854px tab row; no page-level horizontal overflow remained.

@@ -1,4 +1,5 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-require-imports -- checked-in CommonJS mirror of server-session.ts */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireSession = requireSession;
 exports.getSession = getSession;

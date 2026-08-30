@@ -43,6 +43,7 @@ import {
   clearActiveAndStartNew,
   switchToOrganization,
 } from "@/lib/api/organizations"
+import { useHydrated } from "@/lib/hooks/use-hydrated"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -66,10 +67,13 @@ export function AppSidebar() {
   const { data: session } = authClient.useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: organizationList } = authClient.useListOrganizations()
-  const organizations = organizationList ?? []
+  const hydrated = useHydrated()
+  const visibleSession = hydrated ? session : null
+  const visibleActiveOrg = hydrated ? activeOrg : null
+  const organizations = hydrated ? (organizationList ?? []) : []
   const [switchingId, setSwitchingId] = useState<string | null>(null)
   const switchOrg = async (organizationId: string) => {
-    if (switchingId || organizationId === activeOrg?.id) return
+    if (switchingId || organizationId === visibleActiveOrg?.id) return
     setSwitchingId(organizationId)
     await switchToOrganization(organizationId, router)
     setSwitchingId(null)
@@ -109,7 +113,7 @@ export function AppSidebar() {
             priority
           />
         </a>
-        {activeOrg && (
+        {visibleActiveOrg && (
           <div className="group-data-[collapsible=icon]:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -148,7 +152,7 @@ export function AppSidebar() {
                     flex: 1,
                   }}
                 >
-                  {activeOrg.name}
+                  {visibleActiveOrg.name}
                 </span>
                 <span
                   style={{
@@ -172,7 +176,7 @@ export function AppSidebar() {
                 className="w-64 border border-[var(--vq-line-2)] bg-white p-1 shadow-[var(--vq-shadow-lg)]"
               >
                 {organizations?.map((organization) => {
-                  const isCurrent = organization.id === activeOrg.id
+                  const isCurrent = organization.id === visibleActiveOrg.id
                   const isSwitching = switchingId === organization.id
                   return (
                     <DropdownMenuItem
@@ -316,7 +320,7 @@ export function AppSidebar() {
           className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center"
         >
           <div
-            title={session?.user?.name ?? "User"}
+            title={visibleSession?.user?.name ?? "User"}
             style={{
               width: 32,
               height: 32,
@@ -333,14 +337,17 @@ export function AppSidebar() {
               overflow: "hidden",
             }}
           >
-            {session?.user?.image ? (
+            {visibleSession?.user?.image ? (
+              // OAuth avatar hosts are user/provider controlled and cannot be
+              // safely enumerated in Next Image's remote allowlist.
+              // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={session.user.image}
+                src={visibleSession.user.image}
                 alt=""
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (
-              (session?.user?.name?.charAt(0)?.toUpperCase() ?? "U")
+              (visibleSession?.user?.name?.charAt(0)?.toUpperCase() ?? "U")
             )}
           </div>
           <div
@@ -358,7 +365,7 @@ export function AppSidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              {session?.user?.name ?? "User"}
+              {visibleSession?.user?.name ?? "User"}
             </p>
             <p
               style={{
@@ -371,7 +378,7 @@ export function AppSidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              {session?.user?.email}
+              {visibleSession?.user?.email}
             </p>
           </div>
           <button

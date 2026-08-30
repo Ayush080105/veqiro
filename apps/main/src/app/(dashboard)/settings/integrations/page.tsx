@@ -184,6 +184,7 @@ export default function IntegrationsPage() {
     if (connected) {
       toast.success(`${connected.charAt(0).toUpperCase()}${connected.slice(1)} connected`)
       queryClient.invalidateQueries({ queryKey: qk.integrations() })
+      queryClient.invalidateQueries({ queryKey: qk.dashboardIntegrationHealth() })
       router.replace("/settings/integrations")
     } else if (error) {
       toast.error(`Connection failed: ${error}`)

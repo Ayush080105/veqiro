@@ -36,5 +36,8 @@ export const integrationHealth = async (req: Request, res: Response) => {
     throw new UnauthenticatedError("Missing organization context");
   }
   const data = await service.getDashboardIntegrationHealth(req.organizationId);
+  // Organization-scoped state should never be browser/proxy cached or served
+  // as a body-less 304 to the credentialed frontend fetch.
+  res.set("Cache-Control", "no-store");
   res.status(StatusCodes.OK).json(data);
 };

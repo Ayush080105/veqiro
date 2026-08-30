@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { Download, Copy, Check, RotateCcw } from "lucide-react"
+import { Download, Copy, Check, PencilLine } from "lucide-react"
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
 import { ChatImage } from "@/components/chat/ChatImage"
@@ -162,9 +162,8 @@ export interface ChatMessageProps {
   showAvatar?: boolean
   marginTop?: number
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
-  onRevertImage?: () => void
-  onRetry?: () => void
-  retryDisabled?: boolean
+  onRevertImage?: (messageId: string) => void
+  onRestoreDraft?: (message: Message) => void
 }
 
 function ChatMessageComponent({
@@ -176,8 +175,7 @@ function ChatMessageComponent({
   marginTop,
   onFollowUpAction,
   onRevertImage,
-  onRetry,
-  retryDisabled = false,
+  onRestoreDraft,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const time = formatMessageTime(message.createdAt)
@@ -243,15 +241,15 @@ function ChatMessageComponent({
                 <span>sending…</span>
               ) : (
                 <>
-                  <span role="alert">reply failed</span>
-                  {onRetry && (
+                  <span role="alert">reply unavailable</span>
+                  {onRestoreDraft && (
                     <button
                       type="button"
-                      onClick={onRetry}
-                      disabled={retryDisabled}
+                      onClick={() => onRestoreDraft(message)}
+                      title="Copy this message back to the composer without sending it again"
                       className="inline-flex items-center gap-1 rounded-full border border-destructive/40 px-2 py-1 text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <RotateCcw className="size-3" /> retry
+                      <PencilLine className="size-3" /> restore draft
                     </button>
                   )}
                 </>
@@ -315,7 +313,11 @@ function ChatMessageComponent({
               input={message.customInput.input}
               agentColor={agentColor}
               onFollowUpAction={onFollowUpAction}
-              onRevertImage={onRevertImage}
+              onRevertImage={
+                message.id && onRevertImage
+                  ? () => onRevertImage(message.id as string)
+                  : undefined
+              }
             />
             <div style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", fontFamily: FONT.mono, letterSpacing: "0.3px", marginTop: 2 }}>
               {time}
@@ -383,6 +385,7 @@ export const ChatMessage = React.memo(
     prev.agentPhoto === next.agentPhoto &&
     prev.showAvatar === next.showAvatar &&
     prev.marginTop === next.marginTop &&
-    prev.onRetry === next.onRetry &&
-    prev.retryDisabled === next.retryDisabled,
+    prev.onFollowUpAction === next.onFollowUpAction &&
+    prev.onRevertImage === next.onRevertImage &&
+    prev.onRestoreDraft === next.onRestoreDraft,
 )

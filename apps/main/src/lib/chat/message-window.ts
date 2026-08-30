@@ -14,13 +14,48 @@ export function isOptimisticMessage(message: Message): boolean {
   return message.id?.startsWith(OPTIMISTIC_ID_PREFIX) ?? false
 }
 
-function isPersistedEquivalent(optimistic: Message, persisted: Message): boolean {
+function isLocalMessage(message: Message): boolean {
+  return !message.id || isOptimisticMessage(message)
+}
+
+function isPersistedEquivalent(local: Message, persisted: Message): boolean {
+  const localActionId = local.customInput?.actionId
+  const persistedActionId = persisted.customInput?.actionId
   return (
-    optimistic.role === "user" &&
-    persisted.role === "user" &&
-    optimistic.content === persisted.content &&
-    Math.abs(timestamp(optimistic) - timestamp(persisted)) <= OPTIMISTIC_MATCH_WINDOW_MS
+    local.role === persisted.role &&
+    local.content === persisted.content &&
+    (!localActionId || !persistedActionId || localActionId === persistedActionId) &&
+    Math.abs(timestamp(local) - timestamp(persisted)) <= OPTIMISTIC_MATCH_WINDOW_MS
   )
+}
+
+function applyLimit(messages: Message[], limit?: number): Message[] {
+  if (limit === undefined) return messages
+  const safeLimit = Math.max(0, Math.floor(limit))
+  if (safeLimit === 0) return []
+  if (messages.length <= safeLimit) return messages
+
+  // Client-only rows must survive a server-time/client-time skew. A plain
+  // chronological slice can otherwise discard a just-sent optimistic row if
+  // the browser clock is behind the server. Fill the remaining slots with the
+  // newest persisted rows while preserving display order.
+  const localIndexes = messages.flatMap((message, index) =>
+    isLocalMessage(message) ? [index] : [],
+  )
+  if (localIndexes.length >= safeLimit) {
+    const retained = new Set(localIndexes.slice(-safeLimit))
+    return messages.filter((_message, index) => retained.has(index))
+  }
+
+  const persistedSlots = safeLimit - localIndexes.length
+  const persistedIndexes = messages.flatMap((message, index) =>
+    isLocalMessage(message) ? [] : [index],
+  )
+  const retained = new Set([
+    ...localIndexes,
+    ...persistedIndexes.slice(-persistedSlots),
+  ])
+  return messages.filter((_message, index) => retained.has(index))
 }
 
 /**
@@ -34,22 +69,40 @@ export function mergeMessageWindow(
   incoming: Message[],
   limit?: number,
 ): Message[] {
-  const reconciledOptimisticIds = new Set<string>()
+  const reconciledLocalIndexes = new Set<number>()
+  const currentPersistedIds = new Set(
+    current
+      .filter((message) => message.id && !isLocalMessage(message))
+      .map((message) => message.id as string),
+  )
 
   for (const persisted of incoming) {
-    if (!persisted.id || persisted.role !== "user") continue
-    const optimistic = current.find(
-      (message) =>
-        message.id &&
-        !reconciledOptimisticIds.has(message.id) &&
-        isOptimisticMessage(message) &&
-        isPersistedEquivalent(message, persisted),
-    )
-    if (optimistic?.id) reconciledOptimisticIds.add(optimistic.id)
+    if (!persisted.id || currentPersistedIds.has(persisted.id)) continue
+
+    // Multiple identical prompts are valid. Match the closest still-local
+    // candidate, rather than the first one in the thread, and never consume a
+    // new optimistic prompt for a persisted row already present by id.
+    let closestIndex = -1
+    let closestDistance = Number.POSITIVE_INFINITY
+    current.forEach((message, index) => {
+      if (
+        reconciledLocalIndexes.has(index) ||
+        !isLocalMessage(message) ||
+        !isPersistedEquivalent(message, persisted)
+      ) {
+        return
+      }
+      const distance = Math.abs(timestamp(message) - timestamp(persisted))
+      if (distance < closestDistance) {
+        closestIndex = index
+        closestDistance = distance
+      }
+    })
+    if (closestIndex >= 0) reconciledLocalIndexes.add(closestIndex)
   }
 
   const merged = current
-    .filter((message) => !message.id || !reconciledOptimisticIds.has(message.id))
+    .filter((_message, index) => !reconciledLocalIndexes.has(index))
     .map((message, index) => ({ message, order: index }))
   const indexById = new Map<string, number>()
 
@@ -79,7 +132,73 @@ export function mergeMessageWindow(
     .sort((a, b) => timestamp(a.message) - timestamp(b.message) || a.order - b.order)
     .map(({ message }) => message)
 
-  return limit === undefined ? ordered : ordered.slice(-limit)
+  return applyLimit(ordered, limit)
+}
+
+/**
+ * Replace cached/persisted rows with an authoritative latest-page snapshot,
+ * while retaining messages that exist only in the browser. This prevents an
+ * empty or shortened server history from leaving stale localStorage rows on
+ * screen, without letting a refresh erase an in-flight send or action result.
+ */
+export function mergeServerSnapshot(
+  current: Message[],
+  incoming: Message[],
+  limit: number,
+): Message[] {
+  const incomingIds = new Set(
+    incoming.flatMap((message) => (message.id ? [message.id] : [])),
+  )
+  const merged = mergeMessageWindow(current, incoming).filter(
+    (message) => isLocalMessage(message) || (message.id ? incomingIds.has(message.id) : true),
+  )
+  return applyLimit(merged, limit)
+}
+
+/** Parse the local chat cache defensively; browser storage is user-editable
+ * and older app versions may have left incompatible data behind. */
+export function parseCachedMessageWindow(raw: string, limit: number): Message[] {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+
+    const messages = parsed.flatMap((value): Message[] => {
+      if (!value || typeof value !== "object") return []
+      const candidate = value as Record<string, unknown>
+      if (candidate.role !== "user" && candidate.role !== "assistant") return []
+      if (typeof candidate.content !== "string") return []
+      if (
+        typeof candidate.createdAt !== "string" ||
+        !Number.isFinite(new Date(candidate.createdAt).getTime())
+      ) {
+        return []
+      }
+      if (candidate.id !== undefined && typeof candidate.id !== "string") return []
+      if (
+        candidate.imageUrl !== undefined &&
+        candidate.imageUrl !== null &&
+        typeof candidate.imageUrl !== "string"
+      ) {
+        return []
+      }
+
+      const message = {
+        ...candidate,
+        role: candidate.role,
+        content: candidate.content,
+        imageUrl: typeof candidate.imageUrl === "string" ? candidate.imageUrl : null,
+        createdAt: candidate.createdAt,
+      } as Message
+      if (message.deliveryStatus !== "sending" && message.deliveryStatus !== "failed") {
+        delete message.deliveryStatus
+      }
+      return [message]
+    })
+
+    return applyLimit(messages, limit)
+  } catch {
+    return []
+  }
 }
 
 export function setMessageDeliveryStatus(

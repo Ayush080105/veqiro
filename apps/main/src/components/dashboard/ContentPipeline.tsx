@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import {
   Cell,
   Pie,
@@ -8,7 +7,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts"
-import { Button } from "@/components/ui/button"
 import type { DashboardSummary } from "@/lib/api/dashboard"
 
 const PLATFORM_COLORS: Record<"twitter" | "linkedin" | "instagram", string> = {
@@ -63,7 +61,11 @@ export function ContentPipeline({
         ) : (
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <div style={{ width: 140, height: 140, position: "relative" }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                initialDimension={{ width: 140, height: 140 }}
+              >
                 <PieChart>
                   <Pie
                     data={platforms}
@@ -152,11 +154,6 @@ export function ContentPipeline({
             </div>
           ))}
         </div>
-        {/* {data.byStatus.failed > 0 && (
-          <Button asChild variant="brand" size="brand-sm" className="mt-3.5">
-            <Link href="/workspace/content">retry failed -&gt;</Link>
-          </Button>
-        )} */}
       </div>
     </div>
   )

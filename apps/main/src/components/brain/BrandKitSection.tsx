@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Controller } from "react-hook-form"
 import type {
   Control,
-  UseFormGetValues,
   UseFormSetValue,
   UseFormWatch,
   FieldArrayWithId,
@@ -99,7 +98,6 @@ interface BrandKitSectionProps {
   appendCompetitor: (value: { value: string }) => void
   removeCompetitor: (index: number) => void
   scheduleAutoSave: () => void
-  getValues: UseFormGetValues<BrainFormValues>
   setValue: UseFormSetValue<BrainFormValues>
   watch: UseFormWatch<BrainFormValues>
   scraping: boolean
@@ -152,7 +150,6 @@ export function BrandKitSection({
   appendCompetitor,
   removeCompetitor,
   scheduleAutoSave,
-  getValues,
   setValue,
   watch,
   scraping,
@@ -173,7 +170,7 @@ export function BrandKitSection({
   const values = watch()
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       {/* Completion bar */}
       <BrainCompletionBar values={values} />
 
@@ -181,8 +178,8 @@ export function BrandKitSection({
       <AgentReadiness values={values} />
 
       {/* Sub-tabs */}
-      <Tabs defaultValue="identity">
-        <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
+      <Tabs defaultValue="identity" className="min-w-0">
+        <div className="-mx-1 w-[calc(100%+0.5rem)] max-w-[calc(100%+0.5rem)] overflow-x-auto px-1 pb-1 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
           <TabsList variant="line" className="min-w-max flex-nowrap">
             <TabsTrigger value="identity" className="flex-none shrink-0">
               <Building2 className="size-3.5" />
@@ -817,9 +814,3 @@ export function BrandKitSection({
     </div>
   )
 }
-
-// suppress unused-prop lint for getValues kept on the API for consumers that
-// still pass it; intentionally referenced here so the symbol is "used".
-void (function () {
-  return {} as { getValues?: unknown }
-})

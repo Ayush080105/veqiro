@@ -22,7 +22,7 @@
 - Modify: `apps/main/src/app/(dashboard)/assistants/[id]/page.tsx`
 
 - [x] Add client-only delivery state for optimistic messages and pure helpers that merge server snapshots by identity while reconciling their optimistic user-message equivalent.
-- [x] Mark a failed optimistic message in place instead of deleting it, and show an accessible retry action on the user bubble.
+- [x] Mark a failed optimistic message in place instead of deleting it, and show an accessible draft-recovery action on the user bubble.
 - [x] Reconcile a successful mutation by optimistic id, preserving the user prompt while appending the assistant response exactly once.
 - [x] Replace flat snapshot overwrites in initial refresh, orphaned-mutation catch-up, visibility catch-up, and the post-mount catch-up with functional merges.
 - [x] Guard every asynchronous chat refresh and older-page fetch against the active organization/agent key; abort effect-owned requests during cleanup where possible.
@@ -71,18 +71,23 @@
 
 ## Task 5 — Verify Phase B behavior and contracts
 
-- [x] Add focused tests for message merging, optimistic reconciliation, failed-message retention, and stale-request guards where they can be expressed as pure logic.
+- [x] Add focused tests for message merging, repeated-prompt reconciliation, failed-message retention, bounded cache parsing, and stale-request guards where they can be expressed as pure logic.
 - [x] Run `apps/main` TypeScript, targeted ESLint, and a production Next.js build.
 - [x] Run `apps/server` TypeScript build and relevant unit tests after the dashboard contract change.
-- [x] Re-run the chat flow in a browser with mocked slow/failing responses when the local environment permits, including a rapid agent switch and failed-message retry.
+- [x] Re-run the chat flow in a browser with mocked slow/failing responses when the local environment permits, including a rapid agent switch and failed-message recovery.
 - [x] Record the completed checks and any pre-existing lint/test failures here before handoff.
 
 ## Verification record
 
-- The message-window suite passed 5/5 cases covering stale-snapshot preservation, persisted/optimistic reconciliation, identity-based de-duplication, failed-state retention, and bounded-window ordering.
+- The message-window suite passed 10/10 cases covering stale-snapshot preservation, persisted/optimistic reconciliation, repeated identical prompts, identity-based de-duplication, failed-state retention, clock skew, bounded-window ordering, and defensive localStorage parsing.
 - Targeted ESLint passed with zero errors or warnings after the React best-practices review.
 - `pnpm build` passed for `apps/main`, including TypeScript and generation of all 33 application routes.
 - `pnpm build` passed for `apps/server`.
-- The full server suite passed 279/281 tests. Its two failures are pre-existing and unrelated to Phase B: the `rex-csv` XLSX fixture did not discover `mrr`, and the Scout service fixture expects an object without the existing `pendingActions: undefined` member.
-- Browser verification loaded the rebuilt dashboard and Maya chat shells against a temporary authenticated-session mock and confirmed the lazy `next/image` agent assets rendered. The Better Auth client did not hydrate an active organization from that lightweight mock, so the composer remained disabled; the live failed-send/retry and slow agent-switch interaction could not be driven in-browser. Those state transitions are instead covered by the focused merge tests and explicit mutation/fetch request-key guards.
+- The full server suite passed 281/283 tests. Its two failures are pre-existing and unrelated to Phase B: the `rex-csv` XLSX fixture did not discover `mrr`, and the Scout service fixture expects an object without the existing `pendingActions: undefined` member.
+- Browser verification used the rebuilt production bundle and a temporary authenticated organization/API mock. It exercised the populated dashboard integration card, Maya's wrapped tabs and lazy action dialogs, Rex's lazy Data tab, the feedback vote/navigation controls, Brain's contained mobile tab scroller, and mobile page-overflow checks. A cached failed user message remained visible, **Restore draft** populated an empty composer without issuing a send, and an existing composer draft was preserved. Rapid Maya/Rex navigation rendered the correct agent shell; stale-request behavior is additionally covered by request-key guards and the focused merge suite.
+- A production-only fast-auth hydration race and an initial Recharts size warning were found during this audit and fixed; the final browser run had no application errors or warnings (the local server still lacks a `/favicon.ico`, which is outside Phase A/B behavior).
 - Per the phase-boundary decision, SSE (B2) and variable-height history virtualization (B5) remain separate, explicitly scoped follow-ons rather than partial implementations in this pass.
+
+## Production-safety audit note
+
+The initial retry button automatically issued a second `sendMessage` request. That is unsafe with the current six-agent contract because every service persists the user row before calling the AI, while an HTTP failure does not tell the browser whether that write occurred. Automatic retry could therefore persist the same prompt twice and feed both copies into later AI context. The final implementation keeps the failed optimistic row visible and offers **Restore draft**, which copies the text back to the composer without making a request. A truly automatic retry should be added only with a server idempotency key or a resume-existing-message endpoint.

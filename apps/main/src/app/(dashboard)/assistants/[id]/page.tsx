@@ -25,12 +25,8 @@ import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { MediaViewerProvider } from "@/components/chat/MediaViewer"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
-import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
-import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
 import type { ContentPlanItem } from "@/lib/api/assistants"
-import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
-import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
 import { getBillingStatus } from "@/lib/api/billing"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 import { qk } from "@/lib/query-keys"
@@ -52,7 +48,12 @@ import type {
 } from "@/lib/types"
 import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult, MayaContentRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
-import { mergeMessageWindow, setMessageDeliveryStatus } from "@/lib/chat/message-window"
+import {
+  mergeMessageWindow,
+  mergeServerSnapshot,
+  parseCachedMessageWindow,
+  setMessageDeliveryStatus,
+} from "@/lib/chat/message-window"
 
 const AgentInfoPanel = dynamic(() => import("@/components/assistants/AgentInfoPanel"))
 const HelpSheet = dynamic(() => import("@/components/chat/HelpSheet").then((module) => module.HelpSheet))
@@ -63,6 +64,10 @@ const OnboardMeModal = dynamic(() => import("@/components/assistants/OnboardMeMo
 const RunActionDialog = dynamic(() => import("@/components/chat/RunActionDialog").then((module) => module.RunActionDialog))
 const SageSavedKeywordsTab = dynamic(() => import("@/components/agents/sage/saved-keywords-tab").then((module) => module.SageSavedKeywordsTab))
 const ToolsMenu = dynamic(() => import("@/components/chat/ToolsMenu").then((module) => module.ToolsMenu))
+const RexDataTab = dynamic(() => import("@/components/agents/rex/data-tab").then((module) => module.RexDataTab))
+const MagicNumbers = dynamic(() => import("@/components/agents/rex/magic-numbers").then((module) => module.MagicNumbers))
+const MayaCreditsPill = dynamic(() => import("@/components/agents/maya/credits-pill").then((module) => module.MayaCreditsPill))
+const MayaTopUpButton = dynamic(() => import("@/components/agents/maya/topup-dialog").then((module) => module.MayaTopUpButton))
 
 // Scout's native research tools call their own default data source (Serper)
 // internally and can't reliably be prompted to prefer a connected MCP tool
@@ -450,11 +455,16 @@ export default function AssistantChatPage() {
     try {
       const raw = localStorage.getItem(chatCacheKey(organizationId, id))
       if (raw) {
-        const cached: Message[] = JSON.parse(raw)
-        scrollIntentRef.current = "instant"
-        setMsgWindow(cached)
-        setHasPreviousPage(cached.length === WINDOW)
-        setInitialLoaded(true)
+        const cached = parseCachedMessageWindow(raw, WINDOW)
+        if (cached.length > 0) {
+          scrollIntentRef.current = "instant"
+          setMsgWindow(cached)
+          setHasPreviousPage(cached.length === WINDOW)
+          setInitialLoaded(true)
+        } else {
+          setInitialLoaded(false)
+          setMsgWindow([])
+        }
       } else {
         setInitialLoaded(false)
         setMsgWindow([])
@@ -469,7 +479,7 @@ export default function AssistantChatPage() {
       .then((msgs) => {
         if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
         scrollIntentRef.current = "instant"
-        setMsgWindow((current) => mergeMessageWindow(current, msgs))
+        setMsgWindow((current) => mergeServerSnapshot(current, msgs, WINDOW))
         setHasPreviousPage(msgs.length === WINDOW)
         setInitialLoaded(true)
       })
@@ -486,7 +496,10 @@ export default function AssistantChatPage() {
   useEffect(() => {
     if (!initialLoaded || !id || !organizationId || msgWindow.length === 0) return
     try {
-      localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgWindow))
+      localStorage.setItem(
+        chatCacheKey(organizationId, id),
+        JSON.stringify(msgWindow.slice(-WINDOW)),
+      )
     } catch {}
   }, [msgWindow, initialLoaded, id, organizationId])
 
@@ -508,7 +521,7 @@ export default function AssistantChatPage() {
   }, [hasPreviousPage, isLoadingPrev, msgWindow, id, organizationId])
   const { data: brandKit = null } = useBrandKit(organizationId)
   const { data: rexDatasetCount = 0 } = useQuery({
-    queryKey: REX_DATASETS_KEY(organizationId),
+    queryKey: qk.rexDatasets(organizationId),
     queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets"),
     select: (d) => d.length,
     enabled: id === "rex" && !!organizationId,
@@ -724,24 +737,17 @@ export default function AssistantChatPage() {
     }
   }, [content, isLoading, sendMutation, agent])
 
-  const handleRetryMessage = useCallback(async (message: Message) => {
-    if (!message.id || message.deliveryStatus !== "failed" || isLoading) return
-
-    setMsgWindow((current) => current.filter((item) => item.id !== message.id))
-    try {
-      await sendMutation.mutateAsync(message.content)
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 402) {
-        setSendError(err)
-      } else if (err instanceof AgentNotAvailableError) {
-        toast.error(
-          `${agent?.name ?? "This agent"} isn't connected yet — backend route is being set up. Try again soon.`
-        )
-      } else {
-        toast.error("Retry failed. Your message is still visible so you can try again.")
-      }
+  const contentRef = useRef(content)
+  contentRef.current = content
+  const handleRestoreDraft = useCallback((message: Message) => {
+    if (message.deliveryStatus !== "failed") return
+    if (contentRef.current.trim()) {
+      toast.info("The composer already has a draft. Send or clear it before restoring this message.")
+      return
     }
-  }, [agent, isLoading, sendMutation])
+    setContent(message.content)
+    toast.info("Draft restored. Review it before sending again.")
+  }, [])
 
   // Writes an optimistic user message as soon as the dialog starts submitting,
   // so the chat doesn't look empty while the API call is in flight.
@@ -1516,9 +1522,8 @@ export default function AssistantChatPage() {
                 showAvatar={msg.role !== "assistant" || i === 0 || displayMessages[i - 1]?.role !== "assistant"}
                 marginTop={i === 0 ? 0 : displayMessages[i - 1]?.role === msg.role ? 4 : 12}
                 onFollowUpAction={handleFollowUp}
-                onRevertImage={msg.id ? () => handleRevertImage(msg.id!) : undefined}
-                onRetry={msg.deliveryStatus === "failed" ? () => void handleRetryMessage(msg) : undefined}
-                retryDisabled={msg.deliveryStatus === "failed" && isLoading}
+                onRevertImage={handleRevertImage}
+                onRestoreDraft={handleRestoreDraft}
               />
             ))}
             {isBusy && (

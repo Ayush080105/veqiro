@@ -53,7 +53,21 @@ export const getDashboardIntegrationHealth = async (organizationId: string) => {
     integrationsService.list(organizationId),
     mcpService.listConnections(organizationId),
   ]);
-  return { accounts, mcpConnections };
+  // This dashboard card needs only display state. Keep account ids, provider
+  // ids, metadata, connection ids and provider error text out of the aggregate
+  // response even though the dedicated settings endpoints expose them.
+  return {
+    accounts: accounts.map((account) => ({
+      platform: account.platform,
+      accountName: account.accountName,
+      accessTokenExpiresAt: account.accessTokenExpiresAt,
+      canRefresh: account.canRefresh,
+    })),
+    mcpConnections: mcpConnections.map((connection) => ({
+      slug: connection.slug,
+      status: connection.status,
+    })),
+  };
 };
 
 const startOfDayUTC = (d: Date) =>

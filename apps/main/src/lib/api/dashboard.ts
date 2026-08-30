@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/api/client"
 import type { AgentSlug } from "@/lib/types"
-import type { SocialAccount } from "@/lib/api/integrations"
-import type { McpConnectionSummary } from "@/lib/api/mcp"
 import { qk } from "@/lib/query-keys"
 
 export type DashboardSummary = {
@@ -29,8 +27,16 @@ export type DashboardSummary = {
 }
 
 export type DashboardIntegrationHealth = {
-  accounts: SocialAccount[]
-  mcpConnections: McpConnectionSummary[]
+  accounts: Array<{
+    platform: "TWITTER" | "LINKEDIN" | "INSTAGRAM"
+    accountName: string | null
+    accessTokenExpiresAt: string | null
+    canRefresh: boolean
+  }>
+  mcpConnections: Array<{
+    slug: string
+    status: "PENDING" | "AUTH_REQUIRED" | "CONNECTED" | "ERROR" | "DISCONNECTED"
+  }>
 }
 
 export type RangeKind = "24h" | "7d" | "30d"
@@ -93,12 +99,12 @@ export function useDashboardSummary(filters: DashboardFilters) {
   })
 }
 
-export function useDashboardIntegrationHealth() {
+export function useDashboardIntegrationHealth(organizationId: string) {
   return useQuery({
-    queryKey: qk.dashboardIntegrationHealth(),
+    queryKey: qk.dashboardIntegrationHealth(organizationId),
     queryFn: () => apiFetch<DashboardIntegrationHealth>("/dashboard/integration-health"),
+    enabled: Boolean(organizationId),
     staleTime: 60_000,
-    placeholderData: (previous) => previous,
   })
 }
 

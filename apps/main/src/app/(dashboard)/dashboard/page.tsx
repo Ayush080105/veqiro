@@ -21,6 +21,7 @@ import { ContentPipelineSkeleton } from "@/components/dashboard/ContentPipelineS
 import { Button } from "@/components/ui/button"
 import { KpiTile } from "@/components/ui/kpi-tile"
 import { PageHeader } from "@/components/ui/page-header"
+import { useHydrated } from "@/lib/hooks/use-hydrated"
 import type { AgentSlug } from "@/lib/types"
 
 // Recharts is sizeable. Defer it until the dashboard renders; the skeleton
@@ -72,6 +73,7 @@ function formatNumber(n: number): string {
 
 export default function DashboardPage() {
   const { data: session } = authClient.useSession()
+  const hydrated = useHydrated()
   const [range, setRange] = useState<Range>({ kind: "7d" })
   const [agents, setAgents] = useState<AgentSlug[]>([...ALL_SLUGS])
   const {
@@ -83,8 +85,8 @@ export default function DashboardPage() {
   } = useDashboardSummary({ range, agents })
   const showSkeletons = isPending && !summary
   const showProgressBar = isFetching && !isPending
-  const name = session?.user?.name?.split(" ")[0] ?? "there"
-  const today = new Date()
+  const name = hydrated ? (session?.user?.name?.split(" ")[0] ?? "there") : "there"
+  const today = hydrated ? new Date() : null
 
   const metrics = summary?.metrics
   const activity = summary?.activityChart ?? []
@@ -98,8 +100,12 @@ export default function DashboardPage() {
       <DashboardProgressBar active={showProgressBar} />
 
       <PageHeader
-        kicker={formatDate(today)}
-        title={`${getGreeting().toLowerCase()}, ${name.toLowerCase()}.`}
+        kicker={today ? formatDate(today) : "Today"}
+        title={
+          today
+            ? `${getGreeting().toLowerCase()}, ${name.toLowerCase()}.`
+            : "welcome back."
+        }
         subtitle="Here's what your team is working on."
         
         right={

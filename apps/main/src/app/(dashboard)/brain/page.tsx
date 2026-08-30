@@ -116,7 +116,7 @@ export default function BrainPage() {
   const scrapeMutation = useScrapeBrandKit(organizationId)
   const loading = !organizationId || kitPending
 
-  const [hydrated, setHydrated] = useState(false)
+  const [hydratedOrgId, setHydratedOrgId] = useState<string | null>(null)
   const [hasPending, setHasPending] = useState(false)
   const [backendUnavailable, setBackendUnavailable] = useState(false)
   const [isEmpty, setIsEmpty] = useState(false)
@@ -144,42 +144,51 @@ export default function BrainPage() {
   })
 
   useEffect(() => {
-    if (!organizationId || kitPending || hydrated) return
+    if (!organizationId || kitPending || hydratedOrgId === organizationId) return
 
-    if (kit && kit.companyName?.trim()) {
-      reset(brandKitToForm(kit))
-      setBackendUnavailable(false)
-      setIsEmpty(false)
-    } else {
-      setBackendUnavailable(kitError || !kit)
-      try {
-        const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
-        if (local) {
-          const parsed = JSON.parse(local) as BrandKit
-          if (parsed.companyName?.trim()) {
-            reset(brandKitToForm(parsed))
-            setIsEmpty(false)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+
+      if (kit && kit.companyName?.trim()) {
+        reset(brandKitToForm(kit))
+        setBackendUnavailable(false)
+        setIsEmpty(false)
+      } else {
+        setBackendUnavailable(kitError || !kit)
+        try {
+          const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
+          if (local) {
+            const parsed = JSON.parse(local) as BrandKit
+            if (parsed.companyName?.trim()) {
+              reset(brandKitToForm(parsed))
+              setIsEmpty(false)
+            } else {
+              setIsEmpty(true)
+            }
           } else {
             setIsEmpty(true)
           }
-        } else {
+        } catch {
           setIsEmpty(true)
         }
+      }
+      try {
+        const key = `veqiro.brain.seeded.${organizationId}`
+        if (localStorage.getItem(key) === "1") {
+          setSeededHint(true)
+          localStorage.removeItem(key)
+        }
       } catch {
-        setIsEmpty(true)
+        /* ignore */
       }
+      setHydratedOrgId(organizationId)
+    })
+
+    return () => {
+      cancelled = true
     }
-    try {
-      const key = `veqiro.brain.seeded.${organizationId}`
-      if (localStorage.getItem(key) === "1") {
-        setSeededHint(true)
-        localStorage.removeItem(key)
-      }
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true)
-  }, [organizationId, kit, kitPending, kitError, hydrated, reset])
+  }, [organizationId, kit, kitPending, kitError, hydratedOrgId, reset])
 
   const persistLocally = (values: BrainFormValues) => {
     if (!organizationId) return
@@ -279,7 +288,7 @@ export default function BrainPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl pb-8">
+      <div className="mx-auto w-full min-w-0 max-w-4xl pb-8">
         <div className="mb-6">
           <PageHeader
             kicker="your crew's memory"
@@ -295,7 +304,7 @@ export default function BrainPage() {
   return (
     <form
       onSubmit={(event) => void handleSubmit(onSave)(event)}
-      className="mx-auto max-w-4xl pb-8"
+      className="mx-auto w-full min-w-0 max-w-4xl pb-8"
     >
       {/* Header */}
       <div className="mb-6">
@@ -344,7 +353,6 @@ export default function BrainPage() {
         appendCompetitor={append}
         removeCompetitor={remove}
         scheduleAutoSave={scheduleAutoSave}
-        getValues={getValues}
         setValue={setValue}
         watch={watch}
         scraping={scraping}

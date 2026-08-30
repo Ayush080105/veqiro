@@ -4,9 +4,11 @@ import Link from "next/link"
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import type { SocialAccount } from "@/lib/api/integrations"
-import type { McpConnectionSummary } from "@/lib/api/mcp"
-import { useDashboardIntegrationHealth } from "@/lib/api/dashboard"
+import { authClient } from "@/lib/auth-client"
+import {
+  useDashboardIntegrationHealth,
+  type DashboardIntegrationHealth,
+} from "@/lib/api/dashboard"
 import { getIntegrationBySlug } from "@repo/integrations-catalog"
 
 type Row = {
@@ -22,7 +24,7 @@ function platformRow(
   id: string,
   label: string,
   platformEnum: "TWITTER" | "LINKEDIN" | "INSTAGRAM",
-  accounts: SocialAccount[],
+  accounts: DashboardIntegrationHealth["accounts"],
 ): Row {
   const hit = accounts.find((a) => a.platform === platformEnum)
   if (!hit) return { id, label, state: "disconnected" }
@@ -55,7 +57,7 @@ const stateClasses: Record<
 /** MCP connections carry their own status, so they don't need the token-expiry
  *  reasoning the native OAuth rows above do — only ERROR is worth surfacing as
  *  a warning; anything not CONNECTED reads as simply not connected. */
-function mcpRow(conn: McpConnectionSummary): Row {
+function mcpRow(conn: DashboardIntegrationHealth["mcpConnections"][number]): Row {
   const label = getIntegrationBySlug(conn.slug)?.name ?? conn.slug
   if (conn.status === "CONNECTED") {
     return { id: conn.slug, label, state: "connected" }
@@ -71,7 +73,40 @@ function mcpRow(conn: McpConnectionSummary): Row {
 const MAX_ROWS = 6
 
 export function IntegrationHealth() {
-  const { data } = useDashboardIntegrationHealth()
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const organizationId = activeOrg?.id ?? ""
+  const { data, isPending, isError, refetch } = useDashboardIntegrationHealth(organizationId)
+
+  if (!data) {
+    return (
+      <div className="rounded-2xl border-[3px] border-foreground bg-card p-5 shadow-[6px_6px_0_var(--foreground)]">
+        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          [ integrations ]
+        </div>
+        <div className="mt-0.5 font-display text-[26px] tracking-tight text-foreground">
+          {isError ? "status unavailable" : "checking connections…"}
+        </div>
+        <p className="mt-2 font-body text-xs text-muted-foreground">
+          {isError
+            ? "Your connections are unchanged; this dashboard card could not refresh them."
+            : "Loading your connected tools."}
+        </p>
+        {isError && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => void refetch()}
+          >
+            Retry
+          </Button>
+        )}
+        {isPending && <div className="mt-4 h-12 animate-pulse rounded-lg bg-muted" />}
+      </div>
+    )
+  }
+
   const accounts = data?.accounts ?? []
   const mcpConnections = data?.mcpConnections ?? []
 
