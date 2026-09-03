@@ -164,7 +164,7 @@ export function PlatformMultiPicker({
     }
   }
 
-  const selectedCls = "border-2 border-[#111] bg-[#111] text-[#FFF9ED]"
+  const selectedCls = "border border-[#111] bg-[#111] text-[#FFF9ED]"
   const idleCls = "border border-[#D4C9B0] bg-[#FFF9ED] hover:bg-[#EFE7D6] text-[#111]"
 
   return (

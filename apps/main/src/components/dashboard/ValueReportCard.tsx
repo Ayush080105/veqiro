@@ -21,7 +21,7 @@ function Stat({
   hint?: string
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border-2 border-foreground bg-background px-3.5 py-3">
+    <div className="flex flex-col gap-1 rounded-lg border border-[var(--vq-line-2)] bg-background px-3.5 py-3">
       <div className="font-display text-[30px] leading-none tracking-tight tabular-nums text-foreground">
         {value}
       </div>
@@ -39,7 +39,7 @@ export function ValueReportCard() {
   const hasData = Boolean(data && data.actions > 0)
 
   return (
-    <div className="rounded-2xl border-[3px] border-foreground bg-card p-5 shadow-[6px_6px_0_var(--foreground)]">
+    <div className="rounded-2xl border border-[var(--vq-line-2)] bg-card p-5 shadow-[var(--vq-shadow)]">
       <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         [ last {data?.periodDays ?? 30} days ]
       </div>
@@ -52,7 +52,7 @@ export function ValueReportCard() {
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-[84px] animate-pulse rounded-lg border-2 border-foreground/15 bg-muted/40"
+              className="h-[84px] animate-pulse rounded-lg border border-[var(--vq-line-2)] bg-muted/40"
             />
           ))}
         </div>

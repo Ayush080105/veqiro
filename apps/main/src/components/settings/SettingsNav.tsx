@@ -7,9 +7,9 @@ import { FONT } from "@/lib/fonts"
 
 const SETTINGS_NAV = [
   { href: "/settings", label: "Profile", icon: User, color: "var(--vq-red)" },
-  // { href: "/settings/members", label: "Members", icon: Users, color: "var(--vq-green)" },
+  { href: "/settings/members", label: "Members", icon: Users, color: "var(--vq-green)" },
   { href: "/settings/integrations", label: "Integrations", icon: Plug, color: "var(--vq-yellow)" },
-  // { href: "/settings/notifications", label: "Notifications", icon: Bell, color: "var(--vq-pink)" },
+  { href: "/settings/notifications", label: "Notifications", icon: Bell, color: "var(--vq-pink)" },
   { href: "/settings/billing", label: "Billing", icon: CreditCard, color: "var(--vq-blue)" },
   { href: "/settings/usage", label: "Usage", icon: BarChart3, color: "var(--vq-green)" },
 ]
@@ -39,15 +39,16 @@ export function SettingsNav() {
               gap: 8,
               padding: "8px 14px",
               borderRadius: 999,
-              border: "1px solid var(--vq-line-2)",
-              background: active ? color : "#FFF9ED",
-              boxShadow: active ? "var(--vq-shadow-sm)" : "none",
-              color: "#111",
+              border: `1px solid ${active ? "var(--vq-line-2)" : "var(--vq-line)"}`,
+              background: active
+                ? `color-mix(in srgb, ${color} 16%, var(--card))`
+                : "var(--card)",
+              color: "var(--foreground)",
               textDecoration: "none",
               fontFamily: FONT.body,
               fontSize: 13,
               fontWeight: 500,
-              transition: "box-shadow 120ms ease",
+              transition: "background 120ms ease, border-color 120ms ease",
             }}
           >
             <Icon className="size-3.5" />

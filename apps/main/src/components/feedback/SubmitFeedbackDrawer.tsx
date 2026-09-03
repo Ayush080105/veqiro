@@ -140,7 +140,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
         className="flex flex-col sm:max-w-lg overflow-y-auto"
         showCloseButton={false}
       >
-        <SheetHeader className="px-6 pt-6 pb-4 border-b-[3px] border-foreground">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b border-[var(--vq-line-2)]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <SheetTitle className="text-xl">Submit Feedback</SheetTitle>
@@ -150,8 +150,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
             </div>
             <button
               onClick={handleClose}
-              className="mt-1 rounded-md border-2 border-foreground p-1.5 hover:bg-muted transition-colors"
-              style={{ boxShadow: "2px 2px 0 #111" }}
+              className="mt-1 rounded-md border border-[var(--vq-line-2)] p-1.5 hover:bg-muted transition-colors"
             >
               <X className="size-4" />
               <span className="sr-only">Close</span>
@@ -184,10 +183,10 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                         setValue("category", cat.value, { shouldValidate: true })
                       }}
                       className={cn(
-                        "flex items-start gap-2.5 rounded-md border-[2.5px] border-foreground p-3 text-left transition-all hover:translate-y-px",
+                        "flex items-start gap-2.5 rounded-md border p-3 text-left transition-all",
                         isSelected
-                          ? "shadow-[3px_3px_0_var(--foreground)]"
-                          : "shadow-[4px_4px_0_var(--foreground)] hover:shadow-[2px_2px_0_var(--foreground)]"
+                          ? "border-[var(--vq-line-2)] shadow-[var(--vq-shadow)] ring-1 ring-[var(--vq-line-2)]"
+                          : "border-[var(--vq-line-2)] shadow-[var(--vq-shadow-sm)] hover:shadow-[var(--vq-shadow)]"
                       )}
                       style={{
                         background: isSelected ? cat.color : "var(--card)",
@@ -234,10 +233,10 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                     setValue("agentSlug", null)
                   }}
                   className={cn(
-                    "rounded-full border-[2px] border-foreground px-3 py-1 text-xs font-head uppercase tracking-wide transition-all",
+                    "rounded-full border border-[var(--vq-line-2)] px-3 py-1 text-xs font-head uppercase tracking-wide transition-colors",
                     selectedAgent === null
-                      ? "bg-foreground text-background shadow-none translate-y-px"
-                      : "bg-card shadow-[2px_2px_0_var(--foreground)] hover:translate-y-px hover:shadow-none"
+                      ? "bg-foreground text-background"
+                      : "bg-card hover:bg-muted"
                   )}
                 >
                   Platform
@@ -254,10 +253,10 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                         setValue("agentSlug", next)
                       }}
                       className={cn(
-                        "rounded-full border-[2px] border-foreground px-3 py-1 text-xs font-head uppercase tracking-wide transition-all",
+                        "rounded-full border border-[var(--vq-line-2)] px-3 py-1 text-xs font-head uppercase tracking-wide transition-colors",
                         isSelected
-                          ? "shadow-none translate-y-px"
-                          : "bg-card shadow-[2px_2px_0_var(--foreground)] hover:translate-y-px hover:shadow-none"
+                          ? "ring-1 ring-[var(--vq-line-2)]"
+                          : "bg-card hover:bg-muted"
                       )}
                       style={{
                         background: isSelected ? AGENT_COLORS[slug] : undefined,
@@ -292,7 +291,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
 
               {/* Similar posts */}
               {similarPosts && similarPosts.length > 0 && (
-                <div className="mt-1 rounded-md border-[2.5px] border-foreground bg-accent/30 p-3 shadow-[3px_3px_0_var(--foreground)]">
+                <div className="mt-1 rounded-md border border-[var(--vq-line-2)] bg-accent/30 p-3 shadow-[var(--vq-shadow-sm)]">
                   <p
                     style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}
                     className="text-muted-foreground mb-2"

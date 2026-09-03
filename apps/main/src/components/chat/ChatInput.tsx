@@ -100,8 +100,8 @@ export function ChatInput({
         if (canSend) onSend()
       }}
       style={{
-        background: "#FFF9ED",
-        borderTop: "1px solid #E5E5E5",
+        background: "var(--card)",
+        borderTop: "1px solid var(--vq-line)",
         padding: "10px 12px 14px",
       }}
     >
@@ -122,22 +122,22 @@ export function ChatInput({
             alignItems: "center",
             gap: 6,
             padding: "0 14px",
-            background: "#EFE7D6",
-            border: "1.5px solid #D4C9B0",
+            background: "var(--background)",
+            border: "1px solid var(--vq-line-2)",
             borderRadius: 999,
             cursor: disabled ? "not-allowed" : "pointer",
             opacity: disabled ? 0.4 : 1,
-            color: "#5A5245",
+            color: "var(--muted-foreground)",
             fontFamily: FONT.body,
             fontSize: 13,
             fontWeight: 500,
             transition: "background 120ms ease, border-color 150ms",
           }}
           onMouseEnter={(e) => {
-            if (!disabled) e.currentTarget.style.borderColor = "#9A8F7A"
+            if (!disabled) e.currentTarget.style.borderColor = "var(--ring)"
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#D4C9B0"
+            e.currentTarget.style.borderColor = "var(--vq-line-2)"
           }}
         >
           <Wrench className="size-4" />
@@ -169,19 +169,19 @@ export function ChatInput({
               minHeight: 42,
               maxHeight: 160,
               padding: "10px 16px",
-              background: "#EFE7D6",
-              border: "1.5px solid #D4C9B0",
+              background: "var(--background)",
+              border: "1px solid var(--vq-line-2)",
               borderRadius: 999,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              boxShadow: "var(--vq-shadow-sm)",
               fontFamily: FONT.body,
               fontSize: 14,
               lineHeight: 1.4,
-              color: "#111",
+              color: "var(--foreground)",
               outline: "none",
               transition: "border-color 150ms",
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#9A8F7A" }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "#D4C9B0" }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--ring)" }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--vq-line-2)" }}
           />
         </div>
 
@@ -195,11 +195,11 @@ export function ChatInput({
             flexShrink: 0,
             display: "grid",
             placeItems: "center",
-            background: canSend ? "#111" : "#D0D0D0",
+            background: canSend ? "var(--primary)" : "var(--muted-foreground)",
             color: "#fff",
             border: "none",
             borderRadius: "50%",
-            boxShadow: canSend ? "0 2px 6px rgba(0,0,0,0.25)" : "none",
+            boxShadow: canSend ? "var(--vq-shadow)" : "none",
             cursor: canSend ? "pointer" : "not-allowed",
             transition: "background 150ms, box-shadow 150ms",
           }}

@@ -48,9 +48,9 @@ const stateClasses: Record<
   Row["state"],
   { row: string; metaColor: string }
 > = {
-  connected:     { row: "bg-[#DDF5E8] border-[#1DBC87]", metaColor: "#0E5C3F" },
-  disconnected:  { row: "bg-white border-foreground",    metaColor: "#555555" },
-  expiring:      { row: "bg-[#FFEFC4] border-[#B98700]", metaColor: "#7A5A00" },
+  connected:     { row: "bg-[#DDF5E8] border-[#1DBC87]/50", metaColor: "#0E5C3F" },
+  disconnected:  { row: "bg-white border-[var(--vq-line-2)]", metaColor: "#555555" },
+  expiring:      { row: "bg-[#FFEFC4] border-[#B98700]/50", metaColor: "#7A5A00" },
   "coming-soon": { row: "bg-background border-foreground", metaColor: "#777777" },
 }
 
@@ -79,7 +79,7 @@ export function IntegrationHealth() {
 
   if (!data) {
     return (
-      <div className="rounded-2xl border-[3px] border-foreground bg-card p-5 shadow-[6px_6px_0_var(--foreground)]">
+      <div className="rounded-2xl border border-[var(--vq-line-2)] bg-card p-5 shadow-[var(--vq-shadow)]">
         <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           [ integrations ]
         </div>
@@ -134,7 +134,7 @@ export function IntegrationHealth() {
   const connectedCount = allRows.filter((r) => r.state === "connected").length
 
   return (
-    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+    <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
       <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         [ integrations ]
       </div>
@@ -148,7 +148,7 @@ export function IntegrationHealth() {
           return (
             <div
               key={r.id}
-              className={`flex items-center gap-2 px-2.5 py-2 border-2 rounded-lg ${cls.row}`}
+              className={`flex items-center gap-2 px-2.5 py-2 border rounded-lg ${cls.row}`}
             >
               {r.state === "connected"    && <CheckCircle2 className="size-3.5 shrink-0" style={{ color: "#0E5C3F" }} />}
               {r.state === "disconnected" && <XCircle className="size-3.5 shrink-0 text-muted-foreground" />}

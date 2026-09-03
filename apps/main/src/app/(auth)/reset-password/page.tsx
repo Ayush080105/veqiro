@@ -16,6 +16,7 @@ import { SubmitButton } from "@/components/ui/submit-button"
 import { RhfField } from "@/components/forms/RhfField"
 import { resetPasswordSchema, type ResetPasswordValues } from "@/lib/schemas/auth"
 import Link from "next/link"
+import Logo from "@/components/logo"
 import { Sticker } from "@/components/ui/sticker"
 
 function ResetPasswordContent() {
@@ -46,11 +47,7 @@ function ResetPasswordContent() {
     return (
       <div className="flex gap-4 min-h-screen flex-col items-center justify-center bg-background px-4">
           <Link href="/" className="flex items-center gap-3 text-foreground">
-            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
-              <span className="font-display text-[23px] leading-none text-background">
-                v
-              </span>
-            </span>
+            <Logo className="size-10 shrink-0" />
             <span className="font-display text-3xl leading-none tracking-normal">
               veqiro
             </span>
@@ -79,11 +76,7 @@ function ResetPasswordContent() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
       <Link href="/" className="flex items-center gap-3 text-foreground">
-            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
-              <span className="font-display text-[23px] leading-none text-background">
-                v
-              </span>
-            </span>
+            <Logo className="size-10 shrink-0" />
             <span className="font-display text-3xl leading-none tracking-normal">
               veqiro
             </span>

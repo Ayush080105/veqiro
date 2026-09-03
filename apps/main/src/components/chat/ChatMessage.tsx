@@ -52,7 +52,7 @@ function CopyBtn({ text }: { text: string }) {
         border: "none",
         borderRadius: "50%",
         cursor: "pointer",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+        boxShadow: "var(--vq-shadow-sm)",
         color: "#444",
       }}
     >
@@ -119,13 +119,13 @@ function TypingIndicatorComponent({
       <AgentDisc initials={agentInitials} color={agentColor} photo={agentPhoto} />
       <div
         style={{
-          background: `color-mix(in srgb, ${agentColor} 40%, #FFF9ED)`,
+          background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
           borderRadius: "18px 18px 18px 4px",
           padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           gap: 5,
-          boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+          boxShadow: "var(--vq-shadow-sm)",
         }}
       >
         <style>{`
@@ -212,10 +212,10 @@ function ChatMessageComponent({
         <div className="flex flex-col items-end" style={{ maxWidth: "min(78%, 560px)" }}>
           <div
             style={{
-              background: "#1A1A1A",
-              color: "#FFFFFF",
+              background: "var(--primary)",
+              color: "var(--primary-foreground)",
               borderRadius: "18px 18px 4px 18px",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+              boxShadow: "var(--vq-shadow-sm)",
               padding: "10px 14px 8px",
               fontFamily: FONT.body,
               fontSize: 14,
@@ -278,11 +278,11 @@ function ChatMessageComponent({
             const bubble = (
               <div
                 style={{
-                  background: `color-mix(in srgb, ${agentColor} 40%, #FFF9ED)`,
+                  background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
                   borderLeft: `3px solid ${agentColor}`,
                   color: "#111",
                   borderRadius: "18px 18px 18px 4px",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                  boxShadow: "var(--vq-shadow-sm)",
                   padding: "10px 14px 8px",
                   fontFamily: FONT.body,
                   fontSize: 14,
@@ -327,11 +327,11 @@ function ChatMessageComponent({
         ) : (
           <div
             style={{
-              background: `color-mix(in srgb, ${agentColor} 40%, #FFF9ED)`,
+              background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
               borderLeft: `3px solid ${agentColor}`,
               color: "#111",
               borderRadius: "18px 18px 18px 4px",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+              boxShadow: "var(--vq-shadow-sm)",
               padding: "10px 14px 8px",
               fontFamily: FONT.body,
               fontSize: 14,

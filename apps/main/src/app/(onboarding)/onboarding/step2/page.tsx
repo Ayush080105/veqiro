@@ -169,7 +169,7 @@ export default function Step2Identity() {
         {/* Site context — appears once a crawl has run (manual or background).
             User can edit before continuing; this is what AI agents will read. */}
         {(crawledSummary || scrape.isPending) && (
-          <div className="rounded-md border-[3px] border-foreground bg-[color:var(--vq-cream,#FFF9ED)] p-4 shadow-[3px_3px_0_var(--foreground)]">
+          <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-[color:var(--vq-cream,#FFF9ED)] p-4 shadow-[var(--vq-shadow-sm)]">
             <div className="mb-2 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
               <Sparkles className="size-3.5" />
               Site context

@@ -745,7 +745,7 @@ export function CarouselDraftCard({
   const currentSrc = blobSrcs[current] ?? rawSrcs[current]
 
   const navBtnCls =
-    "flex size-7 items-center justify-center border border-foreground bg-background text-foreground shadow-[1px_1px_0_var(--foreground)] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_var(--foreground)] active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-30 disabled:pointer-events-none"
+    "flex size-7 items-center justify-center rounded-full border border-[var(--vq-line-2)] bg-background text-foreground shadow-[var(--vq-shadow-sm)] transition-colors hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
 
   const fullText = `${d.body}${d.cta ? `\n\n${d.cta}` : ""}${
     d.hashtags?.length ? `\n\n${d.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}` : ""

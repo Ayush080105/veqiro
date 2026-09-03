@@ -138,7 +138,7 @@ export function AppSidebar() {
                     className="flex w-full items-center gap-2 text-left transition-transform active:translate-y-px"
                     style={{
                       padding: "6px 10px",
-                      background: "#FFF9ED",
+                      background: "var(--card)",
                       border: "1px solid var(--vq-line-2)",
                       borderRadius: 10,
                       boxShadow: "var(--vq-shadow-sm)",
@@ -152,7 +152,7 @@ export function AppSidebar() {
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    background: "#1DBC87",
+                    background: "var(--vq-green)",
                     flexShrink: 0,
                   }}
                 />
@@ -160,7 +160,7 @@ export function AppSidebar() {
                   style={{
                     fontFamily: FONT.mono,
                     fontSize: 11,
-                    color: "#111",
+                    color: "var(--foreground)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -178,8 +178,8 @@ export function AppSidebar() {
                     padding: "2px 6px",
                     border: "1px solid var(--vq-line-2)",
                     borderRadius: 999,
-                    background: "#F5C518",
-                    color: "#111",
+                    background: "var(--vq-yellow)",
+                    color: "var(--foreground)",
                   }}
                 >
                   Free
@@ -188,7 +188,7 @@ export function AppSidebar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="w-64 border border-[var(--vq-line-2)] bg-white p-1 shadow-[var(--vq-shadow-lg)]"
+                className="w-64 border border-[var(--vq-line-2)] bg-popover p-1 shadow-[var(--vq-shadow-lg)]"
               >
                 {organizations?.map((organization) => {
                   const isCurrent = organization.id === visibleActiveOrg.id
@@ -206,7 +206,7 @@ export function AppSidebar() {
                           style={{
                             fontFamily: FONT.head,
                             fontSize: 13,
-                            color: "#111",
+                            color: "var(--foreground)",
                           }}
                         >
                           {organization.name}
@@ -222,7 +222,7 @@ export function AppSidebar() {
                         style={{
                           fontFamily: FONT.mono,
                           fontSize: 10,
-                          color: "#555",
+                          color: "var(--muted-foreground)",
                         }}
                       >
                         {organization.slug} /{" "}
@@ -343,14 +343,14 @@ export function AppSidebar() {
               width: 32,
               height: 32,
               borderRadius: "50%",
-              background: "#F5C518",
+              background: "var(--vq-yellow)",
               border: "1px solid var(--vq-line-2)",
               boxShadow: "var(--vq-shadow-sm)",
               display: "grid",
               placeItems: "center",
               fontFamily: FONT.head,
               fontSize: 13,
-              color: "#111",
+              color: "var(--foreground)",
               flexShrink: 0,
               overflow: "hidden",
             }}
@@ -376,7 +376,7 @@ export function AppSidebar() {
               style={{
                 fontFamily: FONT.head,
                 fontSize: 12,
-                color: "#111",
+                color: "var(--foreground)",
                 margin: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -389,7 +389,7 @@ export function AppSidebar() {
               style={{
                 fontFamily: FONT.mono,
                 fontSize: 10,
-                color: "#555",
+                color: "var(--muted-foreground)",
                 margin: 0,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -414,7 +414,7 @@ export function AppSidebar() {
             style={{
               background: "transparent",
               border: "none",
-              color: "#555",
+              color: "var(--muted-foreground)",
               cursor: "pointer",
               padding: 6,
             }}

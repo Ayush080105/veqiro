@@ -50,11 +50,7 @@ export default function ForgotPassword() {
   return (
     <div className="flex min-h-screen flex-col gap-4 items-center justify-center bg-background px-4 py-10">
       <Link href="/" className="flex items-center gap-3 text-foreground">
-        <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
-          <span className="font-display text-[23px] leading-none text-background">
-            v
-          </span>
-        </span>
+        <Logo className="size-10 shrink-0" />
         <span className="font-display text-3xl leading-none tracking-normal">
           veqiro
         </span>
@@ -63,10 +59,7 @@ export default function ForgotPassword() {
       <AuthCard sticker={<Sticker rotate={-8} tone="yellow">forgot it</Sticker>}>
         {sentEmail ? (
           <div className="flex flex-col items-center gap-4 text-center">
-            <span
-              className="grid size-16 place-items-center rounded-2xl border-[3px] border-foreground bg-[color:var(--vq-green)] shadow-[4px_4px_0_var(--foreground)]"
-              style={{ transform: "rotate(-4deg)" }}
-            >
+            <span className="grid size-16 place-items-center rounded-2xl border border-[var(--vq-line-2)] bg-[color:var(--vq-green)]/14 shadow-[var(--vq-shadow-sm)]">
               <CheckCircle2 className="size-8 text-foreground" />
             </span>
             <h1 className="m-0 font-display text-3xl leading-none tracking-tight text-foreground">

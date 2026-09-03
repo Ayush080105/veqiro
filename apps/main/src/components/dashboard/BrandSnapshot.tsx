@@ -67,7 +67,7 @@ export function BrandSnapshot() {
 
   if (isPending) {
     return (
-      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
         <ShellHeader />
         <div className="flex flex-col gap-2.5">
           <Skeleton className="h-6 w-40" />
@@ -82,9 +82,9 @@ export function BrandSnapshot() {
 
   if (isEmpty) {
     return (
-      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
         <ShellHeader />
-        <div className="px-3.5 py-4 bg-white border-2 border-dashed border-foreground rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
+        <div className="px-3.5 py-4 bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
           <span className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground">
             {"// no brand kit yet"}
           </span>
@@ -110,10 +110,10 @@ export function BrandSnapshot() {
   ].filter(Boolean) as string[]
 
   return (
-    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+    <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
       <ShellHeader />
 
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-1 flex-col gap-3.5">
         {/* Company name + chips */}
         <div>
           <div className="font-head text-xl tracking-tight text-foreground truncate">
@@ -122,7 +122,7 @@ export function BrandSnapshot() {
           <div className="flex gap-1.5 flex-wrap mt-1.5">
             {kit!.industry && (
               <span
-                className="font-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 border-2 border-foreground rounded-full text-foreground"
+                className="font-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 border border-[var(--vq-line-2)] rounded-full text-foreground"
                 style={{ background: "var(--vq-blue)" }}
               >
                 {kit!.industry}
@@ -130,7 +130,7 @@ export function BrandSnapshot() {
             )}
             {kit!.brandVoice && (
               <span
-                className="font-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 border-2 border-foreground rounded-full text-foreground"
+                className="font-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 border border-[var(--vq-line-2)] rounded-full text-foreground"
                 style={{ background: "var(--vq-pink)" }}
               >
                 {kit!.brandVoice}
@@ -149,7 +149,7 @@ export function BrandSnapshot() {
               {palette.map((c, i) => (
                 <div key={i} className="flex-1">
                   <div
-                    className="h-9 border-2 border-foreground rounded-md"
+                    className="h-9 border border-[var(--vq-line-2)] rounded-md"
                     style={{ background: c }}
                   />
                   <div className="font-mono text-[9px] text-muted-foreground mt-1 text-center">
@@ -169,7 +169,7 @@ export function BrandSnapshot() {
               {filled.length} / {total}
             </span>
           </div>
-          <div className="h-3.5 bg-white border-[2.5px] border-foreground rounded-md overflow-hidden">
+          <div className="h-3.5 bg-white border border-[var(--vq-line-2)] rounded-md overflow-hidden">
             <div
               style={{
                 width: `${pct}%`,
@@ -188,7 +188,7 @@ export function BrandSnapshot() {
               <span
                 key={k}
                 className="font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full"
-                style={{ background: "#FFEFC4", border: "2px solid #B98700", color: "#7A5A00" }}
+                style={{ background: "#FFEFC4", border: "1px solid #B9870080", color: "#7A5A00" }}
               >
                 + {FIELD_LABELS[k]}
               </span>
@@ -196,7 +196,7 @@ export function BrandSnapshot() {
           </div>
         )}
 
-        <div className="pt-3.5 border-t-2 border-foreground/10 flex justify-end">
+        <div className="mt-auto pt-3.5 border-t border-foreground/10 flex justify-end">
           <Button asChild variant="brand-ghost" size="brand-sm">
             <Link href="/brain">edit brain →</Link>
           </Button>

@@ -107,9 +107,9 @@ export default function Step5Visual() {
                   type="button"
                   onClick={() => field.onChange([...p] as [string, string, string])}
                   className={cn(
-                    "flex cursor-pointer overflow-hidden rounded-lg border-[3px] border-foreground bg-white p-0",
+                    "flex cursor-pointer overflow-hidden rounded-lg border border-[var(--vq-line-2)] bg-white p-0 transition-shadow",
                     JSON.stringify(field.value) === JSON.stringify(p) &&
-                      "shadow-[4px_4px_0_var(--foreground)]",
+                      "shadow-[var(--vq-shadow)] ring-1 ring-[var(--vq-line-2)]",
                   )}
                 >
                   {p.map((c) => (
@@ -125,7 +125,7 @@ export default function Step5Visual() {
                     <PopoverTrigger
                       type="button"
                       aria-label={`Open color picker for slot ${i + 1}`}
-                      className="mb-1.5 h-16 w-full cursor-pointer rounded-lg border-[3px] border-foreground transition-shadow hover:shadow-[3px_3px_0_var(--foreground)]"
+                      className="mb-1.5 h-16 w-full cursor-pointer rounded-lg border border-[var(--vq-line-2)] transition-shadow hover:shadow-[var(--vq-shadow)]"
                       style={{ background: c }}
                     />
                     <PopoverContent
@@ -170,7 +170,7 @@ export default function Step5Visual() {
                       next[i] = e.target.value
                       field.onChange(next)
                     }}
-                    className="w-full rounded-md border-2 border-foreground bg-white px-2.5 py-2 font-mono text-xs"
+                    className="w-full rounded-md border border-[var(--vq-line-2)] bg-white px-2.5 py-2 font-mono text-xs"
                   />
                 </div>
               ))}

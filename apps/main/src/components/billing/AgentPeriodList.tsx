@@ -66,10 +66,10 @@ export function AgentPeriodList({ organizationId }: { organizationId?: string | 
             // see billing/page.tsx.
             <div
               key={`${entitlement.agent}-${entitlement.source}-${entitlement.currentPeriodEnd}`}
-              className="flex items-center justify-between gap-4 rounded-lg border-2 border-foreground/60 bg-card p-3"
+              className="flex items-center justify-between gap-4 rounded-lg border border-[var(--vq-line-2)] bg-card p-3"
             >
               <div className="flex items-center gap-3">
-                <div className="relative size-9 overflow-hidden rounded-full border-2 border-foreground bg-muted">
+                <div className="relative size-9 overflow-hidden rounded-full border border-[var(--vq-line-2)] bg-muted">
                   <Image
                     src={`/agents/${agentId}.jpeg`}
                     alt={`${agent?.name ?? entitlement.agent} portrait`}

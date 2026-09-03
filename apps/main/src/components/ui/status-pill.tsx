@@ -12,14 +12,14 @@ import { cn } from "@/lib/utils"
 // Compact status pill with leading icon. Built on shared classes — does not wrap Badge
 // because we want the icon to sit inline with consistent sizing.
 const statusPillVariants = cva(
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-foreground px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] [&>svg]:size-3 [&>svg]:shrink-0",
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--vq-line-2)] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] [&>svg]:size-3 [&>svg]:shrink-0",
   {
     variants: {
       level: {
         info: "bg-card text-foreground",
         ok: "bg-[color:var(--vq-green)]/15 text-foreground",
-        warn: "bg-accent text-foreground",
-        danger: "bg-destructive text-foreground",
+        warn: "bg-[color:var(--vq-yellow)]/18 text-foreground",
+        danger: "bg-destructive/15 text-destructive",
       },
     },
     defaultVariants: {

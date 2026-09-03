@@ -13,7 +13,7 @@ export function AgentColorProvider({ color, children }: { color?: string; childr
 }
 
 interface AgentCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** "brand" = chunky cream + 3px ink + hard shadow. "default" = compact shadcn card. */
+  /** "brand" = cream surface, hairline border, soft layered shadow (Card's brand variant). "default" = compact shadcn card. */
   variant?: "default" | "brand"
   size?: "default" | "sm"
   className?: string

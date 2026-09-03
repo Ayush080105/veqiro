@@ -29,10 +29,10 @@ export default function Step4Voice() {
                   type="button"
                   onClick={() => field.onChange(v)}
                   className={cn(
-                    "cursor-pointer rounded-xl border-[3px] border-foreground px-4 py-4 text-left transition-transform",
+                    "cursor-pointer rounded-xl border px-4 py-4 text-left transition-shadow",
                     active
-                      ? "bg-[color:var(--vq-pink)] -translate-x-0.5 -translate-y-0.5 shadow-[5px_5px_0_var(--foreground)]"
-                      : "bg-white shadow-none",
+                      ? "border-[var(--vq-line-2)] bg-[color-mix(in_srgb,var(--vq-pink)_18%,white)] shadow-[var(--vq-shadow)]"
+                      : "border-[var(--vq-line-2)] bg-white shadow-none",
                   )}
                 >
                   <div className="font-head text-lg">{v}</div>

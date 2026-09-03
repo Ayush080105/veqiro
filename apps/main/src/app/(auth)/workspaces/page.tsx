@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import Logo from "@/components/logo"
 import { authClient } from "@/lib/auth-client"
 import {
   clearActiveAndStartNew,
@@ -29,7 +30,7 @@ function WorkspaceSkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="h-24 animate-pulse rounded-lg border-[3px] border-foreground bg-white/55 shadow-[4px_4px_0_#111]"
+          className="h-24 animate-pulse rounded-lg border border-[var(--vq-line-2)] bg-white/55 shadow-[var(--vq-shadow-sm)]"
         />
       ))}
     </div>
@@ -84,11 +85,7 @@ export default function WorkspacesPage() {
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-3xl flex-col">
         <header className="mb-8 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 text-foreground">
-            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
-              <span className="font-display text-[23px] leading-none text-background">
-                v
-              </span>
-            </span>
+            <Logo className="size-10 shrink-0" />
             <span className="font-display text-3xl leading-none tracking-normal">
               veqiro
             </span>
@@ -96,7 +93,7 @@ export default function WorkspacesPage() {
           <button
             type="button"
             onClick={signOut}
-            className="inline-flex items-center gap-2 rounded-md border-2 border-foreground bg-white px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground shadow-[3px_3px_0_#111] transition-transform active:translate-x-0.5 active:translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-md border border-[var(--vq-line-2)] bg-white px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground shadow-[var(--vq-shadow-sm)] transition-colors hover:bg-muted"
           >
             <LogOut className="size-3.5" />
             Sign out
@@ -127,10 +124,10 @@ export default function WorkspacesPage() {
                   type="button"
                   disabled={disabled}
                   onClick={() => void selectWorkspace(membership.id)}
-                  className="group flex w-full flex-col items-start gap-3 rounded-lg border-[3px] border-foreground bg-white px-4 py-4 text-left shadow-[4px_4px_0_#111] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#111] disabled:pointer-events-none disabled:opacity-65 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
+                  className="group flex w-full flex-col items-start gap-3 rounded-lg border border-[var(--vq-line-2)] bg-white px-4 py-4 text-left shadow-[var(--vq-shadow-sm)] transition-all hover:shadow-[var(--vq-shadow)] disabled:pointer-events-none disabled:opacity-65 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
                 >
                   <span className="flex min-w-0 items-center gap-3 self-stretch sm:flex-1">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-md border-2 border-foreground bg-secondary">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-md border border-[var(--vq-line-2)] bg-secondary">
                       {isSwitching ? (
                         <Loader2 className="size-5 animate-spin" />
                       ) : (
@@ -154,8 +151,8 @@ export default function WorkspacesPage() {
                     <span
                       className={
                         membership.onboarded
-                          ? "rounded-full border-2 border-foreground bg-[color:var(--vq-green)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground"
-                          : "rounded-full border-2 border-foreground bg-accent px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground"
+                          ? "rounded-full border border-[var(--vq-line-2)] bg-[color:var(--vq-green)]/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground"
+                          : "rounded-full border border-[var(--vq-line-2)] bg-accent/20 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground"
                       }
                     >
                       {membership.onboarded ? "Onboarded" : "Setup needed"}
@@ -174,7 +171,7 @@ export default function WorkspacesPage() {
               type="button"
               disabled={!!pendingId}
               onClick={() => void createWorkspace()}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border-[3px] border-dashed border-foreground bg-transparent px-4 py-4 font-head text-sm uppercase tracking-wider text-foreground transition-colors hover:bg-foreground/5 disabled:pointer-events-none disabled:opacity-65"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--vq-line-2)] bg-transparent px-4 py-4 font-head text-sm uppercase tracking-wider text-foreground transition-colors hover:bg-foreground/5 disabled:pointer-events-none disabled:opacity-65"
             >
               {pendingId === "__new__" ? (
                 <Loader2 className="size-4 animate-spin" />

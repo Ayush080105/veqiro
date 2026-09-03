@@ -12,7 +12,7 @@ const textareaVariants = cva(
           "min-h-16 rounded-none border border-input bg-transparent px-2.5 py-2 text-xs transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:bg-input/50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 md:text-xs dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         // ── Veqiro brand variant ─────────────────────────────────────────────
         brand:
-          "min-h-24 rounded-md border-[3px] border-foreground bg-secondary px-4 py-3 text-base font-body resize-y transition-shadow focus-visible:shadow-[4px_4px_0_var(--destructive)] aria-invalid:border-destructive aria-invalid:shadow-[4px_4px_0_var(--destructive)]",
+          "min-h-24 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-secondary px-4 py-3 text-base font-body resize-y transition-shadow focus-visible:shadow-[var(--vq-shadow)] aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/30",
       },
     },
     defaultVariants: {

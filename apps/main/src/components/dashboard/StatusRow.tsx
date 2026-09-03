@@ -40,7 +40,7 @@ export function StatusRow({
     return (
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[58px] rounded-md border-2 border-foreground" />
+          <Skeleton key={i} className="h-[58px] rounded-md border border-[var(--vq-line-2)]" />
         ))}
       </div>
     )
@@ -56,7 +56,7 @@ export function StatusRow({
           <Link
             key={agent.id}
             href={`/assistants/${agent.id}`}
-            className="group flex min-h-[58px] min-w-0 items-center gap-2.5 rounded-md border-[2.5px] border-foreground bg-card p-2 pr-3 text-foreground no-underline shadow-[3px_3px_0_var(--foreground)] transition-[transform,box-shadow,background-color] duration-150 hover:bg-[#FFF9ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group flex min-h-[58px] min-w-0 items-center gap-2.5 rounded-md border border-[var(--vq-line-2)] bg-card p-2 pr-3 text-foreground no-underline shadow-[var(--vq-shadow-sm)] transition-[transform,box-shadow,background-color] duration-150 hover:bg-[#FFF9ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onMouseDown={(e) => {
               e.currentTarget.style.transform = "translate(2px,2px)"
               e.currentTarget.style.boxShadow = "1px 1px 0 var(--foreground)"
@@ -71,7 +71,7 @@ export function StatusRow({
             }}
           >
             <span
-              className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-foreground text-foreground"
+              className="grid size-9 shrink-0 place-items-center rounded-full border border-[var(--vq-line-2)] text-foreground"
               style={{
                 background: agent.color,
                 fontFamily: FONT.head,

@@ -97,7 +97,7 @@ export default function Step1Workspace() {
       </div>
 
       {orgError && (
-        <div className="mt-3 rounded-lg border-2 border-destructive bg-destructive/10 px-4 py-3 font-body text-sm text-destructive">
+        <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 font-body text-sm text-destructive">
           {orgError}
         </div>
       )}

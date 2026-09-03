@@ -595,7 +595,7 @@ export default function FeedbackAdminPage() {
                       <div className="flex items-center gap-2.5">
                         {agent.emoji && (
                           <span
-                            className="flex size-7 shrink-0 items-center justify-center rounded-lg border-2 border-border text-sm"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border text-sm"
                             style={{ background: agent.color ?? undefined }}
                           >
                             {agent.emoji}

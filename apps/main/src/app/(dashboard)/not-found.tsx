@@ -13,7 +13,7 @@ export default function DashboardNotFound() {
         sticker={{ label: "404", rot: -4, color: "var(--vq-red)" }}
       />
 
-      <div className="px-3.5 py-4 bg-card border-2 border-dashed border-foreground rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
+      <div className="px-3.5 py-4 bg-card border border-dashed border-[var(--vq-line-2)] rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
         <span className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground">
           {"// nothing to see here"}
         </span>

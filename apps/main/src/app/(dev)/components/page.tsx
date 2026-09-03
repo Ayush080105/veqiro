@@ -99,7 +99,7 @@ function Demo({
       <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
-      <div className="rounded-md border-2 border-foreground/15 bg-card/50 p-4">
+      <div className="rounded-md border border-[var(--vq-line)] bg-card/50 p-4">
         <div className={inner}>{children}</div>
       </div>
     </div>
@@ -161,10 +161,10 @@ export default function ComponentsShowcase() {
           {SWATCHES.map((s) => (
             <div
               key={s.varName}
-              className="flex items-center gap-3 rounded-md border-2 border-foreground/15 bg-background p-2.5"
+              className="flex items-center gap-3 rounded-md border border-[var(--vq-line)] bg-background p-2.5"
             >
               <span
-                className="size-10 shrink-0 rounded-md border-2 border-foreground"
+                className="size-10 shrink-0 rounded-md border border-[var(--vq-line-2)]"
                 style={{ background: `var(${s.varName})` }}
               />
               <div className="min-w-0">

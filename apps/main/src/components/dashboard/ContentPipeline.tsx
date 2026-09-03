@@ -52,10 +52,10 @@ export function ContentPipeline({
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {/* Card 1: By Platform */}
-      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
         {sectionHeader("posts published", "by platform")}
         {total === 0 ? (
-          <div className="px-4 py-7 border-2 border-dashed border-foreground rounded-xl bg-white font-mono text-xs text-muted-foreground text-center">
+          <div className="px-4 py-7 border border-dashed border-[var(--vq-line-2)] rounded-xl bg-white font-mono text-xs text-muted-foreground text-center">
             {"// no posts yet"}
           </div>
         ) : (
@@ -107,10 +107,10 @@ export function ContentPipeline({
               {platforms.map((p) => (
                 <div
                   key={p.name}
-                  className="flex items-center gap-2 px-2 py-1 border-2 border-foreground rounded-lg bg-white"
+                  className="flex items-center gap-2 px-2 py-1 border border-[var(--vq-line-2)] rounded-lg bg-white"
                 >
                   <span
-                    className="size-3 border-[1.5px] border-foreground rounded-[3px] shrink-0"
+                    className="size-3 border border-[var(--vq-line-2)] rounded-[3px] shrink-0"
                     style={{ background: p.color }}
                   />
                   <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-foreground flex-1">
@@ -125,7 +125,7 @@ export function ContentPipeline({
       </div>
 
       {/* Card 2: Pipeline Status */}
-      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
         {sectionHeader("pipeline status", "pipeline")}
         <div className="flex flex-col gap-2.5">
           {statuses.map((s) => (
@@ -135,7 +135,7 @@ export function ContentPipeline({
                 <span className="font-head">{s.count}</span>
               </div>
               <div
-                className="h-[18px] bg-white border-[2.5px] border-foreground rounded-md overflow-hidden"
+                className="h-[18px] bg-white border border-[var(--vq-line-2)] rounded-md overflow-hidden"
                 role="progressbar"
                 aria-label={`${s.key} content count`}
                 aria-valuemin={0}

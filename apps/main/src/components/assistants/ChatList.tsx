@@ -4,13 +4,14 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Search, Lock } from "lucide-react"
+import { Search, Lock, PanelLeftClose, PanelLeftOpen, Users } from "lucide-react"
 import { useMutationState } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth-client"
 import { AGENTS, AGENT_PHOTOS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
 import { useUpcomingAgents, type UpcomingAgent } from "@/lib/api/feedback"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { stripMarkdown } from "@/lib/utils"
 import { FONT } from "@/lib/fonts"
 import { TeamRow } from "./TeamRow"
@@ -411,10 +412,102 @@ function UpcomingAgentRow({ agent, active }: { agent: UpcomingAgent; active: boo
   )
 }
 
-export default function ChatList() {
+function RailAvatar({
+  href,
+  active,
+  color,
+  initials,
+  photo,
+  unread,
+  isTyping,
+  title,
+}: {
+  href: string
+  active: boolean
+  color: string
+  initials: string
+  photo?: string
+  unread: boolean
+  isTyping: boolean
+  title: string
+}) {
+  return (
+    <Link
+      href={href}
+      title={title}
+      aria-label={title}
+      style={{
+        position: "relative",
+        display: "flex",
+        justifyContent: "center",
+        padding: "6px 0",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: 42,
+          height: 42,
+          borderRadius: "50%",
+          overflow: "hidden",
+          background: color,
+          boxShadow: active ? "0 0 0 2px #FFF9ED, 0 0 0 4px #111" : "none",
+        }}
+      >
+        {photo ? (
+          <Image
+            src={photo}
+            alt=""
+            width={42}
+            height={42}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "grid",
+              placeItems: "center",
+              fontFamily: FONT.head,
+              fontSize: 13,
+              color: "#fff",
+            }}
+          >
+            {initials}
+          </div>
+        )}
+        <span
+          style={{
+            position: "absolute",
+            bottom: -1,
+            right: -1,
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: isTyping ? "#F5C518" : unread ? "#1DBC87" : "transparent",
+            border: unread || isTyping ? "2px solid #FFF9ED" : "none",
+          }}
+        />
+      </div>
+    </Link>
+  )
+}
+
+export default function ChatList({
+  collapsed = false,
+  onToggleCollapsed,
+}: {
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
+} = {}) {
   const pathname = usePathname()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
+  const isMobile = useIsMobile()
+  // The rail is a desktop-only affordance — mobile always gets the full,
+  // readable list since it already has its own single-pane view.
+  const showRail = collapsed && !isMobile
 
   const { data: statuses } = useAgentStatuses(organizationId)
   const { data: lastMap } = useLastMessages(organizationId)
@@ -443,6 +536,51 @@ export default function ChatList() {
     )
   })
 
+  if (showRail) {
+    return (
+      <aside
+        data-tour="assistants-sidebar"
+        className="flex h-full w-full flex-col items-center overflow-hidden bg-[#FFF9ED]"
+      >
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            title="Expand assistants list"
+            aria-label="Expand assistants list"
+            className="mt-3 flex size-9 items-center justify-center rounded-full text-[#888] transition-colors hover:bg-black/[0.06]"
+          >
+            <PanelLeftOpen className="size-4" />
+          </button>
+        )}
+        <Link
+          href="/assistants/team"
+          title="Team"
+          aria-label="Team"
+          className="mt-2 flex size-9 items-center justify-center rounded-full text-[#888] transition-colors hover:bg-black/[0.06]"
+        >
+          <Users className="size-4" />
+        </Link>
+        <div className="my-1.5 h-px w-6 bg-[#D4C9B0]" />
+        <div className="flex min-h-0 w-full flex-1 flex-col items-center overflow-y-auto pb-2">
+          {AGENTS.map((agent) => (
+            <RailAvatar
+              key={agent.id}
+              href={`/assistants/${agent.id}`}
+              active={pathname === `/assistants/${agent.id}`}
+              color={agent.color as string}
+              initials={agent.initials}
+              photo={AGENT_PHOTOS[agent.id]}
+              unread={unreadSet.has(agent.id)}
+              isTyping={typingAgentIds.has(agent.id)}
+              title={agent.name}
+            />
+          ))}
+        </div>
+      </aside>
+    )
+  }
+
   return (
     <aside
       data-tour="assistants-sidebar"
@@ -460,23 +598,40 @@ export default function ChatList() {
           padding: "16px 16px 12px",
           borderBottom: "1px solid #D4C9B0",
           background: "#FFF9ED",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 8,
         }}
       >
-        <h2
-          style={{
-            fontFamily: FONT.head,
-            fontSize: 20,
-            margin: 0,
-            fontWeight: 700,
-            color: "#111",
-            lineHeight: 1,
-          }}
-        >
-          Assistants
-        </h2>
-        <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>
-          your crew of six
+        <div>
+          <h2
+            style={{
+              fontFamily: FONT.head,
+              fontSize: 20,
+              margin: 0,
+              fontWeight: 700,
+              color: "#111",
+              lineHeight: 1,
+            }}
+          >
+            Assistants
+          </h2>
+          <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>
+            your crew of six
+          </div>
         </div>
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            title="Collapse assistants list"
+            aria-label="Collapse assistants list"
+            className="hidden md:flex size-8 shrink-0 items-center justify-center rounded-full text-[#888] transition-colors hover:bg-black/[0.06]"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
+        )}
       </div>
 
       <div

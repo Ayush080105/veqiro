@@ -67,7 +67,7 @@ export function ActivityChart({
     typeof v === "string" ? (is24h ? formatHour(v) : formatDate(v)) : ""
 
   return (
-    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5 relative">
+    <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5 relative">
       <div className="flex flex-wrap items-baseline justify-between gap-2.5 mb-3">
         <div>
           <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -81,7 +81,7 @@ export function ActivityChart({
           {AGENTS.map((a) => (
             <span
               key={a.id}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 border-2 border-foreground rounded-full bg-white font-mono text-[10px] uppercase tracking-[0.1em] text-foreground"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-[var(--vq-line-2)] rounded-full bg-white font-mono text-[10px] uppercase tracking-[0.1em] text-foreground"
             >
               <span
                 className="size-2.5 rounded-full border border-foreground shrink-0"
@@ -141,7 +141,7 @@ export function ActivityChart({
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-[180px] grid place-items-center bg-white border-2 border-dashed border-foreground rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
+        <div className="h-[180px] grid place-items-center bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
           {"// no activity yet - start chatting with your crew"}
         </div>
       )}

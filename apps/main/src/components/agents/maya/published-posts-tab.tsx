@@ -81,10 +81,7 @@ function PostCard({ post }: { post: PublishedPost }) {
   }
 
   return (
-    <div
-      style={{ borderColor: "#111" }}
-      className="border-2 rounded-none bg-white overflow-hidden"
-    >
+    <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-white overflow-hidden">
       {post.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -224,17 +221,17 @@ export function MayaPublishedPostsTab() {
   }, 0)
 
   return (
-    <div className="flex flex-col h-full bg-[#FFF9ED]">
+    <div className="flex flex-col h-full bg-[var(--card)]">
       {/* Month header */}
       <div
-        className="flex items-center justify-between px-5 py-3 border-b-2 border-[#111]"
+        className="flex items-center justify-between px-5 py-3 border-b border-[var(--vq-line-2)]"
         style={{ background: "#FFF9ED" }}
       >
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => { setMonth((m) => subMonths(m, 1)); setSelectedDay(null) }}
-            className="border-2 border-[#111] p-1 hover:bg-[#111] hover:text-white transition-colors"
+            className="rounded-md border border-[var(--vq-line-2)] p-1 hover:bg-foreground hover:text-background transition-colors"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -244,7 +241,7 @@ export function MayaPublishedPostsTab() {
           <button
             type="button"
             onClick={() => { setMonth((m) => addMonths(m, 1)); setSelectedDay(null) }}
-            className="border-2 border-[#111] p-1 hover:bg-[#111] hover:text-white transition-colors"
+            className="rounded-md border border-[var(--vq-line-2)] p-1 hover:bg-foreground hover:text-background transition-colors"
           >
             <ChevronRight className="size-4" />
           </button>
@@ -256,9 +253,9 @@ export function MayaPublishedPostsTab() {
 
       <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
         {/* Calendar grid */}
-        <div className="flex flex-col md:flex-1 min-w-0 border-b-2 md:border-b-0 md:border-r-2 border-[#111] md:overflow-y-auto">
+        <div className="flex flex-col md:flex-1 min-w-0 border-b md:border-b-0 md:border-r border-[var(--vq-line-2)] md:overflow-y-auto">
           {/* Day labels */}
-          <div className="grid grid-cols-7 border-b-2 border-[#111]">
+          <div className="grid grid-cols-7 border-b border-[var(--vq-line-2)]">
             {DAYS.map((d) => (
               <div
                 key={d}
@@ -340,7 +337,7 @@ export function MayaPublishedPostsTab() {
         <div className="w-full md:w-72 flex flex-col md:flex-shrink-0 md:overflow-y-auto">
           {selectedDay ? (
             <>
-              <div className="sticky top-0 px-4 py-3 border-b-2 border-[#111] bg-[#FFF9ED] z-10">
+              <div className="sticky top-0 px-4 py-3 border-b border-[var(--vq-line-2)] bg-[var(--card)] z-10">
                 <p className="text-xs font-bold text-[#111]">
                   {format(selectedDay, "EEEE, MMMM d")}
                 </p>

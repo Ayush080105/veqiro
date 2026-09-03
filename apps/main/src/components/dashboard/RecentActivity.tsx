@@ -28,7 +28,7 @@ function relativeTime(iso: string): string {
 
 export function RecentActivity({ items }: { items: ActivityItem[] }) {
   return (
-    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5 flex flex-col gap-3">
+    <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5 flex flex-col gap-3">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           [ activity feed ]
@@ -39,7 +39,7 @@ export function RecentActivity({ items }: { items: ActivityItem[] }) {
       </div>
 
       {items.length === 0 ? (
-        <div className="px-4 py-3.5 bg-white border-2 border-dashed border-foreground rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
+        <div className="px-4 py-3.5 bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
           {"// nothing to show yet"}
         </div>
       ) : (
@@ -59,10 +59,10 @@ export function RecentActivity({ items }: { items: ActivityItem[] }) {
             const Icon = item.type === "post" ? Send : MessageSquare
 
             const content = (
-              <div className="max-sm:items-start flex items-center gap-3 px-3 py-2.5 bg-white border-2 border-foreground rounded-xl transition-transform duration-[120ms] ease">
+              <div className="max-sm:items-start flex items-center gap-3 px-3 py-2.5 bg-white border border-[var(--vq-line-2)] rounded-xl transition-transform duration-[120ms] ease">
                 {/* Avatar: colored base + icon behind + photo on top */}
                 <div
-                  className="relative size-8 rounded-full overflow-hidden border-2 border-foreground shrink-0 grid place-items-center"
+                  className="relative size-8 rounded-full overflow-hidden border border-[var(--vq-line-2)] shrink-0 grid place-items-center"
                   style={{ background: bg }}
                 >
                   <Icon className="size-3.5 text-foreground absolute" />

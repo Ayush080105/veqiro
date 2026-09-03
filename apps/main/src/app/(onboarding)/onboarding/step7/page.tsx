@@ -54,7 +54,7 @@ export default function Step7Review() {
 
   return (
     <StepShell emoji={STEP.emoji} title={STEP.title} subtitle={STEP.subtitle} bg="#F5E5C8">
-      <div className="mb-5 rounded-xl border-[3px] border-foreground bg-white p-6">
+      <div className="mb-5 rounded-xl border border-[var(--vq-line-2)] bg-white p-6 shadow-[var(--vq-shadow-sm)]">
         <div className="grid gap-3.5">
           {rows.map(({ label, value, jumpTo }) => (
             <div
@@ -68,7 +68,7 @@ export default function Step7Review() {
               <button
                 type="button"
                 onClick={() => router.push(`/onboarding/${jumpTo}`)}
-                className="shrink-0 cursor-pointer rounded-full border-2 border-foreground bg-secondary px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+                className="shrink-0 cursor-pointer rounded-full border border-[var(--vq-line-2)] bg-secondary px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors hover:bg-muted"
               >
                 Edit
               </button>
@@ -82,7 +82,7 @@ export default function Step7Review() {
               {palette.map((c, i) => (
                 <div
                   key={i}
-                  className="size-8 rounded-md border-2 border-foreground"
+                  className="size-8 rounded-md border border-[var(--vq-line-2)]"
                   style={{ background: c }}
                 />
               ))}
@@ -90,7 +90,7 @@ export default function Step7Review() {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-4 rounded-xl border-[3px] border-foreground bg-foreground p-5 text-background">
+      <div className="flex items-center gap-4 rounded-xl bg-foreground p-5 text-background shadow-[var(--vq-shadow)]">
         <div className="font-display text-5xl leading-none text-[color:var(--vq-yellow)]">6</div>
         <div>
           <div className="font-head text-base">AI employees ready to clock in</div>

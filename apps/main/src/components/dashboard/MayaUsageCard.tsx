@@ -43,9 +43,9 @@ export function MayaUsageCard() {
 
   if (isNoSubscription || (!error && !data)) {
     return (
-      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
         <ShellHeader />
-        <div className="px-3.5 py-4 bg-white border-2 border-dashed border-foreground rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
+        <div className="px-3.5 py-4 bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
           <span className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground">
             {"// no active usage period"}
           </span>
@@ -62,9 +62,9 @@ export function MayaUsageCard() {
 
   if (error) {
     return (
-      <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+      <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
         <ShellHeader />
-        <div className="px-3.5 py-4 bg-white border-2 border-dashed border-foreground rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
+        <div className="px-3.5 py-4 bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
           <span className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground">
             {"// couldn't load usage"}
           </span>
@@ -86,17 +86,17 @@ export function MayaUsageCard() {
   const nearLimit = !atLimit && data.credits.limit > 0 && data.credits.used / data.credits.limit >= 0.8
 
   return (
-    <div className="bg-card border-[3px] border-foreground rounded-2xl shadow-[6px_6px_0_var(--foreground)] p-5">
+    <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
       <ShellHeader />
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-1 flex-col gap-4">
         <UsageBar label="Credits" icon={Sparkles} resource={data.credits} />
         <div className="flex flex-col gap-0.5 font-mono text-[10px] tracking-[0.02em] text-muted-foreground">
           <span>Image: 2 credits/image</span>
           <span>Video: 4 credits/second</span>
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-3.5 border-t-2 border-foreground/10">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-3.5 border-t border-foreground/10">
           <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
             {remaining} day{remaining === 1 ? "" : "s"} left in period
           </span>

@@ -127,7 +127,7 @@ function ColorField({
           value={value || "#000000"}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
-          className="h-9 w-12 cursor-pointer rounded-md border-[2.5px] border-foreground bg-transparent p-0.5"
+          className="h-9 w-12 cursor-pointer rounded-md border border-[var(--vq-line-2)] bg-transparent p-0.5"
         />
         <Input
           value={value}
@@ -789,7 +789,7 @@ export function BrandKitSection({
               />
             </Field>
 
-            <details className="mt-4 rounded-md border-[2.5px] border-foreground bg-background/60 p-3">
+            <details className="mt-4 rounded-md border border-[var(--vq-line-2)] bg-background/60 p-3">
               <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
                 Raw crawled content (read-only)
               </summary>

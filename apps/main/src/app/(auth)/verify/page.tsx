@@ -10,32 +10,30 @@ import { authClient } from "@/lib/auth-client"
 import { AuthShell } from "@/components/auth-shell"
 import { AuthCard } from "@/components/ui/auth-card"
 import { Button } from "@/components/ui/button"
+import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import { Sticker } from "@/components/ui/sticker"
 
 type VerifyState = "check-inbox" | "verifying" | "success" | "error"
 
 interface IconTileProps {
   tone: "yellow" | "red" | "green" | "blue"
-  rotate?: number
   children: ReactNode
 }
 
 const TONE_BG = {
-  yellow: "bg-accent",
-  red: "bg-destructive",
-  green: "bg-[color:var(--vq-green)]",
-  blue: "bg-[color:var(--vq-blue)]",
+  yellow: "bg-[color-mix(in_srgb,var(--vq-yellow)_18%,var(--card))]",
+  red: "bg-destructive/12",
+  green: "bg-[color:var(--vq-green)]/14",
+  blue: "bg-[color:var(--vq-blue)]/14",
 } as const
 
-function IconTile({ tone, rotate = -4, children }: IconTileProps) {
+function IconTile({ tone, children }: IconTileProps) {
   return (
     <span
       className={cn(
-        "grid size-[72px] place-items-center rounded-2xl border-[3px] border-foreground shadow-[4px_4px_0_var(--foreground)] [&_svg]:size-9 [&_svg]:text-foreground",
+        "grid size-[72px] place-items-center rounded-2xl border border-[var(--vq-line-2)] shadow-[var(--vq-shadow-sm)] [&_svg]:size-9 [&_svg]:text-foreground",
         TONE_BG[tone]
       )}
-      style={{ transform: `rotate(${rotate}deg)` }}
     >
       {children}
     </span>
@@ -46,11 +44,7 @@ function StateCard({ children }: { children: ReactNode }) {
   return (
     <div className="flex gap-4 min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
       <Link href="/" className="flex items-center gap-3 text-foreground">
-            <span className="grid size-10 shrink-0 rotate-[-6deg] place-items-center rounded-[10px] bg-foreground shadow-[3px_3px_0_var(--vq-yellow)]">
-              <span className="font-display text-[23px] leading-none text-background">
-                v
-              </span>
-            </span>
+            <Logo className="size-10 shrink-0" />
             <span className="font-display text-3xl leading-none tracking-normal">
               veqiro
             </span>

@@ -101,9 +101,10 @@ function DrillDownModal({
           left: "50%",
           transform: "translate(-50%, -50%)",
           width: 360,
-          background: "#FFF9ED",
-          border: "3px solid #111",
-          boxShadow: "8px 8px 0 #111",
+          background: "var(--card)",
+          border: "1px solid var(--vq-line-2)",
+          borderRadius: "var(--vq-r-lg)",
+          boxShadow: "var(--vq-shadow-lg)",
           padding: 20,
         }}
       >
@@ -118,7 +119,7 @@ function DrillDownModal({
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.15em",
-                color: "#111",
+                color: "var(--foreground)",
               }}
             >
               {label}
@@ -131,12 +132,11 @@ function DrillDownModal({
             type="button"
             onClick={onClose}
             style={{
-              background: "#fff",
-              border: "2px solid #111",
+              background: "var(--card)",
+              border: "1px solid var(--vq-line-2)",
               borderRadius: 999,
               padding: 4,
               cursor: "pointer",
-              boxShadow: "2px 2px 0 #111",
               display: "grid",
               placeItems: "center",
             }}
@@ -151,10 +151,10 @@ function DrillDownModal({
           <div className="flex flex-col gap-3">
             <div
               style={{
-                border: "2px solid #111",
+                border: "1px solid var(--vq-line-2)",
                 borderRadius: 6,
                 padding: "10px 12px",
-                background: "#fff",
+                background: "var(--card)",
               }}
             >
               <MiniSparkline points={points} color="var(--chart-1, #6366f1)" />
@@ -167,7 +167,7 @@ function DrillDownModal({
                   fontFamily: "var(--font-head, sans-serif)",
                   fontSize: 28,
                   fontWeight: 700,
-                  color: "#111",
+                  color: "var(--foreground)",
                   lineHeight: 1,
                 }}
               >
@@ -191,21 +191,21 @@ function DrillDownModal({
             {/* Last 6 data points table */}
             <div
               style={{
-                border: "2px solid #111",
+                border: "1px solid var(--vq-line-2)",
                 borderRadius: 6,
                 overflow: "hidden",
               }}
             >
               <table className="w-full text-[10px]">
                 <thead>
-                  <tr style={{ background: "#111", color: "#FFF9ED" }}>
+                  <tr style={{ background: "var(--muted)", color: "var(--foreground)" }}>
                     <th className="px-2 py-1 text-left" style={{ fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.1em" }}>DATE</th>
                     <th className="px-2 py-1 text-right" style={{ fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.1em" }}>VALUE</th>
                   </tr>
                 </thead>
                 <tbody>
                   {points.slice(-6).reverse().map((p, i) => (
-                    <tr key={i} style={{ borderBottom: i < 5 ? "1px solid #e5e5e5" : undefined }}>
+                    <tr key={i} style={{ borderBottom: i < 5 ? "1px solid var(--vq-line)" : undefined }}>
                       <td className="px-2 py-1 text-muted-foreground">{p.date}</td>
                       <td className="px-2 py-1 text-right font-medium">
                         {metric === "mrr" || metric === "cash" || metric === "burn" || metric === "revenue"
@@ -222,7 +222,7 @@ function DrillDownModal({
               style={{
                 fontFamily: "var(--font-mono, monospace)",
                 fontSize: 10,
-                color: "#888",
+                color: "var(--muted-foreground)",
               }}
             >
               {points.length} data points · {ds?.name ?? metric} · {ds?.period ?? "monthly"}
@@ -232,9 +232,9 @@ function DrillDownModal({
           <div
             className="flex flex-col items-center gap-3 py-8 text-center"
             style={{
-              border: "2px dashed #ccc",
+              border: "1px dashed var(--vq-line-2)",
               borderRadius: 6,
-              background: "#fff",
+              background: "var(--card)",
             }}
           >
             <Database className="size-8 text-muted-foreground" />

@@ -215,9 +215,11 @@ export default function DashboardPage() {
       {showSkeletons ? <ActivityChartSkeleton /> : <ActivityChart data={activity} range={range} />}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        {showSkeletons ? <CrewLeaderboardSkeleton /> : <CrewLeaderboard data={leaderboard} range={range} />}
         <div className="flex min-w-0 flex-col gap-4">
+          {showSkeletons ? <CrewLeaderboardSkeleton /> : <CrewLeaderboard data={leaderboard} range={range} />}
           <MayaUsageCard />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
           <IntegrationHealth />
           <BrandSnapshot />
         </div>

@@ -221,7 +221,7 @@ export function RexDataTab({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          "flex flex-col items-center justify-center gap-2 border-2 border-dashed p-8 text-center transition-colors",
+          "flex flex-col items-center justify-center gap-2 border border-dashed p-8 text-center transition-colors",
           dragOver ? "border-primary bg-primary/5" : "border-border",
         )}
       >
@@ -261,8 +261,8 @@ export function RexDataTab({
       {/* Smart post-save section */}
       {savedRecords && savedRecords.length > 0 && !parseResult && (
         <div
-          className="flex flex-col gap-3 border-2 p-4"
-          style={{ borderColor: "#1DBC87", background: "#f0fdf4" }}
+          className="flex flex-col gap-3 rounded-[var(--vq-r)] border p-4"
+          style={{ borderColor: "#1DBC8750", background: "#f0fdf4" }}
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
@@ -361,8 +361,7 @@ export function RexDataTab({
                 type="button"
                 onClick={() => void handleQuickQuery(quickQuery)}
                 disabled={!quickQuery.trim() || !!queryingDatasetId}
-                className="flex items-center gap-1.5 border-2 border-[#111] bg-white px-3 py-1.5 text-[11px] font-medium hover:bg-[#FFF9ED] disabled:opacity-50"
-                style={{ boxShadow: "2px 2px 0 #111" }}
+                className="flex items-center gap-1.5 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] bg-white px-3 py-1.5 text-[11px] font-medium shadow-[var(--vq-shadow-sm)] hover:bg-[#FFF9ED] disabled:opacity-50"
               >
                 {queryingDatasetId ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
                 Ask

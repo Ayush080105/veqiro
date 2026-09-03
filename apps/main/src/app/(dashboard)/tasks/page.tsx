@@ -25,7 +25,7 @@ export default function TasksPage() {
 
       <Tabs defaultValue="recurring">
         <div className="flex items-center justify-between gap-4 mb-4">
-          <TabsList className="border-2 border-foreground bg-transparent h-9">
+          <TabsList className="border border-[var(--vq-line-2)] bg-transparent h-9">
             <TabsTrigger
               value="recurring"
               style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1 }}
