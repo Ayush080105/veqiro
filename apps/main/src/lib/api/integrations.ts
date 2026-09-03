@@ -61,6 +61,7 @@ export function useDisconnectIntegration() {
     mutationFn: (id: string) => disconnectIntegration(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.integrations() })
+      queryClient.invalidateQueries({ queryKey: qk.dashboardIntegrationHealth() })
     },
   })
 }

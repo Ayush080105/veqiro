@@ -24,13 +24,14 @@ export async function getMessages(
   agentSlug: string,
   organizationId: string,
   before?: string,
+  signal?: AbortSignal,
 ): Promise<Message[]> {
   try {
     const qs = new URLSearchParams({ organizationId, limit: "20" })
     if (before) qs.set("before", before)
     return await apiFetch<Message[]>(
       `/agents/${agentSlug}/chat?${qs.toString()}`,
-      { agentSlugForNotFound: agentSlug, cache: "no-store" }
+      { agentSlugForNotFound: agentSlug, cache: "no-store", signal }
     )
   } catch (err) {
     if (err instanceof AgentNotAvailableError) return []
@@ -235,25 +236,23 @@ export async function cancelScheduledPost(organizationId: string, id: string): P
   })
 }
 
-// ─── Status (mock-fallback) ───────────────────────────────────────────────────
+// ─── Status fallback ──────────────────────────────────────────────────────────
 
-export async function getAssistantStatuses(
-  _organizationId: string
-): Promise<Record<AgentSlug, AgentStatusData>> {
-  try {
-    return await apiFetch<Record<AgentSlug, AgentStatusData>>(
-      `/assistants/status?organizationId=${encodeURIComponent(_organizationId)}`
-    )
-  } catch {
-    return {
-      maya: { status: "idle", lastActivity: "—" },
-      rex: { status: "idle", lastActivity: "—" },
-      scout: { status: "idle", lastActivity: "—" },
-      sage: { status: "idle", lastActivity: "—" },
-      lex: { status: "idle", lastActivity: "—" },
-      vega: { status: "idle", lastActivity: "—" },
-    }
-  }
+const IDLE_ASSISTANT_STATUSES: Record<AgentSlug, AgentStatusData> = {
+  maya: { status: "idle", lastActivity: "—" },
+  rex: { status: "idle", lastActivity: "—" },
+  scout: { status: "idle", lastActivity: "—" },
+  sage: { status: "idle", lastActivity: "—" },
+  lex: { status: "idle", lastActivity: "—" },
+  vega: { status: "idle", lastActivity: "—" },
+}
+
+export async function getAssistantStatuses(): Promise<Record<AgentSlug, AgentStatusData>> {
+  // There is no /assistants/status route in the server. The old call always
+  // produced a 404 and then returned these same values from its catch block.
+  // Keep the established UI behavior without issuing a known-bad request;
+  // per-chat in-flight work is still shown from React Query mutation state.
+  return { ...IDLE_ASSISTANT_STATUSES }
 }
 
 const EMPTY_LAST_MESSAGES: Record<AgentSlug, LastMessage | null> = {
@@ -282,17 +281,17 @@ export async function getLastMessages(): Promise<
 export function useAgentStatuses(organizationId: string) {
   return useQuery({
     queryKey: qk.assistantStatuses(organizationId),
-    queryFn: () => getAssistantStatuses(organizationId),
+    queryFn: () => getAssistantStatuses(),
     enabled: !!organizationId,
     placeholderData: (prev) => prev,
   })
 }
 
-export function useLastMessages() {
+export function useLastMessages(organizationId: string) {
   return useQuery({
-    queryKey: qk.lastMessages(),
+    queryKey: qk.lastMessages(organizationId),
     queryFn: () => getLastMessages(),
-    placeholderData: (prev) => prev,
+    enabled: !!organizationId,
   })
 }
 
@@ -306,11 +305,11 @@ export function useMessages(agentSlug: string, organizationId: string) {
 }
 
 export type SendMessageCallbacks = {
-  onOptimistic?: (msg: Message) => void
+  onOptimistic?: (msg: Message, chatKey: string) => void
   /** `optimisticId` identifies the user message written by onOptimistic, so the caller can
    * reconcile it by identity instead of by position in the list. */
-  onSuccess?: (msg: Message, optimisticId: string) => void
-  onError?: (optimisticId: string) => void
+  onSuccess?: (msg: Message, optimisticId: string, chatKey: string) => void
+  onError?: (optimisticId: string, chatKey: string) => void
 }
 
 // Distinguishes optimistic user messages from persisted ones. Date.now() alone can repeat
@@ -333,24 +332,26 @@ export function useSendMessage(
 
     onMutate: async (content: string) => {
       const optimisticId = nextOptimisticId()
+      const chatKey = `${organizationId}:${agentSlug}`
       const optimistic: Message = {
         id: optimisticId,
         role: "user",
         content,
         imageUrl: null,
         createdAt: new Date().toISOString(),
+        deliveryStatus: "sending",
       }
-      callbacks?.onOptimistic?.(optimistic)
-      return { optimisticId }
+      callbacks?.onOptimistic?.(optimistic, chatKey)
+      return { optimisticId, chatKey }
     },
 
     // `ctx` is undefined if onMutate itself threw — in which case no optimistic message was
     // ever written, so an id that matches nothing is the correct thing to pass on.
     onSuccess: (serverMsg: Message, content: string, ctx) => {
-      callbacks?.onSuccess?.(serverMsg, ctx?.optimisticId ?? "")
+      callbacks?.onSuccess?.(serverMsg, ctx?.optimisticId ?? "", ctx?.chatKey ?? "")
 
       queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(
-        qk.lastMessages(),
+        qk.lastMessages(organizationId),
         (prev) => {
           if (!prev) return prev
           const slug = agentSlug as AgentSlug
@@ -367,7 +368,7 @@ export function useSendMessage(
     },
 
     onError: (_err, _content, ctx) => {
-      callbacks?.onError?.(ctx?.optimisticId ?? "")
+      callbacks?.onError?.(ctx?.optimisticId ?? "", ctx?.chatKey ?? "")
     },
   })
 }
@@ -394,7 +395,7 @@ export function useRunAgentAction(organizationId: string) {
       queryClient.invalidateQueries({
         queryKey: qk.chat(agentSlug, organizationId),
       })
-      queryClient.invalidateQueries({ queryKey: qk.lastMessages() })
+      queryClient.invalidateQueries({ queryKey: qk.lastMessages(organizationId) })
     },
   })
 }

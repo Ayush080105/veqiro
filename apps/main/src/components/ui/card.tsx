@@ -11,9 +11,9 @@ const cardVariants = cva(
         default:
           "gap-4 bg-card py-4 ring-1 ring-foreground/10 data-[size=sm]:gap-2 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0",
         // ── Veqiro brand variant ─────────────────────────────────────────────
-        // Cream card with chunky 3px ink border + 5px hard offset shadow.
+        // Cream card with a hairline border and soft layered elevation.
         brand:
-          "relative gap-5 rounded-lg border-[3px] border-foreground bg-card py-5 shadow-[5px_5px_0_var(--foreground)] data-[size=sm]:gap-3 data-[size=sm]:py-4 data-[size=sm]:shadow-[4px_4px_0_var(--foreground)]",
+          "relative gap-5 rounded-[var(--vq-r-lg)] border border-[var(--vq-line-2)] bg-card py-5 shadow-[var(--vq-shadow)] data-[size=sm]:gap-3 data-[size=sm]:py-4 data-[size=sm]:shadow-[var(--vq-shadow-sm)]",
       },
     },
     defaultVariants: {

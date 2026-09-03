@@ -123,44 +123,4 @@ export const groupPostsByStatus = (
     _count: { _all: true },
   });
 
-export const countFailedPosts = (organizationId: string) =>
-  prisma.publishedPost.count({ where: { organizationId, status: "failed" } });
-
-export const findExpiringIntegrations = (organizationId: string, before: Date) =>
-  prisma.socialAccount.findMany({
-    where: {
-      organizationId,
-      accessTokenExpiresAt: { not: null, lte: before },
-    },
-    select: {
-      id: true,
-      platform: true,
-      accountName: true,
-      accessTokenExpiresAt: true,
-    },
-  });
-
-export const findRecentPublishedPosts = (organizationId: string, limit: number) =>
-  prisma.publishedPost.findMany({
-    where: { organizationId },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      platform: true,
-      status: true,
-      caption: true,
-      createdAt: true,
-      publishedAt: true,
-    },
-  });
-
-export const findRecentMessages = (organizationId: string, limit: number) =>
-  prisma.message.findMany({
-    where: { organizationId },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: { agent: true, role: true, content: true, createdAt: true },
-  });
-
 export { AGENT_SLUGS, SLUG_BY_ENUM, PLATFORM_BY_ENUM };

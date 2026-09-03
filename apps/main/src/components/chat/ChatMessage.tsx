@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Download, Copy, Check } from "lucide-react"
+import Image from "next/image"
+import { Download, Copy, Check, PencilLine } from "lucide-react"
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
 import { ChatImage } from "@/components/chat/ChatImage"
@@ -91,10 +92,12 @@ function AgentDisc({
         {initials}
       </span>
       {photo && (
-        <img
+        <Image
           src={photo}
           alt=""
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          fill
+          sizes="32px"
+          className="object-cover"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
         />
       )}
@@ -153,28 +156,26 @@ export const TypingIndicator = React.memo(TypingIndicatorComponent)
 
 export interface ChatMessageProps {
   message: Message
-  agentName: string
   agentInitials: string
   agentColor: string
   agentPhoto?: string
-  isLex: boolean
   showAvatar?: boolean
   marginTop?: number
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
-  onRevertImage?: () => void
+  onRevertImage?: (messageId: string) => void
+  onRestoreDraft?: (message: Message) => void
 }
 
 function ChatMessageComponent({
   message,
-  agentName,
   agentInitials,
   agentColor,
   agentPhoto,
-  isLex,
   showAvatar = true,
   marginTop,
   onFollowUpAction,
   onRevertImage,
+  onRestoreDraft,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const time = formatMessageTime(message.createdAt)
@@ -229,6 +230,31 @@ function ChatMessageComponent({
           {message.imageUrl && (
             <div style={{ marginTop: 6 }}>
               <ChatImage src={message.imageUrl} alt="attachment" borderRadius={12} />
+            </div>
+          )}
+          {message.deliveryStatus && (
+            <div
+              aria-live="polite"
+              className="mt-1.5 flex items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+            >
+              {message.deliveryStatus === "sending" ? (
+                <span>sending…</span>
+              ) : (
+                <>
+                  <span role="alert">reply unavailable</span>
+                  {onRestoreDraft && (
+                    <button
+                      type="button"
+                      onClick={() => onRestoreDraft(message)}
+                      title="Copy this message back to the composer without sending it again"
+                      aria-label="Edit and retry this message"
+                      className="inline-flex items-center gap-1 rounded-full border border-destructive/40 px-2 py-1 text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <PencilLine className="size-3" /> edit &amp; retry
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -288,7 +314,11 @@ function ChatMessageComponent({
               input={message.customInput.input}
               agentColor={agentColor}
               onFollowUpAction={onFollowUpAction}
-              onRevertImage={onRevertImage}
+              onRevertImage={
+                message.id && onRevertImage
+                  ? () => onRevertImage(message.id as string)
+                  : undefined
+              }
             />
             <div style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", fontFamily: FONT.mono, letterSpacing: "0.3px", marginTop: 2 }}>
               {time}
@@ -351,10 +381,12 @@ export const ChatMessage = React.memo(
   ChatMessageComponent,
   (prev, next) =>
     prev.message === next.message &&
-    prev.agentName === next.agentName &&
     prev.agentInitials === next.agentInitials &&
     prev.agentColor === next.agentColor &&
+    prev.agentPhoto === next.agentPhoto &&
     prev.showAvatar === next.showAvatar &&
     prev.marginTop === next.marginTop &&
-    prev.isLex === next.isLex,
+    prev.onFollowUpAction === next.onFollowUpAction &&
+    prev.onRevertImage === next.onRevertImage &&
+    prev.onRestoreDraft === next.onRestoreDraft,
 )

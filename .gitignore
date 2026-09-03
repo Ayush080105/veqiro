@@ -53,3 +53,6 @@ packages/transactional/.react-email/
 apps/video/public/music.mp3
 # Windows crash dumps from the Git Bash shell
 *.stackdump
+
+# Subagent-driven-development scratch workspace (ledgers, briefs, review packages)
+.superpowers/

@@ -3,7 +3,7 @@
 // className isn't ergonomic (e.g. computed/dynamic styling). For static usage,
 // prefer the Tailwind classes: font-display, font-head, font-body, font-mono.
 export const FONT = {
-  display: "var(--font-bagel), cursive",
+  display: "var(--font-bagel), sans-serif",
   head: "var(--font-archivo), sans-serif",
   body: "var(--font-space), sans-serif",
   mono: "var(--font-mono), monospace",

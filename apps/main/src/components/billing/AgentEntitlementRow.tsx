@@ -25,7 +25,7 @@ export function AgentEntitlementRow({ entitlement }: { entitlement: AgentEntitle
     <Card variant="brand" size="sm">
       <CardContent className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="relative size-10 overflow-hidden rounded-full border-2 border-foreground bg-muted">
+          <div className="relative size-10 overflow-hidden rounded-full border border-[var(--vq-line-2)] bg-muted">
             <Image src={AGENT_IMAGES[agent]} alt={`${agent} portrait`} fill sizes="40px" className="object-cover" />
           </div>
           <div>

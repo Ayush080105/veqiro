@@ -184,6 +184,7 @@ export default function IntegrationsPage() {
     if (connected) {
       toast.success(`${connected.charAt(0).toUpperCase()}${connected.slice(1)} connected`)
       queryClient.invalidateQueries({ queryKey: qk.integrations() })
+      queryClient.invalidateQueries({ queryKey: qk.dashboardIntegrationHealth() })
       router.replace("/settings/integrations")
     } else if (error) {
       toast.error(`Connection failed: ${error}`)
@@ -202,14 +203,40 @@ export default function IntegrationsPage() {
     [mcpConnections]
   )
 
-  const filteredCatalog = useMemo(() => {
+  const connectedLegacy = useMemo(
+    () =>
+      LEGACY_INTEGRATIONS.filter((integration) =>
+        integration.platformSlug
+          ? accountByPlatform.has(platformSlugToEnum[integration.platformSlug])
+          : false
+      ),
+    [accountByPlatform]
+  )
+
+  const disconnectedLegacy = useMemo(
+    () =>
+      LEGACY_INTEGRATIONS.filter((integration) =>
+        integration.platformSlug
+          ? !accountByPlatform.has(platformSlugToEnum[integration.platformSlug])
+          : true
+      ),
+    [accountByPlatform]
+  )
+
+  const connectedCatalog = useMemo(
+    () => MCP_CATALOG.filter((entry) => connectedMcpSlugs.has(entry.slug)),
+    [connectedMcpSlugs]
+  )
+
+  const filteredDisconnectedCatalog = useMemo(() => {
     const q = search.trim().toLowerCase()
     return MCP_CATALOG.filter((e) => {
+      if (connectedMcpSlugs.has(e.slug)) return false
       if (category !== "all" && e.category !== category) return false
       if (!q) return true
       return e.name.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)
     })
-  }, [search, category])
+  }, [search, category, connectedMcpSlugs])
 
   return (
     <div className="flex flex-col gap-6 pb-8">
@@ -222,46 +249,57 @@ export default function IntegrationsPage() {
 
       <SettingsNav />
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-semibold text-foreground">Integrations</h2>
-          <p className="text-xs text-muted-foreground">
-            Connect external tools to unlock the full power of your AI team.
-          </p>
+      <section className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-semibold text-foreground">Connected</h2>
+            <p className="text-xs text-muted-foreground">
+              Tools your agents can use right now.
+            </p>
+          </div>
+          <a
+            href="https://docs.veqiro.com/integrations"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Docs
+            <ExternalLink className="size-3" />
+          </a>
         </div>
-        <a
-          href="https://docs.veqiro.com/integrations"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Docs
-          <ExternalLink className="size-3" />
-        </a>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {LEGACY_INTEGRATIONS.map((integration) => {
-          const account = integration.platformSlug
-            ? accountByPlatform.get(platformSlugToEnum[integration.platformSlug])
-            : undefined
-          return (
-            <LegacyIntegrationCard
-              key={integration.id}
-              integration={integration}
-              account={account}
-            />
-          )
-        })}
-      </div>
+        {connectedLegacy.length + connectedCatalog.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {connectedLegacy.map((integration) => {
+              const account = integration.platformSlug
+                ? accountByPlatform.get(platformSlugToEnum[integration.platformSlug])
+                : undefined
+              return (
+                <LegacyIntegrationCard
+                  key={`legacy-${integration.id}`}
+                  integration={integration}
+                  account={account}
+                />
+              )
+            })}
+            {connectedCatalog.map((entry) => (
+              <IntegrationCatalogCard key={entry.slug} entry={entry} connected />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-[var(--vq-line-2)] px-4 py-5 text-center text-xs text-muted-foreground">
+            No integrations connected yet. Choose one below to get started.
+          </div>
+        )}
+      </section>
 
       <ApprovalPolicySection />
 
-      <div className="flex flex-col gap-3 pt-2">
+      <section className="flex flex-col gap-3 pt-2">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-semibold text-foreground">1000+ more, via Composio</h2>
+          <h2 className="text-sm font-semibold text-foreground">Not connected</h2>
           <p className="text-xs text-muted-foreground">
-            Browse the full catalog and connect the tools each agent needs.
+            Browse and connect more integrations your agents can use.
           </p>
         </div>
 
@@ -291,21 +329,27 @@ export default function IntegrationsPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {filteredCatalog.map((entry) => (
+          {disconnectedLegacy.map((integration) => (
+            <LegacyIntegrationCard
+              key={`legacy-${integration.id}`}
+              integration={integration}
+            />
+          ))}
+          {filteredDisconnectedCatalog.map((entry) => (
             <IntegrationCatalogCard
               key={entry.slug}
               entry={entry}
-              connected={connectedMcpSlugs.has(entry.slug)}
+              connected={false}
             />
           ))}
         </div>
 
-        {filteredCatalog.length === 0 && (
+        {disconnectedLegacy.length + filteredDisconnectedCatalog.length === 0 && (
           <p className="py-8 text-center text-xs text-muted-foreground">
             No integrations match “{search}”.
           </p>
         )}
-      </div>
+      </section>
     </div>
   )
 }

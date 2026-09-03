@@ -277,3 +277,4 @@ Final LLM response
 - **"How do agents talk to each other?"** Two independent mechanisms: a real backend `ask_agent` tool the LLM can invoke autonomously (in-process recursive `chat_sync()` call), and a frontend-only "handoff button" that pre-fills another agent's form via URL params — no backend call involved in the latter.
 - **"What triggers summarization?"** Node-side counter (`AgentMemory.messageCount`), threshold 10 (`SUMMARIZE_THRESHOLD` in `apps/server/src/config/constants.ts`), calls `gpt-4.1-mini` via `/ai/context/summarize`.
 - **"Vector DB?"** Postgres + pgvector on Supabase, `vector(1536)` columns, cosine distance operator `<=>`, ivfflat index. Two separate tables for two separate purposes: `rag_chunks` (documents/tool outputs) and `conversation_memories` (raw turn embeddings).
+- ** ALL the best for interview

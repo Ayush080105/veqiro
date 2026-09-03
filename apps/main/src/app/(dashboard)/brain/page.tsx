@@ -12,8 +12,8 @@ import type { BrandKit } from "@/lib/types"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { BrandKitSection } from "@/components/brain/BrandKitSection"
-import { FONT } from "@/lib/fonts"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/page-header"
 import { brainAutosaveSchema, type BrainAutosaveValues } from "@/lib/schemas/brand-kit"
 
@@ -102,6 +102,10 @@ function formatLastSaved(ts: number | null): string {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
+function currentTimestamp(): number {
+  return Date.now()
+}
+
 export default function BrainPage() {
   const router = useRouter()
   const { data: activeOrg } = authClient.useActiveOrganization()
@@ -112,7 +116,7 @@ export default function BrainPage() {
   const scrapeMutation = useScrapeBrandKit(organizationId)
   const loading = !organizationId || kitPending
 
-  const [hydrated, setHydrated] = useState(false)
+  const [hydratedOrgId, setHydratedOrgId] = useState<string | null>(null)
   const [hasPending, setHasPending] = useState(false)
   const [backendUnavailable, setBackendUnavailable] = useState(false)
   const [isEmpty, setIsEmpty] = useState(false)
@@ -140,42 +144,51 @@ export default function BrainPage() {
   })
 
   useEffect(() => {
-    if (!organizationId || kitPending || hydrated) return
+    if (!organizationId || kitPending || hydratedOrgId === organizationId) return
 
-    if (kit && kit.companyName?.trim()) {
-      reset(brandKitToForm(kit))
-      setBackendUnavailable(false)
-      setIsEmpty(false)
-    } else {
-      setBackendUnavailable(kitError || !kit)
-      try {
-        const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
-        if (local) {
-          const parsed = JSON.parse(local) as BrandKit
-          if (parsed.companyName?.trim()) {
-            reset(brandKitToForm(parsed))
-            setIsEmpty(false)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+
+      if (kit && kit.companyName?.trim()) {
+        reset(brandKitToForm(kit))
+        setBackendUnavailable(false)
+        setIsEmpty(false)
+      } else {
+        setBackendUnavailable(kitError || !kit)
+        try {
+          const local = localStorage.getItem(`${LOCAL_KEY}.${organizationId}`)
+          if (local) {
+            const parsed = JSON.parse(local) as BrandKit
+            if (parsed.companyName?.trim()) {
+              reset(brandKitToForm(parsed))
+              setIsEmpty(false)
+            } else {
+              setIsEmpty(true)
+            }
           } else {
             setIsEmpty(true)
           }
-        } else {
+        } catch {
           setIsEmpty(true)
         }
+      }
+      try {
+        const key = `veqiro.brain.seeded.${organizationId}`
+        if (localStorage.getItem(key) === "1") {
+          setSeededHint(true)
+          localStorage.removeItem(key)
+        }
       } catch {
-        setIsEmpty(true)
+        /* ignore */
       }
+      setHydratedOrgId(organizationId)
+    })
+
+    return () => {
+      cancelled = true
     }
-    try {
-      const key = `veqiro.brain.seeded.${organizationId}`
-      if (localStorage.getItem(key) === "1") {
-        setSeededHint(true)
-        localStorage.removeItem(key)
-      }
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true)
-  }, [organizationId, kit, kitPending, kitError, hydrated, reset])
+  }, [organizationId, kit, kitPending, kitError, hydratedOrgId, reset])
 
   const persistLocally = (values: BrainFormValues) => {
     if (!organizationId) return
@@ -202,11 +215,11 @@ export default function BrainPage() {
         if (result.ok) {
           setHasPending(false)
           setBackendUnavailable(false)
-          setLastSavedAt(Date.now())
+          setLastSavedAt(currentTimestamp())
         } else if (result.unavailable) {
           setBackendUnavailable(true)
           setHasPending(false)
-          setLastSavedAt(Date.now())
+          setLastSavedAt(currentTimestamp())
         } else {
           toast.error(result.message ?? "Auto-save failed")
         }
@@ -224,11 +237,11 @@ export default function BrainPage() {
       if (result.ok) {
         setHasPending(false)
         setBackendUnavailable(false)
-        setLastSavedAt(Date.now())
+        setLastSavedAt(currentTimestamp())
         toast.success("Brand kit saved")
       } else if (result.unavailable) {
         setBackendUnavailable(true)
-        setLastSavedAt(Date.now())
+        setLastSavedAt(currentTimestamp())
         toast.info("Backend offline — your changes are saved locally")
       } else {
         toast.error(result.message ?? "Failed to save brand kit")
@@ -275,7 +288,7 @@ export default function BrainPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl pb-24">
+      <div className="mx-auto w-full min-w-0 max-w-4xl pb-8">
         <div className="mb-6">
           <PageHeader
             kicker="your crew's memory"
@@ -289,7 +302,10 @@ export default function BrainPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSave)} className="mx-auto max-w-4xl pb-24">
+    <form
+      onSubmit={(event) => void handleSubmit(onSave)(event)}
+      className="mx-auto w-full min-w-0 max-w-4xl pb-8"
+    >
       {/* Header */}
       <div className="mb-6">
         <PageHeader
@@ -301,74 +317,33 @@ export default function BrainPage() {
 
       {/* Backend unavailable notice */}
       {backendUnavailable && (
-        <div
-          style={{
-            marginBottom: 16,
-            background: "var(--vq-yellow)",
-            border: "2.5px solid #111",
-            borderRadius: 10,
-            boxShadow: "3px 3px 0 #111",
-            padding: "10px 14px",
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 1,
-            color: "#111",
-          }}
-        >
+        <div className="mb-4 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-accent px-3 py-2.5 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-foreground shadow-[var(--vq-shadow-sm)] sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-[0.1em]">
           {"// Brand Kit storage isn't reachable — your changes save locally and will sync when the backend is back."}
         </div>
       )}
 
       {/* Seeded-from-onboarding hint (shown once after completing onboarding) */}
       {seededHint && !isEmpty && (
-        <div
-          style={{
-            marginBottom: 16,
-            background: "#DDF5E8",
-            border: "2.5px solid #0E5C3F",
-            borderRadius: 10,
-            boxShadow: "3px 3px 0 #0E5C3F",
-            padding: "10px 14px",
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 1,
-            color: "#0E5C3F",
-          }}
-        >
+        <div className="mb-4 rounded-[var(--vq-r)] border border-[#0E5C3F]/20 bg-[#DDF5E8] px-3 py-2.5 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-[#0E5C3F] shadow-[var(--vq-shadow-sm)] sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-[0.1em]">
           {"// Seeded from onboarding — edit anything and it auto-saves."}
         </div>
       )}
 
       {/* Empty-state CTA: neither backend nor localStorage had anything */}
       {isEmpty && (
-        <div
-          style={{
-            marginBottom: 16,
-            background: "#FFF",
-            border: "2.5px solid #111",
-            borderRadius: 10,
-            boxShadow: "4px 4px 0 #F06464",
-            padding: "16px 20px",
-            fontFamily: FONT.body,
-            fontSize: 14,
-            color: "#111",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <div style={{ fontFamily: FONT.head, fontSize: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+        <Card variant="brand" className="mb-4 gap-3 px-4 py-4 sm:px-5">
+          <div className="font-display text-base font-semibold tracking-tight text-foreground">
             Brain is empty
           </div>
-          <div style={{ color: "#555" }}>
+          <div className="font-body text-sm leading-relaxed text-muted-foreground">
             The fastest way to populate this is by running the onboarding flow — it collects everything your crew needs.
           </div>
           <div>
-            <Button variant="brand" size="brand" onClick={() => router.push("/onboarding")}>
+            <Button type="button" variant="brand" size="brand-sm" onClick={() => router.push("/onboarding")}>
               Run onboarding
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       <BrandKitSection
@@ -378,7 +353,6 @@ export default function BrainPage() {
         appendCompetitor={append}
         removeCompetitor={remove}
         scheduleAutoSave={scheduleAutoSave}
-        getValues={getValues}
         setValue={setValue}
         watch={watch}
         scraping={scraping}
@@ -386,54 +360,25 @@ export default function BrainPage() {
         organizationId={organizationId}
       />
 
-      {/* Sticky Save Bar */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 40,
-          borderTop: "3px solid #111",
-          background: "#EFE7D6",
-          padding: "12px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          gap: 12,
-        }}
+      {/* Save status stays in page flow so it never covers the sidebar. */}
+      <Card
+        variant="brand"
+        className="mt-4 flex-row flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5"
       >
-        {!hasPending && !saving && (
-          <span
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              letterSpacing: 1.5,
-              textTransform: "uppercase",
-              color: "#555",
-            }}
-          >
-            changes auto-saved
-            {lastSavedAt ? ` · ${formatLastSaved(lastSavedAt)}` : ""}
-          </span>
-        )}
-        {hasPending && (
-          <span
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              letterSpacing: 1.5,
-              textTransform: "uppercase",
-              color: "#7A5A00",
-            }}
-          >
-            unsaved changes...
-          </span>
-        )}
+        <span
+          aria-live="polite"
+          className={`font-mono text-[10px] uppercase tracking-[0.14em] sm:text-[11px] ${
+            hasPending ? "text-[#7A5A00]" : "text-muted-foreground"
+          }`}
+        >
+          {hasPending
+            ? "unsaved changes..."
+            : `changes auto-saved${lastSavedAt ? ` · ${formatLastSaved(lastSavedAt)}` : ""}`}
+        </span>
         <Button type="submit" variant="brand" size="brand" disabled={saving}>
           {saving ? "Saving..." : "Save brain"}
         </Button>
-      </div>
+      </Card>
     </form>
   )
 }

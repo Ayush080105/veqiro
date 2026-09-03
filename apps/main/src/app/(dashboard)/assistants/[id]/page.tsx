@@ -1,6 +1,8 @@
 ﻿"use client"
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react"
+import dynamic from "next/dynamic"
+import Image from "next/image"
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useMutationState, useQueryClient } from "@tanstack/react-query"
@@ -22,31 +24,24 @@ import { getIntegrationsByAgent } from "@repo/integrations-catalog"
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { MediaViewerProvider } from "@/components/chat/MediaViewer"
-import { ToolsMenu } from "@/components/chat/ToolsMenu"
-import { HelpSheet } from "@/components/chat/HelpSheet"
-import { OnboardMeModal } from "@/components/assistants/OnboardMeModal"
-import { RunActionDialog } from "@/components/chat/RunActionDialog"
 import type { ActionResultContext } from "@/components/chat/ActionDialog"
-import { LexDocumentsTab } from "@/components/agents/lex/documents-tab"
-import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
-import { RexDataTab, REX_DATASETS_KEY } from "@/components/agents/rex/data-tab"
 
-import { MagicNumbers } from "@/components/agents/rex/magic-numbers"
-import { MayaContentPlanTab } from "@/components/agents/maya/content-plan-tab"
 import type { ContentPlanItem } from "@/lib/api/assistants"
-import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
-import { MayaCreditsPill } from "@/components/agents/maya/credits-pill"
-import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
 import { getBillingStatus } from "@/lib/api/billing"
 import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
 import { qk } from "@/lib/query-keys"
 
-import AgentInfoPanel from "@/components/assistants/AgentInfoPanel"
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
 import { FONT } from "@/lib/fonts"
-import { Button } from "@/components/ui/button"
 import { Sticker } from "@/components/ui/sticker"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 // Agent photos are served from /agents/{id}.jpeg (copied from landing/public)
 const AGENT_PHOTOS: Record<string, string> = {
   maya: "/agents/maya.jpeg", rex: "/agents/rex.jpeg", sage: "/agents/sage.jpeg",
@@ -60,6 +55,26 @@ import type {
 } from "@/lib/types"
 import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult, MayaContentRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
+import {
+  mergeMessageWindow,
+  mergeServerSnapshot,
+  parseCachedMessageWindow,
+  setMessageDeliveryStatus,
+} from "@/lib/chat/message-window"
+
+const AgentInfoPanel = dynamic(() => import("@/components/assistants/AgentInfoPanel"))
+const HelpSheet = dynamic(() => import("@/components/chat/HelpSheet").then((module) => module.HelpSheet))
+const LexDocumentsTab = dynamic(() => import("@/components/agents/lex/documents-tab").then((module) => module.LexDocumentsTab))
+const MayaContentPlanTab = dynamic(() => import("@/components/agents/maya/content-plan-tab").then((module) => module.MayaContentPlanTab))
+const MayaPublishedPostsTab = dynamic(() => import("@/components/agents/maya/published-posts-tab").then((module) => module.MayaPublishedPostsTab))
+const OnboardMeModal = dynamic(() => import("@/components/assistants/OnboardMeModal").then((module) => module.OnboardMeModal))
+const RunActionDialog = dynamic(() => import("@/components/chat/RunActionDialog").then((module) => module.RunActionDialog))
+const SageSavedKeywordsTab = dynamic(() => import("@/components/agents/sage/saved-keywords-tab").then((module) => module.SageSavedKeywordsTab))
+const ToolsMenu = dynamic(() => import("@/components/chat/ToolsMenu").then((module) => module.ToolsMenu))
+const RexDataTab = dynamic(() => import("@/components/agents/rex/data-tab").then((module) => module.RexDataTab))
+const MagicNumbers = dynamic(() => import("@/components/agents/rex/magic-numbers").then((module) => module.MagicNumbers))
+const MayaCreditsPill = dynamic(() => import("@/components/agents/maya/credits-pill").then((module) => module.MayaCreditsPill))
+const MayaTopUpButton = dynamic(() => import("@/components/agents/maya/topup-dialog").then((module) => module.MayaTopUpButton))
 
 // Scout's native research tools call their own default data source (Serper)
 // internally and can't reliably be prompted to prefer a connected MCP tool
@@ -83,27 +98,43 @@ function ScoutSearchSourceToggle() {
 
   if (options.length === 0) return null
 
+  const selectedSlug = options.some(
+    (option) => option.slug === preference?.preferredIntegrationSlug,
+  )
+    ? preference!.preferredIntegrationSlug!
+    : "__default"
+
   return (
-    <select
-      value={preference?.preferredIntegrationSlug ?? ""}
-      onChange={(e) => setPreference.mutate(e.target.value || null)}
+    <Select
+      value={selectedSlug}
+      onValueChange={(value) =>
+        setPreference.mutate(
+          !value || value === "__default" ? null : String(value),
+        )
+      }
       disabled={setPreference.isPending}
-      title="Which research source Scout should use"
-      style={{
-        background: "transparent",
-        border: "1px solid rgba(0,0,0,0.15)",
-        borderRadius: 8,
-        padding: "6px 8px",
-        fontSize: 12,
-        color: "#555",
-        cursor: setPreference.isPending ? "default" : "pointer",
-      }}
     >
-      <option value="">Default search</option>
-      {options.map((o) => (
-        <option key={o.slug} value={o.slug}>{o.name}</option>
-      ))}
-    </select>
+      <SelectTrigger
+        aria-label="Scout research source"
+        title="Which research source Scout should use"
+        className="h-7 w-[76px] shrink-0 rounded-md border-black/15 bg-transparent px-2 text-[11px] text-[#555] sm:w-[124px] sm:text-xs"
+      >
+        <SelectValue>
+          {(value) => {
+            if (!value || value === "__default") return "Default"
+            return options.find((option) => option.slug === value)?.name ?? String(value)
+          }}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent align="end" className="min-w-36 rounded-md">
+        <SelectItem value="__default">Default search</SelectItem>
+        {options.map((option) => (
+          <SelectItem key={option.slug} value={option.slug}>
+            {option.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -121,14 +152,15 @@ function ChatHeader({
   const agentPhoto = AGENT_PHOTOS[agent.id]
   return (
     <div
+      className="gap-1 px-2 sm:gap-2.5 sm:px-4"
       style={{
         background: "#FFF9ED",
         borderBottom: "1px solid #E5E5E5",
         borderLeft: `4px solid ${agent.color}`,
-        padding: "10px 16px",
+        paddingTop: 10,
+        paddingBottom: 10,
         display: "flex",
         alignItems: "center",
-        gap: 10,
       }}
     >
       {/* Mobile-only back button */}
@@ -164,11 +196,12 @@ function ChatHeader({
           flexShrink: 0,
           cursor: "pointer",
           padding: 0,
+          position: "relative",
         }}
         aria-label="Agent info"
       >
         {agentPhoto ? (
-          <img src={agentPhoto} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <Image src={agentPhoto} alt={agent.name} fill sizes="40px" className="object-cover" />
         ) : (
           <div
             style={{
@@ -237,6 +270,7 @@ function ChatHeader({
         suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
+        className="hidden sm:block"
         aria-label="Agent info"
         style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
         onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
@@ -291,10 +325,11 @@ function EmptyState({
             boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
             background: agent.color,
             transform: "rotate(-2deg)",
+            position: "relative",
           }}
         >
           {agentPhoto2 ? (
-            <img src={agentPhoto2} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <Image src={agentPhoto2} alt={agent.name} fill sizes="140px" className="object-cover" />
           ) : (
             <div
               style={{
@@ -416,21 +451,45 @@ export default function AssistantChatPage() {
   const [fetchError, setFetchError] = useState<ApiError | null>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
 
+  const conversationIdRef = useRef<string>(genConversationId())
+  const chatScrollRef = useRef<HTMLDivElement>(null)
+  const scrollAnchorRef = useRef<number | null>(null)
+  const scrollIntentRef = useRef<"instant" | "smooth" | null>("instant")
+  const thisMutationRef = useRef(false)
+  const prevMutationStatusRef = useRef<string | undefined>(undefined)
+  const didCatchUpRef = useRef(false)
+  const isAtBottomRef = useRef(isAtBottom)
+  const activeChatKey = `${organizationId}:${id}`
+  const activeChatKeyRef = useRef(activeChatKey)
+  activeChatKeyRef.current = activeChatKey
+  isAtBottomRef.current = isAtBottom
+
   const chatCacheKey = (orgId: string, agentId: string) => `vq.chat.${orgId}.${agentId}`
 
   useEffect(() => {
     if (!id || !organizationId) return
+    const requestKey = `${organizationId}:${id}`
+    const controller = new AbortController()
     setFetchError(null)
+    setIsLoadingPrev(false)
+    didCatchUpRef.current = false
+    thisMutationRef.current = false
+    prevMutationStatusRef.current = undefined
 
     // Paint instantly from localStorage cache (stale-while-revalidate)
     try {
       const raw = localStorage.getItem(chatCacheKey(organizationId, id))
       if (raw) {
-        const cached: Message[] = JSON.parse(raw)
-        scrollIntentRef.current = "instant"
-        setMsgWindow(cached)
-        setHasPreviousPage(cached.length === WINDOW)
-        setInitialLoaded(true)
+        const cached = parseCachedMessageWindow(raw, WINDOW)
+        if (cached.length > 0) {
+          scrollIntentRef.current = "instant"
+          setMsgWindow(cached)
+          setHasPreviousPage(cached.length === WINDOW)
+          setInitialLoaded(true)
+        } else {
+          setInitialLoaded(false)
+          setMsgWindow([])
+        }
       } else {
         setInitialLoaded(false)
         setMsgWindow([])
@@ -441,47 +500,53 @@ export default function AssistantChatPage() {
     }
 
     // Refresh from server in background
-    getMessages(id, organizationId)
+    getMessages(id, organizationId, undefined, controller.signal)
       .then((msgs) => {
+        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
         scrollIntentRef.current = "instant"
-        setMsgWindow(msgs)
+        setMsgWindow((current) => mergeServerSnapshot(current, msgs, WINDOW))
         setHasPreviousPage(msgs.length === WINDOW)
         setInitialLoaded(true)
-        try {
-          localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
-        } catch {}
       })
       .catch((err) => {
+        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
         if (err instanceof ApiError) setFetchError(err)
         setInitialLoaded(true)
       })
+
+    return () => controller.abort()
   }, [id, organizationId])
 
   // Persist window to localStorage after every settled update
   useEffect(() => {
     if (!initialLoaded || !id || !organizationId || msgWindow.length === 0) return
     try {
-      localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgWindow))
+      localStorage.setItem(
+        chatCacheKey(organizationId, id),
+        JSON.stringify(msgWindow.slice(-WINDOW)),
+      )
     } catch {}
   }, [msgWindow, initialLoaded, id, organizationId])
 
   const loadPreviousPage = useCallback(async () => {
     if (!hasPreviousPage || isLoadingPrev) return
+    const requestKey = `${organizationId}:${id}`
     setIsLoadingPrev(true)
     try {
       const oldest = msgWindow[0]?.createdAt
       const older = await getMessages(id, organizationId, oldest)
+      if (activeChatKeyRef.current !== requestKey) return
       // Capture scrollHeight before the state update so useLayoutEffect can restore position
       scrollAnchorRef.current = chatScrollRef.current?.scrollHeight ?? 0
-      setMsgWindow((prev) => [...older, ...prev])
+      setMsgWindow((current) => mergeMessageWindow(current, older))
       setHasPreviousPage(older.length === WINDOW)
     } finally {
-      setIsLoadingPrev(false)
+      if (activeChatKeyRef.current === requestKey) setIsLoadingPrev(false)
     }
   }, [hasPreviousPage, isLoadingPrev, msgWindow, id, organizationId])
   const { data: brandKit = null } = useBrandKit(organizationId)
   const { data: rexDatasetCount = 0 } = useQuery({
-    queryKey: REX_DATASETS_KEY(organizationId),
+    queryKey: qk.rexDatasets(organizationId),
     queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets"),
     select: (d) => d.length,
     enabled: id === "rex" && !!organizationId,
@@ -503,24 +568,16 @@ export default function AssistantChatPage() {
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
   const [mayaTab, setMayaTab] = useState<"chat" | "published" | "plan">("chat")
 
-  const conversationIdRef = useRef<string>(genConversationId())
-  const chatScrollRef = useRef<HTMLDivElement>(null)
-  const scrollAnchorRef = useRef<number | null>(null)
-  const scrollIntentRef = useRef<"instant" | "smooth" | null>("instant")
-  const thisMutationRef = useRef(false)
-  const prevMutationStatusRef = useRef<string | undefined>(undefined)
-  const didCatchUpRef = useRef(false) // Guards the "already-complete-on-mount" fetch
-  const isAtBottomRef = useRef(isAtBottom) // Latest scroll position for action callbacks
-  isAtBottomRef.current = isAtBottom
-
   const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current, {
-    onOptimistic: (optimistic) => {
+    onOptimistic: (optimistic, mutationChatKey) => {
+      if (activeChatKeyRef.current !== mutationChatKey) return
       thisMutationRef.current = true
       scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => [...prev, optimistic].slice(-WINDOW))
       setHasPreviousPage(true)
     },
-    onSuccess: (serverMsg) => {
+    onSuccess: (serverMsg, optimisticId, mutationChatKey) => {
+      if (activeChatKeyRef.current !== mutationChatKey) return
       scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => {
         // Append the reply and KEEP the user's message. This used to drop the last entry
@@ -528,7 +585,11 @@ export default function AssistantChatPage() {
         // but the optimistic entry is the USER's message and serverMsg is the ASSISTANT's
         // reply, so the user's own message was deleted from the list the moment the bot
         // answered, and only came back on a refetch.
-        const updated = [...prev, serverMsg]
+        const updated = mergeMessageWindow(
+          setMessageDeliveryStatus(prev, optimisticId, undefined),
+          [serverMsg],
+          WINDOW,
+        )
 
         // If the server updated an existing draft card image in-place, patch it
         // in React state so the user sees the new image without a page reload.
@@ -555,10 +616,9 @@ export default function AssistantChatPage() {
         return updated.slice(-WINDOW)
       })
     },
-    onError: (optimisticId) => {
-      // Remove by id, not by position: anything appended while the request was in flight
-      // would otherwise make slice(0, -1) delete the wrong message.
-      setMsgWindow((prev) => prev.filter((m) => m.id !== optimisticId))
+    onError: (optimisticId, mutationChatKey) => {
+      if (activeChatKeyRef.current !== mutationChatKey) return
+      setMsgWindow((prev) => setMessageDeliveryStatus(prev, optimisticId, "failed"))
     },
   })
 
@@ -595,34 +655,45 @@ export default function AssistantChatPage() {
     }
 
     // Orphaned mutation — re-fetch so the result and tool cards appear.
-    getMessages(id, organizationId).then((msgs) => {
-      scrollIntentRef.current = "smooth"
-      setMsgWindow(msgs)
-      setHasPreviousPage(msgs.length === WINDOW)
-      try {
-        localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
-      } catch {}
-    })
+    const requestKey = `${organizationId}:${id}`
+    const controller = new AbortController()
+    getMessages(id, organizationId, undefined, controller.signal)
+      .then((msgs) => {
+        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
+        scrollIntentRef.current = "smooth"
+        setMsgWindow((current) => mergeMessageWindow(current, msgs))
+        setHasPreviousPage(msgs.length === WINDOW)
+      })
+      .catch(() => {})
+    return () => controller.abort()
   }, [latestMutationStatus, id, organizationId])
 
   // Refetch when user returns to this tab — covers the "agent finished while on
   // another tab" case. React Query has refetchOnWindowFocus disabled globally,
   // so this targeted listener handles only the chat message list.
   useEffect(() => {
+    let controller: AbortController | null = null
     const handleVisibility = () => {
       if (document.visibilityState !== "visible") return
       const status = latestMutationStatusRef.current
       if (status !== "pending" && status !== "success") return
-      getMessages(id, organizationId).then((msgs) => {
-        setMsgWindow(msgs)
-        setHasPreviousPage(msgs.length === WINDOW)
-        try {
-          localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
-        } catch {}
-      })
+      const requestKey = `${organizationId}:${id}`
+      controller?.abort()
+      const requestController = new AbortController()
+      controller = requestController
+      getMessages(id, organizationId, undefined, requestController.signal)
+        .then((msgs) => {
+          if (requestController.signal.aborted || activeChatKeyRef.current !== requestKey) return
+          setMsgWindow((current) => mergeMessageWindow(current, msgs))
+          setHasPreviousPage(msgs.length === WINDOW)
+        })
+        .catch(() => {})
     }
     document.addEventListener("visibilitychange", handleVisibility)
-    return () => document.removeEventListener("visibilitychange", handleVisibility)
+    return () => {
+      controller?.abort()
+      document.removeEventListener("visibilitychange", handleVisibility)
+    }
   }, [id, organizationId]) // Only re-register when agent changes, not on every status change
 
   // If a mutation for this agent completed before this component mounted, the
@@ -632,13 +703,16 @@ export default function AssistantChatPage() {
     if (!initialLoaded || didCatchUpRef.current) return
     if (latestMutationStatus !== "success" || mutationStatuses.length === 0) return
     didCatchUpRef.current = true
-    getMessages(id, organizationId).then((msgs) => {
-      setMsgWindow(msgs)
-      setHasPreviousPage(msgs.length === WINDOW)
-      try {
-        localStorage.setItem(chatCacheKey(organizationId, id), JSON.stringify(msgs))
-      } catch {}
-    })
+    const requestKey = `${organizationId}:${id}`
+    const controller = new AbortController()
+    getMessages(id, organizationId, undefined, controller.signal)
+      .then((msgs) => {
+        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
+        setMsgWindow((current) => mergeMessageWindow(current, msgs))
+        setHasPreviousPage(msgs.length === WINDOW)
+      })
+      .catch(() => {})
+    return () => controller.abort()
   }, [initialLoaded, latestMutationStatus, mutationStatuses.length, id, organizationId])
 
   useEffect(() => {
@@ -688,6 +762,18 @@ export default function AssistantChatPage() {
     }
   }, [content, isLoading, sendMutation, agent])
 
+  const contentRef = useRef(content)
+  contentRef.current = content
+  const handleRestoreDraft = useCallback((message: Message) => {
+    if (message.deliveryStatus !== "failed") return
+    if (contentRef.current.trim()) {
+      toast.info("The composer already has a draft. Send or clear it before restoring this message.")
+      return
+    }
+    setContent(message.content)
+    toast.info("Message restored. Review it, then press Send to retry.")
+  }, [])
+
   // Writes an optimistic user message as soon as the dialog starts submitting,
   // so the chat doesn't look empty while the API call is in flight.
   // Skipped for maya:regenerate-image since that action mutates an existing
@@ -708,7 +794,7 @@ export default function AssistantChatPage() {
       scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => [...prev, userMsg].slice(-WINDOW))
     },
-    [id, organizationId],
+    [],
   )
 
   const handleActionComplete = useCallback(
@@ -892,7 +978,7 @@ export default function AssistantChatPage() {
       setMsgWindow((prev) => [...prev, assistantMsg].slice(-WINDOW))
       toast.success(meta ? `${meta.label} complete.` : "Action complete.")
     },
-    [id, organizationId, msgWindow],
+    [msgWindow],
   )
 
   const handleRevertImage = useCallback(
@@ -1065,10 +1151,6 @@ export default function AssistantChatPage() {
     openAction("lex:upload-source")
   }, [openAction])
 
-  const openCampaignAction = useCallback(() => {
-    openAction("maya:campaign")
-  }, [openAction])
-
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
   const agentPhotoUrl = AGENT_PHOTOS[agent?.id ?? ""] ?? undefined
 
@@ -1200,7 +1282,6 @@ export default function AssistantChatPage() {
   const isSage = agent.id === "sage"
   const isRex = agent.id === "rex"
   const isMaya = agent.id === "maya"
-  const isVega = agent.id === "vega"
   const hasMessages = msgWindow.length > 0
   const agentSlug = agent.id as AgentSlug
 
@@ -1224,21 +1305,12 @@ export default function AssistantChatPage() {
       />
 
       {isLex && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            borderBottom: "1px solid #E5E5E5",
-            background: "#FFF9ED",
-          }}
-        >
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
           <button
             suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("chat")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               lexTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
             }`}
           >
@@ -1248,7 +1320,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("documents")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               lexTab === "documents"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -1261,21 +1333,12 @@ export default function AssistantChatPage() {
 
 
       {isSage && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            borderBottom: "1px solid #E5E5E5",
-            background: "#FFF9ED",
-          }}
-        >
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
           <button
             suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("chat")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               sageTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
             }`}
           >
@@ -1285,7 +1348,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("favourites")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               sageTab === "favourites"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -1298,21 +1361,12 @@ export default function AssistantChatPage() {
 
       {isRex && (
         <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 16px",
-              borderBottom: "2px solid #111",
-              background: "#FFF9ED",
-            }}
-          >
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
             <button
               suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("chat")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 rexTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
               }`}
             >
@@ -1322,7 +1376,7 @@ export default function AssistantChatPage() {
               suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("data")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 rexTab === "data" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
               }`}
             >
@@ -1345,21 +1399,12 @@ export default function AssistantChatPage() {
       )}
 
       {isMaya && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            borderBottom: "1px solid #E5E5E5",
-            background: "#FFF9ED",
-          }}
-        >
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
           <button
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("chat")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               mayaTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
             }`}
           >
@@ -1369,7 +1414,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("published")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               mayaTab === "published"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -1381,7 +1426,7 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("plan")}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               mayaTab === "plan"
                 ? "bg-[#111] text-white"
                 : "bg-transparent text-[#111]"
@@ -1389,7 +1434,7 @@ export default function AssistantChatPage() {
           >
             <CalendarDays className="size-3" /> Content Plan
           </button>
-          <div className="flex items-center gap-1.5" style={{ marginLeft: "auto" }}>
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 max-[480px]:w-full">
             <MayaCreditsPill organizationId={organizationId} />
             <MayaTopUpButton organizationId={organizationId} />
           </div>
@@ -1496,15 +1541,14 @@ export default function AssistantChatPage() {
               <ChatMessage
                 key={msg.id ?? `msg-${i}`}
                 message={msg}
-                agentName={agent.name}
                 agentInitials={agent.initials}
                 agentColor={agentColor}
                 agentPhoto={agentPhotoUrl}
-                isLex={isLex}
                 showAvatar={msg.role !== "assistant" || i === 0 || displayMessages[i - 1]?.role !== "assistant"}
                 marginTop={i === 0 ? 0 : displayMessages[i - 1]?.role === msg.role ? 4 : 12}
                 onFollowUpAction={handleFollowUp}
-                onRevertImage={msg.id ? () => handleRevertImage(msg.id!) : undefined}
+                onRevertImage={handleRevertImage}
+                onRestoreDraft={handleRestoreDraft}
               />
             ))}
             {isBusy && (
@@ -1563,44 +1607,52 @@ export default function AssistantChatPage() {
         )}
       </div>
 
-      <AgentInfoPanel
-        agent={agent}
-        kit={brandKit}
-        open={infoOpen}
-        onClose={() => setInfoOpen(false)}
-        organizationId={organizationId}
-      />
+      {infoOpen && (
+        <AgentInfoPanel
+          agent={agent}
+          kit={brandKit}
+          open
+          onClose={() => setInfoOpen(false)}
+          organizationId={organizationId}
+        />
+      )}
 
-      <ToolsMenu
-        open={toolsOpen}
-        onOpenChange={setToolsOpen}
-        agentSlug={agentSlug}
-        agentName={agent.name}
-        onPick={(a) => handlePlusPick(a.id)}
-      />
-      <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} agent={agent} />
-      <OnboardMeModal
-        agentSlug={agentSlug}
-        agentName={agent.name}
-        open={onboardOpen}
-        onOpenChange={setOnboardOpen}
-      />
-      <RunActionDialog
-        open={!!activeActionId}
-        onOpenChange={(v) => {
-          if (!v) {
-            setActiveActionId(null)
-            setActivePrefill(undefined)
-          }
-        }}
-        actionId={activeActionId}
-        organizationId={organizationId}
-        conversationId={conversationIdRef.current}
-        prefill={activePrefill}
-        onStart={handleActionStart}
-        onComplete={handleActionComplete}
-        onSubmittingChange={setActionSubmitting}
-      />
+      {toolsOpen && (
+        <ToolsMenu
+          open
+          onOpenChange={setToolsOpen}
+          agentSlug={agentSlug}
+          agentName={agent.name}
+          onPick={(a) => handlePlusPick(a.id)}
+        />
+      )}
+      {helpOpen && <HelpSheet open onOpenChange={setHelpOpen} agent={agent} />}
+      {onboardOpen && (
+        <OnboardMeModal
+          agentSlug={agentSlug}
+          agentName={agent.name}
+          open
+          onOpenChange={setOnboardOpen}
+        />
+      )}
+      {activeActionId && (
+        <RunActionDialog
+          open
+          onOpenChange={(v) => {
+            if (!v) {
+              setActiveActionId(null)
+              setActivePrefill(undefined)
+            }
+          }}
+          actionId={activeActionId}
+          organizationId={organizationId}
+          conversationId={conversationIdRef.current}
+          prefill={activePrefill}
+          onStart={handleActionStart}
+          onComplete={handleActionComplete}
+          onSubmittingChange={setActionSubmitting}
+        />
+      )}
     </div>
     </MediaViewerProvider>
   )

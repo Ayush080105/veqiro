@@ -8,8 +8,8 @@ import { uploadToR2 } from "@/lib/api/uploads"
 import { queryDataset, generateDatasetReport } from "@/lib/api/rex"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { StatusPill } from "@/components/ui/status-pill"
 import { cn } from "@/lib/utils"
+import { qk } from "@/lib/query-keys"
 import type { RexRawTable } from "@/lib/types/agents"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -73,8 +73,6 @@ const saveDatasets = (
 const deleteDataset = (id: string) =>
   apiFetch<void>(`/agents/rex/datasets/${id}`, { method: "DELETE" })
 
-export const REX_DATASETS_KEY = (orgId: string) => ["rex", "datasets", orgId]
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function RexDataTab({
@@ -102,7 +100,7 @@ export function RexDataTab({
   const [generatingReportId, setGeneratingReportId] = React.useState<string | null>(null)
 
   const { data: datasets = [], isLoading } = useQuery({
-    queryKey: REX_DATASETS_KEY(organizationId),
+    queryKey: qk.rexDatasets(organizationId),
     queryFn: fetchDatasets,
     enabled: !!organizationId,
     placeholderData: (prev) => prev,

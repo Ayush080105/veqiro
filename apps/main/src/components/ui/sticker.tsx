@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 // Hand-drawn rotating pill sticker. Pure decoration — supports the brand voice.
 const stickerVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-full border-[3px] border-foreground px-4 py-2 font-head text-xs uppercase tracking-wider text-foreground shadow-[4px_4px_0_var(--foreground)]",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full border border-[var(--vq-line-2)] px-4 py-2 font-display text-xs font-medium text-foreground shadow-[var(--vq-shadow-sm)]",
   {
     variants: {
       tone: {

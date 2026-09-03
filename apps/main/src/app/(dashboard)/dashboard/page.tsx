@@ -21,6 +21,7 @@ import { ContentPipelineSkeleton } from "@/components/dashboard/ContentPipelineS
 import { Button } from "@/components/ui/button"
 import { KpiTile } from "@/components/ui/kpi-tile"
 import { PageHeader } from "@/components/ui/page-header"
+import { useHydrated } from "@/lib/hooks/use-hydrated"
 import type { AgentSlug } from "@/lib/types"
 
 // Recharts is sizeable. Defer it until the dashboard renders; the skeleton
@@ -72,6 +73,7 @@ function formatNumber(n: number): string {
 
 export default function DashboardPage() {
   const { data: session } = authClient.useSession()
+  const hydrated = useHydrated()
   const [range, setRange] = useState<Range>({ kind: "7d" })
   const [agents, setAgents] = useState<AgentSlug[]>([...ALL_SLUGS])
   const {
@@ -83,8 +85,8 @@ export default function DashboardPage() {
   } = useDashboardSummary({ range, agents })
   const showSkeletons = isPending && !summary
   const showProgressBar = isFetching && !isPending
-  const name = session?.user?.name?.split(" ")[0] ?? "there"
-  const today = new Date()
+  const name = hydrated ? (session?.user?.name?.split(" ")[0] ?? "there") : "there"
+  const today = hydrated ? new Date() : null
 
   const metrics = summary?.metrics
   const activity = summary?.activityChart ?? []
@@ -98,8 +100,12 @@ export default function DashboardPage() {
       <DashboardProgressBar active={showProgressBar} />
 
       <PageHeader
-        kicker={formatDate(today)}
-        title={`${getGreeting().toLowerCase()}, ${name.toLowerCase()}.`}
+        kicker={today ? formatDate(today) : "Today"}
+        title={
+          today
+            ? `${getGreeting().toLowerCase()}, ${name.toLowerCase()}.`
+            : "welcome back."
+        }
         subtitle="Here's what your team is working on."
         
         right={
@@ -121,11 +127,11 @@ export default function DashboardPage() {
       {isError && (
         <div
           role="alert"
-          className="flex flex-col gap-3 rounded-md border-[3px] border-foreground bg-card p-4 shadow-[6px_6px_0_var(--destructive)] sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-3 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="min-w-0">
-            <div className="font-mono text-[11px] uppercase tracking-widest text-destructive">
-              dashboard data unavailable
+            <div className="font-body text-sm font-medium text-destructive">
+              Dashboard data unavailable
             </div>
             <p className="m-0 mt-1 font-body text-sm leading-snug text-muted-foreground">
               We could not refresh your dashboard summary. Your workspace is still available.
@@ -133,8 +139,8 @@ export default function DashboardPage() {
           </div>
           <Button
             type="button"
-            variant="brand-dark"
-            size="brand-sm"
+            variant="outline"
+            size="sm"
             onClick={() => refetch()}
             className="self-start sm:self-auto"
           >

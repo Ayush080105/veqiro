@@ -15,9 +15,9 @@ const tileVariants = cva(
         ink: "bg-primary text-primary-foreground",
       },
       shape: {
-        default: "rounded-none border border-foreground/10 p-3",
+        default: "rounded-[var(--vq-r)] border border-[var(--vq-line)] p-3",
         brand:
-          "rounded-md border-[3px] border-foreground p-4 shadow-[3px_3px_0_var(--foreground)]",
+          "rounded-[var(--vq-r-lg)] border border-[var(--vq-line-2)] p-4 shadow-[var(--vq-shadow)]",
       },
     },
     defaultVariants: {

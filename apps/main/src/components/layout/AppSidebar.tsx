@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -28,6 +28,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   DropdownMenu,
@@ -43,6 +44,7 @@ import {
   clearActiveAndStartNew,
   switchToOrganization,
 } from "@/lib/api/organizations"
+import { useHydrated } from "@/lib/hooks/use-hydrated"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -56,13 +58,6 @@ const bottomNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
-const monoLabelStyle: React.CSSProperties = {
-  fontFamily: FONT.mono,
-  fontSize: 11,
-  letterSpacing: 1.5,
-  textTransform: "uppercase",
-}
-
 const LANDING_URL =
   process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3000"
 const POST_LOGOUT_URL = LANDING_URL
@@ -70,13 +65,28 @@ const POST_LOGOUT_URL = LANDING_URL
 export function AppSidebar() {
   const router = useRouter()
   const pathname = usePathname()
+  const { setOpenMobile } = useSidebar()
   const { data: session } = authClient.useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const { data: organizationList } = authClient.useListOrganizations()
-  const organizations = organizationList ?? []
+  const hydrated = useHydrated()
+  const visibleSession = hydrated ? session : null
+  const visibleActiveOrg = hydrated ? activeOrg : null
+  const organizations = hydrated ? (organizationList ?? []) : []
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+
+  // A mobile sidebar is a temporary sheet, so navigation should dismiss it.
+  // The pathname effect also covers programmatic navigation from workspace
+  // actions; the click handler covers selecting the route already on screen.
+  useEffect(() => {
+    setOpenMobile(false)
+  }, [pathname, setOpenMobile])
+
+  const closeMobileSidebar = () => setOpenMobile(false)
+
   const switchOrg = async (organizationId: string) => {
-    if (switchingId || organizationId === activeOrg?.id) return
+    if (switchingId || organizationId === visibleActiveOrg?.id) return
+    closeMobileSidebar()
     setSwitchingId(organizationId)
     await switchToOrganization(organizationId, router)
     setSwitchingId(null)
@@ -84,6 +94,7 @@ export function AppSidebar() {
 
   const createOrg = async () => {
     if (switchingId) return
+    closeMobileSidebar()
     setSwitchingId("__new__")
     await clearActiveAndStartNew(router)
     setSwitchingId(null)
@@ -94,6 +105,7 @@ export function AppSidebar() {
       <SidebarHeader className="gap-1.5 px-3 pt-1 pb-2">
         <a
           href={LANDING_URL}
+          onClick={closeMobileSidebar}
           className="flex items-center group-data-[collapsible=icon]:justify-center"
           title="Back to veqiro.com"
         >
@@ -116,7 +128,7 @@ export function AppSidebar() {
             priority
           />
         </a>
-        {activeOrg && (
+        {visibleActiveOrg && (
           <div className="group-data-[collapsible=icon]:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -127,9 +139,9 @@ export function AppSidebar() {
                     style={{
                       padding: "6px 10px",
                       background: "#FFF9ED",
-                      border: "2px solid #111",
-                      borderRadius: 8,
-                      boxShadow: "2px 2px 0 #111",
+                      border: "1px solid var(--vq-line-2)",
+                      borderRadius: 10,
+                      boxShadow: "var(--vq-shadow-sm)",
                       cursor: "pointer",
                     }}
                   />
@@ -155,7 +167,7 @@ export function AppSidebar() {
                     flex: 1,
                   }}
                 >
-                  {activeOrg.name}
+                  {visibleActiveOrg.name}
                 </span>
                 <span
                   style={{
@@ -164,7 +176,7 @@ export function AppSidebar() {
                     letterSpacing: 1.5,
                     textTransform: "uppercase",
                     padding: "2px 6px",
-                    border: "1.5px solid #111",
+                    border: "1px solid var(--vq-line-2)",
                     borderRadius: 999,
                     background: "#F5C518",
                     color: "#111",
@@ -176,10 +188,10 @@ export function AppSidebar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="w-64 border-2 border-foreground bg-white p-1 shadow-[4px_4px_0_#111]"
+                className="w-64 border border-[var(--vq-line-2)] bg-white p-1 shadow-[var(--vq-shadow-lg)]"
               >
                 {organizations?.map((organization) => {
-                  const isCurrent = organization.id === activeOrg.id
+                  const isCurrent = organization.id === visibleActiveOrg.id
                   const isSwitching = switchingId === organization.id
                   return (
                     <DropdownMenuItem
@@ -243,7 +255,10 @@ export function AppSidebar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={!!switchingId}
-                  onClick={() => router.push("/workspaces")}
+                  onClick={() => {
+                    closeMobileSidebar()
+                    router.push("/workspaces")
+                  }}
                   className="gap-2 rounded-md"
                 >
                   <ArrowUpRight className="size-4" />
@@ -274,7 +289,7 @@ export function AppSidebar() {
                   data-tour={`nav-${item.href.replace("/", "")}`}
                 >
                   <SidebarMenuButton
-                    render={<Link href={item.href} style={monoLabelStyle} />}
+                    render={<Link href={item.href} onClick={closeMobileSidebar} />}
                     tooltip={item.label}
                     isActive={
                       pathname === item.href ||
@@ -282,7 +297,7 @@ export function AppSidebar() {
                     }
                   >
                     <item.icon className="size-4" />
-                    <span>{item.label}</span>
+                    <span className="font-body">{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -299,7 +314,7 @@ export function AppSidebar() {
                   data-tour={`nav-${item.href.replace("/", "")}`}
                 >
                   <SidebarMenuButton
-                    render={<Link href={item.href} style={monoLabelStyle} />}
+                    render={<Link href={item.href} onClick={closeMobileSidebar} />}
                     tooltip={item.label}
                     isActive={
                       pathname === item.href ||
@@ -307,7 +322,7 @@ export function AppSidebar() {
                     }
                   >
                     <item.icon className="size-4" />
-                    <span>{item.label}</span>
+                    <span className="font-body">{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -323,14 +338,14 @@ export function AppSidebar() {
           className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center"
         >
           <div
-            title={session?.user?.name ?? "User"}
+            title={visibleSession?.user?.name ?? "User"}
             style={{
               width: 32,
               height: 32,
               borderRadius: "50%",
               background: "#F5C518",
-              border: "2px solid #111",
-              boxShadow: "2px 2px 0 #111",
+              border: "1px solid var(--vq-line-2)",
+              boxShadow: "var(--vq-shadow-sm)",
               display: "grid",
               placeItems: "center",
               fontFamily: FONT.head,
@@ -340,14 +355,17 @@ export function AppSidebar() {
               overflow: "hidden",
             }}
           >
-            {session?.user?.image ? (
+            {visibleSession?.user?.image ? (
+              // OAuth avatar hosts are user/provider controlled and cannot be
+              // safely enumerated in Next Image's remote allowlist.
+              // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={session.user.image}
+                src={visibleSession.user.image}
                 alt=""
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (
-              (session?.user?.name?.charAt(0)?.toUpperCase() ?? "U")
+              (visibleSession?.user?.name?.charAt(0)?.toUpperCase() ?? "U")
             )}
           </div>
           <div
@@ -365,7 +383,7 @@ export function AppSidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              {session?.user?.name ?? "User"}
+              {visibleSession?.user?.name ?? "User"}
             </p>
             <p
               style={{
@@ -378,7 +396,7 @@ export function AppSidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              {session?.user?.email}
+              {visibleSession?.user?.email}
             </p>
           </div>
           <button

@@ -16,12 +16,12 @@ interface StepShellProps {
 export function StepShell({ emoji, title, subtitle, bg, children }: StepShellProps) {
   return (
     <div
-      className="mx-auto max-w-2xl rounded-2xl border-[3px] border-foreground p-10 shadow-[10px_10px_0_var(--foreground)]"
+      className="mx-auto max-w-2xl rounded-[var(--vq-r-xl)] border border-[var(--vq-line-2)] p-10 shadow-[var(--vq-shadow-lg)]"
       style={{ background: bg ?? "#FFF9ED" }}
     >
       <div className="mb-2 flex items-center gap-3">
         {emoji && (
-          <div className="grid size-12 -rotate-6 place-items-center rounded-xl border-[3px] border-foreground bg-[color:var(--vq-yellow)] font-display text-2xl shadow-[3px_3px_0_var(--foreground)]">
+          <div className="grid size-12 place-items-center rounded-xl border border-[var(--vq-line-2)] bg-[color:var(--vq-yellow)] font-display text-2xl shadow-[var(--vq-shadow-sm)]">
             {emoji}
           </div>
         )}

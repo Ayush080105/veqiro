@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Search, Lock } from "lucide-react"
@@ -46,6 +47,8 @@ const STATUS_DOT: Record<AgentStatusData["status"], string> = {
   "needs-attention": "#F06464",
 }
 
+const EMPTY_UNREAD_SET = new Set<string>()
+
 function formatRelative(iso: string | undefined | null): string {
   if (!iso) return ""
   const then = new Date(iso).getTime()
@@ -78,39 +81,73 @@ function previewLine(
 function useUnreadTracker(
   lastMap: Record<string, LastMessage | null> | undefined,
   pathname: string,
+  organizationId: string,
 ): Set<string> {
-  const [unreadSet, setUnreadSet] = useState<Set<string>>(new Set())
+  const [unreadState, setUnreadState] = useState<{
+    organizationId: string
+    unread: Set<string>
+  }>({ organizationId: "", unread: EMPTY_UNREAD_SET })
 
-  // Mark current agent as read when pathname changes to /assistants/[id]
   useEffect(() => {
-    const match = pathname.match(/^\/assistants\/(\w+)$/)
-    if (!match) return
-    const id = match[1]
-    try {
-      localStorage.setItem(`vq.lastRead.${id}`, String(Date.now()))
-    } catch {}
-    setUnreadSet((prev) => {
-      const s = new Set(prev)
-      s.delete(id)
-      return s
-    })
-  }, [pathname])
+    if (!lastMap || !organizationId) return
 
-  // Recompute unread set whenever lastMap updates
-  useEffect(() => {
-    if (!lastMap) return
-    const unread = new Set<string>()
-    for (const [id, msg] of Object.entries(lastMap)) {
-      if (!msg || msg.role !== "assistant") continue
-      try {
-        const lastRead = Number(localStorage.getItem(`vq.lastRead.${id}`) ?? 0)
-        if (new Date(msg.createdAt).getTime() > lastRead) unread.add(id)
-      } catch {}
+    const activeAgent = pathname.match(/^\/assistants\/(\w+)$/)?.[1]
+    const keyPrefix = `vq.lastRead:v2:${organizationId}:`
+
+    const recompute = () => {
+      const unread = new Set<string>()
+
+      for (const [id, msg] of Object.entries(lastMap)) {
+        if (!msg || msg.role !== "assistant") continue
+        const messageTime = new Date(msg.createdAt).getTime()
+        if (!Number.isFinite(messageTime)) continue
+
+        try {
+          const key = `${keyPrefix}${id}`
+          const stored = localStorage.getItem(key)
+          const lastRead = stored === null ? null : Number(stored)
+
+          // Seeing a response while its chat is already open counts as read.
+          // Previously only the initial route change was recorded, so a reply
+          // arriving seconds later became "unread" as soon as the user left.
+          if (id === activeAgent) {
+            if (lastRead === null || !Number.isFinite(lastRead) || messageTime > lastRead) {
+              localStorage.setItem(key, String(messageTime))
+            }
+            continue
+          }
+
+          // This client-only tracker has no reliable history for a newly used
+          // browser. Baseline existing messages as seen instead of claiming a
+          // ten-day-old response is newly unread on that device.
+          if (lastRead === null || !Number.isFinite(lastRead)) {
+            localStorage.setItem(key, String(messageTime))
+            continue
+          }
+
+          if (messageTime > lastRead) unread.add(id)
+        } catch {
+          // localStorage can be unavailable in privacy-restricted contexts.
+        }
+      }
+
+      setUnreadState({ organizationId, unread })
     }
-    setUnreadSet(unread)
-  }, [lastMap])
 
-  return unreadSet
+    recompute()
+
+    // Keep multiple tabs in the same browser aligned. Cross-device syncing
+    // still requires a real server-side read-receipt model.
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || event.key.startsWith(keyPrefix)) recompute()
+    }
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
+  }, [lastMap, pathname, organizationId])
+
+  return unreadState.organizationId === organizationId
+    ? unreadState.unread
+    : EMPTY_UNREAD_SET
 }
 
 function AgentRow({
@@ -162,9 +199,11 @@ function AgentRow({
           }}
         >
           {photo ? (
-            <img
+            <Image
               src={photo}
               alt={agent.name}
+              width={46}
+              height={46}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
@@ -378,10 +417,10 @@ export default function ChatList() {
   const organizationId = activeOrg?.id ?? ""
 
   const { data: statuses } = useAgentStatuses(organizationId)
-  const { data: lastMap } = useLastMessages()
+  const { data: lastMap } = useLastMessages(organizationId)
   const { data: upcomingAgents } = useUpcomingAgents()
   const [query, setQuery] = useState("")
-  const unreadSet = useUnreadTracker(lastMap, pathname)
+  const unreadSet = useUnreadTracker(lastMap, pathname, organizationId)
 
   // Detect which agents have an in-flight sendMessage mutation.
   // useMutationState lives on the QueryClient so it survives navigation.

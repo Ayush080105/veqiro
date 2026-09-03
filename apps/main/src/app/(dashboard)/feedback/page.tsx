@@ -7,7 +7,6 @@ import {
   MessageSquare,
   Search,
   Plus,
-  TrendingUp,
   Clock,
   Flame,
 } from "lucide-react"
@@ -17,7 +16,14 @@ import { Sticker } from "@/components/ui/sticker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
@@ -44,22 +50,13 @@ import { cn } from "@/lib/utils"
 
 const AGENT_SLUGS = ["vega", "scout", "maya", "sage", "lex", "rex"] as const
 
-const AGENT_COLORS: Record<string, string> = {
-  vega: "#6FCDE8",
-  scout: "#F5C518",
-  maya: "#F06464",
-  sage: "#F79FD4",
-  lex: "#8A8AF0",
-  rex: "#1DBC87",
-}
-
-const STATUS_CONFIG: Record<FeedbackStatus, { label: string; color: string; bg: string }> = {
-  NEW: { label: "New", color: "#666", bg: "#f0f0f0" },
-  UNDER_REVIEW: { label: "Under Review", color: "#111", bg: "#F5C518" },
-  PLANNED: { label: "Planned", color: "#fff", bg: "#8A8AF0" },
-  IN_PROGRESS: { label: "In Progress", color: "#111", bg: "#6FCDE8" },
-  LAUNCHED: { label: "Launched", color: "#fff", bg: "#1DBC87" },
-  DECLINED: { label: "Declined", color: "#fff", bg: "#F06464" },
+const STATUS_LABELS: Record<FeedbackStatus, string> = {
+  NEW: "New",
+  UNDER_REVIEW: "Under Review",
+  PLANNED: "Planned",
+  IN_PROGRESS: "In Progress",
+  LAUNCHED: "Launched",
+  DECLINED: "Declined",
 }
 
 const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
@@ -69,15 +66,6 @@ const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
   NEW_AGENT: "New Agent",
   UX_IMPROVEMENT: "UX",
   GENERAL: "General",
-}
-
-const CATEGORY_COLORS: Record<FeedbackCategory, string> = {
-  FEATURE_REQUEST: "#F5C518",
-  BUG_REPORT: "#F06464",
-  INTEGRATION: "#8A8AF0",
-  NEW_AGENT: "#1DBC87",
-  UX_IMPROVEMENT: "#6FCDE8",
-  GENERAL: "#F79FD4",
 }
 
 const CATEGORY_FILTERS: Array<{ value: FeedbackCategory | "ALL"; label: string }> = [
@@ -127,7 +115,7 @@ function AgentDetailDialog({
 }) {
   return (
     <Dialog open={!!agent} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="max-w-md border-[3px] border-foreground shadow-[8px_8px_0_var(--foreground)] rounded-xl p-0 overflow-hidden">
+      <DialogContent className="max-w-md overflow-hidden p-0">
         {agent && (
           <>
             {/* Color bar */}
@@ -163,27 +151,18 @@ function AgentDetailDialog({
               )}
 
               {/* Vote button */}
-              <button
+              <Button
+                type="button"
+                variant={agent.hasVoted ? "secondary" : "outline"}
+                size="lg"
                 onClick={() => onVote(agent.id)}
                 disabled={isVoting}
-                className={cn(
-                  "flex w-full items-center justify-center gap-2 rounded-lg border-[2.5px] border-foreground px-4 py-2.5 transition-all",
-                  agent.hasVoted
-                    ? "shadow-none translate-y-px"
-                    : "shadow-[4px_4px_0_var(--foreground)] hover:shadow-[2px_2px_0_var(--foreground)] hover:translate-y-px"
-                )}
-                style={{
-                  background: agent.hasVoted ? (agent.color ?? "#1DBC87") : "var(--card)",
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                }}
+                className="w-full gap-2 font-mono text-[11px] uppercase tracking-[0.12em]"
               >
                 <ChevronUp className="size-4" />
                 <span className="font-medium">{agent.voteCount}</span>
                 <span className="text-muted-foreground">{agent.hasVoted ? "voted" : "vote for this agent"}</span>
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -228,10 +207,11 @@ function UpcomingAgentsSection() {
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
         {agents.map((agent) => (
-          <div
+          <Card
+            variant="brand"
             key={agent.id}
             onClick={() => setSelectedAgent(agent)}
-            className="relative flex flex-col gap-3 rounded-lg border-[3px] border-foreground bg-card p-4 shadow-[5px_5px_0_var(--foreground)] cursor-pointer transition-all hover:shadow-[3px_3px_0_var(--foreground)] hover:translate-x-0.5 hover:translate-y-0.5"
+            className="relative cursor-pointer gap-3 overflow-hidden p-4 transition-shadow hover:shadow-[var(--vq-shadow-lg)]"
           >
             {agent.color && (
               <div
@@ -260,31 +240,22 @@ function UpcomingAgentsSection() {
                 )}
               </div>
             </div>
-            <button
+            <Button
+              type="button"
+              variant={agent.hasVoted ? "secondary" : "outline"}
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation()
                 toggleVote(agent.id)
               }}
               disabled={isVoting}
-              className={cn(
-                "flex items-center justify-center gap-1.5 rounded-md border-[2.5px] border-foreground px-3 py-1.5 transition-all",
-                agent.hasVoted
-                  ? "shadow-none translate-y-px"
-                  : "shadow-[3px_3px_0_var(--foreground)] hover:shadow-[1px_1px_0_var(--foreground)] hover:translate-y-px"
-              )}
-              style={{
-                background: agent.hasVoted ? (agent.color ?? "#1DBC87") : "var(--card)",
-                fontFamily: FONT.mono,
-                fontSize: 11,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-              }}
+              className="w-full gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em]"
             >
               <ChevronUp className="size-3.5" />
               <span>{agent.voteCount}</span>
               <span className="text-muted-foreground">{agent.hasVoted ? "voted" : "vote"}</span>
-            </button>
-          </div>
+            </Button>
+          </Card>
         ))}
       </div>
 
@@ -301,98 +272,82 @@ function UpcomingAgentsSection() {
 // ─── Feedback Card ────────────────────────────────────────────────────────────
 
 function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: string) => void }) {
-  const statusConfig = STATUS_CONFIG[post.status]
-  const agentColor = post.agentSlug ? AGENT_COLORS[post.agentSlug] : null
   const categoryLabel = CATEGORY_LABELS[post.category]
-  const categoryColor = CATEGORY_COLORS[post.category]
 
   return (
-    <Link
-      href={`/feedback/${post.id}`}
-      className="flex items-stretch gap-0 rounded-lg border-[3px] border-foreground bg-card shadow-[4px_4px_0_var(--foreground)] no-underline transition-all hover:shadow-[2px_2px_0_var(--foreground)] hover:translate-x-0.5 hover:translate-y-0.5 group"
+    <Card
+      variant="brand"
+      className="group flex-row gap-0 overflow-hidden p-0 py-0 transition-shadow hover:shadow-[var(--vq-shadow-lg)]"
     >
-      {/* Vote button column */}
-      <button
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          onVote(post.id)
-        }}
-        className={cn(
-          "flex w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-l-md border-r-[3px] border-foreground py-3 transition-all duration-150 sm:w-14",
-          post.hasVoted ? "text-foreground" : "bg-muted/50 hover:bg-muted text-foreground"
-        )}
-        style={post.hasVoted ? { background: categoryColor } : undefined}
+      {/* Keep voting and navigation as sibling controls. Nesting a button in
+          the card link produces invalid interactive markup and unreliable
+          keyboard/click behavior in browsers. */}
+      <Button
+        type="button"
+        variant={post.hasVoted ? "secondary" : "ghost"}
+        onClick={() => onVote(post.id)}
+        aria-label={`${post.hasVoted ? "Remove vote from" : "Vote for"} ${post.title}`}
+        className="h-auto w-12 shrink-0 flex-col gap-0.5 self-stretch rounded-none border-0 border-r border-[var(--vq-line-2)] py-3 sm:w-14"
       >
         <ChevronUp className={cn("size-4", post.hasVoted && "fill-current")} />
-        <span
-          style={{ fontFamily: FONT.mono, fontSize: 13 }}
-          className="font-medium leading-none"
-        >
+        <span className="font-mono text-[13px] font-medium leading-none">
           {post.voteCount}
         </span>
-      </button>
+      </Button>
 
-      {/* Content */}
-      <div className="flex min-w-0 flex-1 flex-col gap-2 px-4 py-3">
-        <div className="flex flex-wrap items-start gap-1.5">
-          {/* Category badge */}
-          <span
-            className="rounded-full border border-foreground/20 px-2 py-0.5 text-[10px] uppercase tracking-wide"
-            style={{ fontFamily: FONT.mono, background: "var(--muted)" }}
-          >
-            {categoryLabel}
-          </span>
-          {/* Agent badge */}
-          {post.agentSlug && agentColor && (
-            <span
-              className="rounded-full border border-foreground/30 px-2 py-0.5 text-[10px] uppercase tracking-wide font-medium"
-              style={{ fontFamily: FONT.mono, background: agentColor + "33", color: agentColor, borderColor: agentColor + "66" }}
+      <Link
+        href={`/feedback/${post.id}`}
+        className="flex min-w-0 flex-1 items-stretch gap-0 no-underline"
+      >
+        {/* Content */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 py-3 sm:px-4">
+          <div className="flex flex-wrap items-start gap-1.5">
+            <Badge
+              variant="secondary"
+              className="rounded-full font-mono text-[10px] uppercase tracking-wide"
             >
-              {post.agentSlug}
+              {categoryLabel}
+            </Badge>
+            {post.agentSlug && (
+              <Badge
+                variant="outline"
+                className="rounded-full font-mono text-[10px] uppercase tracking-wide text-muted-foreground"
+              >
+                {post.agentSlug}
+              </Badge>
+            )}
+            <Badge
+              variant="brand-mono"
+              className="ml-auto rounded-full bg-muted px-2 tracking-wide"
+            >
+              {STATUS_LABELS[post.status]}
+            </Badge>
+          </div>
+
+          <h3
+            className="line-clamp-2 text-sm font-medium leading-snug text-foreground transition-colors group-hover:text-foreground/80"
+            style={{ fontFamily: FONT.head }}
+          >
+            {post.title}
+          </h3>
+
+          {post.isMerged && (
+            <span className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+              merged into another post
             </span>
           )}
-          {/* Status badge */}
-          <span
-            className="ml-auto rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide font-medium"
-            style={{
-              fontFamily: FONT.mono,
-              background: statusConfig.bg,
-              color: statusConfig.color,
-              border: `1px solid ${statusConfig.bg === "#f0f0f0" ? "var(--border)" : statusConfig.bg}`,
-            }}
-          >
-            {statusConfig.label}
-          </span>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+            <span className="flex items-center gap-1 text-[11px]">
+              <MessageSquare className="size-3" />
+              {post._count.comments}
+            </span>
+            <span className="font-mono text-[11px]">{timeAgo(post.createdAt)}</span>
+            <span className="font-mono text-[11px]">by {post.createdBy.name}</span>
+          </div>
         </div>
-
-        <h3
-          className="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-foreground/80 transition-colors"
-          style={{ fontFamily: FONT.head }}
-        >
-          {post.title}
-        </h3>
-
-        {post.isMerged && (
-          <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide">
-            merged into another post
-          </span>
-        )}
-
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <span className="flex items-center gap-1 text-[11px]">
-            <MessageSquare className="size-3" />
-            {post._count.comments}
-          </span>
-          <span className="text-[11px]" style={{ fontFamily: FONT.mono }}>
-            {timeAgo(post.createdAt)}
-          </span>
-          <span className="text-[11px]" style={{ fontFamily: FONT.mono }}>
-            by {post.createdBy.name}
-          </span>
-        </div>
-      </div>
-    </Link>
+      </Link>
+    </Card>
   )
 }
 
@@ -447,106 +402,91 @@ export default function FeedbackPage() {
       </div>
 
       {/* Filters toolbar */}
-      <div className="flex flex-col gap-3">
-        {/* Category tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {CATEGORY_FILTERS.map((f) => {
-            const isActive = f.value === "ALL" ? !categoryFilter : categoryFilter === f.value
-            return (
-              <button
-                key={f.value}
-                onClick={() => setCategoryFilter(f.value === "ALL" ? undefined : f.value)}
-                className={cn(
-                  "rounded-full border-[2.5px] border-foreground px-3 py-1 text-xs font-head uppercase tracking-wide transition-all",
-                  isActive
-                    ? "bg-foreground text-background shadow-none translate-y-px"
-                    : "bg-card shadow-[3px_3px_0_var(--foreground)] hover:shadow-[1px_1px_0_var(--foreground)] hover:translate-y-px"
-                )}
-              >
-                {f.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Agent filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          <span
-            className="text-muted-foreground mr-1"
-            style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}
-          >
-            Agent:
-          </span>
-          <button
-            onClick={() => setAgentFilter(undefined)}
-            className={cn(
-              "rounded-full border-[2px] border-foreground/40 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wide transition-all",
-              !agentFilter ? "bg-foreground text-background border-foreground" : "bg-card hover:bg-muted"
-            )}
-          >
-            All
-          </button>
-          {AGENT_SLUGS.map((slug) => (
-            <button
-              key={slug}
-              onClick={() => setAgentFilter(agentFilter === slug ? undefined : slug)}
-              className={cn(
-                "rounded-full border-[2px] border-foreground/40 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wide transition-all",
-                agentFilter === slug ? "border-foreground" : "bg-card hover:bg-muted"
-              )}
-              style={{
-                background: agentFilter === slug ? AGENT_COLORS[slug] : undefined,
-                borderColor: agentFilter === slug ? AGENT_COLORS[slug] : undefined,
-              }}
-            >
-              {slug}
-            </button>
-          ))}
-          <button
-            onClick={() => setAgentFilter(agentFilter === "__platform" ? undefined : "__platform")}
-            className={cn(
-              "rounded-full border-[2px] border-foreground/40 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wide transition-all",
-              agentFilter === "__platform" ? "bg-foreground text-background border-foreground" : "bg-card hover:bg-muted"
-            )}
-          >
-            Platform
-          </button>
-        </div>
-
-        {/* Sort + Search + Submit button */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-md border-[2.5px] border-foreground p-0.5 shadow-[3px_3px_0_var(--foreground)]">
-            {SORT_OPTIONS.map((opt) => {
-              const Icon = opt.icon
+      <Card variant="brand" size="sm" className="gap-3 px-3 py-3 sm:px-4">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-1 sm:pb-0">
+            {CATEGORY_FILTERS.map((filter) => {
+              const isActive = filter.value === "ALL"
+                ? !categoryFilter
+                : categoryFilter === filter.value
               return (
-                <button
-                  key={opt.value}
-                  onClick={() => setSort(opt.value)}
-                  className={cn(
-                    "flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-mono uppercase tracking-wide transition-colors",
-                    sort === opt.value ? "bg-foreground text-background" : "hover:bg-muted"
-                  )}
+                <Button
+                  key={filter.value}
+                  type="button"
+                  variant={isActive ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() =>
+                    setCategoryFilter(filter.value === "ALL" ? undefined : filter.value)
+                  }
+                  className="shrink-0 rounded-full px-3 font-display"
                 >
-                  <Icon className="size-3" />
-                  {opt.label}
-                </button>
+                  {filter.label}
+                </Button>
               )
             })}
           </div>
 
-          <div className="relative flex-1 min-w-[160px]">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <input
+          <Select
+            value={agentFilter ?? "__all"}
+            onValueChange={(value) =>
+              setAgentFilter(!value || value === "__all" ? undefined : value)
+            }
+          >
+            <SelectTrigger className="w-full shrink-0 rounded-md bg-card sm:w-[150px]">
+              <SelectValue placeholder="All agents">
+                {(value) => {
+                  if (!value || value === "__all") return "All agents"
+                  if (value === "__platform") return "Platform"
+                  const slug = String(value)
+                  return slug.charAt(0).toUpperCase() + slug.slice(1)
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">All agents</SelectItem>
+              {AGENT_SLUGS.map((slug) => (
+                <SelectItem key={slug} value={slug}>
+                  {slug.charAt(0).toUpperCase() + slug.slice(1)}
+                </SelectItem>
+              ))}
+              <SelectItem value="__platform">Platform</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-[var(--vq-line-2)] bg-card p-0.5">
+            {SORT_OPTIONS.map((opt) => {
+              const Icon = opt.icon
+              return (
+                <Button
+                  key={opt.value}
+                  type="button"
+                  variant={sort === opt.value ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setSort(opt.value)}
+                  className="gap-1 rounded-md px-2 font-mono text-[10px] uppercase tracking-wide sm:px-2.5"
+                >
+                  <Icon className="size-3" />
+                  {opt.label}
+                </Button>
+              )
+            })}
+          </div>
+
+          <div className="relative min-w-[160px] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search feedback..."
-              className="w-full rounded-md border-[2.5px] border-foreground bg-card pl-8 pr-3 py-1.5 text-sm shadow-[3px_3px_0_var(--foreground)] outline-none focus:shadow-[1px_1px_0_var(--foreground)] focus:translate-x-0.5 focus:translate-y-0.5 transition-all placeholder:text-muted-foreground"
-              style={{ fontFamily: FONT.body }}
+              className="bg-card pl-8 font-body"
             />
           </div>
 
           <Button
+            type="button"
             variant="brand-dark"
             size="brand-sm"
             onClick={() => setDrawerOpen(true)}
@@ -556,7 +496,7 @@ export default function FeedbackPage() {
             Submit
           </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Feedback list */}
       <div className="flex flex-col gap-3">
@@ -567,27 +507,21 @@ export default function FeedbackPage() {
             ))}
           </>
         ) : isError ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg border-[3px] border-foreground bg-card py-16 shadow-[5px_5px_0_var(--foreground)]">
-            <div
-              className="grid size-12 place-items-center rounded-lg border-[2.5px] border-foreground bg-muted shadow-[3px_3px_0_var(--foreground)]"
-              style={{ transform: "rotate(-4deg)" }}
-            >
+          <Card variant="brand" className="items-center gap-3 px-4 py-16 text-center">
+            <div className="grid size-12 place-items-center rounded-lg border border-[var(--vq-line-2)] bg-muted shadow-[var(--vq-shadow-sm)]">
               <MessageSquare className="size-5 text-muted-foreground" />
             </div>
-            <div className="text-center">
+            <div>
               <p className="font-head text-base font-medium text-foreground">Failed to load feedback</p>
               <p className="mt-1 text-sm text-muted-foreground">Something went wrong. Please try refreshing the page.</p>
             </div>
-          </div>
+          </Card>
         ) : !posts || posts.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg border-[3px] border-foreground bg-card py-16 shadow-[5px_5px_0_var(--foreground)]">
-            <div
-              className="grid size-12 place-items-center rounded-lg border-[2.5px] border-foreground bg-muted shadow-[3px_3px_0_var(--foreground)]"
-              style={{ transform: "rotate(-4deg)" }}
-            >
+          <Card variant="brand" className="items-center gap-3 px-4 py-16 text-center">
+            <div className="grid size-12 place-items-center rounded-lg border border-[var(--vq-line-2)] bg-muted shadow-[var(--vq-shadow-sm)]">
               <MessageSquare className="size-5 text-muted-foreground" />
             </div>
-            <div className="text-center">
+            <div>
               <p className="font-head text-base font-medium text-foreground">Nothing here yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {search
@@ -597,11 +531,11 @@ export default function FeedbackPage() {
                   : "Be the first to submit feedback!"}
               </p>
             </div>
-            <Button variant="brand-dark" size="brand-sm" onClick={() => setDrawerOpen(true)}>
+            <Button type="button" variant="brand-dark" size="brand-sm" onClick={() => setDrawerOpen(true)}>
               <Plus className="size-4" />
               Submit Feedback
             </Button>
-          </div>
+          </Card>
         ) : (
           posts.map((post) => (
             <FeedbackCard key={post.id} post={post} onVote={toggleVote} />

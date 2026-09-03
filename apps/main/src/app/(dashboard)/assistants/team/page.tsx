@@ -127,9 +127,8 @@ export default function TeamPage() {
       {/* Thread */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto"
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5"
         style={{
-          padding: "16px 20px",
           background: `
             linear-gradient(rgba(239,231,214,0.82), rgba(239,231,214,0.82)),
             url('/chat-bg.webp') repeat
@@ -153,11 +152,9 @@ export default function TeamPage() {
               <ChatMessage
                 key={m.id ?? `pending-${i}`}
                 message={m}
-                agentName={cfg?.name ?? "Team"}
                 agentInitials={cfg?.initials ?? "T"}
                 agentColor={(cfg?.color as string) ?? "var(--vq-yellow)"}
                 agentPhoto={AGENT_PHOTOS[(m.agent ?? "").toLowerCase()]}
-                isLex={(m.agent ?? "").toLowerCase() === "lex"}
               />
             )
           })
@@ -273,7 +270,16 @@ function EmptyTeam({ count }: { count: number }) {
 
 function EmptyThread() {
   return (
-    <div style={{ maxWidth: 480, margin: "40px auto", textAlign: "center" }}>
+    <div
+      style={{
+        boxSizing: "border-box",
+        width: "100%",
+        maxWidth: 480,
+        margin: "40px auto",
+        paddingInline: 4,
+        textAlign: "center",
+      }}
+    >
       <div style={{ fontFamily: FONT.head, fontWeight: 700, fontSize: 17, color: "#111" }}>
         Give the whole team one job
       </div>

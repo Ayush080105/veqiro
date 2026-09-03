@@ -211,6 +211,7 @@ export function useMcpConfigSchema(slug: string, enabled: boolean) {
  *  depend on which integrations are live. */
 function invalidateConnectionDependents(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: qk.mcpConnections() })
+  queryClient.invalidateQueries({ queryKey: qk.dashboardIntegrationHealth() })
   queryClient.invalidateQueries({ queryKey: qk.mcpCommandCenter() })
   queryClient.invalidateQueries({ queryKey: qk.mcpTriggers() })
   queryClient.invalidateQueries({ queryKey: qk.mcpPlays() })

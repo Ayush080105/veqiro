@@ -22,7 +22,7 @@ function BrandLogo() {
       href="/"
       className="flex shrink-0 items-center gap-3 text-foreground no-underline"
     >
-      <span className="grid size-[50px] shrink-0 rotate-[-6deg] place-items-center rounded-[12px] bg-foreground shadow-[4px_4px_0_var(--vq-yellow)]">
+      <span className="grid size-[50px] shrink-0 place-items-center rounded-[12px] bg-foreground shadow-[var(--vq-shadow)]">
         <span className="font-display text-[28px] leading-none text-background">
           v
         </span>
@@ -40,7 +40,7 @@ function MobileAgentChips() {
       {AGENT_PROOFS.slice(0, 3).map((agent) => (
         <div
           key={agent.name}
-          className="border-[3px] border-foreground bg-card px-3 py-2 shadow-[3px_3px_0_var(--foreground)]"
+          className="border border-[var(--vq-line-2)] bg-card px-3 py-2 shadow-[var(--vq-shadow-sm)]"
         >
           <div className="font-head text-sm uppercase tracking-normal">
             {agent.name}
@@ -86,8 +86,8 @@ function ShowcasePane({ side }: { side: Exclude<ShowcaseSide, "none"> }) {
   return (
     <div
       className={cn(
-        "hidden h-full items-stretch overflow-hidden border-foreground lg:flex",
-        side === "left" ? "lg:border-r-[3px]" : "lg:border-l-[3px]"
+        "hidden h-full items-stretch overflow-hidden border-[var(--vq-line-2)] lg:flex",
+        side === "left" ? "lg:border-r" : "lg:border-l"
       )}
     >
       <LoginBg />
