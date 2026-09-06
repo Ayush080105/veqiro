@@ -863,7 +863,7 @@ export function MayaCampaignForm({
           onChange={handleFiles}
         />
         <span className="text-[10px] text-muted-foreground opacity-60">Up to 5 photos — different angles help the model get the product right.</span>
-        <span className="text-[10px] text-muted-foreground opacity-60">Avoid photos with a real person&apos;s face (e.g. a celebrity-endorsed package) — Gemini blocks those.</span>
+        <span className="text-[10px] text-muted-foreground opacity-60">Avoid photos with a real person&apos;s face (e.g. a celebrity-endorsed package) — generation may fail on those.</span>
         {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
         {productImages.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -1374,7 +1374,7 @@ export function MayaCampaignVideoForm({
           onChange={handleFiles}
         />
         <span className="text-[10px] text-muted-foreground opacity-60">Up to 5 photos — different angles help the model get the product right.</span>
-        <span className="text-[10px] text-muted-foreground opacity-60">Avoid photos with a real person&apos;s face (e.g. a celebrity-endorsed package) — Gemini blocks those.</span>
+        <span className="text-[10px] text-muted-foreground opacity-60">Avoid photos with a real person&apos;s face (e.g. a celebrity-endorsed package) — generation may fail on those.</span>
         {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
         {productImages.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -1437,7 +1437,7 @@ export function MayaCampaignVideoForm({
             placeholder="e.g. Sunrise Cold Brew — or anything specific you want in the video"
           />
           <span className="text-[10px] text-muted-foreground opacity-60">
-            Don&apos;t use a real person&apos;s name here — Gemini blocks videos that reference real people.
+            Don&apos;t use a real person&apos;s name here — generation may fail on videos that reference real people.
           </span>
         </div>
       ) : (

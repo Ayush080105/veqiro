@@ -1470,7 +1470,7 @@ function translateVideoGenerationError(err: unknown): never {
   const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
   if (typeof detail === "string" && /real people'?s? names? or likenesses/i.test(detail)) {
     throw new BadRequestError(
-      "This video couldn't be generated — Gemini blocks content referencing real people, whether that's a name in the prompt or a face in a product photo (e.g. a celebrity endorsement on packaging). Try a different product photo or wording and run it again."
+      "This video couldn't be generated because it references a real person — whether that's a name in the prompt or a face in a product photo (e.g. a celebrity endorsement on packaging). Try a different product photo or wording and run it again."
     );
   }
   throw err;
