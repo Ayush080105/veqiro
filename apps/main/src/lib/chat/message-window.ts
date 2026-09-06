@@ -19,14 +19,23 @@ function isLocalMessage(message: Message): boolean {
 }
 
 function isPersistedEquivalent(local: Message, persisted: Message): boolean {
+  if (local.role !== persisted.role) return false
+  if (Math.abs(timestamp(local) - timestamp(persisted)) > OPTIMISTIC_MATCH_WINDOW_MS) return false
+
   const localActionId = local.customInput?.actionId
   const persistedActionId = persisted.customInput?.actionId
-  return (
-    local.role === persisted.role &&
-    local.content === persisted.content &&
-    (!localActionId || !persistedActionId || localActionId === persistedActionId) &&
-    Math.abs(timestamp(local) - timestamp(persisted)) <= OPTIMISTIC_MATCH_WINDOW_MS
-  )
+  if (localActionId && persistedActionId) {
+    // Action-result messages carry a generic client-side label (e.g. "Product
+    // Video — done.") that the server's own persisted summary (e.g. "Campaign
+    // video generated for instagram") never matches verbatim — and ChatMessage
+    // doesn't even render `content` once `actionId` is set, so it's not a
+    // meaningful identity signal here. Matching actionId + role + timing is.
+    // A mismatch here previously let a same-tab-return refetch append the
+    // persisted row alongside the still-present optimistic one, rendering the
+    // same video/image result twice.
+    return localActionId === persistedActionId
+  }
+  return local.content === persisted.content
 }
 
 function applyLimit(messages: Message[], limit?: number): Message[] {
