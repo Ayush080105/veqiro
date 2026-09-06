@@ -164,8 +164,8 @@ export function PlatformMultiPicker({
     }
   }
 
-  const selectedCls = "border border-[#111] bg-[#111] text-[#FFF9ED]"
-  const idleCls = "border border-[#D4C9B0] bg-[#FFF9ED] hover:bg-[#EFE7D6] text-[#111]"
+  const selectedCls = "border border-primary bg-primary text-primary-foreground"
+  const idleCls = "border border-(--vq-line-2) bg-card hover:bg-background text-foreground"
 
   return (
     <div className="flex gap-1.5">
@@ -190,7 +190,7 @@ export function PlatformMultiPicker({
           className={cn(
             "flex-1 px-2 py-1.5 text-xs font-medium transition-colors",
             exclude.includes(p.id)
-              ? "opacity-25 cursor-not-allowed border border-[#D4C9B0]"
+              ? "opacity-25 cursor-not-allowed border border-(--vq-line-2)"
               : value.includes(p.id)
                 ? selectedCls
                 : idleCls

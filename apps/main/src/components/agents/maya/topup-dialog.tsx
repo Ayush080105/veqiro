@@ -57,7 +57,7 @@ export function MayaTopUpButton({ organizationId }: { organizationId: string }) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 rounded-full bg-[#F0F0F0] px-2 py-1 text-[11px] font-medium text-[#555] transition-colors hover:bg-[#E5E5E5]"
+        className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-background"
       >
         <Plus className="size-3" /> Top up
       </button>

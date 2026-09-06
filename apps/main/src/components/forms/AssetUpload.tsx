@@ -13,7 +13,8 @@ import {
   removeBrandAsset,
   type UploadKind,
 } from "@/lib/api/brain"
-import { FONT } from "@/lib/fonts"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface AssetUploadProps {
   kind: UploadKind
@@ -87,16 +88,8 @@ export function AssetUpload({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#555",
-        }}
-      >
+    <div className="flex flex-col gap-2">
+      <div className="font-mono text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
         {label}
       </div>
 
@@ -111,59 +104,25 @@ export function AssetUpload({
           setDragOver(false)
           if (!disabled && !busy) void handleFiles(e.dataTransfer.files)
         }}
-        style={{
-          position: "relative",
-          minHeight: 120,
-          borderRadius: 12,
-          border: `2.5px dashed ${dragOver ? "#1DBC87" : "#111"}`,
-          background: disabled ? "#F2EAD8" : dragOver ? "#E5F7EE" : "#FFF9ED",
-          opacity: disabled ? 0.6 : 1,
-          padding: 14,
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          cursor: disabled || busy ? "not-allowed" : "pointer",
-        }}
         onClick={() => {
           if (!disabled && !busy && !value) pick()
         }}
+        className={cn(
+          "relative flex min-h-30 items-center gap-3.5 rounded-(--vq-r) border-2 border-dashed p-3.5",
+          dragOver ? "border-chart-2 bg-[color-mix(in_srgb,var(--chart-2)_8%,var(--card))]" : "border-(--vq-line-2) bg-card",
+          disabled ? "cursor-not-allowed opacity-60" : busy ? "cursor-not-allowed" : "cursor-pointer"
+        )}
       >
         {value ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              width: "100%",
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  width: 92,
-                  height: 92,
-                  background: "#fff",
-                  border: "2px solid #111",
-                  borderRadius: 10,
-                  position: "relative",
-                  overflow: "hidden",
-                  flexShrink: 0,
-                }}
-              >
+          <div className="flex w-full min-w-0 flex-col gap-2.5">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="relative size-23 shrink-0 overflow-hidden rounded-lg border border-(--vq-line-2) bg-white">
                 <Image
                   src={value}
                   alt={`${kind} preview`}
                   fill
                   sizes="92px"
-                  style={{ objectFit: "contain" }}
+                  className="object-contain"
                   unoptimized
                 />
                 <a
@@ -173,73 +132,35 @@ export function AssetUpload({
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Open ${kind} in new tab`}
                   title="Open in new tab"
-                  style={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    width: 24,
-                    height: 24,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "rgba(255,255,255,0.95)",
-                    border: "1.5px solid #111",
-                    borderRadius: 6,
-                    color: "#111",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                  }}
+                  className="absolute top-1 right-1 inline-flex size-6 items-center justify-center rounded-md border border-(--vq-line-2) bg-white/95 text-foreground no-underline"
                 >
                   <ExternalLink className="size-3.5" />
                 </a>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 3,
-                  flex: 1,
-                  minWidth: 0,
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: FONT.head,
-                    fontSize: 13,
-                    color: "#111",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <div className="flex items-center gap-1.5 font-head text-[13px] text-foreground">
                   <span aria-hidden>✓</span>
                   <span>Uploaded</span>
                 </div>
                 <div
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 10,
-                    letterSpacing: 0.5,
-                    color: "#666",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
+                  className="truncate font-mono text-[10px] text-muted-foreground"
                   title={value ?? undefined}
                 >
                   {filenameFromUrl(value)}
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
+            <div className="flex gap-2">
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1 justify-center"
                 disabled={busy || disabled}
                 onClick={(e) => {
                   e.stopPropagation()
                   pick()
                 }}
-                style={btnStyle("#fff", { flex: 1, justifyContent: "center" })}
               >
                 {busy ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -247,41 +168,26 @@ export function AssetUpload({
                   <Upload className="size-3.5" />
                 )}
                 Replace
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
+                className="flex-1 justify-center"
                 disabled={busy || disabled}
                 onClick={(e) => {
                   e.stopPropagation()
                   void handleRemove()
                 }}
-                style={btnStyle("#FFE4E4", { flex: 1, justifyContent: "center" })}
               >
                 <X className="size-3.5" />
                 Remove
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              gap: 6,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontFamily: FONT.head,
-                fontSize: 14,
-                color: "#111",
-              }}
-            >
+          <div className="flex flex-1 flex-col items-start gap-1.5">
+            <div className="flex items-center gap-2 font-head text-sm text-foreground">
               {busy ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -289,14 +195,7 @@ export function AssetUpload({
               )}
               {busy ? "Uploading…" : "Drop or click to upload"}
             </div>
-            <div
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 11,
-                color: "#555",
-                letterSpacing: 0.5,
-              }}
-            >
+            <div className="font-mono text-[11px] text-muted-foreground">
               {hint ?? "PNG · JPEG · WebP · SVG · max 5MB"}
             </div>
           </div>
@@ -304,17 +203,7 @@ export function AssetUpload({
       </div>
 
       {error && (
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            color: "#8B1E1E",
-            background: "#FFE4E4",
-            border: "1.5px solid #F06464",
-            borderRadius: 8,
-            padding: "6px 10px",
-          }}
-        >
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 font-mono text-[11px] text-destructive">
           {error}
         </div>
       )}
@@ -323,7 +212,7 @@ export function AssetUpload({
         ref={inputRef}
         type="file"
         accept={ALLOWED_ASSET_TYPES.join(",")}
-        style={{ display: "none" }}
+        className="sr-only"
         onChange={(e) => {
           void handleFiles(e.target.files)
           e.target.value = "" // allow re-picking same file
@@ -347,27 +236,5 @@ function filenameFromUrl(url: string | null | undefined): string {
     return `${last.slice(0, 28 - ext.length)}…${ext}`
   } catch {
     return url.length > 32 ? `${url.slice(0, 29)}…` : url
-  }
-}
-
-function btnStyle(
-  bg: string,
-  overrides?: React.CSSProperties,
-): React.CSSProperties {
-  return {
-    fontFamily: FONT.mono,
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    background: bg,
-    border: "2px solid #111",
-    borderRadius: 999,
-    padding: "5px 12px",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    color: "#111",
-    ...overrides,
   }
 }

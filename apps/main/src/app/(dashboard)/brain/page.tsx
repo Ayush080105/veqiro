@@ -324,7 +324,7 @@ export default function BrainPage() {
 
       {/* Seeded-from-onboarding hint (shown once after completing onboarding) */}
       {seededHint && !isEmpty && (
-        <div className="mb-4 rounded-[var(--vq-r)] border border-[#0E5C3F]/20 bg-[#DDF5E8] px-3 py-2.5 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-[#0E5C3F] shadow-[var(--vq-shadow-sm)] sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-[0.1em]">
+        <div className="mb-4 rounded-(--vq-r) border border-chart-2/30 bg-(--vq-green)/10 px-3 py-2.5 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-[color-mix(in_srgb,var(--vq-green)_60%,black)] shadow-(--vq-shadow-sm) sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-widest">
           {"// Seeded from onboarding — edit anything and it auto-saves."}
         </div>
       )}
@@ -368,7 +368,7 @@ export default function BrainPage() {
         <span
           aria-live="polite"
           className={`font-mono text-[10px] uppercase tracking-[0.14em] sm:text-[11px] ${
-            hasPending ? "text-[#7A5A00]" : "text-muted-foreground"
+            hasPending ? "text-[color-mix(in_srgb,var(--vq-yellow)_65%,black)]" : "text-muted-foreground"
           }`}
         >
           {hasPending

@@ -1,5 +1,6 @@
 "use client"
 
+import type { CSSProperties } from "react"
 import Link from "next/link"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
 import type { DashboardSummary, Range } from "@/lib/api/dashboard"
@@ -64,7 +65,7 @@ export function CrewLeaderboard({
   const { kicker, title } = rangeLabel(range)
 
   return (
-    <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
+    <div className="bg-card border border-(--vq-line-2) rounded-2xl shadow-(--vq-shadow) p-5">
       <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         [ {kicker} ]
       </div>
@@ -73,13 +74,13 @@ export function CrewLeaderboard({
       </div>
 
       {!hasAny && (
-        <div className="px-4 py-3.5 bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em] mb-3">
+        <div className="px-4 py-3.5 bg-card border border-dashed border-(--vq-line-2) rounded-xl font-mono text-xs text-muted-foreground tracking-widest mb-3">
           {"// nobody's clocked in yet - start a chat"}
         </div>
       )}
 
       <div className="flex flex-col gap-2.5">
-        {sorted.map((row) => {
+        {sorted.map((row, i) => {
           const agent = (() => {
             try {
               return getAgentBySlug(row.slug)
@@ -93,11 +94,12 @@ export function CrewLeaderboard({
             <Link
               key={row.slug}
               href={`/assistants/${row.slug}`}
-              className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 p-3 no-underline bg-white border border-[var(--vq-line-2)] rounded-xl text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[44px_120px_minmax(80px,1fr)_auto_80px]"
+              className="vq-stagger-item grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 p-3 no-underline bg-card border border-(--vq-line-2) rounded-xl text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[44px_120px_minmax(80px,1fr)_auto_80px]"
+              style={{ "--vq-stagger-i": i } as CSSProperties}
             >
               {/* Avatar: colored base + initials behind + photo on top */}
               <div
-                className="relative size-10 rounded-full overflow-hidden border border-[var(--vq-line-2)] shrink-0"
+                className="relative size-10 rounded-full overflow-hidden border border-(--vq-line-2) shrink-0"
                 style={{ background: agent.color }}
               >
                 <span
@@ -126,7 +128,7 @@ export function CrewLeaderboard({
               </div>
 
               <div
-                className="col-span-2 sm:col-span-1 relative h-[18px] bg-background border border-[var(--vq-line-2)] rounded-full overflow-hidden"
+                className="col-span-2 sm:col-span-1 relative h-4.5 bg-background border border-(--vq-line-2) rounded-full overflow-hidden"
               >
                 <div
                   style={{

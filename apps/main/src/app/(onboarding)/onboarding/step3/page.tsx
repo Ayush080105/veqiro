@@ -26,7 +26,7 @@ export default function Step3Audience() {
                 key={i}
                 active={field.value === i}
                 onClick={() => field.onChange(i)}
-                color="#6FCDE8"
+                color="var(--vq-blue)"
               >
                 {i}
               </Chip>

@@ -53,8 +53,8 @@ export default function Step7Review() {
   ]
 
   return (
-    <StepShell emoji={STEP.emoji} title={STEP.title} subtitle={STEP.subtitle} bg="#F5E5C8">
-      <div className="mb-5 rounded-xl border border-[var(--vq-line-2)] bg-white p-6 shadow-[var(--vq-shadow-sm)]">
+    <StepShell emoji={STEP.emoji} title={STEP.title} subtitle={STEP.subtitle} bg="color-mix(in srgb, var(--vq-yellow) 25%, var(--card))">
+      <div className="mb-5 rounded-xl border border-(--vq-line-2) bg-card p-6 shadow-(--vq-shadow-sm)">
         <div className="grid gap-3.5">
           {rows.map(({ label, value, jumpTo }) => (
             <div

@@ -186,7 +186,7 @@ function PipelineTab() {
               <TableCell>
                 <div className="flex justify-end gap-1">
                   {lead.email && (
-                    <Button variant="ghost" size="icon-sm" title="Draft email">
+                    <Button variant="ghost" size="icon-sm" title="Draft email" aria-label="Draft email">
                       <Mail className="size-3.5" />
                     </Button>
                   )}

@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { TimeSelect } from "@/components/ui/time-select"
 import { useIntegrations } from "@/lib/api/integrations"
 import { schedulePost, scheduleCarousel } from "@/lib/api/assistants"
+import { cn } from "@/lib/utils"
 import { normalizePlatform, PostTypeToggle } from "./publish-dialog"
 import type { PublishDialogProps, CampaignPublishDialogProps } from "./publish-dialog"
 
@@ -49,24 +50,17 @@ function DateTimePicker({
   onDateChange: (d: Date) => void
   onTimeChange: (t: string) => void
 }) {
-  const inputStyle: React.CSSProperties = {
-    padding: "6px 10px",
-    border: "1.5px solid #111",
-    borderRadius: 6,
-    fontSize: 12,
-    fontFamily: "var(--font-mono)",
-    background: "#fff",
-    outline: "none",
-  }
+  const inputClass =
+    "rounded-md border border-(--vq-line-2) bg-card px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
   return (
     <div className="flex gap-3">
       <div className="flex flex-col gap-1 flex-1">
         <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Date</label>
         <Popover>
-          <PopoverTrigger style={{ ...inputStyle, cursor: "pointer", textAlign: "left", fontWeight: 600, width: "100%" }}>
+          <PopoverTrigger className={cn(inputClass, "w-full cursor-pointer text-left font-semibold")}>
             {date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
           </PopoverTrigger>
-          <PopoverContent side="bottom" align="start" style={{ width: "auto", padding: 0, border: "2px solid #111", borderRadius: 8, boxShadow: "4px 4px 0 #111" }}>
+          <PopoverContent side="bottom" align="start" className="w-auto rounded-(--vq-r) border border-(--vq-line-2) p-0 shadow-(--vq-shadow-lg)">
             <Calendar
               mode="single"
               selected={date}
@@ -170,7 +164,7 @@ export function CampaignScheduleDialog({ imageUrls, photoCount, caption, hashtag
                   key={a.id}
                   onClick={() => handleSchedule(a.id)}
                   disabled={scheduling}
-                  className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+                  className="flex items-center justify-between rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 text-left text-xs hover:bg-background transition-colors disabled:opacity-60"
                 >
                   <span className="font-medium">{a.accountName ?? a.providerAccountId}</span>
                   <span className="text-muted-foreground">
@@ -289,7 +283,7 @@ export function ScheduleDialog({ platform, caption, hashtags, image, video }: Pu
                   key={a.id}
                   onClick={() => handleSchedule(a.id)}
                   disabled={scheduling}
-                  className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+                  className="flex items-center justify-between rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 text-left text-xs hover:bg-background transition-colors disabled:opacity-60"
                 >
                   <span className="font-medium">{a.accountName ?? a.providerAccountId}</span>
                   <span className="text-muted-foreground">

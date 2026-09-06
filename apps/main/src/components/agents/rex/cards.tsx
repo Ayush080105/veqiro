@@ -22,6 +22,7 @@ import {
   ArrowRight,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { AgentCard } from "@/components/ui/agent-card"
 import { InfoSection } from "@/components/ui/info-section"
 import { KpiTile } from "@/components/ui/kpi-tile"
@@ -67,7 +68,7 @@ function ConfidenceFooter({
   note?: string
 }) {
   if (!level && !dataPoints && !note) return null
-  const dot = level === "high" ? "#1DBC87" : level === "medium" ? "#f59e0b" : level === "low" ? "#ef4444" : "#888"
+  const dot = level === "high" ? "var(--vq-green)" : level === "medium" ? "var(--vq-yellow)" : level === "low" ? "var(--vq-red)" : "var(--muted-foreground)"
   const label = level ? `${level} confidence` : null
   return (
     <div className="flex items-center gap-1.5 border-t border-border pt-2 mt-1">
@@ -96,31 +97,10 @@ function FollowUpBtn({
   onClick: () => void
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "6px 14px",
-        borderRadius: 999,
-        background: "#111",
-        color: "#FFF9ED",
-        fontSize: 11,
-        fontWeight: 500,
-        letterSpacing: "0.01em",
-        border: "none",
-        cursor: "pointer",
-        transition: "opacity 150ms",
-        whiteSpace: "nowrap",
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8" }}
-      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1" }}
-    >
+    <Button type="button" variant="chat-action" onClick={onClick}>
       {label}
       <Icon size={11} />
-    </button>
+    </Button>
   )
 }
 
@@ -1279,7 +1259,7 @@ export function RexAnalyzeDatasetCard({
             <ul className="flex flex-col gap-1">
               {result.key_findings.map((f, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-[11px]">
-                  <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-[#1DBC87]" />
+                  <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-chart-2" />
                   {f}
                 </li>
               ))}

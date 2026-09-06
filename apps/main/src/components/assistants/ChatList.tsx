@@ -12,8 +12,7 @@ import { AGENTS, AGENT_PHOTOS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
 import { useUpcomingAgents, type UpcomingAgent } from "@/lib/api/feedback"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { stripMarkdown } from "@/lib/utils"
-import { FONT } from "@/lib/fonts"
+import { stripMarkdown, cn } from "@/lib/utils"
 import { TeamRow } from "./TeamRow"
 import type {
   AgentStatusData,
@@ -29,11 +28,11 @@ function TypingDots() {
           0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
           40% { opacity: 1; transform: translateY(-2px); }
         }
-        .vq-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #333; margin: 0 1.5px; animation: vq-blink 1.2s infinite ease-in-out; }
+        .vq-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--foreground); margin: 0 1.5px; animation: vq-blink 1.2s infinite ease-in-out; }
         .vq-dot:nth-child(2) { animation-delay: 0.2s; }
         .vq-dot:nth-child(3) { animation-delay: 0.4s; }
       `}</style>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
+      <span className="inline-flex items-center gap-px">
         <span className="vq-dot" />
         <span className="vq-dot" />
         <span className="vq-dot" />
@@ -43,9 +42,9 @@ function TypingDots() {
 }
 
 const STATUS_DOT: Record<AgentStatusData["status"], string> = {
-  working: "#F5C518",
-  idle: "#1DBC87",
-  "needs-attention": "#F06464",
+  working: "var(--vq-yellow)",
+  idle: "var(--vq-green)",
+  "needs-attention": "var(--vq-red)",
 }
 
 const EMPTY_UNREAD_SET = new Set<string>()
@@ -167,7 +166,7 @@ function AgentRow({
   unread: boolean
 }) {
   const photo = AGENT_PHOTOS[agent.id]
-  const dot = isTyping ? "#F5C518" : STATUS_DOT[status?.status ?? "idle"]
+  const dot = isTyping ? "var(--vq-yellow)" : STATUS_DOT[status?.status ?? "idle"]
   const preview = previewLine(last, status?.lastActivity)
   const time = isTyping ? "now" : formatRelative(last?.createdAt)
 
@@ -175,153 +174,47 @@ function AgentRow({
     <Link
       href={`/assistants/${agent.id}`}
       data-tour={`assistant-row-${agent.id}`}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "12px 14px",
-        background: active ? "#EEF6F1" : "transparent",
-        borderBottom: "1px solid #E5DCC8",
-        textDecoration: "none",
-        color: "#111",
-        position: "relative",
-        transition: "background 120ms",
-      }}
+      className={cn(
+        "relative flex items-center gap-3 border-b border-(--vq-line-2) px-3.5 py-3 text-foreground no-underline transition-colors",
+        active ? "bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))]" : "bg-transparent"
+      )}
     >
-      <div style={{ position: "relative", flexShrink: 0 }}>
-        <div
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: "50%",
-            overflow: "hidden",
-            border: "none",
-            background: agent.color,
-          }}
-        >
-          {photo ? (
-            <Image
-              src={photo}
-              alt={agent.name}
-              width={46}
-              height={46}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "grid",
-                placeItems: "center",
-                fontFamily: FONT.head,
-                fontSize: 14,
-              }}
-            >
-              {agent.initials}
-            </div>
-          )}
-        </div>
+      <div className="relative shrink-0 size-11.5 overflow-hidden rounded-full" style={{ background: agent.color }}>
+        {photo ? (
+          <Image
+            src={photo}
+            alt={agent.name}
+            width={46}
+            height={46}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center font-head text-sm">
+            {agent.initials}
+          </div>
+        )}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: FONT.head,
-              fontSize: 15,
-              color: "#111",
-              letterSpacing: -0.2,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="truncate font-head text-[15px] tracking-tight text-foreground">
             {agent.name}
           </span>
           {time && (
-            <span
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 10,
-                letterSpacing: "0.3px",
-                color: "#666",
-                flexShrink: 0,
-              }}
-            >
+            <span className="shrink-0 font-mono text-[10px] tracking-[0.02em] text-muted-foreground">
               {time}
             </span>
           )}
         </div>
-        <div
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: "1px",
-            textTransform: "uppercase",
-            color: "#666",
-            marginTop: 1,
-            marginBottom: 4,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <div className="mt-px mb-1 truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
           {agent.role}
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: dot,
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontFamily: FONT.body,
-              fontSize: 13,
-              color: "#333",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-            }}
-          >
+        <div className="flex items-center gap-1.5">
+          <span className="size-1.75 shrink-0 rounded-full" style={{ background: dot }} />
+          <span className="flex-1 truncate font-body text-[13px] text-foreground/80">
             {isTyping ? <TypingDots /> : preview}
           </span>
           {unread && !active && (
-            <span
-              style={{
-                flexShrink: 0,
-                minWidth: 18,
-                height: 18,
-                borderRadius: 999,
-                background: "#1DBC87",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-                display: "grid",
-                placeItems: "center",
-                fontFamily: FONT.mono,
-                fontSize: 9,
-                fontWeight: 700,
-                color: "#fff",
-                paddingInline: 4,
-              }}
-            >
+            <span className="grid h-4.5 min-w-4.5 shrink-0 place-items-center rounded-full bg-chart-2 px-1 font-mono text-[9px] font-bold text-white shadow-sm">
               1
             </span>
           )}
@@ -335,76 +228,27 @@ function UpcomingAgentRow({ agent, active }: { agent: UpcomingAgent; active: boo
   return (
     <Link
       href={`/assistants/upcoming/${agent.id}`}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "12px 14px",
-        background: active ? "#EEF6F1" : "transparent",
-        borderBottom: "1px solid #E5DCC8",
-        textDecoration: "none",
-        color: "#111",
-        position: "relative",
-        transition: "background 120ms",
-        opacity: 0.75,
-      }}
+      className={cn(
+        "relative flex items-center gap-3 border-b border-(--vq-line-2) px-3.5 py-3 text-foreground no-underline opacity-75 transition-colors",
+        active ? "bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))]" : "bg-transparent"
+      )}
     >
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <div className="relative shrink-0">
         <div
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: "50%",
-            background: agent.color ?? "#aaa",
-            display: "grid",
-            placeItems: "center",
-            fontSize: 22,
-          }}
+          className="grid size-11.5 place-items-center rounded-full text-[22px]"
+          style={{ background: agent.color ?? "var(--muted-foreground)" }}
         >
           {agent.emoji ?? "🤖"}
         </div>
-        <span
-          style={{
-            position: "absolute",
-            bottom: 0,
-            right: 0,
-            width: 18,
-            height: 18,
-            borderRadius: "50%",
-            background: "#fff",
-            border: "1.5px solid #D4C9B0",
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <Lock style={{ width: 10, height: 10, color: "#555" }} />
+        <span className="absolute right-0 bottom-0 grid size-4.5 place-items-center rounded-full border border-(--vq-line-2) bg-card">
+          <Lock className="size-2.5 text-muted-foreground" />
         </span>
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontFamily: FONT.head,
-            fontSize: 15,
-            color: "#111",
-            letterSpacing: -0.2,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-head text-[15px] tracking-tight text-foreground">
           {agent.name}
         </div>
-        <div
-          style={{
-            fontFamily: FONT.body,
-            fontSize: 12,
-            color: "#666",
-            marginTop: 3,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <div className="mt-0.5 truncate font-body text-xs text-muted-foreground">
           {agent.tagline}
         </div>
       </div>
@@ -436,22 +280,13 @@ function RailAvatar({
       href={href}
       title={title}
       aria-label={title}
-      style={{
-        position: "relative",
-        display: "flex",
-        justifyContent: "center",
-        padding: "6px 0",
-      }}
+      className="relative flex justify-center py-1.5"
     >
       <div
+        className="relative size-10.5 overflow-hidden rounded-full"
         style={{
-          position: "relative",
-          width: 42,
-          height: 42,
-          borderRadius: "50%",
-          overflow: "hidden",
           background: color,
-          boxShadow: active ? "0 0 0 2px #FFF9ED, 0 0 0 4px #111" : "none",
+          boxShadow: active ? "0 0 0 2px var(--card), 0 0 0 4px var(--ring)" : "none",
         }}
       >
         {photo ? (
@@ -460,34 +295,19 @@ function RailAvatar({
             alt=""
             width={42}
             height={42}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className="h-full w-full object-cover"
           />
         ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "grid",
-              placeItems: "center",
-              fontFamily: FONT.head,
-              fontSize: 13,
-              color: "#fff",
-            }}
-          >
+          <div className="grid h-full w-full place-items-center font-head text-[13px] text-white">
             {initials}
           </div>
         )}
         <span
-          style={{
-            position: "absolute",
-            bottom: -1,
-            right: -1,
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            background: isTyping ? "#F5C518" : unread ? "#1DBC87" : "transparent",
-            border: unread || isTyping ? "2px solid #FFF9ED" : "none",
-          }}
+          className={cn(
+            "absolute -right-px -bottom-px size-2.5 rounded-full",
+            (unread || isTyping) && "border-2 border-card"
+          )}
+          style={{ background: isTyping ? "var(--vq-yellow)" : unread ? "var(--vq-green)" : "transparent" }}
         />
       </div>
     </Link>
@@ -540,7 +360,7 @@ export default function ChatList({
     return (
       <aside
         data-tour="assistants-sidebar"
-        className="flex h-full w-full flex-col items-center overflow-hidden bg-[#FFF9ED]"
+        className="flex h-full w-full flex-col items-center overflow-hidden bg-card"
       >
         {onToggleCollapsed && (
           <button
@@ -548,7 +368,7 @@ export default function ChatList({
             onClick={onToggleCollapsed}
             title="Expand assistants list"
             aria-label="Expand assistants list"
-            className="mt-3 flex size-9 items-center justify-center rounded-full text-[#888] transition-colors hover:bg-black/[0.06]"
+            className="mt-3 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/6"
           >
             <PanelLeftOpen className="size-4" />
           </button>
@@ -557,11 +377,11 @@ export default function ChatList({
           href="/assistants/team"
           title="Team"
           aria-label="Team"
-          className="mt-2 flex size-9 items-center justify-center rounded-full text-[#888] transition-colors hover:bg-black/[0.06]"
+          className="mt-2 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/6"
         >
           <Users className="size-4" />
         </Link>
-        <div className="my-1.5 h-px w-6 bg-[#D4C9B0]" />
+        <div className="my-1.5 h-px w-6 bg-(--vq-line-2)" />
         <div className="flex min-h-0 w-full flex-1 flex-col items-center overflow-y-auto pb-2">
           {AGENTS.map((agent) => (
             <RailAvatar
@@ -584,40 +404,14 @@ export default function ChatList({
   return (
     <aside
       data-tour="assistants-sidebar"
-      style={{
-        background: "#FFF9ED",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        width: "100%",
-        height: "100%",
-      }}
+      className="flex h-full w-full flex-col overflow-hidden bg-card"
     >
-      <div
-        style={{
-          padding: "16px 16px 12px",
-          borderBottom: "1px solid #D4C9B0",
-          background: "#FFF9ED",
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 8,
-        }}
-      >
+      <div className="flex items-start justify-between gap-2 border-b border-(--vq-line-2) bg-card px-4 pt-4 pb-3">
         <div>
-          <h2
-            style={{
-              fontFamily: FONT.head,
-              fontSize: 20,
-              margin: 0,
-              fontWeight: 700,
-              color: "#111",
-              lineHeight: 1,
-            }}
-          >
+          <h2 className="m-0 font-head text-xl leading-none font-bold text-foreground">
             Assistants
           </h2>
-          <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>
+          <div className="mt-0.5 text-xs text-muted-foreground">
             your crew of six
           </div>
         </div>
@@ -627,50 +421,26 @@ export default function ChatList({
             onClick={onToggleCollapsed}
             title="Collapse assistants list"
             aria-label="Collapse assistants list"
-            className="hidden md:flex size-8 shrink-0 items-center justify-center rounded-full text-[#888] transition-colors hover:bg-black/[0.06]"
+            className="hidden size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/6 md:flex"
           >
             <PanelLeftClose className="size-4" />
           </button>
         )}
       </div>
 
-      <div
-        style={{
-          padding: "8px 12px",
-          borderBottom: "1px solid #D4C9B0",
-          background: "#FFF9ED",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "#EFE7D6",
-            border: "1px solid #D4C9B0",
-            borderRadius: 999,
-            padding: "7px 14px",
-          }}
-        >
-          <Search className="size-4" style={{ color: "#999" }} />
+      <div className="border-b border-(--vq-line-2) bg-card px-3 py-2">
+        <div className="flex items-center gap-2 rounded-full border border-(--vq-line-2) bg-background px-3.5 py-1.75">
+          <Search className="size-4 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search assistants"
-            style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              fontFamily: FONT.body,
-              fontSize: 13,
-              color: "#111",
-            }}
+            className="flex-1 border-none bg-transparent font-body text-[13px] text-foreground outline-none"
           />
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="flex-1 overflow-auto">
         {/* Pinned above the six: one room where the agents you own work a
             single task together. Not filtered by search — it is a place, not
             an agent. */}
@@ -692,24 +462,8 @@ export default function ChatList({
 
         {upcomingAgents && upcomingAgents.length > 0 && (
           <>
-            <div
-              style={{
-                padding: "10px 14px 6px",
-                borderBottom: "1px solid #E5DCC8",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 10,
-                  letterSpacing: "1.5px",
-                  textTransform: "uppercase",
-                  color: "#999",
-                }}
-              >
+            <div className="flex items-center gap-2 border-b border-(--vq-line-2) px-3.5 pt-2.5 pb-1.5">
+              <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
                 Coming Soon
               </span>
             </div>

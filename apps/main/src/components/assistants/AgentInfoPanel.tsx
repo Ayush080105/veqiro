@@ -12,8 +12,22 @@ import {
   revokeApiKey,
 } from "@/lib/api/rex"
 import type { RexAlertRule } from "@/lib/types/agents"
-import { FONT } from "@/lib/fonts"
 import type { AgentConfig, BrandKit } from "@/lib/types"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-2 font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
+      {children}
+    </div>
+  )
+}
+
+const nativeControlClass =
+  "rounded-md border border-(--vq-line-2) bg-card px-2 py-1 font-mono text-[11px] text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
 
 function ContextBlock({ kit }: { kit: BrandKit | null }) {
   if (!kit || !kit.companyName) return null
@@ -30,60 +44,25 @@ function ContextBlock({ kit }: { kit: BrandKit | null }) {
 
   return (
     <div>
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 10,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#555",
-          marginBottom: 8,
-        }}
-      >
-        context
-      </div>
-      <div
-        style={{
-          background: "#fff",
-          border: "2px dashed #111",
-          borderRadius: 10,
-          padding: "10px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}
-      >
+      <SectionLabel>context</SectionLabel>
+      <div className="flex flex-col gap-1.5 rounded-(--vq-r) border border-dashed border-(--vq-line-2) bg-card p-3">
         {bits.map((b) => (
-          <div key={b.k} style={{ fontFamily: FONT.mono, fontSize: 11, color: "#111" }}>
-            <span style={{ opacity: 0.5 }}>{b.k}: </span>
-            <span style={{ fontWeight: 600 }}>{b.v}</span>
+          <div key={b.k} className="font-mono text-[11px] text-foreground">
+            <span className="opacity-50">{b.k}: </span>
+            <span className="font-semibold">{b.v}</span>
           </div>
         ))}
         {swatches.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-            <span
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 10,
-                letterSpacing: 1.5,
-                textTransform: "uppercase",
-                color: "#555",
-              }}
-            >
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
               palette
             </span>
             {swatches.map((c, i) => (
               <span
                 key={i}
                 title={c}
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: 4,
-                  background: c,
-                  border: "1.5px solid #111",
-                  display: "inline-block",
-                }}
+                className="inline-block size-3.5 rounded border border-(--vq-line-2)"
+                style={{ background: c }}
               />
             ))}
           </div>
@@ -144,77 +123,35 @@ function RexAlertsBlock({
 
   return (
     <div>
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 10,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#555",
-          marginBottom: 8,
-        }}
-      >
-        alert rules
-      </div>
-      <div
-        style={{
-          background: "#fff",
-          border: "2px solid #111",
-          borderRadius: 10,
-          padding: "10px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
+      <SectionLabel>alert rules</SectionLabel>
+      <div className="flex flex-col gap-2 rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3 shadow-(--vq-shadow-sm)">
         {rules.length === 0 && (
-          <div style={{ fontFamily: FONT.mono, fontSize: 10, color: "#888" }}>
+          <div className="font-mono text-[10px] text-muted-foreground">
             No alerts configured. Add rules to receive a daily email when thresholds trip.
           </div>
         )}
         {rules.map((r) => (
           <div
             key={r.id}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              border: "1px dashed #ccc",
-              borderRadius: 6,
-              padding: 8,
-            }}
+            className="flex flex-col gap-1.5 rounded-md border border-dashed border-(--vq-line-2) p-2"
           >
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <input
+            <div className="flex items-center gap-1.5">
+              <Input
                 value={r.label ?? ""}
                 placeholder="Label (e.g. Runway warning)"
                 onChange={(e) => update(r.id, { label: e.target.value })}
                 disabled={disabled}
-                style={{
-                  flex: 1,
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  padding: "4px 6px",
-                  border: "1px solid #111",
-                  borderRadius: 4,
-                  background: "#FFF9ED",
-                }}
+                className="h-7 flex-1 font-mono text-[11px]"
               />
               <button
                 type="button"
                 onClick={() => update(r.id, { enabled: !r.enabled })}
                 disabled={disabled}
                 title={r.enabled ? "Disable" : "Enable"}
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 10,
-                  padding: "4px 8px",
-                  border: "1.5px solid #111",
-                  borderRadius: 4,
-                  background: r.enabled ? "#1DBC87" : "#e0e0e0",
-                  color: r.enabled ? "#fff" : "#555",
-                  cursor: "pointer",
-                }}
+                className={cn(
+                  "rounded-md border border-(--vq-line-2) px-2 py-1 font-mono text-[10px] disabled:opacity-50",
+                  r.enabled ? "bg-chart-2 text-white" : "bg-muted-foreground/15 text-muted-foreground"
+                )}
               >
                 {r.enabled ? "ON" : "OFF"}
               </button>
@@ -222,32 +159,18 @@ function RexAlertsBlock({
                 type="button"
                 onClick={() => remove(r.id)}
                 disabled={disabled}
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 10,
-                  padding: "4px 6px",
-                  border: "1.5px solid #111",
-                  borderRadius: 4,
-                  background: "#fff",
-                  cursor: "pointer",
-                }}
+                aria-label="Remove alert rule"
+                className="rounded-md border border-(--vq-line-2) bg-card px-1.5 py-1 font-mono text-[10px] text-muted-foreground disabled:opacity-50"
               >
                 ×
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: 6 }}>
+            <div className="grid grid-cols-[1fr_1fr_80px] gap-1.5">
               <select
                 value={r.metric}
                 onChange={(e) => update(r.id, { metric: e.target.value })}
                 disabled={disabled}
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  padding: "4px 6px",
-                  border: "1px solid #111",
-                  borderRadius: 4,
-                  background: "#FFF9ED",
-                }}
+                className={nativeControlClass}
               >
                 {ALERT_METRIC_OPTIONS.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -257,14 +180,7 @@ function RexAlertsBlock({
                 value={r.operator}
                 onChange={(e) => update(r.id, { operator: e.target.value as RexAlertRule["operator"] })}
                 disabled={disabled}
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  padding: "4px 6px",
-                  border: "1px solid #111",
-                  borderRadius: 4,
-                  background: "#FFF9ED",
-                }}
+                className={nativeControlClass}
               >
                 {Object.entries(OPERATOR_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -275,35 +191,21 @@ function RexAlertsBlock({
                 value={r.threshold}
                 onChange={(e) => update(r.id, { threshold: Number(e.target.value) })}
                 disabled={disabled}
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  padding: "4px 6px",
-                  border: "1px solid #111",
-                  borderRadius: 4,
-                  background: "#FFF9ED",
-                }}
+                className={nativeControlClass}
               />
             </div>
           </div>
         ))}
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={addRule}
           disabled={disabled}
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            padding: "6px 10px",
-            border: "2px dashed #111",
-            borderRadius: 6,
-            background: "#FFF9ED",
-            cursor: "pointer",
-            alignSelf: "flex-start",
-          }}
+          className="self-start border-dashed"
         >
           + Add rule
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -335,112 +237,50 @@ function RexApiKeyBlock({ organizationId, apiKey }: { organizationId: string; ap
 
   return (
     <div>
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 10,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#555",
-          marginBottom: 8,
-        }}
-      >
-        webhook ingest key
-      </div>
-      <div
-        style={{
-          background: "#fff",
-          border: "2px solid #111",
-          borderRadius: 10,
-          padding: "10px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <div style={{ fontFamily: FONT.mono, fontSize: 10, color: "#777", lineHeight: 1.5 }}>
-          POST <span style={{ color: "#111" }}>/agents/rex/ingest</span> with{" "}
-          <code style={{ background: "#f5f5f5", padding: "1px 4px", borderRadius: 3 }}>
+      <SectionLabel>webhook ingest key</SectionLabel>
+      <div className="flex flex-col gap-2 rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3 shadow-(--vq-shadow-sm)">
+        <div className="font-mono text-[10px] leading-relaxed text-muted-foreground">
+          POST <span className="text-foreground">/agents/rex/ingest</span> with{" "}
+          <code className="rounded bg-muted px-1 py-0.5">
             {`{ api_key, metric, date, value }`}
           </code>{" "}
           to append data points without UI.
         </div>
         {apiKey ? (
           <>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div className="flex items-center gap-1.5">
               <code
                 onClick={() => setRevealed((v) => !v)}
-                style={{
-                  flex: 1,
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  padding: "6px 8px",
-                  background: "#FFF9ED",
-                  border: "1.5px solid #111",
-                  borderRadius: 4,
-                  cursor: "pointer",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
+                className="flex-1 cursor-pointer overflow-hidden rounded-md border border-(--vq-line-2) bg-background px-2 py-1.5 font-mono text-[11px] text-ellipsis whitespace-nowrap"
               >
                 {revealed ? apiKey : `${apiKey.slice(0, 8)}••••••${apiKey.slice(-4)}`}
               </code>
-              <button
-                type="button"
-                onClick={copy}
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 10,
-                  padding: "6px 10px",
-                  border: "1.5px solid #111",
-                  borderRadius: 4,
-                  background: "#fff",
-                  cursor: "pointer",
-                }}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={copy}>
                 {copied ? "Copied" : "Copy"}
-              </button>
+              </Button>
             </div>
-            <button
+            <Button
               type="button"
+              variant="destructive"
+              size="sm"
+              className="self-start"
               onClick={() => revokeMut.mutate()}
               disabled={revokeMut.isPending}
-              style={{
-                alignSelf: "flex-start",
-                fontFamily: FONT.mono,
-                fontSize: 10,
-                padding: "4px 10px",
-                border: "1.5px solid #ef4444",
-                borderRadius: 4,
-                background: "#fff",
-                color: "#ef4444",
-                cursor: "pointer",
-              }}
             >
               Revoke key
-            </button>
+            </Button>
           </>
         ) : (
-          <button
+          <Button
             type="button"
+            variant="brand-dark"
+            size="sm"
+            className="self-start"
             onClick={() => genMut.mutate()}
             disabled={genMut.isPending}
-            style={{
-              alignSelf: "flex-start",
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              padding: "6px 12px",
-              border: "2px solid #111",
-              borderRadius: 6,
-              background: "#1DBC87",
-              color: "#fff",
-              cursor: "pointer",
-              boxShadow: "2px 2px 0 #111",
-            }}
           >
             Generate API key
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -469,103 +309,36 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
 
   return (
     <div>
-      <div
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 10,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#555",
-          marginBottom: 8,
-        }}
-      >
-        rex settings
-      </div>
-      <div
-        style={{
-          background: "#fff",
-          border: "2px solid #111",
-          borderRadius: 10,
-          padding: "10px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-        }}
-      >
+      <SectionLabel>rex settings</SectionLabel>
+      <div className="flex flex-col gap-2.5 rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3 shadow-(--vq-shadow-sm)">
         {/* Weekly digest toggle */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: FONT.body, fontSize: 12, fontWeight: 600, color: "#111" }}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="font-body text-xs font-semibold text-foreground">
               Monday digest
             </div>
-            <div style={{ fontFamily: FONT.mono, fontSize: 10, color: "#777", marginTop: 2 }}>
+            <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
               Weekly CFO email at 9am
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => mut.mutate({ weeklyDigestEnabled: !enabled })}
+          <Switch
+            checked={enabled}
+            onCheckedChange={(v) => mut.mutate({ weeklyDigestEnabled: v })}
             disabled={mut.isPending}
             aria-label={enabled ? "Disable weekly digest" : "Enable weekly digest"}
-            style={{
-              flexShrink: 0,
-              width: 44,
-              height: 24,
-              borderRadius: 999,
-              border: "2px solid #111",
-              background: enabled ? "#1DBC87" : "#e0e0e0",
-              cursor: "pointer",
-              position: "relative",
-              transition: "background 180ms",
-              boxShadow: "2px 2px 0 #111",
-            }}
-          >
-            <span
-              style={{
-                position: "absolute",
-                top: 2,
-                left: enabled ? 20 : 2,
-                width: 16,
-                height: 16,
-                borderRadius: "50%",
-                background: "#fff",
-                border: "1.5px solid #111",
-                transition: "left 180ms",
-              }}
-            />
-          </button>
+          />
         </div>
 
         {/* Timezone selector */}
         <div>
-          <div
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 10,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              color: "#555",
-              marginBottom: 4,
-            }}
-          >
+          <div className="mb-1 font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
             timezone
           </div>
           <select
             value={tz}
             onChange={(e) => mut.mutate({ weeklyDigestTimezone: e.target.value })}
             disabled={mut.isPending || !enabled}
-            style={{
-              width: "100%",
-              fontFamily: FONT.mono,
-              fontSize: 11,
-              padding: "5px 8px",
-              border: "2px solid #111",
-              borderRadius: 6,
-              background: enabled ? "#FFF9ED" : "#f5f5f5",
-              color: "#111",
-              cursor: enabled ? "pointer" : "not-allowed",
-              opacity: enabled ? 1 : 0.5,
-            }}
+            className={cn(nativeControlClass, "w-full")}
           >
             {TZ_OPTIONS.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -575,7 +348,7 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
       </div>
 
       {/* Alert rules — daily threshold checks */}
-      <div style={{ marginTop: 18 }}>
+      <div className="mt-4">
         <RexAlertsBlock
           rules={rules}
           disabled={mut.isPending}
@@ -584,7 +357,7 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
       </div>
 
       {/* Webhook ingest API key */}
-      <div style={{ marginTop: 18 }}>
+      <div className="mt-4">
         <RexApiKeyBlock organizationId={organizationId} apiKey={settings?.ingestApiKey} />
       </div>
     </div>
@@ -621,129 +394,53 @@ export default function AgentInfoPanel({
     <>
       <div
         onClick={onClose}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0,0,0,0.25)",
-          zIndex: 40,
-        }}
+        className="absolute inset-0 z-40 bg-black/40"
       />
       <aside
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: 320,
-          background: "#FFF9ED",
-          borderLeft: "3px solid #111",
-          padding: "20px 18px",
-          overflow: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 18,
-          zIndex: 41,
-          boxShadow: "-6px 0 0 #111",
-        }}
+        role="dialog"
+        aria-label={`${agent.name} info`}
+        className="absolute inset-y-0 right-0 z-50 flex w-80 flex-col gap-4 overflow-auto border-l border-(--vq-line-2) bg-card p-5 shadow-(--vq-shadow-lg)"
       >
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button
+        <div className="flex justify-end">
+          <Button
             type="button"
+            variant="outline"
+            size="icon-sm"
             onClick={onClose}
             aria-label="Close info"
-            style={{
-              background: "#fff",
-              border: "2px solid #111",
-              borderRadius: 999,
-              padding: 6,
-              cursor: "pointer",
-              boxShadow: "2px 2px 0 #111",
-              display: "grid",
-              placeItems: "center",
-            }}
+            className="rounded-full"
           >
             <X className="size-4" />
-          </button>
+          </Button>
         </div>
 
         <div
-          style={{
-            background: agent.color,
-            border: "3px solid #111",
-            borderRadius: 14,
-            overflow: "hidden",
-            boxShadow: "6px 6px 0 #111",
-            transform: "rotate(-1.5deg)",
-          }}
+          className="overflow-hidden rounded-2xl border border-(--vq-line-2) shadow-(--vq-shadow)"
+          style={{ background: agent.color }}
         >
-          <img src={agentPhoto} alt={agent.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <img src={agentPhoto} alt={agent.name} className="block h-full w-full object-cover" />
         </div>
 
         <div>
-          <div
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 10,
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              color: "#555",
-            }}
-          >
+          <div className="font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
             {agent.role}
           </div>
-          <div
-            style={{
-              fontFamily: FONT.display,
-              fontSize: 44,
-              lineHeight: 1,
-              color: "#111",
-              letterSpacing: -1,
-              marginTop: 2,
-            }}
-          >
+          <div className="mt-0.5 font-display text-[44px] leading-none tracking-tight text-foreground">
             {agent.name.toLowerCase()}
           </div>
         </div>
 
-        <p
-          style={{
-            fontFamily: FONT.body,
-            fontSize: 14,
-            lineHeight: 1.5,
-            color: "#333",
-            margin: 0,
-            fontStyle: "italic",
-          }}
-        >
+        <p className="m-0 font-body text-sm leading-relaxed text-foreground/80 italic">
           &ldquo;{agent.tag}&rdquo;
         </p>
 
         <div>
-          <div
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 10,
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              color: "#555",
-              marginBottom: 8,
-            }}
-          >
-            specialties
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <SectionLabel>specialties</SectionLabel>
+          <div className="flex flex-wrap gap-1.5">
             {agent.specialties.map((s) => (
               <span
                 key={s}
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 11,
-                  padding: "4px 10px",
-                  background: "#fff",
-                  border: "2px solid #111",
-                  borderRadius: 999,
-                  color: "#111",
-                }}
+                className="rounded-full border border-(--vq-line-2) bg-card px-2.5 py-1 font-mono text-[11px] text-foreground"
               >
                 {s}
               </span>
@@ -752,50 +449,17 @@ export default function AgentInfoPanel({
         </div>
 
         <div>
-          <div
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 10,
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              color: "#555",
-              marginBottom: 8,
-            }}
-          >
-            stats
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <SectionLabel>stats</SectionLabel>
+          <div className="flex flex-col gap-1.5">
             {agent.stats.map((s) => (
               <div
                 key={s.k}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  padding: "6px 10px",
-                  background: "#fff",
-                  border: "2px solid #111",
-                  borderRadius: 8,
-                }}
+                className="flex items-baseline justify-between rounded-lg border border-(--vq-line-2) bg-card px-2.5 py-1.5"
               >
-                <span
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                    color: "#555",
-                  }}
-                >
+                <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
                   {s.k}
                 </span>
-                <span
-                  style={{
-                    fontFamily: FONT.head,
-                    fontSize: 13,
-                    color: "#111",
-                  }}
-                >
+                <span className="font-head text-[13px] text-foreground">
                   {s.v}
                 </span>
               </div>

@@ -66,7 +66,7 @@ function PostCard({ post }: { post: PublishedPost }) {
   const organizationId = activeOrg?.id ?? ""
   const cancelScheduledPost = useCancelScheduledPost(organizationId)
 
-  const cfg = PLATFORM[post.platform] ?? { label: post.platform, color: "#888", dot: "bg-gray-400" }
+  const cfg = PLATFORM[post.platform] ?? { label: post.platform, color: "var(--muted-foreground)", dot: "bg-gray-400" }
   const date = postDate(post)
   const isSuccess = post.status === "success"
   const isFailed = post.status === "failed"
@@ -90,8 +90,8 @@ function PostCard({ post }: { post: PublishedPost }) {
           className="w-full aspect-square object-cover"
         />
       ) : (
-        <div className="w-full aspect-square bg-[#f5f0e8] flex items-center justify-center">
-          <ImageIcon className="size-8 text-[#bbb]" />
+        <div className="w-full aspect-square bg-muted flex items-center justify-center">
+          <ImageIcon className="size-8 text-muted-foreground" />
         </div>
       )}
 
@@ -104,13 +104,13 @@ function PostCard({ post }: { post: PublishedPost }) {
           >
             {cfg.label}
           </span>
-          <span className="text-[10px] text-[#666]">
+          <span className="text-[10px] text-muted-foreground">
             {isScheduled ? `Scheduled ${format(date, "h:mm a")}` : format(date, "h:mm a")}
           </span>
         </div>
 
         {/* caption */}
-        <p className={`text-xs text-[#111] line-clamp-3 leading-relaxed ${isCancelled ? "line-through text-[#999]" : ""}`}>
+        <p className={`text-xs text-foreground line-clamp-3 leading-relaxed ${isCancelled ? "line-through text-muted-foreground" : ""}`}>
           {post.caption}
         </p>
 
@@ -159,7 +159,7 @@ function PostCard({ post }: { post: PublishedPost }) {
               type="button"
               onClick={handleCancel}
               disabled={cancelScheduledPost.isPending}
-              className="flex items-center gap-0.5 text-[10px] text-[#666] hover:text-red-600 disabled:opacity-60"
+              className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-red-600 disabled:opacity-60"
               title="Cancel scheduled post"
             >
               <X className="size-3" /> Cancel
@@ -168,7 +168,7 @@ function PostCard({ post }: { post: PublishedPost }) {
           {!isScheduled && post.platformPostId && (
             <a
               href={`#`}
-              className="flex items-center gap-0.5 text-[10px] text-[#666] hover:text-[#111]"
+              className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
               title="View on platform"
             >
               View <ExternalLink className="size-3" />
@@ -225,7 +225,7 @@ export function MayaPublishedPostsTab() {
       {/* Month header */}
       <div
         className="flex items-center justify-between px-5 py-3 border-b border-[var(--vq-line-2)]"
-        style={{ background: "#FFF9ED" }}
+        style={{ background: "var(--card)" }}
       >
         <div className="flex items-center gap-3">
           <button
@@ -235,7 +235,7 @@ export function MayaPublishedPostsTab() {
           >
             <ChevronLeft className="size-4" />
           </button>
-          <span className="text-sm font-bold tracking-wide text-[#111]">
+          <span className="text-sm font-bold tracking-wide text-foreground">
             {format(month, "MMMM yyyy")}
           </span>
           <button
@@ -246,7 +246,7 @@ export function MayaPublishedPostsTab() {
             <ChevronRight className="size-4" />
           </button>
         </div>
-        <span className="text-xs text-[#666]">
+        <span className="text-xs text-muted-foreground">
           {totalThisMonth} post{totalThisMonth !== 1 ? "s" : ""} this month
         </span>
       </div>
@@ -259,7 +259,7 @@ export function MayaPublishedPostsTab() {
             {DAYS.map((d) => (
               <div
                 key={d}
-                className="text-center text-[10px] font-bold uppercase tracking-wide text-[#666] py-2 border-r border-[#ddd] last:border-r-0"
+                className="text-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground py-2 border-r border-(--vq-line-2) last:border-r-0"
               >
                 {d}
               </div>
@@ -268,7 +268,7 @@ export function MayaPublishedPostsTab() {
 
           {/* Weeks */}
           {Array.from({ length: Math.ceil(days.length / 7) }).map((_, weekIdx) => (
-            <div key={weekIdx} className="grid grid-cols-7 border-b border-[#ddd] last:border-b-0">
+            <div key={weekIdx} className="grid grid-cols-7 border-b border-(--vq-line-2) last:border-b-0">
               {days.slice(weekIdx * 7, weekIdx * 7 + 7).map((day) => {
                 const key = format(day, "yyyy-MM-dd")
                 const dayPosts = byDay.get(key) ?? []
@@ -281,15 +281,15 @@ export function MayaPublishedPostsTab() {
                     key={key}
                     type="button"
                     onClick={() => setSelectedDay(day)}
-                    className={`relative flex flex-col items-start p-1.5 min-h-[72px] border-r border-[#ddd] last:border-r-0 text-left transition-colors
-                      ${isSelected ? "bg-[#111]" : inMonth ? "hover:bg-[#f5edd8]" : ""}
+                    className={`relative flex flex-col items-start p-1.5 min-h-[72px] border-r border-(--vq-line-2) last:border-r-0 text-left transition-colors
+                      ${isSelected ? "bg-primary" : inMonth ? "hover:bg-background" : ""}
                     `}
                   >
                     {/* Date number */}
                     <span
                       className={`text-xs font-bold mb-1 w-5 h-5 flex items-center justify-center
-                        ${today && !isSelected ? "bg-[#111] text-white rounded-full" : ""}
-                        ${isSelected ? "text-white" : inMonth ? "text-[#111]" : "text-[#bbb]"}
+                        ${today && !isSelected ? "bg-primary text-white rounded-full" : ""}
+                        ${isSelected ? "text-white" : inMonth ? "text-foreground" : "text-muted-foreground"}
                       `}
                     >
                       {format(day, "d")}
@@ -306,7 +306,7 @@ export function MayaPublishedPostsTab() {
                               key={p.id}
                               src={p.imageUrl}
                               alt=""
-                              className="w-7 h-7 object-cover border border-[#111]"
+                              className="w-7 h-7 object-cover border border-foreground"
                             />
                           ) : (
                             <span
@@ -316,7 +316,7 @@ export function MayaPublishedPostsTab() {
                           )
                         })}
                         {dayPosts.length > 3 && (
-                          <span className={`text-[9px] font-bold ${isSelected ? "text-white" : "text-[#666]"}`}>
+                          <span className={`text-[9px] font-bold ${isSelected ? "text-white" : "text-muted-foreground"}`}>
                             +{dayPosts.length - 3}
                           </span>
                         )}
@@ -329,7 +329,7 @@ export function MayaPublishedPostsTab() {
           ))}
 
           {isPending && (
-            <div className="py-8 text-center text-xs text-[#888]">Loading…</div>
+            <div className="py-8 text-center text-xs text-muted-foreground">Loading…</div>
           )}
         </div>
 
@@ -338,10 +338,10 @@ export function MayaPublishedPostsTab() {
           {selectedDay ? (
             <>
               <div className="sticky top-0 px-4 py-3 border-b border-[var(--vq-line-2)] bg-[var(--card)] z-10">
-                <p className="text-xs font-bold text-[#111]">
+                <p className="text-xs font-bold text-foreground">
                   {format(selectedDay, "EEEE, MMMM d")}
                 </p>
-                <p className="text-[10px] text-[#666]">
+                <p className="text-[10px] text-muted-foreground">
                   {selectedPosts.length} post{selectedPosts.length !== 1 ? "s" : ""}
                 </p>
               </div>
@@ -354,13 +354,13 @@ export function MayaPublishedPostsTab() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-40 text-center px-6">
-                  <p className="text-xs text-[#888]">No posts on this day.</p>
+                  <p className="text-xs text-muted-foreground">No posts on this day.</p>
                 </div>
               )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
-              <p className="text-xs text-[#888]">Select a day to see posts.</p>
+              <p className="text-xs text-muted-foreground">Select a day to see posts.</p>
             </div>
           )}
         </div>

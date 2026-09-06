@@ -67,7 +67,7 @@ export function ActivityChart({
     typeof v === "string" ? (is24h ? formatHour(v) : formatDate(v)) : ""
 
   return (
-    <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5 relative">
+    <div className="bg-card border border-(--vq-line-2) rounded-2xl shadow-(--vq-shadow) p-5 relative">
       <div className="flex flex-wrap items-baseline justify-between gap-2.5 mb-3">
         <div>
           <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -77,11 +77,11 @@ export function ActivityChart({
             {title}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 max-w-[680px]">
+        <div className="flex flex-wrap gap-2 max-w-170">
           {AGENTS.map((a) => (
             <span
               key={a.id}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-[var(--vq-line-2)] rounded-full bg-white font-mono text-[10px] uppercase tracking-[0.1em] text-foreground"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-(--vq-line-2) rounded-full bg-card font-mono text-[10px] uppercase tracking-widest text-foreground"
             >
               <span
                 className="size-2.5 rounded-full border border-foreground shrink-0"
@@ -94,7 +94,7 @@ export function ActivityChart({
       </div>
 
       {hasData ? (
-        <div className="w-full min-w-0 h-[280px] overflow-hidden">
+        <div className="w-full min-w-0 h-70 overflow-hidden">
           <ResponsiveContainer width="100%" height={280} minWidth={240}>
             <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
               <CartesianGrid stroke="#11111118" strokeDasharray="3 3" vertical={false} />
@@ -115,10 +115,10 @@ export function ActivityChart({
               />
               <Tooltip
                 contentStyle={{
-                  background: "#fff",
-                  border: "2.5px solid #111",
+                  background: "var(--popover)",
+                  border: "1px solid var(--vq-line-2)",
                   borderRadius: 10,
-                  boxShadow: "3px 3px 0 #111",
+                  boxShadow: "var(--vq-shadow-lg)",
                   fontFamily: "var(--font-mono)",
                   fontSize: 12,
                 }}
@@ -141,7 +141,7 @@ export function ActivityChart({
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-[180px] grid place-items-center bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
+        <div className="h-45 grid place-items-center bg-card border border-dashed border-(--vq-line-2) rounded-xl font-mono text-xs text-muted-foreground tracking-widest">
           {"// no activity yet - start chatting with your crew"}
         </div>
       )}

@@ -5,7 +5,6 @@ import { useEffect } from "react"
 import { Lock } from "lucide-react"
 import { useUpcomingAgents } from "@/lib/api/feedback"
 import { Sticker } from "@/components/ui/sticker"
-import { FONT } from "@/lib/fonts"
 
 export default function UpcomingAgentPage() {
   const { id } = useParams<{ id: string }>()
@@ -21,154 +20,56 @@ export default function UpcomingAgentPage() {
   }, [isLoading, agents, agent, router])
 
   if (isLoading || !agent) {
-    return (
-      <div
-        style={{
-          flex: 1,
-          background: "#EFE7D6",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      />
-    )
+    return <div className="flex flex-1 flex-col bg-background" />
   }
 
   return (
-    <div
-      style={{
-        flex: 1,
-        background: "#EFE7D6",
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-      }}
-    >
+    <div className="flex h-full flex-1 flex-col bg-background">
       {/* Header */}
-      <div
-        style={{
-          padding: "16px 20px",
-          borderBottom: "1px solid #D4C9B0",
-          background: "#FFF9ED",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
+      <div className="flex items-center gap-3 border-b border-(--vq-line-2) bg-card px-5 py-4">
         <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: agent.color ?? "#aaa",
-            display: "grid",
-            placeItems: "center",
-            fontSize: 18,
-            flexShrink: 0,
-          }}
+          className="grid size-9 shrink-0 place-items-center rounded-full text-lg"
+          style={{ background: agent.color ?? "var(--muted-foreground)" }}
         >
           {agent.emoji ?? "🤖"}
         </div>
         <div>
-          <div style={{ fontFamily: FONT.head, fontSize: 16, fontWeight: 700, color: "#111" }}>
+          <div className="font-head text-base font-bold text-foreground">
             {agent.name}
           </div>
-          <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: "1px", textTransform: "uppercase", color: "#888", marginTop: 2 }}>
+          <div className="mt-0.5 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
             coming soon
           </div>
         </div>
       </div>
 
       {/* Lock banner */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 20,
-          padding: 40,
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: "50%",
-            background: "rgba(0,0,0,0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Lock style={{ width: 30, height: 30, color: "#555" }} />
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 p-10 text-center">
+        <div className="flex size-18 shrink-0 items-center justify-center rounded-full bg-black/8">
+          <Lock className="size-7.5 text-muted-foreground" />
         </div>
 
         <Sticker rotate={-3} tone="yellow">
           coming soon
         </Sticker>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 440 }}>
-          <h2
-            style={{
-              fontFamily: FONT.display,
-              fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)",
-              lineHeight: 1,
-              color: "#111",
-              margin: 0,
-              letterSpacing: -0.5,
-            }}
-          >
+        <div className="flex max-w-110 flex-col gap-2">
+          <h2 className="m-0 font-display text-[clamp(1.75rem,3.5vw,2.75rem)] leading-none tracking-tight text-foreground">
             {agent.name}
           </h2>
-          <p
-            style={{
-              fontFamily: FONT.body,
-              fontSize: 14,
-              lineHeight: 1.65,
-              color: "#555",
-              margin: 0,
-            }}
-          >
+          <p className="m-0 font-body text-sm leading-relaxed text-muted-foreground">
             {agent.description ?? agent.tagline}
           </p>
         </div>
       </div>
 
       {/* Disabled input */}
-      <div
-        style={{
-          padding: "12px 16px",
-          borderTop: "1px solid #D4C9B0",
-          background: "#FFF9ED",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: "#EFE7D6",
-            border: "1px solid #D4C9B0",
-            borderRadius: 12,
-            padding: "12px 16px",
-            opacity: 0.5,
-            cursor: "not-allowed",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: FONT.body,
-              fontSize: 14,
-              color: "#999",
-              flex: 1,
-            }}
-          >
+      <div className="border-t border-(--vq-line-2) bg-card px-4 py-3">
+        <div className="flex cursor-not-allowed items-center gap-2.5 rounded-xl border border-(--vq-line-2) bg-background px-4 py-3 opacity-50">
+          <span className="flex-1 font-body text-sm text-muted-foreground">
             {agent.name} is coming soon…
           </span>
-          <Lock style={{ width: 14, height: 14, color: "#bbb", flexShrink: 0 }} />
+          <Lock className="size-3.5 shrink-0 text-muted-foreground" />
         </div>
       </div>
     </div>

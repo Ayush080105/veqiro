@@ -4,27 +4,19 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function ActivityChartSkeleton() {
   return (
-    <div
-      style={{
-        background: "#D5CCBA",
-        border: "3px solid #111",
-        borderRadius: 16,
-        boxShadow: "6px 6px 0 #111",
-        padding: 20,
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div className="rounded-(--vq-r-lg) border border-(--vq-line-2) bg-card p-5 shadow-(--vq-shadow)">
+      <div className="mb-3.5 flex justify-between gap-2.5">
+        <div className="flex flex-col gap-1.5">
           <Skeleton className="h-3 w-40" />
           <Skeleton className="h-7 w-56" />
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="flex gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-6 w-16 rounded-full" />
           ))}
         </div>
       </div>
-      <Skeleton className="h-[260px] w-full" />
+      <Skeleton className="h-65 w-full" />
     </div>
   )
 }

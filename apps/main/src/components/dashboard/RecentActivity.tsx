@@ -55,7 +55,7 @@ export function RecentActivity({ items }: { items: ActivityItem[] }) {
                 })()
               : null
             const agentPhoto = agent ? `/agents/${agent.id}.jpeg` : null
-            const bg = agent?.color ?? "#F5C518"
+            const bg = agent?.color ?? "var(--vq-yellow)"
             const Icon = item.type === "post" ? Send : MessageSquare
 
             const content = (

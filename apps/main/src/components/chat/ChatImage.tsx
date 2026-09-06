@@ -32,7 +32,7 @@ export function ChatImage({
       {!loaded && !error && (
         <div
           className="animate-pulse"
-          style={{ width: "100%", minHeight: 180, background: "#D8D8D8", borderRadius }}
+          style={{ width: "100%", minHeight: 180, background: "var(--muted)", borderRadius }}
         />
       )}
       {!error && (
@@ -56,11 +56,11 @@ export function ChatImage({
         <div
           style={{
             minHeight: 80,
-            background: "#F0F0F0",
+            background: "var(--muted)",
             borderRadius,
             display: "grid",
             placeItems: "center",
-            color: "#999",
+            color: "var(--muted-foreground)",
             fontSize: 12,
             fontFamily: "var(--font-mono)",
           }}

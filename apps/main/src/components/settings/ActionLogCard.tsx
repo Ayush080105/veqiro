@@ -45,7 +45,7 @@ export function ActionLogCard() {
             className={`rounded-md border px-2 py-1 text-[11px] transition-colors ${
               !filters.integrationSlug
                 ? "border-foreground bg-foreground text-background"
-                : "border-[#D4C9B0] hover:bg-[#EFE7D6]"
+                : "border-(--vq-line-2) hover:bg-background"
             }`}
           >
             All tools
@@ -57,21 +57,21 @@ export function ActionLogCard() {
               className={`rounded-md border px-2 py-1 text-[11px] transition-colors ${
                 filters.integrationSlug === i.slug
                   ? "border-foreground bg-foreground text-background"
-                  : "border-[#D4C9B0] hover:bg-[#EFE7D6]"
+                  : "border-(--vq-line-2) hover:bg-background"
               }`}
             >
               {i.name} <span className="opacity-60">{i.count}</span>
             </button>
           ))}
 
-          <span className="mx-1 h-4 w-px bg-[#D4C9B0]" />
+          <span className="mx-1 h-4 w-px bg-(--vq-line-2)" />
 
           <button
             onClick={() => setFilter({ writesOnly: !filters.writesOnly })}
             className={`rounded-md border px-2 py-1 text-[11px] transition-colors ${
               filters.writesOnly
                 ? "border-foreground bg-foreground text-background"
-                : "border-[#D4C9B0] hover:bg-[#EFE7D6]"
+                : "border-(--vq-line-2) hover:bg-background"
             }`}
           >
             Changes only
@@ -81,7 +81,7 @@ export function ActionLogCard() {
             className={`rounded-md border px-2 py-1 text-[11px] transition-colors ${
               filters.failuresOnly
                 ? "border-foreground bg-foreground text-background"
-                : "border-[#D4C9B0] hover:bg-[#EFE7D6]"
+                : "border-(--vq-line-2) hover:bg-background"
             }`}
           >
             Failures only
@@ -112,7 +112,7 @@ export function ActionLogCard() {
               </thead>
               <tbody>
                 {entries.map((entry) => (
-                  <tr key={entry.id} className="border-t border-[#EFE7D6]">
+                  <tr key={entry.id} className="border-t border-(--vq-line-2)">
                     <td className="py-2 pr-3">
                       <span className="flex items-center gap-1.5">
                         {entry.successful ? (

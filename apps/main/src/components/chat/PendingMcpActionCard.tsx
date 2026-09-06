@@ -75,16 +75,16 @@ export function PendingMcpActionCard({
   return (
     <div
       style={{
-        border: "1px solid rgba(0,0,0,0.12)",
+        border: "1px solid var(--vq-line-2)",
         borderRadius: 12,
         padding: "10px 12px",
         marginTop: 6,
-        background: "#FAFAF7",
+        background: "var(--card)",
         fontFamily: FONT.body,
         maxWidth: 420,
       }}
     >
-      <div style={{ fontSize: 11, letterSpacing: "0.3px", fontFamily: FONT.mono, color: "rgba(0,0,0,0.45)", marginBottom: 4 }}>
+      <div style={{ fontSize: 11, letterSpacing: "0.3px", fontFamily: FONT.mono, color: "var(--muted-foreground)", marginBottom: 4 }}>
         {checkingLiveStatus
           ? "CHECKING STATUS..."
           : pending
@@ -95,9 +95,9 @@ export function PendingMcpActionCard({
                 ? "REJECTED"
                 : "FAILED"}
       </div>
-      <div style={{ fontSize: 13.5, lineHeight: 1.4, color: "#1A1A1A" }}>{summary}</div>
+      <div style={{ fontSize: 13.5, lineHeight: 1.4, color: "var(--foreground)" }}>{summary}</div>
       {error && (
-        <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>{error}</div>
+        <div style={{ fontSize: 12, color: "var(--destructive)", marginTop: 4 }}>{error}</div>
       )}
       {pending && (
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -106,7 +106,7 @@ export function PendingMcpActionCard({
             disabled={busy}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              background: "#1A1A1A", color: "#FFF", border: "none",
+              background: "var(--primary)", color: "var(--primary-foreground)", border: "none",
               borderRadius: 8, padding: "5px 10px", fontSize: 12.5,
               fontFamily: FONT.body, cursor: busy ? "default" : "pointer",
               opacity: busy ? 0.6 : 1,
@@ -120,8 +120,8 @@ export function PendingMcpActionCard({
             disabled={busy}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              background: "transparent", color: "#1A1A1A",
-              border: "1px solid rgba(0,0,0,0.2)",
+              background: "transparent", color: "var(--foreground)",
+              border: "1px solid var(--vq-line-2)",
               borderRadius: 8, padding: "5px 10px", fontSize: 12.5,
               fontFamily: FONT.body, cursor: busy ? "default" : "pointer",
               opacity: busy ? 0.6 : 1,

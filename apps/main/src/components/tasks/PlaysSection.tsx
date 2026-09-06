@@ -71,7 +71,7 @@ export function PlaysSection() {
           {plays.map((play) => (
             <div
               key={play.id}
-              className="flex items-center justify-between gap-4 rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5"
+              className="flex items-center justify-between gap-4 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5"
             >
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export function PlaysSection() {
                 <button
                   onClick={() => handleRunNow(play)}
                   disabled={!play.available || busyId === play.id}
-                  className="flex items-center gap-1 rounded-md border border-[#D4C9B0] px-2 py-1 text-[11px] hover:bg-[#EFE7D6] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1 rounded-md border border-(--vq-line-2) px-2 py-1 text-[11px] hover:bg-background transition-colors disabled:opacity-50"
                 >
                   <Play className="size-3" />
                   Run now

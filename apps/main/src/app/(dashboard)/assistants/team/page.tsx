@@ -8,9 +8,9 @@ import { toast } from "sonner"
 
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { AGENT_PHOTOS, getAgent } from "@/lib/config/agents"
-import { FONT } from "@/lib/fonts"
 import { useTeam, useTeamMessages, useSendTeamMessage } from "@/lib/api/team"
 import { authClient } from "@/lib/auth-client"
+import { cn } from "@/lib/utils"
 import type { Message } from "@/lib/types"
 
 /**
@@ -70,33 +70,19 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "#EFE7D6" }}>
+    <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "14px 20px",
-          borderBottom: "1px solid #D4C9B0",
-          background: "#FFF9ED",
-        }}
-      >
-        <div style={{ display: "flex", flexShrink: 0 }}>
+      <div className="flex items-center gap-3 border-b border-(--vq-line-2) bg-card px-5 py-3.5">
+        <div className="flex shrink-0">
           {agents.slice(0, 6).map((slug, i) => (
             <span
               key={slug}
               title={getAgent(slug.toLowerCase())?.name ?? slug}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                overflow: "hidden",
-                border: "2px solid #FFF9ED",
-                marginLeft: i === 0 ? 0 : -11,
-                background: (getAgent(slug.toLowerCase())?.color as string) ?? "#EFE7D6",
-                display: "block",
-              }}
+              className={cn(
+                "block size-8 overflow-hidden rounded-full border-2 border-card",
+                i !== 0 && "-ml-2.75"
+              )}
+              style={{ background: (getAgent(slug.toLowerCase())?.color as string) ?? "var(--background)" }}
             >
               {AGENT_PHOTOS[slug.toLowerCase()] && (
                 <Image
@@ -104,17 +90,17 @@ export default function TeamPage() {
                   alt=""
                   width={64}
                   height={64}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  className="h-full w-full object-cover"
                 />
               )}
             </span>
           ))}
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: FONT.head, fontWeight: 700, fontSize: 17, color: "#111" }}>
+        <div className="min-w-0">
+          <div className="font-head text-[17px] font-bold text-foreground">
             Team
           </div>
-          <div style={{ fontSize: 12, color: "#777", marginTop: 1 }}>
+          <div className="mt-px text-xs text-muted-foreground">
             {teamLoading
               ? "…"
               : enoughForATeam
@@ -139,7 +125,7 @@ export default function TeamPage() {
         {!enoughForATeam && !teamLoading ? (
           <EmptyTeam count={agents.length} />
         ) : historyLoading ? (
-          <div style={{ display: "flex", gap: 8, color: "#888", fontSize: 13 }}>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 size={14} className="animate-spin" /> Loading the room…
           </div>
         ) : messages.length === 0 ? (
@@ -169,18 +155,12 @@ export default function TeamPage() {
       </div>
 
       {/* Composer */}
-      <div style={{ padding: "12px 20px 16px", background: "#EFE7D6" }}>
+      <div className="bg-background px-5 pt-3 pb-4">
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: "#FFF9ED",
-            border: "1px solid #D4C9B0",
-            borderRadius: 999,
-            padding: "8px 8px 8px 18px",
-            opacity: enoughForATeam ? 1 : 0.5,
-          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-full border border-(--vq-line-2) bg-card py-2 pr-2 pl-4.5",
+            !enoughForATeam && "opacity-50"
+          )}
         >
           <input
             value={content}
@@ -197,32 +177,17 @@ export default function TeamPage() {
                 ? "Give the team something that spans a few of them…"
                 : "Hire another agent to use the team room"
             }
-            style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              fontSize: 14,
-              color: "#111",
-            }}
+            className="flex-1 border-none bg-transparent text-sm text-foreground outline-none"
           />
           <button
             type="button"
             onClick={() => void submit()}
             disabled={!enoughForATeam || send.isPending || !content.trim()}
             aria-label="Send"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              border: "none",
-              background: "#14120E",
-              color: "#F2ECE0",
-              display: "grid",
-              placeItems: "center",
-              cursor: content.trim() && enoughForATeam ? "pointer" : "not-allowed",
-              opacity: content.trim() && enoughForATeam ? 1 : 0.4,
-            }}
+            className={cn(
+              "grid size-9 place-items-center rounded-full border-none bg-primary text-primary-foreground",
+              content.trim() && enoughForATeam ? "cursor-pointer opacity-100" : "cursor-not-allowed opacity-40"
+            )}
           >
             {send.isPending ? (
               <Loader2 size={15} className="animate-spin" />
@@ -238,29 +203,19 @@ export default function TeamPage() {
 
 function EmptyTeam({ count }: { count: number }) {
   return (
-    <div style={{ maxWidth: 460, margin: "48px auto", textAlign: "center" }}>
-      <Users size={28} style={{ color: "#B9AE97", margin: "0 auto 12px" }} />
-      <div style={{ fontFamily: FONT.head, fontWeight: 700, fontSize: 18, color: "#111" }}>
+    <div className="mx-auto my-12 max-w-115 text-center">
+      <Users size={28} className="mx-auto mb-3 text-muted-foreground" />
+      <div className="font-head text-lg font-bold text-foreground">
         The team room needs at least two agents
       </div>
-      <p style={{ fontSize: 13.5, color: "#777", lineHeight: 1.6, marginTop: 8 }}>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
         {count === 1
           ? "You have one agent. Hire another and they can work a single task together, each using their own connected tools."
           : "Hire a couple of agents and they can work a single task together, each using their own connected tools."}
       </p>
       <Link
         href="/settings/billing"
-        style={{
-          display: "inline-block",
-          marginTop: 14,
-          background: "#14120E",
-          color: "#F2ECE0",
-          borderRadius: 9,
-          padding: "9px 18px",
-          fontSize: 13.5,
-          fontWeight: 550,
-          textDecoration: "none",
-        }}
+        className="mt-3.5 inline-block rounded-lg bg-primary px-4.5 py-2.25 text-[13.5px] font-medium text-primary-foreground no-underline"
       >
         See agents
       </Link>
@@ -270,38 +225,22 @@ function EmptyTeam({ count }: { count: number }) {
 
 function EmptyThread() {
   return (
-    <div
-      style={{
-        boxSizing: "border-box",
-        width: "100%",
-        maxWidth: 480,
-        margin: "40px auto",
-        paddingInline: 4,
-        textAlign: "center",
-      }}
-    >
-      <div style={{ fontFamily: FONT.head, fontWeight: 700, fontSize: 17, color: "#111" }}>
+    <div className="mx-auto my-10 box-border w-full max-w-120 px-1 text-center">
+      <div className="font-head text-[17px] font-bold text-foreground">
         Give the whole team one job
       </div>
-      <p style={{ fontSize: 13.5, color: "#777", lineHeight: 1.6, marginTop: 8 }}>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
         Ask for something that needs more than one of them. They&apos;ll plan it
         out as a set of steps for you to approve before anything runs.
       </p>
-      <div style={{ marginTop: 14, display: "grid", gap: 8, textAlign: "left" }}>
+      <div className="mt-3.5 grid gap-2 text-left">
         {[
           "Research what competitors shipped this month and draft a post about how we differ",
           "Pull last quarter's numbers, check the contract terms, and summarise the risks",
         ].map((p) => (
           <div
             key={p}
-            style={{
-              background: "#FFF9ED",
-              border: "1px solid #E5DCC8",
-              borderRadius: 10,
-              padding: "10px 12px",
-              fontSize: 13,
-              color: "#555",
-            }}
+            className="rounded-[10px] border border-(--vq-line-2) bg-card px-3 py-2.5 text-[13px] text-muted-foreground"
           >
             {p}
           </div>

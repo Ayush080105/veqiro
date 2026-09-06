@@ -225,6 +225,7 @@ export function KeywordClusterCard({
                             size="icon"
                             className="size-5 shrink-0"
                             title="Generate ideas · Maya"
+                            aria-label="Generate ideas · Maya"
                             onClick={() => onFollowUpAction("maya:generate-ideas", { topic_hint: kwStr })}
                           >
                             <Sparkles className="size-3 text-muted-foreground" />
@@ -235,6 +236,7 @@ export function KeywordClusterCard({
                           size="icon"
                           className="size-5 shrink-0"
                           title={isSaved ? "Remove from favourites" : "Save to favourites"}
+                          aria-label={isSaved ? "Remove from favourites" : "Save to favourites"}
                           onClick={() => toggleSave(kwStr, details)}
                           disabled={saveMut.isPending || unsaveMut.isPending}
                         >
@@ -299,6 +301,7 @@ export function KeywordClusterCard({
                           size="icon"
                           className="size-5 shrink-0"
                           title="Generate ideas · Maya"
+                          aria-label="Generate ideas · Maya"
                           onClick={() => onFollowUpAction("maya:generate-ideas", { topic_hint: k.keyword })}
                         >
                           <Sparkles className="size-3 text-muted-foreground" />
@@ -309,6 +312,7 @@ export function KeywordClusterCard({
                         size="icon"
                         className="size-5 shrink-0"
                         title={isSaved ? "Remove from favourites" : "Save to favourites"}
+                        aria-label={isSaved ? "Remove from favourites" : "Save to favourites"}
                         onClick={() => toggleSave(k.keyword, k)}
                         disabled={saveMut.isPending || unsaveMut.isPending}
                       >
@@ -525,7 +529,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                       <div className="flex items-start gap-2">
                         <span className="w-28 shrink-0 text-muted-foreground">Meta title</span>
                         <span className="flex-1 font-medium">{blog.meta_title}</span>
-                        <Button variant="ghost" size="icon" className="size-5 shrink-0" onClick={() => copyText(blog.meta_title ?? "", "Meta title copied")}>
+                        <Button variant="ghost" size="icon" className="size-5 shrink-0" title="Copy meta title" aria-label="Copy meta title" onClick={() => copyText(blog.meta_title ?? "", "Meta title copied")}>
                           <Copy className="size-3" />
                         </Button>
                       </div>
@@ -534,7 +538,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                       <div className="flex items-start gap-2">
                         <span className="w-28 shrink-0 text-muted-foreground">Meta description</span>
                         <span className="flex-1">{blog.meta_description}</span>
-                        <Button variant="ghost" size="icon" className="size-5 shrink-0" onClick={() => copyText(blog.meta_description ?? "", "Meta description copied")}>
+                        <Button variant="ghost" size="icon" className="size-5 shrink-0" title="Copy meta description" aria-label="Copy meta description" onClick={() => copyText(blog.meta_description ?? "", "Meta description copied")}>
                           <Copy className="size-3" />
                         </Button>
                       </div>
@@ -543,7 +547,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                       <div className="flex items-start gap-2">
                         <span className="w-28 shrink-0 text-muted-foreground">Slug</span>
                         <span className="flex-1 font-mono text-[10px]">/{blog.slug}</span>
-                        <Button variant="ghost" size="icon" className="size-5 shrink-0" onClick={() => copyText(blog.slug!, "Slug copied")}>
+                        <Button variant="ghost" size="icon" className="size-5 shrink-0" title="Copy slug" aria-label="Copy slug" onClick={() => copyText(blog.slug!, "Slug copied")}>
                           <Copy className="size-3" />
                         </Button>
                       </div>
@@ -557,6 +561,8 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                           </pre>
                           <Button
                             variant="ghost" size="icon" className="absolute right-1 top-1 size-5"
+                            title="Copy schema markup"
+                            aria-label="Copy schema markup"
                             onClick={() => copyText(
                               `<script type="application/ld+json">\n${JSON.stringify(blog.schema_markup, null, 2)}\n</script>`,
                               "Schema markup copied"
@@ -743,6 +749,8 @@ export function ContentBriefCard({
                     variant="ghost"
                     size="icon"
                     className="size-5 shrink-0"
+                    title="Copy title"
+                    aria-label="Copy title"
                     onClick={() => copyText(t, "Title copied")}
                   >
                     <Copy className="size-3" />
@@ -1026,7 +1034,7 @@ function ScoreRing({ score }: { score: number }) {
   const r = 28
   const circ = 2 * Math.PI * r
   const dash = (score / 100) * circ
-  const color = score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444"
+  const color = score >= 80 ? "var(--vq-green)" : score >= 60 ? "var(--vq-yellow)" : "var(--vq-red)"
   return (
     <div className="relative flex items-center justify-center" style={{ width: 72, height: 72 }}>
       <svg width="72" height="72" className="-rotate-90">

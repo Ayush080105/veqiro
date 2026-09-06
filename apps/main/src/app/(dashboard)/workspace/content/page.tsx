@@ -190,10 +190,10 @@ function LibraryTab() {
               </TableCell>
               <TableCell>
                 <div className="flex justify-end gap-1">
-                  <Button variant="ghost" size="icon-sm" title="Edit">
+                  <Button variant="ghost" size="icon-sm" title="Edit" aria-label="Edit">
                     <Pencil className="size-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon-sm" title="Schedule">
+                  <Button variant="ghost" size="icon-sm" title="Schedule" aria-label="Schedule">
                     <Calendar className="size-3.5" />
                   </Button>
                 </div>

@@ -61,9 +61,9 @@ function MagicTile({
 }) {
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus
   const trendColor =
-    trend === "up" ? "#1DBC87" : trend === "down" ? "#ef4444" : "#888"
+    trend === "up" ? "var(--vq-green)" : trend === "down" ? "var(--vq-red)" : "var(--muted-foreground)"
   const dot =
-    level === "good" ? "#1DBC87" : level === "warn" ? "#f59e0b" : level === "bad" ? "#ef4444" : null
+    level === "good" ? "var(--vq-green)" : level === "warn" ? "var(--vq-yellow)" : level === "bad" ? "var(--vq-red)" : null
   return (
     <button
       type="button"

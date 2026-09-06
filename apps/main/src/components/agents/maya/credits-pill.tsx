@@ -16,14 +16,14 @@ export function MayaCreditsPill({ organizationId }: { organizationId: string }) 
   if (isPending || error || isNoMayaSubscription(error) || !data) return null
 
   return (
-    <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#555]">
-      <span className="flex items-center gap-1 rounded-full bg-[#F0F0F0] px-2 py-1">
+    <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+      <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-1">
         <Sparkles className="size-3" />
         {data.credits.remaining} credits
       </span>
       <Popover>
         <PopoverTrigger
-          className="flex items-center justify-center text-[#888] hover:text-[#555]"
+          className="flex items-center justify-center text-muted-foreground hover:text-muted-foreground"
           aria-label="Credit usage details"
           openOnHover
           closeDelay={150}

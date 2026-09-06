@@ -1,6 +1,6 @@
 "use client"
 
-import { FONT } from "@/lib/fonts"
+import { cn } from "@/lib/utils"
 
 interface CharCountProps {
   value: string
@@ -18,7 +18,7 @@ export function CharCount({ value, min, max, hint }: CharCountProps) {
   const tooLong = typeof max === "number" && len > max
   const fine = !tooShort && !tooLong
 
-  const color = tooLong ? "#8B1E1E" : tooShort ? "#7A5A00" : "#1DBC87"
+  const colorClass = tooLong ? "text-destructive" : tooShort ? "text-amber-700" : "text-chart-2"
 
   let label: string
   if (tooLong && typeof max === "number") {
@@ -34,21 +34,10 @@ export function CharCount({ value, min, max, hint }: CharCountProps) {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        fontFamily: FONT.mono,
-        fontSize: 11,
-        letterSpacing: 0.5,
-        color,
-        marginTop: 6,
-      }}
-    >
+    <div className={cn("mt-1.5 flex items-center justify-between font-mono text-[11px]", colorClass)}>
       <span>{label}</span>
       {hint && !fine && (
-        <span style={{ color: "#555", fontSize: 10 }}>{hint}</span>
+        <span className="text-[10px] text-muted-foreground">{hint}</span>
       )}
     </div>
   )

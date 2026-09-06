@@ -29,21 +29,24 @@ import { cn } from "@/lib/utils"
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const AGENT_COLORS: Record<string, string> = {
-  vega: "#6FCDE8",
-  scout: "#F5C518",
-  maya: "#F06464",
-  sage: "#F79FD4",
-  lex: "#8A8AF0",
-  rex: "#1DBC87",
+  vega: "var(--vq-blue)",
+  scout: "var(--vq-yellow)",
+  maya: "var(--vq-red)",
+  sage: "var(--vq-pink)",
+  lex: "var(--vq-violet)",
+  rex: "var(--vq-green)",
 }
 
+// `color` is a darkened mix of the accent (not the raw token) so status text
+// stays readable on the light tinted `bg` — matching the accent 1:1 reads
+// too bright/low-contrast for small uppercase labels.
 const STATUS_CONFIG: Record<FeedbackStatus, { label: string; color: string; bg: string }> = {
-  NEW: { label: "New", color: "#555", bg: "#F0EEE8" },
-  UNDER_REVIEW: { label: "Under Review", color: "#8A6A00", bg: "#F5C51826" },
-  PLANNED: { label: "Planned", color: "#4A4AC2", bg: "#8A8AF026" },
-  IN_PROGRESS: { label: "In Progress", color: "#1D7A94", bg: "#6FCDE826" },
-  LAUNCHED: { label: "Launched", color: "#0E5C3F", bg: "#1DBC8726" },
-  DECLINED: { label: "Declined", color: "#B23A3A", bg: "#F0646426" },
+  NEW: { label: "New", color: "var(--muted-foreground)", bg: "var(--muted)" },
+  UNDER_REVIEW: { label: "Under Review", color: "color-mix(in srgb, var(--vq-yellow) 65%, black)", bg: "color-mix(in srgb, var(--vq-yellow) 15%, transparent)" },
+  PLANNED: { label: "Planned", color: "color-mix(in srgb, var(--vq-violet) 55%, black)", bg: "color-mix(in srgb, var(--vq-violet) 15%, transparent)" },
+  IN_PROGRESS: { label: "In Progress", color: "color-mix(in srgb, var(--vq-blue) 55%, black)", bg: "color-mix(in srgb, var(--vq-blue) 15%, transparent)" },
+  LAUNCHED: { label: "Launched", color: "color-mix(in srgb, var(--vq-green) 60%, black)", bg: "color-mix(in srgb, var(--vq-green) 15%, transparent)" },
+  DECLINED: { label: "Declined", color: "color-mix(in srgb, var(--vq-red) 55%, black)", bg: "color-mix(in srgb, var(--vq-red) 15%, transparent)" },
 }
 
 const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
@@ -114,7 +117,7 @@ export default function FeedbackDetailPage() {
     return (
       <div className="flex flex-col items-center gap-4 py-20">
         <div
-          className="grid size-14 place-items-center rounded-lg border border-[var(--vq-line-2)] bg-muted shadow-[var(--vq-shadow-sm)]"
+          className="grid size-14 place-items-center rounded-lg border border-(--vq-line-2) bg-muted shadow-(--vq-shadow-sm)"
         >
           <MessageSquare className="size-6 text-muted-foreground" />
         </div>
@@ -136,7 +139,7 @@ export default function FeedbackDetailPage() {
     return (
       <div className="flex flex-col items-center gap-4 py-20">
         <div
-          className="grid size-14 place-items-center rounded-lg border border-[var(--vq-line-2)] bg-muted shadow-[var(--vq-shadow-sm)]"
+          className="grid size-14 place-items-center rounded-lg border border-(--vq-line-2) bg-muted shadow-(--vq-shadow-sm)"
         >
           <MessageSquare className="size-6 text-muted-foreground" />
         </div>
@@ -172,7 +175,7 @@ export default function FeedbackDetailPage() {
 
       {/* Merged notice */}
       {post.isMerged && (
-        <div className="flex items-center gap-2.5 rounded-md border border-[var(--vq-line-2)] bg-muted px-4 py-3 shadow-[var(--vq-shadow-sm)]">
+        <div className="flex items-center gap-2.5 rounded-md border border-(--vq-line-2) bg-muted px-4 py-3 shadow-(--vq-shadow-sm)">
           <GitMerge className="size-4 shrink-0 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
             This request has been merged into another post.
@@ -187,10 +190,10 @@ export default function FeedbackDetailPage() {
           onClick={() => toggleVote(id)}
           disabled={isVoting}
           className={cn(
-            "flex shrink-0 flex-col items-center gap-1 rounded-lg border border-[var(--vq-line-2)] px-4 py-3 transition-colors",
+            "flex shrink-0 flex-col items-center gap-1 rounded-lg border border-(--vq-line-2) px-4 py-3 transition-colors",
             post.hasVoted
               ? "bg-foreground text-background"
-              : "bg-card shadow-[var(--vq-shadow-sm)] hover:bg-muted"
+              : "bg-card shadow-(--vq-shadow-sm) hover:bg-muted"
           )}
         >
           <ChevronUp className={cn("size-5", post.hasVoted && "fill-current")} />
@@ -224,9 +227,9 @@ export default function FeedbackDetailPage() {
                 className="rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wide font-medium"
                 style={{
                   fontFamily: FONT.mono,
-                  background: agentColor + "33",
+                  background: `color-mix(in srgb, ${agentColor} 20%, transparent)`,
                   color: agentColor,
-                  borderColor: agentColor + "66",
+                  borderColor: `color-mix(in srgb, ${agentColor} 40%, transparent)`,
                 }}
               >
                 {post.agentSlug}
@@ -269,7 +272,7 @@ export default function FeedbackDetailPage() {
       </div>
 
       {/* Description */}
-      <div className="rounded-lg border border-[var(--vq-line-2)] bg-card p-5 shadow-[var(--vq-shadow)]">
+      <div className="rounded-lg border border-(--vq-line-2) bg-card p-5 shadow-(--vq-shadow)">
         <p
           className="text-sm leading-relaxed text-foreground whitespace-pre-wrap"
           style={{ fontFamily: FONT.body }}
@@ -280,8 +283,8 @@ export default function FeedbackDetailPage() {
 
       {/* Roadmap ETA */}
       {post.roadmapEta && (
-        <div className="flex items-center gap-2.5 rounded-md border border-[var(--vq-line-2)] bg-[#8A8AF0]/10 px-4 py-3 shadow-[var(--vq-shadow-sm)]">
-          <Calendar className="size-4 shrink-0" style={{ color: "#8A8AF0" }} />
+        <div className="flex items-center gap-2.5 rounded-md border border-(--vq-line-2) bg-(--vq-violet)/10 px-4 py-3 shadow-(--vq-shadow-sm)">
+          <Calendar className="size-4 shrink-0 text-(--vq-violet)" />
           <div>
             <span
               className="text-foreground"
@@ -298,9 +301,9 @@ export default function FeedbackDetailPage() {
 
       {/* Admin reply */}
       {post.adminReply && (
-        <div className="rounded-lg border border-[var(--vq-line-2)] bg-[#1DBC87]/10 p-5 shadow-[var(--vq-shadow)]">
+        <div className="rounded-lg border border-(--vq-line-2) bg-(--vq-green)/10 p-5 shadow-(--vq-shadow)">
           <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center gap-1.5 rounded-full border border-[var(--vq-line-2)] bg-foreground px-2.5 py-1">
+            <div className="flex items-center gap-1.5 rounded-full border border-(--vq-line-2) bg-foreground px-2.5 py-1">
               <Shield className="size-3 text-background" />
               <span
                 className="text-background"
@@ -328,14 +331,14 @@ export default function FeedbackDetailPage() {
       {/* Comments */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
-          <div className="h-[2px] flex-1 bg-foreground/10" />
+          <div className="h-0.5 flex-1 bg-foreground/10" />
           <span
             className="text-muted-foreground"
             style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}
           >
             [ {post.comments?.length ?? 0} comment{(post.comments?.length ?? 0) !== 1 ? "s" : ""} ]
           </span>
-          <div className="h-[2px] flex-1 bg-foreground/10" />
+          <div className="h-0.5 flex-1 bg-foreground/10" />
         </div>
 
         {post.comments && post.comments.length > 0 && (
@@ -344,18 +347,16 @@ export default function FeedbackDetailPage() {
               <div
                 key={comment.id}
                 className={cn(
-                  "rounded-lg border border-[var(--vq-line-2)] p-4",
-                  comment.isAdminReply
-                    ? "bg-[#1DBC87]/10 shadow-[var(--vq-shadow-sm)]"
-                    : "bg-card shadow-[var(--vq-shadow-sm)]"
+                  "rounded-lg border border-(--vq-line-2) p-4 shadow-(--vq-shadow-sm)",
+                  comment.isAdminReply ? "bg-(--vq-green)/10" : "bg-card"
                 )}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <div
-                    className="grid size-6 shrink-0 place-items-center rounded-full border border-[var(--vq-line-2)] font-head text-xs"
+                    className="grid size-6 shrink-0 place-items-center rounded-full border border-(--vq-line-2) font-head text-xs"
                     style={{
-                      background: comment.isAdminReply ? "#1DBC87" : "#F5C518",
-                      color: "#111",
+                      background: comment.isAdminReply ? "var(--vq-green)" : "var(--vq-yellow)",
+                      color: "var(--foreground)",
                     }}
                   >
                     {comment.user.name.charAt(0).toUpperCase()}
@@ -367,7 +368,7 @@ export default function FeedbackDetailPage() {
                     {comment.user.name}
                   </span>
                   {comment.isAdminReply && (
-                    <div className="flex items-center gap-1 rounded-full border border-[var(--vq-line-2)] bg-foreground px-2 py-0.5">
+                    <div className="flex items-center gap-1 rounded-full border border-(--vq-line-2) bg-foreground px-2 py-0.5">
                       <Shield className="size-2.5 text-background" />
                       <span
                         className="text-background"
@@ -396,7 +397,7 @@ export default function FeedbackDetailPage() {
         )}
 
         {/* Add comment */}
-        <div className="flex flex-col gap-3 rounded-lg border border-[var(--vq-line-2)] bg-card p-5 shadow-[var(--vq-shadow)]">
+        <div className="flex flex-col gap-3 rounded-lg border border-(--vq-line-2) bg-card p-5 shadow-(--vq-shadow)">
           <span
             className="text-muted-foreground"
             style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase" }}

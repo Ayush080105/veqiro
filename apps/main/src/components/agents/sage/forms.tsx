@@ -180,6 +180,7 @@ export function SageGenerateBlogForm({
                       size="icon"
                       className="shrink-0"
                       title="Pick from saved keywords"
+                      aria-label="Pick from saved keywords"
                     >
                       <Heart className="size-3.5 fill-destructive text-destructive" />
                     </Button>

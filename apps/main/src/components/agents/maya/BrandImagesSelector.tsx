@@ -1,7 +1,10 @@
 "use client"
 
+import { Check } from "lucide-react"
+
 import { useBrandImages } from "@/lib/api/brand-images"
-import { FONT } from "@/lib/fonts"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 interface BrandImagesSelectorProps {
   selected: string[]
@@ -32,13 +35,7 @@ export function BrandImagesSelector({
   const toggle = (id: string) => {
     if (selected.includes(id)) {
       onSelectionChange(selected.filter((s) => s !== id))
-      // remove prompt entry too
-      const next = { ...prompts }
-      delete next[id]
-      for (const key of Object.keys(prompts)) {
-        if (key !== id) continue
-        onPromptChange(key, "")
-      }
+      onPromptChange(id, "")
     } else {
       onSelectionChange([...selected, id])
     }
@@ -46,13 +43,7 @@ export function BrandImagesSelector({
 
   return (
     <div className="space-y-2">
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
-          gap: 8,
-        }}
-      >
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
         {images.map((img) => {
           const isSelected = selected.includes(img.id)
           return (
@@ -61,66 +52,25 @@ export function BrandImagesSelector({
               type="button"
               onClick={() => toggle(img.id)}
               title={img.name || "Brand image"}
-              style={{
-                position: "relative",
-                border: `2px solid ${isSelected ? "#1DBC87" : "#D6C89A"}`,
-                borderRadius: 8,
-                background: isSelected ? "#E5F7EE" : "#FFF9ED",
-                padding: 2,
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 3,
-                outline: "none",
-              }}
+              aria-pressed={isSelected}
+              className={cn(
+                "relative flex flex-col items-center gap-0.5 rounded-lg border p-0.5 outline-none",
+                isSelected
+                  ? "border-chart-2 bg-[color-mix(in_srgb,var(--chart-2)_14%,var(--card))]"
+                  : "border-(--vq-line-2) bg-card"
+              )}
             >
               <img
                 src={img.url}
                 alt={img.name || "brand image"}
-                style={{
-                  width: "100%",
-                  aspectRatio: "1/1",
-                  objectFit: "cover",
-                  borderRadius: 5,
-                }}
+                className="aspect-square w-full rounded-md object-cover"
               />
               {isSelected && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 3,
-                    right: 3,
-                    background: "#1DBC87",
-                    color: "#fff",
-                    borderRadius: "50%",
-                    width: 14,
-                    height: 14,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 9,
-                    fontFamily: FONT.mono,
-                  }}
-                >
-                  ✓
+                <span className="absolute top-1 right-1 flex size-3.5 items-center justify-center rounded-full bg-chart-2 text-white">
+                  <Check className="size-2.5" strokeWidth={3} />
                 </span>
               )}
-              <span
-                style={{
-                  fontFamily: FONT.mono,
-                  fontSize: 9,
-                  letterSpacing: 0.3,
-                  color: "#555",
-                  maxWidth: "100%",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  width: "100%",
-                  textAlign: "center",
-                  paddingBottom: 2,
-                }}
-              >
+              <span className="w-full truncate pb-0.5 text-center font-mono text-[9px] tracking-[0.02em] text-muted-foreground">
                 {img.name || "—"}
               </span>
             </button>
@@ -139,15 +89,14 @@ export function BrandImagesSelector({
                 <img
                   src={img.url}
                   alt={img.name}
-                  className="h-6 w-6 rounded object-cover border border-border flex-shrink-0 mt-0.5"
+                  className="mt-0.5 size-6 shrink-0 rounded border border-border object-cover"
                 />
-                <input
-                  type="text"
+                <Input
                   value={prompts[id] ?? ""}
                   onChange={(e) => onPromptChange(id, e.target.value)}
                   placeholder={`How should Maya use "${img.name || "this image"}"? (optional)`}
                   maxLength={1000}
-                  className="flex-1 text-xs border border-input rounded-md px-2 py-1 bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="flex-1"
                 />
               </div>
             )

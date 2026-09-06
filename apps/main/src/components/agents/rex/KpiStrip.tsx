@@ -85,7 +85,7 @@ function DrillDownModal({
 
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus
   const trendColor =
-    trend === "up" ? "#1DBC87" : trend === "down" ? "#ef4444" : "#888"
+    trend === "up" ? "var(--vq-green)" : trend === "down" ? "var(--vq-red)" : "var(--muted-foreground)"
 
   return (
     <>
@@ -157,7 +157,7 @@ function DrillDownModal({
                 background: "var(--card)",
               }}
             >
-              <MiniSparkline points={points} color="var(--chart-1, #6366f1)" />
+              <MiniSparkline points={points} color="var(--chart-1)" />
             </div>
 
             {/* Latest value */}

@@ -124,23 +124,23 @@ export function DashboardFilters({
         value={toggleGroupValue}
         onValueChange={onToggleGroupChange}
         aria-label="Dashboard date range"
-        className="h-11 overflow-hidden rounded-full border border-[var(--vq-line-2)] bg-white p-0 shadow-[var(--vq-shadow-sm)]"
+        className="h-11 overflow-hidden rounded-full border border-[var(--vq-line-2)] bg-card p-0 shadow-[var(--vq-shadow-sm)]"
       >
         <ToggleGroupItem
           value="24h"
-          className="h-full min-w-12 rounded-none border-0 bg-white px-3 py-0 font-mono text-xs uppercase text-[#111] hover:bg-[#FFF9ED] data-[state=on]:bg-[#FFF9ED] data-[state=on]:text-[#111] data-[state=on]:shadow-none"
+          className="h-full min-w-12 rounded-none border-0 bg-card px-3 py-0 font-mono text-xs uppercase text-foreground hover:bg-background data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-none"
         >
           24h
         </ToggleGroupItem>
         <ToggleGroupItem
           value="7d"
-          className="h-full min-w-12 rounded-none border-0 border-l border-[var(--vq-line-2)] bg-white px-3 py-0 font-mono text-xs uppercase text-[#111] hover:bg-[#FFF9ED] data-[state=on]:bg-[#FFF9ED] data-[state=on]:text-[#111] data-[state=on]:shadow-none"
+          className="h-full min-w-12 rounded-none border-0 border-l border-[var(--vq-line-2)] bg-card px-3 py-0 font-mono text-xs uppercase text-foreground hover:bg-background data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-none"
         >
           7d
         </ToggleGroupItem>
         <ToggleGroupItem
           value="30d"
-          className="h-full min-w-12 rounded-none border-0 border-l border-[var(--vq-line-2)] bg-white px-3 py-0 font-mono text-xs uppercase text-[#111] hover:bg-[#FFF9ED] data-[state=on]:bg-[#FFF9ED] data-[state=on]:text-[#111] data-[state=on]:shadow-none"
+          className="h-full min-w-12 rounded-none border-0 border-l border-[var(--vq-line-2)] bg-card px-3 py-0 font-mono text-xs uppercase text-foreground hover:bg-background data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-none"
         >
           30d
         </ToggleGroupItem>
@@ -152,7 +152,7 @@ export function DashboardFilters({
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 rounded-full border border-[var(--vq-line-2)] bg-white px-3 font-mono text-xs uppercase shadow-[var(--vq-shadow-sm)] hover:bg-[#FFF9ED]"
+              className="min-h-11 rounded-full border border-[var(--vq-line-2)] bg-card px-3 font-mono text-xs uppercase shadow-[var(--vq-shadow-sm)] hover:bg-background"
             />
           }
         >
@@ -160,25 +160,25 @@ export function DashboardFilters({
           {range.kind === "custom" ? formatRangeLabel(range) : "Custom"}
         </PopoverTrigger>
         <PopoverContent
-          className="w-[min(calc(100vw-1rem),21.5rem)] overflow-hidden rounded-md border border-[var(--vq-line-2)] bg-white p-0 shadow-[var(--vq-shadow)]"
+          className="w-[min(calc(100vw-1rem),21.5rem)] overflow-hidden rounded-md border border-[var(--vq-line-2)] bg-card p-0 shadow-[var(--vq-shadow)]"
           align="end"
           sideOffset={8}
         >
-          <div className="border-b border-[var(--vq-line-2)] bg-[#FFF9ED] px-3 py-2.5">
+          <div className="border-b border-[var(--vq-line-2)] bg-card px-3 py-2.5">
             <div className="grid grid-cols-2 gap-2">
-              <div className="min-w-0 rounded-md border border-[var(--vq-line-2)] bg-white px-2.5 py-2">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-[#666]">
+              <div className="min-w-0 rounded-md border border-[var(--vq-line-2)] bg-card px-2.5 py-2">
+                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Start
                 </div>
-                <div className="mt-1 truncate font-mono text-xs text-[#111]">
+                <div className="mt-1 truncate font-mono text-xs text-foreground">
                   {formatDateChip(draftRange?.from)}
                 </div>
               </div>
-              <div className="min-w-0 rounded-md border border-[var(--vq-line-2)] bg-white px-2.5 py-2">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-[#666]">
+              <div className="min-w-0 rounded-md border border-[var(--vq-line-2)] bg-card px-2.5 py-2">
+                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   End
                 </div>
-                <div className="mt-1 truncate font-mono text-xs text-[#111]">
+                <div className="mt-1 truncate font-mono text-xs text-foreground">
                   {formatDateChip(
                     isSameCalendarDay(draftRange?.from, draftRange?.to)
                       ? undefined
@@ -187,7 +187,7 @@ export function DashboardFilters({
                 </div>
               </div>
             </div>
-            <p className="m-0 mt-2 font-mono text-[9px] uppercase tracking-wider text-[#666]">
+            <p className="m-0 mt-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
               Choose start and end, then apply.
             </p>
           </div>
@@ -200,42 +200,42 @@ export function DashboardFilters({
             defaultMonth={range.kind === "custom" ? range.from : today}
             numberOfMonths={1}
             fixedWeeks
-            className="relative w-full bg-white px-3 py-2.5 [--cell-size:1.95rem]"
+            className="relative w-full bg-card px-3 py-2.5 [--cell-size:1.95rem]"
             classNames={{
               root: "relative w-full",
               months: "flex w-full flex-col",
               month: "w-full gap-1.5",
               month_caption:
-                "flex h-9 w-full items-center justify-center px-10 font-mono text-sm uppercase tracking-wider text-[#111]",
-              caption_label: "font-mono text-[13px] font-semibold text-[#111]",
+                "flex h-9 w-full items-center justify-center px-10 font-mono text-sm uppercase tracking-wider text-foreground",
+              caption_label: "font-mono text-[13px] font-semibold text-foreground",
               nav: "absolute inset-x-3 top-2.5 flex items-center justify-between",
               button_previous:
-                "size-7 rounded-md border border-[var(--vq-line-2)] bg-white p-0 text-[#111] shadow-[var(--vq-shadow-sm)] hover:bg-[#FFF9ED]",
+                "size-7 rounded-md border border-[var(--vq-line-2)] bg-card p-0 text-foreground shadow-[var(--vq-shadow-sm)] hover:bg-background",
               button_next:
-                "size-7 rounded-md border border-[var(--vq-line-2)] bg-white p-0 text-[#111] shadow-[var(--vq-shadow-sm)] hover:bg-[#FFF9ED] disabled:opacity-35",
+                "size-7 rounded-md border border-[var(--vq-line-2)] bg-card p-0 text-foreground shadow-[var(--vq-shadow-sm)] hover:bg-background disabled:opacity-35",
               month_grid: "w-full",
               weeks: "w-full",
               weekdays: "grid grid-cols-7 gap-0.5",
               weekday:
-                "grid h-6 place-items-center rounded-sm font-mono text-[10px] uppercase tracking-wider text-[#555]",
+                "grid h-6 place-items-center rounded-sm font-mono text-[10px] uppercase tracking-wider text-muted-foreground",
               week: "mt-0.5 grid grid-cols-7 gap-0.5",
               day: "relative grid aspect-square min-w-0 place-items-center rounded-sm p-0 text-center",
-              outside: "text-[#777] opacity-20",
+              outside: "text-muted-foreground opacity-20",
               today:
-                "font-bold text-[#111] after:absolute after:bottom-1 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-[#111]",
+                "font-bold text-foreground after:absolute after:bottom-1 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-foreground",
               disabled: "pointer-events-none",
-              range_start: "rounded-l-md bg-[#F5C518]",
-              range_middle: "rounded-none bg-[#F5C518]/40",
-              range_end: "rounded-r-md bg-[#F5C518]",
+              range_start: "rounded-l-md bg-accent",
+              range_middle: "rounded-none bg-accent/40",
+              range_end: "rounded-r-md bg-accent",
             }}
           />
-          <div className="flex items-center justify-between gap-2 border-t border-[var(--vq-line-2)] bg-[#FFF9ED] px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--vq-line-2)] bg-card px-3 py-2.5">
             <Button
               type="button"
               variant="outline"
               size="brand-sm"
               onClick={() => setDraftRange(undefined)}
-              className="h-9 border border-[var(--vq-line-2)] bg-white px-3 text-[11px] shadow-[var(--vq-shadow-sm)]"
+              className="h-9 border border-[var(--vq-line-2)] bg-card px-3 text-[11px] shadow-[var(--vq-shadow-sm)]"
             >
               Clear
             </Button>
@@ -245,7 +245,7 @@ export function DashboardFilters({
               size="brand-sm"
               disabled={!draftRange?.from || !draftRange.to}
               onClick={applyCustom}
-              className="h-9 px-4 text-[11px] disabled:border-[#111] disabled:bg-[#888] disabled:text-white disabled:shadow-none disabled:opacity-65"
+              className="h-9 px-4 text-[11px] disabled:border-foreground disabled:bg-muted-foreground disabled:text-white disabled:shadow-none disabled:opacity-65"
             >
               Apply range
             </Button>
@@ -270,7 +270,7 @@ export function DashboardFilters({
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 rounded-full border border-[var(--vq-line-2)] bg-white px-3 font-mono text-xs uppercase shadow-[var(--vq-shadow-sm)] hover:bg-[#FFF9ED]"
+              className="min-h-11 rounded-full border border-[var(--vq-line-2)] bg-card px-3 font-mono text-xs uppercase shadow-[var(--vq-shadow-sm)] hover:bg-background"
             />
           }
         >
@@ -282,10 +282,10 @@ export function DashboardFilters({
             <button
               type="button"
               onClick={toggleAll}
-              className="flex min-h-11 items-center justify-between border-b border-[var(--vq-line)] px-3 py-2 text-left font-mono text-xs uppercase tracking-wider hover:bg-[#FFF9ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex min-h-11 items-center justify-between border-b border-[var(--vq-line)] px-3 py-2 text-left font-mono text-xs uppercase tracking-wider hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span>{allSelected ? "Clear all" : "Select all"}</span>
-              <span className="text-[#777]">
+              <span className="text-muted-foreground">
                 {agents.length}/{ALL_SLUGS.length}
               </span>
             </button>
@@ -294,7 +294,7 @@ export function DashboardFilters({
                 const checked = agents.includes(a.id)
                 return (
                   <li key={a.id}>
-                    <label className="flex min-h-10 cursor-pointer items-center gap-2 px-3 py-1.5 text-xs hover:bg-[#FFF9ED]">
+                    <label className="flex min-h-10 cursor-pointer items-center gap-2 px-3 py-1.5 text-xs hover:bg-background">
                       <Checkbox
                         checked={checked}
                         onCheckedChange={() => toggleAgent(a.id)}
@@ -312,7 +312,7 @@ export function DashboardFilters({
                 )
               })}
             </ul>
-            <p className="border-t border-[var(--vq-line)] px-3 py-2 font-mono text-[10px] leading-snug text-[#777]">
+            <p className="border-t border-[var(--vq-line)] px-3 py-2 font-mono text-[10px] leading-snug text-muted-foreground">
               Applies to assistant activity. Post counts show all agents.
             </p>
           </div>

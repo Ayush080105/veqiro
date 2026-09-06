@@ -31,12 +31,12 @@ import { cn } from "@/lib/utils"
 const AGENT_SLUGS = ["vega", "scout", "maya", "sage", "lex", "rex"] as const
 
 const AGENT_COLORS: Record<string, string> = {
-  vega: "#6FCDE8",
-  scout: "#F5C518",
-  maya: "#F06464",
-  sage: "#F79FD4",
-  lex: "#8A8AF0",
-  rex: "#1DBC87",
+  vega: "var(--vq-blue)",
+  scout: "var(--vq-yellow)",
+  maya: "var(--vq-red)",
+  sage: "var(--vq-pink)",
+  lex: "var(--vq-violet)",
+  rex: "var(--vq-green)",
 }
 
 const CATEGORIES: Array<{
@@ -46,21 +46,21 @@ const CATEGORIES: Array<{
   icon: React.ElementType
   color: string
 }> = [
-  { value: "FEATURE_REQUEST", label: "Feature Request", description: "A new capability you'd love to see", icon: Zap, color: "#F5C518" },
-  { value: "BUG_REPORT", label: "Bug Report", description: "Something isn't working as expected", icon: Bug, color: "#F06464" },
-  { value: "INTEGRATION", label: "Integration", description: "Connect with a tool or platform", icon: Puzzle, color: "#8A8AF0" },
-  { value: "NEW_AGENT", label: "New Agent", description: "An entirely new AI agent to build", icon: Bot, color: "#1DBC87" },
-  { value: "UX_IMPROVEMENT", label: "UX Improvement", description: "Make something easier to use", icon: Sparkles, color: "#6FCDE8" },
-  { value: "GENERAL", label: "Opinion / Other", description: "Share thoughts, complaints, or anything on your mind", icon: MessageSquare, color: "#F79FD4" },
+  { value: "FEATURE_REQUEST", label: "Feature Request", description: "A new capability you'd love to see", icon: Zap, color: "var(--vq-yellow)" },
+  { value: "BUG_REPORT", label: "Bug Report", description: "Something isn't working as expected", icon: Bug, color: "var(--vq-red)" },
+  { value: "INTEGRATION", label: "Integration", description: "Connect with a tool or platform", icon: Puzzle, color: "var(--vq-violet)" },
+  { value: "NEW_AGENT", label: "New Agent", description: "An entirely new AI agent to build", icon: Bot, color: "var(--vq-green)" },
+  { value: "UX_IMPROVEMENT", label: "UX Improvement", description: "Make something easier to use", icon: Sparkles, color: "var(--vq-blue)" },
+  { value: "GENERAL", label: "Opinion / Other", description: "Share thoughts, complaints, or anything on your mind", icon: MessageSquare, color: "var(--vq-pink)" },
 ]
 
 const STATUS_COLORS: Record<string, string> = {
-  NEW: "#999",
-  UNDER_REVIEW: "#F5C518",
-  PLANNED: "#8A8AF0",
-  IN_PROGRESS: "#6FCDE8",
-  LAUNCHED: "#1DBC87",
-  DECLINED: "#F06464",
+  NEW: "var(--muted-foreground)",
+  UNDER_REVIEW: "var(--vq-yellow)",
+  PLANNED: "var(--vq-violet)",
+  IN_PROGRESS: "var(--vq-blue)",
+  LAUNCHED: "var(--vq-green)",
+  DECLINED: "var(--vq-red)",
 }
 
 const schema = z.object({
@@ -310,7 +310,10 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span
                             className="rounded-full px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wide border border-foreground/20"
-                            style={{ background: STATUS_COLORS[post.status] + "22", color: STATUS_COLORS[post.status] }}
+                            style={{
+                              background: `color-mix(in srgb, ${STATUS_COLORS[post.status]} 15%, transparent)`,
+                              color: STATUS_COLORS[post.status],
+                            }}
                           >
                             {post.status.replace("_", " ")}
                           </span>

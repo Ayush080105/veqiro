@@ -167,6 +167,25 @@ html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
   }
 }
 
+/* Mount-only stagger reveal for lists/grids. Opt-in per list — set
+   `--vq-stagger-i` (the item's index) inline on each item; never re-key off
+   data changes (react-query refetch, polling) or it replays on every update. */
+@keyframes vq-fade-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.vq-stagger-item {
+  animation: vq-fade-slide-up 320ms ease-out both;
+  animation-delay: calc(var(--vq-stagger-i, 0) * 40ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vq-stagger-item {
+    animation: none;
+  }
+}
+
 /* Retired: the grain overlay read as texture-for-texture's-sake once the rest
    of the UI moved to soft elevation. Kept as a no-op so any remaining mount
    (e.g. the onboarding shell) renders nothing instead of a texture. */

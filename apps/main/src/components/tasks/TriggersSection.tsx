@@ -138,7 +138,7 @@ export function TriggersSection() {
                 // Open where something is already switched on, so the things
                 // actually running are visible without hunting for them.
                 open={items.some((t) => t.enabled) || Boolean(query.trim())}
-                className="rounded-lg border border-[#D4C9B0]"
+                className="rounded-lg border border-(--vq-line-2)"
               >
                 <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium">
                   {integrationName}
@@ -151,7 +151,7 @@ export function TriggersSection() {
                   {items.map((trigger) => (
                     <div
                       key={trigger.id}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5"
+                      className="flex items-center justify-between gap-4 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5"
                     >
                       <div className="flex min-w-0 flex-col gap-1">
                         <div className="flex flex-wrap items-center gap-2">

@@ -188,7 +188,11 @@ export function BrandSnapshot() {
               <span
                 key={k}
                 className="font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full"
-                style={{ background: "#FFEFC4", border: "1px solid #B9870080", color: "#7A5A00" }}
+                style={{
+                  background: "color-mix(in srgb, var(--vq-yellow) 25%, var(--card))",
+                  border: "1px solid color-mix(in srgb, var(--vq-yellow) 55%, transparent)",
+                  color: "color-mix(in srgb, var(--vq-yellow) 65%, black)",
+                }}
               >
                 + {FIELD_LABELS[k]}
               </span>

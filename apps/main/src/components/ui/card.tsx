@@ -25,14 +25,21 @@ const cardVariants = cva(
 type CardProps = React.ComponentProps<"div"> &
   VariantProps<typeof cardVariants> & {
     size?: "default" | "sm"
+    /** Subtle lift + shadow bump on hover/press. Opt-in — most cards are static containers, not controls. */
+    interactive?: boolean
   }
 
-function Card({ className, size = "default", variant, ...props }: CardProps) {
+function Card({ className, size = "default", variant, interactive = false, ...props }: CardProps) {
   return (
     <div
       data-slot="card"
       data-size={size}
-      className={cn(cardVariants({ variant }), className)}
+      className={cn(
+        cardVariants({ variant }),
+        interactive &&
+          "cursor-pointer transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-(--vq-shadow-lg) active:translate-y-0 active:shadow-(--vq-shadow)",
+        className
+      )}
       {...props}
     />
   )

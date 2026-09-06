@@ -27,9 +27,9 @@ const statusIcon = {
 } as const
 
 const statusColor = {
-  ok: "#0E5C3F",
-  error: "#B91C1C",
-  pending: "#7A5A00",
+  ok: "color-mix(in srgb, var(--vq-green) 60%, black)",
+  error: "color-mix(in srgb, var(--vq-red) 55%, black)",
+  pending: "color-mix(in srgb, var(--vq-yellow) 65%, black)",
 } as const
 
 function formatDuration(ms: number): string {
@@ -54,13 +54,13 @@ function TraceLine({ entry }: { entry: ToolTraceEntry }) {
         padding: "3px 0",
         fontFamily: FONT.mono,
         fontSize: 11,
-        color: "rgba(0,0,0,0.62)",
+        color: "var(--muted-foreground)",
         minWidth: 0,
       }}
     >
       <Icon className="size-3 shrink-0" style={{ color }} aria-hidden="true" />
-      <span style={{ color: "#1A1A1A", fontWeight: 500, whiteSpace: "nowrap" }}>{systemName}</span>
-      <span aria-hidden="true" style={{ color: "rgba(0,0,0,0.25)" }}>·</span>
+      <span style={{ color: "var(--foreground)", fontWeight: 500, whiteSpace: "nowrap" }}>{systemName}</span>
+      <span aria-hidden="true" style={{ color: "var(--muted-foreground)" }}>·</span>
       <span
         style={{
           overflow: "hidden",
@@ -78,7 +78,7 @@ function TraceLine({ entry }: { entry: ToolTraceEntry }) {
         <span style={{ color, whiteSpace: "nowrap" }}>awaiting approval</span>
       )}
       {typeof entry.durationMs === "number" && (
-        <span style={{ marginLeft: "auto", color: "rgba(0,0,0,0.35)", whiteSpace: "nowrap" }}>
+        <span style={{ marginLeft: "auto", color: "var(--muted-foreground)", whiteSpace: "nowrap" }}>
           {formatDuration(entry.durationMs)}
         </span>
       )}
@@ -109,9 +109,9 @@ export function ToolTraceStrip({ trace }: { trace: ToolTraceEntry[] }) {
   return (
     <div
       style={{
-        border: "1px solid rgba(0,0,0,0.1)",
+        border: "1px solid var(--vq-line-2)",
         borderRadius: 10,
-        background: "#FAFAF7",
+        background: "var(--card)",
         marginTop: 6,
         maxWidth: 460,
         overflow: "hidden",
@@ -134,7 +134,7 @@ export function ToolTraceStrip({ trace }: { trace: ToolTraceEntry[] }) {
           fontSize: 10.5,
           letterSpacing: "0.3px",
           textTransform: "uppercase",
-          color: failed > 0 ? statusColor.error : "rgba(0,0,0,0.45)",
+          color: failed > 0 ? statusColor.error : "var(--muted-foreground)",
           textAlign: "left",
         }}
       >
@@ -152,7 +152,7 @@ export function ToolTraceStrip({ trace }: { trace: ToolTraceEntry[] }) {
       </button>
 
       {open && (
-        <div style={{ padding: "0 10px 8px 10px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ padding: "0 10px 8px 10px", borderTop: "1px solid var(--vq-line)" }}>
           {trace.map((entry, i) => (
             <TraceLine key={`${entry.label}-${i}`} entry={entry} />
           ))}

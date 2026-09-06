@@ -4,8 +4,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { getAgent, AGENT_PHOTOS } from "@/lib/config/agents"
-import { FONT } from "@/lib/fonts"
 import { useTeam } from "@/lib/api/team"
+import { cn } from "@/lib/utils"
 
 /**
  * Entry point to the shared team room, pinned above the six individual chats.
@@ -25,32 +25,22 @@ export function TeamRow() {
   return (
     <Link
       href="/assistants/team"
-      style={{
-        display: "block",
-        padding: "12px 14px",
-        borderBottom: "1px solid #D4C9B0",
-        background: active ? "#EFE7D6" : "#FFF9ED",
-        textDecoration: "none",
-        color: "inherit",
-      }}
+      className={cn(
+        "block border-b border-(--vq-line-2) px-3.5 py-3 text-inherit no-underline",
+        active ? "bg-background" : "bg-card"
+      )}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="flex items-center gap-2.5">
         {/* Overlapping avatars — the room, at a glance. */}
-        <div style={{ display: "flex", flexShrink: 0 }}>
+        <div className="flex shrink-0">
           {(agents.length ? agents : ["vega", "maya", "sage"]).slice(0, 4).map((slug, i) => {
             const agent = getAgent(slug.toLowerCase())
             return (
               <span
                 key={slug}
+                className={cn("block size-6.5 overflow-hidden rounded-full border-2 border-card", i !== 0 && "-ml-2.25")}
                 style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  overflow: "hidden",
-                  border: "2px solid #FFF9ED",
-                  marginLeft: i === 0 ? 0 : -9,
-                  background: (agent?.color as string) ?? "#EFE7D6",
-                  display: "block",
+                  background: (agent?.color as string) ?? "var(--background)",
                   opacity: agents.length ? 1 : 0.35,
                 }}
               >
@@ -60,7 +50,7 @@ export function TeamRow() {
                     alt=""
                     width={52}
                     height={52}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    className="h-full w-full object-cover"
                   />
                 )}
               </span>
@@ -68,31 +58,11 @@ export function TeamRow() {
           })}
         </div>
 
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              fontFamily: FONT.head,
-              fontWeight: 700,
-              fontSize: 15,
-              color: "#111",
-              lineHeight: 1.2,
-            }}
-          >
+        <div className="min-w-0 flex-1">
+          <div className="font-head text-[15px] font-bold text-foreground leading-tight">
             Team
           </div>
-          <div
-            style={{
-              fontFamily: FONT.mono,
-              fontSize: 10,
-              letterSpacing: "1.2px",
-              textTransform: "uppercase",
-              color: "#999",
-              marginTop: 3,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
+          <div className="mt-0.5 truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
             {enoughForATeam
               ? `${agents.length} agents · one shared task`
               : "hire 2+ agents to unlock"}

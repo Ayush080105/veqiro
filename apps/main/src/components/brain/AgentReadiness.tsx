@@ -4,7 +4,6 @@ import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
 import { AGENTS } from "@/lib/config/agents"
-import { FONT } from "@/lib/fonts"
 
 interface AgentReadinessProps {
   values: BrainFormValues
@@ -48,83 +47,26 @@ export function AgentReadiness({ values }: AgentReadinessProps) {
   )
 
   return (
-    <div
-      style={{
-        background: "#FFF9ED",
-        border: "2.5px solid #111",
-        borderRadius: 12,
-        boxShadow: "4px 4px 0 #111",
-        padding: "14px 16px",
-      }}
-    >
-      <p
-        style={{
-          fontFamily: FONT.mono,
-          fontSize: 11,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: "#555",
-          margin: "0 0 12px",
-        }}
-      >
+    <div className="rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3.5 shadow-(--vq-shadow-sm)">
+      <p className="m-0 mb-3 font-mono text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
         agent readiness
       </p>
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 16,
-        }}
-      >
+      <div className="flex flex-wrap gap-4">
         {readiness.map((agent) => (
-          <div
-            key={agent.id}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            <div style={{ position: "relative" }}>
+          <div key={agent.id} className="flex flex-col items-center gap-1">
+            <div className="relative">
               <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  background: agent.color,
-                  border: "2px solid #111",
-                  display: "grid",
-                  placeItems: "center",
-                  fontFamily: FONT.head,
-                  fontSize: 11,
-                  color: "#111",
-                }}
+                className="grid size-9 place-items-center rounded-full border border-(--vq-line-2) font-head text-[11px] text-foreground"
+                style={{ background: agent.color }}
               >
                 {agent.initials}
               </div>
               <span
-                style={{
-                  position: "absolute",
-                  right: -2,
-                  bottom: -2,
-                  width: 12,
-                  height: 12,
-                  borderRadius: "50%",
-                  background: agent.ready ? "#1DBC87" : "#F5C518",
-                  border: "2px solid #111",
-                }}
+                className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full border border-card"
+                style={{ background: agent.ready ? "var(--vq-green)" : "var(--vq-yellow)" }}
               />
             </div>
-            <span
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 10,
-                letterSpacing: 1,
-                textTransform: "uppercase",
-                color: "#333",
-              }}
-            >
+            <span className="font-mono text-[10px] tracking-wide text-foreground/80 uppercase">
               {agent.name}
             </span>
           </div>

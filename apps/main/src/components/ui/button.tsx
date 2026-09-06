@@ -34,10 +34,10 @@ const buttonVariants = cva(
           "rounded-lg border border-[var(--vq-line-2)] bg-transparent text-foreground font-display font-medium hover:bg-foreground/5 active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         // ── Chat action button: dark pill CTA used inside agent result cards ──
         "chat-action":
-          "h-auto rounded-full bg-[#111] px-3.5 py-1.5 text-[11px] font-medium text-[#FFF9ED] hover:opacity-80 gap-1.5 [&_svg:not([class*='size-'])]:size-3",
+          "h-auto rounded-full bg-primary px-3.5 py-1.5 text-[11px] font-medium text-primary-foreground hover:opacity-80 gap-1.5 [&_svg:not([class*='size-'])]:size-3",
         // ── Chat utility button: warm cream pill for copy/export/secondary actions ──
         "chat-utility":
-          "h-auto rounded-full bg-[#FFF9ED] border border-[#D4C9B0] text-[#111] px-3 py-1.5 text-[11px] font-medium hover:bg-[#EFE7D6] gap-1.5 [&_svg:not([class*='size-'])]:size-3",
+          "h-auto rounded-full bg-card border border-[var(--vq-line-2)] text-foreground px-3 py-1.5 text-[11px] font-medium hover:bg-background gap-1.5 [&_svg:not([class*='size-'])]:size-3",
       },
       size: {
         default:

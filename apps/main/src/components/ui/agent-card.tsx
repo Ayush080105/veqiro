@@ -44,7 +44,7 @@ function AgentCardRoot({
   const agentColor = React.useContext(AgentColorContext)
   const tintStyle: React.CSSProperties =
     variant === "default" && agentColor
-      ? { background: `color-mix(in srgb, ${agentColor} 28%, #FFF9ED)` }
+      ? { background: `color-mix(in srgb, ${agentColor} 28%, var(--card))` }
       : {}
 
   return (

@@ -55,7 +55,7 @@ export default function SharedRexPinPage({
 
   if (pin === undefined) {
     return (
-      <div className="min-h-screen bg-[#FFF9ED] flex items-center justify-center">
+      <div className="min-h-screen bg-card flex items-center justify-center">
         <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-muted-foreground">
           Loading…
         </p>
@@ -65,7 +65,7 @@ export default function SharedRexPinPage({
 
   if (pin === null) {
     return (
-      <div className="min-h-screen bg-[#FFF9ED] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-card flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <h1 className="font-mono text-[12px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
             Card unavailable
@@ -81,8 +81,8 @@ export default function SharedRexPinPage({
   const actionId = KIND_TO_ACTION[pin.kind]
 
   return (
-    <div className="min-h-screen bg-[#FFF9ED]">
-      <header className="border-b-2 border-[#111] px-6 py-4 bg-white">
+    <div className="min-h-screen bg-card">
+      <header className="border-b border-(--vq-line-2) px-6 py-4 bg-card">
         <div className="mx-auto max-w-3xl flex items-center justify-between">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">

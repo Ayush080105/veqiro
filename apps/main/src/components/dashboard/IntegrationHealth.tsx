@@ -10,6 +10,7 @@ import {
   type DashboardIntegrationHealth,
 } from "@/lib/api/dashboard"
 import { getIntegrationBySlug } from "@repo/integrations-catalog"
+import { cn } from "@/lib/utils"
 
 type Row = {
   id: string
@@ -46,12 +47,12 @@ function platformRow(
 
 const stateClasses: Record<
   Row["state"],
-  { row: string; metaColor: string }
+  { row: string; meta: string }
 > = {
-  connected:     { row: "bg-[#DDF5E8] border-[#1DBC87]/50", metaColor: "#0E5C3F" },
-  disconnected:  { row: "bg-white border-[var(--vq-line-2)]", metaColor: "#555555" },
-  expiring:      { row: "bg-[#FFEFC4] border-[#B98700]/50", metaColor: "#7A5A00" },
-  "coming-soon": { row: "bg-background border-foreground", metaColor: "#777777" },
+  connected:     { row: "bg-[color-mix(in_srgb,var(--chart-2)_14%,var(--card))] border-chart-2/50", meta: "text-green-800" },
+  disconnected:  { row: "bg-card border-(--vq-line-2)", meta: "text-muted-foreground" },
+  expiring:      { row: "bg-[color-mix(in_srgb,var(--vq-yellow)_20%,var(--card))] border-[var(--vq-yellow)]/50", meta: "text-amber-800" },
+  "coming-soon": { row: "bg-background border-foreground", meta: "text-muted-foreground" },
 }
 
 /** MCP connections carry their own status, so they don't need the token-expiry
@@ -150,26 +151,20 @@ export function IntegrationHealth() {
               key={r.id}
               className={`flex items-center gap-2 px-2.5 py-2 border rounded-lg ${cls.row}`}
             >
-              {r.state === "connected"    && <CheckCircle2 className="size-3.5 shrink-0" style={{ color: "#0E5C3F" }} />}
+              {r.state === "connected"    && <CheckCircle2 className="size-3.5 shrink-0 text-green-700" />}
               {r.state === "disconnected" && <XCircle className="size-3.5 shrink-0 text-muted-foreground" />}
-              {r.state === "expiring"     && <AlertTriangle className="size-3.5 shrink-0" style={{ color: "#7A5A00" }} />}
+              {r.state === "expiring"     && <AlertTriangle className="size-3.5 shrink-0 text-amber-700" />}
               <div className="flex-1 min-w-0">
                 <div className="font-mono text-[11px] uppercase tracking-[0.15em] text-foreground">
                   {r.label}
                 </div>
                 {r.meta && (
-                  <div
-                    className="font-mono text-[9px] truncate"
-                    style={{ color: cls.metaColor }}
-                  >
+                  <div className={cn("font-mono text-[9px] truncate", cls.meta)}>
                     {r.meta}
                   </div>
                 )}
                 {r.state === "coming-soon" && (
-                  <div
-                    className="font-mono text-[9px] tracking-[0.1em]"
-                    style={{ color: cls.metaColor }}
-                  >
+                  <div className={cn("font-mono text-[9px] tracking-widest", cls.meta)}>
                     coming soon
                   </div>
                 )}

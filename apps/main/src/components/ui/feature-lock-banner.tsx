@@ -11,7 +11,7 @@ export function FeatureLockBanner({ title, description }: FeatureLockBannerProps
   return (
     <div
       className="flex min-h-[320px] flex-1 flex-col items-center justify-center gap-5 p-10 text-center"
-      style={{ background: "#EFE7D6" }}
+      style={{ background: "var(--background)" }}
     >
       <div
         style={{
@@ -25,7 +25,7 @@ export function FeatureLockBanner({ title, description }: FeatureLockBannerProps
           flexShrink: 0,
         }}
       >
-        <Lock style={{ width: 30, height: 30, color: "#555" }} />
+        <Lock style={{ width: 30, height: 30, color: "var(--muted-foreground)" }} />
       </div>
 
       <Sticker rotate={-3} tone="yellow">
@@ -38,7 +38,7 @@ export function FeatureLockBanner({ title, description }: FeatureLockBannerProps
             fontFamily: FONT.display,
             fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)",
             lineHeight: 1,
-            color: "#111",
+            color: "var(--foreground)",
             margin: 0,
             letterSpacing: -0.5,
           }}
@@ -50,7 +50,7 @@ export function FeatureLockBanner({ title, description }: FeatureLockBannerProps
             fontFamily: FONT.body,
             fontSize: 14,
             lineHeight: 1.65,
-            color: "#555",
+            color: "var(--muted-foreground)",
             margin: 0,
           }}
         >

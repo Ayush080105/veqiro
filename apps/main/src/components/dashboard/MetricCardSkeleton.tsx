@@ -4,18 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function MetricCardSkeleton() {
   return (
-    <div
-      style={{
-        background: "#D5CCBA",
-        border: "3px solid #111",
-        borderRadius: 14,
-        boxShadow: "4px 4px 0 #111",
-        padding: 18,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
+    <div className="flex flex-col gap-2.5 rounded-(--vq-r-lg) border border-(--vq-line-2) bg-card p-4.5 shadow-(--vq-shadow)">
       <Skeleton className="h-3 w-24" />
       <Skeleton className="h-8 w-20" />
       <Skeleton className="h-4 w-28" />

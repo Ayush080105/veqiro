@@ -69,7 +69,7 @@ function DayCell({
   onSelect: (id: string) => void
 }) {
   return (
-    <div className="flex min-h-[132px] min-w-0 flex-col gap-1.5 border-r border-b border-[#D4C9B0] p-2 last:border-r-0">
+    <div className="flex min-h-[132px] min-w-0 flex-col gap-1.5 border-r border-b border-(--vq-line-2) p-2 last:border-r-0">
       <div className="flex items-baseline gap-1.5">
         <span className="font-mono text-[10px] tracking-widest text-muted-foreground">{label}</span>
         {date && <span className="text-[10px] text-muted-foreground/60">{date.getUTCDate()}</span>}
@@ -90,8 +90,8 @@ function DayCell({
               onClick={() => onSelect(id)}
               className={`flex flex-col gap-1 rounded-md border p-1.5 text-left transition-colors ${
                 selected
-                  ? "border-foreground bg-[#EFE7D6]"
-                  : "border-[#D4C9B0] bg-[#FFF9ED] hover:bg-[#F6F0E2]"
+                  ? "border-foreground bg-background"
+                  : "border-(--vq-line-2) bg-card hover:bg-muted"
               } ${item.isGapFiller ? "border-dashed" : ""}`}
             >
               <span className="flex items-center gap-1">
@@ -128,18 +128,18 @@ function ItemDetail({
   const { Icon } = meta
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] p-3">
+    <div className="flex flex-col gap-2 rounded-lg border border-(--vq-line-2) bg-card p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold">{item.day || item.date}</span>
         <span
           className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]"
-          style={{ background: meta.color, color: "#111" }}
+          style={{ background: meta.color, color: "var(--foreground)" }}
         >
           <Icon className="size-3" />
           {meta.label}
         </span>
         {item.isGapFiller && (
-          <span className="flex items-center gap-1 rounded-full bg-[#EFE7D6] px-2 py-0.5 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
             <HelpCircle className="size-3" />
             No strong signal
           </span>
@@ -153,7 +153,7 @@ function ItemDetail({
       )}
 
       {(item.reason || item.formatReason) && (
-        <div className="flex flex-col gap-1 border-t border-[#EFE7D6] pt-2">
+        <div className="flex flex-col gap-1 border-t border-(--vq-line-2) pt-2">
           {item.reason && (
             <p className="text-[11px] leading-relaxed">
               <span className="font-medium">Why: </span>
@@ -175,7 +175,7 @@ function ItemDetail({
       {onCreate && (
         <button
           onClick={() => onCreate(item)}
-          className="flex w-fit items-center gap-1.5 rounded-full bg-[#111] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+          className="flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
         >
           <Wand2 className="size-3" />
           {item.format === "reel" ? "Make this reel" : "Make this post"}
@@ -242,7 +242,7 @@ function PlanView({
           {fmt(weekStart)} – {fmt(weekEnd)}
         </h3>
         {plan.note && <p className="text-xs text-muted-foreground">{plan.note}</p>}
-        <pre className="whitespace-pre-wrap rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] p-3 font-sans text-xs leading-relaxed">
+        <pre className="whitespace-pre-wrap rounded-lg border border-(--vq-line-2) bg-card p-3 font-sans text-xs leading-relaxed">
           {plan.rawText}
         </pre>
       </div>
@@ -251,9 +251,9 @@ function PlanView({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-lg border border-[#D4C9B0]">
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-[#111] px-3 py-2">
-          <h3 className="font-mono text-[11px] uppercase tracking-widest text-[#FFF9ED]">
+      <div className="overflow-hidden rounded-lg border border-(--vq-line-2)">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-3 py-2">
+          <h3 className="font-mono text-[11px] uppercase tracking-widest text-primary-foreground">
             {fmt(weekStart)} – {fmt(weekEnd)}
           </h3>
           <div className="flex items-center gap-3">
@@ -264,7 +264,7 @@ function PlanView({
                   className="size-1.5 rounded-full"
                   style={{ background: FORMAT[key].color }}
                 />
-                <span className="font-mono text-[9px] uppercase tracking-wider text-[#FFF9ED]/70">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-primary-foreground/70">
                   {FORMAT[key].short}
                 </span>
               </span>
@@ -298,7 +298,7 @@ function PlanView({
       {/* The note carries the caveats — how thin the data was, what wasn't
           available. Kept close to the grid rather than buried at the bottom. */}
       {plan.note && (
-        <p className="rounded-lg border border-[#D4C9B0] bg-[#F6F0E2] p-3 text-xs leading-relaxed text-muted-foreground">
+        <p className="rounded-lg border border-(--vq-line-2) bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
           {plan.note}
         </p>
       )}
@@ -368,7 +368,7 @@ export function MayaContentPlanTab({
           <button
             onClick={handleGenerate}
             disabled={generating || !organizationId}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#111] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             <Sparkles className="size-3" />
             {generating ? "Planning…" : "Generate plan"}
@@ -385,7 +385,7 @@ export function MayaContentPlanTab({
       ) : isPending ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
       ) : plans.length === 0 ? (
-        <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-[#D4C9B0] p-4">
+        <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-(--vq-line-2) p-4">
           <CalendarDays className="size-4 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             No plan yet. Generate one, or switch on the weekly play under Tasks →
@@ -402,7 +402,7 @@ export function MayaContentPlanTab({
                 Earlier plans
               </h3>
               {older.map((plan) => (
-                <details key={plan.id} className="rounded-lg border border-[#D4C9B0] p-3">
+                <details key={plan.id} className="rounded-lg border border-(--vq-line-2) p-3">
                   <summary className="cursor-pointer text-xs font-medium">
                     Week of{" "}
                     {new Date(plan.weekStart).toLocaleDateString(undefined, { timeZone: "UTC" })}

@@ -87,8 +87,8 @@ const Pill = ({ children }: { children: React.ReactNode }) => (
       fontSize: 10,
       letterSpacing: "0.1em",
       textTransform: "uppercase",
-      color: "#56514A",
-      background: "rgba(20,18,14,0.06)",
+      color: "var(--vq-ink-2)",
+      background: "var(--vq-line)",
       borderRadius: 999,
       padding: "3px 9px",
     }}
@@ -133,7 +133,7 @@ export function RunPanel({ runId }: { runId: string }) {
 
   if (isLoading || !run) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#8B857A", fontSize: 13 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--vq-ink-3)", fontSize: 13 }}>
         <Loader2 size={13} className="animate-spin" />
         Loading plan…
       </div>
@@ -170,9 +170,9 @@ export function RunPanel({ runId }: { runId: string }) {
     <div
       style={{
         marginTop: 10,
-        border: "1px solid rgba(20,18,14,0.10)",
+        border: "1px solid var(--vq-line)",
         borderRadius: 14,
-        background: "#FFFCF6",
+        background: "var(--card)",
         overflow: "hidden",
       }}
     >
@@ -180,18 +180,18 @@ export function RunPanel({ runId }: { runId: string }) {
       <div
         style={{
           padding: "12px 14px",
-          borderBottom: "1px solid rgba(20,18,14,0.08)",
+          borderBottom: "1px solid var(--vq-line)",
           display: "flex",
           alignItems: "center",
           gap: 10,
           flexWrap: "wrap",
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#14120E" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>
           {run.goal || "Plan"}
         </span>
         <Pill>{STATUS_LABEL[run.status]}</Pill>
-        <span style={{ marginLeft: "auto", fontSize: 11.5, color: "#8B857A" }}>
+        <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--vq-ink-3)" }}>
           {enabled.length} of {steps.length} steps
           {writeCount > 0 && ` · ${writeCount} write${writeCount === 1 ? "" : "s"}`}
         </span>
@@ -208,7 +208,7 @@ export function RunPanel({ runId }: { runId: string }) {
         />
 
         {awaitingApproval && (
-          <p style={{ margin: "10px 2px 0", fontSize: 11.5, color: "#8B857A", lineHeight: 1.5 }}>
+          <p style={{ margin: "10px 2px 0", fontSize: 11.5, color: "var(--vq-ink-3)", lineHeight: 1.5 }}>
             Click a step to skip it — anything depending on it is skipped too.
             {writeCount > 0 && (
               <>
@@ -231,7 +231,7 @@ export function RunPanel({ runId }: { runId: string }) {
         )}
 
         {run.errorMessage && (
-          <p style={{ margin: "10px 2px 0", fontSize: 12, color: "#B91C1C" }}>
+          <p style={{ margin: "10px 2px 0", fontSize: 12, color: "color-mix(in srgb, var(--vq-red) 55%, black)" }}>
             {run.errorMessage}
           </p>
         )}
@@ -241,7 +241,7 @@ export function RunPanel({ runId }: { runId: string }) {
       <div
         style={{
           padding: "10px 14px",
-          borderTop: "1px solid rgba(20,18,14,0.08)",
+          borderTop: "1px solid var(--vq-line)",
           display: "flex",
           gap: 8,
           alignItems: "center",
@@ -254,8 +254,8 @@ export function RunPanel({ runId }: { runId: string }) {
               onClick={onApprove}
               disabled={busy || enabled.length === 0}
               style={{
-                background: "#14120E",
-                color: "#F2ECE0",
+                background: "var(--foreground)",
+                color: "var(--background)",
                 border: "none",
                 borderRadius: 9,
                 padding: "8px 16px",
@@ -273,8 +273,8 @@ export function RunPanel({ runId }: { runId: string }) {
               disabled={busy}
               style={{
                 background: "transparent",
-                color: "#56514A",
-                border: "1px solid rgba(20,18,14,0.17)",
+                color: "var(--vq-ink-2)",
+                border: "1px solid var(--vq-line-2)",
                 borderRadius: 9,
                 padding: "8px 14px",
                 fontSize: 13,
@@ -284,7 +284,7 @@ export function RunPanel({ runId }: { runId: string }) {
               Discard
             </button>
             {enabled.length === 0 && (
-              <span style={{ fontSize: 11.5, color: "#B91C1C" }}>
+              <span style={{ fontSize: 11.5, color: "color-mix(in srgb, var(--vq-red) 55%, black)" }}>
                 Nothing left to run
               </span>
             )}
@@ -296,8 +296,8 @@ export function RunPanel({ runId }: { runId: string }) {
             disabled={busy}
             style={{
               background: "transparent",
-              color: "#56514A",
-              border: "1px solid rgba(20,18,14,0.17)",
+              color: "var(--vq-ink-2)",
+              border: "1px solid var(--vq-line-2)",
               borderRadius: 9,
               padding: "8px 14px",
               fontSize: 13,
@@ -310,7 +310,7 @@ export function RunPanel({ runId }: { runId: string }) {
           // Only the status. The summary is rendered as markdown in the
           // message bubble above, where its links are clickable — repeating it
           // here as plain text both duplicated it and made those links dead.
-          <span style={{ fontSize: 12, color: "#8B857A" }}>
+          <span style={{ fontSize: 12, color: "var(--vq-ink-3)" }}>
             {STATUS_LABEL[run.status]}
           </span>
         )}
@@ -350,15 +350,15 @@ function StepReviewBar({
         margin: "10px 0 0",
         padding: "10px 12px",
         borderRadius: 10,
-        border: "1px solid rgba(245,197,24,0.55)",
-        background: "rgba(245,197,24,0.12)",
+        border: "1px solid color-mix(in srgb, var(--vq-yellow) 55%, transparent)",
+        background: "color-mix(in srgb, var(--vq-yellow) 12%, transparent)",
         display: "flex",
         alignItems: "center",
         gap: 10,
         flexWrap: "wrap",
       }}
     >
-      <span style={{ fontSize: 12.5, color: "#5A4A10", flex: 1, minWidth: 180 }}>
+      <span style={{ fontSize: 12.5, color: "color-mix(in srgb, var(--vq-yellow) 65%, black)", flex: 1, minWidth: 180 }}>
         <strong>{step.title}</strong> is ready to run — check the details first.
       </span>
       <button
@@ -366,8 +366,8 @@ function StepReviewBar({
         onClick={() => setOpen(true)}
         disabled={submit.isPending}
         style={{
-          background: "#14120E",
-          color: "#F2ECE0",
+          background: "var(--foreground)",
+          color: "var(--background)",
           border: "none",
           borderRadius: 9,
           padding: "7px 14px",

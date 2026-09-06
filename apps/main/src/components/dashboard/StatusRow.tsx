@@ -1,5 +1,6 @@
 "use client"
 
+import type { CSSProperties } from "react"
 import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 import { authClient } from "@/lib/auth-client"
@@ -9,9 +10,9 @@ import { FONT } from "@/lib/fonts"
 import type { AgentSlug, AgentStatus, AgentStatusData } from "@/lib/types"
 
 function statusDotColor(status: AgentStatus): string {
-  if (status === "working") return "#1DBC87"
-  if (status === "needs-attention") return "#F06464"
-  return "#F5C518"
+  if (status === "working") return "var(--vq-green)"
+  if (status === "needs-attention") return "var(--vq-red)"
+  return "var(--vq-yellow)"
 }
 
 function statusLabel(status: AgentStatus): string {
@@ -40,7 +41,7 @@ export function StatusRow({
     return (
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[58px] rounded-md border border-[var(--vq-line-2)]" />
+          <Skeleton key={i} className="h-14.5 rounded-md border border-(--vq-line-2)" />
         ))}
       </div>
     )
@@ -48,7 +49,7 @@ export function StatusRow({
 
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-3">
-      {AGENTS.map((agent) => {
+      {AGENTS.map((agent, i) => {
         const agentStatus = statuses?.[agent.id as AgentSlug]
         const status: AgentStatus = agentStatus?.status ?? "idle"
 
@@ -56,7 +57,8 @@ export function StatusRow({
           <Link
             key={agent.id}
             href={`/assistants/${agent.id}`}
-            className="group flex min-h-[58px] min-w-0 items-center gap-2.5 rounded-md border border-[var(--vq-line-2)] bg-card p-2 pr-3 text-foreground no-underline shadow-[var(--vq-shadow-sm)] transition-[transform,box-shadow,background-color] duration-150 hover:bg-[#FFF9ED] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="vq-stagger-item group flex min-h-14.5 min-w-0 items-center gap-2.5 rounded-md border border-(--vq-line-2) bg-card p-2 pr-3 text-foreground no-underline shadow-(--vq-shadow-sm) transition-[transform,box-shadow,background-color] duration-150 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ "--vq-stagger-i": i } as CSSProperties}
             onMouseDown={(e) => {
               e.currentTarget.style.transform = "translate(2px,2px)"
               e.currentTarget.style.boxShadow = "1px 1px 0 var(--foreground)"
@@ -71,7 +73,7 @@ export function StatusRow({
             }}
           >
             <span
-              className="grid size-9 shrink-0 place-items-center rounded-full border border-[var(--vq-line-2)] text-foreground"
+              className="grid size-9 shrink-0 place-items-center rounded-full border border-(--vq-line-2) text-foreground"
               style={{
                 background: agent.color,
                 fontFamily: FONT.head,

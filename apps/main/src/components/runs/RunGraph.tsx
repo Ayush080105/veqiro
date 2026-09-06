@@ -94,7 +94,7 @@ export function RunGraph({
         borderRadius: 12,
         overflow: "hidden",
         border: "1px solid rgba(20,18,14,0.10)",
-        background: "#F5EEE0",
+        background: "var(--vq-surface-2)",
       }}
     >
       <ReactFlowProvider>

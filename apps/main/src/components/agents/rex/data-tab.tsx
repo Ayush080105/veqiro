@@ -8,6 +8,16 @@ import { uploadToR2 } from "@/lib/api/uploads"
 import { queryDataset, generateDatasetReport } from "@/lib/api/rex"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { qk } from "@/lib/query-keys"
 import type { RexRawTable } from "@/lib/types/agents"
@@ -98,6 +108,7 @@ export function RexDataTab({
   const [quickQuery, setQuickQuery] = React.useState("")
   const [queryingDatasetId, setQueryingDatasetId] = React.useState<string | null>(null)
   const [generatingReportId, setGeneratingReportId] = React.useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = React.useState<RexDataset | null>(null)
 
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: qk.rexDatasets(organizationId),
@@ -114,7 +125,10 @@ export function RexDataTab({
 
   const deleteMut = useMutation({
     mutationFn: deleteDataset,
-    onSuccess: invalidateAllDatasetKeys,
+    onSuccess: () => {
+      invalidateAllDatasetKeys()
+      setDeleteTarget(null)
+    },
   })
 
   const handleFile = async (file: File) => {
@@ -260,14 +274,11 @@ export function RexDataTab({
 
       {/* Smart post-save section */}
       {savedRecords && savedRecords.length > 0 && !parseResult && (
-        <div
-          className="flex flex-col gap-3 rounded-[var(--vq-r)] border p-4"
-          style={{ borderColor: "#1DBC8750", background: "#f0fdf4" }}
-        >
+        <div className="flex flex-col gap-3 rounded-(--vq-r) border border-chart-2/40 bg-[color-mix(in_srgb,var(--chart-2)_8%,var(--card))] p-4">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2">
-              <CheckCircle className="mt-0.5 size-4 shrink-0" style={{ color: "#1DBC87" }} />
+              <CheckCircle className="mt-0.5 size-4 shrink-0 text-chart-2" />
               <div>
                 <p className="text-[13px] font-semibold text-foreground">
                   Saved {savedRecords.length} dataset{savedRecords.length > 1 ? "s" : ""}
@@ -336,8 +347,8 @@ export function RexDataTab({
                       onClick={() => { setQuickQuery(s); void handleQuickQuery(s) }}
                       disabled={!!queryingDatasetId}
                       className={cn(
-                        "border border-dashed border-[#1DBC87]/60 bg-white px-2 py-0.5 text-[10px] hover:bg-[#f0fdf4] disabled:opacity-50",
-                        quickQuery === s && "border-solid border-[#1DBC87] bg-[#f0fdf4] font-medium"
+                        "border border-dashed border-chart-2/60 bg-card px-2 py-0.5 text-[10px] hover:bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))] disabled:opacity-50",
+                        quickQuery === s && "border-solid border-chart-2 bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))] font-medium"
                       )}
                     >
                       {s}
@@ -355,13 +366,13 @@ export function RexDataTab({
                 onChange={(e) => setQuickQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && quickQuery.trim()) void handleQuickQuery(quickQuery) }}
                 placeholder="Ask anything… e.g. 'Show me a bar chart of sales by region'"
-                className="flex-1 border border-border bg-white px-2.5 py-1.5 text-[11px] placeholder:text-muted-foreground focus:outline-none"
+                className="flex-1 border border-border bg-card px-2.5 py-1.5 text-[11px] placeholder:text-muted-foreground focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => void handleQuickQuery(quickQuery)}
                 disabled={!quickQuery.trim() || !!queryingDatasetId}
-                className="flex items-center gap-1.5 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] bg-white px-3 py-1.5 text-[11px] font-medium shadow-[var(--vq-shadow-sm)] hover:bg-[#FFF9ED] disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-(--vq-r-sm) border border-(--vq-line-2) bg-card px-3 py-1.5 text-[11px] font-medium shadow-(--vq-shadow-sm) hover:bg-background disabled:opacity-50"
               >
                 {queryingDatasetId ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
                 Ask
@@ -375,7 +386,7 @@ export function RexDataTab({
             const hasForecastable = savedRecords.some((d) => ["mrr", "revenue", "arr"].includes(d.metricKey) && (d.points as DataPoint[]).length >= 3)
             if (!hasFinancialMetric) return null
             return (
-              <div className="flex flex-wrap gap-2 border-t border-[#1DBC87]/20 pt-2.5">
+              <div className="flex flex-wrap gap-2 border-t border-chart-2/20 pt-2.5">
                 <p className="w-full font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Financial tools</p>
                 {hasForecastable && (
                   <button
@@ -384,7 +395,7 @@ export function RexDataTab({
                       const ds = savedRecords.find((d) => ["mrr", "revenue", "arr"].includes(d.metricKey))
                       onOpenAction("rex:forecast", ds ? { metric_name: ds.metricKey, historical_data: ds.points, horizon_days: 90 } : undefined)
                     }}
-                    className="flex items-center gap-1.5 border border-border bg-white px-2.5 py-1 text-[10px] hover:bg-muted"
+                    className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[10px] hover:bg-muted"
                   >
                     <TrendingUp className="size-3" /> Forecast 90 days
                   </button>
@@ -393,7 +404,7 @@ export function RexDataTab({
                   <button
                     type="button"
                     onClick={() => onOpenAction("rex:analyze-metrics")}
-                    className="flex items-center gap-1.5 border border-border bg-white px-2.5 py-1 text-[10px] hover:bg-muted"
+                    className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[10px] hover:bg-muted"
                   >
                     <LineChart className="size-3" /> Analyze metrics
                   </button>
@@ -402,7 +413,7 @@ export function RexDataTab({
                   <button
                     type="button"
                     onClick={() => onOpenAction("rex:financial-analysis")}
-                    className="flex items-center gap-1.5 border border-border bg-white px-2.5 py-1 text-[10px] hover:bg-muted"
+                    className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[10px] hover:bg-muted"
                   >
                     <DollarSign className="size-3" /> Financial analysis
                   </button>
@@ -567,7 +578,7 @@ export function RexDataTab({
                 <button
                   type="button"
                   aria-label="Delete dataset"
-                  onClick={() => deleteMut.mutate(ds.id)}
+                  onClick={() => setDeleteTarget(ds)}
                   disabled={deleteMut.isPending}
                   className="rounded p-1 hover:bg-destructive/10"
                 >
@@ -578,6 +589,28 @@ export function RexDataTab({
           })
         )}
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete &ldquo;{deleteTarget?.name}&rdquo;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the dataset and its saved data. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
+              disabled={deleteMut.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete dataset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -6,7 +6,7 @@ export default function AssistantChatLoading() {
       {/* Chat header */}
       <div
         className="flex items-center gap-3 border-b-[3px] border-foreground px-5 py-3"
-        style={{ background: "#FFF9ED" }}
+        style={{ background: "var(--card)" }}
       >
         <Skeleton className="size-10 rounded-full" />
         <div className="flex flex-1 flex-col gap-1.5">

@@ -53,7 +53,7 @@ function CopyBtn({ text }: { text: string }) {
         borderRadius: "50%",
         cursor: "pointer",
         boxShadow: "var(--vq-shadow-sm)",
-        color: "#444",
+        color: "var(--foreground)",
       }}
     >
       {state === "copied" ? <Check size={12} strokeWidth={2.5} /> : <Copy size={12} strokeWidth={2} />}
@@ -83,7 +83,7 @@ function AgentDisc({
         placeItems: "center",
         fontFamily: FONT.head,
         fontSize: 11,
-        color: "#fff",
+        color: "white",
         overflow: "hidden",
         position: "relative",
       }}
@@ -140,7 +140,7 @@ function TypingIndicatorComponent({
             style={{
               width: 5,
               height: 5,
-              background: "#888",
+              background: "var(--muted-foreground)",
               borderRadius: "50%",
               display: "inline-block",
               animation: `vq-typing-dot 1.2s ${i * 0.2}s infinite ease-in-out`,
@@ -280,7 +280,7 @@ function ChatMessageComponent({
                 style={{
                   background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
                   borderLeft: `3px solid ${agentColor}`,
-                  color: "#111",
+                  color: "var(--foreground)",
                   borderRadius: "18px 18px 18px 4px",
                   boxShadow: "var(--vq-shadow-sm)",
                   padding: "10px 14px 8px",
@@ -329,7 +329,7 @@ function ChatMessageComponent({
             style={{
               background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
               borderLeft: `3px solid ${agentColor}`,
-              color: "#111",
+              color: "var(--foreground)",
               borderRadius: "18px 18px 18px 4px",
               boxShadow: "var(--vq-shadow-sm)",
               padding: "10px 14px 8px",
@@ -353,7 +353,7 @@ function ChatMessageComponent({
                     fontFamily: FONT.mono,
                     fontSize: 10,
                     letterSpacing: "0.3px",
-                    color: "#555",
+                    color: "var(--muted-foreground)",
                     textDecoration: "underline",
                   }}
                 >

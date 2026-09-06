@@ -749,7 +749,7 @@ export function BrandKitSection({
           <VqSectionCard
             title="Site Context"
             description="What we pulled from your site. Agents read this to sound like you."
-            shadow="var(--vq-cream,#FFF9ED)"
+            shadow="var(--card)"
           >
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">

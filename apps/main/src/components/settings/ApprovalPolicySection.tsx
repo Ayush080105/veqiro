@@ -13,6 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { qk } from "@/lib/query-keys"
 import {
   useApprovalPolicies,
@@ -20,6 +30,7 @@ import {
   setApprovalPolicy,
   deleteApprovalPolicy,
   type McpApprovalMode,
+  type McpApprovalPolicy,
 } from "@/lib/api/mcp"
 
 const MODE_LABELS: Record<McpApprovalMode, string> = {
@@ -49,6 +60,7 @@ export function ApprovalPolicySection() {
   const [busy, setBusy] = useState(false)
   const [draftSlug, setDraftSlug] = useState<string>("*")
   const [draftMode, setDraftMode] = useState<McpApprovalMode>("ALWAYS_ASK")
+  const [deleteTarget, setDeleteTarget] = useState<McpApprovalPolicy | null>(null)
 
   const connected = connections.filter((c) => c.status === "CONNECTED")
   const displayName = (slug: string) => getIntegrationBySlug(slug)?.name ?? slug
@@ -81,6 +93,7 @@ export function ApprovalPolicySection() {
       toast.error(err instanceof Error ? err.message : "Couldn't remove that rule")
     } finally {
       setBusy(false)
+      setDeleteTarget(null)
     }
   }
 
@@ -99,7 +112,7 @@ export function ApprovalPolicySection() {
       ) : (
         <div className="flex flex-col gap-2">
           {policies.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5">
+            <div className="flex items-center gap-2 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5">
               <ShieldCheck className="size-3.5 shrink-0 text-chart-2" />
               <p className="text-[11px] text-muted-foreground">
                 No rules. Every change asks you first.
@@ -109,7 +122,7 @@ export function ApprovalPolicySection() {
             policies.map((policy) => (
               <div
                 key={policy.id}
-                className="flex items-center justify-between gap-4 rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5"
+                className="flex items-center justify-between gap-4 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5"
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex items-center gap-2">
@@ -125,7 +138,7 @@ export function ApprovalPolicySection() {
                   <p className="text-[11px] text-muted-foreground">{MODE_HELP[policy.mode]}</p>
                 </div>
                 <button
-                  onClick={() => handleDelete(policy.id)}
+                  onClick={() => setDeleteTarget(policy)}
                   disabled={busy}
                   aria-label="Remove rule"
                   className="shrink-0 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-60"
@@ -136,7 +149,7 @@ export function ApprovalPolicySection() {
             ))
           )}
 
-          <div className="flex flex-col gap-2 rounded-lg border border-dashed border-[#D4C9B0] px-3 py-2.5 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 rounded-lg border border-dashed border-(--vq-line-2) px-3 py-2.5 sm:flex-row sm:items-center">
             <Select value={draftSlug} onValueChange={(v) => setDraftSlug(v ?? "*")}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Which tool" />
@@ -170,7 +183,7 @@ export function ApprovalPolicySection() {
             <button
               onClick={handleAdd}
               disabled={busy}
-              className="rounded-md border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-1.5 text-xs font-medium hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+              className="rounded-md border border-(--vq-line-2) bg-card px-3 py-1.5 text-xs font-medium hover:bg-background transition-colors disabled:opacity-60"
             >
               Add rule
             </button>
@@ -184,6 +197,36 @@ export function ApprovalPolicySection() {
           )}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Remove rule for &ldquo;
+              {deleteTarget?.integrationSlug === "*"
+                ? "every tool"
+                : deleteTarget
+                  ? displayName(deleteTarget.integrationSlug)
+                  : ""}
+              &rdquo;?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Once removed, this tool goes back to asking you first before it acts. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
+              disabled={busy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove rule
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

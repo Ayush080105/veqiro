@@ -3,7 +3,6 @@
 import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
-import { FONT } from "@/lib/fonts"
 import { BRAND_KIT_MINS } from "@/lib/schemas/brand-kit"
 
 interface BrainCompletionBarProps {
@@ -108,67 +107,25 @@ export function BrainCompletionBar({ values }: BrainCompletionBarProps) {
         : "var(--vq-red)"
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <span
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#555",
-          }}
-        >
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
           brand kit completion
         </span>
-        <span
-          style={{
-            fontFamily: FONT.head,
-            fontSize: 14,
-            color: "#111",
-          }}
-        >
+        <span className="font-head text-sm text-foreground">
           {percentage}%
         </span>
       </div>
 
-      <div
-        style={{
-          height: 14,
-          width: "100%",
-          background: "#FFF9ED",
-          border: "2.5px solid #111",
-          borderRadius: 999,
-          overflow: "hidden",
-        }}
-      >
+      <div className="h-3.5 w-full overflow-hidden rounded-full border border-(--vq-line-2) bg-card">
         <div
-          style={{
-            height: "100%",
-            background: fillColor,
-            width: `${percentage}%`,
-            borderRight: percentage > 0 && percentage < 100 ? "2px solid #111" : "none",
-            transition: "width 500ms ease",
-          }}
+          className="h-full transition-[width] duration-500 ease-out"
+          style={{ background: fillColor, width: `${percentage}%` }}
         />
       </div>
 
       {percentage < 100 && suggestion && (
-        <p
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 11,
-            lineHeight: 1.5,
-            color: "#555",
-            margin: 0,
-          }}
-        >
+        <p className="m-0 font-mono text-[11px] leading-relaxed text-muted-foreground">
           {`// ${suggestion}`}
         </p>
       )}

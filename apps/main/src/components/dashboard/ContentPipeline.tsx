@@ -16,10 +16,10 @@ const PLATFORM_COLORS: Record<"twitter" | "linkedin" | "instagram", string> = {
 }
 
 const STATUS_COLORS: Record<"draft" | "scheduled" | "published" | "failed", string> = {
-  draft: "#EFE7D6",
-  scheduled: "#F5C518",
-  published: "#1DBC87",
-  failed: "#F06464",
+  draft: "var(--vq-bg)",
+  scheduled: "var(--vq-yellow)",
+  published: "var(--vq-green)",
+  failed: "var(--vq-red)",
 }
 
 function sectionHeader(title: string, kicker: string) {
@@ -52,10 +52,10 @@ export function ContentPipeline({
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {/* Card 1: By Platform */}
-      <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
+      <div className="bg-card border border-(--vq-line-2) rounded-2xl shadow-(--vq-shadow) p-5">
         {sectionHeader("posts published", "by platform")}
         {total === 0 ? (
-          <div className="px-4 py-7 border border-dashed border-[var(--vq-line-2)] rounded-xl bg-white font-mono text-xs text-muted-foreground text-center">
+          <div className="px-4 py-7 border border-dashed border-(--vq-line-2) rounded-xl bg-card font-mono text-xs text-muted-foreground text-center">
             {"// no posts yet"}
           </div>
         ) : (
@@ -82,10 +82,10 @@ export function ContentPipeline({
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: "#fff",
-                      border: "2.5px solid #111",
+                      background: "var(--popover)",
+                      border: "1px solid var(--vq-line-2)",
                       borderRadius: 10,
-                      boxShadow: "3px 3px 0 #111",
+                      boxShadow: "var(--vq-shadow-lg)",
                       fontFamily: "var(--font-mono)",
                       fontSize: 12,
                     }}
@@ -107,10 +107,10 @@ export function ContentPipeline({
               {platforms.map((p) => (
                 <div
                   key={p.name}
-                  className="flex items-center gap-2 px-2 py-1 border border-[var(--vq-line-2)] rounded-lg bg-white"
+                  className="flex items-center gap-2 px-2 py-1 border border-(--vq-line-2) rounded-lg bg-card"
                 >
                   <span
-                    className="size-3 border border-[var(--vq-line-2)] rounded-[3px] shrink-0"
+                    className="size-3 border border-(--vq-line-2) rounded-xs shrink-0"
                     style={{ background: p.color }}
                   />
                   <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-foreground flex-1">
@@ -125,7 +125,7 @@ export function ContentPipeline({
       </div>
 
       {/* Card 2: Pipeline Status */}
-      <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
+      <div className="bg-card border border-(--vq-line-2) rounded-2xl shadow-(--vq-shadow) p-5">
         {sectionHeader("pipeline status", "pipeline")}
         <div className="flex flex-col gap-2.5">
           {statuses.map((s) => (
@@ -135,7 +135,7 @@ export function ContentPipeline({
                 <span className="font-head">{s.count}</span>
               </div>
               <div
-                className="h-[18px] bg-white border border-[var(--vq-line-2)] rounded-md overflow-hidden"
+                className="h-4.5 bg-card border border-(--vq-line-2) rounded-md overflow-hidden"
                 role="progressbar"
                 aria-label={`${s.key} content count`}
                 aria-valuemin={0}

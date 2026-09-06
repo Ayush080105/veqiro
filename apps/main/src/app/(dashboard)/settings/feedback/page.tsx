@@ -622,6 +622,7 @@ export default function FeedbackAdminPage() {
                           size="icon-sm"
                           onClick={() => handleHideAgent(agent)}
                           title="Hide from public roadmap"
+                          aria-label="Hide from public roadmap"
                         >
                           <EyeOff className="size-3.5" />
                         </Button>
@@ -630,6 +631,7 @@ export default function FeedbackAdminPage() {
                           size="icon-sm"
                           onClick={() => setAgentDialog({ open: true, editing: agent })}
                           title="Edit agent"
+                          aria-label="Edit agent"
                         >
                           <Pencil className="size-3.5" />
                         </Button>
@@ -639,6 +641,7 @@ export default function FeedbackAdminPage() {
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => setDeleteTarget(agent)}
                           title="Delete agent"
+                          aria-label="Delete agent"
                         >
                           <Trash2 className="size-3.5" />
                         </Button>

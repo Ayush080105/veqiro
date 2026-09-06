@@ -48,7 +48,7 @@ export function CommandCenter() {
             {pending > 0 ? (
               <Link
                 href="/assistants"
-                className="flex items-center justify-between gap-3 rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 hover:bg-[#EFE7D6] transition-colors"
+                className="flex items-center justify-between gap-3 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 hover:bg-background transition-colors"
               >
                 <span className="flex items-center gap-2">
                   <Inbox className="size-4 shrink-0 text-foreground" />
@@ -59,7 +59,7 @@ export function CommandCenter() {
                 <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
               </Link>
             ) : (
-              <div className="flex items-center gap-2 rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5">
+              <div className="flex items-center gap-2 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5">
                 <CheckCircle2 className="size-4 shrink-0 text-chart-2" />
                 <span className="text-xs text-muted-foreground">
                   Nothing waiting on you.

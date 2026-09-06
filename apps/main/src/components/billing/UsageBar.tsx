@@ -21,7 +21,7 @@ export function UsageBar({
 
   let barColor = "var(--primary)"
   if (isExhausted) barColor = "var(--destructive)"
-  else if (isNearLimit) barColor = "#f59e0b"
+  else if (isNearLimit) barColor = "var(--vq-yellow)"
 
   return (
     <div className="flex flex-col gap-2">

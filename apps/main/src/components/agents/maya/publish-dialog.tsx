@@ -42,9 +42,9 @@ export function PostTypeToggle({ value, onChange }: { value: "post" | "reel"; on
             flex: 1,
             padding: "6px 10px",
             borderRadius: 8,
-            border: `1px solid ${value === opt.value ? "#1A1A1A" : "#D4C9B0"}`,
-            background: value === opt.value ? "#1A1A1A" : "#FFF9ED",
-            color: value === opt.value ? "#FFF9ED" : "#1A1A1A",
+            border: `1px solid ${value === opt.value ? "var(--foreground)" : "var(--vq-line-2)"}`,
+            background: value === opt.value ? "var(--foreground)" : "var(--card)",
+            color: value === opt.value ? "var(--background)" : "var(--foreground)",
             fontSize: 12,
             fontWeight: 500,
             cursor: "pointer",
@@ -173,7 +173,7 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
                 <button
                   onClick={() => handlePublish(null)}
                   disabled={publishing}
-                  className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+                  className="flex items-center justify-between rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 text-left text-xs hover:bg-background transition-colors disabled:opacity-60"
                 >
                   <span className="font-medium">Instagram</span>
                   <span className="text-muted-foreground">
@@ -186,7 +186,7 @@ export function CampaignPublishDialog({ imageUrls, photoCount, caption, hashtags
                   key={a.id}
                   onClick={() => handlePublish(a.id)}
                   disabled={publishing}
-                  className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+                  className="flex items-center justify-between rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 text-left text-xs hover:bg-background transition-colors disabled:opacity-60"
                 >
                   <span className="font-medium">{a.accountName ?? a.providerAccountId}</span>
                   <span className="text-muted-foreground">
@@ -317,7 +317,7 @@ export function PublishDialog({ platform, caption, hashtags, image, video }: Pub
               <button
                 onClick={() => handlePublish(null)}
                 disabled={publishing}
-                className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+                className="flex items-center justify-between rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 text-left text-xs hover:bg-background transition-colors disabled:opacity-60"
               >
                 <span className="font-medium">Instagram</span>
                 <span className="text-muted-foreground">
@@ -330,7 +330,7 @@ export function PublishDialog({ platform, caption, hashtags, image, video }: Pub
                 key={a.id}
                 onClick={() => handlePublish(a.id)}
                 disabled={publishing}
-                className="flex items-center justify-between rounded-lg border border-[#D4C9B0] bg-[#FFF9ED] px-3 py-2.5 text-left text-xs hover:bg-[#EFE7D6] transition-colors disabled:opacity-60"
+                className="flex items-center justify-between rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 text-left text-xs hover:bg-background transition-colors disabled:opacity-60"
               >
                 <span className="font-medium">{a.accountName ?? a.providerAccountId}</span>
                 <span className="text-muted-foreground">
