@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
-import { FONT } from './shared';
+import { FONT, T } from './shared';
 import { EMPLOYEES } from './data';
 import { CHARACTER_COMPONENTS } from './characters';
 
@@ -26,12 +26,12 @@ export function AboutCrewGrid() {
                 <Comp size="100%" />
               </div>
               <div style={{ padding: '14px 16px' }}>
-                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 26, color: '#111', lineHeight: 1 }}>
+                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 26, color: T.ink, lineHeight: 1 }}>
                   {emp.name}
                 </div>
                 <div style={{
                   fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2,
-                  textTransform: 'uppercase', color: '#888', marginTop: 5,
+                  textTransform: 'uppercase', color: T.ink3, marginTop: 5,
                   whiteSpace: 'pre-line',
                 }}>
                   {emp.role}

@@ -1,5 +1,6 @@
 import Image from 'next/image';
-import { FONT, Button } from '@/components/veqiro/shared';
+import { Button } from '@/components/veqiro/shared';
+import { FONT, T } from '@/components/veqiro/tokens';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { Breadcrumbs } from '@/components/veqiro/breadcrumbs';
@@ -62,15 +63,15 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
   ];
 
   return (
-    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+    <div style={{ background: T.bg, minHeight: '100vh' }}>
       <JsonLd data={faqPageJsonLd(content.faq)} />
       <PageNav />
 
       {/* ── HERO ── */}
       <section style={{
-        background: '#111',
-        borderTop: '1px solid rgba(20,18,14,0.10)',
-        borderBottom: '1px solid rgba(20,18,14,0.10)',
+        background: T.ink,
+        borderTop: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`,
         padding: 'clamp(40px, 7vw, 80px) clamp(20px, 4vw, 40px)',
       }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -78,7 +79,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
 
           <div style={{
             fontFamily: FONT.mono, fontSize: 12, letterSpacing: 3,
-            textTransform: 'uppercase', color: '#555', marginBottom: 20, marginTop: 20,
+            textTransform: 'uppercase', color: T.ink2, marginBottom: 20, marginTop: 20,
           }}>
             Use case
           </div>
@@ -89,7 +90,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
             margin: '0 0 22px',
             lineHeight: 0.9,
 
-            color: '#EFE7D6',
+            color: T.bg,
           }}>
             {content.hero.h1}
           </h1>
@@ -97,7 +98,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           <p style={{
             fontFamily: FONT.body,
             fontSize: 'clamp(15px, 1.8vw, 19px)',
-            color: '#999',
+            color: T.ink3,
             margin: '0 0 44px',
             maxWidth: 560,
             lineHeight: 1.65,
@@ -125,7 +126,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           </div>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            {/* This hero sits on #111 — `dark`/`ghost` would be invisible here. */}
+            {/* This hero sits on T.ink — `dark`/`ghost` would be invisible here. */}
             <Button variant="light" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>
             <Button variant="ghost-light" href="/pricing">View pricing</Button>
           </div>
@@ -134,9 +135,9 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
 
       {/* ── PAIN-POINT MARQUEE ── */}
       <div style={{
-        background: '#FBF7EF',
-        borderTop: '1px solid rgba(20,18,14,0.10)',
-        borderBottom: '1px solid rgba(20,18,14,0.10)',
+        background: T.surface,
+        borderTop: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`,
         padding: '14px 0',
         overflow: 'hidden',
       }}>
@@ -144,7 +145,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           className="vq-marquee-row"
           style={{
             animation: 'marquee 28s linear infinite',
-            color: '#56514A',
+            color: T.ink2,
           }}
         >
           <span>
@@ -156,11 +157,11 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </div>
 
       {/* ── WHY NOW ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-            textTransform: 'uppercase', color: '#666', marginBottom: 16,
+            textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
           }}>
             Why this matters
           </div>
@@ -180,7 +181,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
             fontFamily: FONT.body,
             fontSize: 'clamp(15px, 1.9vw, 18px)',
             lineHeight: 1.75,
-            color: '#333',
+            color: T.ink,
             margin: 0,
           }}>
             {content.whyNow}
@@ -189,12 +190,12 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── YOUR AI CREW ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 52px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+              textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
             }}>
               Your AI crew
             </div>
@@ -224,10 +225,10 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                 style={{
                   textDecoration: 'none',
                   color: 'inherit',
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  border: `1px solid ${T.line}`,
                   borderRadius: 14,
                   overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                  boxShadow: T.shadow,
                   display: 'block',
                   animation: `fadeInUp 0.5s ease ${i * 0.08}s both`,
                 }}
@@ -241,7 +242,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                     style={{ objectFit: 'cover' }}
                   />
                 </div>
-                <div style={{ background: '#111', padding: '12px 14px', borderTop: '1px solid #222' }}>
+                <div style={{ background: T.ink, padding: '12px 14px', borderTop: `1px solid ${T.lineInv}` }}>
                   <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 20, color: agent.color, lineHeight: 1 }}>
                     {agent.name}
                   </div>
@@ -260,27 +261,27 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
               <div
                 key={agent.key}
                 style={{
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  border: `1px solid ${T.line}`,
                   borderRadius: 10,
                   padding: '16px 18px',
-                  background: i % 3 === 0 ? '#EFE7D6' : '#FBF7EF',
+                  background: i % 3 === 0 ? T.bg : T.surface,
                   display: 'flex',
                   gap: 12,
                   alignItems: 'flex-start',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                  boxShadow: T.shadow,
                   animation: `fadeInUp 0.5s ease ${0.3 + i * 0.07}s both`,
                 }}
               >
                 <div style={{
                   width: 10, height: 10, borderRadius: '50%',
-                  background: agent.color, border: '1px solid rgba(20,18,14,0.10)',
+                  background: agent.color, border: `1px solid ${T.line}`,
                   marginTop: 4, flexShrink: 0,
                 }} />
                 <div>
                   <div style={{ fontFamily: FONT.head, fontSize: 14, marginBottom: 4, letterSpacing: 0.5 }}>
                     {agent.name}
                   </div>
-                  <div style={{ fontFamily: FONT.body, fontSize: 14, color: '#444', lineHeight: 1.6 }}>
+                  <div style={{ fontFamily: FONT.body, fontSize: 14, color: T.ink2, lineHeight: 1.6 }}>
                     {agent.blurb}
                   </div>
                 </div>
@@ -291,19 +292,19 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.ink, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 52px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#444', marginBottom: 16,
+              textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
             }}>
               How it works
             </div>
             <h2 style={{
               fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
               fontSize: 'clamp(36px, 5.5vw, 72px)',
-              margin: 0, lineHeight: 0.92, color: '#EFE7D6',
+              margin: 0, lineHeight: 0.92, color: T.bg,
             }}>
               Simple by design.
             </h2>
@@ -318,11 +319,11 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
               <div
                 key={step.n}
                 style={{
-                  border: '1px solid #222',
+                  border: `1px solid ${T.lineInv}`,
                   borderRadius: 14,
                   padding: '32px 24px',
-                  background: '#181818',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                  background: T.dark2,
+                  boxShadow: T.shadow,
                   animation: `fadeInUp 0.6s ease ${i * 0.15}s both`,
                 }}
               >
@@ -338,7 +339,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                 <h3 style={{
                   fontFamily: FONT.head,
                   fontSize: 'clamp(16px, 1.8vw, 20px)',
-                  color: '#EFE7D6',
+                  color: T.bg,
                   margin: '0 0 12px',
                 }}>
                   {step.title}
@@ -346,7 +347,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                 <p style={{
                   fontFamily: FONT.body,
                   fontSize: 15,
-                  color: '#888',
+                  color: T.ink3,
                   margin: 0,
                   lineHeight: 1.7,
                 }}>
@@ -359,12 +360,12 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── SCENARIO: BEFORE / AFTER ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)', maxWidth: 720 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+              textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
             }}>
               A real scenario
             </div>
@@ -386,17 +387,17 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           }}>
             {/* Before */}
             <div style={{
-              border: '1px solid rgba(20,18,14,0.10)',
+              border: `1px solid ${T.line}`,
               borderRadius: 14,
               padding: '28px 26px',
-              background: '#EFE7D6',
-              boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+              background: T.bg,
+              boxShadow: T.shadow,
             }}>
               <div style={{
                 display: 'inline-block',
-                background: '#111',
-                color: '#EFE7D6',
-                border: '1px solid rgba(20,18,14,0.10)',
+                background: T.ink,
+                color: T.bg,
+                border: `1px solid ${T.line}`,
                 borderRadius: 999,
                 padding: '5px 14px',
                 fontFamily: FONT.mono,
@@ -419,13 +420,13 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                     fontFamily: FONT.body,
                     fontSize: 15,
                     lineHeight: 1.65,
-                    color: '#444',
+                    color: T.ink2,
                     display: 'flex',
                     gap: 10,
                     alignItems: 'flex-start',
                   }}>
                     <span aria-hidden style={{
-                      color: '#B94141',
+                      color: `color-mix(in srgb, ${T.red} 55%, black)`,
                       fontFamily: FONT.head,
                       fontSize: 18,
                       lineHeight: 1,
@@ -442,17 +443,17 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
 
             {/* After */}
             <div style={{
-              border: '1px solid rgba(20,18,14,0.10)',
+              border: `1px solid ${T.line}`,
               borderRadius: 14,
               padding: '28px 26px',
               background: content.accentColor,
-              boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+              boxShadow: T.shadow,
             }}>
               <div style={{
                 display: 'inline-block',
-                background: '#111',
+                background: T.ink,
                 color: content.accentColor,
-                border: '1px solid rgba(20,18,14,0.10)',
+                border: `1px solid ${T.line}`,
                 borderRadius: 999,
                 padding: '5px 14px',
                 fontFamily: FONT.mono,
@@ -501,12 +502,12 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── OUTCOMES ── */}
-      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+              textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
             }}>
               Outcomes
             </div>
@@ -529,11 +530,11 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           }}>
             {content.outcomes.map((out, i) => (
               <div key={out.title} style={{
-                border: '1px solid rgba(20,18,14,0.10)',
+                border: `1px solid ${T.line}`,
                 borderRadius: 12,
                 padding: '24px 22px',
-                background: '#EFE7D6',
-                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                background: T.bg,
+                boxShadow: T.shadow,
               }}>
                 <div style={{
                   fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
@@ -556,7 +557,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
                   fontFamily: FONT.body,
                   fontSize: 14.5,
                   lineHeight: 1.65,
-                  color: '#444',
+                  color: T.ink2,
                   margin: 0,
                 }}>
                   {out.body}
@@ -568,12 +569,12 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.bg, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+              textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
             }}>
               FAQ
             </div>
@@ -594,7 +595,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
           <div style={{
             fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-            textTransform: 'uppercase', color: '#666', marginBottom: 20,
+            textTransform: 'uppercase', color: T.ink2, marginBottom: 20,
           }}>
             Get started
           </div>
@@ -611,7 +612,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
           <p style={{
             fontFamily: FONT.body,
             fontSize: 'clamp(15px, 2vw, 18px)',
-            color: '#555',
+            color: T.ink2,
             marginBottom: 44,
             lineHeight: 1.6,
           }}>

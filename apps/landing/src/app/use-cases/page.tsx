@@ -3,7 +3,8 @@ import { buildPageMetadata, SITE_URL } from '@/lib/seo';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
 import { Breadcrumbs } from '@/components/veqiro/breadcrumbs';
-import { FONT, Button } from '@/components/veqiro/shared';
+import { Button } from '@/components/veqiro/shared';
+import { FONT, T } from '@/components/veqiro/tokens';
 import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 
 export const metadata = buildPageMetadata({
@@ -42,8 +43,8 @@ const USE_CASES: UseCase[] = [
       'Competitor teardowns written while you sleep',
       'Contracts reviewed before they land on your desk',
     ],
-    accent: '#F5C518',
-    ink: '#7A5A00',
+    accent: T.amber,
+    ink: `color-mix(in srgb, ${T.amber} 65%, black)`,
   },
   {
     slug: 'marketing-teams',
@@ -56,8 +57,8 @@ const USE_CASES: UseCase[] = [
       'SEO keyword research + full articles — no agency retainer',
       'Competitor content intel delivered weekly',
     ],
-    accent: '#F06464',
-    ink: '#7A1717',
+    accent: T.red,
+    ink: `color-mix(in srgb, ${T.red} 55%, black)`,
   },
   {
     slug: 'agencies',
@@ -70,8 +71,8 @@ const USE_CASES: UseCase[] = [
       'Scale content, SEO, and research across every retainer',
       'Legal review built in for vendor and client contracts',
     ],
-    accent: '#8A8AF0',
-    ink: '#2A2A7A',
+    accent: T.violet,
+    ink: `color-mix(in srgb, ${T.violet} 55%, black)`,
   },
   {
     slug: 'growing-startups',
@@ -84,8 +85,8 @@ const USE_CASES: UseCase[] = [
       'Content, SEO, and research at growth pace without a full team',
       'Legal reviews, financial reports, and exec inbox — handled',
     ],
-    accent: '#1DBC87',
-    ink: '#0E5C3F',
+    accent: T.green,
+    ink: `color-mix(in srgb, ${T.green} 60%, black)`,
   },
 ];
 
@@ -96,15 +97,15 @@ export default function UseCasesHubPage() {
   ];
 
   return (
-    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+    <div style={{ background: T.bg, minHeight: '100vh' }}>
       <PageNav />
 
       {/* ── HERO ── */}
       <section
         style={{
-          background: '#111',
-          borderTop: '1px solid rgba(20,18,14,0.10)',
-          borderBottom: '1px solid rgba(20,18,14,0.10)',
+          background: T.ink,
+          borderTop: `1px solid ${T.line}`,
+          borderBottom: `1px solid ${T.line}`,
           padding: 'clamp(40px, 7vw, 80px) clamp(20px, 4vw, 40px)',
         }}
       >
@@ -117,7 +118,7 @@ export default function UseCasesHubPage() {
               fontSize: 13,
               letterSpacing: 3,
               textTransform: 'uppercase',
-              color: '#F5C518',
+              color: T.amber,
               marginTop: 16,
               marginBottom: 20,
             }}
@@ -132,18 +133,18 @@ export default function UseCasesHubPage() {
               margin: '0 0 24px',
               lineHeight: 0.9,
 
-              color: '#EFE7D6',
+              color: T.bg,
             }}
           >
             One crew.<br />
-            <span style={{ color: '#F5C518' }}>four playbooks.</span>
+            <span style={{ color: T.amber }}>four playbooks.</span>
           </h1>
 
           <p
             style={{
               fontFamily: FONT.body,
               fontSize: 'clamp(15px, 2vw, 19px)',
-              color: '#999',
+              color: T.ink3,
               lineHeight: 1.6,
               maxWidth: 640,
               margin: '0 0 12px',
@@ -155,7 +156,7 @@ export default function UseCasesHubPage() {
       </section>
 
       {/* ── GRID OF USE CASES ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div
             style={{
@@ -172,11 +173,11 @@ export default function UseCasesHubPage() {
                   textDecoration: 'none',
                   color: 'inherit',
                   display: 'block',
-                  background: '#FBF7EF',
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  background: T.surface,
+                  border: `1px solid ${T.line}`,
                   borderRadius: 16,
                   padding: '32px 28px',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                  boxShadow: T.shadow,
                   transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 }}
               >
@@ -185,7 +186,7 @@ export default function UseCasesHubPage() {
                     display: 'inline-block',
                     background: uc.accent,
                     color: uc.ink,
-                    border: '1px solid rgba(20,18,14,0.10)',
+                    border: `1px solid ${T.line}`,
                     borderRadius: 999,
                     padding: '5px 14px',
                     fontFamily: FONT.mono,
@@ -213,7 +214,7 @@ export default function UseCasesHubPage() {
                     fontFamily: FONT.body,
                     fontSize: 15,
                     lineHeight: 1.65,
-                    color: '#444',
+                    color: T.ink2,
                     margin: '0 0 18px',
                   }}
                 >
@@ -234,7 +235,7 @@ export default function UseCasesHubPage() {
                       style={{
                         fontFamily: FONT.body,
                         fontSize: 14,
-                        color: '#333',
+                        color: T.ink,
                         display: 'flex',
                         gap: 10,
                         alignItems: 'flex-start',
@@ -247,7 +248,7 @@ export default function UseCasesHubPage() {
                           height: 8,
                           borderRadius: '50%',
                           background: uc.accent,
-                          border: '1px solid rgba(20,18,14,0.10)',
+                          border: `1px solid ${T.line}`,
                           marginTop: 7,
                           flexShrink: 0,
                         }}
@@ -262,7 +263,7 @@ export default function UseCasesHubPage() {
                     fontSize: 12,
                     letterSpacing: 2,
                     textTransform: 'uppercase',
-                    color: '#111',
+                    color: T.ink,
                     fontWeight: 700,
                   }}
                 >
@@ -283,7 +284,7 @@ export default function UseCasesHubPage() {
               fontSize: 13,
               letterSpacing: 3,
               textTransform: 'uppercase',
-              color: '#666',
+              color: T.ink2,
               marginBottom: 20,
             }}
           >
@@ -306,7 +307,7 @@ export default function UseCasesHubPage() {
             style={{
               fontFamily: FONT.body,
               fontSize: 'clamp(15px, 2vw, 18px)',
-              color: '#555',
+              color: T.ink2,
               margin: '0 0 36px',
               lineHeight: 1.65,
             }}

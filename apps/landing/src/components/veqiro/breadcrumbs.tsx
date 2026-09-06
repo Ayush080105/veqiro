@@ -1,5 +1,5 @@
 import { breadcrumbJsonLd } from '@/lib/jsonld';
-import { FONT } from '@/components/veqiro/shared';
+import { FONT, T } from '@/components/veqiro/tokens';
 import { JsonLd } from '@/components/veqiro/json-ld';
 
 interface BreadcrumbItem {
@@ -15,8 +15,8 @@ interface BreadcrumbsProps {
 export function Breadcrumbs({ items, theme = 'light' }: BreadcrumbsProps) {
   const schema = breadcrumbJsonLd(items);
   const isDark = theme === 'dark';
-  const activeColor = isDark ? '#EFE7D6' : '#111';
-  const mutedColor = isDark ? '#888' : '#666';
+  const activeColor = isDark ? T.bg : T.ink;
+  const mutedColor = isDark ? T.inkInv2 : T.ink2;
 
   return (
     <>

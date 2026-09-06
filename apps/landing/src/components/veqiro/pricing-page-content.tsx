@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
-import { FONT, Button } from '@/components/veqiro/shared';
+import { FONT, T, Button } from '@/components/veqiro/shared';
 import { agentPricing, enterpriseTier, consoleUrl, isPreLaunch, waitlistUrl, contact, PRICING_FAQ } from '@/lib/site-config';
 import { useBillingCatalog } from '@/lib/use-billing-catalog';
 import { EMPLOYEES } from '@/components/veqiro/data';
@@ -33,12 +33,12 @@ function TwoLineBlurb({ text }: { text: string }) {
 }
 
 const FEATURES = [
-  { title: 'All 6 AI Employees', desc: 'Vega, Scout, Maya, Sage, Lex, and Rex — fully specialized, ready to work.', color: '#F5C518' },
-  { title: 'Shared Brain', desc: 'One company profile. All agents read your brand voice, competitors, and goals.', color: '#6FCDE8' },
-  { title: 'Custom Brand Voice', desc: '6 presets or fully custom — your agents write like you, not like a template.', color: '#F06464' },
-  { title: 'Priority Processing', desc: "Your tasks don't wait in a queue. You get dedicated compute from day one.", color: '#1DBC87' },
-  { title: 'Integrations', desc: 'Gmail, Google Calendar, LinkedIn, Twitter/X, Instagram, and more.', color: '#F79FD4' },
-  { title: 'No Per-Task Fees', desc: "Assign as much work as you want. Maya's image/video generation draws from a monthly credit allowance — every other agent has none at all.", color: '#8A8AF0' },
+  { title: 'All 6 AI Employees', desc: 'Vega, Scout, Maya, Sage, Lex, and Rex — fully specialized, ready to work.', color: T.amber },
+  { title: 'Shared Brain', desc: 'One company profile. All agents read your brand voice, competitors, and goals.', color: T.blue },
+  { title: 'Custom Brand Voice', desc: '6 presets or fully custom — your agents write like you, not like a template.', color: T.red },
+  { title: 'Priority Processing', desc: "Your tasks don't wait in a queue. You get dedicated compute from day one.", color: T.green },
+  { title: 'Integrations', desc: 'Gmail, Google Calendar, LinkedIn, Twitter/X, Instagram, and more.', color: T.pink },
+  { title: 'No Per-Task Fees', desc: "Assign as much work as you want. Maya's image/video generation draws from a monthly credit allowance — every other agent has none at all.", color: T.violet },
 ];
 
 // Fallback only, for the brief window before /billing/catalog resolves.
@@ -54,39 +54,39 @@ export default function PricingPageContent() {
   const [isContactOpen, setIsContactOpen] = useState(false);
 
   return (
-    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+    <div style={{ background: T.bg, minHeight: '100vh' }}>
       <PageNav />
 
       {/* ── HERO ── */}
       <section className="vq-section-pad" style={{
-        borderTop: '1px solid rgba(20,18,14,0.10)',
-        borderBottom: '1px solid rgba(20,18,14,0.10)',
-        background: '#111',
+        borderTop: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`,
+        background: T.ink,
         textAlign: 'center',
       }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-            textTransform: 'uppercase', color: '#F5C518', marginBottom: 16,
+            textTransform: 'uppercase', color: T.amber, marginBottom: 16,
           }}>
             Pricing
           </div>
           <h1 style={{
             fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(52px, 8vw, 112px)',
-            margin: 0, lineHeight: 0.9, color: '#EFE7D6',
+            margin: 0, lineHeight: 0.9, color: T.bg,
           }}>
             Less than<br />
-            <span style={{ color: '#F5C518' }}>a bad hire.</span>
+            <span style={{ color: T.amber }}>a bad hire.</span>
           </h1>
           <p style={{
-            fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#CFC6B2',
+            fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: T.inkInv2,
             marginTop: 28, lineHeight: 1.6,
           }}>
             Six AI employees with real specialties. Hire them one at a time.
             No payroll. No HR drama. No sick days.
           </p>
           <p style={{
-            fontFamily: FONT.body, fontSize: 'clamp(13px, 1.8vw, 15px)', color: '#888',
+            fontFamily: FONT.body, fontSize: 'clamp(13px, 1.8vw, 15px)', color: T.ink3,
             marginTop: 14, lineHeight: 1.6, maxWidth: 620, marginLeft: 'auto', marginRight: 'auto',
           }}>
             Veqiro pricing is simple: every AI employee bills independently, starting at $9/mo — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst. Pick one or hire the whole team. No bundle, no tier decisions.
@@ -100,8 +100,8 @@ export default function PricingPageContent() {
               { v: 'Cancel', k: 'anytime' },
             ].map(s => (
               <div key={s.k} style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 28, color: '#F5C518', lineHeight: 1 }}>{s.v}</div>
-                <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#555', marginTop: 5 }}>{s.k}</div>
+                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 28, color: T.amber, lineHeight: 1 }}>{s.v}</div>
+                <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: T.ink2, marginTop: 5 }}>{s.k}</div>
               </div>
             ))}
           </div>
@@ -109,10 +109,10 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── PRICING ── */}
-      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
           <div style={{ marginBottom: 32, textAlign: 'center' }}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 12 }}>
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: T.ink2, marginBottom: 12 }}>
               Pick your agents
             </div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(38px, 6vw, 76px)', margin: 0, lineHeight: 0.92 }}>
@@ -121,7 +121,7 @@ export default function PricingPageContent() {
                 Add the rest later.
               </span>
             </h2>
-            <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: '#444', maxWidth: 620, margin: '18px auto 0' }}>
+            <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: T.ink2, maxWidth: 620, margin: '18px auto 0' }}>
               Every agent bills and renews on its own — no bundle, no tiers. Pick one, or hire the whole team.
             </p>
           </div>
@@ -135,16 +135,16 @@ export default function PricingPageContent() {
                   key={emp.key}
                   style={{
                     textAlign: 'left',
-                    border: '1px solid rgba(20,18,14,0.10)',
+                    border: `1px solid ${T.line}`,
                     borderRadius: 12,
                     overflow: 'hidden',
-                    background: '#fff',
-                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                    background: 'white',
+                    boxShadow: T.shadow,
                     display: 'flex',
                     flexDirection: 'column',
                   }}
                 >
-                  <div style={{ position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', background: emp.color, borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+                  <div style={{ position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', background: emp.color, borderBottom: `1px solid ${T.line}` }}>
                     <Comp size="100%" />
                   </div>
                   <div style={{ padding: 14, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
@@ -153,23 +153,23 @@ export default function PricingPageContent() {
                     <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 22, lineHeight: 1, color: emp.ink }}>
                       {emp.name}
                     </div>
-                    <div style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: '#777', marginTop: 6, lineHeight: 1.5 }}>
+                    <div style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', color: T.ink3, marginTop: 6, lineHeight: 1.5 }}>
                       <TwoLineBlurb text={AGENT_BLURBS[emp.key]} />
                     </div>
-                    <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 24, color: '#111', marginTop: 12 }}>
+                    <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 24, color: T.ink, marginTop: 12 }}>
                       {monthlyPrice == null ? '—' : `$${monthlyPrice}`}
-                      <span style={{ fontFamily: FONT.body, fontSize: 12, color: '#888', marginLeft: 4 }}>/mo</span>
+                      <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3, marginLeft: 4 }}>/mo</span>
                     </div>
-                    <div style={{ fontFamily: FONT.mono, fontSize: 10, color: '#1DBC87', marginTop: 4 }}>
+                    <div style={{ fontFamily: FONT.mono, fontSize: 10, color: T.green, marginTop: 4 }}>
                       {emp.key === 'maya' ? '300 credits/mo included' : 'Unlimited generations'}
                     </div>
                     <a
                       href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
                       style={{
                         marginTop: 12, display: 'block', textAlign: 'center',
-                        padding: '10px 14px', background: '#111', color: '#EFE7D6',
+                        padding: '10px 14px', background: T.ink, color: T.bg,
                         fontFamily: FONT.head, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1,
-                        border: '1px solid rgba(20,18,14,0.10)', borderRadius: 8, textDecoration: 'none',
+                        border: `1px solid ${T.line}`, borderRadius: 8, textDecoration: 'none',
                         boxSizing: 'border-box',
                       } as React.CSSProperties}
                     >
@@ -183,32 +183,32 @@ export default function PricingPageContent() {
 
           {/* Enterprise — separate from per-agent pricing, not a per-agent card */}
           <div style={{
-            border: '1px solid rgba(20,18,14,0.10)', borderRadius: 20, overflow: 'hidden',
-            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+            border: `1px solid ${T.line}`, borderRadius: 20, overflow: 'hidden',
+            boxShadow: T.shadow,
             display: 'flex', flexWrap: 'wrap',
           }}>
-            <div style={{ flex: '1 1 260px', background: enterpriseTier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderRight: '1px solid rgba(20,18,14,0.10)' }}>
-              <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 6vw, 52px)', margin: 0, lineHeight: 1, color: '#111' }}>
+            <div style={{ flex: '1 1 260px', background: enterpriseTier.color, padding: 'clamp(22px, 4vw, 32px) clamp(20px, 5vw, 36px)', borderRight: `1px solid ${T.line}` }}>
+              <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 6vw, 52px)', margin: 0, lineHeight: 1, color: T.ink }}>
                 {enterpriseTier.name}
               </h2>
-              <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#111', margin: '8px 0 0', opacity: 0.7 }}>
+              <p style={{ fontFamily: FONT.body, fontSize: 16, color: T.ink, margin: '8px 0 0', opacity: 0.7 }}>
                 {enterpriseTier.tag}
               </p>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginTop: 20 }}>
-                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(40px, 8vw, 56px)', color: '#111', lineHeight: 1 }}>
+                <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(40px, 8vw, 56px)', color: T.ink, lineHeight: 1 }}>
                   ${enterpriseTier.monthly}+
                 </div>
-                <div style={{ fontFamily: FONT.body, fontSize: 15, color: '#111', opacity: 0.7, paddingBottom: 6 }}>
+                <div style={{ fontFamily: FONT.body, fontSize: 15, color: T.ink, opacity: 0.7, paddingBottom: 6 }}>
                   /mo and up
                 </div>
               </div>
             </div>
-            <div style={{ flex: '2 1 360px', background: '#FBF7EF', padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20 }}>
+            <div style={{ flex: '2 1 360px', background: T.surface, padding: 'clamp(20px, 4vw, 28px) clamp(20px, 5vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20 }}>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
                 {enterpriseTier.includes.map(f => (
                   <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{ color: '#1DBC87', fontFamily: FONT.head, fontSize: 16, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
-                    <span style={{ fontFamily: FONT.body, fontSize: 14, color: '#111', lineHeight: 1.4 }}>{f}</span>
+                    <span style={{ color: T.green, fontFamily: FONT.head, fontSize: 16, lineHeight: 1.2, flexShrink: 0 }}>✓</span>
+                    <span style={{ fontFamily: FONT.body, fontSize: 14, color: T.ink, lineHeight: 1.4 }}>{f}</span>
                   </li>
                 ))}
               </ul>
@@ -216,15 +216,15 @@ export default function PricingPageContent() {
                 <a
                   href={`mailto:${contact.email}?subject=Custom%20Enterprise%20Pricing`}
                   style={{
-                    display: 'inline-block', padding: '14px 24px', background: '#111', color: '#EFE7D6',
+                    display: 'inline-block', padding: '14px 24px', background: T.ink, color: T.bg,
                     fontFamily: FONT.head, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1,
-                    border: '1px solid rgba(20,18,14,0.10)', borderRadius: 10, textDecoration: 'none',
-                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                    border: `1px solid ${T.line}`, borderRadius: 10, textDecoration: 'none',
+                    boxShadow: T.shadow,
                   } as React.CSSProperties}
                 >
                   Talk to sales →
                 </a>
-                <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 10, marginBottom: 0 }}>
+                <p style={{ fontFamily: FONT.mono, fontSize: 11, color: T.ink3, marginTop: 10, marginBottom: 0 }}>
                   Response within 1 business day
                 </p>
               </div>
@@ -234,21 +234,21 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── WHO YOU GET ── */}
-      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.ink, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#F5C518', marginBottom: 16,
+              textTransform: 'uppercase', color: T.amber, marginBottom: 16,
             }}>
               Who you get
             </div>
             <h2 style={{
               fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 5vw, 64px)',
-              margin: 0, color: '#EFE7D6', lineHeight: 0.95,
+              margin: 0, color: T.bg, lineHeight: 0.95,
             }}>
               Six specialists.<br />
-              <span style={{ color: '#F5C518' }}>no bundle required.</span>
+              <span style={{ color: T.amber }}>no bundle required.</span>
             </h2>
           </div>
 
@@ -259,8 +259,8 @@ export default function PricingPageContent() {
                 <Link key={emp.key} href={`/agents/${emp.key}`} style={{ textDecoration: 'none' }}>
                   <div
                     style={{
-                      border: '1px solid #333', borderRadius: 12,
-                      overflow: 'hidden', background: '#1a1a1a',
+                      border: `1px solid ${T.lineInv}`, borderRadius: 12,
+                      overflow: 'hidden', background: T.dark2,
                       transition: 'border-color 160ms, box-shadow 160ms',
                     }}
                     onMouseEnter={e => {
@@ -280,7 +280,7 @@ export default function PricingPageContent() {
                       <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 24, color: emp.color, lineHeight: 1 }}>
                         {emp.name}
                       </div>
-                      <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#A9A192', marginTop: 5 }}>
+                      <div style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: T.inkInv2, marginTop: 5 }}>
                         {AGENT_BLURBS[emp.key]}
                       </div>
                     </div>
@@ -293,10 +293,10 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── FEATURES BREAKDOWN ── */}
-      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 16 }}>
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: T.ink2, marginBottom: 16 }}>
               What's included
             </div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 5vw, 64px)', margin: 0, lineHeight: 0.95 }}>
@@ -310,12 +310,12 @@ export default function PricingPageContent() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             {FEATURES.map((f, i) => (
               <div key={f.title} style={{
-                border: '1px solid rgba(20,18,14,0.10)', borderRadius: 12, padding: '22px 20px',
-                background: '#EFE7D6', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                border: `1px solid ${T.line}`, borderRadius: 12, padding: '22px 20px',
+                background: T.bg, boxShadow: T.shadow,
               }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: f.color, border: '1px solid rgba(20,18,14,0.10)', marginBottom: 14 }} />
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: f.color, border: `1px solid ${T.line}`, marginBottom: 14 }} />
                 <h3 style={{ fontFamily: FONT.head, fontSize: 17, margin: '0 0 8px' }}>{f.title}</h3>
-                <p style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 1.6, color: '#444', margin: 0 }}>{f.desc}</p>
+                <p style={{ fontFamily: FONT.body, fontSize: 14, lineHeight: 1.6, color: T.ink2, margin: 0 }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -323,10 +323,10 @@ export default function PricingPageContent() {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#666', marginBottom: 16 }}>
+            <div style={{ fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: T.ink2, marginBottom: 16 }}>
               Common questions
             </div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(32px, 4vw, 56px)', margin: 0, lineHeight: 0.95 }}>
@@ -336,12 +336,12 @@ export default function PricingPageContent() {
           <div style={{ display: 'grid', gap: 16 }}>
             {PRICING_FAQ.map(item => (
               <div key={item.q} style={{
-                border: '1px solid rgba(20,18,14,0.10)', borderRadius: 12,
+                border: `1px solid ${T.line}`, borderRadius: 12,
                 padding: 'clamp(18px, 3.4vw, 22px) clamp(18px, 3.4vw, 24px)',
-                background: '#fff', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                background: 'white', boxShadow: T.shadow,
               }}>
                 <div style={{ fontFamily: FONT.head, fontSize: 16, marginBottom: 8 }}>{item.q}</div>
-                <div style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65, color: '#444' }}>{item.a}</div>
+                <div style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65, color: T.ink2 }}>{item.a}</div>
               </div>
             ))}
           </div>
@@ -357,16 +357,16 @@ export default function PricingPageContent() {
               Hire today.
             </span>
           </h2>
-          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: '#555', marginBottom: 44 }}>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', color: T.ink2, marginBottom: 44 }}>
             7 days free. No credit card. Cancel anytime.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start 7-day free trial →'}</Button>
             <Button variant="ghost" onClick={() => setIsContactOpen(true)}>Talk to a human</Button>
           </div>
-          <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888', marginTop: 20, letterSpacing: 1, textTransform: 'uppercase' }}>
+          <p style={{ fontFamily: FONT.mono, fontSize: 11, color: T.ink3, marginTop: 20, letterSpacing: 1, textTransform: 'uppercase' }}>
             Comparing options?{' '}
-            <Link href="/compare" style={{ color: '#111', textDecoration: 'underline' }}>
+            <Link href="/compare" style={{ color: T.ink, textDecoration: 'underline' }}>
               See Veqiro vs Sintra vs Marblism →
             </Link>
           </p>

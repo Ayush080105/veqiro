@@ -1,6 +1,7 @@
 import { buildPageMetadata } from '@/lib/seo';
 import { UseCasePage } from '@/components/veqiro/use-case-page';
 import type { UseCaseContent } from '@/components/veqiro/use-case-page';
+import { T } from '@/components/veqiro/tokens';
 
 export const metadata = buildPageMetadata({
   title: 'AI Tools for Growing Startups — Scale Output Without Adding Headcount | Veqiro',
@@ -12,8 +13,8 @@ export const metadata = buildPageMetadata({
 const content: UseCaseContent = {
   path: '/use-cases/growing-startups',
   persona: 'Growing Startups',
-  accentColor: '#1DBC87',
-  accentInk: '#0E5C3F',
+  accentColor: T.green,
+  accentInk: `color-mix(in srgb, ${T.green} 60%, black)`,
   hero: {
     h1: "Scale the output. Not the headcount.",
     subheading: 'AI tools for Series A/B startups who need more output from the team they already have.',
@@ -26,31 +27,31 @@ const content: UseCaseContent = {
   ],
   whyNow: "You've got product-market fit, a real team, and revenue coming in — but you're still running lean on the operational layer. Board decks get built by pulling three people off real work. Investor updates slip because the numbers are in a spreadsheet no one owns. Your content calendar is held hostage by whoever has the least meetings this week. Veqiro fixes the execution layer without adding headcount. Six AI specialists — each an expert in their domain, all sharing the same context about your business — handle the output so your team can focus on the judgment calls only humans make. That's what operational leverage looks like at 20–80 people.",
   agents: [
-    { key: 'vega', name: 'Vega', color: '#6FCDE8', ink: '#0E5C74', blurb: 'Manages executive inbox and calendar at the speed a growing company demands. Investor emails never get lost in the noise.' },
-    { key: 'scout', name: 'Scout', color: '#F5C518', ink: '#7A5A00', blurb: 'Feeds your sales and product teams live competitor intel, market scans, and lead research — so nobody gets blindsided.' },
-    { key: 'maya', name: 'Maya', color: '#F06464', ink: '#7A1717', blurb: 'Publishes branded content at growth pace — LinkedIn, blog, social — without a full content team on payroll.' },
-    { key: 'sage', name: 'Sage', color: '#F79FD4', ink: '#8E2A6A', blurb: 'Builds the SEO channel that compounds while you ship product — keyword research, articles, page and site audits.' },
-    { key: 'lex', name: 'Lex', color: '#8A8AF0', ink: '#2A2A7A', blurb: 'Reviews vendor contracts, partner agreements, and NDA stacks as fast as your deal flow requires.' },
-    { key: 'rex', name: 'Rex', color: '#1DBC87', ink: '#0E5C3F', blurb: 'Tracks MRR, burn, CAC, runway — and generates board decks and investor updates directly from your live data.' },
+    { key: 'vega', name: 'Vega', color: T.blue, ink: `color-mix(in srgb, ${T.blue} 55%, black)`, blurb: 'Manages executive inbox and calendar at the speed a growing company demands. Investor emails never get lost in the noise.' },
+    { key: 'scout', name: 'Scout', color: T.amber, ink: `color-mix(in srgb, ${T.amber} 65%, black)`, blurb: 'Feeds your sales and product teams live competitor intel, market scans, and lead research — so nobody gets blindsided.' },
+    { key: 'maya', name: 'Maya', color: T.red, ink: `color-mix(in srgb, ${T.red} 55%, black)`, blurb: 'Publishes branded content at growth pace — LinkedIn, blog, social — without a full content team on payroll.' },
+    { key: 'sage', name: 'Sage', color: T.pink, ink: `color-mix(in srgb, ${T.pink} 60%, black)`, blurb: 'Builds the SEO channel that compounds while you ship product — keyword research, articles, page and site audits.' },
+    { key: 'lex', name: 'Lex', color: T.violet, ink: `color-mix(in srgb, ${T.violet} 55%, black)`, blurb: 'Reviews vendor contracts, partner agreements, and NDA stacks as fast as your deal flow requires.' },
+    { key: 'rex', name: 'Rex', color: T.green, ink: `color-mix(in srgb, ${T.green} 60%, black)`, blurb: 'Tracks MRR, burn, CAC, runway — and generates board decks and investor updates directly from your live data.' },
   ],
   steps: [
     {
       n: '01',
       title: 'Connect your tools',
       description: 'Stripe, Gmail, Google Calendar, brand kit. Rex, Vega, and the crew calibrate to your business in hours — not weeks.',
-      color: '#1DBC87',
+      color: T.green,
     },
     {
       n: '02',
       title: 'Brief the crew on what\'s coming',
       description: 'Board meeting Thursday? Competitor entered your market? New product launch? The agents coordinate the output. You don\'t.',
-      color: '#F5C518',
+      color: T.amber,
     },
     {
       n: '03',
       title: 'Get operational leverage',
       description: 'Reports, content, research, legal reviews — all shipped. Your team focuses on the work that actually needs humans.',
-      color: '#F06464',
+      color: T.red,
     },
   ],
   scenario: {

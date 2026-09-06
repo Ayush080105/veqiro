@@ -2,14 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { PageNav } from './page-nav';
 import { Footer } from './sections';
+import { FONT as F, T } from './tokens';
 import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
-
-const F = {
-  display: 'var(--font-display), system-ui, sans-serif',
-  head: 'var(--font-display), system-ui, sans-serif',
-  body: 'var(--font-body), system-ui, sans-serif',
-  mono: 'var(--font-mono), monospace',
-};
 
 type CellVal = '✅' | '❌' | 'Basic' | 'Limited';
 
@@ -31,7 +25,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Platform Overview',
     emoji: '⚙',
-    color: '#111',
+    color: T.ink,
     rows: [
       { feature: 'Individual AI Employee Hiring', v: '✅', m: '❌', s: '✅' },
       { feature: 'Multiple AI Specialists in One Workspace', v: '✅', m: '✅', s: '✅' },
@@ -43,7 +37,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Executive Assistant',
     emoji: '📬',
-    color: '#6FCDE8',
+    color: T.blue,
     rows: [
       { feature: 'Executive Assistant', v: '✅', m: '✅', s: '✅' },
       { feature: 'Smart Inbox Processing', v: '✅', m: '✅', s: '✅' },
@@ -61,7 +55,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Research & Intelligence',
     emoji: '🔍',
-    color: '#F5C518',
+    color: T.amber,
     rows: [
       { feature: 'AI Research & Competitor Intelligence', v: '✅', m: '❌', s: 'Limited' },
       { feature: 'Topic Research with Live Sources', v: '✅', m: '❌', s: 'Basic' },
@@ -75,7 +69,7 @@ const SECTIONS: Section[] = [
   {
     title: 'SEO',
     emoji: '📈',
-    color: '#1DBC87',
+    color: T.green,
     rows: [
       { feature: 'AI SEO Specialist', v: '✅', m: '✅', s: '✅' },
       { feature: 'Keyword Research', v: '✅', m: 'Basic', s: '✅' },
@@ -90,7 +84,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Content & Marketing',
     emoji: '✍',
-    color: '#F79FD4',
+    color: T.pink,
     rows: [
       { feature: 'AI Marketing / Social Media Manager', v: '✅', m: '✅', s: '✅' },
       { feature: 'Full Content Drafting', v: '✅', m: '✅', s: '✅' },
@@ -106,7 +100,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Legal (Lex)',
     emoji: '⚖',
-    color: '#8A8AF0',
+    color: T.violet,
     rows: [
       { feature: 'AI Legal Assistant', v: '✅', m: '✅', s: '❌' },
       { feature: 'Contract Analysis', v: '✅', m: '✅', s: '❌' },
@@ -121,7 +115,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Finance (Rex)',
     emoji: '💹',
-    color: '#F06464',
+    color: T.red,
     rows: [
       { feature: 'Financial Analyst / AI CFO', v: '✅', m: '❌', s: '✅' },
       { feature: 'Revenue Forecasting', v: '✅', m: '❌', s: '❌' },
@@ -144,8 +138,8 @@ function CellContent({ val }: { val: CellVal }) {
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 28, height: 28, borderRadius: '50%',
-          background: '#1DBC87', border: '1px solid rgba(20,18,14,0.10)',
-          color: '#fff', fontSize: 14, fontWeight: 600, flexShrink: 0,
+          background: T.green, border: `1px solid ${T.line}`,
+          color: 'white', fontSize: 14, fontWeight: 600, flexShrink: 0,
         }}
       >
         ✓
@@ -158,8 +152,8 @@ function CellContent({ val }: { val: CellVal }) {
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 28, height: 28, borderRadius: '50%',
-          background: '#F5F0E8', border: '1px solid #ddd',
-          color: '#bbb', fontSize: 14,
+          background: T.surface2, border: `1px solid ${T.line2}`,
+          color: T.ink3, fontSize: 14,
         }}
       >
         ✕
@@ -171,8 +165,8 @@ function CellContent({ val }: { val: CellVal }) {
       <span
         style={{
           display: 'inline-block',
-          background: '#FEF3C7', color: '#92400E',
-          border: '1px solid #D97706',
+          background: `color-mix(in srgb, ${T.amber} 20%, ${T.surface})`, color: `color-mix(in srgb, ${T.amber} 65%, black)`,
+          border: `1px solid color-mix(in srgb, ${T.amber} 45%, transparent)`,
           borderRadius: 999, padding: '3px 10px',
           fontFamily: F.mono, fontSize: 10,
           letterSpacing: 1, textTransform: 'uppercase',
@@ -186,8 +180,8 @@ function CellContent({ val }: { val: CellVal }) {
     <span
       style={{
         display: 'inline-block',
-        background: '#F3F4F6', color: '#666',
-        border: '1px solid #ccc',
+        background: T.surface2, color: T.ink2,
+        border: `1px solid ${T.line2}`,
         borderRadius: 999, padding: '3px 10px',
         fontFamily: F.mono, fontSize: 10,
         letterSpacing: 1, textTransform: 'uppercase',
@@ -215,19 +209,19 @@ const EXCLUSIVES = [
 ];
 
 const EXCLUSIVE_COLORS = [
-  '#6FCDE8', '#F5C518', '#F5C518', '#1DBC87',
-  '#F79FD4', '#F06464', '#F06464', '#F06464',
-  '#F06464', '#F06464', '#F06464', '#F06464',
-  '#F79FD4',
+  T.blue, T.amber, T.amber, T.green,
+  T.pink, T.red, T.red, T.red,
+  T.red, T.red, T.red, T.red,
+  T.pink,
 ];
 
 const VERDICTS = [
   {
     name: 'Veqiro',
     tag: '★ Per-Agent Pricing',
-    tagColor: '#F5C518',
+    tagColor: T.amber,
     highlight: true,
-    color: '#F5C518',
+    color: T.amber,
     position: 'The all-in-one AI workforce for lean teams and founders.',
     price: 'From $9/mo',
     priceNote: 'per agent, no bundle',
@@ -237,9 +231,9 @@ const VERDICTS = [
   {
     name: 'Marblism',
     tag: 'Lead Gen + Phone',
-    tagColor: '#EEE',
+    tagColor: T.surface2,
     highlight: false,
-    color: '#aaa',
+    color: T.inkInv2,
     position: '6 employees incl. lead generation and a 24/7 phone receptionist. No finance or research agent.',
     price: '$44/mo',
     priceNote: 'monthly · all 6 included',
@@ -249,9 +243,9 @@ const VERDICTS = [
   {
     name: 'Sintra',
     tag: 'Widest Breadth',
-    tagColor: '#EEE',
+    tagColor: T.surface2,
     highlight: false,
-    color: '#aaa',
+    color: T.inkInv2,
     position: 'Widest breadth — 12 helpers covering sales, support, recruiting, and eCommerce. No dedicated legal or CFO agent.',
     price: '$97/mo',
     priceNote: 'monthly · all 12 included',
@@ -262,19 +256,19 @@ const VERDICTS = [
 
 export function ComparePageContent() {
   return (
-    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+    <div style={{ background: T.bg, minHeight: '100vh' }}>
       <PageNav />
 
       {/* ── HERO ── */}
       <section
         className="vq-section-pad"
-        style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)', textAlign: 'center' }}
+        style={{ background: T.ink, borderBottom: `1px solid ${T.line}`, textAlign: 'center' }}
       >
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <div
             style={{
               fontFamily: F.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#F5C518', marginBottom: 20,
+              textTransform: 'uppercase', color: T.amber, marginBottom: 20,
             }}
           >
             Compare
@@ -284,18 +278,18 @@ export function ComparePageContent() {
               fontFamily: F.display,
               fontSize: 'clamp(52px, 9vw, 120px)',
               lineHeight: 0.88,
-              color: '#EFE7D6',
+              color: T.bg,
               margin: '0 0 28px',
 
             }}
           >
             The honest<br />
-            <span style={{ color: '#F5C518' }}>comparison.</span>
+            <span style={{ color: T.amber }}>comparison.</span>
           </h1>
           <p
             style={{
               fontFamily: F.body, fontSize: 'clamp(15px, 2vw, 18px)',
-              color: '#888', maxWidth: 560, margin: '0 auto 36px', lineHeight: 1.65,
+              color: T.ink3, maxWidth: 560, margin: '0 auto 36px', lineHeight: 1.65,
             }}
           >
             No spin. No cherry-picked stats. Three AI employee platforms, compared honestly across 7 business categories.
@@ -314,8 +308,8 @@ export function ComparePageContent() {
               { v: 'June 2026', k: 'updated' },
             ].map(s => (
               <div key={s.k} style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: F.display, fontSize: 'clamp(32px, 5vw, 48px)', color: '#F5C518', lineHeight: 1 }}>{s.v}</div>
-                <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#555', marginTop: 5 }}>{s.k}</div>
+                <div style={{ fontFamily: F.display, fontSize: 'clamp(32px, 5vw, 48px)', color: T.amber, lineHeight: 1 }}>{s.v}</div>
+                <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: T.ink2, marginTop: 5 }}>{s.k}</div>
               </div>
             ))}
           </div>
@@ -325,11 +319,11 @@ export function ComparePageContent() {
       {/* ── VERDICT CARDS ── */}
       <section
         className="vq-section-pad"
-        style={{ borderBottom: '1px solid rgba(20,18,14,0.10)', background: '#FBF7EF' }}
+        style={{ borderBottom: `1px solid ${T.line}`, background: T.surface }}
       >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 48, textAlign: 'center' }}>
-            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#888', marginBottom: 14 }}>
+            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: T.ink3, marginBottom: 14 }}>
               Quick verdict
             </div>
             <h2
@@ -357,12 +351,12 @@ export function ComparePageContent() {
               <div
                 key={p.name}
                 style={{
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  border: `1px solid ${T.line}`,
                   borderRadius: 16,
                   overflow: 'hidden',
-                  boxShadow: p.highlight ? '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)' : '0 1px 2px rgba(20,18,14,0.05)',
+                  boxShadow: p.highlight ? T.shadow : '0 1px 2px rgba(20,18,14,0.05)',
                   transform: p.highlight ? 'translateY(-6px)' : 'none',
-                  background: p.highlight ? '#111' : '#EFE7D6',
+                  background: p.highlight ? T.ink : T.bg,
                   transition: 'transform 180ms',
                 }}
               >
@@ -370,19 +364,19 @@ export function ComparePageContent() {
                 <div
                   style={{
                     padding: '20px 24px',
-                    borderBottom: '1px solid rgba(20,18,14,0.10)',
-                    background: p.highlight ? '#1a1a1a' : '#F5F0E8',
+                    borderBottom: `1px solid ${T.line}`,
+                    background: p.highlight ? T.dark2 : T.surface2,
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   }}
                 >
-                  <span style={{ fontFamily: F.display, fontSize: 32, color: p.highlight ? '#EFE7D6' : '#111' }}>
+                  <span style={{ fontFamily: F.display, fontSize: 32, color: p.highlight ? T.bg : T.ink }}>
                     {p.name}
                   </span>
                   <span
                     style={{
                       fontFamily: F.mono, fontSize: 10, letterSpacing: 1.5,
                       textTransform: 'uppercase', padding: '4px 12px', borderRadius: 999,
-                      background: p.tagColor, color: '#111', border: '1px solid rgba(20,18,14,0.10)',
+                      background: p.tagColor, color: T.ink, border: `1px solid ${T.line}`,
                     }}
                   >
                     {p.tag}
@@ -393,24 +387,24 @@ export function ComparePageContent() {
                 <div
                   style={{
                     padding: '20px 24px',
-                    borderBottom: '1px solid rgba(20,18,14,0.10)',
-                    background: p.highlight ? '#F5C518' : '#EFE7D6',
+                    borderBottom: `1px solid ${T.line}`,
+                    background: p.highlight ? T.amber : T.bg,
                   }}
                 >
-                  <div style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 700, color: '#111', letterSpacing: 0.5, marginBottom: 8 }}>
+                  <div style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 700, color: T.ink, letterSpacing: 0.5, marginBottom: 8 }}>
                     {p.coverage.count}
                   </div>
-                  <div style={{ fontFamily: F.body, fontSize: 12, color: p.highlight ? '#333' : '#555', lineHeight: 1.6 }}>
+                  <div style={{ fontFamily: F.body, fontSize: 12, color: p.highlight ? T.ink : T.ink2, lineHeight: 1.6 }}>
                     {p.coverage.roles}
                   </div>
                 </div>
 
                 {/* Body */}
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+                <div style={{ padding: '20px 24px', borderBottom: `1px solid ${T.line}` }}>
                   <p
                     style={{
                       fontFamily: F.body, fontSize: 14, lineHeight: 1.65,
-                      color: p.highlight ? '#aaa' : '#555', margin: 0,
+                      color: p.highlight ? T.inkInv2 : T.ink2, margin: 0,
                     }}
                   >
                     {p.position}
@@ -419,13 +413,13 @@ export function ComparePageContent() {
 
                 {/* Price + ideal */}
                 <div style={{ padding: '16px 24px' }}>
-                  <div style={{ fontFamily: F.display, fontSize: 28, color: p.highlight ? '#F5C518' : '#111', lineHeight: 1 }}>
+                  <div style={{ fontFamily: F.display, fontSize: 28, color: p.highlight ? T.amber : T.ink, lineHeight: 1 }}>
                     {p.price}
                   </div>
-                  <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: 1, color: p.highlight ? '#555' : '#888', textTransform: 'uppercase', marginTop: 4, marginBottom: 12 }}>
+                  <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: 1, color: p.highlight ? T.ink2 : T.ink3, textTransform: 'uppercase', marginTop: 4, marginBottom: 12 }}>
                     {p.priceNote}
                   </div>
-                  <div style={{ fontFamily: F.body, fontSize: 12, color: p.highlight ? '#666' : '#888', lineHeight: 1.5 }}>
+                  <div style={{ fontFamily: F.body, fontSize: 12, color: p.highlight ? T.ink2 : T.ink3, lineHeight: 1.5 }}>
                     Best for: {p.ideal}
                   </div>
                 </div>
@@ -436,10 +430,10 @@ export function ComparePageContent() {
       </section>
 
       {/* ── THE BIG TABLE ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 40 }}>
-            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#888', marginBottom: 14 }}>
+            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: T.ink3, marginBottom: 14 }}>
               Full breakdown
             </div>
             <h2 style={{ fontFamily: F.display, fontSize: 'clamp(34px, 5vw, 60px)', margin: 0, lineHeight: 0.95 }}>
@@ -447,25 +441,25 @@ export function ComparePageContent() {
             </h2>
           </div>
 
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: 16, border: '1px solid rgba(20,18,14,0.10)', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: 16, border: `1px solid ${T.line}`, boxShadow: T.shadow }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
               <thead>
                 <tr>
                   <th
                     style={{
-                      background: '#111', color: '#EFE7D6',
+                      background: T.ink, color: T.bg,
                       fontFamily: F.mono, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase',
                       padding: '16px 20px', textAlign: 'left', position: 'sticky', top: 0,
                       whiteSpace: 'nowrap', minWidth: 220, zIndex: 10,
-                      borderRight: '1px solid #222',
+                      borderRight: `1px solid ${T.lineInv}`,
                     }}
                   >
                     Feature
                   </th>
                   {[
-                    { name: 'Veqiro', badge: '★', bg: '#F5C518', ink: '#111' },
-                    { name: 'Marblism', badge: '', bg: '#333', ink: '#EFE7D6' },
-                    { name: 'Sintra', badge: '', bg: '#333', ink: '#EFE7D6' },
+                    { name: 'Veqiro', badge: '★', bg: T.amber, ink: T.ink },
+                    { name: 'Marblism', badge: '', bg: T.ink, ink: T.bg },
+                    { name: 'Sintra', badge: '', bg: T.ink, ink: T.bg },
                   ].map(col => (
                     <th
                       key={col.name}
@@ -495,10 +489,10 @@ export function ComparePageContent() {
                         colSpan={4}
                         style={{
                           background: section.color,
-                          color: section.color === '#111' ? '#EFE7D6' : '#111',
+                          color: section.color === T.ink ? T.bg : T.ink,
                           fontFamily: F.head, fontSize: 12, letterSpacing: 2,
                           textTransform: 'uppercase', padding: '10px 20px',
-                          borderTop: si > 0 ? '1px solid rgba(20,18,14,0.10)' : undefined,
+                          borderTop: si > 0 ? `1px solid ${T.line}` : undefined,
                         }}
                       >
                         <span style={{ marginRight: 8 }}>{section.emoji}</span>
@@ -514,10 +508,10 @@ export function ComparePageContent() {
                           <td
                             style={{
                               padding: '14px 20px',
-                              fontFamily: F.body, fontSize: 14, color: '#111',
-                              background: even ? '#FBF7EF' : '#EFE7D6',
-                              borderRight: '1px solid rgba(20,18,14,0.10)',
-                              borderTop: '1px solid rgba(17,17,17,0.08)',
+                              fontFamily: F.body, fontSize: 14, color: T.ink,
+                              background: even ? T.surface : T.bg,
+                              borderRight: `1px solid ${T.line}`,
+                              borderTop: `1px solid ${T.line}`,
                             }}
                           >
                             {row.feature}
@@ -525,9 +519,9 @@ export function ComparePageContent() {
                           <td
                             style={{
                               padding: '14px 20px', textAlign: 'center',
-                              background: even ? '#FEF9E7' : '#FEFCE8',
-                              borderRight: '2px solid rgba(17,17,17,0.1)',
-                              borderTop: '1px solid rgba(17,17,17,0.08)',
+                              background: even ? `color-mix(in srgb, ${T.amber} 6%, ${T.surface})` : `color-mix(in srgb, ${T.amber} 3%, ${T.surface})`,
+                              borderRight: `2px solid ${T.line2}`,
+                              borderTop: `1px solid ${T.line}`,
                             }}
                           >
                             <CellContent val={row.v} />
@@ -535,9 +529,9 @@ export function ComparePageContent() {
                           <td
                             style={{
                               padding: '14px 20px', textAlign: 'center',
-                              background: even ? '#F9F9F9' : '#F3F3F3',
-                              borderRight: '2px solid rgba(17,17,17,0.1)',
-                              borderTop: '1px solid rgba(17,17,17,0.08)',
+                              background: even ? T.surface : T.surface2,
+                              borderRight: `2px solid ${T.line2}`,
+                              borderTop: `1px solid ${T.line}`,
                             }}
                           >
                             <CellContent val={row.m} />
@@ -545,8 +539,8 @@ export function ComparePageContent() {
                           <td
                             style={{
                               padding: '14px 20px', textAlign: 'center',
-                              background: even ? '#F9F9F9' : '#F3F3F3',
-                              borderTop: '1px solid rgba(17,17,17,0.08)',
+                              background: even ? T.surface : T.surface2,
+                              borderTop: `1px solid ${T.line}`,
                             }}
                           >
                             <CellContent val={row.s} />
@@ -563,7 +557,7 @@ export function ComparePageContent() {
           <p
             style={{
               fontFamily: F.mono, fontSize: 11, letterSpacing: 1,
-              color: '#999', marginTop: 16, textAlign: 'center',
+              color: T.ink3, marginTop: 16, textAlign: 'center',
               textTransform: 'uppercase',
             }}
           >
@@ -575,22 +569,22 @@ export function ComparePageContent() {
       {/* ── VEQIRO EXCLUSIVES ── */}
       <section
         className="vq-section-pad"
-        style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}
+        style={{ background: T.ink, borderBottom: `1px solid ${T.line}` }}
       >
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ marginBottom: 48, textAlign: 'center' }}>
-            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 14 }}>
+            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: T.amber, marginBottom: 14 }}>
               Only in veqiro
             </div>
             <h2
               style={{
                 fontFamily: F.display,
                 fontSize: 'clamp(34px, 5vw, 60px)',
-                color: '#EFE7D6', margin: 0, lineHeight: 0.95,
+                color: T.bg, margin: 0, lineHeight: 0.95,
               }}
             >
               {EXCLUSIVES.length} features<br />
-              <span style={{ color: '#F5C518' }}>nobody else has.</span>
+              <span style={{ color: T.amber }}>nobody else has.</span>
             </h2>
           </div>
 
@@ -605,19 +599,19 @@ export function ComparePageContent() {
               <div
                 key={f}
                 style={{
-                  border: '1px solid #333',
+                  border: `1px solid ${T.lineInv}`,
                   borderRadius: 12, padding: '16px 18px',
-                  background: '#1a1a1a',
+                  background: T.dark2,
                   display: 'flex', alignItems: 'flex-start', gap: 12,
                 }}
               >
                 <span
                   style={{
                     width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                    background: EXCLUSIVE_COLORS[i], border: '1px solid #555', marginTop: 3,
+                    background: EXCLUSIVE_COLORS[i], border: `1px solid ${T.lineInv2}`, marginTop: 3,
                   }}
                 />
-                <span style={{ fontFamily: F.body, fontSize: 13, color: '#EFE7D6', lineHeight: 1.4 }}>
+                <span style={{ fontFamily: F.body, fontSize: 13, color: T.bg, lineHeight: 1.4 }}>
                   {f}
                 </span>
               </div>
@@ -627,10 +621,10 @@ export function ComparePageContent() {
       </section>
 
       {/* ── PRICING COMPARISON ── */}
-      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ marginBottom: 48, textAlign: 'center' }}>
-            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#888', marginBottom: 14 }}>
+            <div style={{ fontFamily: F.mono, fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: T.ink3, marginBottom: 14 }}>
               Pricing
             </div>
             <h2 style={{ fontFamily: F.display, fontSize: 'clamp(34px, 5vw, 60px)', margin: 0, lineHeight: 0.95 }}>
@@ -656,7 +650,7 @@ export function ComparePageContent() {
                 note: 'per agent, billed independently',
                 highlight: true,
                 what: 'Every AI employee billed on its own, starting at $9/mo — no bundle, no per-seat nonsense.',
-                color: '#F5C518',
+                color: T.amber,
               },
               {
                 name: 'Marblism',
@@ -665,7 +659,7 @@ export function ComparePageContent() {
                 note: 'monthly · all 6 included',
                 highlight: false,
                 what: '6 AI employees all included in one flat plan. Lead gen and phone receptionist built in. $24/mo if billed annually.',
-                color: '#aaa',
+                color: T.inkInv2,
               },
               {
                 name: 'Sintra',
@@ -674,42 +668,42 @@ export function ComparePageContent() {
                 note: 'monthly · all 12 included',
                 highlight: false,
                 what: '12 AI helpers all included in one flat plan. Sales, support, social, recruiting + more. $52/mo if billed annually.',
-                color: '#aaa',
+                color: T.inkInv2,
               },
             ].map(p => (
               <div
                 key={p.name}
                 style={{
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  border: `1px solid ${T.line}`,
                   borderRadius: 14, overflow: 'hidden',
-                  boxShadow: p.highlight ? '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)' : '0 1px 2px rgba(20,18,14,0.05)',
+                  boxShadow: p.highlight ? T.shadow : '0 1px 2px rgba(20,18,14,0.05)',
                   transform: p.highlight ? 'translateY(-4px)' : 'none',
                 }}
               >
                 <div
                   style={{
                     padding: '18px 24px',
-                    background: p.highlight ? '#111' : '#EFE7D6',
-                    borderBottom: '1px solid rgba(20,18,14,0.10)',
+                    background: p.highlight ? T.ink : T.bg,
+                    borderBottom: `1px solid ${T.line}`,
                   }}
                 >
-                  <div style={{ fontFamily: F.head, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: p.highlight ? '#888' : '#555' }}>
+                  <div style={{ fontFamily: F.head, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: p.highlight ? T.ink3 : T.ink2 }}>
                     {p.name}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 6 }}>
-                    <span style={{ fontFamily: F.display, fontSize: 'clamp(36px, 6vw, 52px)', color: p.highlight ? p.color : '#111', lineHeight: 1 }}>
+                    <span style={{ fontFamily: F.display, fontSize: 'clamp(36px, 6vw, 52px)', color: p.highlight ? p.color : T.ink, lineHeight: 1 }}>
                       {p.price}
                     </span>
-                    <span style={{ fontFamily: F.body, fontSize: 16, color: p.highlight ? '#555' : '#888' }}>
+                    <span style={{ fontFamily: F.body, fontSize: 16, color: p.highlight ? T.ink2 : T.ink3 }}>
                       {p.period}
                     </span>
                   </div>
-                  <div style={{ fontFamily: F.mono, fontSize: 11, color: p.highlight ? '#555' : '#888', letterSpacing: 1, textTransform: 'uppercase', marginTop: 4 }}>
+                  <div style={{ fontFamily: F.mono, fontSize: 11, color: p.highlight ? T.ink2 : T.ink3, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4 }}>
                     {p.note}
                   </div>
                 </div>
-                <div style={{ padding: '18px 24px', background: '#fff' }}>
-                  <p style={{ fontFamily: F.body, fontSize: 14, color: '#444', lineHeight: 1.6, margin: 0 }}>
+                <div style={{ padding: '18px 24px', background: 'white' }}>
+                  <p style={{ fontFamily: F.body, fontSize: 14, color: T.ink2, lineHeight: 1.6, margin: 0 }}>
                     {p.what}
                   </p>
                 </div>
@@ -722,23 +716,23 @@ export function ComparePageContent() {
       {/* ── FINAL CTA ── */}
       <section
         className="vq-section-pad"
-        style={{ background: '#111', textAlign: 'center' }}
+        style={{ background: T.ink, textAlign: 'center' }}
       >
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           <h2
             style={{
               fontFamily: F.display,
               fontSize: 'clamp(44px, 7vw, 96px)',
-              color: '#EFE7D6', margin: '0 0 16px', lineHeight: 0.9,
+              color: T.bg, margin: '0 0 16px', lineHeight: 0.9,
             }}
           >
             Made up<br />
-            <span style={{ color: '#F5C518' }}>your mind?</span>
+            <span style={{ color: T.amber }}>your mind?</span>
           </h2>
           <p
             style={{
               fontFamily: F.body, fontSize: 17,
-              color: '#777', margin: '0 0 36px', lineHeight: 1.6,
+              color: T.ink3, margin: '0 0 36px', lineHeight: 1.6,
             }}
           >
             6 AI employees, billed independently, starting at $9/mo.<br />7-day free trial. No credit card.
@@ -747,11 +741,11 @@ export function ComparePageContent() {
             <a
               href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
               style={{
-                display: 'inline-block', background: '#F5C518', color: '#111',
-                border: '1px solid #F5C518', borderRadius: 12,
+                display: 'inline-block', background: T.amber, color: T.ink,
+                border: `1px solid ${T.amber}`, borderRadius: 12,
                 padding: '16px 36px', fontFamily: F.head,
                 fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
-                textDecoration: 'none', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                textDecoration: 'none', boxShadow: T.shadow,
               }}
             >
               {isPreLaunch ? 'Join the waitlist →' : 'Start free — 7 days on us →'}
@@ -759,8 +753,8 @@ export function ComparePageContent() {
             <Link
               href="/pricing"
               style={{
-                display: 'inline-block', background: 'transparent', color: '#EFE7D6',
-                border: '1px solid #333', borderRadius: 12,
+                display: 'inline-block', background: 'transparent', color: T.bg,
+                border: `1px solid ${T.lineInv2}`, borderRadius: 12,
                 padding: '16px 36px', fontFamily: F.head,
                 fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
                 textDecoration: 'none',
@@ -769,8 +763,8 @@ export function ComparePageContent() {
               See pricing →
             </Link>
           </div>
-          <p style={{ fontFamily: F.mono, fontSize: 11, color: '#444', marginTop: 20, letterSpacing: 1, textTransform: 'uppercase' }}>
-            Also read: <Link href="/blog/veqiro-vs-sintra-vs-marblism" style={{ color: '#F5C518', textDecoration: 'underline', textDecorationColor: '#F5C518' }}>the full written comparison →</Link>
+          <p style={{ fontFamily: F.mono, fontSize: 11, color: T.ink2, marginTop: 20, letterSpacing: 1, textTransform: 'uppercase' }}>
+            Also read: <Link href="/blog/veqiro-vs-sintra-vs-marblism" style={{ color: T.amber, textDecoration: 'underline', textDecorationColor: T.amber }}>the full written comparison →</Link>
           </p>
         </div>
       </section>

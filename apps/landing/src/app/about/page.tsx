@@ -1,7 +1,8 @@
 import React from 'react';
 import { Footer } from '@/components/veqiro/sections';
 import { PageNav } from '@/components/veqiro/page-nav';
-import { FONT, Button } from '@/components/veqiro/shared';
+import { Button } from '@/components/veqiro/shared';
+import { FONT, T } from '@/components/veqiro/tokens';
 import { AboutCrewGrid } from '@/components/veqiro/about-crew-grid';
 import { ContactPageForm } from '@/components/veqiro/contact-page-form';
 import { consoleUrl, isPreLaunch, waitlistUrl, contact } from '@/lib/site-config';
@@ -57,36 +58,36 @@ const VALUES = [
   {
     title: 'Personality over prompts',
     body: "AI that has a name, a voice, and a point of view is AI you actually want to work with. Generic is boring. We make crew members.",
-    color: '#6FCDE8',
+    color: T.blue,
   },
   {
     title: 'Real work, not summaries',
     body: "Vega doesn't just tell you about your emails — she handles them. Sage doesn't suggest keywords — she writes the post. Output over observation.",
-    color: '#F06464',
+    color: T.red,
   },
   {
     title: 'Lean is a superpower',
     body: "A 2-person team that operates like a 10-person team doesn't need to hire their way out. They need better tools. We're those tools.",
-    color: '#F5C518',
+    color: T.amber,
   },
   {
     title: 'Trust but verify',
     body: "Every agent tells you what it's doing and why. Nothing gets sent without your say-so. We make them fast — you make them final.",
-    color: '#1DBC87',
+    color: T.green,
   },
 ];
 
 export default function AboutPage() {
   return (
-    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+    <div style={{ background: T.bg, minHeight: '100vh' }}>
       <JsonLd data={[organizationJsonLd(), faqPageJsonLd(ABOUT_FAQ)]} />
       <PageNav />
 
       {/* ── HERO ── */}
       <section className="vq-section-pad" style={{
-        borderTop: '1px solid rgba(20,18,14,0.10)',
-        borderBottom: '1px solid rgba(20,18,14,0.10)',
-        background: '#111',
+        borderTop: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`,
+        background: T.ink,
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
           <div style={{
@@ -94,7 +95,7 @@ export default function AboutPage() {
             fontSize: 13,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: '#F5C518',
+            color: T.amber,
             marginBottom: 16,
           }}>
             About veqiro
@@ -104,23 +105,23 @@ export default function AboutPage() {
             fontSize: 'clamp(56px, 8vw, 120px)',
             margin: 0,
             lineHeight: 0.9,
-            color: '#EFE7D6',
+            color: T.bg,
           }}>
             Made by humans.<br />
-            <span style={{ color: '#F5C518' }}>(mostly.)</span>
+            <span style={{ color: T.amber }}>(mostly.)</span>
           </h1>
         </div>
       </section>
 
       {/* ── MISSION ── */}
-      <section className="vq-section-pad" style={{ borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono,
             fontSize: 13,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: '#666',
+            color: T.ink2,
             marginBottom: 24,
           }}>
             The why
@@ -133,17 +134,17 @@ export default function AboutPage() {
           }}>
             Lean teams deserve the same leverage as teams ten times their size.
           </p>
-          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: '#333', margin: '0 0 24px' }}>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: T.ink, margin: '0 0 24px' }}>
             We built Veqiro because we kept watching great companies stall — not because the ideas were bad, but because a 3-person team can only do so much in a day. The grunt work piles up. The emails go unanswered. The blog gets abandoned. The competitor analysis never gets done.
           </p>
-          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: '#333', margin: 0 }}>
+          <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: T.ink, margin: 0 }}>
             So we built six. Not a chat interface with a generic prompt. Six actual AI employees — each with a name, a specialty, a personality, and a bias toward shipping. They share memory. They talk to each other. They work while you sleep.
           </p>
         </div>
       </section>
 
       {/* ── WHAT IS VEQIRO ── */}
-      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(32px, 5vw, 48px)', maxWidth: 820 }}>
             <div style={{
@@ -151,7 +152,7 @@ export default function AboutPage() {
               fontSize: 13,
               letterSpacing: 3,
               textTransform: 'uppercase',
-              color: '#666',
+              color: T.ink2,
               marginBottom: 16,
             }}>
               What veqiro is
@@ -172,7 +173,7 @@ export default function AboutPage() {
               fontFamily: FONT.body,
               fontSize: 'clamp(15px, 1.9vw, 18px)',
               lineHeight: 1.75,
-              color: '#333',
+              color: T.ink,
               margin: '0 0 18px',
             }}>
               Veqiro is a team of six specialized AI employees — an executive assistant, a researcher, a content writer, an SEO specialist, a legal reviewer, and a financial analyst — bundled into a single subscription. Each agent has its own name, role, personality, and specialized skills. They share a central Brain (your brand kit, competitors, and context), so output stays consistent across everything from inbox replies to blog posts to contract reviews.
@@ -181,7 +182,7 @@ export default function AboutPage() {
               fontFamily: FONT.body,
               fontSize: 'clamp(15px, 1.9vw, 18px)',
               lineHeight: 1.75,
-              color: '#333',
+              color: T.ink,
               margin: 0,
             }}>
               Veqiro exists because most AI tools are single-purpose utilities that don&apos;t talk to each other, and most &quot;AI agent platforms&quot; require you to configure workflows before anything useful happens. We built the opposite: six AI employees that arrive pre-hired, brief themselves from your company profile, and start shipping work the same day. Think AI workforce for founders, AI team for startups, AI employees for lean teams — all the same thing, and all what Veqiro is.
@@ -195,25 +196,25 @@ export default function AboutPage() {
             gap: 16,
           }}>
             {[
-              { label: 'AI employees', value: '6', accent: '#F5C518' },
-              { label: 'Starting at', value: '$9/mo', accent: '#F06464' },
-              { label: 'Built in', value: 'India', accent: '#1DBC87' },
-              { label: 'Free trial', value: '7 days', accent: '#6FCDE8' },
+              { label: 'AI employees', value: '6', accent: T.amber },
+              { label: 'Starting at', value: '$9/mo', accent: T.red },
+              { label: 'Built in', value: 'India', accent: T.green },
+              { label: 'Free trial', value: '7 days', accent: T.blue },
             ].map((f) => (
               <div
                 key={f.label}
                 style={{
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  border: `1px solid ${T.line}`,
                   borderRadius: 12,
-                  background: '#EFE7D6',
+                  background: T.bg,
                   padding: '18px 20px',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                  boxShadow: T.shadow,
                 }}
               >
                 <div style={{
                   fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
                   fontSize: 'clamp(22px, 3.2vw, 32px)',
-                  color: '#111',
+                  color: T.ink,
                   lineHeight: 1,
                   marginBottom: 8,
                 }}>
@@ -224,7 +225,7 @@ export default function AboutPage() {
                   fontSize: 10,
                   letterSpacing: 2,
                   textTransform: 'uppercase',
-                  color: '#666',
+                  color: T.ink2,
                 }}>
                   {f.label}
                 </div>
@@ -235,14 +236,14 @@ export default function AboutPage() {
       </section>
 
       {/* ── VALUES ── */}
-      <section className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.bg, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{
             fontFamily: FONT.mono,
             fontSize: 13,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: '#666',
+            color: T.ink2,
             marginBottom: 56,
           }}>
             How we think
@@ -254,22 +255,22 @@ export default function AboutPage() {
           }}>
             {VALUES.map((v) => (
               <div key={v.title} style={{
-                border: '1px solid rgba(20,18,14,0.10)',
+                border: `1px solid ${T.line}`,
                 borderRadius: 14,
                 padding: '28px 24px',
-                background: '#EFE7D6',
-                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                background: T.bg,
+                boxShadow: T.shadow,
               }}>
                 <div style={{
                   width: 32,
                   height: 5,
                   background: v.color,
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  border: `1px solid ${T.line}`,
                   borderRadius: 4,
                   marginBottom: 18,
                 }} />
                 <h3 style={{ fontFamily: FONT.head, fontSize: 20, margin: '0 0 12px' }}>{v.title}</h3>
-                <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65, color: '#444', margin: 0 }}>{v.body}</p>
+                <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65, color: T.ink2, margin: 0 }}>{v.body}</p>
               </div>
             ))}
           </div>
@@ -277,12 +278,12 @@ export default function AboutPage() {
       </section>
 
       {/* ── MEET THE CREW ── */}
-      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ marginBottom: 48 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+              textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
             }}>
               The crew
             </div>
@@ -296,12 +297,12 @@ export default function AboutPage() {
       </section>
 
       {/* ── ORIGIN ── */}
-      <section className="vq-section-pad" style={{ background: '#111', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.ink, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center' }}>
           <p style={{
             fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
             fontSize: 'clamp(24px, 3vw, 42px)',
-            color: '#EFE7D6',
+            color: T.bg,
             lineHeight: 1.3,
             margin: 0,
           }}>
@@ -313,7 +314,7 @@ export default function AboutPage() {
             fontSize: 12,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: '#666',
+            color: T.ink2,
           }}>
             — the origin story, abridged
           </div>
@@ -321,7 +322,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="vq-section-pad" style={{ background: '#FBF7EF', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section className="vq-section-pad" style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
           <div style={{ marginBottom: 'clamp(28px, 4vw, 40px)' }}>
             <div style={{
@@ -329,7 +330,7 @@ export default function AboutPage() {
               fontSize: 13,
               letterSpacing: 3,
               textTransform: 'uppercase',
-              color: '#666',
+              color: T.ink2,
               marginBottom: 16,
             }}>
               Common questions
@@ -349,10 +350,10 @@ export default function AboutPage() {
               <details
                 key={item.q}
                 style={{
-                  border: '1px solid rgba(20,18,14,0.10)',
+                  border: `1px solid ${T.line}`,
                   borderRadius: 12,
-                  background: '#EFE7D6',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                  background: T.bg,
+                  boxShadow: T.shadow,
                   overflow: 'hidden',
                 }}
               >
@@ -374,7 +375,7 @@ export default function AboutPage() {
                     style={{
                       fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em',
                       fontSize: 22,
-                      color: '#111',
+                      color: T.ink,
                       flexShrink: 0,
                       lineHeight: 1,
                     }}
@@ -387,7 +388,7 @@ export default function AboutPage() {
                   fontFamily: FONT.body,
                   fontSize: 15,
                   lineHeight: 1.75,
-                  color: '#333',
+                  color: T.ink,
                 }}>
                   {item.a}
                 </div>
@@ -398,29 +399,29 @@ export default function AboutPage() {
       </section>
 
       {/* ── CONTACT ── */}
-      <section id="contact" className="vq-section-pad" style={{ background: '#EFE7D6', borderBottom: '1px solid rgba(20,18,14,0.10)' }}>
+      <section id="contact" className="vq-section-pad" style={{ background: T.bg, borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
           <div style={{ marginBottom: 40 }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase', color: '#666', marginBottom: 16,
+              textTransform: 'uppercase', color: T.ink2, marginBottom: 16,
             }}>
               Get in touch
             </div>
             <h2 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 5vw, 64px)', margin: '0 0 16px', lineHeight: 0.95 }}>
               let&apos;s talk.
             </h2>
-            <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#555', margin: 0, lineHeight: 1.65 }}>
+            <p style={{ fontFamily: FONT.body, fontSize: 16, color: T.ink2, margin: 0, lineHeight: 1.65 }}>
               Questions before signing up? Just want to say hi? We reply within one business day.
             </p>
-            <div style={{ marginTop: 12, fontFamily: FONT.mono, fontSize: 12, color: '#888', letterSpacing: 1 }}>
+            <div style={{ marginTop: 12, fontFamily: FONT.mono, fontSize: 12, color: T.ink3, letterSpacing: 1 }}>
               {contact.email}
             </div>
           </div>
           <div style={{
-            background: '#FBF7EF', border: '1px solid rgba(20,18,14,0.10)',
+            background: T.surface, border: `1px solid ${T.line}`,
             borderRadius: 16, padding: 'clamp(24px, 4vw, 40px)',
-            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+            boxShadow: T.shadow,
           }}>
             <ContactPageForm />
           </div>
@@ -435,7 +436,7 @@ export default function AboutPage() {
             fontSize: 13,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: '#666',
+            color: T.ink2,
             marginBottom: 20,
           }}>
             Meet the crew

@@ -2,47 +2,11 @@
 import React from 'react';
 import Link from 'next/link';
 
-/**
- * Font roles. The keys are unchanged so the ~20 modules importing FONT keep
- * working; only the underlying faces moved to the professional stack
- * (Inter Tight / Inter / JetBrains Mono).
- */
-export const FONT = {
-  display: "var(--font-display), system-ui, sans-serif",
-  head: "var(--font-display), system-ui, sans-serif",
-  body: "var(--font-body), system-ui, sans-serif",
-  mono: "var(--font-mono), monospace",
-};
-
-/** Shared tokens for inline-styled components. */
-export const T = {
-  bg: '#EFE7D6',
-  surface: '#FBF7EF',
-  surface2: '#F5EEE0',
-  dark: '#14120E',
-  dark2: '#1D1A14',
-  dark3: '#2A251C',
-  ink: '#14120E',
-  ink2: '#56514A',
-  ink3: '#8B857A',
-  inkInv: '#F2ECE0',
-  inkInv2: '#A9A192',
-  line: 'rgba(20, 18, 14, 0.10)',
-  line2: 'rgba(20, 18, 14, 0.17)',
-  lineInv: 'rgba(242, 236, 224, 0.12)',
-  lineInv2: 'rgba(242, 236, 224, 0.22)',
-  amber: '#F5C518',
-  red: '#F06464',
-  green: '#1DBC87',
-  pink: '#F79FD4',
-  violet: '#8A8AF0',
-  blue: '#6FCDE8',
-  shadowSm: '0 1px 2px rgba(20, 18, 14, 0.05)',
-  shadow: '0 1px 3px rgba(20, 18, 14, 0.05), 0 8px 24px -6px rgba(20, 18, 14, 0.09)',
-  shadowLg: '0 2px 6px rgba(20, 18, 14, 0.06), 0 24px 48px -12px rgba(20, 18, 14, 0.14)',
-  r: 12,
-  rLg: 16,
-} as const;
+// Re-exported for existing client-component call sites (`import { FONT, T,
+// Button } from './shared'` keeps working). Server Components must import
+// these two from './tokens' directly — see the comment there for why.
+export { FONT, T } from './tokens';
+import { FONT, T } from './tokens';
 
 // ---- Button ----
 interface ButtonProps {
@@ -183,18 +147,24 @@ const fieldStyle: React.CSSProperties = {
 
 // ---- Input ----
 interface InputProps {
+  id?: string;
   value?: string;
   onChange?: (v: string) => void;
   placeholder?: string;
   type?: string;
+  required?: boolean;
+  'aria-describedby'?: string;
 }
-export function VqInput({ value, onChange, placeholder, type }: InputProps) {
+export function VqInput({ id, value, onChange, placeholder, type, required, ...rest }: InputProps) {
   return (
     <input
+      id={id}
       type={type || 'text'}
       value={value || ''}
       onChange={e => onChange?.(e.target.value)}
       placeholder={placeholder}
+      required={required}
+      aria-describedby={rest['aria-describedby']}
       style={fieldStyle}
       onFocus={e => {
         e.currentTarget.style.borderColor = T.ink;

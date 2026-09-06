@@ -4,6 +4,7 @@ import { Hero } from '@/components/veqiro/hero';
 import { CrewSection, DeskPanel } from '@/components/veqiro/crew';
 import { ProblemSection, SharedBrainSection, OutcomesSection } from '@/components/veqiro/story';
 import { IntegrationsSection } from '@/components/veqiro/integrations-section';
+import { T } from '@/components/veqiro/shared';
 import { HowItWorks, Pricing, FAQ, FinalCTA, Footer } from '@/components/veqiro/sections';
 
 /**
@@ -17,7 +18,7 @@ export default function HomePageContent() {
   const [active, setActive] = useState('vega');
 
   return (
-    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+    <div style={{ background: T.bg, minHeight: '100vh' }}>
       <Hero />
       <OutcomesSection />
       <ProblemSection />

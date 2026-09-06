@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavShared } from './nav-shared';
 import { Footer } from './sections';
-import { FONT, Button, Sticker, VqInput } from './shared';
+import { FONT, T, Button, Sticker, VqInput } from './shared';
 import { serverUrl, consoleUrl, launchDate } from '@/lib/site-config';
 
 interface CountdownState {
@@ -30,13 +30,13 @@ function CountdownBox({ value, label }: { value: number; label: string }) {
         fontFamily: FONT.mono,
         fontSize: 'clamp(32px, 7vw, 56px)',
         fontWeight: 700,
-        color: '#F5C518',
+        color: T.amber,
         lineHeight: 1,
-        background: '#111',
-        border: '1px solid rgba(20,18,14,0.10)',
+        background: T.ink,
+        border: `1px solid ${T.line}`,
         borderRadius: 10,
         padding: '14px 18px',
-        boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+        boxShadow: T.shadow,
         minWidth: 68,
         display: 'inline-block',
 
@@ -48,7 +48,7 @@ function CountdownBox({ value, label }: { value: number; label: string }) {
         fontSize: 10,
         letterSpacing: 2,
         textTransform: 'uppercase',
-        color: '#888',
+        color: T.ink3,
         marginTop: 8,
       }}>
         {label}
@@ -121,7 +121,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
 
           {/* Badge */}
           <div style={{ marginBottom: 28 }}>
-            <Sticker rot={-2} color="#F06464" style={{ color: '#111' }}>
+            <Sticker rot={-2} color={T.red} style={{ color: T.ink }}>
               {cd?.launched ? "we're live!" : 'launching soon'}
             </Sticker>
           </div>
@@ -133,7 +133,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
             lineHeight: 0.9,
             margin: '0 0 20px',
 
-            color: '#111',
+            color: T.ink,
           }}>
             {cd?.launched ? (
               <>Your crew<br />is ready.</>
@@ -146,7 +146,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
           <p style={{
             fontFamily: FONT.body,
             fontSize: 'clamp(15px, 2.2vw, 18px)',
-            color: '#444',
+            color: T.ink2,
             maxWidth: 500,
             margin: '0 auto 44px',
             lineHeight: 1.55,
@@ -156,8 +156,8 @@ export default function WaitlistPageContent({ count, max }: Props) {
               : <>
                   The crew is getting ready. Founding members lock in{' '}
                   <span style={{
-                    background: '#F5C518',
-                    color: '#111',
+                    background: T.amber,
+                    color: T.ink,
                     fontFamily: FONT.head,
                     fontWeight: 700,
                     padding: '1px 7px',
@@ -174,8 +174,8 @@ export default function WaitlistPageContent({ count, max }: Props) {
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', margin: '-32px 0 44px' }}>
             {['✓ Start free', '7-day trial', 'No payment method needed'].map((label) => (
               <span key={label} style={{
-                background: '#FBF7EF', color: '#56514A',
-                border: '1px solid rgba(20,18,14,0.10)',
+                background: T.surface, color: T.ink2,
+                border: `1px solid ${T.line}`,
                 fontFamily: FONT.body, fontWeight: 500, fontSize: 12.5,
                 padding: '5px 12px', borderRadius: 99,
               }}>{label}</span>
@@ -188,16 +188,16 @@ export default function WaitlistPageContent({ count, max }: Props) {
               href={`${consoleUrl}/signup`}
               style={{
                 display: 'inline-block',
-                background: '#14120E',
-                color: '#F2ECE0',
+                background: T.dark,
+                color: T.inkInv,
                 padding: '15px 30px',
-                border: '1px solid #14120E',
+                border: `1px solid ${T.dark}`,
                 borderRadius: 11,
                 fontFamily: FONT.body,
                 fontSize: 15,
                 fontWeight: 550,
                 textDecoration: 'none',
-                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                boxShadow: T.shadow,
               }}
             >
               Hire the crew →
@@ -211,7 +211,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                   fontSize: 10,
                   letterSpacing: 3,
                   textTransform: 'uppercase',
-                  color: '#888',
+                  color: T.ink3,
                   marginBottom: 18,
                 }}>
                   dropping in
@@ -231,59 +231,68 @@ export default function WaitlistPageContent({ count, max }: Props) {
 
               {/* Email form */}
               {status === 'success' ? (
-                <div style={{
-                  border: '1px solid #1DBC87',
-                  borderRadius: 14,
-                  padding: '28px 32px',
-                  background: '#FBF7EF',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
-                }}>
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    border: `1px solid ${T.green}`,
+                    borderRadius: 14,
+                    padding: '28px 32px',
+                    background: T.surface,
+                    boxShadow: T.shadow,
+                  }}>
                   <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(28px, 5vw, 40px)', marginBottom: 8 }}>
                     you&apos;re in.
                   </div>
-                  <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
+                  <p style={{ fontFamily: FONT.body, fontSize: 16, color: T.ink2, margin: 0 }}>
                     We&apos;ll email you the moment the doors open — along with your{' '}
                     <span style={{ fontFamily: FONT.head, fontWeight: 700 }}>30% off on your first plan</span>.
                   </p>
                 </div>
               ) : status === 'already' ? (
-                <div style={{
-                  border: '1px solid #F5C518',
-                  borderRadius: 14,
-                  padding: '28px 32px',
-                  background: '#FBF7EF',
-                  boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
-                }}>
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    border: `1px solid ${T.amber}`,
+                    borderRadius: 14,
+                    padding: '28px 32px',
+                    background: T.surface,
+                    boxShadow: T.shadow,
+                  }}>
                   <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8 }}>
                     already in line.
                   </div>
-                  <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: 0 }}>
+                  <p style={{ fontFamily: FONT.body, fontSize: 16, color: T.ink2, margin: 0 }}>
                     You&apos;re already on the list — we&apos;ve got you. Sit tight.
                   </p>
                 </div>
               ) : status === 'full' || count >= max ? (
                 <div style={{ maxWidth: 520, margin: '0 auto' }}>
-                  <div style={{
-                    border: '1px solid #F06464',
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    style={{
+                    border: `1px solid ${T.red}`,
                     borderRadius: 14,
                     padding: '28px 32px',
-                    background: '#FBF7EF',
-                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                    background: T.surface,
+                    boxShadow: T.shadow,
                     textAlign: 'center',
                     marginBottom: 24,
                   }}>
-                    <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8, color: '#111' }}>
+                    <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(24px, 4vw, 36px)', marginBottom: 8, color: T.ink }}>
                       founding spots filled.
                     </div>
-                    <p style={{ fontFamily: FONT.body, fontSize: 16, color: '#444', margin: '0 0 16px', lineHeight: 1.5 }}>
+                    <p style={{ fontFamily: FONT.body, fontSize: 16, color: T.ink2, margin: '0 0 16px', lineHeight: 1.5 }}>
                       All {max} founding member spots have been claimed! Thank you for the incredible support. We will be opening general access very soon.
                     </p>
                     <div style={{
                       display: 'inline-block',
                       fontFamily: FONT.mono,
                       fontSize: 11,
-                      background: '#F06464',
-                      color: '#FFF',
+                      background: T.red,
+                      color: 'white',
                       fontWeight: 700,
                       padding: '6px 14px',
                       borderRadius: 99,
@@ -302,30 +311,30 @@ export default function WaitlistPageContent({ count, max }: Props) {
                       alignItems: 'baseline',
                       marginBottom: 8,
                     }}>
-                      <span style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555', letterSpacing: 0.5 }}>
-                        <span style={{ fontFamily: FONT.head, fontWeight: 700, color: '#111', fontSize: 14 }}>{claimed}</span>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 12, color: T.ink2, letterSpacing: 0.5 }}>
+                        <span style={{ fontFamily: FONT.head, fontWeight: 700, color: T.ink, fontSize: 14 }}>{claimed}</span>
                         {' '}/ {max} founding spots claimed
                       </span>
-                      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888' }}>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: T.ink3 }}>
                         {max - claimed} left
                       </span>
                     </div>
                     <div style={{
                       height: 8,
-                      background: '#D9D0BF',
+                      background: `color-mix(in srgb, ${T.ink} 12%, ${T.bg})`,
                       borderRadius: 999,
-                      border: '1px solid rgba(20,18,14,0.10)',
+                      border: `1px solid ${T.line}`,
                       overflow: 'hidden',
                     }}>
                       <div style={{
                         height: '100%',
                         width: `${pct}%`,
-                        background: '#1DBC87',
+                        background: T.green,
                         borderRadius: 999,
                         transition: 'width 600ms ease',
                       }} />
                     </div>
-                    <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#999', margin: '10px 0 0', letterSpacing: 0.3 }}>
+                    <p style={{ fontFamily: FONT.mono, fontSize: 11, color: T.ink3, margin: '10px 0 0', letterSpacing: 0.3 }}>
                       We are gearing up for launch. Get ready.
                     </p>
                   </div>
@@ -334,28 +343,48 @@ export default function WaitlistPageContent({ count, max }: Props) {
                 <div style={{ maxWidth: 520, margin: '0 auto' }}>
                   <form
                     onSubmit={handleSubmit}
-                    style={{ display: 'flex', gap: 10, alignItems: 'stretch', flexWrap: 'wrap' }}
+                    style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}
                   >
-                    <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ flex: 1, minWidth: 200, textAlign: 'left' }}>
+                      <label
+                        htmlFor="waitlist-email"
+                        style={{
+                          display: 'block',
+                          fontFamily: FONT.body,
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: T.ink2,
+                          marginBottom: 6,
+                        }}
+                      >
+                        Email address
+                      </label>
                       <VqInput
+                        id="waitlist-email"
                         type="email"
                         value={email}
                         onChange={setEmail}
                         placeholder="your@email.com"
+                        required
+                        aria-describedby={status === 'error' ? 'waitlist-email-error' : undefined}
                       />
                     </div>
                     <Button
                       type="submit"
                       variant="dark"
                       disabled={status === 'loading' || !email.trim()}
-                      style={{ boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)', whiteSpace: 'nowrap' }}
+                      style={{ boxShadow: T.shadow, whiteSpace: 'nowrap' }}
                     >
                       {status === 'loading' ? 'Saving…' : 'Save my spot →'}
                     </Button>
                   </form>
 
                   {status === 'error' && (
-                    <p style={{ fontFamily: FONT.mono, fontSize: 12, color: '#F06464', margin: '8px 0 0', textAlign: 'center' }}>
+                    <p
+                      id="waitlist-email-error"
+                      role="alert"
+                      style={{ fontFamily: FONT.mono, fontSize: 12, color: T.red, margin: '8px 0 0', textAlign: 'center' }}
+                    >
                       Something went wrong. Try again in a sec.
                     </p>
                   )}
@@ -368,30 +397,30 @@ export default function WaitlistPageContent({ count, max }: Props) {
                       alignItems: 'baseline',
                       marginBottom: 8,
                     }}>
-                      <span style={{ fontFamily: FONT.mono, fontSize: 12, color: '#555', letterSpacing: 0.5 }}>
-                        <span style={{ fontFamily: FONT.head, fontWeight: 700, color: '#111', fontSize: 14 }}>{claimed}</span>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 12, color: T.ink2, letterSpacing: 0.5 }}>
+                        <span style={{ fontFamily: FONT.head, fontWeight: 700, color: T.ink, fontSize: 14 }}>{claimed}</span>
                         {' '}/ {max} founding spots claimed
                       </span>
-                      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: '#888' }}>
+                      <span style={{ fontFamily: FONT.mono, fontSize: 11, color: T.ink3 }}>
                         {max - claimed} left
                       </span>
                     </div>
                     <div style={{
                       height: 8,
-                      background: '#D9D0BF',
+                      background: `color-mix(in srgb, ${T.ink} 12%, ${T.bg})`,
                       borderRadius: 999,
-                      border: '1px solid rgba(20,18,14,0.10)',
+                      border: `1px solid ${T.line}`,
                       overflow: 'hidden',
                     }}>
                       <div style={{
                         height: '100%',
                         width: `${pct}%`,
-                        background: '#1DBC87',
+                        background: T.green,
                         borderRadius: 999,
                         transition: 'width 600ms ease',
                       }} />
                     </div>
-                    <p style={{ fontFamily: FONT.mono, fontSize: 11, color: '#999', margin: '10px 0 0', letterSpacing: 0.3 }}>
+                    <p style={{ fontFamily: FONT.mono, fontSize: 11, color: T.ink3, margin: '10px 0 0', letterSpacing: 0.3 }}>
                       No spam · Just the launch email + 30% off on your first plan
                     </p>
                   </div>

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import type { TocItem } from '@/lib/blog';
+import { T } from './shared';
 
 interface BlogTocProps {
   items: TocItem[];
@@ -45,7 +46,7 @@ export function BlogToc({ items }: BlogTocProps) {
           fontSize: 10,
           letterSpacing: 3,
           textTransform: 'uppercase',
-          color: '#888',
+          color: T.ink3,
           margin: '0 0 12px',
         }}
       >
@@ -61,7 +62,7 @@ export function BlogToc({ items }: BlogTocProps) {
                 fontFamily: 'var(--font-body), system-ui, sans-serif',
                 fontSize: 13,
                 lineHeight: 1.4,
-                color: activeId === item.id ? '#111' : '#666',
+                color: activeId === item.id ? T.ink : T.ink2,
                 fontWeight: activeId === item.id ? 600 : 400,
                 borderLeft: `1px solid ${activeId === item.id ? 'var(--vq-red)' : 'transparent'}`,
                 paddingLeft: 8,

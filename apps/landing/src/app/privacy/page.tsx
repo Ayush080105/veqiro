@@ -1,6 +1,6 @@
 import { PageNav } from '@/components/veqiro/page-nav';
 import { Footer } from '@/components/veqiro/sections';
-import { FONT } from '@/components/veqiro/shared';
+import { FONT, T } from '@/components/veqiro/tokens';
 import { contact } from '@/lib/site-config';
 import { buildPageMetadata } from '@/lib/seo';
 
@@ -19,13 +19,13 @@ function Section({ n, title, id, children }: { n: string; title: string; id?: st
         margin: '0 0 16px',
         textTransform: 'uppercase',
         letterSpacing: 1,
-        borderBottom: '1px solid rgba(20,18,14,0.10)',
+        borderBottom: `1px solid ${T.line}`,
         paddingBottom: 8,
         display: 'flex',
         alignItems: 'baseline',
         gap: 12,
       }}>
-        <span style={{ fontFamily: FONT.mono, fontSize: 13, color: '#aaa', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{n}.</span>
+        <span style={{ fontFamily: FONT.mono, fontSize: 13, color: T.inkInv2, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{n}.</span>
         {title}
       </h2>
       {children}
@@ -35,7 +35,7 @@ function Section({ n, title, id, children }: { n: string; title: string; id?: st
 
 function P({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ fontFamily: FONT.body, fontSize: 16, lineHeight: 1.8, color: '#333', margin: '0 0 16px' }}>
+    <p style={{ fontFamily: FONT.body, fontSize: 16, lineHeight: 1.8, color: T.ink, margin: '0 0 16px' }}>
       {children}
     </p>
   );
@@ -43,7 +43,7 @@ function P({ children }: { children: React.ReactNode }) {
 
 function Li({ children }: { children: React.ReactNode }) {
   return (
-    <li style={{ fontFamily: FONT.body, fontSize: 16, lineHeight: 1.7, color: '#333' }}>
+    <li style={{ fontFamily: FONT.body, fontSize: 16, lineHeight: 1.7, color: T.ink }}>
       {children}
     </li>
   );
@@ -53,24 +53,24 @@ export default function PrivacyPage() {
   const updated = 'April 23, 2026';
 
   return (
-    <div style={{ background: '#EFE7D6', minHeight: '100vh' }}>
+    <div style={{ background: T.bg, minHeight: '100vh' }}>
       <PageNav />
 
       {/* Header */}
       <section style={{
         padding: 'clamp(40px, 7vw, 64px) clamp(16px, 4vw, 32px) clamp(32px, 5vw, 48px)',
-        borderTop: '1px solid rgba(20,18,14,0.10)',
-        borderBottom: '1px solid rgba(20,18,14,0.10)',
-        background: '#111',
+        borderTop: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`,
+        background: T.ink,
       }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: '#F5C518', marginBottom: 16 }}>
+          <div style={{ fontFamily: FONT.mono, fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: T.amber, marginBottom: 16 }}>
             Legal
           </div>
-          <h1 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(40px, 6vw, 80px)', margin: 0, color: '#EFE7D6', lineHeight: 0.9 }}>
+          <h1 style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 'clamp(40px, 6vw, 80px)', margin: 0, color: T.bg, lineHeight: 0.9 }}>
             Privacy Policy
           </h1>
-          <p style={{ fontFamily: FONT.mono, fontSize: 13, color: '#666', marginTop: 20, marginBottom: 0 }}>
+          <p style={{ fontFamily: FONT.mono, fontSize: 13, color: T.ink2, marginTop: 20, marginBottom: 0 }}>
             Effective date: {updated}
           </p>
         </div>
@@ -85,10 +85,10 @@ export default function PrivacyPage() {
 
           {/* TL;DR */}
           <div style={{
-            background: '#FBF7EF', border: '1px solid rgba(20,18,14,0.10)', borderRadius: 14,
-            padding: '24px 28px', boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)', marginBottom: 56,
+            background: T.surface, border: `1px solid ${T.line}`, borderRadius: 14,
+            padding: '24px 28px', boxShadow: T.shadow, marginBottom: 56,
           }}>
-            <div style={{ fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase', letterSpacing: 2, color: '#666', marginBottom: 12 }}>
+            <div style={{ fontFamily: FONT.head, fontSize: 12, textTransform: 'uppercase', letterSpacing: 2, color: T.ink2, marginBottom: 12 }}>
               Short version
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'grid', gap: 8 }}>
@@ -99,7 +99,7 @@ export default function PrivacyPage() {
                 "We use industry-standard security measures to protect your information.",
                 `Questions? ${contact.email}`,
               ].map(item => (
-                <li key={item} style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.55, color: '#333' }}>{item}</li>
+                <li key={item} style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.55, color: T.ink }}>{item}</li>
               ))}
             </ul>
           </div>
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
               <Li>Request correction or deletion of your data</Li>
               <Li>Update your account information at any time</Li>
             </ul>
-            <P>To exercise any of these rights, email us at <a href={`mailto:${contact.email}`} style={{ color: '#111', fontWeight: 700 }}>{contact.email}</a>. We respond within 30 days.</P>
+            <P>To exercise any of these rights, email us at <a href={`mailto:${contact.email}`} style={{ color: T.ink, fontWeight: 700 }}>{contact.email}</a>. We respond within 30 days.</P>
           </Section>
 
           <Section n="6" title="Cookies" id="cookies">
@@ -157,7 +157,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section n="8" title="Contact">
-            <P>Questions or concerns about this Privacy Policy? Email us at <a href={`mailto:${contact.email}`} style={{ color: '#111', fontWeight: 700 }}>{contact.email}</a></P>
+            <P>Questions or concerns about this Privacy Policy? Email us at <a href={`mailto:${contact.email}`} style={{ color: T.ink, fontWeight: 700 }}>{contact.email}</a></P>
             <P>Veqiro Labs · {contact.address}</P>
           </Section>
 

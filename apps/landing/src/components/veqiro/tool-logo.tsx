@@ -135,7 +135,7 @@ export function ToolIcon({ name, logoUrl, size = 58 }: { name: string; logoUrl?:
         width: size,
         height: size,
         flexShrink: 0,
-        background: '#FFFFFF',
+        background: 'white',
         border: `1px solid ${T.line}`,
         borderRadius: size * 0.26,
         boxShadow: T.shadowSm,
@@ -157,7 +157,7 @@ export function ToolInline({ name, logoUrl }: { name: string; logoUrl?: string }
       verticalAlign: 'baseline', whiteSpace: 'nowrap',
     }}>
       <span style={{
-        width: 17, height: 17, borderRadius: 4, background: '#fff',
+        width: 17, height: 17, borderRadius: 4, background: 'white',
         border: `1px solid ${T.line}`, display: 'inline-flex',
         alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         transform: 'translateY(3px)',

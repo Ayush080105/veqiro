@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { BlogPost, BlogPostMeta } from '@/lib/blog';
 import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
+import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/blog-categories';
+import { T } from './tokens';
 import { JsonLd } from './json-ld';
 import { Breadcrumbs } from './breadcrumbs';
 import { BlogToc } from './blog-toc';
@@ -19,22 +21,6 @@ function formatDate(iso: string) {
   });
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  'ai-employees': 'AI Employees',
-  'founders': 'Founders',
-  'agents': 'Agents',
-  'use-cases': 'Use Cases',
-  'comparisons': 'Comparisons',
-};
-
-const CATEGORY_COLORS: Record<string, { bg: string; ink: string }> = {
-  'ai-employees': { bg: '#F5C518', ink: '#7A5A00' },
-  'founders': { bg: '#F06464', ink: '#7A1717' },
-  'agents': { bg: '#8A8AF0', ink: '#2A2A7A' },
-  'use-cases': { bg: '#1DBC87', ink: '#0E5C3F' },
-  'comparisons': { bg: '#F79FD4', ink: '#8E2A6A' },
-};
-
 interface BlogPostLayoutProps {
   post: BlogPost;
   related: BlogPostMeta[];
@@ -42,7 +28,7 @@ interface BlogPostLayoutProps {
 }
 
 export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
-  const catColor = CATEGORY_COLORS[post.category] ?? { bg: '#F5C518', ink: '#111' };
+  const catColor = CATEGORY_COLORS[post.category] ?? { bg: T.amber, ink: T.ink };
 
   return (
     <>
@@ -55,7 +41,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
       {/* Hero */}
       <section
         style={{
-          background: '#111',
+          background: T.ink,
           padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 80px) 60px',
         }}
       >
@@ -90,7 +76,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
             fontSize: 12,
             letterSpacing: 2,
             textTransform: 'uppercase',
-            color: '#F5C518',
+            color: T.amber,
             margin: '0 0 16px',
           }}
         >
@@ -101,7 +87,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
           style={{
             fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 'clamp(15px, 1.8vw, 18px)',
-            color: '#888',
+            color: T.ink3,
             maxWidth: 640,
             lineHeight: 1.65,
             margin: 0,
@@ -115,7 +101,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
       <section
         style={{
           background: 'var(--vq-bg)',
-          borderTop: '1px solid rgba(20,18,14,0.10)',
+          borderTop: `1px solid ${T.line}`,
           padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
         }}
       >
@@ -139,7 +125,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
         <section
           style={{
             background: 'var(--vq-cream)',
-            borderTop: '1px solid rgba(20,18,14,0.10)',
+            borderTop: `1px solid ${T.line}`,
             padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
           }}
         >
@@ -148,7 +134,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
               style={{
                 fontFamily: 'var(--font-display), system-ui, sans-serif',
                 fontSize: 'clamp(30px, 4vw, 50px)',
-                color: '#111',
+                color: T.ink,
                 margin: '0 0 40px',
                 lineHeight: 1,
               }}
@@ -161,10 +147,10 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
                   key={i}
                   style={{
                     background: 'var(--vq-bg)',
-                    border: '1px solid rgba(20,18,14,0.10)',
+                    border: `1px solid ${T.line}`,
                     borderRadius: 12,
                     padding: '24px 28px',
-                    boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                    boxShadow: T.shadow,
                   }}
                 >
                   <h3
@@ -172,7 +158,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
                       fontFamily: 'var(--font-display), system-ui, sans-serif',
                       fontSize: 'clamp(16px, 1.8vw, 18px)',
                       fontWeight: 600,
-                      color: '#111',
+                      color: T.ink,
                       margin: '0 0 10px',
                     }}
                   >
@@ -183,7 +169,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
                       fontFamily: 'var(--font-body), system-ui, sans-serif',
                       fontSize: 15,
                       lineHeight: 1.7,
-                      color: '#444',
+                      color: T.ink2,
                       margin: 0,
                     }}
                   >
@@ -199,8 +185,8 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
       {/* Join CTA */}
       <section
         style={{
-          background: '#111',
-          borderTop: '1px solid rgba(20,18,14,0.10)',
+          background: T.ink,
+          borderTop: `1px solid ${T.line}`,
           padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 80px)',
           textAlign: 'center',
         }}
@@ -220,7 +206,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
           style={{
             fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 17,
-            color: '#A9A192',
+            color: T.inkInv2,
             margin: '0 0 32px',
           }}
         >
@@ -250,7 +236,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
         <section
           style={{
             background: 'var(--vq-bg)',
-            borderTop: '1px solid rgba(20,18,14,0.10)',
+            borderTop: `1px solid ${T.line}`,
             padding: 'clamp(48px, 6vw, 80px) clamp(20px, 5vw, 80px)',
           }}
         >
@@ -260,7 +246,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
               fontSize: 'clamp(22px, 2.6vw, 30px)',
               fontWeight: 600,
               letterSpacing: '-0.03em',
-              color: '#14120E',
+              color: T.dark,
               margin: '0 0 32px',
             }}
           >

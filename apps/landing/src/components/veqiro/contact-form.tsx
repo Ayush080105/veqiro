@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { FONT, Button, VqInput, VqTextarea, FieldLabel } from './shared';
+import { FONT, T, Button, VqInput, VqTextarea, FieldLabel } from './shared';
 import { serverUrl } from '@/lib/site-config';
 
 interface Props {
@@ -45,7 +45,7 @@ export function ContactForm({ onSuccess }: Props) {
         <VqTextarea value={message} onChange={setMessage} placeholder="Tell us what you need..." rows={4} />
       </FieldLabel>
       {error && (
-        <div style={{ fontFamily: FONT.mono, fontSize: 11, color: '#F06464', marginBottom: 16 }}>
+        <div style={{ fontFamily: FONT.mono, fontSize: 11, color: T.red, marginBottom: 16 }}>
           {error}
         </div>
       )}

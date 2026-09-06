@@ -1,6 +1,7 @@
 import { buildPageMetadata } from '@/lib/seo';
 import { UseCasePage } from '@/components/veqiro/use-case-page';
 import type { UseCaseContent } from '@/components/veqiro/use-case-page';
+import { T } from '@/components/veqiro/tokens';
 
 export const metadata = buildPageMetadata({
   title: 'AI Tools for Founders — Your 6-Person AI Team',
@@ -12,8 +13,8 @@ export const metadata = buildPageMetadata({
 const content: UseCaseContent = {
   path: '/use-cases/founders',
   persona: 'Founders',
-  accentColor: '#F5C518',
-  accentInk: '#7A5A00',
+  accentColor: T.amber,
+  accentInk: `color-mix(in srgb, ${T.amber} 65%, black)`,
   hero: {
     h1: 'Stop doing everything yourself.',
     subheading: 'AI tools for founders who need a full team — without the payroll.',
@@ -25,31 +26,31 @@ const content: UseCaseContent = {
   ],
   whyNow: "Early-stage founders wear six hats. You can't hire a CFO, an EA, a marketing lead, an SEO specialist, a legal counsel, and a research analyst in the first year — and you shouldn't. But all six functions still need to happen, and right now they're happening at 2 AM on your laptop after everything else burns out. Veqiro is the specific, tactical answer to that problem: a crew of AI employees that take the routine execution off your plate so you can spend your time on the parts that actually need a founder — product decisions, customer conversations, and the vision only you can hold.",
   agents: [
-    { key: 'vega', name: 'Vega', color: '#6FCDE8', ink: '#0E5C74', blurb: 'Manages your inbox & calendar so you can focus on building.' },
-    { key: 'scout', name: 'Scout', color: '#F5C518', ink: '#7A5A00', blurb: 'Does the competitor research you\'ve been putting off for weeks.' },
-    { key: 'maya', name: 'Maya', color: '#F06464', ink: '#7A1717', blurb: 'Writes the content you keep saying you\'ll post tomorrow.' },
-    { key: 'sage', name: 'Sage', color: '#F79FD4', ink: '#8E2A6A', blurb: 'Gets your pages ranking before your competitors do.' },
-    { key: 'lex', name: 'Lex', color: '#8A8AF0', ink: '#2A2A7A', blurb: 'Reviews contracts so you don\'t sign something you shouldn\'t.' },
-    { key: 'rex', name: 'Rex', color: '#1DBC87', ink: '#0E5C3F', blurb: 'Keeps your metrics honest so surprises don\'t end you.' },
+    { key: 'vega', name: 'Vega', color: T.blue, ink: `color-mix(in srgb, ${T.blue} 55%, black)`, blurb: 'Manages your inbox & calendar so you can focus on building.' },
+    { key: 'scout', name: 'Scout', color: T.amber, ink: `color-mix(in srgb, ${T.amber} 65%, black)`, blurb: 'Does the competitor research you\'ve been putting off for weeks.' },
+    { key: 'maya', name: 'Maya', color: T.red, ink: `color-mix(in srgb, ${T.red} 55%, black)`, blurb: 'Writes the content you keep saying you\'ll post tomorrow.' },
+    { key: 'sage', name: 'Sage', color: T.pink, ink: `color-mix(in srgb, ${T.pink} 60%, black)`, blurb: 'Gets your pages ranking before your competitors do.' },
+    { key: 'lex', name: 'Lex', color: T.violet, ink: `color-mix(in srgb, ${T.violet} 55%, black)`, blurb: 'Reviews contracts so you don\'t sign something you shouldn\'t.' },
+    { key: 'rex', name: 'Rex', color: T.green, ink: `color-mix(in srgb, ${T.green} 60%, black)`, blurb: 'Keeps your metrics honest so surprises don\'t end you.' },
   ],
   steps: [
     {
       n: '01',
       title: 'Tell them about your startup',
       description: 'Drop in your brand kit, goals, and context. They read everything and show up briefed — no hand-holding needed.',
-      color: '#F5C518',
+      color: T.amber,
     },
     {
       n: '02',
       title: 'Assign the work',
       description: 'Say "Vega, handle my inbox this week" or "Scout, run a competitor deep-dive." Done. They don\'t need a manager.',
-      color: '#F06464',
+      color: T.red,
     },
     {
       n: '03',
       title: 'Ship faster than you thought possible',
       description: 'They run parallel. While you\'re on a call, Maya\'s writing, Rex is flagging a CAC spike, Sage is ranking.',
-      color: '#1DBC87',
+      color: T.green,
     },
   ],
   scenario: {

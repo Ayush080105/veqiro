@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { T } from './tokens';
 import type { BlogPostMeta } from '@/lib/blog';
 import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 import { BlogCard } from './blog-card';
@@ -18,7 +19,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
       {/* Hero */}
       <section
         style={{
-          background: '#111',
+          background: T.ink,
           padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 80px) 60px',
         }}
       >
@@ -29,15 +30,15 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
             fontSize: 11,
             letterSpacing: 2,
             textTransform: 'uppercase',
-            color: '#555',
+            color: T.ink2,
             marginBottom: 24,
           }}
         >
-          <Link href="/" style={{ color: '#555', textDecoration: 'none' }}>
+          <Link href="/" style={{ color: T.ink2, textDecoration: 'none' }}>
             Home
           </Link>
           <span style={{ margin: '0 8px' }}>›</span>
-          <span style={{ color: '#888' }}>Blog</span>
+          <span style={{ color: T.ink3 }}>Blog</span>
         </nav>
 
         <p
@@ -46,7 +47,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
             fontSize: 11,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: '#F5C518',
+            color: T.amber,
             marginBottom: 16,
           }}
         >
@@ -68,7 +69,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
           style={{
             fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 'clamp(15px, 1.8vw, 18px)',
-            color: '#A9A192',
+            color: T.inkInv2,
             maxWidth: 560,
             lineHeight: 1.65,
             margin: 0,
@@ -93,7 +94,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
             fontSize: 10,
             letterSpacing: 3,
             textTransform: 'uppercase',
-            color: '#888',
+            color: T.ink3,
             marginBottom: 28,
           }}
         >
@@ -116,7 +117,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
           style={{
             fontFamily: 'var(--font-display), system-ui, sans-serif',
             fontSize: 'clamp(28px, 4vw, 48px)',
-            color: '#111',
+            color: T.ink,
             margin: '0 0 40px',
             lineHeight: 1,
           }}
@@ -133,7 +134,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
       {/* CTA */}
       <section
         style={{
-          background: '#111',
+          background: T.ink,
           borderTop: '1px solid rgba(20,18,14,0.10)',
           padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 80px)',
           textAlign: 'center',
@@ -154,7 +155,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
           style={{
             fontFamily: 'var(--font-body), system-ui, sans-serif',
             fontSize: 17,
-            color: '#A9A192',
+            color: T.inkInv2,
             margin: '0 0 32px',
             lineHeight: 1.6,
           }}

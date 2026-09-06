@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { FONT } from './shared';
+import { FONT, T } from './shared';
 import type { Employee, DemoChatMessage } from './data';
 
 interface Props {
@@ -57,7 +57,7 @@ export function MobileChatDemo({ employee }: Props) {
       <div
         className="vq-phone-frame"
         style={{
-          boxShadow: `clamp(4px, 1.5vw, 8px) clamp(4px, 1.5vw, 8px) 0 ${employee.color}, clamp(6px, 2.2vw, 12px) clamp(6px, 2.2vw, 12px) 0 #111`,
+          boxShadow: `clamp(4px, 1.5vw, 8px) clamp(4px, 1.5vw, 8px) 0 ${employee.color}, clamp(6px, 2.2vw, 12px) clamp(6px, 2.2vw, 12px) 0 ${T.ink}`,
         }}
       >
         {/* Status bar */}
@@ -67,9 +67,9 @@ export function MobileChatDemo({ employee }: Props) {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0,
-          background: '#EFE7D6',
+          background: T.bg,
         }}>
-          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)', fontWeight: 600 }}>9:41</span>
+          <span style={{ color: T.ink, fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)', fontWeight: 600 }}>9:41</span>
           <Image
             src="/icon.png"
             alt="Veqiro"
@@ -77,15 +77,15 @@ export function MobileChatDemo({ employee }: Props) {
             height={26}
             style={{ width: 'clamp(20px, 5vw, 26px)', height: 'auto', flexShrink: 0, display: 'block' }}
           />
-          <span style={{ color: '#111', fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)' }}>●●●</span>
+          <span style={{ color: T.ink, fontFamily: FONT.mono, fontSize: 'clamp(9px, 2vw, 11px)' }}>●●●</span>
         </div>
 
         {/* Chat header */}
         <div style={{
           padding: 'clamp(4px, 1vw, 6px) clamp(12px, 3vw, 16px) clamp(8px, 2vw, 12px)',
-          borderBottom: '1px solid rgba(20,18,14,0.10)',
-          borderTop: '1px solid rgba(20,18,14,0.10)',
-          background: '#fff',
+          borderBottom: `1px solid ${T.line}`,
+          borderTop: `1px solid ${T.line}`,
+          background: 'white',
           display: 'flex',
           alignItems: 'center',
           gap: 'clamp(6px, 2vw, 10px)',
@@ -96,19 +96,19 @@ export function MobileChatDemo({ employee }: Props) {
             alt={employee.name}
             style={{
               width: 'clamp(26px, 6.5vw, 34px)', height: 'clamp(26px, 6.5vw, 34px)', borderRadius: '50%',
-              border: '1px solid rgba(20,18,14,0.10)', objectFit: 'cover', flexShrink: 0,
+              border: `1px solid ${T.line}`, objectFit: 'cover', flexShrink: 0,
             }}
           />
           <div style={{ minWidth: 0 }}>
-            <div style={{ color: '#111', fontFamily: FONT.head, fontSize: 'clamp(11px, 2.6vw, 13px)', lineHeight: 1.2 }}>
+            <div style={{ color: T.ink, fontFamily: FONT.head, fontSize: 'clamp(11px, 2.6vw, 13px)', lineHeight: 1.2 }}>
               {employee.name}
             </div>
-            <div style={{ color: '#1DBC87', fontFamily: FONT.mono, fontSize: 'clamp(8px, 2vw, 10px)' }}>● online</div>
+            <div style={{ color: T.green, fontFamily: FONT.mono, fontSize: 'clamp(8px, 2vw, 10px)' }}>● online</div>
           </div>
           <div style={{
             marginLeft: 'auto',
             fontFamily: FONT.mono, fontSize: 'clamp(7px, 1.8vw, 9px)', letterSpacing: 1,
-            textTransform: 'uppercase', color: '#aaa',
+            textTransform: 'uppercase', color: T.inkInv2,
           }}>
             veqiro
           </div>
@@ -125,7 +125,7 @@ export function MobileChatDemo({ employee }: Props) {
             flexDirection: 'column',
             gap: 8,
             scrollbarWidth: 'none',
-            background: '#EFE7D6',
+            background: T.bg,
           }}
         >
           {messages.map(msg => (
@@ -138,15 +138,15 @@ export function MobileChatDemo({ employee }: Props) {
             >
               <div style={{
                 maxWidth: '80%',
-                background: msg.role === 'user' ? employee.color : '#fff',
-                color: '#111',
+                background: msg.role === 'user' ? employee.color : 'white',
+                color: T.ink,
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 padding: 'clamp(7px, 1.6vw, 9px) clamp(10px, 2.4vw, 13px)',
                 fontFamily: FONT.body,
                 fontSize: 'clamp(10px, 2.4vw, 12px)',
                 lineHeight: 1.5,
-                border: '1px solid rgba(20,18,14,0.10)',
-                boxShadow: '0 1px 2px rgba(20,18,14,0.05)',
+                border: `1px solid ${T.line}`,
+                boxShadow: T.shadowSm,
               }}>
                 {msg.content}
               </div>
@@ -156,11 +156,11 @@ export function MobileChatDemo({ employee }: Props) {
           {typing && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{
-                background: '#fff',
+                background: 'white',
                 borderRadius: '16px 16px 16px 4px',
                 padding: 'clamp(8px, 2vw, 11px) clamp(12px, 3vw, 16px)',
-                border: '1px solid rgba(20,18,14,0.10)',
-                boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+                border: `1px solid ${T.line}`,
+                boxShadow: T.shadow,
                 display: 'flex',
                 gap: 5,
                 alignItems: 'center',
@@ -172,7 +172,7 @@ export function MobileChatDemo({ employee }: Props) {
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      background: '#111',
+                      background: T.ink,
                       animation: 'bounce 1s infinite',
                       animationDelay: `${i * 0.2}s`,
                     }}
@@ -186,8 +186,8 @@ export function MobileChatDemo({ employee }: Props) {
         {/* Input bar */}
         <div style={{
           padding: 'clamp(8px, 2vw, 10px) clamp(10px, 2.4vw, 12px)',
-          borderTop: '1px solid rgba(20,18,14,0.10)',
-          background: '#fff',
+          borderTop: `1px solid ${T.line}`,
+          background: 'white',
           display: 'flex',
           gap: 8,
           alignItems: 'center',
@@ -195,13 +195,13 @@ export function MobileChatDemo({ employee }: Props) {
         }}>
           <div style={{
             flex: 1,
-            background: '#EFE7D6',
+            background: T.bg,
             borderRadius: 999,
             padding: 'clamp(7px, 1.8vw, 9px) clamp(10px, 2.6vw, 14px)',
-            color: '#888',
+            color: T.ink3,
             fontFamily: FONT.body,
             fontSize: 'clamp(10px, 2.4vw, 12px)',
-            border: '1px solid rgba(20,18,14,0.10)',
+            border: `1px solid ${T.line}`,
             minWidth: 0,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -214,13 +214,13 @@ export function MobileChatDemo({ employee }: Props) {
             height: 'clamp(26px, 6.5vw, 32px)',
             borderRadius: '50%',
             background: employee.color,
-            border: '1px solid rgba(20,18,14,0.10)',
-            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+            border: `1px solid ${T.line}`,
+            boxShadow: T.shadow,
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
           }}>
-            <span style={{ color: '#111', fontSize: 'clamp(12px, 3vw, 14px)', lineHeight: 1 }}>↑</span>
+            <span style={{ color: T.ink, fontSize: 'clamp(12px, 3vw, 14px)', lineHeight: 1 }}>↑</span>
           </div>
         </div>
       </div>
@@ -231,7 +231,7 @@ export function MobileChatDemo({ employee }: Props) {
           onClick={() => setRunKey(k => k + 1)}
           style={{
             background: 'transparent',
-            border: '1px solid rgba(20,18,14,0.10)',
+            border: `1px solid ${T.line}`,
             borderRadius: 999,
             padding: '8px 20px',
             fontFamily: FONT.head,
@@ -239,7 +239,7 @@ export function MobileChatDemo({ employee }: Props) {
             textTransform: 'uppercase',
             letterSpacing: 1,
             cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(20,18,14,0.05), 0 8px 24px -6px rgba(20,18,14,0.09)',
+            boxShadow: T.shadow,
           }}
         >
           ↺ Replay demo

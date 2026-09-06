@@ -92,7 +92,7 @@ export function NavShared({ variant = 'page' }: Props) {
           top: calc(100% + 12px);
           left: 50%;
           transform: translateX(-50%);
-          background: #FBF7EF;
+          background: var(--vq-surface);
           border: 1px solid ${T.line};
           border-radius: 14px;
           padding: 6px;

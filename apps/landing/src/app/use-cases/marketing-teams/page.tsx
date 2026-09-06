@@ -1,6 +1,7 @@
 import { buildPageMetadata } from '@/lib/seo';
 import { UseCasePage } from '@/components/veqiro/use-case-page';
 import type { UseCaseContent } from '@/components/veqiro/use-case-page';
+import { T } from '@/components/veqiro/tokens';
 
 export const metadata = buildPageMetadata({
   title: 'AI Tools for Marketing Teams — Content, SEO & Social on Autopilot',
@@ -12,8 +13,8 @@ export const metadata = buildPageMetadata({
 const content: UseCaseContent = {
   path: '/use-cases/marketing-teams',
   persona: 'Marketing Teams',
-  accentColor: '#F06464',
-  accentInk: '#7A1717',
+  accentColor: T.red,
+  accentInk: `color-mix(in srgb, ${T.red} 55%, black)`,
   hero: {
     h1: 'Your marketing team just got 6 new hires.',
     subheading: 'AI tools for marketing teams that need to ship more without burning out.',
@@ -25,31 +26,31 @@ const content: UseCaseContent = {
   ],
   whyNow: "Marketing teams at growth-stage companies are in an impossible spot: the CEO wants more content, more SEO, more channels — but the headcount conversation keeps getting pushed. You can either burn out your senior marketer reviewing copy at midnight, or lean on AI tools for marketing teams that actually understand brand voice. Veqiro is the second option, built specifically so your strategist stays strategic and execution happens in the background. Maya writes, Sage ranks, Scout researches, and your team spends their hours on the work that's worth paying them to do.",
   agents: [
-    { key: 'maya', name: 'Maya', color: '#F06464', ink: '#7A1717', blurb: 'Writes blog posts, LinkedIn updates, and ad copy that sounds like your brand — not a robot.' },
-    { key: 'sage', name: 'Sage', color: '#F79FD4', ink: '#8E2A6A', blurb: 'Does keyword research, writes SEO-ready articles, and tracks what\'s ranking.' },
-    { key: 'scout', name: 'Scout', color: '#F5C518', ink: '#7A5A00', blurb: 'Finds the angles your competitors missed and the trends worth jumping on.' },
-    { key: 'vega', name: 'Vega', color: '#6FCDE8', ink: '#0E5C74', blurb: 'Handles the email threads so your team doesn\'t get buried in comms.' },
-    { key: 'rex', name: 'Rex', color: '#1DBC87', ink: '#0E5C3F', blurb: 'Tracks campaign metrics and flags what\'s actually working vs. what\'s theater.' },
-    { key: 'lex', name: 'Lex', color: '#8A8AF0', ink: '#2A2A7A', blurb: 'Reviews influencer contracts and brand agreements before anything gets signed.' },
+    { key: 'maya', name: 'Maya', color: T.red, ink: `color-mix(in srgb, ${T.red} 55%, black)`, blurb: 'Writes blog posts, LinkedIn updates, and ad copy that sounds like your brand — not a robot.' },
+    { key: 'sage', name: 'Sage', color: T.pink, ink: `color-mix(in srgb, ${T.pink} 60%, black)`, blurb: 'Does keyword research, writes SEO-ready articles, and tracks what\'s ranking.' },
+    { key: 'scout', name: 'Scout', color: T.amber, ink: `color-mix(in srgb, ${T.amber} 65%, black)`, blurb: 'Finds the angles your competitors missed and the trends worth jumping on.' },
+    { key: 'vega', name: 'Vega', color: T.blue, ink: `color-mix(in srgb, ${T.blue} 55%, black)`, blurb: 'Handles the email threads so your team doesn\'t get buried in comms.' },
+    { key: 'rex', name: 'Rex', color: T.green, ink: `color-mix(in srgb, ${T.green} 60%, black)`, blurb: 'Tracks campaign metrics and flags what\'s actually working vs. what\'s theater.' },
+    { key: 'lex', name: 'Lex', color: T.violet, ink: `color-mix(in srgb, ${T.violet} 55%, black)`, blurb: 'Reviews influencer contracts and brand agreements before anything gets signed.' },
   ],
   steps: [
     {
       n: '01',
       title: 'Brief the brand',
       description: 'Upload your brand kit, tone guide, and target audience. Maya reads it, speaks your language from day one.',
-      color: '#F06464',
+      color: T.red,
     },
     {
       n: '02',
       title: 'Assign campaigns',
       description: 'Tell Maya what to write, Sage what to rank, Scout what to research. Parallel output, no handoffs, no bottlenecks.',
-      color: '#F5C518',
+      color: T.amber,
     },
     {
       n: '03',
       title: 'Publish, rank, repeat',
       description: 'Your content calendar fills itself. Your SEO compounds. Your team focuses on strategy while the agents handle execution.',
-      color: '#1DBC87',
+      color: T.green,
     },
   ],
   scenario: {
