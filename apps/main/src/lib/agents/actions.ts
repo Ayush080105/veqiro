@@ -109,6 +109,17 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       locked: VIDEO_FEATURES_LOCKED,
     },
     {
+      id: "maya:video-templates",
+      agent: "maya",
+      // Not called directly — intercepted client-side and never reaches RunActionDialog,
+      // but AgentActionMeta requires an endpoint string.
+      endpoint: "campaign-video",
+      label: "Video Templates",
+      description: "Browse ready-made ad formats and generate a video from one.",
+      icon: "Clapperboard",
+      locked: VIDEO_FEATURES_LOCKED,
+    },
+    {
       id: "maya:campaign-video-storyboard",
       agent: "maya",
       endpoint: "campaign-video/storyboard",

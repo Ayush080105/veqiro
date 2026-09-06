@@ -61,20 +61,25 @@ _CONTINUATION_GUARDRAIL = (
 )
 
 _PRODUCT_FIDELITY_GUARDRAIL = (
-    "PRODUCT FIDELITY — NON-NEGOTIABLE: Reproduce the product from the reference image(s) "
-    "EXACTLY as shown in every shot. Do not alter its shape, proportions, colors, materials, "
-    "finish, or design details. Do not add, remove, resize, or reposition any part of it. "
-    "The product must look like the same physical object in every frame, not a redesigned "
-    "or reimagined version of it."
+    "PRODUCT FIDELITY — NON-NEGOTIABLE: Before rendering, study the reference image(s) "
+    "closely — its exact shape, proportions, colors, materials, finish, logo placement, "
+    "and every piece of on-package text — and hold that exact mental model for the entire "
+    "shot. Reproduce the product from the reference image(s) EXACTLY as shown, in every "
+    "frame. Do not alter its shape, proportions, colors, materials, finish, or design "
+    "details. Do not add, remove, resize, or reposition any part of it. The product must "
+    "look like the same physical object throughout, not a redesigned or reimagined version "
+    "of it."
 )
 
 # Extension segments get no reference images of their own — they inherit the product
 # through the interaction chain — so the guardrail points at the established footage.
 _PRODUCT_FIDELITY_CONTINUED = (
-    "PRODUCT FIDELITY — NON-NEGOTIABLE: The product must stay EXACTLY as it appears in the "
-    "footage so far — same shape, proportions, colors, materials, finish, logo, and "
-    "typography. Do not redesign, restyle, relabel, or subtly drift it as the shot "
-    "continues; it is the same physical object in every frame of the finished video."
+    "PRODUCT FIDELITY — NON-NEGOTIABLE: Recall the exact product established in the footage "
+    "so far — its shape, proportions, colors, materials, finish, logo, and typography — and "
+    "hold that same mental model here. The product must stay EXACTLY as it appeared in "
+    "earlier segments. Do not redesign, restyle, relabel, or subtly drift it as the shot "
+    "continues; it is the same physical object in every frame of the finished video, not a "
+    "fresh interpretation of it."
 )
 
 def _speech_budget(duration_seconds: int) -> tuple[int, int]:
@@ -335,9 +340,13 @@ Rules:
 
 _SCENE_PLAN_IMAGE_NOTE = f"""
 You are given one or more reference images of the actual product/subject, optionally from
-different angles. Ground every part of the narrative in exactly what you see — across ALL
-of the images provided, not just the first one — and do not invent or guess at details
-none of the images clearly show.
+different angles. Study them closely first — its exact shape, proportions, colors,
+materials, finish, logo placement, and every piece of on-package text — before writing a
+single word of the narrative. Ground every part of the narrative in exactly what you see —
+across ALL of the images provided, not just the first one — and do not invent or guess at
+details none of the images clearly show. Describe the same, consistent product in every
+segment of the narrative — it must read as one physical object throughout, not a slightly
+different one shot to shot.
 
 {_PRODUCT_FIDELITY_GUARDRAIL}
 """
@@ -961,10 +970,19 @@ async def generate_maya_video(
         is_final = index == len(segment_prompts) - 1
         # Applied directly to the final generation prompt (not just the planning-stage system
         # prompt) so the model that actually renders the video sees the hard constraints too.
-        final_prompts.append(
-            f"{segment_prompt}\n\n{_TEXT_ACCURACY_GUARDRAIL}\n\n"
-            f"{_ENDING_GUARDRAIL if is_final else _CONTINUATION_GUARDRAIL}"
-        )
+        parts = [
+            segment_prompt,
+            _TEXT_ACCURACY_GUARDRAIL,
+            _ENDING_GUARDRAIL if is_final else _CONTINUATION_GUARDRAIL,
+        ]
+        if images:
+            # Callers (e.g. campaign-video) already fold a product-fidelity guardrail into
+            # the narrative earlier in segment_prompt when real reference images are in play
+            # — but that puts it in the middle of a long prompt. Restating it here, as the
+            # LAST thing the model reads before rendering, is the one part of this most
+            # prone to drift across chained extensions, so it gets the closing word too.
+            parts.append(_PRODUCT_FIDELITY_GUARDRAIL if index == 0 else _PRODUCT_FIDELITY_CONTINUED)
+        final_prompts.append("\n\n".join(parts))
 
     video_bytes = await llm.generate_video(
         segment_prompts=final_prompts,

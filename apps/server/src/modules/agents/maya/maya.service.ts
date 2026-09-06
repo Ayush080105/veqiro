@@ -1460,6 +1460,22 @@ const draftVideoCaption = async (
   }
 };
 
+// Gemini Omni refuses to render any prompt/reference-image it thinks depicts a real,
+// identifiable person (a name in the text, or a face in a product photo — e.g. a
+// celebrity-endorsed package). That refusal is safe to show verbatim (it's Google's own
+// user-facing message, not internal detail), so it's translated into a 400 the global
+// error handler will pass through instead of the generic 500 it gives every other upstream
+// failure. Anything else falls through unchanged.
+function translateVideoGenerationError(err: unknown): never {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === "string" && /real people'?s? names? or likenesses/i.test(detail)) {
+    throw new BadRequestError(
+      "This video couldn't be generated — Gemini blocks content referencing real people, whether that's a name in the prompt or a face in a product photo (e.g. a celebrity endorsement on packaging). Try a different product photo or wording and run it again."
+    );
+  }
+  throw err;
+}
+
 export const generateVideo = async (
   userId: string,
   organizationId: string,
@@ -1525,7 +1541,7 @@ export const generateVideo = async (
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, videoCredits);
-    throw err;
+    translateVideoGenerationError(err);
   }
 };
 
@@ -1695,7 +1711,7 @@ export const createCampaignVideo = async (
   return result;
   } catch (err) {
     await rollbackCredits(organizationId, campaignVideoCredits);
-    throw err;
+    translateVideoGenerationError(err);
   }
 };
 

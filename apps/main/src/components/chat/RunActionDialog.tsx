@@ -104,6 +104,62 @@ interface ActionSpec {
 
 const today = () => new Date().toISOString().slice(0, 10)
 
+const campaignVideoSpec: ActionSpec = {
+  defaultValue: {
+    product_image_urls: [],
+    campaign_brief: "",
+    platform: "instagram",
+    aspect_ratio: "9:16",
+    duration_seconds: 10,
+    use_logo: false,
+  },
+  Form: MayaCampaignVideoForm,
+  validate: (v) =>
+    !v.product_image_urls?.length
+      ? "Upload at least one product image."
+      : !v.campaign_brief?.trim()
+        ? "Campaign brief is required."
+        : null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customSubmit: async (v: any, organizationId: string, conversationId?: string, onStage?: (stage: ActionStage | null) => void) => {
+    // A 40s video is ~7 minutes and 160 credits, so plan the shot list first (one cheap
+    // text call, no credits) and show it while the render runs. Storyboard SHEETS are not
+    // generated here — they cost credits, add a failure mode, and the video's continuity
+    // comes from the footage chain, not from a drawing. The standalone storyboard action
+    // still exists for when someone wants the sheets themselves, and "Turn into video"
+    // from that card passes its beats through below.
+    let segments: string[] | undefined = v.segment_narratives
+
+    if (!segments?.length && !v.storyboard_beats?.length) {
+      onStage?.({ label: "Planning the shots…" })
+      try {
+        const plan = await generateCampaignVideoPlan(
+          organizationId,
+          {
+            product_image_urls: v.product_image_urls,
+            campaign_brief: v.campaign_brief,
+            platform: v.platform,
+            aspect_ratio: v.aspect_ratio,
+            duration_seconds: v.duration_seconds,
+          },
+          conversationId
+        )
+        segments = plan.segments
+      } catch {
+        // The plan is a preview, not a prerequisite — if it fails, let the video endpoint
+        // do its own planning rather than blocking the user.
+      }
+    }
+    onStage?.({ label: "Generating video…", data: { segments } })
+    return runAgentAction(
+      "maya:campaign-video",
+      organizationId,
+      { ...v, segment_narratives: segments },
+      conversationId
+    )
+  },
+}
+
 const SPECS: Record<AgentActionId, ActionSpec> = {
   "sage:keyword-research": {
     defaultValue: { seed_topic: "", count: 20 },
@@ -206,61 +262,13 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     Form: MayaGenerateVideoForm,
     validate: (v) => (!v.prompt?.trim() ? "Video prompt is required." : null),
   },
-  "maya:campaign-video": {
-    defaultValue: {
-      product_image_urls: [],
-      campaign_brief: "",
-      platform: "instagram",
-      aspect_ratio: "9:16",
-      duration_seconds: 10,
-      use_logo: false,
-    },
-    Form: MayaCampaignVideoForm,
-    validate: (v) =>
-      !v.product_image_urls?.length
-        ? "Upload at least one product image."
-        : !v.campaign_brief?.trim()
-          ? "Campaign brief is required."
-          : null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    customSubmit: async (v: any, organizationId: string, conversationId?: string, onStage?: (stage: ActionStage | null) => void) => {
-      // A 40s video is ~7 minutes and 160 credits, so plan the shot list first (one cheap
-      // text call, no credits) and show it while the render runs. Storyboard SHEETS are not
-      // generated here — they cost credits, add a failure mode, and the video's continuity
-      // comes from the footage chain, not from a drawing. The standalone storyboard action
-      // still exists for when someone wants the sheets themselves, and "Turn into video"
-      // from that card passes its beats through below.
-      let segments: string[] | undefined = v.segment_narratives
-
-      if (!segments?.length && !v.storyboard_beats?.length) {
-        onStage?.({ label: "Planning the shots…" })
-        try {
-          const plan = await generateCampaignVideoPlan(
-            organizationId,
-            {
-              product_image_urls: v.product_image_urls,
-              campaign_brief: v.campaign_brief,
-              platform: v.platform,
-              aspect_ratio: v.aspect_ratio,
-              duration_seconds: v.duration_seconds,
-            },
-            conversationId
-          )
-          segments = plan.segments
-        } catch {
-          // The plan is a preview, not a prerequisite — if it fails, let the video endpoint
-          // do its own planning rather than blocking the user.
-        }
-      }
-      onStage?.({ label: "Generating video…", data: { segments } })
-      return runAgentAction(
-        "maya:campaign-video",
-        organizationId,
-        { ...v, segment_narratives: segments },
-        conversationId
-      )
-    },
-  },
+  "maya:campaign-video": campaignVideoSpec,
+  // Not a distinct backend action — intercepted client-side (see handlePlusPick in
+  // assistants/[id]/page.tsx) to open the video template picker, which then opens
+  // "maya:campaign-video" prefilled with the chosen template's brief. This entry only
+  // exists as a defensive fallback (e.g. a stale ?action= URL) so it degrades to the
+  // plain product-video form/result instead of crashing.
+  "maya:video-templates": { ...campaignVideoSpec, resolveActionId: () => "maya:campaign-video" },
   "maya:campaign-video-storyboard": {
     defaultValue: {
       product_image_urls: [],

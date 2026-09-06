@@ -33,8 +33,9 @@ import { qk } from "@/lib/query-keys"
 
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
-import { FONT } from "@/lib/fonts"
 import { Sticker } from "@/components/ui/sticker"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
   Select,
   SelectContent,
@@ -55,6 +56,7 @@ import type {
 } from "@/lib/types"
 import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult, MayaContentRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
+import { expandTemplate } from "@/lib/agents/maya/videoTemplates"
 import {
   mergeMessageWindow,
   mergeServerSnapshot,
@@ -71,6 +73,7 @@ const OnboardMeModal = dynamic(() => import("@/components/assistants/OnboardMeMo
 const RunActionDialog = dynamic(() => import("@/components/chat/RunActionDialog").then((module) => module.RunActionDialog))
 const SageSavedKeywordsTab = dynamic(() => import("@/components/agents/sage/saved-keywords-tab").then((module) => module.SageSavedKeywordsTab))
 const ToolsMenu = dynamic(() => import("@/components/chat/ToolsMenu").then((module) => module.ToolsMenu))
+const VideoTemplatePicker = dynamic(() => import("@/components/chat/VideoTemplatePicker").then((module) => module.VideoTemplatePicker))
 const RexDataTab = dynamic(() => import("@/components/agents/rex/data-tab").then((module) => module.RexDataTab))
 const MagicNumbers = dynamic(() => import("@/components/agents/rex/magic-numbers").then((module) => module.MagicNumbers))
 const MayaCreditsPill = dynamic(() => import("@/components/agents/maya/credits-pill").then((module) => module.MayaCreditsPill))
@@ -117,7 +120,7 @@ function ScoutSearchSourceToggle() {
       <SelectTrigger
         aria-label="Scout research source"
         title="Which research source Scout should use"
-        className="h-7 w-[76px] shrink-0 rounded-md border-black/15 bg-transparent px-2 text-[11px] text-[#555] sm:w-[124px] sm:text-xs"
+        className="h-7 w-19 shrink-0 rounded-md border-black/15 bg-transparent px-2 text-[11px] text-muted-foreground sm:w-31 sm:text-xs"
       >
         <SelectValue>
           {(value) => {
@@ -152,68 +155,29 @@ function ChatHeader({
   const agentPhoto = AGENT_PHOTOS[agent.id]
   return (
     <div
-      className="gap-1 px-2 sm:gap-2.5 sm:px-4"
-      style={{
-        background: "#FFF9ED",
-        borderBottom: "1px solid #E5E5E5",
-        borderLeft: `4px solid ${agent.color}`,
-        paddingTop: 10,
-        paddingBottom: 10,
-        display: "flex",
-        alignItems: "center",
-      }}
+      className="flex items-center gap-1 border-b border-(--vq-line-2) bg-card px-2 py-2.5 sm:gap-2.5 sm:px-4"
+      style={{ borderLeft: `4px solid ${agent.color}` }}
     >
       {/* Mobile-only back button */}
       <Link
         href="/assistants"
-        className="md:hidden flex items-center justify-center shrink-0"
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: "50%",
-          background: "rgba(0,0,0,0.06)",
-          color: "#555",
-          textDecoration: "none",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground no-underline hover:bg-black/6 md:hidden"
         aria-label="Back to assistants"
       >
-        <ArrowLeft style={{ width: 16, height: 16 }} />
+        <ArrowLeft className="size-4" />
       </Link>
       <button
         suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: "50%",
-          overflow: "hidden",
-          border: "1.5px solid rgba(0,0,0,0.1)",
-          background: agent.color,
-          flexShrink: 0,
-          cursor: "pointer",
-          padding: 0,
-          position: "relative",
-        }}
+        className="relative size-10 shrink-0 cursor-pointer overflow-hidden rounded-full border border-black/10 p-0"
+        style={{ background: agent.color }}
         aria-label="Agent info"
       >
         {agentPhoto ? (
           <Image src={agentPhoto} alt={agent.name} fill sizes="40px" className="object-cover" />
         ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "grid",
-              placeItems: "center",
-              fontFamily: FONT.head,
-              fontSize: 14,
-              color: "#fff",
-            }}
-          >
+          <div className="grid h-full w-full place-items-center font-head text-sm text-white">
             {agent.initials}
           </div>
         )}
@@ -222,62 +186,50 @@ function ChatHeader({
         suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          textAlign: "left",
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
-        }}
+        className="min-w-0 flex-1 cursor-pointer border-none bg-transparent p-0 text-left"
         aria-label="Agent info"
       >
-        <div style={{ fontFamily: FONT.head, fontSize: 15, color: "#111", letterSpacing: -0.2 }}>
+        <div className="font-head text-[15px] tracking-tight text-foreground">
           {agent.name}
         </div>
-        <div style={{ fontSize: 12, color: "#888", display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1DBC87", display: "inline-block" }} />
+        <div className="mt-px flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="inline-block size-1.75 rounded-full bg-chart-2" />
           online
         </div>
       </button>
       {agent.id === "scout" && <ScoutSearchSourceToggle />}
-      <button
-        suppressHydrationWarning
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="rounded-full text-muted-foreground"
         data-tour="onboard-me-button"
         onClick={onOnboardClick}
         aria-label={`Onboard ${agent.name}`}
         title="Onboard me — connect my tools"
-        style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
       >
         <Plug className="size-4" />
-      </button>
-      <button
-        suppressHydrationWarning
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="rounded-full text-muted-foreground"
         onClick={onHelpClick}
         aria-label="Help"
-        style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
       >
         <HelpCircle className="size-4" />
-      </button>
-      <button
-        suppressHydrationWarning
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="hidden rounded-full text-muted-foreground sm:flex"
         onClick={onInfoClick}
-        className="hidden sm:block"
         aria-label="Agent info"
-        style={{ background: "transparent", border: "none", padding: 8, cursor: "pointer", color: "#888", borderRadius: "50%" }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.06)" }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
       >
         <Info className="size-4" />
-      </button>
+      </Button>
     </div>
   )
 }
@@ -291,131 +243,43 @@ function EmptyState({
 }) {
   const agentPhoto2 = AGENT_PHOTOS[agent.id]
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px 24px",
-        background: "#EFE7D6",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 560,
-          width: "100%",
-          textAlign: "center",
-          position: "relative",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+    <div className="flex flex-1 items-center justify-center bg-background px-6 py-10">
+      <div className="relative w-full max-w-140 text-center">
+        <div className="mb-3.5 flex justify-center">
           <Sticker rotate={-6} style={{ background: agent.color as string }}>
             {agent.tag}
           </Sticker>
         </div>
         <div
-          style={{
-            width: 140,
-            height: 140,
-            margin: "0 auto",
-            borderRadius: 20,
-            overflow: "hidden",
-            border: "none",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-            background: agent.color,
-            transform: "rotate(-2deg)",
-            position: "relative",
-          }}
+          className="relative mx-auto size-35 overflow-hidden rounded-2xl shadow-(--vq-shadow-lg)"
+          style={{ background: agent.color }}
         >
           {agentPhoto2 ? (
             <Image src={agentPhoto2} alt={agent.name} fill sizes="140px" className="object-cover" />
           ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "grid",
-                placeItems: "center",
-                fontFamily: FONT.display,
-                fontSize: 56,
-                color: "#111",
-              }}
-            >
+            <div className="grid h-full w-full place-items-center font-display text-5xl text-foreground">
               {agent.initials}
             </div>
           )}
         </div>
 
-        <h2
-          style={{
-            fontFamily: FONT.display,
-            fontSize: 56,
-            lineHeight: 1,
-            color: "#111",
-            margin: "28px 0 4px",
-            letterSpacing: -1,
-          }}
-        >
+        <h2 className="mx-0 mt-7 mb-1 font-display text-5xl leading-none tracking-tight text-foreground">
           say hi to {agent.name.toLowerCase()}
         </h2>
-        <p
-          style={{
-            fontFamily: FONT.body,
-            fontSize: 15,
-            lineHeight: 1.5,
-            color: "#333",
-            margin: "0 auto 8px",
-            maxWidth: 440,
-          }}
-        >
+        <p className="mx-auto mb-2 max-w-110 font-body text-[15px] leading-relaxed text-foreground/80">
           {agent.description}
         </p>
-        <p
-          style={{
-            fontFamily: FONT.mono,
-            fontSize: 10,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            color: "#555",
-            margin: "0 0 20px",
-          }}
-        >
+        <p className="mb-5 font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
           {"// try one of these"}
         </p>
 
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: 10,
-          }}
-        >
+        <div className="flex flex-wrap justify-center gap-2.5">
           {agent.quickPrompts.map((prompt) => (
             <button
               suppressHydrationWarning
               key={prompt}
               onClick={() => onPrompt(prompt)}
-              style={{
-                fontFamily: FONT.body,
-                fontSize: 13,
-                padding: "10px 14px",
-                background: "#FFF9ED",
-                border: "1.5px solid #D4C9B0",
-                borderRadius: 999,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                cursor: "pointer",
-                color: "#111",
-                transition: "background 120ms ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#EFE7D6"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#FFF9ED"
-                e.currentTarget.style.transform = "translate(0,0)"
-              }}
+              className="cursor-pointer rounded-full border border-(--vq-line-2) bg-card px-3.5 py-2.5 font-body text-[13px] text-foreground shadow-(--vq-shadow-sm) transition-colors hover:bg-background"
             >
               {prompt}
             </button>
@@ -557,6 +421,7 @@ export default function AssistantChatPage() {
   const [content, setContent] = useState("")
   const [sendError, setSendError] = useState<ApiError | null>(null)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [onboardOpen, setOnboardOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -1129,7 +994,9 @@ export default function AssistantChatPage() {
 
   const handlePlusPick = (actionId: AgentActionId) => {
     setToolsOpen(false)
-    if (actionId === "scout:discover-competitors") {
+    if (actionId === "maya:video-templates") {
+      setTemplatePickerOpen(true)
+    } else if (actionId === "scout:discover-competitors") {
       openAction(actionId, discoverCompetitorsPrefill)
     } else {
       openAction(actionId)
@@ -1305,14 +1172,15 @@ export default function AssistantChatPage() {
       />
 
       {isLex && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2 border-b border-(--vq-line-2) bg-card px-3 py-2 sm:px-4">
           <button
             suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("chat")}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              lexTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
-            }`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+              lexTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}
           >
             <MessageSquare className="size-3" /> Chat
           </button>
@@ -1320,27 +1188,26 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setLexTab("documents")}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              lexTab === "documents"
-                ? "bg-[#111] text-white"
-                : "bg-transparent text-[#111]"
-            }`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+              lexTab === "documents" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+            )}
           >
             <FolderOpen className="size-3" /> Documents
           </button>
         </div>
       )}
 
-
       {isSage && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2 border-b border-(--vq-line-2) bg-card px-3 py-2 sm:px-4">
           <button
             suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("chat")}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              sageTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
-            }`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+              sageTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}
           >
             <MessageSquare className="size-3" /> Chat
           </button>
@@ -1348,11 +1215,10 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setSageTab("favourites")}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              sageTab === "favourites"
-                ? "bg-[#111] text-white"
-                : "bg-transparent text-[#111]"
-            }`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+              sageTab === "favourites" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+            )}
           >
             <FolderOpen className="size-3" /> Favourites
           </button>
@@ -1361,14 +1227,15 @@ export default function AssistantChatPage() {
 
       {isRex && (
         <>
-          <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
+          <div className="flex flex-wrap items-center gap-2 border-b border-(--vq-line-2) bg-card px-3 py-2 sm:px-4">
             <button
               suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("chat")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                rexTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
-              }`}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+                rexTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}
             >
               <MessageSquare className="size-3" /> Chat
             </button>
@@ -1376,18 +1243,16 @@ export default function AssistantChatPage() {
               suppressHydrationWarning
               type="button"
               onClick={() => setRexTab("data")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                rexTab === "data" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
-              }`}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+                rexTab === "data" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}
             >
               <FolderOpen className="size-3" /> Data
               {rexDatasetCount > 0 && (
                 <span
-                  className="ml-0.5 rounded-full px-1.5 py-0.5 font-mono text-[9px] leading-none"
-                  style={{
-                    background: rexTab === "data" ? "#EFE7D6" : agent.color as string,
-                    color: "#111",
-                  }}
+                  className="ml-0.5 rounded-full px-1.5 py-0.5 font-mono text-[9px] leading-none text-foreground"
+                  style={{ background: rexTab === "data" ? "var(--background)" : (agent.color as string) }}
                 >
                   {rexDatasetCount}
                 </span>
@@ -1399,14 +1264,15 @@ export default function AssistantChatPage() {
       )}
 
       {isMaya && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E5E5] bg-[#FFF9ED] px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2 border-b border-(--vq-line-2) bg-card px-3 py-2 sm:px-4">
           <button
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("chat")}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              mayaTab === "chat" ? "bg-[#111] text-white" : "bg-[#F0F0F0] text-[#555]"
-            }`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+              mayaTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}
           >
             <MessageSquare className="size-3" /> Chat
           </button>
@@ -1414,11 +1280,10 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("published")}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              mayaTab === "published"
-                ? "bg-[#111] text-white"
-                : "bg-transparent text-[#111]"
-            }`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+              mayaTab === "published" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+            )}
           >
             <FolderOpen className="size-3" /> Published Posts
           </button>
@@ -1426,11 +1291,10 @@ export default function AssistantChatPage() {
             suppressHydrationWarning
             type="button"
             onClick={() => setMayaTab("plan")}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              mayaTab === "plan"
-                ? "bg-[#111] text-white"
-                : "bg-transparent text-[#111]"
-            }`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+              mayaTab === "plan" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+            )}
           >
             <CalendarDays className="size-3" /> Content Plan
           </button>
@@ -1514,24 +1378,14 @@ export default function AssistantChatPage() {
             }}
           >
             {hasPreviousPage && (
-              <div style={{ display: "flex", justifyContent: "center", paddingBottom: 4 }}>
+              <div className="flex justify-center pb-1">
                 <button
                   onClick={() => void loadPreviousPage()}
                   disabled={isLoadingPrev}
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "#888",
-                    background: "rgba(239,231,214,0.85)",
-                    border: "1px solid #E0E0E0",
-                    borderRadius: 999,
-                    padding: "5px 14px",
-                    cursor: isLoadingPrev ? "default" : "pointer",
-                    opacity: isLoadingPrev ? 0.6 : 1,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                  }}
+                  className={cn(
+                    "rounded-full border border-(--vq-line-2) bg-card/85 px-3.5 py-1.5 font-mono text-[11px] tracking-wide text-muted-foreground uppercase shadow-(--vq-shadow-sm)",
+                    isLoadingPrev ? "cursor-default opacity-60" : "cursor-pointer opacity-100"
+                  )}
                 >
                   {isLoadingPrev ? "loading…" : "↑ load older messages"}
                 </button>
@@ -1564,26 +1418,10 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" })}
             aria-label="Scroll to latest"
-            style={{
-              position: "absolute",
-              bottom: 16,
-              right: 16,
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "#111",
-              color: "#fff",
-              border: "none",
-              display: "grid",
-              placeItems: "center",
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.22)",
-              transition: "opacity 200ms, transform 200ms",
-              opacity: isAtBottom ? 0 : 1,
-              transform: isAtBottom ? "translateY(8px)" : "translateY(0)",
-              pointerEvents: isAtBottom ? "none" : "auto",
-              zIndex: 10,
-            }}
+            className={cn(
+              "absolute right-4 bottom-4 z-10 grid size-9 cursor-pointer place-items-center rounded-full border-none bg-primary text-primary-foreground shadow-(--vq-shadow-lg) transition-[opacity,transform] duration-200",
+              isAtBottom ? "pointer-events-none translate-y-2 opacity-0" : "pointer-events-auto translate-y-0 opacity-100"
+            )}
           >
             <ChevronDown size={18} />
           </button>
@@ -1600,6 +1438,9 @@ export default function AssistantChatPage() {
             onChange={setContent}
             onSend={handleSend}
             onToolsClick={() => setToolsOpen(true)}
+            onOpenTemplatePicker={
+              isMaya && !findAction("maya:campaign-video")?.locked ? () => setTemplatePickerOpen(true) : undefined
+            }
             onAttachClick={isLex ? openUploadAction : undefined}
             placeholder={`Message ${agent.name.toLowerCase()}…`}
             disabled={isLoading}
@@ -1624,6 +1465,20 @@ export default function AssistantChatPage() {
           agentSlug={agentSlug}
           agentName={agent.name}
           onPick={(a) => handlePlusPick(a.id)}
+        />
+      )}
+      {templatePickerOpen && (
+        <VideoTemplatePicker
+          open
+          onOpenChange={setTemplatePickerOpen}
+          onSelect={(template) =>
+            openAction("maya:campaign-video", {
+              campaign_brief: expandTemplate(template),
+              template_prompt: template.promptTemplate,
+              template_label: template.slashCommand,
+              from_template: true,
+            })
+          }
         />
       )}
       {helpOpen && <HelpSheet open onOpenChange={setHelpOpen} agent={agent} />}

@@ -11,6 +11,8 @@ export interface ChatInputProps {
   onChange: (v: string) => void
   onSend: () => void
   onToolsClick: () => void
+  /** Fired when "/" is typed as the sole character into an otherwise-empty box (opens the video template picker). */
+  onOpenTemplatePicker?: () => void
   onAttachClick?: () => void
   attachIcon?: React.ReactNode
   attachTitle?: string
@@ -51,7 +53,7 @@ function IconButton({
         borderRadius: "50%",
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.4 : 1,
-        color: "#666",
+        color: "var(--muted-foreground)",
         transition: "background 120ms ease",
       }}
       onMouseEnter={(e) => {
@@ -71,6 +73,7 @@ export function ChatInput({
   onChange,
   onSend,
   onToolsClick,
+  onOpenTemplatePicker,
   onAttachClick,
   attachIcon,
   attachTitle = "Attach PDF",
@@ -158,7 +161,14 @@ export function ChatInput({
         <div style={{ flex: 1, position: "relative" }}>
           <textarea
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              onChange(v)
+              if (v === "/" && onOpenTemplatePicker) {
+                onOpenTemplatePicker()
+                onChange("")
+              }
+            }}
             onKeyDown={handleKey}
             placeholder={placeholder}
             disabled={disabled}
@@ -196,7 +206,7 @@ export function ChatInput({
             display: "grid",
             placeItems: "center",
             background: canSend ? "var(--primary)" : "var(--muted-foreground)",
-            color: "#fff",
+            color: "white",
             border: "none",
             borderRadius: "50%",
             boxShadow: canSend ? "var(--vq-shadow)" : "none",
@@ -221,7 +231,7 @@ export function ChatInput({
             style={{
               fontFamily: FONT.mono,
               fontSize: 10,
-              color: charCount > max ? "#CC3333" : "#999",
+              color: charCount > max ? "color-mix(in srgb, var(--vq-red) 55%, black)" : "var(--muted-foreground)",
             }}
           >
             {charCount}/{max}

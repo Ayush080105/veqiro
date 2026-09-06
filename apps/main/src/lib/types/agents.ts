@@ -1227,6 +1227,9 @@ export type AgentActionId =
   | "maya:campaign-video"
   | "maya:campaign-video-storyboard"
   | "maya:logo-animation"
+  // Not a real backend action — intercepted client-side to open the video template
+  // picker instead of RunActionDialog. See handlePlusPick in assistants/[id]/page.tsx.
+  | "maya:video-templates"
   | "scout:research-topic"
   | "scout:research-company"
   | "scout:trending-topics"

@@ -863,6 +863,7 @@ export function MayaCampaignForm({
           onChange={handleFiles}
         />
         <span className="text-[10px] text-muted-foreground opacity-60">Up to 5 photos — different angles help the model get the product right.</span>
+        <span className="text-[10px] text-muted-foreground opacity-60">Avoid photos with a real person&apos;s face (e.g. a celebrity-endorsed package) — Gemini blocks those.</span>
         {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
         {productImages.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -1248,6 +1249,22 @@ export function MayaCampaignVideoForm({
   const orgId = (value as Record<string, unknown>).organization_id as string
   const { creditsRemaining, isTrial } = useMayaRemainingCredits(orgId)
   const durationSeconds = form.watch("duration_seconds")
+  // Set when this dialog was opened from a "/" video template — the full brief text is
+  // an internal detail (it's what actually goes to Omni), so it's hidden in favor of a
+  // short optional "product name / detail" field that gets merged into it underneath.
+  const fromTemplate = Boolean((value as Record<string, unknown>).from_template)
+  const templatePrompt = (value as Record<string, unknown>).template_prompt as string | undefined
+  const templateLabel = (value as Record<string, unknown>).template_label as string | undefined
+  const [productContext, setProductContext] = React.useState("")
+
+  React.useEffect(() => {
+    if (!fromTemplate || !templatePrompt) return
+    const filled = productContext.trim()
+      ? templatePrompt.replaceAll("{{product}}", productContext.trim())
+      : templatePrompt.replaceAll("{{product}}", "the product")
+    form.setValue("campaign_brief" as never, filled as never)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromTemplate, templatePrompt, productContext])
 
   // Sheets are only drawn by the standalone storyboard action (hideDuration === true). The
   // video flow plans its shots as text instead, which costs nothing — so this form charges
@@ -1309,6 +1326,12 @@ export function MayaCampaignVideoForm({
 
   return (
     <FieldGroup>
+      {fromTemplate && templateLabel && (
+        <div className="flex items-center gap-1.5 self-start rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+          <span className="text-muted-foreground">Template:</span>
+          {templateLabel}
+        </div>
+      )}
       {submitting && stage && (
         <div className="flex flex-col gap-2 rounded border border-border bg-muted/40 p-3">
           <div className="flex items-center gap-2 self-center">
@@ -1351,6 +1374,7 @@ export function MayaCampaignVideoForm({
           onChange={handleFiles}
         />
         <span className="text-[10px] text-muted-foreground opacity-60">Up to 5 photos — different angles help the model get the product right.</span>
+        <span className="text-[10px] text-muted-foreground opacity-60">Avoid photos with a real person&apos;s face (e.g. a celebrity-endorsed package) — Gemini blocks those.</span>
         {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
         {productImages.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -1402,16 +1426,32 @@ export function MayaCampaignVideoForm({
         )}
       </div>
 
-      <RhfField control={form.control} name="campaign_brief" label="Campaign brief" required>
-        {({ field }) => (
+      {fromTemplate ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium">Product name or detail (optional)</span>
           <CountedTextarea
-            value={field.value}
+            value={productContext}
+            onChange={setProductContext}
             rows={4}
-            onChange={field.onChange}
-            placeholder="Describe your product, campaign goal, target audience, or vibe"
+            max={200}
+            placeholder="e.g. Sunrise Cold Brew — or anything specific you want in the video"
           />
-        )}
-      </RhfField>
+          <span className="text-[10px] text-muted-foreground opacity-60">
+            Don&apos;t use a real person&apos;s name here — Gemini blocks videos that reference real people.
+          </span>
+        </div>
+      ) : (
+        <RhfField control={form.control} name="campaign_brief" label="Campaign brief" required>
+          {({ field }) => (
+            <CountedTextarea
+              value={field.value}
+              rows={4}
+              onChange={field.onChange}
+              placeholder="Describe your product, campaign goal, target audience, or vibe"
+            />
+          )}
+        </RhfField>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <span className="text-xs font-medium">Aspect ratio</span>
@@ -1668,3 +1708,4 @@ export function MayaLogoAnimationForm({
     </FieldGroup>
   )
 }
+
