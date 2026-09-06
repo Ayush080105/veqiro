@@ -66,6 +66,10 @@ async function fireDueScheduledPosts() {
 }
 
 export function startMayaScheduledPostsCron() {
-  cron.schedule("* * * * *", () => void fireDueScheduledPosts());
+  cron.schedule("* * * * *", () => {
+    void fireDueScheduledPosts().catch((err) => {
+      console.error("[maya-cron] tick failed", err);
+    });
+  });
   console.log("[maya-cron] Scheduled-post publisher started — polling every minute");
 }

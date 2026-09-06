@@ -189,11 +189,15 @@ export async function runDailyAlertsNow() {
 export function startRexCron() {
   // Every Monday at 09:00 UTC
   cron.schedule("0 9 * * 1", () => {
-    void runWeeklyDigestNow();
+    void runWeeklyDigestNow().catch((err) => {
+      console.error("[rex-cron] weekly digest failed", err);
+    });
   });
   // Every day at 09:00 UTC (alerts)
   cron.schedule("0 9 * * *", () => {
-    void runDailyAlertsNow();
+    void runDailyAlertsNow().catch((err) => {
+      console.error("[rex-cron] daily alerts failed", err);
+    });
   });
   console.log("[rex-cron] Weekly digest scheduled — every Monday 09:00 UTC");
   console.log("[rex-cron] Daily alerts scheduled — every day 09:00 UTC");
