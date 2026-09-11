@@ -748,7 +748,7 @@ const markPublishFailed = async (postId: string, err: unknown): Promise<never> =
   const message = err instanceof Error ? err.message : String(err);
   await prisma.publishedPost.update({
     where: { id: postId },
-    data: { status: "failed", errorMessage: message.slice(0, 500) },
+    data: { status: "failed", error: message.slice(0, 500) },
   });
   throw err;
 };

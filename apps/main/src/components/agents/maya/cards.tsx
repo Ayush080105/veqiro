@@ -743,6 +743,11 @@ export function CarouselDraftCard({
   const rawSrcs = React.useMemo(() => slides.map((s) => imageSrc(s.image)), [slides])
   const blobSrcs = useBlobUrls(rawSrcs)
   const currentSrc = blobSrcs[current] ?? rawSrcs[current]
+  const publishableUrls = rawSrcs.filter((src): src is string => !!src)
+  // Instagram is the only platform this app can actually publish a multi-image
+  // carousel to (see firePublishedCarousel) — other platforms fall back to
+  // publishing just the currently-viewed slide as a single image.
+  const canPublishAsCarousel = result.platform === "instagram" && publishableUrls.length >= 2
 
   const navBtnCls =
     "flex size-7 items-center justify-center rounded-full border border-[var(--vq-line-2)] bg-background text-foreground shadow-[var(--vq-shadow-sm)] transition-colors hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
@@ -851,18 +856,35 @@ export function CarouselDraftCard({
                   Regenerate
                 </Button>
               )}
-              <PublishDialog
-                platform={result.platform}
-                caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
-                hashtags={d.hashtags ?? []}
-                image={currentSlide.image}
-              />
-              <ScheduleDialog
-                platform={result.platform}
-                caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
-                hashtags={d.hashtags ?? []}
-                image={currentSlide.image}
-              />
+              {canPublishAsCarousel ? (
+                <>
+                  <CampaignPublishDialog
+                    imageUrls={publishableUrls}
+                    photoCount={publishableUrls.length}
+                    caption={fullText}
+                  />
+                  <CampaignScheduleDialog
+                    imageUrls={publishableUrls}
+                    photoCount={publishableUrls.length}
+                    caption={fullText}
+                  />
+                </>
+              ) : (
+                <>
+                  <PublishDialog
+                    platform={result.platform}
+                    caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
+                    hashtags={d.hashtags ?? []}
+                    image={currentSlide.image}
+                  />
+                  <ScheduleDialog
+                    platform={result.platform}
+                    caption={`${d.body}${d.cta ? `\n\n${d.cta}` : ""}`}
+                    hashtags={d.hashtags ?? []}
+                    image={currentSlide.image}
+                  />
+                </>
+              )}
             </ActionRow>
           </div>
         </div>
