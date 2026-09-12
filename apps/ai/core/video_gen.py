@@ -9,6 +9,13 @@ from core.llm import (
     LLMClient,
     GEMINI_FLASH,
     MAX_VIDEO_SECONDS,
+    MAX_WORDS_PER_LINE,
+    MAX_WORDS_PER_SEGMENT,
+    SPEECH_CUTOFF_SECONDS,
+    SPEECH_LEAD_IN_SECONDS,
+    SPEECH_TAIL_SECONDS,
+    SPEECH_WINDOW_SECONDS,
+    SPEECH_WORDS_PER_SECOND,
     VIDEO_DURATION_OPTIONS,
     VIDEO_SEGMENT_SECONDS,
 )
@@ -36,16 +43,27 @@ _TEXT_ACCURACY_GUARDRAIL = (
     "clearly and correctly, keep it soft-focus or out of frame rather than guessing at it."
 )
 
-_ENDING_GUARDRAIL = (
-    "ENDING — NON-NEGOTIABLE: The video must end deliberately, never feel cut off. All action, "
-    "camera movement, and any dialogue must fully resolve BEFORE the final moments — the last "
-    "portion of the video (roughly the final second) is a held, settled closing shot: the "
-    "subject at rest, the camera still or drifting to a stop, nothing new beginning. Never end "
-    "mid-motion, mid-gesture, mid-word, or mid-camera-move; the final frame should look like an "
-    "intentional closing frame a viewer could pause on. Never fade out, dip, or cut to black: "
-    "the very last frame must still be the fully lit, composed image — a black or half-faded "
-    "final frame is a failure, and it is also the frame the video is thumbnailed on."
-)
+_ENDING_GUARDRAIL = f"""\
+ENDING — NON-NEGOTIABLE: The video must end deliberately, never feel cut off, in PICTURE AND IN
+SOUND. All action, camera movement, and every spoken word must fully resolve BEFORE the final
+{SPEECH_TAIL_SECONDS:g} seconds. Those last {SPEECH_TAIL_SECONDS:g} seconds are a held, settled
+closing shot with NO speech in them at all: the subject at rest, the camera still or drifting to
+a stop, nothing new beginning, nobody starting or finishing a sentence.
+
+THE LAST WORD OF THE FILM IS THE THING MOST OFTEN GOT WRONG. It must be completely out of the
+speaker's mouth at least {SPEECH_TAIL_SECONDS:g} seconds before the last frame, spoken at a
+relaxed, unhurried pace. If the closing line cannot finish that early at a natural pace, SHORTEN
+IT — drop words until it does. A short line delivered whole is correct; the full line clipped
+mid-word is a failure, and so is the full line rattled off at double speed to squeeze it in.
+Never end mid-motion, mid-gesture, mid-word, mid-syllable, or mid-camera-move; the final frame
+should look like an intentional closing frame a viewer could pause on.
+
+THE SOUND RUNS TO THE VERY END. Ambience, room tone, and any music hold steady through the
+closing seconds and through the final frame — the speech stops early, the audio never does. A
+film whose sound drops out, goes abruptly silent, or ends before the picture does is a failure.
+Never fade out, dip, or cut to black: the very last frame must still be the fully lit, composed
+image — a black or half-faded final frame is a failure, and it is also the frame the video is
+thumbnailed on."""
 
 _CONTINUATION_GUARDRAIL = (
     "DO NOT END HERE — NON-NEGOTIABLE: This is NOT the end of the video; more footage "
@@ -54,10 +72,15 @@ _CONTINUATION_GUARDRAIL = (
     "visibly wants the next moment. Never settle, hold, come to rest, fade out, cut to "
     "black, land on a composed 'final' frame, or resolve the story here. Leave the subject, "
     "framing, and motion in a state the next segment can pick up from without a visible seam. "
-    "Any spoken line here must still be FINISHED — completed well before the end, with the "
-    "action continuing after it. Never trail a line off, break it across the cut, or let the "
-    "last word be the last thing that happens: a sentence chopped mid-word is a defect, not "
-    "a hand-off."
+    "Any spoken line here must still be FINISHED inside this segment, and finished EARLY: the "
+    f"last word is out of the speaker's mouth by about {SPEECH_CUTOFF_SECONDS:g} seconds in, and "
+    f"the final {SPEECH_TAIL_SECONDS:g} seconds carry no speech at all — only the action "
+    "continuing, with ambience and score running unbroken underneath. The cut into the next "
+    "segment is a HARD AUDIO CUT: a line still being spoken when it arrives is chopped mid-word "
+    "in the middle of the finished film, exactly as it would be at the very end. Never trail a "
+    "line off, never start a line you cannot finish in time, never break one across the cut, and "
+    "never speed the delivery up to make it fit — cut words instead. Ending on continuing MOTION "
+    "is the hand-off; ending on a half-spoken sentence is a defect."
 )
 
 _PRODUCT_FIDELITY_GUARDRAIL = (
@@ -82,16 +105,47 @@ _PRODUCT_FIDELITY_CONTINUED = (
     "fresh interpretation of it."
 )
 
-def _speech_budget(duration_seconds: int) -> tuple[int, int]:
+def _speech_budget(num_segments: int) -> tuple[int, int]:
     """Roughly how much spoken language a film of this length can actually carry.
 
-    Natural delivery is ~2.5 words/second, and a commercial is not wall-to-wall talk — about
-    half the runtime carries speech, the rest breathes. Derived rather than hardcoded so it
-    scales with whatever durations the product offers.
+    Budgeted off the per-segment SPEECH WINDOW rather than the raw runtime, because the
+    runtime is not all speakable: every 10-second render opens with a lead-in and closes with
+    a mandatory speech-free tail (core/llm.py), and words budgeted into that tail are words
+    the renderer clips mid-syllable. Derived rather than hardcoded so it scales with whatever
+    durations the product offers.
     """
-    words = max(6, round(duration_seconds * 0.5 * 2.5))
-    lines = max(1, round(words / 8))
+    words = max(6, MAX_WORDS_PER_SEGMENT * num_segments)
+    lines = max(1, round(words / MAX_WORDS_PER_LINE))
     return words, lines
+
+
+# The timing contract, in the planner's own words. Quotes the same figures core/llm.py puts in
+# front of the render model, so the plan cannot be written to a budget the renderer will not
+# honour. Every dialogue direction below includes this verbatim.
+_SPEECH_TIMING_RULES = f"""\
+SPEECH TIMING — READ THIS BEFORE WRITING A SINGLE LINE. The single most common defect in this
+format is audio cut off mid-word while the picture ends fine. The film is rendered in
+{VIDEO_SEGMENT_SECONDS}-second stretches and the sound is chopped dead at the end of every one of
+them — at a join between stretches just as hard as at the end of the film. So each stretch has a
+speech window and a silent tail, and they are not negotiable:
+
+- Nobody speaks in the first {SPEECH_LEAD_IN_SECONDS:g} second of a stretch; the shot establishes
+  itself first.
+- All speech in a stretch is finished by the {SPEECH_CUTOFF_SECONDS:g}-second mark, leaving the
+  final {SPEECH_TAIL_SECONDS:g} seconds with no spoken words in them at all.
+- That leaves about {SPEECH_WINDOW_SECONDS:g} seconds of usable speech per stretch. At an
+  unhurried, natural {SPEECH_WORDS_PER_SECOND:g} words per second — real speech with breath and
+  pauses in it, not a fast read — that is at most {MAX_WORDS_PER_SEGMENT} spoken words in any one
+  stretch, and no single unbroken line longer than {MAX_WORDS_PER_LINE} words.
+- COUNT THE WORDS of every line you write, and count them again for the closing line. A line
+  over {MAX_WORDS_PER_LINE} words is not a style choice, it is a line that will be clipped.
+- NEVER fix a too-long line by having it delivered faster. A rushed line is as bad an ending as
+  a clipped one — the brief here is unhurried, not compressed. Cut words until it fits at a
+  relaxed pace. Two short lines with a beat between them are better than one long one.
+- The silent tail is never silent-SOUNDING: ambience, room tone, and score keep running through
+  it and through the very last frame. What stops early is the talking, not the audio.
+- Prefer plain, short, self-contained sentences. A line with a subordinate clause, a list, or a
+  dash in the middle of it is a line whose second half gets lost."""
 
 
 _SCENE_PLAN_OPENING_SHORT = """\
@@ -232,18 +286,23 @@ scene resolved and at rest.
 {_PRODUCT_FIDELITY_NOTE}"""
 
 
-_DIALOGUE_SHORT = """\
-DIALOGUE & ON-SCREEN SPEECH: Only include spoken dialogue or on-screen speech if the
-concept genuinely calls for it — never invent a line just to have one. When you do include
-one, keep it to a single short, natural line — a handful of words, not a full sentence — so
-it can be spoken completely and land before the video ends, with clear time left on either
-side for the visual setup and the closing/reveal beat. Natural speech runs roughly 2-3
-words per second, so a 4-6 second video only has room for a very short phrase (about 3-6
-words); even at 8-10 seconds, keep it to one short sentence at most — never a full
-paragraph or multiple exchanges. Fold the line into the flowing narrative exactly as a
-director would describe it being delivered in the moment (e.g. "...she exhales and says,
-'Relief, finally.'") — never introduce it as a separate timed cue (no "at 3 seconds she
-says..." phrasing)."""
+_DIALOGUE_SHORT = f"""\
+DIALOGUE & ON-SCREEN SPEECH: Only include spoken dialogue or on-screen speech if the concept
+genuinely calls for it — never invent a line just to have one. When you do include one, keep it
+to a single short, natural line — a handful of words, not a full sentence — so it can be spoken
+completely and unhurriedly and still land with clear air before the video ends.
+
+{_SPEECH_TIMING_RULES}
+
+At this length that means ONE short line, {MAX_WORDS_PER_LINE} words or fewer — two at the very
+most, and never a paragraph or a back-and-forth exchange. Place it in the opening or middle of the
+action, never on the closing beat: the last thing the viewer hears should be followed by a held,
+wordless image, not by the video running out. A shorter line spoken cleanly always beats a longer
+one that loses its last word.
+
+Fold the line into the flowing narrative exactly as a director would describe it being delivered
+in the moment (e.g. "...she exhales and says, 'Relief, finally.'") — never introduce it as a
+separate timed cue (no "at 3 seconds she says..." phrasing)."""
 
 
 def _dialogue_direction(duration_seconds: int, num_segments: int) -> str:
@@ -251,18 +310,19 @@ def _dialogue_direction(duration_seconds: int, num_segments: int) -> str:
 
     The short-form wording is deliberately suppressive — at 10 seconds a spare line is
     usually right. At broadcast lengths that same wording starves the film, so the budget is
-    derived from the runtime instead of asserted.
+    derived from the speakable window instead of asserted.
     """
     if num_segments == 1:
         return _DIALOGUE_SHORT
-    words, lines = _speech_budget(duration_seconds)
+    words, lines = _speech_budget(num_segments)
     return f"""\
 DIALOGUE — THIS FILM SPEAKS. A {duration_seconds}-second commercial carries real spoken
-language, and silence broken only by two slogan fragments is a wasted spot. Natural delivery
-runs about 2.5 words per second and roughly half the runtime should carry speech, so budget
-about {words} spoken words across the whole film — roughly {lines} lines. Treat that as a
-ceiling to write toward, not a quota to pad: every line must earn its place, and the film
-still needs to breathe between them.
+language, and silence broken only by two slogan fragments is a wasted spot. But it speaks in
+short, unhurried lines with air around them, because the sound is cut dead at every
+{VIDEO_SEGMENT_SECONDS}-second boundary. Budget about {words} spoken words across the whole film —
+roughly {lines} lines — and never more than {MAX_WORDS_PER_SEGMENT} words inside any one
+{VIDEO_SEGMENT_SECONDS}-second stretch. Treat that as a ceiling to write toward, not a quota to
+pad: every line must earn its place, and the film still needs to breathe between them.
 
 SPREAD THE SPEECH ACROSS THE WHOLE FILM. This is the rule most often got wrong: a film that
 runs silent and then delivers two short lines near the end has NOT written dialogue, it has
@@ -299,10 +359,18 @@ the way a person would actually describe it, not as a feature list; and close wi
 clean, confident line that lands the brand and could be the last thing heard in a TV break.
 A brand or product name spoken naturally in the closing line is usually right.
 
-Never write speech that cannot finish. Each spoken line belongs to one continuous
-{VIDEO_SEGMENT_SECONDS}-second stretch and must start and finish inside it, with air on
-either side — a line running past the end of its stretch gets cut off mid-word. Keep any
-single line to roughly {max(4, round(VIDEO_SEGMENT_SECONDS * 0.45 * 2.5))} words or fewer.
+THE CLOSING LINE IS THE ONE THAT GETS CLIPPED, SO WRITE IT SHORTEST. Make the final line of the
+film shorter than every other line in it — {max(3, MAX_WORDS_PER_LINE - 3)} words or fewer — and
+place it early enough in the last stretch that the closing images play on after it in silence. A
+brand name landing cleanly with a held, wordless beat after it is worth far more than a longer
+sign-off that loses its last syllable. Never make the last line the last thing that happens.
+
+Never write speech that cannot finish. Each spoken line belongs to ONE continuous
+{VIDEO_SEGMENT_SECONDS}-second stretch and must start and finish inside it, with air on either
+side. A line that runs past the end of its stretch is not carried over into the next one — it is
+cut off mid-word, and the finished film has an audible chop in the middle of it.
+
+{_SPEECH_TIMING_RULES}
 
 Fold every line into the flowing narrative exactly as a director would describe it being
 delivered in the moment (e.g. "...she exhales, half laughing, and says, 'Finally.'") — never
@@ -314,16 +382,20 @@ Rules:
 - The FINISHED VIDEO must feel like a complete, self-contained piece with a clear
   beginning, a middle development, and a deliberate closing beat that resolves the action
   (a settle, a hold, a button moment, dialogue reaching its final line). It must never end
-  mid-action, mid-sentence, or feel cut off, whatever its target duration. When the video
-  is planned as several consecutive segments, this applies to the arc as a whole — only
-  the FINAL segment carries that closing beat, and every earlier one deliberately does not.
+  mid-action, mid-sentence, mid-word, or feel cut off, whatever its target duration — and
+  that applies to the SOUND as much as to the picture: the last spoken word lands at least
+  {SPEECH_TAIL_SECONDS:g} seconds before the final frame, and the ambience carries the rest.
+  When the video is planned as several consecutive segments, this applies to the arc as a
+  whole — only the FINAL segment carries that closing beat, and every earlier one
+  deliberately does not.
 - If the aspect ratio is 9:16 (vertical), compose for vertical viewing: keep the subject
   and key action in the middle band of the frame, with clean headroom at the top and
   bottom thirds where platform UI (captions, buttons) overlays — never place critical
   detail at the extreme top or bottom edge.
-- Any dialogue or on-screen speech must be short enough to finish completely and
-  naturally within the runtime — never trail off, get cut short, or leave a line
-  unfinished.
+- Any dialogue or on-screen speech must be short enough to finish completely, at an
+  unhurried pace, with at least {SPEECH_TAIL_SECONDS:g} seconds of wordless screen time
+  after it — never trail off, get cut short, get rushed to fit, or leave a line unfinished.
+  When a line will not fit, shorten the line; never speed it up.
 - Keep continuity — the subject, setting, and style stay consistent throughout unless the
   concept explicitly calls for a scene change.
 - End your description — each segment block separately, when the plan is split into
@@ -504,7 +576,10 @@ _STORYBOARD_MATCH_INSTRUCTION = (
     "The beats are the narrative arc, not equal timed slots — early and middle beats may pass "
     "quickly, but the FINAL beat must be given generous room: all action resolves before the "
     "end, and the video closes by settling and holding on that final resolved frame in complete "
-    "stillness, so it ends deliberately rather than feeling cut off mid-motion."
+    "stillness, so it ends deliberately rather than feeling cut off mid-motion. Any speech in "
+    "the final beat finishes early enough that this closing hold plays with no words in it — "
+    "ambience and score still running underneath — so the audio resolves as deliberately as the "
+    "picture does."
 )
 
 # Mirrors the wording used for logo compositing in image generation (core/image_gen.py) —
@@ -586,9 +661,11 @@ def _build_duration_instruction(duration_seconds: int, num_segments: int) -> str
         return (
             f"This video will run for exactly {duration_seconds} seconds — write a narrative "
             f"that naturally fills that time and reaches a satisfying, resolved conclusion "
-            f"BEFORE the end — all action and dialogue finish with time to spare, and the video "
-            f"closes on a held, settled final frame rather than cutting off mid-motion. Do not "
-            f"mention seconds, timestamps, or any timing markers anywhere in your description."
+            f"BEFORE the end. Budget it so the last {SPEECH_TAIL_SECONDS:g} seconds are a held, "
+            f"settled closing frame with no speech in them: every spoken word is finished by "
+            f"about the {SPEECH_CUTOFF_SECONDS:g}-second mark, and the action resolves into "
+            f"stillness rather than cutting off mid-motion. Do not mention seconds, timestamps, "
+            f"or any timing markers anywhere in your description."
         )
     return (
         f"This video runs for exactly {duration_seconds} seconds and is rendered as "
@@ -608,8 +685,12 @@ def _build_duration_instruction(duration_seconds: int, num_segments: int) -> str
         f"that visibly wants the next moment. Never let a non-final segment settle, hold, fade, "
         f"come to rest, land on a composed 'final' frame, or finish a line of dialogue on its "
         f"last beat: another {VIDEO_SEGMENT_SECONDS} seconds follows immediately and must pick "
-        f"up without a seam. Segment {num_segments} is the only one that resolves — its action "
-        f"and dialogue all finish with time to spare and it closes on a held, settled frame.\n\n"
+        f"up without a seam. Ending in motion is a PICTURE instruction only — the sound still "
+        f"has to land: each segment stops speaking about {SPEECH_TAIL_SECONDS:g} seconds before "
+        f"it ends, because the join is a hard audio cut and a line still running when it arrives "
+        f"is chopped mid-word inside the finished film. Segment {num_segments} is the only one "
+        f"that resolves in picture — its action and dialogue all finish with time to spare and "
+        f"it closes on a held, settled frame.\n\n"
         f"Each block is read on its own by a model that can see the preceding footage but not "
         f"the other blocks. So open every block with a short clause naming the subject, "
         f"setting, and look before describing the new action — continuity must never depend on "
@@ -622,7 +703,13 @@ def _build_duration_instruction(duration_seconds: int, num_segments: int) -> str
         f"person and the film will visibly change actor mid-scene.\n\n"
         f"Unless the concept genuinely calls for silence, EVERY block should carry at least one "
         f"spoken line, including the first — do not save all the talking for the final block. "
-        f"Each line must begin and finish inside its own block.\n\n"
+        f"Each line must begin and finish inside its own block, at most "
+        f"{MAX_WORDS_PER_LINE} words long, with at most {MAX_WORDS_PER_SEGMENT} spoken words in "
+        f"a block altogether, and with the block's last word done about "
+        f"{SPEECH_TAIL_SECONDS:g} seconds before the block ends. A block whose speech runs to "
+        f"its edge loses its final word. Since each block is written to be delivered whole, "
+        f"never split one sentence across two blocks and never have a block finish a thought "
+        f"the previous one started — write a new, complete, short line instead.\n\n"
         f"Do not mention seconds, timestamps, segment numbers, or any timing markers inside the "
         f"blocks themselves."
     )

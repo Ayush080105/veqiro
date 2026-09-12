@@ -187,6 +187,34 @@ VIDEO_SEGMENT_SECONDS = 10
 MAX_VIDEO_SECONDS = 40
 VIDEO_DURATION_OPTIONS = (10, 20, 30, 40)
 
+# ── Speech timing ─────────────────────────────────────────────────────────────
+# Audio is cut dead at the end of every rendered segment — at a seam between two extensions
+# just as hard as at the end of the film — so a line still being spoken when the boundary
+# arrives loses its last word. The three tunables below are the contract that prevents it, and
+# everything else here is derived from them. They live next to the segment length they are
+# derived from so the narrative planner in core/video_gen.py and the render prompt further
+# down quote the SAME figures at the model.
+#
+# Deliberately under the ~2.5 words/sec of a neutral read-aloud: budgeting at read-aloud
+# speed produces lines the model can only land by rushing, and a rushed line is the other
+# half of the "abrupt ending" complaint.
+SPEECH_WORDS_PER_SECOND = 2.0
+# Head of a segment: the shot establishes before anyone talks.
+SPEECH_LEAD_IN_SECONDS = 0.5
+# Tail of EVERY segment: no speech at all, ambience and score still running. Sized so a line
+# the model starts slightly late still finishes inside the picture.
+SPEECH_TAIL_SECONDS = 2.0
+# What is actually left to speak in.
+SPEECH_WINDOW_SECONDS = (
+    VIDEO_SEGMENT_SECONDS - SPEECH_LEAD_IN_SECONDS - SPEECH_TAIL_SECONDS
+)
+# The clock time by which every word in a segment must be out of the speaker's mouth.
+SPEECH_CUTOFF_SECONDS = VIDEO_SEGMENT_SECONDS - SPEECH_TAIL_SECONDS
+# One unbroken line gets ~60% of the window, so a second line and the air between them fit.
+MAX_WORDS_PER_LINE = int(SPEECH_WINDOW_SECONDS * 0.6 * SPEECH_WORDS_PER_SECOND)
+# A segment is not wall-to-wall talk; 80% of the window is a talky-but-plausible ceiling.
+MAX_WORDS_PER_SEGMENT = int(SPEECH_WINDOW_SECONDS * 0.8 * SPEECH_WORDS_PER_SECOND)
+
 # Retries are scoped to a single segment, never the whole chain — each segment is its own
 # billed render, so restarting a 40s video from the top on a late failure would re-pay for
 # footage that already succeeded. Observed latency is ~30s for the opening shot and
@@ -1274,8 +1302,28 @@ class LLMClient:
                 duration_seconds,
             )
 
+            # Restated on EVERY segment, not just the last: the audio is cut dead at each
+            # seam too, so a line still running when an extension takes over loses its final
+            # word in the middle of the finished film, not only at its end. The tail is
+            # required to stay *audible* (ambience, score) so a speech-free close reads as a
+            # held ending rather than the sound failing.
             audio_note = (
-                "Include natural ambient/sync audio." if generate_audio else "No audio."
+                (
+                    "AUDIO: include natural ambient/sync audio, and keep it running "
+                    "continuously through the very last frame — never let the sound stop, "
+                    "dip, or fall silent before the picture does. Deliver any spoken words "
+                    "at a relaxed, natural, unhurried pace, and finish them EARLY: the last "
+                    "word must be fully out of the speaker's mouth by about "
+                    f"{SPEECH_CUTOFF_SECONDS:g} seconds in, leaving the final "
+                    f"{SPEECH_TAIL_SECONDS:g} seconds with no speech in them at all — only "
+                    "ambience, room tone, and score under the closing action. If a line "
+                    "cannot be finished that early at a natural pace, SPEAK FEWER WORDS: drop "
+                    "words from it rather than talking faster or letting it run to the edge. "
+                    "A shortened line delivered whole and unhurried is correct; the full line "
+                    "clipped mid-word, or rattled off at speed to squeeze it in, is a failure."
+                )
+                if generate_audio
+                else "No audio."
             )
             image_parts: list[dict] = [
                 {
@@ -1309,7 +1357,13 @@ class LLMClient:
                     full_prompt = (
                         f"{segment_prompt}\n\nContinue seamlessly from the final frame of the "
                         f"footage so far, holding the same subject, wardrobe, setting, lighting, "
-                        f"colour grade, camera language, and sound world. {audio_note}"
+                        f"colour grade, camera language, and sound world. The preceding footage "
+                        f"deliberately ended on a wordless beat with its ambience still running, "
+                        f"so carry that sound world in unbroken from the very first frame and let "
+                        f"the action re-establish before anyone speaks. Never open mid-sentence, "
+                        f"and never try to complete, repeat, or salvage a line from the previous "
+                        f"segment — any speech here is a NEW line that starts and finishes inside "
+                        f"this segment. {audio_note}"
                     )
                     segment_input = [{"type": "text", "text": full_prompt}]
 
