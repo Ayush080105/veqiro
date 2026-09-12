@@ -71,31 +71,22 @@ def product_identity_instructions(count: int) -> str:
     generation (campaign photos, video storyboards). Kept in one place so image, storyboard, and
     video prompts describe product fidelity identically instead of drifting apart."""
     multi_ref_note = (
-        f"Reference images 1-{count} are different photos/materials the user uploaded "
-        f"of this real product — do NOT assume they are simply the same physical object seen from "
-        f"different camera angles if they visually look like different things (e.g. one may show the "
-        f"loose item itself, another may show its packaging, box, or printed label art). Study each: "
-        f"from whichever reference(s) show the physical item, take its exact color, shape, material, "
-        f"and surface details; from whichever reference(s) show packaging/label/box art, take its "
-        f"exact brand name, logo, and any printed text/colors verbatim and reflect them faithfully. "
-        f"Never drop the real brand name or packaging identity just because one reference shows the "
-        f"item without it. "
+        f"References 1-{count} may show different things — the item itself, and/or its packaging, "
+        f"box, or label art. Take shape, colour, and material from whichever show the item; take the "
+        f"brand name, logo, and printed text verbatim from whichever show packaging. Never drop the "
+        f"real brand identity because one reference lacks it. "
         if count > 1 else ""
     )
-    return multi_ref_note + "\n".join(
-        f"Reference image {i + 1} contains the product — treat it as a possibly rough, hand-taken "
-        f"snapshot: study it carefully to separate the TRUE PRODUCT (exact shape, colors, materials, "
-        f"proportions, any visible brand name/logo/printed text) from incidental artifacts of how it "
-        f"was casually captured (poor lighting, an awkward angle, blur, glare, clutter). Preserve the "
-        f"former faithfully — including any visible brand name, logo, or printed text, reproduced "
-        f"verbatim, never invented or substituted — while ignoring the latter entirely. If the label "
-        f"is visible but would naturally be too small/distant to read at this shot's scale, render it "
-        f"soft and out-of-focus with the right colors/layout rather than inventing legible-looking "
-        f"but fake or garbled characters — fabricated label text is never acceptable. "
-        f"Keep the product clearly recognizable as the same product from the reference. "
-        f"DO NOT recreate the reference image's composition, camera angle, pose, lighting quality, background, or framing. "
-        f"Generate a fresh campaign image where the product is confidently and competently rendered from a noticeably different pose, orientation, and camera perspective — inferring its plausible full form even where the reference only shows one side — while maintaining the same product identity."
-        for i in range(count)
+    plural = "References" if count > 1 else "Reference image 1"
+    return (
+        f"{multi_ref_note}{plural} shows the real product, likely a rough hand-taken snapshot. "
+        f"Reproduce the TRUE PRODUCT exactly — shape, colours, materials, proportions, and any "
+        f"visible brand name, logo, or printed text — and ignore the snapshot's own poor lighting, "
+        f"awkward angle, blur, glare, and clutter. Never invent or substitute label text: if the "
+        f"label would be too small to read at this shot's scale, render it soft and out of focus "
+        f"with the right colours, never as fake or garbled characters. Do NOT copy the reference's "
+        f"composition, angle, pose, or background — render the same product from a noticeably "
+        f"different perspective, inferring its full form where the reference shows one side."
     )
 
 
@@ -542,6 +533,42 @@ def _font_to_style(font_name: str) -> str:
     return f"typographic style inspired by {font_name} — match its visual weight and personality"
 
 
+# Measured against gemini-2.5-flash-image: an assembled campaign prompt renders reliably at
+# ~8k characters and returns IMAGE_OTHER (an empty candidate, no safety block, no text) once
+# instruction-dense material pushes it past roughly 11k. These two caps keep it under that
+# with margin. They are deliberately generous rather than tight — the failure mode is silent,
+# and a slightly shorter brief costs far less than an image that never renders.
+_MAX_CONTEXT_HINT_CHARS = 3500
+_MAX_PROMPT_CHARS = 8000
+
+
+def enforce_prompt_budget(prompt: str, label: str = "") -> str:
+    """Last-resort clamp on a fully assembled image prompt.
+
+    The per-section caps above are the real control; this exists because the sections are
+    assembled in several places and a new one must not be able to reintroduce the failure
+    silently. Trims from the middle, which is where the narrative context sits — the head
+    carries the mandates and the tail carries the guardrails, both of which are load-bearing.
+    """
+    if len(prompt) <= _MAX_PROMPT_CHARS:
+        return prompt
+    head_budget = _MAX_PROMPT_CHARS * 2 // 3
+    tail_budget = _MAX_PROMPT_CHARS - head_budget
+    # Cut on paragraph boundaries where possible: a prompt severed mid-sentence reads as
+    # corrupted instruction text, which is the very thing that makes the model bail.
+    head = prompt[:head_budget]
+    if "\n\n" in head:
+        head = head.rsplit("\n\n", 1)[0]
+    tail = prompt[-tail_budget:]
+    if "\n\n" in tail:
+        tail = tail.split("\n\n", 1)[1]
+    logger.warning(
+        "image prompt over budget%s | %d -> %d chars",
+        f" ({label})" if label else "", len(prompt), len(head) + len(tail) + 2,
+    )
+    return head + "\n\n" + tail
+
+
 def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, context_hints: str = "", text_spec: dict | None = None, components: dict | None = None, campaign_shot_type: str = "", use_brand_colors: bool = True, product_locked: bool = False) -> str:
     style = _PLATFORM_STYLE.get(platform, "professional social media graphic")
 
@@ -626,10 +653,21 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
                 f"{tone}. "
             )
 
-    # context_hints is composition/narrative guidance only — never rendered as text
+    # context_hints is composition/narrative guidance only — never rendered as text.
+    # It is also the only unbounded input here: it is assembled per campaign by an LLM, so
+    # nothing upstream caps it, and it is what took the deployed prompt to 27,776 chars.
+    # Measured ceiling for a prompt that still renders is ~8k assembled, so this is clamped
+    # rather than trusted. Cut on a line boundary so a section is dropped whole.
+    hints = (context_hints or "").strip()
+    if len(hints) > _MAX_CONTEXT_HINT_CHARS:
+        keep = hints[:_MAX_CONTEXT_HINT_CHARS].rsplit("\n", 1)[0]
+        logger.info(
+            "context_hints clamped | %d -> %d chars", len(hints), len(keep)
+        )
+        hints = keep
     composition_context = (
-        f"[COMPOSITION CONTEXT — for visual direction only, do NOT render as text]: {context_hints}. "
-        if context_hints else ""
+        f"[COMPOSITION CONTEXT — for visual direction only, do NOT render as text]: {hints}. "
+        if hints else ""
     )
 
     # Pre-specified text to render exactly — prevents spelling mistakes and hallucinations
@@ -644,13 +682,10 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
             lines.append(f'• Subtext: "{text_spec["subtext"]}"')
         if lines:
             exact_text_block = (
-                "EXACT TEXT TO RENDER — copy these strings letter-for-letter, zero changes:\n"
+                "EXACT TEXT TO RENDER — copy letter-for-letter, no paraphrasing or abbreviation:\n"
                 + "\n".join(lines)
-                + "\nDO NOT paraphrase, abbreviate, or alter any word or character. "
-                "Render the text exactly as written. "
-                "Before finalizing, verify every rendered word character-by-character against the strings above — "
-                "a single wrong, swapped, or dropped letter in any word is a total failure of the image. "
-                "Render all text in a clean, highly legible typeface at a size where every letter is unambiguous.\n"
+                + "\nVerify every rendered word character-by-character before finalizing; one wrong "
+                "or dropped letter fails the image. Use a clean, highly legible typeface.\n"
             )
 
     # Typography instruction differs based on whether text is pre-specified
@@ -661,55 +696,35 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         )
     else:
         typography = (
-            "TYPOGRAPHY: Include bold, well-designed text directly in the image. "
-            "First check the COMPOSITION CONTEXT below: if it explicitly quotes a specific phrase meant as the "
-            "headline or text overlay (e.g. introduced by 'text overlay', 'headline', 'reads', or given in quotation "
-            "marks as the tagline), use that exact phrase verbatim as the headline — do not paraphrase, shorten, or "
-            "invent an alternative. Only if no such phrase is given, derive a SHORT headline (3-5 words max) from "
-            "the TOPIC using this method: "
-            "identify the single strongest ACTION or BENEFIT the topic implies, then express it as a verb-first imperative OR a 2-3 noun power phrase "
-            "(follow this PATTERN — not these words: 'Build Faster.', 'Own The Room.', 'Less Effort. More Impact.'). "
-            "The headline must express a BENEFIT or a TENSION — never a label of what the image literally shows "
-            "and never a generic category name ('Morning Routine', 'The Product', 'Our Team' are failures). "
-            "Do NOT copy the topic text verbatim. "
-            "Do NOT use generic adjectives like amazing, great, powerful, incredible, innovative, revolutionary. "
-            "Do NOT lift phrases from the brand atmosphere or audience context sections. "
-            "You may add a very brief supporting line (5-8 words) directly relevant to the topic. "
-            "Text must be clean, modern, perfectly legible, and integrated into the layout as a primary design element — not a caption. "
-            "Every word in both the headline and supporting line must be spelled correctly and appear exactly once — "
-            "no duplicated words, no repeated syllables, no invented word fragments. Proofread the text before rendering it. "
+            "TYPOGRAPHY: include bold, well-designed text in the image. If the COMPOSITION CONTEXT "
+            "below quotes a specific headline or overlay phrase, use it verbatim. Otherwise write a "
+            "3-5 word headline from the TOPIC: take its strongest action or benefit and phrase it as "
+            "a verb-first imperative or a short power phrase (pattern, not wording: 'Build Faster.', "
+            "'Own The Room.'). It must express a benefit or tension — never a label of what the image "
+            "shows, never a generic category name, never the topic text copied verbatim, and never "
+            "generic adjectives (amazing, powerful, innovative). A brief supporting line (5-8 words) "
+            "is optional. Integrate the text as a primary design element, not a caption, and proofread "
+            "it: every word spelled correctly and appearing exactly once. "
         )
 
     # Guardrails — explicit list of what must never appear as visible text
     guardrails_extra = (
-        "  ✗ Any text NOT from EXACT TEXT TO RENDER — do not invent or add any extra text\n"
+        "nothing beyond EXACT TEXT TO RENDER"
         if text_spec else
-        "  ✗ Internal instructions, prompt fragments, meta commentary, or analytical summaries\n"
+        "no instruction fragments or meta commentary"
     )
     injected_hex_note = (
-        f" — including the exact brand values {', '.join(injected_hexes)} given above"
-        if injected_hexes else ""
+        f" (including {', '.join(injected_hexes)})" if injected_hexes else ""
     )
+    # Measured: this block is the densest rules-per-character text in the prompt, and it is
+    # what tips a long prompt from "a scene to draw" into "a list of rules" — at 11,043 chars
+    # the same prompt renders without it and returns IMAGE_OTHER with it. Every sentence here
+    # costs headroom, so only the failures worth spending it on are listed.
     guardrails = (
-        "=== TEXT GUARDRAILS ===\n"
-        "ABSOLUTELY NEVER render any of the following as visible text in the image:\n"
-        f"  ✗ Hex color codes like #6C3CE1, #FF5733, or rgb(108,60,225){injected_hex_note} — apply as color values only, never print them\n"
-        "  ✗ Gibberish, pseudo-text, or lorem-ipsum ANYWHERE in the frame — laptop/phone screens, notebooks, "
-        "documents, packaging, signage, or background surfaces. Any surface that would carry text too small "
-        "to render correctly must instead show it soft, out-of-focus, or as abstract non-letter shapes — "
-        "fabricated letter-like scribbles read as AI artifacts and are a failure\n"
-        "  ✗ Text inside square brackets: [COMPOSITION CONTEXT], [VISUAL DIRECTION ONLY], [BRAND ATMOSPHERE], [AUDIENCE CONTEXT], [PLATFORM ENERGY], [EXACT TEXT TO RENDER]\n"
-        "  ✗ The words: prompt, system, instruction, context, composition, palette, brand colors, rgb, elaborate, describe, component, 5-component, pixel-perfect — these are internal workflow terms\n"
-        "  ✗ Any JSON-like syntax, field names, key-value pairs, or schema fragments\n"
-        "  ✗ Slide numbers, bullet markers, list syntax, or numbered sequences\n"
-        "  ✗ Any text from the composition context, brand atmosphere, audience context, or platform energy sections\n"
-        "  ✗ Brand voice phrases, company differentiators, taglines, or audience descriptors — these inform visual style only, never appear as image text\n"
-        "  ✗ The brand/company name rendered as standalone text separate from the logo — if the logo reference is provided, it already contains the brand name; do NOT duplicate it as independent text\n"
-        "  ✗ The MANDATORY SHOT DIRECTIVE / photography brief paragraph above (or any sentence from it) — that "
-        "text describes how to shoot the photo for the photographer; it must never appear printed, captioned, "
-        "or overlaid anywhere in the actual image\n"
-        + guardrails_extra
-        + "=== END GUARDRAILS ==="
+        "Render no text in the image except the intended headline/copy: "
+        f"no hex or rgb() values{injected_hex_note}, no bracketed labels, no wording from the "
+        f"shot directive or brand/audience sections, {guardrails_extra}. Any lettering too "
+        "small to render correctly must be soft or out of focus rather than invented."
     )
 
     # Product lock mandate — placed before the shot mandate and composition block so it
@@ -718,43 +733,19 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     # product to match abstract/futuristic brief language.
     product_lock_mandate = ""
     if product_locked:
+        # Deliberately short, and deliberately NOT a restatement of
+        # product_identity_instructions() (appended later by the caller, which already
+        # covers snapshot artifacts, label text, and not copying the reference framing).
+        # The only job left here is priority: this outranks the SUBJECT field, which a
+        # text-only LLM writes without ever seeing the reference photo.
         product_lock_mandate = (
-            "╔══════════════════════════════════════════════════════╗\n"
-            "║  PRODUCT IDENTITY LOCK — ABSOLUTE HIGHEST PRIORITY     ║\n"
-            "╚══════════════════════════════════════════════════════╝\n"
-            "One or more reference photos of the real product are attached to this request — these may include "
-            "the physical item itself and/or its packaging, box, or printed label art (not necessarily just "
-            "different camera angles of one object). Its exact shape, colors, materials, proportions, and any "
-            "labels/markings/brand name/logo/printed text visible in ANY reference are NON-NEGOTIABLE and FIXED — "
-            "reproduce them verbatim, never a different device, gadget, container, or symbolic substitute, and "
-            "never a different or omitted brand name/logo/text than what the references actually show. Wherever "
-            "the text below (including any SUBJECT field) describes the product using invented visual details — "
-            "a different shape, material, brand name, or a futuristic/sci-fi reinterpretation — IGNORE that "
-            "invented description and render the actual product and its actual branding from the reference "
-            "photos instead. Abstract or futuristic language elsewhere in this prompt describes the mood of the "
-            "SETTING and LIGHTING around the product, not a redesign of the product or its branding.\n\n"
-            "The reference photo(s) may be an ordinary, hand-taken snapshot — imperfect lighting, a mediocre or "
-            "awkward camera angle, motion blur, glare, or cluttered background in the reference are incidental "
-            "artifacts of how it was casually captured, NOT part of the product's identity. Study the reference "
-            "carefully to separate the two: the TRUE PRODUCT (its exact shape, color, material, proportions, "
-            "and any visible label/markings/text) must be preserved faithfully, while the photo's own poor "
-            "lighting, framing, or angle should NOT be copied into the output. Confidently infer the product's "
-            "plausible complete 3D form from whatever partial view the reference shows, and render it "
-            "competently, sharply, and attractively from the specific angle THIS shot's directive requires — "
-            "even if that angle differs entirely from the one angle the reference happened to capture.\n\n"
-            "LABEL/PACKAGING TEXT — NEVER FABRICATE FAKE TEXT: if the product's label, packaging, or printed "
-            "markings are visible in this shot, there are only two acceptable outcomes: (a) render the exact "
-            "real brand name, dosage, and other printed text from the reference photos, faithfully legible — "
-            "this is the default whenever the label is a meaningful part of the frame; or (b) if this shot's "
-            "distance or angle would naturally make fine print too small to read (e.g. a wide shot, wide "
-            "wide establishing shot, or the label turned away from camera), render the label as a soft, "
-            "naturally out-of-focus or distant design element — matching its real colors and general layout at "
-            "a glance — WITHOUT attempting to render legible characters. Inventing garbled, scrambled, or "
-            "nonsense pseudo-text on a label — text that isn't the real label copy and isn't a real language "
-            "either — is a failure exactly like getting the brand name wrong, even when the rest of the shot is "
-            "good. When unsure whether text will render legibly, prefer a soft/blurred label over a crisp but "
-            "fabricated one.\n"
-            "══════════════════════════════════════════════════════════\n\n"
+            "PRODUCT IDENTITY LOCK — HIGHEST PRIORITY: reference photos of the real product are "
+            "attached. Their shape, colours, materials, proportions, branding, and printed text are "
+            "FIXED. Where anything below (especially the SUBJECT field) describes the product with "
+            "invented details — a different shape, material, brand name, or futuristic "
+            "reinterpretation — ignore that and render the real product from the references. "
+            "Abstract language elsewhere describes the SETTING and LIGHTING, never a redesign of "
+            "the product.\n\n"
         )
 
     # Campaign shot mandate — placed before everything else so Gemini cannot miss it.
@@ -764,22 +755,12 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     shot_mandate = ""
     if campaign_shot_type:
         shot_mandate = (
-            "╔══════════════════════════════════════════════════════╗\n"
-            "║  MANDATORY SHOT DIRECTIVE — ABSOLUTE HIGHEST PRIORITY  ║\n"
-            "╚══════════════════════════════════════════════════════╝\n"
-            "The paragraph below is a photography brief describing HOW TO SHOOT this photo — camera "
-            "angle, lighting, environment, and narrative framing for the photographer. It is NOT a "
-            "caption, headline, or body copy. NEVER render any part of it as visible text, typography, "
-            "or a text overlay in the image itself — treat it exactly like a director's verbal "
-            "instructions on set, which a viewer of the finished photo would never see written out.\n\n"
+            "MANDATORY SHOT DIRECTIVE — HIGHEST PRIORITY. The paragraph below is a photography "
+            "brief: how to shoot this photo. It is direction for the photographer, never caption "
+            "or overlay text — no part of it may appear written in the image.\n\n"
             f"{campaign_shot_type}\n\n"
-            "This is a professional product campaign photograph. "
-            "The shot description above dictates EXACTLY: the camera angle, the product orientation, "
-            "the framing, and the environment. Execute it with precision as a PHOTOGRAPH, not as a "
-            "poster or graphic with paragraphs of printed text — "
-            "deviating from the specified angle or framing is a failure, and so is printing this "
-            "description's words onto the image.\n"
-            "══════════════════════════════════════════════════════════\n\n"
+            "Execute that camera angle, product orientation, framing, and environment precisely, as "
+            "a PHOTOGRAPH rather than a poster or graphic.\n\n"
         )
 
     # 5-component composition block — placed after shot mandate so Gemini treats it as primary directive
@@ -821,15 +802,12 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
         f"Visual style: {style}. "
         f"{typography}"
         f"{exact_text_block}"
-        f"COMPOSITION: Execute the concept above as a cinematic art director would — not a template, a specific vision. "
-        f"Apply these techniques deliberately: environmental storytelling through a single unexpected prop or detail "
-        f"that reframes the subject; forced perspective, Dutch angle, or extreme hero framing for visual tension; "
-        f"negative space that feels intentional and charged, not empty; a background detail that rewards a second viewing "
-        f"— something a viewer notices only after the first impression lands. "
-        f"The image must communicate its core idea at thumbnail scale AND reveal new detail on close inspection. "
-        f"FORBIDDEN: bordered card inside canvas, square frame inside square, centered text on plain gradient, "
-        f"generic white panel on colored background, symmetrical centered compositions — these read as Canva templates, not creative direction. "
-        f"Output must look like it was commissioned by a world-class brand, not generated by a default AI pipeline. "
+        f"COMPOSITION: execute this as a cinematic art director would — a specific vision, not a "
+        f"template. Use charged negative space, deliberate perspective or hero framing for tension, "
+        f"and one background detail that rewards a second look. It must read at thumbnail scale and "
+        f"still reveal detail up close. FORBIDDEN: a bordered card inside the canvas, centred text "
+        f"on a plain gradient, a white panel on a coloured background, symmetrical centred layouts "
+        f"— these read as templates, not art direction. "
         f"{guardrails}"
     )
 
@@ -843,23 +821,18 @@ def _asset_mandate(use_logo: bool, use_mascot: bool) -> str:
     parts: list[str] = []
     if use_logo:
         parts.append(
-            "MANDATORY LOGO: The brand logo reference image MUST be composited into the final image. "
-            "Place it where it fits naturally in the composition — a corner (bottom-right or top-right preferred), an edge, or integrated into the scene if that reads better — rendered with clean anti-aliased edges. "
-            "Do NOT omit the logo. A final image without the logo is WRONG."
+            "MANDATORY LOGO: composite the brand logo reference into the final image — a corner "
+            "(bottom-right preferred), an edge, or integrated into the scene — with clean "
+            "anti-aliased edges. An image without the logo is wrong."
         )
     if use_mascot:
         parts.append(
-            "MANDATORY MASCOT: The brand mascot reference image MUST appear in the final image. "
-            "Incorporate it naturally into the scene. "
-            "Do NOT omit the mascot. A final image without the mascot is WRONG."
+            "MANDATORY MASCOT: the brand mascot reference must appear in the final image, "
+            "incorporated naturally into the scene. An image without the mascot is wrong."
         )
     if not parts:
         return ""
-    return (
-        "=== NON-NEGOTIABLE ASSET REQUIREMENTS — HIGHEST PRIORITY ===\n"
-        + "\n".join(parts)
-        + "\n=== END ASSET REQUIREMENTS ===\n\n"
-    )
+    return "ASSET REQUIREMENTS — HIGHEST PRIORITY. " + " ".join(parts) + "\n\n"
 
 
 async def generate_social_image(
@@ -1053,12 +1026,9 @@ async def generate_social_image(
                 full_prompt = (
                     f"{mandate}"
                     f"{base_prompt}\n\n"
-                    f"PRODUCT CAMPAIGN PHOTOGRAPH: This is a professional product campaign shot, not a brand "
-                    f"awareness graphic. The uploaded product must be clearly, prominently visible and in sharp "
-                    f"focus in EVERY photo — never sidelined, blurred beyond recognition, tiny, or cropped out, "
-                    f"even in photos whose composition role centers a person's emotion or story beat. The "
-                    f"narrative can lead with a human moment, but the product itself is never an afterthought — "
-                    f"it must always read as a deliberate, unmistakable part of the frame.\n\n"
+                    f"PRODUCT CAMPAIGN PHOTOGRAPH, not a brand-awareness graphic: the uploaded product "
+                    f"stays clearly visible and in sharp focus — never sidelined, tiny, or cropped out, even "
+                    f"when the shot leads with a human moment.\n\n"
                     f"{product_instructions}"
                     + ("\n" + "\n".join(extra_instructions) if extra_instructions else "")
                 )
@@ -1134,6 +1104,7 @@ async def generate_social_image(
                     + ("\n" + "\n".join(extra_instructions) if extra_instructions else "")
                 )
 
+            full_prompt = enforce_prompt_budget(full_prompt, "reference-mode")
             b64 = await llm.generate_image_with_image_bytes(full_prompt, all_images, aspect_ratio=aspect_ratio)
             logger.info("image_gen reference+brand done | user=%s refs=%d logo=%s mascot=%s campaign=%s", user_id, len(ref_images_ext), use_logo, use_mascot, campaign_mode)
             return ImageResult(image_base64=b64, content_type="image/png", prompt_used=full_prompt)

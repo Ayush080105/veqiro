@@ -1294,27 +1294,11 @@ _CAMPAIGN_SYSTEM_PROMPT = """You are a world-class commercial photographer and a
 
 You receive a reference image of the product. Your job: produce the shot defined by the MANDATORY SHOT DIRECTIVE with the precision and intentionality of a commissioned editorial photographer.
 
-════════════════════════════════════════
-WHAT IS FIXED vs WHAT MUST CHANGE
-════════════════════════════════════════
+FIXED across the campaign: the product's exact colours, materials, finish, element count, and
+silhouette. DIFFERENT in every photo: camera angle, framing, environment, lighting character
+within the locked style, and styling.
 
-FIXED — the product's identity never changes:
-- Exact colors, materials, and finish of the product
-- Element count (if the product has 6 parts, every photo shows exactly 6)
-- Overall design language and silhouette
-
-MUST CHANGE — every photo is a completely different shot:
-- Camera angle and position: follow the MANDATORY SHOT DIRECTIVE exactly
-- Framing and crop: how much of the product is visible
-- Environment and background: entirely different scene per photo
-- Lighting character: shifts within the locked style (hard vs soft, warm vs cool rim)
-- Styling details: different surface, different props arrangement
-
-════════════════════════════════════════
-MAGAZINE PHOTOGRAPHY STANDARDS
-════════════════════════════════════════
-
-Every photo must pass this editorial quality bar:
+MAGAZINE PHOTOGRAPHY STANDARDS — every photo must pass this editorial bar:
 - LIGHTING: One clear, intentional light source direction — no flat, omnidirectional lighting
 - NEGATIVE SPACE: Deliberately composed — empty areas are a design decision, not an accident
 - SURFACE TEXTURE: The surface the product rests on must have real texture and material character
@@ -1322,15 +1306,8 @@ Every photo must pass this editorial quality bar:
 - SHARPNESS: Product is tack-sharp; background transitions to controlled bokeh or intentional blur
 - NO CLUTTER: Every prop and element in frame is there by decision — nothing accidental
 
-════════════════════════════════════════
-EXECUTION
-════════════════════════════════════════
-
-STEP 1: Memorize the product's exact colors, materials, element count, and visual identity from the reference.
-STEP 2: Execute the MANDATORY SHOT DIRECTIVE — camera position, framing, and environment are non-negotiable.
-STEP 3: Apply the Campaign Style Lock for consistent color grading and lighting mood across photos.
-
-Sameness across photos is a failure. Each shot must be unmistakably a different photograph."""
+Apply the Campaign Style Lock below for consistent colour grading and lighting mood across the
+set. Sameness across photos is a failure — each shot must be unmistakably a different photograph."""
 
 _PROBLEM_BEAT = (
     "THE PROBLEM — Camera close and intimate, eye-level or slightly above, natural candid feel — not stiff or "
@@ -1688,7 +1665,13 @@ async def create_campaign(request: CampaignRequest):
     if role_environments is None:
         role_environments = [_env_label(r) for r in roles]
 
-    def _make_hints(role: str, photo_index: int) -> str:
+    def _make_hints(photo_index: int, compact: int = 0) -> str:
+        """Campaign guidance for one photo. `compact` sheds context as retries escalate.
+
+        IMAGE_OTHER is returned for a prompt carrying too much instruction-dense text, so a
+        retry that re-sends the identical prompt cannot succeed — it just pays for the same
+        failure again. Each level drops the least load-bearing block still present.
+        """
         this_env = role_environments[photo_index]
         forbidden_envs = [
             f"Photo {i + 1}: {env}"
@@ -1708,20 +1691,20 @@ async def create_campaign(request: CampaignRequest):
             f"not pull forward a later beat's content or repeat an earlier beat's content.\n\n"
             if total_photos > 1 else ""
         )
+        # Level 1 drops the art-direction preamble, level 2 also drops the style lock —
+        # consistency across photos degrades before the photo fails to exist.
+        preamble = f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n" if compact < 1 else ""
+        lock_block = f"{style_lock}\n\n" if compact < 2 else ""
+        if compact >= 2:
+            story_arc_note = ""
         return (
-            f"{_CAMPAIGN_SYSTEM_PROMPT}\n\n"
-            f"{style_lock}\n\n"
+            f"{preamble}"
+            f"{lock_block}"
             f"THIS IS PHOTO {photo_index + 1} OF {total_photos} IN THE CAMPAIGN.\n\n"
             f"{story_arc_note}"
-            f"COMPOSITION ROLE — this defines the camera angle AND how the product is oriented/framed for this specific photo:\n"
-            f"{role}\n\n"
             f"ASSIGNED ENVIRONMENT FOR THIS PHOTO: {this_env}\n"
             f"You MUST use this environment category. Do NOT substitute a different surface, background, or setting.\n\n"
             f"{forbidden_block}"
-            f"PRODUCT IDENTITY LOCK:\n"
-            f"• Keep the product's colors, design style, and element count exactly the same as the reference.\n"
-            f"• Do NOT add or remove any characters, objects, or elements from the product.\n"
-            f"• The camera angle, orientation, and framing of the product MUST follow the composition role above — this is what makes each photo different.\n\n"
             f"CAMPAIGN BRIEF — apply the following from this brief:\n"
             f"  • LIGHTING FEEL: What quality of light does the brief suggest? Align with the Style Lock above.\n"
             f"  • COLOR STORY: What dominant hues does this brief imply? Use them in background and props, not the product.\n"
@@ -1734,7 +1717,7 @@ async def create_campaign(request: CampaignRequest):
         )
 
     async def _gen_photo(role: str, photo_index: int) -> CampaignPhoto | None:
-        hints = _make_hints(role, photo_index)
+        hints = _make_hints(photo_index)
         # Every photo goes through the same product-reference path (product URLs + logo/mascot).
         # An earlier version fed photo 1's own AI-generated output back in as a "style anchor"
         # for photos 2+, but that reliably triggers Gemini's IMAGE_OTHER safety policy (it flags
@@ -1752,6 +1735,15 @@ async def create_campaign(request: CampaignRequest):
                     await asyncio.sleep(30 + attempt * 30)
                 else:
                     await asyncio.sleep(2 * attempt)
+                # IMAGE_OTHER means the model returned an empty candidate — no safety block,
+                # no text. Re-sending the same prompt reproduces it exactly, so shed context
+                # before retrying rather than paying for the identical failure three times.
+                if "IMAGE_OTHER" in last_err_str:
+                    hints = _make_hints(photo_index, compact=attempt)
+                    logger.info(
+                        "campaign image_gen retrying with compact=%d hints | role=%s",
+                        attempt, role[:60],
+                    )
             try:
                 image = await generate_social_image(
                     prompt=request.campaign_brief,
