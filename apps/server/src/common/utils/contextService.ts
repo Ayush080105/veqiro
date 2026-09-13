@@ -200,6 +200,204 @@ export async function recordDirectActionContextForAssistantMessage(messageId: st
   }
 }
 
+/** One parsed SSE frame, e.g. `{ event: "token", data: '{"text":"Hi","agent":"lex"}' }`. */
+export interface SseEvent {
+  event: string
+  data: string
+}
+
+/**
+ * Splits a raw Node.js readable stream of `event: X\ndata: Y\n\n`-shaped SSE
+ * text (apps/ai's wire format — see core/streaming.py's `sse_format`) into
+ * parsed frames. A read/parse failure (network drop, malformed frame) yields
+ * a synthetic `error` frame instead of throwing, so a caller relaying frames
+ * straight to an HTTP response can always close the SSE stream cleanly.
+ */
+async function* parseSseStream(stream: NodeJS.ReadableStream): AsyncGenerator<SseEvent, void, unknown> {
+  let buffer = ""
+  try {
+    for await (const chunk of stream) {
+      buffer += (chunk as Buffer).toString("utf8")
+      let sepIndex: number
+      while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
+        const rawFrame = buffer.slice(0, sepIndex)
+        buffer = buffer.slice(sepIndex + 2)
+        const lines = rawFrame.split("\n")
+        const eventLine = lines.find((l) => l.startsWith("event:"))
+        const dataLine = lines.find((l) => l.startsWith("data:"))
+        if (!eventLine || !dataLine) continue
+        yield {
+          event: eventLine.slice("event:".length).trim(),
+          data: dataLine.slice("data:".length).trim(),
+        }
+      }
+    }
+  } catch (err) {
+    yield {
+      event: "error",
+      data: JSON.stringify({
+        message: err instanceof Error ? err.message : String(err),
+        code: "stream_read_error",
+      }),
+    }
+  }
+}
+
+/**
+ * Streaming sibling of `callAgentWithContext`: same context-build (steps 1,
+ * 2, 2.5) and the same final memory write (step 4), but calls the agent's
+ * `/chat/stream` route instead of `/chat` and relays each SSE frame as it
+ * arrives instead of waiting for one JSON response.
+ *
+ * Yields every frame apps/ai sends (`tool_call`, `tool_result`, `token`,
+ * `metadata`, `error`, `done`) — the caller is responsible for writing these
+ * to its own client-facing stream. Once the underlying stream ends, returns
+ * the reconstructed `AgentChatResponse` (accumulated token text + the `done`
+ * frame's fields) so the caller can persist it exactly as it would the
+ * return value of `callAgentWithContext` — or `null` if the stream ended
+ * without a `done` frame (i.e. an `error` frame was seen instead).
+ */
+export async function* streamAgentWithContext(
+  opts: AgentCallOptions,
+): AsyncGenerator<SseEvent, AgentChatResponse | null, unknown> {
+  const {
+    agentApiPath, agentEnum, agentRole, userId, organizationId,
+    conversationId, userMessage, rawHistory, extraPayload = {}, topLevelPayload = {},
+  } = opts
+
+  // 1. Try to build optimized context — silently fall back on any error
+  let built: BuildContextResponse | null = null
+  try {
+    const [agentMem, orgMem] = await Promise.all([
+      contextRepo.findAgentMemory(organizationId, agentEnum),
+      contextRepo.findOrgMemory(organizationId),
+    ])
+    const ascHistory = toAscHistory(rawHistory)
+
+    const sharedMem = (orgMem?.sharedMemory as Record<string, unknown>) ?? {}
+    const sharedParts: string[] = []
+    if (sharedMem.goals) sharedParts.push(`Goals: ${(sharedMem.goals as string[]).join(", ")}`)
+    if (sharedMem.product) sharedParts.push(`Product: ${sharedMem.product as string}`)
+    if (sharedMem.decisions) sharedParts.push(`Decisions: ${(sharedMem.decisions as string[]).slice(-3).join("; ")}`)
+    if (sharedMem.userPreferences && (sharedMem.userPreferences as string[]).length > 0)
+      sharedParts.push(`Preferences I've learned: ${(sharedMem.userPreferences as string[]).join("; ")}`)
+
+    const { data } = await aiService.post<BuildContextResponse>("/ai/context/build", {
+      user_message: userMessage,
+      hot_history: ascHistory,
+      running_summary: agentMem?.runningSummary ?? "",
+      org_summary: orgMem?.runningSummary ?? "",
+      long_term_facts: [
+        ...((agentMem?.longTermFacts as string[]) ?? []),
+        ...((orgMem?.longTermFacts as string[]) ?? []),
+      ],
+      org_shared_context: sharedParts.join(" | "),
+      org_id: organizationId,
+      agent: agentEnum.toLowerCase(),
+    })
+    built = data
+  } catch {
+    // context build failed — use raw history
+  }
+
+  // 2. Assemble history: hot + semantic (already deduped by FastAPI)
+  const history = built
+    ? [...built.hot_messages, ...built.semantic_messages]
+    : [...rawHistory].reverse()
+
+  // 2.5. Resolve this org's connected MCP tools relevant to this agent, plus
+  // the agent's full connectable catalog — see callAgentWithContext for why.
+  let mcpMeta: Record<string, unknown> = {}
+  try {
+    const connections = await getConnectionsForAgent(organizationId, agentEnum)
+    const agentSlug = agentEnum.toLowerCase() as AgentSlug
+    const catalog = getCatalogForAgent(agentEnum, connections)
+    const { preferredIntegrationSlug } = await getToolPreference(organizationId, agentSlug)
+    mcpMeta = {
+      ...(connections.length > 0 ? { mcp_connections: connections } : {}),
+      ...(catalog.length > 0 ? { mcp_catalog: catalog } : {}),
+      ...(preferredIntegrationSlug ? { mcp_tool_preference: preferredIntegrationSlug } : {}),
+    }
+  } catch (err) {
+    console.error("[context] mcp connection resolution failed — continuing without MCP tools", err)
+  }
+
+  // 3. Call the agent's streaming sibling route (see agents/*/routes.py).
+  const response = await aiService.post(
+    `${agentApiPath}/stream`,
+    {
+      user_id: userId,
+      organization_id: organizationId,
+      conversation_id: conversationId,
+      message: userMessage,
+      history,
+      ...topLevelPayload,
+      metadata: {
+        ...extraPayload,
+        ...mcpMeta,
+        ...(built?.memory_block ? { memory_context: built.memory_block } : {}),
+      },
+    },
+    { responseType: "stream" },
+  )
+
+  let accumulatedText = ""
+  let doneData: Record<string, unknown> | null = null
+  let sawError = false
+
+  for await (const evt of parseSseStream(response.data)) {
+    if (evt.event === "token") {
+      try {
+        accumulatedText += (JSON.parse(evt.data) as { text: string }).text ?? ""
+      } catch {
+        // malformed token frame — still relay it below, just don't count its text
+      }
+    } else if (evt.event === "done") {
+      try {
+        doneData = JSON.parse(evt.data) as Record<string, unknown>
+      } catch {
+        sawError = true
+      }
+    } else if (evt.event === "error") {
+      sawError = true
+    }
+    yield evt
+  }
+
+  if (!doneData || sawError) return null
+
+  const reconstructed: AgentChatResponse = {
+    response: accumulatedText,
+    agent: agentEnum.toLowerCase(),
+    message_id: String(doneData.message_id ?? ""),
+    tokens_used: Number(doneData.tokens_used ?? 0),
+    model_used: String(doneData.model_used ?? ""),
+    metadata: (doneData.metadata as Record<string, unknown>) ?? {},
+    image: doneData.image ?? null,
+    action_id: (doneData.action_id as string | null) ?? null,
+    action_result: (doneData.action_result as Record<string, unknown> | null) ?? null,
+    tool_trace: (doneData.tool_trace as AgentChatResponse["tool_trace"]) ?? [],
+  }
+
+  // 4. Same monitored context write callAgentWithContext does for chat-shaped
+  // responses (see its step 4 for the latency/durability note).
+  if (!opts.skipMemory) {
+    await recordAgentTurnContext({
+      organizationId,
+      agent: agentEnum,
+      agentRole,
+      conversationId,
+      userContent: userMessage,
+      assistantContent: reconstructed.response,
+      recentMessages: rawHistory,
+      actionId: reconstructed.action_id ?? undefined,
+      actionSummary: reconstructed.response,
+    })
+  }
+
+  return reconstructed
+}
+
 export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCallOptions): Promise<T> {
   const {
     agentApiPath, agentEnum, agentRole, userId, organizationId,

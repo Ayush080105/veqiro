@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   msgSage,
+  msgSageStream,
   getSageMessages,
   keywordResearch,
   generateBlog,
@@ -21,6 +22,7 @@ import {
 const router = Router();
 
 router.post("/chat", msgSage);
+router.post("/chat/stream", msgSageStream);
 router.get("/chat", getSageMessages);
 router.post("/keyword-research", keywordResearch);
 router.post("/generate-blog", generateBlog);

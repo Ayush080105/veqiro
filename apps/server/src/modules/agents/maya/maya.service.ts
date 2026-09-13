@@ -2,7 +2,11 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { getBrandImagesForGeneration } from "../../brand-images/brand-images.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext } from "../../../common/utils/contextService.js";
+import {
+  callAgentWithContext,
+  streamAgentWithContext,
+  type SseEvent,
+} from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import { isR2Configured, uploadImageBase64, uploadBuffer } from "../../../common/utils/r2.js";
 import * as mayaRepository from "./maya.repository.js";
@@ -290,6 +294,173 @@ export const sendMessage = async (
 
   return assistantMessage;
 };
+
+/**
+ * Streaming sibling of `sendMessage`. Follows the same shape as
+ * lex.service.ts's streamMessage, but keeps every Maya-specific
+ * post-processing step (R2 image hosting, in-place modify-image patching,
+ * regenerate-image synthesis) exactly as sendMessage does it — none of that
+ * is itself streamed, it all still runs once against the fully-reconstructed
+ * response after the SSE loop ends, same timing as today.
+ */
+export async function* streamMessage(
+  userId: string,
+  organizationId: string,
+  input: SendMessageInput
+): AsyncGenerator<SseEvent, void, unknown> {
+  const history = await mayaRepository.findRecentMessages(
+    organizationId,
+    CONTEXT_HISTORY_LIMIT
+  );
+  const lastImageUrl = history.find(m => m.role === "assistant" && m.imageUrl)?.imageUrl ?? undefined;
+  const userMessage = await mayaRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: input.content,
+  });
+
+  const plannedRun = await maybeStartPlannedRun({
+    organizationId,
+    userId,
+    agent: Agent.MAYA,
+    content: input.content,
+  });
+  if (plannedRun) {
+    yield { event: "plan_started", data: JSON.stringify(plannedRun) };
+    return;
+  }
+
+  const iterator = streamAgentWithContext({
+    agentApiPath: "/ai/maya/chat",
+    agentEnum: Agent.MAYA,
+    agentRole: "Maya: Social media content creation assistant",
+    userId,
+    organizationId,
+    conversationId: input.conversationId ?? userMessage.id,
+    userMessage: input.content,
+    rawHistory: history,
+    extraPayload: lastImageUrl ? { last_image_url: lastImageUrl } : {},
+  });
+
+  let step: IteratorResult<SseEvent, AssistantMessagePayload | null>;
+  // eslint-disable-next-line no-cond-assign
+  while (!(step = (await iterator.next()) as IteratorResult<SseEvent, AssistantMessagePayload | null>).done) {
+    yield step.value;
+  }
+  const responseData = step.value;
+  if (!responseData) return; // error already relayed as an SSE `error` frame
+
+  const pendingActions = mcpService.readPendingActions(responseData)
+  const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
+  const stageIfNeededStream = async (messageId: string) => {
+    if (pendingActions?.length) {
+      await mcpService.stagePendingActions({ organizationId, userId, agent: Agent.MAYA, messageId, pendingActions })
+    }
+  }
+
+  let imageUrl: string | undefined = responseData.image?.url;
+  if (!imageUrl && responseData.image?.image_base64 && isR2Configured()) {
+    try {
+      const upload = await uploadImageBase64({
+        organizationId,
+        name: "maya",
+        base64: responseData.image.image_base64,
+        contentType: responseData.image.content_type,
+      });
+      imageUrl = upload.url;
+    } catch (err) {
+      console.error("[maya] chat image upload failed", err);
+    }
+  }
+
+  if (responseData.action_id === "maya:modify-image" && imageUrl) {
+    const lastImageMessage = history.find(m => m.role === "assistant" && m.imageUrl);
+    if (lastImageMessage?.id) {
+      await mayaRepository.updateMessageImage(lastImageMessage.id, imageUrl, {
+        image_url: imageUrl,
+        content_type: responseData.image?.content_type ?? "image/png",
+        prompt_used: responseData.image?.prompt_used ?? "",
+      });
+    }
+    const modifyImageMessage = await mayaRepository.createAssistantMessage({
+      organizationId,
+      userId,
+      content: responseData.response,
+      tokensUsed: responseData.tokens_used,
+      model: responseData.model_used,
+      customInput: lastImageMessage?.id
+        ? {
+            result: {
+              _modifyImagePatch: true,
+              patchedMessageId: lastImageMessage.id,
+              image: {
+                image_url: imageUrl,
+                content_type: responseData.image?.content_type ?? "image/png",
+                prompt_used: responseData.image?.prompt_used ?? "",
+              },
+            },
+            pendingActions: pendingActionsSnapshot,
+          }
+        : pendingActionsSnapshot
+          ? { pendingActions: pendingActionsSnapshot }
+          : undefined,
+    });
+    await stageIfNeededStream(modifyImageMessage.id);
+    yield { event: "persisted", data: JSON.stringify(modifyImageMessage) };
+    return;
+  }
+
+  let customInput: Record<string, unknown> | undefined;
+  if (responseData.action_id && responseData.action_result) {
+    const result = { ...responseData.action_result } as Record<string, unknown>;
+    if (
+      imageUrl &&
+      ["maya:draft-content", "maya:generate-ideas", "maya:generate-variants"].includes(
+        responseData.action_id
+      )
+    ) {
+      result.image = {
+        image_url: imageUrl,
+        content_type: responseData.image?.content_type ?? "image/png",
+        prompt_used: responseData.image?.prompt_used ?? "",
+      };
+    }
+    customInput = { actionId: responseData.action_id, input: {}, result, pendingActions: pendingActionsSnapshot };
+  }
+
+  if (imageUrl && !customInput) {
+    customInput = {
+      actionId: "maya:regenerate-image",
+      input: {},
+      result: {
+        image: {
+          image_url: imageUrl,
+          content_type: responseData.image?.content_type ?? "image/png",
+          prompt_used: responseData.image?.prompt_used ?? "",
+        },
+      },
+      pendingActions: pendingActionsSnapshot,
+    };
+  }
+  if (!customInput && pendingActionsSnapshot) {
+    customInput = { pendingActions: pendingActionsSnapshot };
+  }
+  customInput = mcpService.withToolTrace(customInput, responseData.tool_trace);
+
+  const assistantMessage = await mayaRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: responseData.response,
+    imageUrl,
+    tokensUsed: responseData.tokens_used,
+    model: responseData.model_used,
+    customInput,
+  });
+
+  await stageIfNeededStream(assistantMessage.id);
+
+  yield { event: "persisted", data: JSON.stringify(assistantMessage) };
+}
 
 export const listMessages = (
   organizationId: string,

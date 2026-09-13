@@ -3,12 +3,14 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
+from core.streaming import sse_format, stream_chat_sync_response
 from agents.scout.agent import ScoutAgent
 from agents.scout.scraper import scrape_url, fetch_rss, google_autocomplete
 
@@ -178,6 +180,15 @@ async def scout_chat(request: ChatRequest) -> ChatSyncResponse:
         return await _agent.chat_sync(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat/stream", summary="Scout chat (streamed)")
+async def scout_chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Same as /chat, but progressively — live tool_call/tool_result events
+    followed by chunked token events, then a done event carrying the same
+    fields the non-streaming response returns."""
+    events = stream_chat_sync_response(_agent.chat_sync_stream(request), _agent.slug)
+    return StreamingResponse(sse_format(events), media_type="text/event-stream")
 
 
 @router.post("/research-topic", response_model=ResearchTopicResponse, summary="Research a topic")

@@ -1,23 +1,19 @@
 ﻿"use client"
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react"
+import { useEffect, useLayoutEffect, useMemo, useState, useCallback } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { useQuery, useMutationState, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug, CalendarDays } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
-import { apiFetch, ApiError } from "@/lib/api/client"
+import { apiFetch } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
-import {
-  getMessages,
-  useSendMessage,
-  AgentNotAvailableError,
-} from "@/lib/api/assistants"
 import { useBrandKit } from "@/lib/api/brain"
+import { useAgentChat, WINDOW } from "@/lib/hooks/use-agent-chat"
 import { useMcpConnections, useMcpToolPreference, useSetMcpToolPreference } from "@/lib/api/mcp"
 import { getIntegrationsByAgent } from "@repo/integrations-catalog"
 
@@ -57,12 +53,6 @@ import type {
 import type { AgentActionId, MayaDraftResult, MayaImageRegenResult, MayaVariantResult, MayaCampaignResult, MayaCarouselDraftResult, ImageResult, MayaContentRegenResult } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 import { expandTemplate } from "@/lib/agents/maya/videoTemplates"
-import {
-  mergeMessageWindow,
-  mergeServerSnapshot,
-  parseCachedMessageWindow,
-  setMessageDeliveryStatus,
-} from "@/lib/chat/message-window"
 
 const AgentInfoPanel = dynamic(() => import("@/components/assistants/AgentInfoPanel"))
 const HelpSheet = dynamic(() => import("@/components/chat/HelpSheet").then((module) => module.HelpSheet))
@@ -290,13 +280,6 @@ function EmptyState({
   )
 }
 
-function genConversationId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID()
-  }
-  return `conv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-}
-
 export default function AssistantChatPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -307,107 +290,29 @@ export default function AssistantChatPage() {
   const organizationId = activeOrg?.id ?? ""
   const queryClient = useQueryClient()
 
-  const WINDOW = 20
-  const [msgWindow, setMsgWindow] = useState<Message[]>([])
-  const [hasPreviousPage, setHasPreviousPage] = useState(false)
-  const [isLoadingPrev, setIsLoadingPrev] = useState(false)
-  const [initialLoaded, setInitialLoaded] = useState(false)
-  const [fetchError, setFetchError] = useState<ApiError | null>(null)
-  const [isAtBottom, setIsAtBottom] = useState(true)
+  const {
+    msgWindow,
+    setMsgWindow,
+    hasPreviousPage,
+    isLoadingPrev,
+    historyLoaded,
+    fetchError,
+    isAtBottom,
+    setIsAtBottom,
+    isAtBottomRef,
+    loadPreviousPage,
+    content,
+    setContent,
+    sendError,
+    isLoading,
+    handleSend,
+    handleRestoreDraft,
+    conversationIdRef,
+    chatScrollRef,
+    scrollAnchorRef,
+    scrollIntentRef,
+  } = useAgentChat(id, organizationId, agent?.name)
 
-  const conversationIdRef = useRef<string>(genConversationId())
-  const chatScrollRef = useRef<HTMLDivElement>(null)
-  const scrollAnchorRef = useRef<number | null>(null)
-  const scrollIntentRef = useRef<"instant" | "smooth" | null>("instant")
-  const thisMutationRef = useRef(false)
-  const prevMutationStatusRef = useRef<string | undefined>(undefined)
-  const didCatchUpRef = useRef(false)
-  const isAtBottomRef = useRef(isAtBottom)
-  const activeChatKey = `${organizationId}:${id}`
-  const activeChatKeyRef = useRef(activeChatKey)
-  activeChatKeyRef.current = activeChatKey
-  isAtBottomRef.current = isAtBottom
-
-  const chatCacheKey = (orgId: string, agentId: string) => `vq.chat.${orgId}.${agentId}`
-
-  useEffect(() => {
-    if (!id || !organizationId) return
-    const requestKey = `${organizationId}:${id}`
-    const controller = new AbortController()
-    setFetchError(null)
-    setIsLoadingPrev(false)
-    didCatchUpRef.current = false
-    thisMutationRef.current = false
-    prevMutationStatusRef.current = undefined
-
-    // Paint instantly from localStorage cache (stale-while-revalidate)
-    try {
-      const raw = localStorage.getItem(chatCacheKey(organizationId, id))
-      if (raw) {
-        const cached = parseCachedMessageWindow(raw, WINDOW)
-        if (cached.length > 0) {
-          scrollIntentRef.current = "instant"
-          setMsgWindow(cached)
-          setHasPreviousPage(cached.length === WINDOW)
-          setInitialLoaded(true)
-        } else {
-          setInitialLoaded(false)
-          setMsgWindow([])
-        }
-      } else {
-        setInitialLoaded(false)
-        setMsgWindow([])
-      }
-    } catch {
-      setInitialLoaded(false)
-      setMsgWindow([])
-    }
-
-    // Refresh from server in background
-    getMessages(id, organizationId, undefined, controller.signal)
-      .then((msgs) => {
-        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
-        scrollIntentRef.current = "instant"
-        setMsgWindow((current) => mergeServerSnapshot(current, msgs, WINDOW))
-        setHasPreviousPage(msgs.length === WINDOW)
-        setInitialLoaded(true)
-      })
-      .catch((err) => {
-        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
-        if (err instanceof ApiError) setFetchError(err)
-        setInitialLoaded(true)
-      })
-
-    return () => controller.abort()
-  }, [id, organizationId])
-
-  // Persist window to localStorage after every settled update
-  useEffect(() => {
-    if (!initialLoaded || !id || !organizationId || msgWindow.length === 0) return
-    try {
-      localStorage.setItem(
-        chatCacheKey(organizationId, id),
-        JSON.stringify(msgWindow.slice(-WINDOW)),
-      )
-    } catch {}
-  }, [msgWindow, initialLoaded, id, organizationId])
-
-  const loadPreviousPage = useCallback(async () => {
-    if (!hasPreviousPage || isLoadingPrev) return
-    const requestKey = `${organizationId}:${id}`
-    setIsLoadingPrev(true)
-    try {
-      const oldest = msgWindow[0]?.createdAt
-      const older = await getMessages(id, organizationId, oldest)
-      if (activeChatKeyRef.current !== requestKey) return
-      // Capture scrollHeight before the state update so useLayoutEffect can restore position
-      scrollAnchorRef.current = chatScrollRef.current?.scrollHeight ?? 0
-      setMsgWindow((current) => mergeMessageWindow(current, older))
-      setHasPreviousPage(older.length === WINDOW)
-    } finally {
-      if (activeChatKeyRef.current === requestKey) setIsLoadingPrev(false)
-    }
-  }, [hasPreviousPage, isLoadingPrev, msgWindow, id, organizationId])
   const { data: brandKit = null } = useBrandKit(organizationId)
   const { data: rexDatasetCount = 0 } = useQuery({
     queryKey: qk.rexDatasets(organizationId),
@@ -418,8 +323,6 @@ export default function AssistantChatPage() {
     placeholderData: (prev) => prev,
   })
 
-  const [content, setContent] = useState("")
-  const [sendError, setSendError] = useState<ApiError | null>(null)
   const [toolsOpen, setToolsOpen] = useState(false)
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -433,152 +336,7 @@ export default function AssistantChatPage() {
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
   const [mayaTab, setMayaTab] = useState<"chat" | "published" | "plan">("chat")
 
-  const sendMutation = useSendMessage(id, organizationId, conversationIdRef.current, {
-    onOptimistic: (optimistic, mutationChatKey) => {
-      if (activeChatKeyRef.current !== mutationChatKey) return
-      thisMutationRef.current = true
-      scrollIntentRef.current = "smooth"
-      setMsgWindow((prev) => [...prev, optimistic].slice(-WINDOW))
-      setHasPreviousPage(true)
-    },
-    onSuccess: (serverMsg, optimisticId, mutationChatKey) => {
-      if (activeChatKeyRef.current !== mutationChatKey) return
-      scrollIntentRef.current = "smooth"
-      setMsgWindow((prev) => {
-        // Append the reply and KEEP the user's message. This used to drop the last entry
-        // before appending, on the assumption it was the optimistic message being replaced —
-        // but the optimistic entry is the USER's message and serverMsg is the ASSISTANT's
-        // reply, so the user's own message was deleted from the list the moment the bot
-        // answered, and only came back on a refetch.
-        const updated = mergeMessageWindow(
-          setMessageDeliveryStatus(prev, optimisticId, undefined),
-          [serverMsg],
-          WINDOW,
-        )
-
-        // If the server updated an existing draft card image in-place, patch it
-        // in React state so the user sees the new image without a page reload.
-        const patchInfo = serverMsg.customInput?.result as Record<string, unknown> | undefined
-        if (patchInfo?._modifyImagePatch === true) {
-          const patchedId = patchInfo.patchedMessageId as string | undefined
-          const newImage = patchInfo.image as { image_url: string; content_type: string; prompt_used: string } | undefined
-          if (patchedId && newImage) {
-            for (let i = 0; i < updated.length - 1; i++) {
-              if (updated[i].id === patchedId) {
-                const ci = updated[i].customInput
-                const result = (ci?.result as Record<string, unknown>) ?? {}
-                updated[i] = {
-                  ...updated[i],
-                  imageUrl: newImage.image_url,
-                  customInput: ci ? { ...ci, result: { ...result, image: newImage } } : ci,
-                }
-                break
-              }
-            }
-          }
-        }
-
-        return updated.slice(-WINDOW)
-      })
-    },
-    onError: (optimisticId, mutationChatKey) => {
-      if (activeChatKeyRef.current !== mutationChatKey) return
-      setMsgWindow((prev) => setMessageDeliveryStatus(prev, optimisticId, "failed"))
-    },
-  })
-
-  // useMutationState survives navigation (lives on QueryClient, not the component).
-  // This keeps the typing indicator visible when you switch agents and come back.
-  const pendingCount = useMutationState({
-    filters: { mutationKey: ["sendMessage", id, organizationId], status: "pending" },
-  }).length
-  const mutationStatuses = useMutationState({
-    filters: { mutationKey: ["sendMessage", id, organizationId] },
-    select: (m) => m.state.status,
-  })
-  const latestMutationStatus = mutationStatuses[mutationStatuses.length - 1]
-  // Ref to read latest mutation status from event listeners without stale closures
-  const latestMutationStatusRef = useRef(latestMutationStatus)
-  latestMutationStatusRef.current = latestMutationStatus // Keep updated on every render
-  const isLoading = pendingCount > 0 || sendMutation.isPending
   const isBusy = isLoading || actionSubmitting
-  const historyLoaded = initialLoaded
-
-  // When a sendMessage mutation completes after the user navigated away and back,
-  // onSuccess fired on the old (unmounted) component and was a no-op. Detect that
-  // transition here and re-fetch messages so the AI response appears without a refresh.
-  useEffect(() => {
-    const prev = prevMutationStatusRef.current
-    prevMutationStatusRef.current = latestMutationStatus
-
-    if (prev !== "pending" || latestMutationStatus !== "success") return
-
-    if (thisMutationRef.current) {
-      // This component instance sent the mutation; onSuccess already updated msgWindow.
-      thisMutationRef.current = false
-      return
-    }
-
-    // Orphaned mutation — re-fetch so the result and tool cards appear.
-    const requestKey = `${organizationId}:${id}`
-    const controller = new AbortController()
-    getMessages(id, organizationId, undefined, controller.signal)
-      .then((msgs) => {
-        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
-        scrollIntentRef.current = "smooth"
-        setMsgWindow((current) => mergeMessageWindow(current, msgs))
-        setHasPreviousPage(msgs.length === WINDOW)
-      })
-      .catch(() => {})
-    return () => controller.abort()
-  }, [latestMutationStatus, id, organizationId])
-
-  // Refetch when user returns to this tab — covers the "agent finished while on
-  // another tab" case. React Query has refetchOnWindowFocus disabled globally,
-  // so this targeted listener handles only the chat message list.
-  useEffect(() => {
-    let controller: AbortController | null = null
-    const handleVisibility = () => {
-      if (document.visibilityState !== "visible") return
-      const status = latestMutationStatusRef.current
-      if (status !== "pending" && status !== "success") return
-      const requestKey = `${organizationId}:${id}`
-      controller?.abort()
-      const requestController = new AbortController()
-      controller = requestController
-      getMessages(id, organizationId, undefined, requestController.signal)
-        .then((msgs) => {
-          if (requestController.signal.aborted || activeChatKeyRef.current !== requestKey) return
-          setMsgWindow((current) => mergeMessageWindow(current, msgs))
-          setHasPreviousPage(msgs.length === WINDOW)
-        })
-        .catch(() => {})
-    }
-    document.addEventListener("visibilitychange", handleVisibility)
-    return () => {
-      controller?.abort()
-      document.removeEventListener("visibilitychange", handleVisibility)
-    }
-  }, [id, organizationId]) // Only re-register when agent changes, not on every status change
-
-  // If a mutation for this agent completed before this component mounted, the
-  // orphaned detection can't catch it (no pending→success transition seen).
-  // After initialLoaded settles, do one additional fetch as belt-and-suspenders.
-  useEffect(() => {
-    if (!initialLoaded || didCatchUpRef.current) return
-    if (latestMutationStatus !== "success" || mutationStatuses.length === 0) return
-    didCatchUpRef.current = true
-    const requestKey = `${organizationId}:${id}`
-    const controller = new AbortController()
-    getMessages(id, organizationId, undefined, controller.signal)
-      .then((msgs) => {
-        if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
-        setMsgWindow((current) => mergeMessageWindow(current, msgs))
-        setHasPreviousPage(msgs.length === WINDOW)
-      })
-      .catch(() => {})
-    return () => controller.abort()
-  }, [initialLoaded, latestMutationStatus, mutationStatuses.length, id, organizationId])
 
   useEffect(() => {
     if (!agent) router.push("/assistants")
@@ -606,38 +364,6 @@ export default function AssistantChatPage() {
       }
     }
   }, [msgWindow, isBusy])
-
-  const handleSend = useCallback(async () => {
-    const trimmed = content.trim()
-    if (!trimmed || trimmed.length > 1000 || isLoading) return
-
-    setContent("")
-    try {
-      await sendMutation.mutateAsync(trimmed)
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 402) {
-        setSendError(err)
-      } else if (err instanceof AgentNotAvailableError) {
-        toast.error(
-          `${agent?.name ?? "This agent"} isn't connected yet — backend route is being set up. Try again soon.`
-        )
-      } else {
-        toast.error("Failed to send message. Please try again.")
-      }
-    }
-  }, [content, isLoading, sendMutation, agent])
-
-  const contentRef = useRef(content)
-  contentRef.current = content
-  const handleRestoreDraft = useCallback((message: Message) => {
-    if (message.deliveryStatus !== "failed") return
-    if (contentRef.current.trim()) {
-      toast.info("The composer already has a draft. Send or clear it before restoring this message.")
-      return
-    }
-    setContent(message.content)
-    toast.info("Message restored. Review it, then press Send to retry.")
-  }, [])
 
   // Writes an optimistic user message as soon as the dialog starts submitting,
   // so the chat doesn't look empty while the API call is in flight.
@@ -1150,6 +876,9 @@ export default function AssistantChatPage() {
   const isRex = agent.id === "rex"
   const isMaya = agent.id === "maya"
   const hasMessages = msgWindow.length > 0
+  // The streaming bubble already shows live progress (cursor + live tool
+  // trace) — showing the generic three-dot indicator alongside it is redundant.
+  const hasStreamingMessage = msgWindow.some((m) => m.deliveryStatus === "streaming")
   const agentSlug = agent.id as AgentSlug
 
   return (
@@ -1405,7 +1134,7 @@ export default function AssistantChatPage() {
                 onRestoreDraft={handleRestoreDraft}
               />
             ))}
-            {isBusy && (
+            {isBusy && !hasStreamingMessage && (
               <TypingIndicator
                 agentInitials={agent.initials}
                 agentColor={agentColor}

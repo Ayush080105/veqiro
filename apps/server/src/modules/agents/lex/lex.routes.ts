@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   msgLex,
+  msgLexStream,
   getLexMessages,
   finalizeSource,
   listSources,
@@ -18,6 +19,7 @@ import {
 const router = Router();
 
 router.post("/chat", msgLex);
+router.post("/chat/stream", msgLexStream);
 router.get("/chat", getLexMessages);
 // Client uploads the PDF directly to R2 via a presigned URL (POST /uploads/presign),
 // then calls this endpoint with { key, url, documentName, documentType } to verify

@@ -1,6 +1,6 @@
 import { toast } from "sonner"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+export const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export class AgentNotAvailableError extends Error {
   constructor(public agentSlug: string) {
@@ -26,7 +26,7 @@ type RequestOpts = {
 
 let redirectingToLogin = false
 
-function redirectToLogin() {
+export function redirectToLogin() {
   if (typeof window === "undefined" || redirectingToLogin) return
   redirectingToLogin = true
   window.location.replace("/login")

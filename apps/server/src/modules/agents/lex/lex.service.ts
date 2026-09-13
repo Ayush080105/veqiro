@@ -2,7 +2,12 @@ import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
-import { callAgentWithContext, recordAgentTurnContext } from "../../../common/utils/contextService.js";
+import {
+  callAgentWithContext,
+  recordAgentTurnContext,
+  streamAgentWithContext,
+  type SseEvent,
+} from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as mcpService from "../../mcp/mcp.service.js";
 import {
@@ -112,6 +117,101 @@ export const sendMessage = async (
 
   return assistantMessage;
 };
+
+/**
+ * Streaming sibling of `sendMessage`. Yields SSE frames as apps/ai produces
+ * them; the caller (lex.controller.ts) writes each straight to the HTTP
+ * response. Persistence (assistant Message row, pending-action staging)
+ * happens once the stream ends, mirroring exactly what sendMessage does with
+ * callAgentWithContext's return value — see that function for the shape of
+ * the persisted row and why each piece is written the way it is.
+ */
+export async function* streamMessage(
+  userId: string,
+  organizationId: string,
+  input: SendMessageInput
+): AsyncGenerator<SseEvent, void, unknown> {
+  const history = await lexRepository.findRecentMessages(
+    organizationId,
+    CONTEXT_HISTORY_LIMIT
+  );
+  const userMessage = await lexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: input.content,
+  });
+
+  // Planned/DAG runs keep their existing polling UX (RunPanel/RunGraph) —
+  // signal it to the client instead of trying to stream a run's progress.
+  const plannedRun = await maybeStartPlannedRun({
+    organizationId,
+    userId,
+    agent: Agent.LEX,
+    content: input.content,
+  });
+  if (plannedRun) {
+    yield { event: "plan_started", data: JSON.stringify(plannedRun) };
+    return;
+  }
+
+  const iterator = streamAgentWithContext({
+    agentApiPath: "/ai/lex/chat",
+    agentEnum: Agent.LEX,
+    agentRole: "Lex: Legal and compliance assistant",
+    userId,
+    organizationId,
+    conversationId: input.conversationId ?? userMessage.id,
+    userMessage: input.content,
+    rawHistory: history,
+  });
+
+  let step: IteratorResult<SseEvent, AssistantMessagePayload | null>;
+  // eslint-disable-next-line no-cond-assign
+  while (!(step = (await iterator.next()) as IteratorResult<SseEvent, AssistantMessagePayload | null>).done) {
+    yield step.value;
+  }
+  const responseData = step.value;
+  if (!responseData) return; // error already relayed as an SSE `error` frame
+
+  const pendingActions = mcpService.readPendingActions(responseData)
+  const pendingActionsSnapshot = pendingActions?.length ? mcpService.toPendingActionsSnapshot(pendingActions) : undefined
+
+  const customInput = mcpService.withToolTrace(
+    responseData.action_id && responseData.action_result
+      ? { actionId: responseData.action_id, input: {}, result: responseData.action_result, pendingActions: pendingActionsSnapshot }
+      : responseData.metadata
+        ? { metadata: responseData.metadata, pendingActions: pendingActionsSnapshot }
+        : pendingActionsSnapshot
+          ? { pendingActions: pendingActionsSnapshot }
+          : undefined,
+    responseData.tool_trace,
+  );
+
+  const assistantMessage = await lexRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: responseData.response,
+    imageUrl: responseData.image?.url,
+    tokensUsed: responseData.tokens_used,
+    model: responseData.model_used,
+    customInput,
+  });
+
+  if (pendingActions?.length) {
+    await mcpService.stagePendingActions({
+      organizationId,
+      userId,
+      agent: Agent.LEX,
+      messageId: assistantMessage.id,
+      pendingActions,
+    });
+  }
+
+  // The done/token frames only carry what apps/ai returned — give the client
+  // the persisted row's real id/createdAt so it can reconcile its optimistic
+  // message by identity, same as the non-streaming response already lets it.
+  yield { event: "persisted", data: JSON.stringify(assistantMessage) };
+}
 
 export const listMessages = (
   organizationId: string,

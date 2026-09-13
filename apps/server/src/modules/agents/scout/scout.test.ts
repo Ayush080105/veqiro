@@ -362,6 +362,7 @@ describe("Scout routes", () => {
 
     assert.deepEqual(stack, [
       { path: "/chat", methods: ["post"] },
+      { path: "/chat/stream", methods: ["post"] },
       { path: "/chat", methods: ["get"] },
       { path: "/research-topic", methods: ["post"] },
       { path: "/research-company", methods: ["post"] },

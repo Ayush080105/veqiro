@@ -4,7 +4,7 @@ export type AgentSlug = "maya" | "rex" | "scout" | "sage" | "lex" | "vega"
 
 export type AgentStatus = "working" | "idle" | "needs-attention"
 
-export type MessageDeliveryStatus = "sending" | "failed"
+export type MessageDeliveryStatus = "sending" | "failed" | "streaming"
 
 export interface Message {
   id?: string

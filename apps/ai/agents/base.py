@@ -1026,6 +1026,327 @@ class BaseAgent(ABC):
             tool_trace=_trace,
         )
 
+    async def chat_sync_stream(self, request: ChatRequest) -> AsyncGenerator[dict, None]:
+        """Same tool-calling loop as `chat_sync`, yielding progress events as it
+        goes instead of only returning a final response.
+
+        Deliberately NOT implemented by having `chat_sync` drain this generator
+        (or vice versa) — this duplicates chat_sync's control flow so that the
+        existing, currently-live `chat_sync` path used by every non-streaming
+        caller (core/runs/executor.py, cross-agent `ask_agent` calls, and the
+        pre-streaming /chat route) is provably untouched by this addition. Once
+        this path is validated in production, a follow-up can de-duplicate by
+        having chat_sync call this and just keep the final event — not done
+        here to keep this change purely additive.
+
+        Yields `{"type": "tool_call", ...}` / `{"type": "tool_result", ...}` as
+        each tool fires, then exactly one `{"type": "final", "response":
+        ChatSyncResponse}` carrying the same shape chat_sync returns.
+        """
+        _turn_start = time.monotonic()
+        set_llm_context(
+            org_id=request.organization_id,
+            agent_slug=self.slug,
+            conversation_id=request.conversation_id,
+        )
+
+        has_memory = bool(request.metadata.get("memory_context"))
+        print(
+            f"\n{_C}{'─'*70}{_X}\n"
+            f"{_C}[{self.slug.upper()}]{_X} {_W}msg:{_X} {_trim(request.message, 80)!r}  "
+            f"{_DIM}| history={len(request.history)} | memory={'✓' if has_memory else '✗'} "
+            f"| org={request.organization_id[:8] or '(none)'}{_X}"
+        )
+
+        bundle = await self._assemble_tools(
+            request,
+            include_ask_agent=not request.metadata.get("_cross_agent_call", False),
+            restrict_to_integration=request.metadata.get("mcp_tool_preference"),
+        )
+        tools = bundle.tools
+        mcp_alias_map = bundle.mcp_alias_map
+        mcp_write_set = bundle.mcp_write_set
+        integration_by_connection = bundle.integration_by_connection
+        mcp_connections = bundle.mcp_connections
+        superseded_names = bundle.superseded_names
+        replacement_mcp_names = bundle.replacement_mcp_names
+
+        # Per-call accumulators. Local, never self — agents are singletons
+        # shared across every org's concurrent requests (see registry.py).
+        mcp_pending_actions: list[dict] = []
+        cross_agent_sink = CrossAgentSink()
+
+        # If no tools defined (shouldn't happen, but safety), fall back
+        if len(tools) <= 1:  # only ask_agent
+            yield {"type": "final", "response": await self._chat_sync_no_tools(request)}
+            return
+
+        # Build system prompt and fetch RAG context concurrently for lower latency.
+        # Stable static prefix (brand kit + rules) comes first so OpenAI prefix
+        # caching can kick in per-org; dynamic RAG/memory appended after.
+        is_cross_agent = request.metadata.get("_cross_agent_call", False)
+
+        async def _build_prompt() -> str:
+            return await self.build_system_prompt(
+                request.user_id, request.organization_id,
+                use_brand_kit=not is_cross_agent,
+                has_history=bool(request.history),
+            )
+
+        async def _fetch_rag() -> list:
+            # Skip RAG for short conversational messages — "thanks", "ok", "great",
+            # "hi", etc. don't benefit from semantic retrieval and it just adds latency.
+            if len(request.message.split()) <= 4:
+                return []
+            try:
+                return await self.rag.retrieve(
+                    user_id=request.user_id,
+                    query=request.message,
+                    top_k=5,
+                    source_agent=self.slug,
+                )
+            except Exception:
+                return []
+
+        system_prompt, rag_chunks = await asyncio.gather(_build_prompt(), _fetch_rag())
+        if rag_chunks:
+            rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
+            system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
+        memory_context = request.metadata.get("memory_context", "")
+        if memory_context:
+            word_count = len(request.message.split())
+            if word_count <= 5 and len(memory_context) > 1200:
+                memory_context = memory_context[:1200].rstrip()
+            elif len(memory_context) > _MEMORY_HARD_CAP:
+                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
+            system_prompt += f"\n\n{memory_context}"
+
+        # Add tool-use instructions to system prompt
+        system_prompt += self.get_tool_instructions()
+        system_prompt += self._mcp_catalog_block(request.metadata.get("mcp_catalog"))
+        system_prompt += self._mcp_supersede_block(superseded_names, replacement_mcp_names)
+
+        messages = [
+            {"role": m.role, "content": m.content} for m in request.history
+        ] + [{"role": "user", "content": request.message}]
+
+        all_tool_calls: list[dict] = []
+
+        for _iteration in range(self.MAX_TOOL_CALLS):
+            response = await self.llm.complete_with_tools(
+                provider=self.default_provider,
+                model=self.default_model,
+                system=system_prompt,
+                messages=messages,
+                tools=tools,
+            )
+
+            if response.finish_reason == "stop":
+                # LLM gave a final text answer
+                full_text = response.content or ""
+                tokens_used = self.llm.count_tokens(full_text)
+                metadata: dict = {}
+                if all_tool_calls:
+                    metadata["tool_calls"] = all_tool_calls
+                _trace = _build_tool_trace(
+                    all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
+                )
+                _pending, _trace, (action_id_out, action_result) = self._merge_cross_agent(
+                    cross_agent_sink,
+                    mcp_pending_actions,
+                    _trace,
+                    _pick_rich_result(all_tool_calls),
+                )
+                if _pending:
+                    metadata["pending_actions"] = _pending
+                yield {
+                    "type": "final",
+                    "response": ChatSyncResponse(
+                        response=full_text,
+                        agent=self.slug,
+                        message_id=str(uuid.uuid4()),
+                        tokens_used=tokens_used,
+                        model_used=self.default_model,
+                        metadata=metadata,
+                        action_id=action_id_out,
+                        action_result=action_result,
+                        tool_trace=_trace,
+                    ),
+                }
+                return
+
+            # Validate calls before executing — reject structurally invalid ones.
+            stub_start = len(all_tool_calls)
+            rejected: list[int] = []
+            for idx, tc in enumerate(response.tool_calls):
+                reason = self.validate_tool_call(tc.name, tc.arguments, tools)
+                if reason:
+                    rejected.append(idx)
+
+            # All calls invalid on the first iteration (nothing executed yet) →
+            # re-run with tool_choice="none" to get a clean conversational reply.
+            if rejected and len(rejected) == len(response.tool_calls) and not all_tool_calls:
+                fallback = await self.llm.complete_with_tools(
+                    provider=self.default_provider,
+                    model=self.default_model,
+                    system=system_prompt,
+                    messages=messages,
+                    tools=tools,
+                    tool_choice="none",
+                )
+                full_text = fallback.content or ""
+                yield {
+                    "type": "final",
+                    "response": ChatSyncResponse(
+                        response=full_text,
+                        agent=self.slug,
+                        message_id=str(uuid.uuid4()),
+                        tokens_used=self.llm.count_tokens(full_text),
+                        model_used=self.default_model,
+                        metadata={},
+                    ),
+                }
+                return
+
+            valid_tool_calls = [tc for i, tc in enumerate(response.tool_calls) if i not in rejected]
+
+            # Append stub entries first so indices are stable, then backfill after gather.
+            for tc in valid_tool_calls:
+                all_tool_calls.append({
+                    "id": tc.id,
+                    "name": tc.name,
+                    "arguments": tc.arguments,
+                    "result": None,
+                    "is_error": False,
+                })
+                yield {"type": "tool_call", "name": tc.name, "arguments": tc.arguments}
+
+            async def _run_one(tc) -> str:
+                if tc.name == "ask_agent":
+                    coro = self._execute_cross_agent_call(
+                        tc.arguments, request.user_id, request.organization_id,
+                        mcp_connections, sink=cross_agent_sink,
+                    )
+                elif tc.name in mcp_alias_map:
+                    if tc.name in mcp_write_set:
+                        connection_id, real_tool_name = mcp_alias_map[tc.name]
+                        pending_id = str(uuid.uuid4())
+                        mcp_pending_actions.append({
+                            "id": pending_id,
+                            "connection_id": connection_id,
+                            "tool_name": real_tool_name,
+                            "arguments": tc.arguments,
+                            "summary": _humanize_mcp_call(real_tool_name, tc.arguments),
+                        })
+                        return json.dumps({
+                            "status": "pending_confirmation",
+                            "message": (
+                                "Staged for the user to confirm or reject in the UI. "
+                                "Do not call this tool again this turn — tell the user "
+                                "it's ready for their approval."
+                            ),
+                        })
+                    coro = self._execute_mcp_tool(
+                        tc.name, tc.arguments, request.organization_id, mcp_alias_map
+                    )
+                else:
+                    coro = self.execute_tool(
+                        tc.name, tc.arguments, request.user_id, request.organization_id
+                    )
+                try:
+                    return await asyncio.wait_for(coro, timeout=_TOOL_TIMEOUT)
+                except asyncio.TimeoutError:
+                    raise asyncio.TimeoutError(
+                        f"Tool '{tc.name}' timed out after {_TOOL_TIMEOUT}s"
+                    )
+
+            call_durations: dict[int, int] = {}
+
+            async def _run_one_timed(index: int, tc) -> str:
+                started = time.monotonic()
+                try:
+                    return await _run_one(tc)
+                finally:
+                    call_durations[index] = int((time.monotonic() - started) * 1000)
+
+            raw_results = await asyncio.gather(
+                *[_run_one_timed(i, tc) for i, tc in enumerate(valid_tool_calls)],
+                return_exceptions=True,
+            )
+
+            tool_results: list[ToolResult] = []
+            for i, (tc, raw) in enumerate(zip(valid_tool_calls, raw_results)):
+                all_tool_calls[stub_start + i]["duration_ms"] = call_durations.get(i)
+                if isinstance(raw, BaseException):
+                    all_tool_calls[stub_start + i]["is_error"] = True
+                    all_tool_calls[stub_start + i]["result"] = f"Error: {str(raw)}"
+                    tool_results.append(ToolResult(
+                        tool_call_id=tc.id,
+                        name=tc.name,
+                        content=f"Error executing tool: {str(raw)}",
+                        is_error=True,
+                    ))
+                    yield {"type": "tool_result", "name": tc.name, "ok": False}
+                else:
+                    try:
+                        all_tool_calls[stub_start + i]["result"] = json.loads(raw)
+                    except Exception:
+                        all_tool_calls[stub_start + i]["result"] = raw
+                    result_str = raw
+                    if len(result_str) > MAX_TOOL_RESULT_CHARS:
+                        result_str = result_str[:MAX_TOOL_RESULT_CHARS] + "\n...[truncated]"
+                    tool_results.append(ToolResult(
+                        tool_call_id=tc.id,
+                        name=tc.name,
+                        content=result_str,
+                        is_error=False,
+                    ))
+                    yield {"type": "tool_result", "name": tc.name, "ok": True}
+
+            # Append tool call + results to messages for next iteration
+            from core.tools import format_tool_result_messages
+            from core.config import settings
+            provider_for_format = "openai" if settings.MOCK_MODE else self.default_provider
+            result_messages = format_tool_result_messages(
+                provider_for_format, valid_tool_calls, tool_results
+            )
+            messages.extend(result_messages)
+
+        # Circuit breaker: exhausted iterations, force a final text completion
+        final_text = await self.llm.complete(
+            provider=self.default_provider,
+            model=self.default_model,
+            system=system_prompt,
+            messages=messages,
+        )
+        _trace = _build_tool_trace(
+            all_tool_calls, mcp_alias_map, integration_by_connection, mcp_write_set
+        )
+        _pending, _trace, (action_id_out, action_result) = self._merge_cross_agent(
+            cross_agent_sink,
+            mcp_pending_actions,
+            _trace,
+            _pick_rich_result(all_tool_calls),
+        )
+        yield {
+            "type": "final",
+            "response": ChatSyncResponse(
+                response=final_text,
+                agent=self.slug,
+                message_id=str(uuid.uuid4()),
+                tokens_used=self.llm.count_tokens(final_text),
+                model_used=self.default_model,
+                metadata={
+                    "tool_calls": all_tool_calls,
+                    "max_iterations_reached": True,
+                    **({"pending_actions": _pending} if _pending else {}),
+                },
+                action_id=action_id_out,
+                action_result=action_result,
+                tool_trace=_trace,
+            ),
+        }
+
     # ── MCP tool execution ───────────────────────────────────────────────
 
     async def _execute_mcp_tool(

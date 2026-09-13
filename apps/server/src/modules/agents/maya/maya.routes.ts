@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   msgMaya,
+  msgMayaStream,
   getMayaMessages,
   generateIdeas,
   draftContent,
@@ -32,6 +33,7 @@ const router = Router();
 
 router.get("/usage", getMayaUsage);
 router.post("/chat", msgMaya);
+router.post("/chat/stream", msgMayaStream);
 router.get("/chat", getMayaMessages);
 router.post("/generate-ideas", generateIdeas);
 router.post("/draft-content", draftContent);

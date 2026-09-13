@@ -5,12 +5,14 @@ import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.llm import LLMClient, JSON_COMPLETION_MAX_TOKENS
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
+from core.streaming import sse_format, stream_chat_sync_response
 from core.utils import safe_json_loads
 from agents.sage.agent import SageAgent
 from agents.sage.wordpress import format_for_wordpress, format_for_wix
@@ -433,6 +435,15 @@ async def sage_chat(request: ChatRequest) -> ChatSyncResponse:
         return await _agent.chat_sync(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat/stream", summary="Sage chat (streamed)")
+async def sage_chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Same as /chat, but progressively — live tool_call/tool_result events
+    followed by chunked token events, then a done event carrying the same
+    fields the non-streaming response returns."""
+    events = stream_chat_sync_response(_agent.chat_sync_stream(request), _agent.slug)
+    return StreamingResponse(sse_format(events), media_type="text/event-stream")
 
 
 @router.post("/keyword-research", response_model=KeywordResearchResponse, summary="Keyword research")

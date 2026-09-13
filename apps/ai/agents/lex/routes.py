@@ -7,12 +7,14 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
+from core.streaming import sse_format, stream_chat_sync_response
 from core.utils import strip_json_fences, safe_json_loads
 from agents.lex.agent import LexAgent
 
@@ -346,6 +348,15 @@ class ListSourcesResponse(BaseModel):
 async def lex_chat(request: ChatRequest) -> ChatSyncResponse:
     """Get Lex's legal response."""
     return await _agent.chat_sync(request)
+
+
+@router.post("/chat/stream", summary="Lex chat (streamed)")
+async def lex_chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Same as /chat, but progressively — live tool_call/tool_result events
+    followed by chunked token events, then a done event carrying the same
+    fields the non-streaming response returns."""
+    events = stream_chat_sync_response(_agent.chat_sync_stream(request), _agent.slug)
+    return StreamingResponse(sse_format(events), media_type="text/event-stream")
 
 
 @router.post("/ingest-document", response_model=IngestDocumentResponse, summary="Ingest legal document")

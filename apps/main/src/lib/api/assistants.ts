@@ -1,23 +1,128 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { Message, AgentSlug, AgentStatusData, LastMessage } from "@/lib/types"
+import type { Message, AgentSlug, AgentStatusData, LastMessage, ToolTraceEntry } from "@/lib/types"
 import type { AgentActionId, LogoAnimationStylesResult } from "@/lib/types/agents"
-import { apiFetch, AgentNotAvailableError } from "@/lib/api/client"
+import { apiFetch, AgentNotAvailableError, ApiError, API_URL, redirectToLogin } from "@/lib/api/client"
 import { findAction } from "@/lib/agents/actions"
 import { qk } from "@/lib/query-keys"
 
 export { AgentNotAvailableError }
 
-export async function sendMessage(
+export interface StreamMessageHandlers {
+  onToken?: (text: string) => void
+  onToolCall?: (name: string) => void
+  onToolResult?: (ok: boolean) => void
+}
+
+/**
+ * Sends a message and consumes the agent's SSE reply
+ * (apps/ai's core/streaming.py -> apps/server's contextService.ts relay).
+ * Resolves with the final persisted `Message` row once the stream's
+ * `persisted` (normal reply) or `plan_started` (became a planned run) frame
+ * arrives — both carry a real, already-saved Message-shaped row, so the
+ * caller doesn't need to distinguish them. `handlers` fire as progress
+ * arrives so the caller can render tokens/tool activity live; the stream
+ * itself is the only source of truth; nothing here is retried internally.
+ */
+export async function streamMessage(
   agentSlug: string,
   organizationId: string,
   content: string,
-  conversationId?: string
+  conversationId: string | undefined,
+  handlers: StreamMessageHandlers = {},
 ): Promise<Message> {
-  return apiFetch<Message>(`/agents/${agentSlug}/chat`, {
+  const res = await fetch(`${API_URL}/agents/${agentSlug}/chat/stream`, {
     method: "POST",
-    body: { organizationId, content, conversationId },
-    agentSlugForNotFound: agentSlug,
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ organizationId, content, conversationId }),
   })
+
+  if (res.status === 404) throw new AgentNotAvailableError(agentSlug)
+  if (res.status === 401) {
+    redirectToLogin()
+    throw new ApiError(401, "Session expired")
+  }
+  if (!res.ok) {
+    let detail = res.statusText
+    let code: string | undefined
+    try {
+      const j = await res.json()
+      detail = j.message ?? j.error ?? j.detail ?? detail
+      code = j.error
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(res.status, detail, code)
+  }
+  if (!res.body) throw new ApiError(0, "No response body", "no_body")
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+  let finalMessage: Message | null = null
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let sepIndex: number
+    while ((sepIndex = buffer.indexOf("\n\n")) !== -1) {
+      const rawFrame = buffer.slice(0, sepIndex)
+      buffer = buffer.slice(sepIndex + 2)
+      const lines = rawFrame.split("\n")
+      const eventLine = lines.find((l) => l.startsWith("event:"))
+      const dataLine = lines.find((l) => l.startsWith("data:"))
+      if (!eventLine || !dataLine) continue
+      const event = eventLine.slice("event:".length).trim()
+      const data = dataLine.slice("data:".length).trim()
+
+      if (event === "token") {
+        try {
+          handlers.onToken?.((JSON.parse(data) as { text: string }).text)
+        } catch {
+          /* malformed frame — skip */
+        }
+      } else if (event === "tool_call") {
+        try {
+          handlers.onToolCall?.((JSON.parse(data) as { name: string }).name)
+        } catch {
+          /* ignore */
+        }
+      } else if (event === "tool_result") {
+        try {
+          handlers.onToolResult?.(Boolean((JSON.parse(data) as { ok: boolean }).ok))
+        } catch {
+          /* ignore */
+        }
+      } else if (event === "error") {
+        let message = "Something went wrong."
+        try {
+          message = (JSON.parse(data) as { message?: string }).message ?? message
+        } catch {
+          /* ignore */
+        }
+        throw new ApiError(0, message, "stream_error")
+      } else if (event === "persisted" || event === "plan_started") {
+        try {
+          finalMessage = JSON.parse(data) as Message
+        } catch {
+          /* ignore — falls through to the "no result" error below */
+        }
+      }
+      // "metadata"/"done" carry data already folded into the "persisted" frame — no separate handling needed client-side.
+    }
+  }
+
+  if (!finalMessage) throw new ApiError(0, "Stream ended without a result.", "no_result")
+  return finalMessage
+}
+
+function humanizeToolLabel(name: string): string {
+  return name
+    .replace(/[_-]+/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export async function getMessages(
@@ -306,14 +411,27 @@ export function useMessages(agentSlug: string, organizationId: string) {
 
 export type SendMessageCallbacks = {
   onOptimistic?: (msg: Message, chatKey: string) => void
-  /** `optimisticId` identifies the user message written by onOptimistic, so the caller can
-   * reconcile it by identity instead of by position in the list. */
-  onSuccess?: (msg: Message, optimisticId: string, chatKey: string) => void
+  /** Fired once, right as the stream opens, with a placeholder assistant message
+   * (`deliveryStatus: "streaming"`, empty content) to insert into the window. */
+  onAssistantStreaming?: (msg: Message, chatKey: string) => void
+  /** Fired repeatedly as tokens/tool events arrive. `patch` always carries the
+   * FULL accumulated state (not a delta) — replace the placeholder's fields
+   * with it rather than appending. */
+  onStreamUpdate?: (assistantId: string, chatKey: string, patch: Partial<Message>) => void
+  /** `optimisticId` identifies the user message written by onOptimistic, `assistantId`
+   * the placeholder written by onAssistantStreaming — both should be reconciled by
+   * identity instead of by position in the list. */
+  onSuccess?: (msg: Message, optimisticId: string, chatKey: string, assistantId: string) => void
   onError?: (optimisticId: string, chatKey: string) => void
+  /** Fired instead of (not in addition to) onError when the stream had already
+   * inserted an assistant placeholder before failing — that placeholder (which
+   * may hold partial content from tokens that arrived before the failure)
+   * should be marked failed rather than removed. */
+  onAssistantError?: (assistantId: string, chatKey: string) => void
 }
 
-// Distinguishes optimistic user messages from persisted ones. Date.now() alone can repeat
-// within a millisecond, and a duplicate React key silently drops a message from the list.
+// Distinguishes optimistic/streaming client-only messages from persisted ones. Date.now()
+// alone can repeat within a millisecond, and a duplicate React key silently drops a message.
 let optimisticSeq = 0
 const nextOptimisticId = () => `optimistic-${Date.now()}-${optimisticSeq++}`
 
@@ -324,15 +442,53 @@ export function useSendMessage(
   callbacks?: SendMessageCallbacks,
 ) {
   const queryClient = useQueryClient()
+  const chatKey = `${organizationId}:${agentSlug}`
 
   return useMutation({
     mutationKey: ["sendMessage", agentSlug, organizationId],
-    mutationFn: (content: string) =>
-      sendMessage(agentSlug, organizationId, content, conversationId),
 
-    onMutate: async (content: string) => {
+    mutationFn: async (content: string) => {
+      const assistantId = nextOptimisticId()
+      const placeholder: Message = {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        imageUrl: null,
+        createdAt: new Date().toISOString(),
+        deliveryStatus: "streaming",
+        customInput: { toolTrace: [] },
+      }
+      callbacks?.onAssistantStreaming?.(placeholder, chatKey)
+
+      let textSoFar = ""
+      let toolTrace: ToolTraceEntry[] = []
+
+      try {
+        const final = await streamMessage(agentSlug, organizationId, content, conversationId, {
+          onToken: (text) => {
+            textSoFar += text
+            callbacks?.onStreamUpdate?.(assistantId, chatKey, { content: textSoFar })
+          },
+          onToolCall: (name) => {
+            toolTrace = [...toolTrace, { label: humanizeToolLabel(name), status: "pending" }]
+            callbacks?.onStreamUpdate?.(assistantId, chatKey, { customInput: { toolTrace } })
+          },
+          onToolResult: (ok) => {
+            const idx = toolTrace.findIndex((t) => t.status === "pending")
+            if (idx === -1) return
+            toolTrace = toolTrace.map((t, i) => (i === idx ? { ...t, status: ok ? "ok" : "error" } : t))
+            callbacks?.onStreamUpdate?.(assistantId, chatKey, { customInput: { toolTrace } })
+          },
+        })
+        return { final, assistantId }
+      } catch (err) {
+        callbacks?.onAssistantError?.(assistantId, chatKey)
+        throw err
+      }
+    },
+
+    onMutate: (content: string) => {
       const optimisticId = nextOptimisticId()
-      const chatKey = `${organizationId}:${agentSlug}`
       const optimistic: Message = {
         id: optimisticId,
         role: "user",
@@ -347,8 +503,8 @@ export function useSendMessage(
 
     // `ctx` is undefined if onMutate itself threw — in which case no optimistic message was
     // ever written, so an id that matches nothing is the correct thing to pass on.
-    onSuccess: (serverMsg: Message, content: string, ctx) => {
-      callbacks?.onSuccess?.(serverMsg, ctx?.optimisticId ?? "", ctx?.chatKey ?? "")
+    onSuccess: ({ final, assistantId }, content, ctx) => {
+      callbacks?.onSuccess?.(final, ctx?.optimisticId ?? "", ctx?.chatKey ?? chatKey, assistantId)
 
       queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(
         qk.lastMessages(organizationId),
@@ -358,15 +514,18 @@ export function useSendMessage(
           return {
             ...prev,
             [slug]: {
-              content: serverMsg.content || content,
-              createdAt: serverMsg.createdAt ?? new Date().toISOString(),
-              role: serverMsg.role,
+              content: final.content || content,
+              createdAt: final.createdAt ?? new Date().toISOString(),
+              role: final.role,
             },
           }
         },
       )
     },
 
+    // The assistant-placeholder side of a failure is already handled inside
+    // mutationFn's catch (onAssistantError, fired with the real assistantId —
+    // not available here since mutationFn's return value is unset on throw).
     onError: (_err, _content, ctx) => {
       callbacks?.onError?.(ctx?.optimisticId ?? "", ctx?.chatKey ?? "")
     },

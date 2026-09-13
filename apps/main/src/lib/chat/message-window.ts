@@ -198,7 +198,13 @@ export function parseCachedMessageWindow(raw: string, limit: number): Message[] 
         imageUrl: typeof candidate.imageUrl === "string" ? candidate.imageUrl : null,
         createdAt: candidate.createdAt,
       } as Message
-      if (message.deliveryStatus !== "sending" && message.deliveryStatus !== "failed") {
+      // A cached "streaming" row's connection died with the tab that wrote it —
+      // there is no live stream left to resume it, so it can only ever be a
+      // permanently blank, statusless bubble if left as-is. Treat it the same
+      // as a failed turn instead, which already has a real "interrupted" UI.
+      if (message.deliveryStatus === "streaming") {
+        message.deliveryStatus = "failed"
+      } else if (message.deliveryStatus !== "sending" && message.deliveryStatus !== "failed") {
         delete message.deliveryStatus
       }
       return [message]

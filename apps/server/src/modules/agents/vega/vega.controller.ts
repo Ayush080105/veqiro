@@ -19,6 +19,35 @@ export const msgVega = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(result);
 };
 
+export const msgVegaStream = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+  const input = sendMessageSchema.parse(req.body);
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  let clientClosed = false;
+  res.on("close", () => {
+    clientClosed = true;
+  });
+
+  try {
+    for await (const evt of vegaService.streamMessage(userId, organizationId, input)) {
+      if (clientClosed) break;
+      res.write(`event: ${evt.event}\ndata: ${evt.data}\n\n`);
+    }
+  } catch (err) {
+    if (!clientClosed) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.write(`event: error\ndata: ${JSON.stringify({ message, code: "server_error" })}\n\n`);
+    }
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
+};
+
 export const getVegaMessages = async (req: Request, res: Response) => {
   const organizationId =
     (req.query.organizationId as string) ?? req.organizationId;

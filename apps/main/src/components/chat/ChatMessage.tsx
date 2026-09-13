@@ -8,6 +8,7 @@ import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
 import { ChatImage } from "@/components/chat/ChatImage"
 import { RunPanel } from "@/components/runs/RunPanel"
 import { PendingMcpActionCard } from "@/components/chat/PendingMcpActionCard"
+import { ToolTraceStrip } from "@/components/chat/ToolTraceStrip"
 import { FONT } from "@/lib/fonts"
 import type { Message } from "@/lib/types"
 import type { AgentActionId } from "@/lib/types/agents"
@@ -263,10 +264,14 @@ function ChatMessageComponent({
   }
 
   return (
-    <div className="group flex items-end gap-2" style={{ marginLeft: showAvatar ? 0 : 40, marginTop }}>
+    <div className="group flex items-end gap-2" style={{ marginTop }}>
       {showAvatar ? (
         <AgentDisc initials={agentInitials} color={agentColor} photo={agentPhoto} />
       ) : (
+        // Same width as AgentDisc so grouped replies keep the same bubble
+        // indent as the avatar-bearing message that starts the group —
+        // this spacer alone provides that alignment; a marginLeft used to
+        // sit alongside it and double the offset (see PR history).
         <div style={{ width: 32, flexShrink: 0 }} />
       )}
       <div className="flex flex-col min-w-0" style={{ maxWidth: runId ? "680px" : actionId ? "520px" : "min(85%, 600px)" }}>
@@ -339,6 +344,32 @@ function ChatMessageComponent({
             }}
           >
             <MarkdownMessage content={message.content} />
+            {message.deliveryStatus === "streaming" && (
+              <span
+                aria-hidden="true"
+                className="animate-pulse"
+                style={{
+                  display: "inline-block",
+                  width: 7,
+                  height: 14,
+                  marginLeft: 2,
+                  verticalAlign: "text-bottom",
+                  background: "currentColor",
+                  opacity: 0.6,
+                }}
+              />
+            )}
+            {message.deliveryStatus === "failed" && (
+              <div
+                role="alert"
+                className="mt-1.5 font-mono text-[10px] uppercase tracking-wider text-destructive"
+              >
+                reply interrupted{message.content ? " — showing partial reply" : ""}
+              </div>
+            )}
+            {message.customInput?.toolTrace && message.customInput.toolTrace.length > 0 && (
+              <ToolTraceStrip trace={message.customInput.toolTrace} />
+            )}
             {message.imageUrl && (
               <div style={{ marginTop: 8 }}>
                 <ChatImage src={message.imageUrl} alt="generated" borderRadius={10} />

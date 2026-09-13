@@ -18,6 +18,34 @@ export const msgScout = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(result);
 };
 
+export const msgScoutStream = async (req: Request, res: Response) => {
+  const { userId, organizationId } = requireAuthContext(req);
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  let clientClosed = false;
+  res.on("close", () => {
+    clientClosed = true;
+  });
+
+  try {
+    for await (const evt of scoutService.streamMessage(userId, organizationId, req.body)) {
+      if (clientClosed) break;
+      res.write(`event: ${evt.event}\ndata: ${evt.data}\n\n`);
+    }
+  } catch (err) {
+    if (!clientClosed) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.write(`event: error\ndata: ${JSON.stringify({ message, code: "server_error" })}\n\n`);
+    }
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
+};
+
 export const getScoutMessages = async (req: Request, res: Response) => {
   const organizationId = req.organizationId;
   if (!organizationId) {

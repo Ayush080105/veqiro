@@ -4,12 +4,14 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, DataPoint
 from core.config import settings
+from core.streaming import sse_format, stream_chat_sync_response
 from core.utils import strip_json_fences, safe_json_loads, downsample_points
 
 # Cap how many points per metric are embedded in an LLM prompt so large CSVs
@@ -367,6 +369,15 @@ class WeeklyDigestResponse(BaseModel):
 async def rex_chat(request: ChatRequest) -> ChatSyncResponse:
     """Get Rex's data analysis response as a standard JSON response."""
     return await _agent.chat_sync(request)
+
+
+@router.post("/chat/stream", summary="Rex chat (streamed)")
+async def rex_chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Same as /chat, but progressively — live tool_call/tool_result events
+    followed by chunked token events, then a done event carrying the same
+    fields the non-streaming response returns."""
+    events = stream_chat_sync_response(_agent.chat_sync_stream(request), _agent.slug)
+    return StreamingResponse(sse_format(events), media_type="text/event-stream")
 
 
 @router.post("/analyze-metrics", response_model=MetricsAnalysisResponse, summary="Analyze business metrics")

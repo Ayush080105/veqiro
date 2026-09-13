@@ -5,12 +5,14 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.config import settings
+from core.streaming import sse_format, stream_chat_sync_response
 from core.utils import strip_json_fences, safe_json_loads
 from agents.vega.agent import VegaAgent
 from agents.vega.gmail import list_unread, get_message, create_label, label_message
@@ -343,6 +345,15 @@ class RescheduleDraftResponse(BaseModel):
 async def vega_chat(request: ChatRequest) -> ChatSyncResponse:
     """Get Vega's executive assistant response. node_actions in metadata for backend to execute."""
     return await _agent.chat_sync(request)
+
+
+@router.post("/chat/stream", summary="Vega chat (streamed)")
+async def vega_chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Same as /chat, but progressively — live tool_call/tool_result events
+    followed by chunked token events, then a done event carrying the same
+    fields the non-streaming response returns."""
+    events = stream_chat_sync_response(_agent.chat_sync_stream(request), _agent.slug)
+    return StreamingResponse(sse_format(events), media_type="text/event-stream")
 
 
 @router.post("/process-inbox", response_model=ProcessInboxResponse, summary="Process email inbox")

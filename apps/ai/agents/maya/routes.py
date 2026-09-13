@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 logger = logging.getLogger("agents")
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from core.brand_kit import load_brand_kit, get_platform_tone
@@ -12,6 +13,7 @@ from core.image_gen import generate_social_image, _fetch_asset
 from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, ImageResult, VideoResult
+from core.streaming import sse_format, stream_chat_sync_response
 from core.video_gen import (
     build_video_prompt,
     build_logo_animation_prompt,
@@ -434,6 +436,15 @@ async def maya_chat(request: ChatRequest) -> ChatSyncResponse:
         return await _agent.chat_sync(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat/stream", summary="Maya chat (streamed)")
+async def maya_chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Same as /chat, but progressively — live tool_call/tool_result events
+    followed by chunked token events, then a done event carrying the same
+    fields the non-streaming response returns."""
+    events = stream_chat_sync_response(_agent.chat_sync_stream(request), _agent.slug)
+    return StreamingResponse(sse_format(events), media_type="text/event-stream")
 
 
 @router.post("/generate-ideas", response_model=IdeationResponse, summary="Generate content ideas")

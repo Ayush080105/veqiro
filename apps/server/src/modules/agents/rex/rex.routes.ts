@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   msgRex,
+  msgRexStream,
   getRexMessages,
   analyzeMetrics,
   forecast,
@@ -40,6 +41,7 @@ publicRouter.post("/agents/rex/ingest", ingest);
 publicRouter.get("/agents/rex/pins/public/:token", getSharedPin);
 
 router.post("/chat", msgRex);
+router.post("/chat/stream", msgRexStream);
 router.get("/chat", getRexMessages);
 router.post("/analyze-metrics", analyzeMetrics);
 router.post("/forecast", forecast);

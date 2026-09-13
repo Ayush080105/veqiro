@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   msgScout,
+  msgScoutStream,
   getScoutMessages,
   researchTopic,
   researchCompany,
@@ -13,6 +14,7 @@ import { discoverCompetitorsSchema, researchCompanySchema, researchTopicSchema, 
 const router = Router();
 
 router.post("/chat",validate(sendMessageSchema), msgScout);
+router.post("/chat/stream", validate(sendMessageSchema), msgScoutStream);
 router.get("/chat", getScoutMessages);
 router.post("/research-topic",validate(researchTopicSchema), researchTopic);
 router.post("/research-company", validate(researchCompanySchema), researchCompany);
