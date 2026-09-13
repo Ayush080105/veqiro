@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { Download, Copy, Check, PencilLine } from "lucide-react"
+import { Download, Copy, Check, PencilLine, Pin } from "lucide-react"
 import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
 import { ActionResultRenderer } from "@/components/chat/ActionResultRenderer"
 import { ChatImage } from "@/components/chat/ChatImage"
@@ -58,6 +58,33 @@ function CopyBtn({ text }: { text: string }) {
       }}
     >
       {state === "copied" ? <Check size={12} strokeWidth={2.5} /> : <Copy size={12} strokeWidth={2} />}
+    </button>
+  )
+}
+
+function PinBtn({ pinned, onClick }: { pinned: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={pinned ? "Unpin message" : "Pin message"}
+      aria-pressed={pinned}
+      className={pinned ? undefined : "opacity-0 group-hover:opacity-100 transition-opacity duration-150"}
+      style={{
+        width: 28,
+        height: 28,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center",
+        background: pinned ? "var(--primary)" : "rgba(0,0,0,0.10)",
+        border: "none",
+        borderRadius: "50%",
+        cursor: "pointer",
+        boxShadow: "var(--vq-shadow-sm)",
+        color: pinned ? "var(--primary-foreground)" : "var(--foreground)",
+      }}
+    >
+      <Pin size={12} strokeWidth={2} fill={pinned ? "currentColor" : "none"} />
     </button>
   )
 }
@@ -165,6 +192,8 @@ export interface ChatMessageProps {
   onFollowUpAction?: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
   onRevertImage?: (messageId: string) => void
   onRestoreDraft?: (message: Message) => void
+  /** Absent for locally-optimistic messages, which have no id yet to pin. */
+  onTogglePin?: (message: Message) => void
 }
 
 function ChatMessageComponent({
@@ -177,6 +206,7 @@ function ChatMessageComponent({
   onFollowUpAction,
   onRevertImage,
   onRestoreDraft,
+  onTogglePin,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const time = formatMessageTime(message.createdAt)
@@ -207,8 +237,11 @@ function ChatMessageComponent({
   if (isUser) {
     return (
       <div className="group flex items-end justify-end gap-2" style={{ marginTop }}>
-        <div className="self-end">
+        <div className="self-end flex flex-col gap-1">
           <CopyBtn text={message.content} />
+          {message.id && onTogglePin && (
+            <PinBtn pinned={!!message.pinned} onClick={() => onTogglePin(message)} />
+          )}
         </div>
         <div className="flex flex-col items-end" style={{ maxWidth: "min(78%, 560px)" }}>
           <div
@@ -400,8 +433,11 @@ function ChatMessageComponent({
         ))}
       </div>
       {!actionId && (
-        <div className="self-end">
+        <div className="self-end flex flex-col gap-1">
           <CopyBtn text={message.content} />
+          {message.id && onTogglePin && (
+            <PinBtn pinned={!!message.pinned} onClick={() => onTogglePin(message)} />
+          )}
         </div>
       )}
     </div>
@@ -419,5 +455,6 @@ export const ChatMessage = React.memo(
     prev.marginTop === next.marginTop &&
     prev.onFollowUpAction === next.onFollowUpAction &&
     prev.onRevertImage === next.onRevertImage &&
-    prev.onRestoreDraft === next.onRestoreDraft,
+    prev.onRestoreDraft === next.onRestoreDraft &&
+    prev.onTogglePin === next.onTogglePin,
 )

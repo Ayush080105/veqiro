@@ -66,6 +66,13 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   const [sendError, setSendError] = useState<ApiError | null>(null)
   // Lex-only: sources attached via the composer's "#" picker for the next send.
   const [attachedSourceIds, setAttachedSourceIds] = useState<string[]>([])
+  // Set while viewing a page anchored around a pinned/searched message
+  // instead of the live tail — background catch-up refetches must not
+  // clobber it, and the composer returns to the tail before sending.
+  const [isAnchored, setIsAnchored] = useState(false)
+  const isAnchoredRef = useRef(false)
+  isAnchoredRef.current = isAnchored
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null)
 
   const conversationIdRef = useRef<string>(genConversationId())
   const chatScrollRef = useRef<HTMLDivElement>(null)
@@ -89,6 +96,9 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
     didCatchUpRef.current = false
     thisMutationRef.current = false
     prevMutationStatusRef.current = undefined
+    isAnchoredRef.current = false
+    setIsAnchored(false)
+    setHighlightedMessageId(null)
 
     // Paint instantly from localStorage cache (stale-while-revalidate)
     try {
@@ -134,13 +144,16 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   // Persist window to localStorage after every settled update
   useEffect(() => {
     if (!initialLoaded || !agentId || !organizationId || msgWindow.length === 0) return
+    // Anchored views are a slice of history, not the tail — caching them would
+    // paint the wrong page on next load.
+    if (isAnchored) return
     try {
       localStorage.setItem(
         chatCacheKey(organizationId, agentId),
         JSON.stringify(msgWindow.slice(-WINDOW)),
       )
     } catch {}
-  }, [msgWindow, initialLoaded, agentId, organizationId])
+  }, [msgWindow, initialLoaded, agentId, organizationId, isAnchored])
 
   const loadPreviousPage = useCallback(async () => {
     if (!hasPreviousPage || isLoadingPrev) return
@@ -297,6 +310,9 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
     }
 
     // Orphaned mutation — re-fetch so the result and tool cards appear.
+    // Skip while anchored to a pinned/searched page — that view isn't the
+    // tail, and the fetched "latest" page would silently replace it.
+    if (isAnchoredRef.current) return
     const requestKey = `${organizationId}:${agentId}`
     const controller = new AbortController()
     getMessages(agentId, organizationId, undefined, controller.signal)
@@ -321,6 +337,7 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       if (document.visibilityState !== "visible") return
       const status = latestMutationStatusRef.current
       if (status !== "pending" && status !== "success") return
+      if (isAnchoredRef.current) return
       const requestKey = `${organizationId}:${agentId}`
       controller?.abort()
       const requestController = new AbortController()
@@ -348,6 +365,7 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   useEffect(() => {
     if (!initialLoaded || didCatchUpRef.current) return
     if (latestMutationStatus !== "success" || mutationStatuses.length === 0) return
+    if (isAnchoredRef.current) return
     didCatchUpRef.current = true
     const requestKey = `${organizationId}:${agentId}`
     const controller = new AbortController()
@@ -363,9 +381,59 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
     return () => controller.abort()
   }, [initialLoaded, latestMutationStatus, mutationStatuses.length, agentId, organizationId, pruneStaleAssistantPlaceholder])
 
+  const msgWindowRef = useRef(msgWindow)
+  msgWindowRef.current = msgWindow
+
+  /** Jump to a pinned/searched message: highlight it in place if it's already
+   * loaded, otherwise fetch a page anchored to end just after it (the server
+   * always returns the `limit` most-recent rows before a cursor, so the
+   * target lands as the last row with up to WINDOW-1 rows of lead-up). */
+  const jumpToMessage = useCallback(async (id: string, createdAt: string) => {
+    if (msgWindowRef.current.some((m) => m.id === id)) {
+      setHighlightedMessageId(id)
+      return
+    }
+    const requestKey = `${organizationId}:${agentId}`
+    try {
+      const cursor = new Date(new Date(createdAt).getTime() + 1).toISOString()
+      const page = await getMessages(agentId, organizationId, cursor)
+      if (activeChatKeyRef.current !== requestKey) return
+      isAnchoredRef.current = true
+      setIsAnchored(true)
+      // No scrollIntentRef here — the page's render effect scrollIntoView's
+      // the highlighted target directly, which is more precise than the
+      // scroll-to-bottom heuristic that ref otherwise drives.
+      setMsgWindow(page)
+      setHasPreviousPage(page.length === WINDOW)
+      setHighlightedMessageId(id)
+    } catch {
+      toast.error("Couldn't jump to that message.")
+    }
+  }, [agentId, organizationId])
+
+  const returnToLatest = useCallback(async () => {
+    const requestKey = `${organizationId}:${agentId}`
+    try {
+      const msgs = await getMessages(agentId, organizationId, undefined)
+      if (activeChatKeyRef.current !== requestKey) return
+      isAnchoredRef.current = false
+      setIsAnchored(false)
+      setHighlightedMessageId(null)
+      scrollIntentRef.current = "smooth"
+      setMsgWindow((current) => mergeServerSnapshot(refreshLocalPlaceholderTimestamps(current), msgs, WINDOW))
+      setHasPreviousPage(msgs.length === WINDOW)
+    } catch {
+      toast.error("Couldn't return to the latest messages.")
+    }
+  }, [agentId, organizationId])
+
+  const clearHighlight = useCallback(() => setHighlightedMessageId(null), [])
+
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
     if (!trimmed || trimmed.length > 1000 || isLoading) return
+
+    if (isAnchoredRef.current) await returnToLatest()
 
     setContent("")
     const sourceIds = attachedSourceIds
@@ -383,7 +451,7 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
         toast.error("Failed to send message. Please try again.")
       }
     }
-  }, [content, isLoading, sendMutation, agentName, attachedSourceIds])
+  }, [content, isLoading, sendMutation, agentName, attachedSourceIds, returnToLatest])
 
   const contentRef = useRef(content)
   contentRef.current = content
@@ -421,6 +489,11 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       scrollIntentRef,
       attachedSourceIds,
       setAttachedSourceIds,
+      isAnchored,
+      highlightedMessageId,
+      jumpToMessage,
+      returnToLatest,
+      clearHighlight,
     }),
     [
       msgWindow,
@@ -436,6 +509,11 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       handleSend,
       handleRestoreDraft,
       attachedSourceIds,
+      isAnchored,
+      highlightedMessageId,
+      jumpToMessage,
+      returnToLatest,
+      clearHighlight,
     ],
   )
 }

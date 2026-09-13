@@ -388,7 +388,9 @@ export const MessageScalarFieldEnum = {
   model: 'model',
   userId: 'userId',
   customInput: 'customInput',
-  isTeam: 'isTeam'
+  isTeam: 'isTeam',
+  pinned: 'pinned',
+  pinnedAt: 'pinnedAt'
 } as const
 
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]

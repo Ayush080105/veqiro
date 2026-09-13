@@ -6,7 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug, CalendarDays } from "lucide-react"
+import { Info, HelpCircle, MessageSquare, FolderOpen, ArrowLeft, ChevronDown, Plug, CalendarDays, Pin, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
@@ -14,6 +14,7 @@ import { apiFetch } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
 import { useBrandKit } from "@/lib/api/brain"
 import { useLexSources } from "@/lib/api/lex"
+import { usePinnedMessages, useTogglePinMessage } from "@/lib/api/messages"
 import { useAgentChat, WINDOW } from "@/lib/hooks/use-agent-chat"
 import { useMcpConnections, useMcpToolPreference, useSetMcpToolPreference } from "@/lib/api/mcp"
 import { getIntegrationsByAgent } from "@repo/integrations-catalog"
@@ -137,11 +138,15 @@ function ChatHeader({
   onInfoClick,
   onHelpClick,
   onOnboardClick,
+  onPinnedClick,
+  pinnedCount,
 }: {
   agent: AgentConfig
   onInfoClick: () => void
   onHelpClick: () => void
   onOnboardClick: () => void
+  onPinnedClick: () => void
+  pinnedCount: number
 }) {
   const agentPhoto = AGENT_PHOTOS[agent.id]
   return (
@@ -189,6 +194,22 @@ function ChatHeader({
         </div>
       </button>
       {agent.id === "scout" && <ScoutSearchSourceToggle />}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="relative rounded-full text-muted-foreground"
+        onClick={onPinnedClick}
+        aria-label="Pinned messages"
+        title="Pinned messages"
+      >
+        <Pin className="size-4" />
+        {pinnedCount > 0 && (
+          <span className="absolute top-0.5 right-0.5 grid size-3.5 place-items-center rounded-full bg-primary font-mono text-[9px] text-primary-foreground">
+            {pinnedCount > 9 ? "9+" : pinnedCount}
+          </span>
+        )}
+      </Button>
       <Button
         type="button"
         variant="ghost"
@@ -314,10 +335,41 @@ export default function AssistantChatPage() {
     scrollIntentRef,
     attachedSourceIds,
     setAttachedSourceIds,
+    isAnchored,
+    highlightedMessageId,
+    jumpToMessage,
+    returnToLatest,
+    clearHighlight,
   } = useAgentChat(id, organizationId, agent?.name)
 
   const { data: brandKit = null } = useBrandKit(organizationId)
   const { data: lexSources = [] } = useLexSources(id === "lex")
+  const { data: pinnedMessages = [] } = usePinnedMessages(id as AgentSlug, organizationId)
+  const togglePinMutation = useTogglePinMessage(id as AgentSlug, organizationId)
+  const handleTogglePin = useCallback((message: Message) => {
+    if (!message.id) return
+    const prevPinned = message.pinned
+    const prevPinnedAt = message.pinnedAt ?? null
+    const nextPinned = !prevPinned
+    setMsgWindow((prev) =>
+      prev.map((m) =>
+        m.id === message.id
+          ? { ...m, pinned: nextPinned, pinnedAt: nextPinned ? new Date().toISOString() : null }
+          : m,
+      ),
+    )
+    togglePinMutation.mutate(
+      { id: message.id, pinned: nextPinned },
+      {
+        onError: () => {
+          setMsgWindow((prev) =>
+            prev.map((m) => (m.id === message.id ? { ...m, pinned: prevPinned, pinnedAt: prevPinnedAt } : m)),
+          )
+          toast.error("Couldn't update pin.")
+        },
+      },
+    )
+  }, [setMsgWindow, togglePinMutation])
   const { data: rexDatasetCount = 0 } = useQuery({
     queryKey: qk.rexDatasets(organizationId),
     queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets"),
@@ -329,6 +381,7 @@ export default function AssistantChatPage() {
 
   const [toolsOpen, setToolsOpen] = useState(false)
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
+  const [pinnedOpen, setPinnedOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [onboardOpen, setOnboardOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -368,6 +421,16 @@ export default function AssistantChatPage() {
       }
     }
   }, [msgWindow, isBusy])
+
+  // Scroll a jumped-to (pinned/searched) message into view once it's in the
+  // DOM, then clear the highlight after it's had a moment to register.
+  useEffect(() => {
+    if (!highlightedMessageId) return
+    const el = chatScrollRef.current?.querySelector(`[data-message-id="${highlightedMessageId}"]`)
+    el?.scrollIntoView({ behavior: "smooth", block: "center" })
+    const timer = setTimeout(() => clearHighlight(), 2500)
+    return () => clearTimeout(timer)
+  }, [highlightedMessageId, msgWindow, clearHighlight])
 
   // Writes an optimistic user message as soon as the dialog starts submitting,
   // so the chat doesn't look empty while the API call is in flight.
@@ -671,6 +734,20 @@ export default function AssistantChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount only
 
+  // Deep link from a pinned/searched message (ChatList's message search).
+  // A search result click navigates to this same [id] route with new query
+  // params rather than remounting the page, so this must react to the param
+  // values themselves — not just historyLoaded — or a second search jump
+  // while already on this agent's chat would silently no-op.
+  const jumpParam = searchParams.get("jump")
+  const atParam = searchParams.get("at")
+  useEffect(() => {
+    if (!historyLoaded || !jumpParam || !atParam) return
+    void jumpToMessage(jumpParam, atParam)
+    router.replace(`/assistants/${id}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyLoaded, jumpParam, atParam])
+
   // Return redirect from a Maya credit top-up checkout (billing.topup.ts's
   // return_url/cancel_url both point back here). Mirrors the status=success/
   // cancelled handling on settings/billing/page.tsx.
@@ -902,7 +979,63 @@ export default function AssistantChatPage() {
         onInfoClick={() => setInfoOpen(true)}
         onHelpClick={() => setHelpOpen(true)}
         onOnboardClick={() => setOnboardOpen(true)}
+        onPinnedClick={() => setPinnedOpen((v) => !v)}
+        pinnedCount={pinnedMessages.length}
       />
+
+      {pinnedOpen && (
+        <div className="border-b border-(--vq-line-2) bg-card px-3 py-2 sm:px-4">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Pinned messages
+            </span>
+            <button
+              type="button"
+              onClick={() => setPinnedOpen(false)}
+              aria-label="Close pinned messages"
+              className="grid size-5 cursor-pointer place-items-center rounded-full border-none bg-transparent text-muted-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+          {pinnedMessages.length === 0 ? (
+            <div className="py-2 text-center text-[12px] text-muted-foreground">
+              Pin a message to find it again quickly.
+            </div>
+          ) : (
+            <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+              {pinnedMessages.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    if (m.id) void jumpToMessage(m.id, m.createdAt)
+                    setPinnedOpen(false)
+                  }}
+                  className="cursor-pointer rounded-lg border border-transparent px-2 py-1.5 text-left transition-colors hover:bg-black/5"
+                >
+                  <div className="truncate font-body text-[12.5px] text-foreground">
+                    {m.role === "user" ? "You: " : ""}
+                    {m.content || "(no text)"}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isAnchored && (
+        <div className="flex items-center justify-center border-b border-(--vq-line-2) bg-card py-1.5">
+          <button
+            type="button"
+            onClick={() => void returnToLatest()}
+            className="cursor-pointer rounded-full border border-(--vq-line-2) bg-background px-3 py-1 font-mono text-[11px] uppercase tracking-wide text-muted-foreground"
+          >
+            Viewing history — back to latest
+          </button>
+        </div>
+      )}
 
       {isLex && (
         <div className="flex flex-wrap items-center gap-2 border-b border-(--vq-line-2) bg-card px-3 py-2 sm:px-4">
@@ -1125,18 +1258,27 @@ export default function AssistantChatPage() {
               </div>
             )}
             {displayMessages.map((msg, i) => (
-              <ChatMessage
+              <div
                 key={msg.id ?? `msg-${i}`}
-                message={msg}
-                agentInitials={agent.initials}
-                agentColor={agentColor}
-                agentPhoto={agentPhotoUrl}
-                showAvatar={msg.role !== "assistant" || i === 0 || displayMessages[i - 1]?.role !== "assistant"}
-                marginTop={i === 0 ? 0 : displayMessages[i - 1]?.role === msg.role ? 4 : 12}
-                onFollowUpAction={handleFollowUp}
-                onRevertImage={handleRevertImage}
-                onRestoreDraft={handleRestoreDraft}
-              />
+                data-message-id={msg.id}
+                className={cn(
+                  "rounded-xl transition-colors duration-700",
+                  msg.id && msg.id === highlightedMessageId ? "bg-(--vq-yellow)/25" : "bg-transparent",
+                )}
+              >
+                <ChatMessage
+                  message={msg}
+                  agentInitials={agent.initials}
+                  agentColor={agentColor}
+                  agentPhoto={agentPhotoUrl}
+                  showAvatar={msg.role !== "assistant" || i === 0 || displayMessages[i - 1]?.role !== "assistant"}
+                  marginTop={i === 0 ? 0 : displayMessages[i - 1]?.role === msg.role ? 4 : 12}
+                  onFollowUpAction={handleFollowUp}
+                  onRevertImage={handleRevertImage}
+                  onRestoreDraft={handleRestoreDraft}
+                  onTogglePin={handleTogglePin}
+                />
+              </div>
             ))}
             {isBusy && !hasStreamingMessage && (
               <TypingIndicator

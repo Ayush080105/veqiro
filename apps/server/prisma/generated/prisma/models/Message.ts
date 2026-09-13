@@ -46,6 +46,8 @@ export type MessageMinAggregateOutputType = {
   model: string | null
   userId: string | null
   isTeam: boolean | null
+  pinned: boolean | null
+  pinnedAt: Date | null
 }
 
 export type MessageMaxAggregateOutputType = {
@@ -60,6 +62,8 @@ export type MessageMaxAggregateOutputType = {
   model: string | null
   userId: string | null
   isTeam: boolean | null
+  pinned: boolean | null
+  pinnedAt: Date | null
 }
 
 export type MessageCountAggregateOutputType = {
@@ -75,6 +79,8 @@ export type MessageCountAggregateOutputType = {
   userId: number
   customInput: number
   isTeam: number
+  pinned: number
+  pinnedAt: number
   _all: number
 }
 
@@ -99,6 +105,8 @@ export type MessageMinAggregateInputType = {
   model?: true
   userId?: true
   isTeam?: true
+  pinned?: true
+  pinnedAt?: true
 }
 
 export type MessageMaxAggregateInputType = {
@@ -113,6 +121,8 @@ export type MessageMaxAggregateInputType = {
   model?: true
   userId?: true
   isTeam?: true
+  pinned?: true
+  pinnedAt?: true
 }
 
 export type MessageCountAggregateInputType = {
@@ -128,6 +138,8 @@ export type MessageCountAggregateInputType = {
   userId?: true
   customInput?: true
   isTeam?: true
+  pinned?: true
+  pinnedAt?: true
   _all?: true
 }
 
@@ -230,6 +242,8 @@ export type MessageGroupByOutputType = {
   userId: string | null
   customInput: runtime.JsonValue | null
   isTeam: boolean
+  pinned: boolean
+  pinnedAt: Date | null
   _count: MessageCountAggregateOutputType | null
   _avg: MessageAvgAggregateOutputType | null
   _sum: MessageSumAggregateOutputType | null
@@ -268,6 +282,8 @@ export type MessageWhereInput = {
   userId?: Prisma.StringNullableFilter<"Message"> | string | null
   customInput?: Prisma.JsonNullableFilter<"Message">
   isTeam?: Prisma.BoolFilter<"Message"> | boolean
+  pinned?: Prisma.BoolFilter<"Message"> | boolean
+  pinnedAt?: Prisma.DateTimeNullableFilter<"Message"> | Date | string | null
   pendingActions?: Prisma.McpPendingActionListRelationFilter
   runs?: Prisma.AgentRunListRelationFilter
 }
@@ -285,6 +301,8 @@ export type MessageOrderByWithRelationInput = {
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   customInput?: Prisma.SortOrderInput | Prisma.SortOrder
   isTeam?: Prisma.SortOrder
+  pinned?: Prisma.SortOrder
+  pinnedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   pendingActions?: Prisma.McpPendingActionOrderByRelationAggregateInput
   runs?: Prisma.AgentRunOrderByRelationAggregateInput
 }
@@ -305,6 +323,8 @@ export type MessageWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringNullableFilter<"Message"> | string | null
   customInput?: Prisma.JsonNullableFilter<"Message">
   isTeam?: Prisma.BoolFilter<"Message"> | boolean
+  pinned?: Prisma.BoolFilter<"Message"> | boolean
+  pinnedAt?: Prisma.DateTimeNullableFilter<"Message"> | Date | string | null
   pendingActions?: Prisma.McpPendingActionListRelationFilter
   runs?: Prisma.AgentRunListRelationFilter
 }, "id">
@@ -322,6 +342,8 @@ export type MessageOrderByWithAggregationInput = {
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   customInput?: Prisma.SortOrderInput | Prisma.SortOrder
   isTeam?: Prisma.SortOrder
+  pinned?: Prisma.SortOrder
+  pinnedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MessageCountOrderByAggregateInput
   _avg?: Prisma.MessageAvgOrderByAggregateInput
   _max?: Prisma.MessageMaxOrderByAggregateInput
@@ -345,6 +367,8 @@ export type MessageScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringNullableWithAggregatesFilter<"Message"> | string | null
   customInput?: Prisma.JsonNullableWithAggregatesFilter<"Message">
   isTeam?: Prisma.BoolWithAggregatesFilter<"Message"> | boolean
+  pinned?: Prisma.BoolWithAggregatesFilter<"Message"> | boolean
+  pinnedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Message"> | Date | string | null
 }
 
 export type MessageCreateInput = {
@@ -360,6 +384,8 @@ export type MessageCreateInput = {
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: Date | string | null
   pendingActions?: Prisma.McpPendingActionCreateNestedManyWithoutMessageInput
   runs?: Prisma.AgentRunCreateNestedManyWithoutMessageInput
 }
@@ -377,6 +403,8 @@ export type MessageUncheckedCreateInput = {
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: Date | string | null
   pendingActions?: Prisma.McpPendingActionUncheckedCreateNestedManyWithoutMessageInput
   runs?: Prisma.AgentRunUncheckedCreateNestedManyWithoutMessageInput
 }
@@ -394,6 +422,8 @@ export type MessageUpdateInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pendingActions?: Prisma.McpPendingActionUpdateManyWithoutMessageNestedInput
   runs?: Prisma.AgentRunUpdateManyWithoutMessageNestedInput
 }
@@ -411,6 +441,8 @@ export type MessageUncheckedUpdateInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pendingActions?: Prisma.McpPendingActionUncheckedUpdateManyWithoutMessageNestedInput
   runs?: Prisma.AgentRunUncheckedUpdateManyWithoutMessageNestedInput
 }
@@ -428,6 +460,8 @@ export type MessageCreateManyInput = {
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: Date | string | null
 }
 
 export type MessageUpdateManyMutationInput = {
@@ -443,6 +477,8 @@ export type MessageUpdateManyMutationInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type MessageUncheckedUpdateManyInput = {
@@ -458,6 +494,8 @@ export type MessageUncheckedUpdateManyInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type MessageCountOrderByAggregateInput = {
@@ -473,6 +511,8 @@ export type MessageCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   customInput?: Prisma.SortOrder
   isTeam?: Prisma.SortOrder
+  pinned?: Prisma.SortOrder
+  pinnedAt?: Prisma.SortOrder
 }
 
 export type MessageAvgOrderByAggregateInput = {
@@ -491,6 +531,8 @@ export type MessageMaxOrderByAggregateInput = {
   model?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   isTeam?: Prisma.SortOrder
+  pinned?: Prisma.SortOrder
+  pinnedAt?: Prisma.SortOrder
 }
 
 export type MessageMinOrderByAggregateInput = {
@@ -505,6 +547,8 @@ export type MessageMinOrderByAggregateInput = {
   model?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   isTeam?: Prisma.SortOrder
+  pinned?: Prisma.SortOrder
+  pinnedAt?: Prisma.SortOrder
 }
 
 export type MessageSumOrderByAggregateInput = {
@@ -561,6 +605,8 @@ export type MessageCreateWithoutPendingActionsInput = {
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: Date | string | null
   runs?: Prisma.AgentRunCreateNestedManyWithoutMessageInput
 }
 
@@ -577,6 +623,8 @@ export type MessageUncheckedCreateWithoutPendingActionsInput = {
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: Date | string | null
   runs?: Prisma.AgentRunUncheckedCreateNestedManyWithoutMessageInput
 }
 
@@ -609,6 +657,8 @@ export type MessageUpdateWithoutPendingActionsInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   runs?: Prisma.AgentRunUpdateManyWithoutMessageNestedInput
 }
 
@@ -625,6 +675,8 @@ export type MessageUncheckedUpdateWithoutPendingActionsInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   runs?: Prisma.AgentRunUncheckedUpdateManyWithoutMessageNestedInput
 }
 
@@ -641,6 +693,8 @@ export type MessageCreateWithoutRunsInput = {
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: Date | string | null
   pendingActions?: Prisma.McpPendingActionCreateNestedManyWithoutMessageInput
 }
 
@@ -657,6 +711,8 @@ export type MessageUncheckedCreateWithoutRunsInput = {
   userId?: string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: Date | string | null
   pendingActions?: Prisma.McpPendingActionUncheckedCreateNestedManyWithoutMessageInput
 }
 
@@ -689,6 +745,8 @@ export type MessageUpdateWithoutRunsInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pendingActions?: Prisma.McpPendingActionUpdateManyWithoutMessageNestedInput
 }
 
@@ -705,6 +763,8 @@ export type MessageUncheckedUpdateWithoutRunsInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInput?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   isTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  pinnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pendingActions?: Prisma.McpPendingActionUncheckedUpdateManyWithoutMessageNestedInput
 }
 
@@ -761,6 +821,8 @@ export type MessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   userId?: boolean
   customInput?: boolean
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: boolean
   pendingActions?: boolean | Prisma.Message$pendingActionsArgs<ExtArgs>
   runs?: boolean | Prisma.Message$runsArgs<ExtArgs>
   _count?: boolean | Prisma.MessageCountOutputTypeDefaultArgs<ExtArgs>
@@ -779,6 +841,8 @@ export type MessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   userId?: boolean
   customInput?: boolean
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: boolean
 }, ExtArgs["result"]["message"]>
 
 export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -794,6 +858,8 @@ export type MessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   userId?: boolean
   customInput?: boolean
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: boolean
 }, ExtArgs["result"]["message"]>
 
 export type MessageSelectScalar = {
@@ -809,9 +875,11 @@ export type MessageSelectScalar = {
   userId?: boolean
   customInput?: boolean
   isTeam?: boolean
+  pinned?: boolean
+  pinnedAt?: boolean
 }
 
-export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "role" | "content" | "createdAt" | "imageUrl" | "agent" | "tokensUsed" | "model" | "userId" | "customInput" | "isTeam", ExtArgs["result"]["message"]>
+export type MessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "role" | "content" | "createdAt" | "imageUrl" | "agent" | "tokensUsed" | "model" | "userId" | "customInput" | "isTeam" | "pinned" | "pinnedAt", ExtArgs["result"]["message"]>
 export type MessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   pendingActions?: boolean | Prisma.Message$pendingActionsArgs<ExtArgs>
   runs?: boolean | Prisma.Message$runsArgs<ExtArgs>
@@ -887,6 +955,15 @@ export type $MessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
      * meaningful answer for "the team".
      */
     isTeam: boolean
+    /**
+     * User-pinned for quick recall in a long-running agent relationship —
+     * not a thread/folder concept, just a flag on the message itself.
+     */
+    pinned: boolean
+    /**
+     * When it was pinned; null when not pinned. Drives the pinned-rail order.
+     */
+    pinnedAt: Date | null
   }, ExtArgs["result"]["message"]>
   composites: {}
 }
@@ -1324,6 +1401,8 @@ export interface MessageFieldRefs {
   readonly userId: Prisma.FieldRef<"Message", 'String'>
   readonly customInput: Prisma.FieldRef<"Message", 'Json'>
   readonly isTeam: Prisma.FieldRef<"Message", 'Boolean'>
+  readonly pinned: Prisma.FieldRef<"Message", 'Boolean'>
+  readonly pinnedAt: Prisma.FieldRef<"Message", 'DateTime'>
 }
     
 

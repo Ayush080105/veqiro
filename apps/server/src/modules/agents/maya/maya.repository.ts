@@ -100,6 +100,8 @@ export const findAllMayaMessages = (
         imageUrl: true,
         createdAt: true,
         customInput: true,
+        pinned: true,
+        pinnedAt: true,
       },
     })
     .then((rows) => rows.reverse());

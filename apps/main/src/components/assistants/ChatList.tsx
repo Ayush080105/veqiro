@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Search, Lock, PanelLeftClose, PanelLeftOpen, Users } from "lucide-react"
 import { useMutationState } from "@tanstack/react-query"
 
@@ -11,14 +11,27 @@ import { authClient } from "@/lib/auth-client"
 import { AGENTS, AGENT_PHOTOS } from "@/lib/config/agents"
 import { useAgentStatuses, useLastMessages } from "@/lib/api/assistants"
 import { useUpcomingAgents, type UpcomingAgent } from "@/lib/api/feedback"
+import { useSearchMessages } from "@/lib/api/messages"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { stripMarkdown, cn } from "@/lib/utils"
 import { TeamRow } from "./TeamRow"
 import type {
   AgentStatusData,
   AgentConfig,
+  AgentSlug,
   LastMessage,
 } from "@/lib/types"
+
+/** Debounce a fast-changing value so search-as-you-type doesn't fire a
+ * request per keystroke. */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs)
+    return () => clearTimeout(timer)
+  }, [value, delayMs])
+  return debounced
+}
 
 function TypingDots() {
   return (
@@ -322,6 +335,7 @@ export default function ChatList({
   onToggleCollapsed?: () => void
 } = {}) {
   const pathname = usePathname()
+  const router = useRouter()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const organizationId = activeOrg?.id ?? ""
   const isMobile = useIsMobile()
@@ -334,6 +348,19 @@ export default function ChatList({
   const { data: upcomingAgents } = useUpcomingAgents()
   const [query, setQuery] = useState("")
   const unreadSet = useUnreadTracker(lastMap, pathname, organizationId)
+
+  // Search is scoped to whichever single agent's chat is open — "one long
+  // relationship per coworker", not a global cross-agent search. Outside a
+  // chat, the same box just filters the crew list below (existing behaviour).
+  const activeAgentMatch = pathname.match(/^\/assistants\/(\w+)$/)?.[1]
+  const activeAgentSlug =
+    activeAgentMatch && AGENTS.some((a) => a.id === activeAgentMatch) ? (activeAgentMatch as AgentSlug) : null
+  const debouncedQuery = useDebounced(query, 300)
+  const { data: messageResults, isFetching: isSearchingMessages } = useSearchMessages(
+    activeAgentSlug,
+    debouncedQuery,
+  )
+  const showMessageResults = !!activeAgentSlug && debouncedQuery.trim().length >= 2
 
   // Detect which agents have an in-flight sendMessage mutation.
   // useMutationState lives on the QueryClient so it survives navigation.
@@ -434,46 +461,86 @@ export default function ChatList({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search assistants"
+            placeholder={activeAgentSlug ? `Search ${activeAgentSlug}'s messages` : "Search assistants"}
             className="flex-1 border-none bg-transparent font-body text-[13px] text-foreground outline-none"
           />
         </div>
       </div>
 
       <div className="flex-1 overflow-auto">
-        {/* Pinned above the six: one room where the agents you own work a
-            single task together. Not filtered by search — it is a place, not
-            an agent. */}
-        <TeamRow />
-        {filtered.map((agent) => {
-          const active = pathname === `/assistants/${agent.id}`
-          return (
-            <AgentRow
-              key={agent.id}
-              agent={agent}
-              active={active}
-              status={statuses?.[agent.id]}
-              last={lastMap?.[agent.id] ?? null}
-              isTyping={typingAgentIds.has(agent.id)}
-              unread={unreadSet.has(agent.id)}
-            />
-          )
-        })}
-
-        {upcomingAgents && upcomingAgents.length > 0 && (
+        {showMessageResults ? (
+          <div className="px-1 py-1">
+            {isSearchingMessages && !messageResults ? (
+              <div className="px-2.5 py-3 text-center text-[12px] text-muted-foreground">Searching…</div>
+            ) : messageResults && messageResults.length > 0 ? (
+              messageResults.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    if (!m.id || !activeAgentSlug) return
+                    router.push(
+                      `/assistants/${activeAgentSlug}?jump=${encodeURIComponent(m.id)}&at=${encodeURIComponent(m.createdAt)}`,
+                    )
+                  }}
+                  className="block w-full cursor-pointer rounded-lg border border-transparent px-2.5 py-2 text-left transition-colors hover:bg-black/5"
+                >
+                  <div className="mb-0.5 flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                      {m.role === "user" ? "You" : activeAgentSlug}
+                    </span>
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                      {formatRelative(m.createdAt)}
+                    </span>
+                  </div>
+                  <div className="truncate font-body text-[13px] text-foreground">
+                    {stripMarkdown(m.content) || "(no text)"}
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="px-2.5 py-3 text-center text-[12px] text-muted-foreground">
+                No messages match &ldquo;{debouncedQuery}&rdquo;.
+              </div>
+            )}
+          </div>
+        ) : (
           <>
-            <div className="flex items-center gap-2 border-b border-(--vq-line-2) px-3.5 pt-2.5 pb-1.5">
-              <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                Coming Soon
-              </span>
-            </div>
-            {upcomingAgents.map((agent) => (
-              <UpcomingAgentRow
-                key={agent.id}
-                agent={agent}
-                active={pathname === `/assistants/upcoming/${agent.id}`}
-              />
-            ))}
+            {/* Pinned above the six: one room where the agents you own work a
+                single task together. Not filtered by search — it is a place, not
+                an agent. */}
+            <TeamRow />
+            {filtered.map((agent) => {
+              const active = pathname === `/assistants/${agent.id}`
+              return (
+                <AgentRow
+                  key={agent.id}
+                  agent={agent}
+                  active={active}
+                  status={statuses?.[agent.id]}
+                  last={lastMap?.[agent.id] ?? null}
+                  isTyping={typingAgentIds.has(agent.id)}
+                  unread={unreadSet.has(agent.id)}
+                />
+              )
+            })}
+
+            {upcomingAgents && upcomingAgents.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 border-b border-(--vq-line-2) px-3.5 pt-2.5 pb-1.5">
+                  <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+                    Coming Soon
+                  </span>
+                </div>
+                {upcomingAgents.map((agent) => (
+                  <UpcomingAgentRow
+                    key={agent.id}
+                    agent={agent}
+                    active={pathname === `/assistants/upcoming/${agent.id}`}
+                  />
+                ))}
+              </>
+            )}
           </>
         )}
       </div>

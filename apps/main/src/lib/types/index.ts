@@ -18,6 +18,8 @@ export interface Message {
   model?: string | null
   /** Client-only state for an optimistic user message; never written by the API. */
   deliveryStatus?: MessageDeliveryStatus
+  pinned?: boolean
+  pinnedAt?: string | null
   /** Rich structured action result. When set, the chat renders the matching result card. */
   customInput?: {
     /** Set when this message renders a planned multi-step run's task graph. */

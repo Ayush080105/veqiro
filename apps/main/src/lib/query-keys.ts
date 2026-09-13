@@ -25,6 +25,8 @@ export const qk = {
   chat: (agentSlug: string, organizationId: string) =>
     ["chat", agentSlug, organizationId] as const,
   lexSources: () => ["lex", "sources"] as const,
+  pinnedMessages: (agentSlug: string, organizationId: string) =>
+    ["pinned-messages", agentSlug, organizationId] as const,
   mayaPublishedPosts: (organizationId: string) =>
     ["maya", "published-posts", organizationId] as const,
   mayaContentPlans: (organizationId: string) =>

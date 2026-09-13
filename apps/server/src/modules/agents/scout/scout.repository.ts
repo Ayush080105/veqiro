@@ -77,6 +77,8 @@ export const findAllScoutMessages = (
         imageUrl: true,
         createdAt: true,
         customInput: true,
+        pinned: true,
+        pinnedAt: true,
       },
     })
     .then((rows) => rows.reverse());

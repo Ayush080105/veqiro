@@ -702,6 +702,11 @@ model Message {
   /// entitlements, billing and the MCP catalog, and none of those have a
   /// meaningful answer for "the team".
   isTeam         Boolean            @default(false)
+  /// User-pinned for quick recall in a long-running agent relationship —
+  /// not a thread/folder concept, just a flag on the message itself.
+  pinned         Boolean            @default(false)
+  /// When it was pinned; null when not pinned. Drives the pinned-rail order.
+  pinnedAt       DateTime?
   /// Write-capable MCP tool calls this message staged for confirmation.
   pendingActions McpPendingAction[]
   /// Planned multi-step runs rendered on this message.
@@ -714,6 +719,7 @@ model Message {
   @@index([role, createdAt])
   @@index([agent, role, createdAt])
   @@index([organizationId, isTeam, createdAt])
+  @@index([organizationId, agent, pinned, pinnedAt])
   @@map("message")
 }
 
