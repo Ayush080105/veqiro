@@ -57,6 +57,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import ReactMarkdown from "react-markdown"
+import { ArtifactHtmlViewer } from "@/components/chat/ArtifactHtmlViewer"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
 import { useSavedKeywords, useSaveKeyword, useUnsaveKeyword } from "@/lib/api/sage"
@@ -578,11 +579,12 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
               </div>
             )}
             {isHtml ? (
-              // Raw HTML output from LLM — scope styles with Tailwind child selectors
-              <div
-                className="text-sm [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:leading-tight [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-base [&_h3]:font-semibold [&_li]:leading-relaxed [&_ol]:mb-4 [&_ol]:ml-5 [&_ol]:list-decimal [&_ol]:space-y-1 [&_p]:mb-4 [&_p]:leading-[1.8] [&_table]:w-full [&_table]:border-collapse [&_table]:rounded [&_td]:border [&_td]:border-border/50 [&_td]:px-4 [&_td]:py-2.5 [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-2.5 [&_th]:font-semibold [&_ul]:mb-4 [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-1"
-                dangerouslySetInnerHTML={{ __html: blog.content }}
-              />
+              // Raw HTML output from LLM — sandboxed so a scraped/researched
+              // snippet the model echoes verbatim can't run script against
+              // this app's own origin. See ArtifactHtmlViewer.
+              <div className="h-[70vh] overflow-hidden rounded border border-border">
+                <ArtifactHtmlViewer html={blog.content} title={blog.title} />
+              </div>
             ) : (
               // Markdown output — rendered with react-markdown + GFM (handles tables, bold, etc.)
               <BlogContent content={blog.content} />

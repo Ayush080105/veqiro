@@ -27,6 +27,8 @@ import { AgentCard } from "@/components/ui/agent-card"
 import { InfoSection } from "@/components/ui/info-section"
 import { KpiTile } from "@/components/ui/kpi-tile"
 import { StatusPill } from "@/components/ui/status-pill"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { ArtifactHtmlViewer } from "@/components/chat/ArtifactHtmlViewer"
 import { cn } from "@/lib/utils"
 import { ScenarioSliders } from "@/components/agents/rex/scenario-sliders"
 import {
@@ -954,18 +956,12 @@ export function BoardDeckCard({
   onFollowUpAction?: FollowUp
 }) {
   const [copied, setCopied] = React.useState(false)
+  const [previewOpen, setPreviewOpen] = React.useState(false)
 
   const copyHtml = () => {
     void navigator.clipboard.writeText(result.html)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  const openInNewTab = () => {
-    const blob = new Blob([result.html], { type: "text/html" })
-    const url = URL.createObjectURL(blob)
-    window.open(url, "_blank", "noopener,noreferrer")
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
   return (
@@ -988,10 +984,10 @@ export function BoardDeckCard({
             </button>
             <button
               type="button"
-              onClick={openInNewTab}
+              onClick={() => setPreviewOpen(true)}
               className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
             >
-              <ArrowRight className="size-3" /> Open
+              <ArrowRight className="size-3" /> Preview
             </button>
           </div>
         }
@@ -1018,6 +1014,21 @@ export function BoardDeckCard({
           </div>
         )}
       </AgentCard.Body>
+
+      <Sheet open={previewOpen} onOpenChange={setPreviewOpen}>
+        <SheetContent side="right" className="flex flex-col sm:max-w-[60vw]">
+          <SheetHeader className="shrink-0 border-b pb-3">
+            <SheetTitle className="pr-8 text-base leading-snug">
+              Board deck — {result.period}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 px-6 py-4">
+            {/* Sandboxed: this is model-generated HTML, not trusted app UI —
+                see ArtifactHtmlViewer for why it can't just be a new tab. */}
+            <ArtifactHtmlViewer html={result.html} title={`Board deck — ${result.period}`} />
+          </div>
+        </SheetContent>
+      </Sheet>
     </AgentCard>
   )
 }
