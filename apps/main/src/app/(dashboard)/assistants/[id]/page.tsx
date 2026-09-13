@@ -16,6 +16,7 @@ import { useBrandKit } from "@/lib/api/brain"
 import { useLexSources } from "@/lib/api/lex"
 import { usePinnedMessages, useTogglePinMessage } from "@/lib/api/messages"
 import { useAgentChat, WINDOW } from "@/lib/hooks/use-agent-chat"
+import { useAgentActionDialogs } from "@/lib/hooks/use-agent-action-dialogs"
 import { useMcpConnections, useMcpToolPreference, useSetMcpToolPreference } from "@/lib/api/mcp"
 import { getIntegrationsByAgent } from "@repo/integrations-catalog"
 
@@ -313,6 +314,26 @@ export default function AssistantChatPage() {
   const queryClient = useQueryClient()
 
   const {
+    toolsOpen,
+    setToolsOpen,
+    templatePickerOpen,
+    setTemplatePickerOpen,
+    helpOpen,
+    setHelpOpen,
+    onboardOpen,
+    setOnboardOpen,
+    infoOpen,
+    setInfoOpen,
+    activeActionId,
+    activePrefill,
+    actionSubmitting,
+    setActionSubmitting,
+    openAction,
+    closeAction,
+    handleFollowUp,
+  } = useAgentActionDialogs(id, router, searchParams)
+
+  const {
     msgWindow,
     setMsgWindow,
     hasPreviousPage,
@@ -379,15 +400,7 @@ export default function AssistantChatPage() {
     placeholderData: (prev) => prev,
   })
 
-  const [toolsOpen, setToolsOpen] = useState(false)
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
   const [pinnedOpen, setPinnedOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
-  const [onboardOpen, setOnboardOpen] = useState(false)
-  const [infoOpen, setInfoOpen] = useState(false)
-  const [activeActionId, setActiveActionId] = useState<AgentActionId | null>(null)
-  const [activePrefill, setActivePrefill] = useState<Record<string, unknown> | undefined>(undefined)
-  const [actionSubmitting, setActionSubmitting] = useState(false)
   const [lexTab, setLexTab] = useState<"chat" | "documents">("chat")
   const [sageTab, setSageTab] = useState<"chat" | "favourites">("chat")
   const [rexTab, setRexTab] = useState<"chat" | "data">("chat")
@@ -661,11 +674,6 @@ export default function AssistantChatPage() {
     [],
   )
 
-  const openAction = useCallback((actionId: AgentActionId, prefill?: Record<string, unknown>) => {
-    setActivePrefill(prefill)
-    setActiveActionId(actionId)
-  }, [])
-
   /**
    * Turns one slot of the content plan into a running generator.
    *
@@ -706,33 +714,6 @@ export default function AssistantChatPage() {
     },
     [openAction],
   )
-
-  // Cross-agent handoff: navigate to the target agent's page with the action pre-loaded.
-  // Same-agent follow-ups open the dialog inline as before.
-  const handleFollowUp = useCallback(
-    (actionId: AgentActionId, prefill?: Record<string, unknown>) => {
-      const targetAgent = actionId.split(":")[0]
-      if (targetAgent === id) {
-        openAction(actionId, prefill)
-      } else {
-        const qs = new URLSearchParams({ action: actionId })
-        if (prefill) qs.set("prefill", JSON.stringify(prefill))
-        router.push(`/assistants/${targetAgent}?${qs.toString()}`)
-      }
-    },
-    [id, openAction, router],
-  )
-
-  // On mount: if URL contains ?action=..., open that action dialog then clean the URL.
-  useEffect(() => {
-    const action = searchParams.get("action") as AgentActionId | null
-    if (!action) return
-    const prefillStr = searchParams.get("prefill")
-    const prefill = prefillStr ? (JSON.parse(prefillStr) as Record<string, unknown>) : undefined
-    openAction(action, prefill)
-    router.replace(`/assistants/${id}`)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // run once on mount only
 
   // Deep link from a pinned/searched message (ChatList's message search).
   // A search result click navigates to this same [id] route with new query
@@ -1378,10 +1359,7 @@ export default function AssistantChatPage() {
         <RunActionDialog
           open
           onOpenChange={(v) => {
-            if (!v) {
-              setActiveActionId(null)
-              setActivePrefill(undefined)
-            }
+            if (!v) closeAction()
           }}
           actionId={activeActionId}
           organizationId={organizationId}
