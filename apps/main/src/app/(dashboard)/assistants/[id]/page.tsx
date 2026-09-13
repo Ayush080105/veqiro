@@ -13,6 +13,7 @@ import { authClient } from "@/lib/auth-client"
 import { apiFetch } from "@/lib/api/client"
 import { getAgent } from "@/lib/config/agents"
 import { useBrandKit } from "@/lib/api/brain"
+import { useLexSources } from "@/lib/api/lex"
 import { useAgentChat, WINDOW } from "@/lib/hooks/use-agent-chat"
 import { useMcpConnections, useMcpToolPreference, useSetMcpToolPreference } from "@/lib/api/mcp"
 import { getIntegrationsByAgent } from "@repo/integrations-catalog"
@@ -311,9 +312,12 @@ export default function AssistantChatPage() {
     chatScrollRef,
     scrollAnchorRef,
     scrollIntentRef,
+    attachedSourceIds,
+    setAttachedSourceIds,
   } = useAgentChat(id, organizationId, agent?.name)
 
   const { data: brandKit = null } = useBrandKit(organizationId)
+  const { data: lexSources = [] } = useLexSources(id === "lex")
   const { data: rexDatasetCount = 0 } = useQuery({
     queryKey: qk.rexDatasets(organizationId),
     queryFn: () => apiFetch<{ id: string }[]>("/agents/rex/datasets"),
@@ -1167,10 +1171,19 @@ export default function AssistantChatPage() {
             onChange={setContent}
             onSend={handleSend}
             onToolsClick={() => setToolsOpen(true)}
-            onOpenTemplatePicker={
-              isMaya && !findAction("maya:campaign-video")?.locked ? () => setTemplatePickerOpen(true) : undefined
-            }
+            agentSlug={agentSlug}
+            onPickAction={(a) => handlePlusPick(a.id)}
             onAttachClick={isLex ? openUploadAction : undefined}
+            knowledgeSources={isLex ? lexSources : undefined}
+            attachedSourceIds={isLex ? attachedSourceIds : undefined}
+            onAttachSource={
+              isLex
+                ? (s) => setAttachedSourceIds((prev) => (prev.includes(s.sourceId) ? prev : [...prev, s.sourceId]))
+                : undefined
+            }
+            onRemoveAttachedSource={
+              isLex ? (sourceId) => setAttachedSourceIds((prev) => prev.filter((id) => id !== sourceId)) : undefined
+            }
             placeholder={`Message ${agent.name.toLowerCase()}…`}
             disabled={isLoading}
           />

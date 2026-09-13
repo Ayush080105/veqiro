@@ -43,6 +43,49 @@ import type {
 } from "./lex.types.js";
 import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
 
+/**
+ * Fetches full text for sources explicitly attached via the composer's "#"
+ * picker and folds it into a context block prepended to the agent-facing
+ * message. The DISPLAYED/persisted user message stays as raw typed text —
+ * only the copy sent to the LLM carries the document dump — mirroring how
+ * core/rag.py's silent auto-retrieval already augments the prompt without
+ * touching what's shown in the transcript. Best-effort: an id that isn't
+ * owned by this user, or a fetch failure, is silently dropped rather than
+ * failing the whole chat turn.
+ */
+async function buildAttachedContext(
+  userId: string,
+  organizationId: string,
+  sourceIds: string[] | undefined
+): Promise<{ contextBlock: string; attached: { sourceId: string; name: string }[] }> {
+  if (!sourceIds?.length) return { contextBlock: "", attached: [] };
+
+  const owned = await lexRepository.findSourcesForUser(userId, organizationId);
+  const matched = sourceIds
+    .map((id) => owned.find((s) => s.sourceId === id))
+    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+  if (!matched.length) return { contextBlock: "", attached: [] };
+
+  const blocks = await Promise.all(
+    matched.map(async (s) => {
+      try {
+        const { data } = await aiService.post<{ content: string }>("/ai/lex/source-content", {
+          user_id: userId,
+          source_id: s.sourceId,
+        });
+        return `### Attached document: ${s.name}\n${data.content}`;
+      } catch {
+        return null;
+      }
+    })
+  );
+  const ok = blocks.filter((b): b is string => Boolean(b));
+  return {
+    contextBlock: ok.length ? `${ok.join("\n\n")}\n\n---\n\n` : "",
+    attached: matched.map((s) => ({ sourceId: s.sourceId, name: s.name })),
+  };
+}
+
 export const sendMessage = async (
   userId: string,
   organizationId: string,
@@ -52,10 +95,12 @@ export const sendMessage = async (
     organizationId,
     CONTEXT_HISTORY_LIMIT
   );
+  const attached = await buildAttachedContext(userId, organizationId, input.sourceIds);
   const userMessage = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: input.content,
+    customInput: attached.attached.length ? { attachedSources: attached.attached } : undefined,
   });
 
   // A multi-step request becomes a planned run the user approves as a
@@ -76,7 +121,7 @@ export const sendMessage = async (
     userId,
     organizationId,
     conversationId: input.conversationId ?? userMessage.id,
-    userMessage: input.content,
+    userMessage: `${attached.contextBlock}${input.content}`,
     rawHistory: history,
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
@@ -135,10 +180,12 @@ export async function* streamMessage(
     organizationId,
     CONTEXT_HISTORY_LIMIT
   );
+  const attached = await buildAttachedContext(userId, organizationId, input.sourceIds);
   const userMessage = await lexRepository.createUserMessage({
     organizationId,
     userId,
     content: input.content,
+    customInput: attached.attached.length ? { attachedSources: attached.attached } : undefined,
   });
 
   // Planned/DAG runs keep their existing polling UX (RunPanel/RunGraph) —
@@ -161,7 +208,7 @@ export async function* streamMessage(
     userId,
     organizationId,
     conversationId: input.conversationId ?? userMessage.id,
-    userMessage: input.content,
+    userMessage: `${attached.contextBlock}${input.content}`,
     rawHistory: history,
   });
 

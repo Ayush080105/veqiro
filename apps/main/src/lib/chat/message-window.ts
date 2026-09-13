@@ -207,6 +207,14 @@ export function parseCachedMessageWindow(raw: string, limit: number): Message[] 
       } else if (message.deliveryStatus !== "sending" && message.deliveryStatus !== "failed") {
         delete message.deliveryStatus
       }
+      // An assistant placeholder that failed before a single token arrived has
+      // nothing to show ("reply interrupted" with a blank body) and nothing to
+      // retry (only the user's own message is restorable) — it's pure debris
+      // that would otherwise ride along in the cache indefinitely, since
+      // nothing else in the merge pipeline ever retires a stale local id.
+      if (message.role === "assistant" && message.deliveryStatus === "failed" && !message.content.trim()) {
+        return []
+      }
       return [message]
     })
 

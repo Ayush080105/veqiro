@@ -64,11 +64,12 @@ export async function deleteLexSource(id: string): Promise<{ deleted: true }> {
   })
 }
 
-export function useLexSources() {
+export function useLexSources(enabled = true) {
   return useQuery({
     queryKey: qk.lexSources(),
     queryFn: () => listLexSources(),
     staleTime: 30_000,
+    enabled,
     placeholderData: (prev) => prev,
   })
 }

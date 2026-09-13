@@ -3,6 +3,10 @@ import { z } from "zod";
 export const sendMessageSchema = z.object({
   content: z.string().min(1).max(5000),
   conversationId: z.string().min(1).max(200).optional(),
+  // Ids of Lex sources explicitly attached via the composer's "#" picker —
+  // their full text is prepended into what the agent sees, on top of
+  // whatever core/rag.py's silent auto-retrieval already surfaces.
+  sourceIds: z.array(z.string()).max(3).optional(),
 });
 
 // Called after the browser PUTs the PDF directly to R2 via a presigned URL.

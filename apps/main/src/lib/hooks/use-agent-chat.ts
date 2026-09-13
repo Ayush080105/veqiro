@@ -64,6 +64,8 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [content, setContent] = useState("")
   const [sendError, setSendError] = useState<ApiError | null>(null)
+  // Lex-only: sources attached via the composer's "#" picker for the next send.
+  const [attachedSourceIds, setAttachedSourceIds] = useState<string[]>([])
 
   const conversationIdRef = useRef<string>(genConversationId())
   const chatScrollRef = useRef<HTMLDivElement>(null)
@@ -230,7 +232,14 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
     onAssistantError: (assistantId, mutationChatKey) => {
       if (activeChatKeyRef.current !== mutationChatKey) return
       setMsgWindow((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, deliveryStatus: "failed" } : m)),
+        prev.flatMap((m) => {
+          if (m.id !== assistantId) return [m]
+          // No tokens ever arrived — nothing to show, nothing to retry (only
+          // the user's own message is restorable). Drop it rather than leave
+          // a permanently blank "reply interrupted" bubble behind.
+          if (!m.content.trim()) return []
+          return [{ ...m, deliveryStatus: "failed" }]
+        }),
       )
     },
   })
@@ -248,6 +257,27 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   // Ref to read latest mutation status from event listeners without stale closures
   const latestMutationStatusRef = useRef(latestMutationStatus)
   latestMutationStatusRef.current = latestMutationStatus // Keep updated on every render
+
+  // The three catch-up refetches below (orphaned mutation, tab-visibility,
+  // belt-and-suspenders) only know a send *finished* — not which local
+  // assistant placeholder it belongs to. Without this, a placeholder that's
+  // still "streaming" (or was marked "failed" by a transient client-side
+  // stream-read error even though the server did persist a reply) survives
+  // the merge indefinitely, since mergeMessageWindow only adds messages, it
+  // doesn't retire stale local-only ones. onSuccess already does this precise
+  // cleanup by id for the component that owns the mutation; mirror it here so
+  // catch-up paths can too.
+  const successAssistantIds = useMutationState({
+    filters: { mutationKey: ["sendMessage", agentId, organizationId], status: "success" },
+    select: (m) => (m.state.data as { assistantId?: string } | undefined)?.assistantId,
+  })
+  const latestSuccessAssistantIdRef = useRef<string | undefined>(undefined)
+  latestSuccessAssistantIdRef.current = successAssistantIds[successAssistantIds.length - 1]
+
+  const pruneStaleAssistantPlaceholder = useCallback((messages: Message[]) => {
+    const id = latestSuccessAssistantIdRef.current
+    return id ? messages.filter((m) => m.id !== id) : messages
+  }, [])
   const isLoading = pendingCount > 0 || sendMutation.isPending
   const historyLoaded = initialLoaded
 
@@ -273,12 +303,14 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       .then((msgs) => {
         if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
         scrollIntentRef.current = "smooth"
-        setMsgWindow((current) => mergeMessageWindow(refreshLocalPlaceholderTimestamps(current), msgs))
+        setMsgWindow((current) =>
+          mergeMessageWindow(refreshLocalPlaceholderTimestamps(pruneStaleAssistantPlaceholder(current)), msgs),
+        )
         setHasPreviousPage(msgs.length === WINDOW)
       })
       .catch(() => {})
     return () => controller.abort()
-  }, [latestMutationStatus, agentId, organizationId])
+  }, [latestMutationStatus, agentId, organizationId, pruneStaleAssistantPlaceholder])
 
   // Refetch when user returns to this tab — covers the "agent finished while on
   // another tab" case. React Query has refetchOnWindowFocus disabled globally,
@@ -296,7 +328,9 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       getMessages(agentId, organizationId, undefined, requestController.signal)
         .then((msgs) => {
           if (requestController.signal.aborted || activeChatKeyRef.current !== requestKey) return
-          setMsgWindow((current) => mergeMessageWindow(refreshLocalPlaceholderTimestamps(current), msgs))
+          setMsgWindow((current) =>
+            mergeMessageWindow(refreshLocalPlaceholderTimestamps(pruneStaleAssistantPlaceholder(current)), msgs),
+          )
           setHasPreviousPage(msgs.length === WINDOW)
         })
         .catch(() => {})
@@ -320,20 +354,24 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
     getMessages(agentId, organizationId, undefined, controller.signal)
       .then((msgs) => {
         if (controller.signal.aborted || activeChatKeyRef.current !== requestKey) return
-        setMsgWindow((current) => mergeMessageWindow(refreshLocalPlaceholderTimestamps(current), msgs))
+        setMsgWindow((current) =>
+          mergeMessageWindow(refreshLocalPlaceholderTimestamps(pruneStaleAssistantPlaceholder(current)), msgs),
+        )
         setHasPreviousPage(msgs.length === WINDOW)
       })
       .catch(() => {})
     return () => controller.abort()
-  }, [initialLoaded, latestMutationStatus, mutationStatuses.length, agentId, organizationId])
+  }, [initialLoaded, latestMutationStatus, mutationStatuses.length, agentId, organizationId, pruneStaleAssistantPlaceholder])
 
   const handleSend = useCallback(async () => {
     const trimmed = content.trim()
     if (!trimmed || trimmed.length > 1000 || isLoading) return
 
     setContent("")
+    const sourceIds = attachedSourceIds
+    setAttachedSourceIds([])
     try {
-      await sendMutation.mutateAsync(trimmed)
+      await sendMutation.mutateAsync({ content: trimmed, sourceIds: sourceIds.length ? sourceIds : undefined })
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
         setSendError(err)
@@ -345,7 +383,7 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
         toast.error("Failed to send message. Please try again.")
       }
     }
-  }, [content, isLoading, sendMutation, agentName])
+  }, [content, isLoading, sendMutation, agentName, attachedSourceIds])
 
   const contentRef = useRef(content)
   contentRef.current = content
@@ -381,6 +419,8 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       chatScrollRef,
       scrollAnchorRef,
       scrollIntentRef,
+      attachedSourceIds,
+      setAttachedSourceIds,
     }),
     [
       msgWindow,
@@ -395,6 +435,7 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       isLoading,
       handleSend,
       handleRestoreDraft,
+      attachedSourceIds,
     ],
   )
 }

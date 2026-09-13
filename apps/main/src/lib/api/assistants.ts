@@ -28,13 +28,14 @@ export async function streamMessage(
   organizationId: string,
   content: string,
   conversationId: string | undefined,
+  sourceIds: string[] | undefined,
   handlers: StreamMessageHandlers = {},
 ): Promise<Message> {
   const res = await fetch(`${API_URL}/agents/${agentSlug}/chat/stream`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ organizationId, content, conversationId }),
+    body: JSON.stringify({ organizationId, content, conversationId, sourceIds }),
   })
 
   if (res.status === 404) throw new AgentNotAvailableError(agentSlug)
@@ -435,6 +436,12 @@ export type SendMessageCallbacks = {
 let optimisticSeq = 0
 const nextOptimisticId = () => `optimistic-${Date.now()}-${optimisticSeq++}`
 
+export interface SendMessageVars {
+  content: string
+  /** Lex-only: ids of sources explicitly attached via the composer's "#" picker. */
+  sourceIds?: string[]
+}
+
 export function useSendMessage(
   agentSlug: string,
   organizationId: string,
@@ -447,7 +454,7 @@ export function useSendMessage(
   return useMutation({
     mutationKey: ["sendMessage", agentSlug, organizationId],
 
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, sourceIds }: SendMessageVars) => {
       const assistantId = nextOptimisticId()
       const placeholder: Message = {
         id: assistantId,
@@ -464,7 +471,7 @@ export function useSendMessage(
       let toolTrace: ToolTraceEntry[] = []
 
       try {
-        const final = await streamMessage(agentSlug, organizationId, content, conversationId, {
+        const final = await streamMessage(agentSlug, organizationId, content, conversationId, sourceIds, {
           onToken: (text) => {
             textSoFar += text
             callbacks?.onStreamUpdate?.(assistantId, chatKey, { content: textSoFar })
@@ -487,7 +494,7 @@ export function useSendMessage(
       }
     },
 
-    onMutate: (content: string) => {
+    onMutate: ({ content }: SendMessageVars) => {
       const optimisticId = nextOptimisticId()
       const optimistic: Message = {
         id: optimisticId,
@@ -503,7 +510,7 @@ export function useSendMessage(
 
     // `ctx` is undefined if onMutate itself threw — in which case no optimistic message was
     // ever written, so an id that matches nothing is the correct thing to pass on.
-    onSuccess: ({ final, assistantId }, content, ctx) => {
+    onSuccess: ({ final, assistantId }, { content }, ctx) => {
       callbacks?.onSuccess?.(final, ctx?.optimisticId ?? "", ctx?.chatKey ?? chatKey, assistantId)
 
       queryClient.setQueryData<Record<AgentSlug, LastMessage | null>>(

@@ -199,6 +199,17 @@ class QueryDocumentResponse(BaseModel):
     model_used: str = ""
 
 
+class SourceContentRequest(BaseModel):
+    user_id: str
+    source_id: str
+
+
+class SourceContentResponse(BaseModel):
+    source_id: str
+    content: str
+    chunk_count: int
+
+
 class DraftDocumentRequest(BaseModel):
     user_id: str
     organization_id: str = ""
@@ -793,6 +804,23 @@ async def query_document(request: QueryDocumentRequest) -> QueryDocumentResponse
         for c in chunks
     ]
     return QueryDocumentResponse(answer=answer, sources=sources, tokens_used=tokens_used, model_used=_agent.default_model)
+
+
+@router.post("/source-content", response_model=SourceContentResponse, summary="Fetch full text of an ingested source")
+async def source_content(request: SourceContentRequest) -> SourceContentResponse:
+    """Full document text in ingestion order, for callers that want to hand a
+    whole document to the model as context (e.g. an explicit '#' attach in
+    chat) rather than the top-k similarity search /query-document does."""
+    if settings.MOCK_MODE:
+        return SourceContentResponse(source_id=request.source_id, content="Mock document content.", chunk_count=1)
+
+    chunks = await _rag.retrieve_by_source(request.user_id, request.source_id)
+    if not chunks:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"No document found for source_id '{request.source_id}'")
+
+    full_text = "\n\n".join(c.get("content", "") for c in chunks)
+    return SourceContentResponse(source_id=request.source_id, content=full_text, chunk_count=len(chunks))
 
 
 # ── Draft document helpers ────────────────────────────────────────────────────
