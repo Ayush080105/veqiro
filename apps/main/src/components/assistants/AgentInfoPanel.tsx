@@ -20,14 +20,14 @@ import { cn } from "@/lib/utils"
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
+    <div className="mb-2 text-xs font-medium text-muted-foreground">
       {children}
     </div>
   )
 }
 
 const nativeControlClass =
-  "rounded-md border border-(--vq-line-2) bg-card px-2 py-1 font-mono text-[11px] text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+  "rounded-[var(--vq-r-sm)] border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
 
 function ContextBlock({ kit }: { kit: BrandKit | null }) {
   if (!kit || !kit.companyName) return null
@@ -45,23 +45,23 @@ function ContextBlock({ kit }: { kit: BrandKit | null }) {
   return (
     <div>
       <SectionLabel>context</SectionLabel>
-      <div className="flex flex-col gap-1.5 rounded-(--vq-r) border border-dashed border-(--vq-line-2) bg-card p-3">
+      <div className="flex flex-col gap-1.5 rounded-[var(--vq-r)] border border-border bg-card p-3">
         {bits.map((b) => (
-          <div key={b.k} className="font-mono text-[11px] text-foreground">
+          <div key={b.k} className="text-xs text-foreground">
             <span className="opacity-50">{b.k}: </span>
             <span className="font-semibold">{b.v}</span>
           </div>
         ))}
         {swatches.length > 0 && (
           <div className="mt-1 flex items-center gap-1.5">
-            <span className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+            <span className="text-xs text-muted-foreground">
               palette
             </span>
             {swatches.map((c, i) => (
               <span
                 key={i}
                 title={c}
-                className="inline-block size-3.5 rounded border border-(--vq-line-2)"
+                className="inline-block size-3.5 rounded-[var(--vq-r-sm)] border border-border"
                 style={{ background: c }}
               />
             ))}
@@ -124,16 +124,16 @@ function RexAlertsBlock({
   return (
     <div>
       <SectionLabel>alert rules</SectionLabel>
-      <div className="flex flex-col gap-2 rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3 shadow-(--vq-shadow-sm)">
+      <div className="flex flex-col gap-2 rounded-[var(--vq-r)] border border-border bg-card p-3 shadow-(--vq-shadow-sm)">
         {rules.length === 0 && (
-          <div className="font-mono text-[10px] text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             No alerts configured. Add rules to receive a daily email when thresholds trip.
           </div>
         )}
         {rules.map((r) => (
           <div
             key={r.id}
-            className="flex flex-col gap-1.5 rounded-md border border-dashed border-(--vq-line-2) p-2"
+            className="flex flex-col gap-1.5 rounded-[var(--vq-r-sm)] border border-border bg-background p-2"
           >
             <div className="flex items-center gap-1.5">
               <Input
@@ -141,7 +141,7 @@ function RexAlertsBlock({
                 placeholder="Label (e.g. Runway warning)"
                 onChange={(e) => update(r.id, { label: e.target.value })}
                 disabled={disabled}
-                className="h-7 flex-1 font-mono text-[11px]"
+                className="h-8 flex-1 text-xs"
               />
               <button
                 type="button"
@@ -149,8 +149,8 @@ function RexAlertsBlock({
                 disabled={disabled}
                 title={r.enabled ? "Disable" : "Enable"}
                 className={cn(
-                  "rounded-md border border-(--vq-line-2) px-2 py-1 font-mono text-[10px] disabled:opacity-50",
-                  r.enabled ? "bg-chart-2 text-white" : "bg-muted-foreground/15 text-muted-foreground"
+                  "rounded-[var(--vq-r-sm)] border border-border px-2 py-1 text-xs font-medium disabled:opacity-50",
+                  r.enabled ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}
               >
                 {r.enabled ? "ON" : "OFF"}
@@ -160,9 +160,9 @@ function RexAlertsBlock({
                 onClick={() => remove(r.id)}
                 disabled={disabled}
                 aria-label="Remove alert rule"
-                className="rounded-md border border-(--vq-line-2) bg-card px-1.5 py-1 font-mono text-[10px] text-muted-foreground disabled:opacity-50"
+                className="grid size-8 place-items-center rounded-[var(--vq-r-sm)] border border-border bg-card text-muted-foreground disabled:opacity-50"
               >
-                ×
+                <X className="size-3.5" />
               </button>
             </div>
             <div className="grid grid-cols-[1fr_1fr_80px] gap-1.5">
@@ -238,8 +238,8 @@ function RexApiKeyBlock({ organizationId, apiKey }: { organizationId: string; ap
   return (
     <div>
       <SectionLabel>webhook ingest key</SectionLabel>
-      <div className="flex flex-col gap-2 rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3 shadow-(--vq-shadow-sm)">
-        <div className="font-mono text-[10px] leading-relaxed text-muted-foreground">
+      <div className="flex flex-col gap-2 rounded-[var(--vq-r)] border border-border bg-card p-3 shadow-(--vq-shadow-sm)">
+        <div className="text-xs leading-relaxed text-muted-foreground">
           POST <span className="text-foreground">/agents/rex/ingest</span> with{" "}
           <code className="rounded bg-muted px-1 py-0.5">
             {`{ api_key, metric, date, value }`}
@@ -251,7 +251,7 @@ function RexApiKeyBlock({ organizationId, apiKey }: { organizationId: string; ap
             <div className="flex items-center gap-1.5">
               <code
                 onClick={() => setRevealed((v) => !v)}
-                className="flex-1 cursor-pointer overflow-hidden rounded-md border border-(--vq-line-2) bg-background px-2 py-1.5 font-mono text-[11px] text-ellipsis whitespace-nowrap"
+                className="flex-1 cursor-pointer overflow-hidden rounded-[var(--vq-r-sm)] border border-border bg-background px-2.5 py-1.5 font-mono text-[11px] text-ellipsis whitespace-nowrap"
               >
                 {revealed ? apiKey : `${apiKey.slice(0, 8)}••••••${apiKey.slice(-4)}`}
               </code>
@@ -310,14 +310,14 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
   return (
     <div>
       <SectionLabel>rex settings</SectionLabel>
-      <div className="flex flex-col gap-2.5 rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3 shadow-(--vq-shadow-sm)">
+      <div className="flex flex-col gap-2.5 rounded-[var(--vq-r)] border border-border bg-card p-3 shadow-(--vq-shadow-sm)">
         {/* Weekly digest toggle */}
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="font-body text-xs font-semibold text-foreground">
               Monday digest
             </div>
-            <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+            <div className="mt-0.5 text-xs text-muted-foreground">
               Weekly CFO email at 9am
             </div>
           </div>
@@ -331,7 +331,7 @@ function RexSettingsBlock({ organizationId }: { organizationId: string }) {
 
         {/* Timezone selector */}
         <div>
-          <div className="mb-1 font-mono text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
             timezone
           </div>
           <select
@@ -415,14 +415,14 @@ export default function AgentInfoPanel({
         </div>
 
         <div
-          className="overflow-hidden rounded-2xl border border-(--vq-line-2) shadow-(--vq-shadow)"
+          className="overflow-hidden rounded-[var(--vq-r)] border border-border shadow-(--vq-shadow-sm)"
           style={{ background: agent.color }}
         >
           <img src={agentPhoto} alt={agent.name} className="block h-full w-full object-cover" />
         </div>
 
         <div>
-          <div className="font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
+          <div className="text-xs font-medium text-muted-foreground">
             {agent.role}
           </div>
           <div className="mt-0.5 font-display text-[44px] leading-none tracking-tight text-foreground">
@@ -440,7 +440,7 @@ export default function AgentInfoPanel({
             {agent.specialties.map((s) => (
               <span
                 key={s}
-                className="rounded-full border border-(--vq-line-2) bg-card px-2.5 py-1 font-mono text-[11px] text-foreground"
+                className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-foreground"
               >
                 {s}
               </span>
@@ -454,9 +454,9 @@ export default function AgentInfoPanel({
             {agent.stats.map((s) => (
               <div
                 key={s.k}
-                className="flex items-baseline justify-between rounded-lg border border-(--vq-line-2) bg-card px-2.5 py-1.5"
+                className="flex items-baseline justify-between rounded-[var(--vq-r-sm)] border border-border bg-background px-2.5 py-1.5"
               >
-                <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+                <span className="text-xs text-muted-foreground">
                   {s.k}
                 </span>
                 <span className="font-head text-[13px] text-foreground">

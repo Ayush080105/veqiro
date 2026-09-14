@@ -113,14 +113,7 @@ export default function TeamPage() {
       {/* Thread */}
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5"
-        style={{
-          background: `
-            linear-gradient(rgba(239,231,214,0.82), rgba(239,231,214,0.82)),
-            url('/chat-bg.webp') repeat
-          `,
-          backgroundSize: "auto, 560px auto",
-        }}
+        className="min-h-0 flex-1 overflow-y-auto bg-background px-3 py-4 sm:px-5"
       >
         {!enoughForATeam && !teamLoading ? (
           <EmptyTeam count={agents.length} />
@@ -158,7 +151,7 @@ export default function TeamPage() {
       <div className="bg-background px-5 pt-3 pb-4">
         <div
           className={cn(
-            "flex items-center gap-2.5 rounded-full border border-(--vq-line-2) bg-card py-2 pr-2 pl-4.5",
+            "flex items-center gap-2.5 rounded-[var(--vq-r)] border border-border bg-card py-2 pr-2 pl-4",
             !enoughForATeam && "opacity-50"
           )}
         >
@@ -185,7 +178,7 @@ export default function TeamPage() {
             disabled={!enoughForATeam || send.isPending || !content.trim()}
             aria-label="Send"
             className={cn(
-              "grid size-9 place-items-center rounded-full border-none bg-primary text-primary-foreground",
+              "grid size-9 place-items-center rounded-[var(--vq-r-sm)] border-none bg-primary text-primary-foreground",
               content.trim() && enoughForATeam ? "cursor-pointer opacity-100" : "cursor-not-allowed opacity-40"
             )}
           >
@@ -240,7 +233,7 @@ function EmptyThread() {
         ].map((p) => (
           <div
             key={p}
-            className="rounded-[10px] border border-(--vq-line-2) bg-card px-3 py-2.5 text-[13px] text-muted-foreground"
+            className="rounded-[var(--vq-r-sm)] border border-border bg-card px-3 py-2.5 text-[13px] text-muted-foreground"
           >
             {p}
           </div>

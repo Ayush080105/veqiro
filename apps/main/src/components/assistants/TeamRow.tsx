@@ -62,9 +62,9 @@ export function TeamRow() {
           <div className="font-head text-[15px] font-bold text-foreground leading-tight">
             Team
           </div>
-          <div className="mt-0.5 truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+          <div className="mt-0.5 truncate text-xs text-muted-foreground">
             {enoughForATeam
-              ? `${agents.length} agents · one shared task`
+              ? `${agents.length} agents, one shared task`
               : "hire 2+ agents to unlock"}
           </div>
         </div>

@@ -188,8 +188,8 @@ function AgentRow({
       href={`/assistants/${agent.id}`}
       data-tour={`assistant-row-${agent.id}`}
       className={cn(
-        "relative flex items-center gap-3 border-b border-(--vq-line-2) px-3.5 py-3 text-foreground no-underline transition-colors",
-        active ? "bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))]" : "bg-transparent"
+        "relative flex items-center gap-3 border-b border-(--vq-line-2) px-3.5 py-3 text-foreground no-underline transition-colors hover:bg-muted/60",
+        active ? "bg-muted" : "bg-transparent"
       )}
     >
       <div className="relative shrink-0 size-11.5 overflow-hidden rounded-full" style={{ background: agent.color }}>
@@ -218,7 +218,7 @@ function AgentRow({
             </span>
           )}
         </div>
-        <div className="mt-px mb-1 truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+        <div className="mt-px mb-1 truncate text-xs text-muted-foreground">
           {agent.role}
         </div>
         <div className="flex items-center gap-1.5">
@@ -242,16 +242,16 @@ function UpcomingAgentRow({ agent, active }: { agent: UpcomingAgent; active: boo
     <Link
       href={`/assistants/upcoming/${agent.id}`}
       className={cn(
-        "relative flex items-center gap-3 border-b border-(--vq-line-2) px-3.5 py-3 text-foreground no-underline opacity-75 transition-colors",
-        active ? "bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))]" : "bg-transparent"
+        "relative flex items-center gap-3 border-b border-(--vq-line-2) px-3.5 py-3 text-foreground no-underline opacity-75 transition-colors hover:bg-muted/60",
+        active ? "bg-muted" : "bg-transparent"
       )}
     >
       <div className="relative shrink-0">
         <div
-          className="grid size-11.5 place-items-center rounded-full text-[22px]"
+          className="grid size-11.5 place-items-center rounded-full font-head text-sm text-white"
           style={{ background: agent.color ?? "var(--muted-foreground)" }}
         >
-          {agent.emoji ?? "🤖"}
+          {agent.name.slice(0, 2).toUpperCase()}
         </div>
         <span className="absolute right-0 bottom-0 grid size-4.5 place-items-center rounded-full border border-(--vq-line-2) bg-card">
           <Lock className="size-2.5 text-muted-foreground" />
@@ -395,7 +395,7 @@ export default function ChatList({
             onClick={onToggleCollapsed}
             title="Expand assistants list"
             aria-label="Expand assistants list"
-            className="mt-3 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/6"
+            className="mt-3 flex size-9 items-center justify-center rounded-[var(--vq-r-sm)] text-muted-foreground transition-colors hover:bg-muted"
           >
             <PanelLeftOpen className="size-4" />
           </button>
@@ -404,7 +404,7 @@ export default function ChatList({
           href="/assistants/team"
           title="Team"
           aria-label="Team"
-          className="mt-2 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/6"
+          className="mt-2 flex size-9 items-center justify-center rounded-[var(--vq-r-sm)] text-muted-foreground transition-colors hover:bg-muted"
         >
           <Users className="size-4" />
         </Link>
@@ -439,7 +439,7 @@ export default function ChatList({
             Assistants
           </h2>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            your crew of six
+            Six focused workspaces
           </div>
         </div>
         {onToggleCollapsed && (
@@ -448,7 +448,7 @@ export default function ChatList({
             onClick={onToggleCollapsed}
             title="Collapse assistants list"
             aria-label="Collapse assistants list"
-            className="hidden size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/6 md:flex"
+            className="hidden size-8 shrink-0 items-center justify-center rounded-[var(--vq-r-sm)] text-muted-foreground transition-colors hover:bg-muted md:flex"
           >
             <PanelLeftClose className="size-4" />
           </button>
@@ -456,7 +456,7 @@ export default function ChatList({
       </div>
 
       <div className="border-b border-(--vq-line-2) bg-card px-3 py-2">
-        <div className="flex items-center gap-2 rounded-full border border-(--vq-line-2) bg-background px-3.5 py-1.75">
+        <div className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border bg-background px-3 py-2">
           <Search className="size-4 text-muted-foreground" />
           <input
             value={query}
@@ -483,10 +483,10 @@ export default function ChatList({
                       `/assistants/${activeAgentSlug}?jump=${encodeURIComponent(m.id)}&at=${encodeURIComponent(m.createdAt)}`,
                     )
                   }}
-                  className="block w-full cursor-pointer rounded-lg border border-transparent px-2.5 py-2 text-left transition-colors hover:bg-black/5"
+                  className="block w-full cursor-pointer rounded-[var(--vq-r-sm)] border border-transparent px-2.5 py-2 text-left transition-colors hover:bg-muted"
                 >
                   <div className="mb-0.5 flex items-center justify-between gap-2">
-                    <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {m.role === "user" ? "You" : activeAgentSlug}
                     </span>
                     <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
@@ -528,8 +528,8 @@ export default function ChatList({
             {upcomingAgents && upcomingAgents.length > 0 && (
               <>
                 <div className="flex items-center gap-2 border-b border-(--vq-line-2) px-3.5 pt-2.5 pb-1.5">
-                  <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                    Coming Soon
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Coming soon
                   </span>
                 </div>
                 {upcomingAgents.map((agent) => (

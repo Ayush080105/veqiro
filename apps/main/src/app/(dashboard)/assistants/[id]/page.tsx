@@ -32,7 +32,6 @@ import { qk } from "@/lib/query-keys"
 
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
 import { getUpgradeRequiredReason } from "@/components/billing/upgrade-errors"
-import { Sticker } from "@/components/ui/sticker"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -151,14 +150,11 @@ function ChatHeader({
 }) {
   const agentPhoto = AGENT_PHOTOS[agent.id]
   return (
-    <div
-      className="flex items-center gap-1 border-b border-(--vq-line-2) bg-card px-2 py-2.5 sm:gap-2.5 sm:px-4"
-      style={{ borderLeft: `4px solid ${agent.color}` }}
-    >
+    <div className="flex items-center gap-1 border-b border-(--vq-line-2) bg-card px-2 py-2.5 sm:gap-2.5 sm:px-4">
       {/* Mobile-only back button */}
       <Link
         href="/assistants"
-        className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground no-underline hover:bg-black/6 md:hidden"
+        className="flex size-8 shrink-0 items-center justify-center rounded-[var(--vq-r-sm)] text-muted-foreground no-underline hover:bg-muted md:hidden"
         aria-label="Back to assistants"
       >
         <ArrowLeft className="size-4" />
@@ -167,7 +163,7 @@ function ChatHeader({
         suppressHydrationWarning
         type="button"
         onClick={onInfoClick}
-        className="relative size-10 shrink-0 cursor-pointer overflow-hidden rounded-full border border-black/10 p-0"
+        className="relative size-10 shrink-0 cursor-pointer overflow-hidden rounded-full border border-border p-0"
         style={{ background: agent.color }}
         aria-label="Agent info"
       >
@@ -258,32 +254,27 @@ function EmptyState({
   return (
     <div className="flex flex-1 items-center justify-center bg-background px-6 py-10">
       <div className="relative w-full max-w-140 text-center">
-        <div className="mb-3.5 flex justify-center">
-          <Sticker rotate={-6} style={{ background: agent.color as string }}>
-            {agent.tag}
-          </Sticker>
-        </div>
         <div
-          className="relative mx-auto size-35 overflow-hidden rounded-2xl shadow-(--vq-shadow-lg)"
+          className="relative mx-auto size-30 overflow-hidden rounded-[var(--vq-r)] border border-border shadow-(--vq-shadow-sm)"
           style={{ background: agent.color }}
         >
           {agentPhoto2 ? (
             <Image src={agentPhoto2} alt={agent.name} fill sizes="140px" className="object-cover" />
           ) : (
-            <div className="grid h-full w-full place-items-center font-display text-5xl text-foreground">
+            <div className="grid h-full w-full place-items-center font-head text-4xl text-foreground">
               {agent.initials}
             </div>
           )}
         </div>
 
-        <h2 className="mx-0 mt-7 mb-1 font-display text-5xl leading-none tracking-tight text-foreground">
-          say hi to {agent.name.toLowerCase()}
+        <h2 className="mx-0 mt-6 mb-2 font-head text-3xl leading-tight tracking-normal text-foreground">
+          Start with {agent.name}
         </h2>
         <p className="mx-auto mb-2 max-w-110 font-body text-[15px] leading-relaxed text-foreground/80">
           {agent.description}
         </p>
-        <p className="mb-5 font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
-          {"// try one of these"}
+        <p className="mb-5 text-sm text-muted-foreground">
+          Try a suggested prompt or type your own message below.
         </p>
 
         <div className="flex flex-wrap justify-center gap-2.5">
@@ -292,7 +283,7 @@ function EmptyState({
               suppressHydrationWarning
               key={prompt}
               onClick={() => onPrompt(prompt)}
-              className="cursor-pointer rounded-full border border-(--vq-line-2) bg-card px-3.5 py-2.5 font-body text-[13px] text-foreground shadow-(--vq-shadow-sm) transition-colors hover:bg-background"
+              className="cursor-pointer rounded-[var(--vq-r-sm)] border border-border bg-card px-3.5 py-2.5 font-body text-[13px] text-foreground shadow-(--vq-shadow-sm) transition-colors hover:bg-muted"
             >
               {prompt}
             </button>
@@ -967,14 +958,14 @@ export default function AssistantChatPage() {
       {pinnedOpen && (
         <div className="border-b border-(--vq-line-2) bg-card px-3 py-2 sm:px-4">
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               Pinned messages
             </span>
             <button
               type="button"
               onClick={() => setPinnedOpen(false)}
               aria-label="Close pinned messages"
-              className="grid size-5 cursor-pointer place-items-center rounded-full border-none bg-transparent text-muted-foreground"
+              className="grid size-6 cursor-pointer place-items-center rounded-[var(--vq-r-sm)] border-none bg-transparent text-muted-foreground hover:bg-muted"
             >
               <X className="size-3.5" />
             </button>
@@ -993,7 +984,7 @@ export default function AssistantChatPage() {
                     if (m.id) void jumpToMessage(m.id, m.createdAt)
                     setPinnedOpen(false)
                   }}
-                  className="cursor-pointer rounded-lg border border-transparent px-2 py-1.5 text-left transition-colors hover:bg-black/5"
+                  className="cursor-pointer rounded-[var(--vq-r-sm)] border border-transparent px-2 py-1.5 text-left transition-colors hover:bg-muted"
                 >
                   <div className="truncate font-body text-[12.5px] text-foreground">
                     {m.role === "user" ? "You: " : ""}
@@ -1011,9 +1002,9 @@ export default function AssistantChatPage() {
           <button
             type="button"
             onClick={() => void returnToLatest()}
-            className="cursor-pointer rounded-full border border-(--vq-line-2) bg-background px-3 py-1 font-mono text-[11px] uppercase tracking-wide text-muted-foreground"
+            className="cursor-pointer rounded-[var(--vq-r-sm)] border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground"
           >
-            Viewing history — back to latest
+            Back to latest
           </button>
         </div>
       )}
@@ -1025,8 +1016,8 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => setLexTab("chat")}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-              lexTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              lexTab === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             <MessageSquare className="size-3" /> Chat
@@ -1036,8 +1027,8 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => setLexTab("documents")}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-              lexTab === "documents" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+              "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              lexTab === "documents" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             <FolderOpen className="size-3" /> Documents
@@ -1052,8 +1043,8 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => setSageTab("chat")}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-              sageTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              sageTab === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             <MessageSquare className="size-3" /> Chat
@@ -1063,8 +1054,8 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => setSageTab("favourites")}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-              sageTab === "favourites" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+              "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              sageTab === "favourites" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             <FolderOpen className="size-3" /> Favourites
@@ -1080,8 +1071,8 @@ export default function AssistantChatPage() {
               type="button"
               onClick={() => setRexTab("chat")}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-                rexTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+                rexTab === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
               )}
             >
               <MessageSquare className="size-3" /> Chat
@@ -1091,8 +1082,8 @@ export default function AssistantChatPage() {
               type="button"
               onClick={() => setRexTab("data")}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-                rexTab === "data" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+                rexTab === "data" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
               )}
             >
               <FolderOpen className="size-3" /> Data
@@ -1117,8 +1108,8 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => setMayaTab("chat")}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-              mayaTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              mayaTab === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             <MessageSquare className="size-3" /> Chat
@@ -1128,8 +1119,8 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => setMayaTab("published")}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-              mayaTab === "published" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+              "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              mayaTab === "published" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             <FolderOpen className="size-3" /> Published Posts
@@ -1139,8 +1130,8 @@ export default function AssistantChatPage() {
             type="button"
             onClick={() => setMayaTab("plan")}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-              mayaTab === "plan" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground"
+              "flex shrink-0 items-center gap-1.5 rounded-[var(--vq-r-sm)] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              mayaTab === "plan" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             <CalendarDays className="size-3" /> Content Plan
@@ -1192,19 +1183,7 @@ export default function AssistantChatPage() {
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
         <div
-          className="relative flex-1 min-h-0"
-          style={{
-            // The pattern lives on this wrapper, not the scroll container, so
-            // it stays put while the thread scrolls over it. The flat colour
-            // is the base layer so the thread reads correctly before the
-            // image loads; the cream gradient on top knocks the line art back
-            // so it never competes with message text.
-            background: `
-              linear-gradient(rgba(239,231,214,0.82), rgba(239,231,214,0.82)),
-              url('/chat-bg.webp') repeat
-            `,
-            backgroundSize: "auto, 560px auto",
-          }}
+          className="relative flex-1 min-h-0 bg-background"
         >
           <div
             ref={chatScrollRef}
