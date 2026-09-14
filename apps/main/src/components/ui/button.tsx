@@ -21,23 +21,18 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
-        // ── Veqiro brand variants ────────────────────────────────────────────
-        // Soft CTAs: hairline border, layered elevation shadow, display font.
-        // Press effect: nudges down 1px on click.
         brand:
-          "rounded-lg border border-[var(--vq-line-2)] bg-destructive text-foreground font-display font-medium shadow-[var(--vq-shadow)] hover:bg-destructive/90 hover:shadow-[var(--vq-shadow-lg)] active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
+          "border-border bg-primary text-primary-foreground shadow-[var(--vq-shadow-sm)] hover:bg-primary/90 active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "brand-dark":
-          "rounded-lg border border-[var(--vq-line-2)] bg-primary text-primary-foreground font-display font-medium shadow-[var(--vq-shadow)] hover:bg-primary/90 hover:shadow-[var(--vq-shadow-lg)] active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
+          "border-border bg-primary text-primary-foreground shadow-[var(--vq-shadow-sm)] hover:bg-primary/90 active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "brand-yellow":
-          "rounded-lg border border-[var(--vq-line-2)] bg-accent text-foreground font-display font-medium shadow-[var(--vq-shadow)] hover:bg-accent/90 hover:shadow-[var(--vq-shadow-lg)] active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
+          "border-border bg-card text-foreground shadow-[var(--vq-shadow-sm)] hover:bg-muted active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "brand-ghost":
-          "rounded-lg border border-[var(--vq-line-2)] bg-transparent text-foreground font-display font-medium hover:bg-foreground/5 active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
-        // ── Chat action button: dark pill CTA used inside agent result cards ──
+          "border-transparent bg-transparent text-foreground hover:bg-muted active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
         "chat-action":
           "h-auto rounded-full bg-primary px-3.5 py-1.5 text-[11px] font-medium text-primary-foreground hover:opacity-80 gap-1.5 [&_svg:not([class*='size-'])]:size-3",
-        // ── Chat utility button: warm cream pill for copy/export/secondary actions ──
         "chat-utility":
-          "h-auto rounded-full bg-card border border-[var(--vq-line-2)] text-foreground px-3 py-1.5 text-[11px] font-medium hover:bg-background gap-1.5 [&_svg:not([class*='size-'])]:size-3",
+          "h-auto rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-foreground hover:bg-muted gap-1.5 [&_svg:not([class*='size-'])]:size-3",
       },
       size: {
         default:
@@ -49,7 +44,6 @@ const buttonVariants = cva(
         "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-7",
         "icon-lg": "size-9",
-        // ── Brand sizes ──────────────────────────────────────────────────────
         brand: "h-12 gap-2 px-6 text-sm",
         "brand-sm": "h-10 gap-1.5 px-4 text-xs",
         "brand-lg": "h-14 gap-2 px-8 text-base",

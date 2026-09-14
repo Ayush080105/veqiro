@@ -10,8 +10,6 @@ const cardVariants = cva(
       variant: {
         default:
           "gap-4 rounded-[var(--vq-r)] border border-border bg-card py-4 shadow-[var(--vq-shadow-sm)] data-[size=sm]:gap-2 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0",
-        // ── Veqiro brand variant ─────────────────────────────────────────────
-        // Cream card with a hairline border and soft layered elevation.
         brand:
           "relative gap-5 rounded-[var(--vq-r)] border border-border bg-card py-5 shadow-[var(--vq-shadow)] data-[size=sm]:gap-3 data-[size=sm]:py-4 data-[size=sm]:shadow-[var(--vq-shadow-sm)]",
       },
@@ -25,7 +23,6 @@ const cardVariants = cva(
 type CardProps = React.ComponentProps<"div"> &
   VariantProps<typeof cardVariants> & {
     size?: "default" | "sm"
-    /** Subtle lift + shadow bump on hover/press. Opt-in — most cards are static containers, not controls. */
     interactive?: boolean
   }
 
