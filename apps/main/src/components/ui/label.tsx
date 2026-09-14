@@ -10,13 +10,11 @@ const labelVariants = cva(
   {
     variants: {
       variant: {
-        default: "text-xs leading-none",
-        // ── Veqiro brand variants ────────────────────────────────────────────
-        // "kicker" = mono uppercase tag used as section headers and form labels.
+        default: "text-sm font-medium leading-none text-foreground",
         kicker:
-          "font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-muted-foreground",
+          "text-xs font-medium leading-none text-muted-foreground",
         brand:
-          "font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70 mb-1.5",
+          "mb-1.5 text-sm font-medium leading-none text-foreground",
       },
     },
     defaultVariants: {

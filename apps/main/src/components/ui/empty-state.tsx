@@ -38,12 +38,12 @@ export function EmptyState({
       )}
     >
       {icon && (
-        <span className="grid size-12 place-items-center rounded-full border border-[var(--vq-line-2)] text-foreground/60 [&_svg]:size-6">
+        <span className="grid size-10 place-items-center rounded-[var(--vq-r-sm)] border border-border bg-muted/35 text-muted-foreground [&_svg]:size-5">
           {icon}
         </span>
       )}
       <div className="flex flex-col gap-1">
-        <h3 className="m-0 font-display text-2xl leading-tight tracking-tight text-foreground">
+        <h3 className="m-0 font-head text-xl leading-tight tracking-normal text-foreground">
           {title}
         </h3>
         {description && (
@@ -71,7 +71,7 @@ export function EmptyState({
   if (tone === "plain") return inner
 
   return (
-    <Card variant="brand" className={cn(className)} {...rest}>
+    <Card className={cn(className)} {...rest}>
       {inner}
     </Card>
   )

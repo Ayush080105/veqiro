@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 // Compact status pill with leading icon. Built on shared classes — does not wrap Badge
 // because we want the icon to sit inline with consistent sizing.
 const statusPillVariants = cva(
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--vq-line-2)] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] [&>svg]:size-3 [&>svg]:shrink-0",
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-2.5 py-0.5 text-xs font-medium [&>svg]:size-3 [&>svg]:shrink-0",
   {
     variants: {
       level: {

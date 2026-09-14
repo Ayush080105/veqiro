@@ -10,11 +10,9 @@ const inputVariants = cva(
     variants: {
       variant: {
         default:
-          "h-8 rounded-md border border-input bg-transparent px-2.5 py-1 text-xs file:h-6 file:text-xs transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:bg-input/50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 md:text-xs dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        // ── Veqiro brand variant ─────────────────────────────────────────────
-        // Cream input with a hairline border, body font, soft focus shadow.
+          "h-9 rounded-[var(--vq-r-sm)] border border-input bg-background px-3 py-1 text-sm file:h-7 file:text-xs transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:bg-muted/50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         brand:
-          "h-12 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-secondary px-4 py-3 text-base font-body file:h-8 file:text-sm transition-shadow focus-visible:shadow-[var(--vq-shadow)] aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/30",
+          "h-10 rounded-[var(--vq-r-sm)] border border-input bg-background px-3 py-2 text-sm font-body file:h-7 file:text-xs transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 dark:bg-input/30",
       },
     },
     defaultVariants: {
