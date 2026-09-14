@@ -38,7 +38,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
-import { FONT } from "@/lib/fonts"
 import { authClient } from "@/lib/auth-client"
 import {
   clearActiveAndStartNew,
@@ -102,11 +101,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="gap-2 px-3 pt-2 pb-3">
+      <SidebarHeader className="gap-3 px-3 pt-3 pb-4">
         <a
           href={LANDING_URL}
           onClick={closeMobileSidebar}
-          className="flex items-center group-data-[collapsible=icon]:justify-center"
+          className="flex h-9 items-center group-data-[collapsible=icon]:justify-center"
           title="Back to veqiro.com"
         >
           {/* Full logo when sidebar is expanded */}
@@ -135,53 +134,15 @@ export function AppSidebar() {
                 render={
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 text-left transition-transform active:translate-y-px"
-                    style={{
-                      padding: "6px 10px",
-                      background: "var(--card)",
-                      border: "1px solid var(--vq-line-2)",
-                      borderRadius: 10,
-                      boxShadow: "var(--vq-shadow-sm)",
-                      cursor: "pointer",
-                    }}
+                    className="flex h-10 w-full cursor-pointer items-center gap-2 rounded-[var(--vq-r-sm)] border border-sidebar-border bg-card px-2.5 text-left shadow-[var(--vq-shadow-sm)] transition-[background-color,box-shadow,transform] hover:bg-sidebar-accent active:translate-y-px"
                   />
                 }
               >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: "var(--primary)",
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 11,
-                    color: "var(--foreground)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    flex: 1,
-                  }}
-                >
+                <span className="size-2 shrink-0 rounded-full bg-primary" />
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
                   {visibleActiveOrg.name}
                 </span>
-                <span
-                  style={{
-                    fontFamily: FONT.mono,
-                    fontSize: 9,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                    padding: "2px 6px",
-                    border: "1px solid var(--vq-line-2)",
-                    borderRadius: 999,
-                    background: "var(--accent)",
-                    color: "var(--accent-foreground)",
-                  }}
-                >
+                <span className="rounded-full border border-sidebar-border bg-accent px-1.5 py-0.5 text-[10px] font-medium leading-none text-accent-foreground">
                   Free
                 </span>
                 <ChevronDown className="size-3 text-foreground/70" />
@@ -198,14 +159,7 @@ export function AppSidebar() {
                       className="flex-col items-start gap-1 rounded-md py-2"
                     >
                       <div className="flex w-full items-center justify-between gap-2">
-                        <span
-                          className="truncate"
-                          style={{
-                            fontFamily: FONT.head,
-                            fontSize: 13,
-                            color: "var(--foreground)",
-                          }}
-                        >
+                        <span className="truncate text-sm font-medium text-foreground">
                           {organization.name}
                         </span>
                         {isSwitching ? (
@@ -214,14 +168,7 @@ export function AppSidebar() {
                           <Check className="size-3.5 text-foreground/70" />
                         ) : null}
                       </div>
-                      <span
-                        className="truncate"
-                        style={{
-                          fontFamily: FONT.mono,
-                          fontSize: 10,
-                          color: "var(--muted-foreground)",
-                        }}
-                      >
+                      <span className="truncate text-xs text-muted-foreground">
                         {organization.slug} /{" "}
                         {organization.onboarded ? "Onboarded" : "Setup needed"}
                       </span>
@@ -239,16 +186,7 @@ export function AppSidebar() {
                   ) : (
                     <Plus className="size-4" />
                   )}
-                  <span
-                    style={{
-                      fontFamily: FONT.mono,
-                      fontSize: 11,
-                      letterSpacing: 1.2,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Create workspace
-                  </span>
+                  <span className="text-xs font-medium">Create workspace</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={!!switchingId}
@@ -259,16 +197,7 @@ export function AppSidebar() {
                   className="gap-2 rounded-md"
                 >
                   <ArrowUpRight className="size-4" />
-                  <span
-                    style={{
-                      fontFamily: FONT.mono,
-                      fontSize: 11,
-                      letterSpacing: 1.2,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    See all workspaces
-                  </span>
+                  <span className="text-xs font-medium">See all workspaces</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -331,26 +260,10 @@ export function AppSidebar() {
       <SidebarSeparator />
 
       <SidebarFooter className="px-3 py-3">
-        <div
-          className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center"
-        >
+        <div className="flex items-center gap-2.5 rounded-[var(--vq-r-sm)] px-1 py-1 group-data-[collapsible=icon]:justify-center">
           <div
             title={visibleSession?.user?.name ?? "User"}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              border: "1px solid var(--vq-line-2)",
-              boxShadow: "var(--vq-shadow-sm)",
-              display: "grid",
-              placeItems: "center",
-              fontFamily: FONT.head,
-              fontSize: 13,
-              color: "var(--accent-foreground)",
-              flexShrink: 0,
-              overflow: "hidden",
-            }}
+            className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-sidebar-border bg-accent text-sm font-semibold text-accent-foreground shadow-[var(--vq-shadow-sm)]"
           >
             {visibleSession?.user?.image ? (
               // OAuth avatar hosts are user/provider controlled and cannot be
@@ -369,34 +282,16 @@ export function AppSidebar() {
             className="group-data-[collapsible=icon]:hidden"
             style={{ flex: 1, minWidth: 0 }}
           >
-            <p
-              style={{
-                fontFamily: FONT.head,
-                fontSize: 12,
-                color: "var(--foreground)",
-                margin: 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <p className="m-0 truncate text-xs font-medium text-foreground">
               {visibleSession?.user?.name ?? "User"}
             </p>
-            <p
-              style={{
-                fontFamily: FONT.mono,
-                fontSize: 10,
-                color: "var(--muted-foreground)",
-                margin: 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <p className="m-0 truncate text-[11px] text-muted-foreground">
               {visibleSession?.user?.email}
             </p>
           </div>
           <button
+            type="button"
+            aria-label="Sign out"
             onClick={() =>
               authClient.signOut({
                 fetchOptions: {
@@ -407,14 +302,7 @@ export function AppSidebar() {
               })
             }
             title="Sign out"
-            className="group-data-[collapsible=icon]:hidden"
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--muted-foreground)",
-              cursor: "pointer",
-              padding: 6,
-            }}
+            className="grid size-8 shrink-0 place-items-center rounded-[var(--vq-r-sm)] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 group-data-[collapsible=icon]:hidden"
           >
             <LogOut className="size-4" />
           </button>

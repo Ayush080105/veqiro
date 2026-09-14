@@ -38,16 +38,18 @@ export default function DashboardSidebarShell({
       <AppSidebar />
       <AppTour />
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background/92 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/78">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/92 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/78 sm:px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-4" />
-          <AutoBreadcrumb />
+          <div className="min-w-0 flex-1">
+            <AutoBreadcrumb />
+          </div>
           <div className="ml-auto flex min-w-0 items-center gap-2">
             <TrialBanner />
             <ThemeToggle />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 overflow-auto p-4 sm:p-5 lg:p-6">
+        <div className="flex flex-1 flex-col gap-5 overflow-auto p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </SidebarInset>
