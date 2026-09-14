@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function CrewLeaderboardSkeleton() {
   return (
-    <div className="flex flex-col gap-3 rounded-(--vq-r-lg) border border-(--vq-line-2) bg-card p-4.5 shadow-(--vq-shadow)">
+    <div className="flex flex-col gap-3 rounded-[var(--vq-r)] border border-border bg-card p-4.5 shadow-[var(--vq-shadow-sm)]">
       <Skeleton className="h-3 w-36" />
       <Skeleton className="h-7 w-44" />
       <div className="mt-1 flex flex-col gap-2.5">

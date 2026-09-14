@@ -5,7 +5,7 @@ import Link from "next/link"
 import { AGENTS, getAgentBySlug } from "@/lib/config/agents"
 import type { DashboardSummary, Range } from "@/lib/api/dashboard"
 
-function TinySparkline({ values, color }: { values: number[]; color: string }) {
+function TinySparkline({ values }: { values: number[] }) {
   if (!values.length) return null
   const w = 80
   const h = 24
@@ -23,7 +23,7 @@ function TinySparkline({ values, color }: { values: number[]; color: string }) {
       <path
         d={`M ${points}`}
         fill="none"
-        stroke={color}
+        stroke="var(--muted-foreground)"
         strokeWidth={1.8}
         strokeLinejoin="round"
       />
@@ -43,12 +43,12 @@ function relativeTime(iso: string | null): string {
   return `${day}d ago`
 }
 
-function rangeLabel(range: Range): { kicker: string; title: string } {
+function rangeLabel(range: Range): string {
   switch (range.kind) {
-    case "24h":    return { kicker: "leaderboard - 24h",    title: "busiest today" }
-    case "7d":     return { kicker: "leaderboard - 7d",     title: "busiest this week" }
-    case "30d":    return { kicker: "leaderboard - 30d",    title: "busiest this month" }
-    case "custom": return { kicker: "leaderboard - custom", title: "busiest in range" }
+    case "24h":    return "Busiest today"
+    case "7d":     return "Busiest this week"
+    case "30d":    return "Busiest this month"
+    case "custom": return "Busiest in range"
   }
 }
 
@@ -62,20 +62,17 @@ export function CrewLeaderboard({
   const sorted = [...data].sort((a, b) => b.messagesWeek - a.messagesWeek)
   const max = Math.max(1, ...sorted.map((r) => r.messagesWeek))
   const hasAny = sorted.some((r) => r.messagesWeek > 0)
-  const { kicker, title } = rangeLabel(range)
 
   return (
-    <div className="bg-card border border-(--vq-line-2) rounded-2xl shadow-(--vq-shadow) p-5">
-      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        [ {kicker} ]
-      </div>
-      <div className="font-display text-[28px] tracking-tight text-foreground mt-0.5 mb-3.5">
-        {title}
+    <div className="rounded-[var(--vq-r)] border border-border bg-card p-5 shadow-[var(--vq-shadow-sm)]">
+      <div className="mb-3.5">
+        <div className="font-head text-2xl text-foreground">{rangeLabel(range)}</div>
+        <p className="m-0 mt-1 text-xs text-muted-foreground">Agent activity by selected range.</p>
       </div>
 
       {!hasAny && (
-        <div className="px-4 py-3.5 bg-card border border-dashed border-(--vq-line-2) rounded-xl font-mono text-xs text-muted-foreground tracking-widest mb-3">
-          {"// nobody's clocked in yet - start a chat"}
+        <div className="mb-3 rounded-[var(--vq-r-sm)] border border-dashed border-border bg-muted/40 px-4 py-3.5 text-xs text-muted-foreground">
+          No agent activity yet. Start a chat.
         </div>
       )}
 
@@ -94,16 +91,12 @@ export function CrewLeaderboard({
             <Link
               key={row.slug}
               href={`/assistants/${row.slug}`}
-              className="vq-stagger-item grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 p-3 no-underline bg-card border border-(--vq-line-2) rounded-xl text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[44px_120px_minmax(80px,1fr)_auto_80px]"
+              className="vq-stagger-item grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 rounded-[var(--vq-r-sm)] border border-border bg-card p-3 text-foreground no-underline transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[44px_120px_minmax(80px,1fr)_auto_80px]"
               style={{ "--vq-stagger-i": i } as CSSProperties}
             >
-              {/* Avatar: colored base + initials behind + photo on top */}
-              <div
-                className="relative size-10 rounded-full overflow-hidden border border-(--vq-line-2) shrink-0"
-                style={{ background: agent.color }}
-              >
+              <div className="relative size-10 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
                 <span
-                  className="absolute inset-0 grid place-items-center font-mono text-[10px] font-bold text-white select-none"
+                  className="absolute inset-0 grid select-none place-items-center text-[10px] font-bold text-muted-foreground"
                   aria-hidden
                 >
                   {agent.initials}
@@ -111,7 +104,7 @@ export function CrewLeaderboard({
                 <img
                   src={agentPhoto}
                   alt={agent.name}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover"
                   onError={(e) => {
                     ;(e.currentTarget as HTMLImageElement).style.display = "none"
                   }}
@@ -119,33 +112,33 @@ export function CrewLeaderboard({
               </div>
 
               <div className="min-w-0">
-                <div className="font-head text-[14px] tracking-tight truncate">
+                <div className="truncate font-head text-[14px] tracking-tight">
                   {agent.name}
                 </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground truncate">
+                <div className="truncate text-[11px] text-muted-foreground">
                   {relativeTime(row.lastActivity)}
                 </div>
               </div>
 
-              <div
-                className="col-span-2 sm:col-span-1 relative h-4.5 bg-background border border-(--vq-line-2) rounded-full overflow-hidden"
-              >
+              <div className="relative col-span-2 h-2.5 overflow-hidden rounded-full border border-border bg-muted sm:col-span-1">
                 <div
                   style={{
-                    width: `${pct}%`,
+                    width: "100%",
                     height: "100%",
-                    background: agent.color,
-                    transition: "width 300ms ease",
+                    transform: `scaleX(${pct / 100})`,
+                    transformOrigin: "left",
+                    background: "var(--foreground)",
+                    transition: "transform 300ms ease",
                   }}
                 />
               </div>
 
-              <div className="col-start-3 row-start-1 sm:col-auto sm:row-auto font-head text-base text-foreground min-w-8 text-right">
+              <div className="col-start-3 row-start-1 min-w-8 text-right font-head text-base text-foreground sm:col-auto sm:row-auto">
                 {row.messagesWeek}
               </div>
 
               <div className="hidden sm:block">
-                <TinySparkline values={row.sparkline} color={agent.color} />
+                <TinySparkline values={row.sparkline} />
               </div>
             </Link>
           )

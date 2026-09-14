@@ -1,25 +1,29 @@
 "use client"
 
 import Link from "next/link"
-import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Plug, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState"
 import { authClient } from "@/lib/auth-client"
 import {
   useDashboardIntegrationHealth,
   type DashboardIntegrationHealth,
 } from "@/lib/api/dashboard"
 import { getIntegrationBySlug } from "@repo/integrations-catalog"
+import { IntegrationLogo } from "@/components/integrations/IntegrationCatalogCard"
 import { cn } from "@/lib/utils"
 
 type Row = {
   id: string
   label: string
   state: "connected" | "disconnected" | "expiring" | "coming-soon"
+  logoUrl?: string
   meta?: string
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
+const MAX_ROWS = 6
 
 function platformRow(
   id: string,
@@ -28,7 +32,8 @@ function platformRow(
   accounts: DashboardIntegrationHealth["accounts"],
 ): Row {
   const hit = accounts.find((a) => a.platform === platformEnum)
-  if (!hit) return { id, label, state: "disconnected" }
+  const logoUrl = getIntegrationBySlug(id)?.logoUrl
+  if (!hit) return { id, label, state: "disconnected", logoUrl }
   const refreshableTwitter = platformEnum === "TWITTER" && hit.canRefresh
   if (hit.accessTokenExpiresAt) {
     const expires = new Date(hit.accessTokenExpiresAt).getTime()
@@ -38,40 +43,29 @@ function platformRow(
         id,
         label,
         state: "expiring",
-        meta: daysLeft <= 0 ? "expired" : `${daysLeft}d left`,
+        logoUrl,
+        meta: daysLeft <= 0 ? "Expired - reconnect" : `${daysLeft}d left`,
       }
     }
   }
-  return { id, label, state: "connected", meta: hit.accountName ?? undefined }
+  return { id, label, state: "connected", logoUrl, meta: hit.accountName ?? undefined }
 }
 
-const stateClasses: Record<
-  Row["state"],
-  { row: string; meta: string }
-> = {
-  connected:     { row: "bg-[color-mix(in_srgb,var(--chart-2)_14%,var(--card))] border-chart-2/50", meta: "text-green-800" },
-  disconnected:  { row: "bg-card border-(--vq-line-2)", meta: "text-muted-foreground" },
-  expiring:      { row: "bg-[color-mix(in_srgb,var(--vq-yellow)_20%,var(--card))] border-[var(--vq-yellow)]/50", meta: "text-amber-800" },
-  "coming-soon": { row: "bg-background border-foreground", meta: "text-muted-foreground" },
-}
-
-/** MCP connections carry their own status, so they don't need the token-expiry
- *  reasoning the native OAuth rows above do — only ERROR is worth surfacing as
- *  a warning; anything not CONNECTED reads as simply not connected. */
 function mcpRow(conn: DashboardIntegrationHealth["mcpConnections"][number]): Row {
-  const label = getIntegrationBySlug(conn.slug)?.name ?? conn.slug
-  if (conn.status === "CONNECTED") {
-    return { id: conn.slug, label, state: "connected" }
-  }
-  if (conn.status === "ERROR") {
-    return { id: conn.slug, label, state: "expiring", meta: "needs attention" }
-  }
-  return { id: conn.slug, label, state: "disconnected" }
+  const integration = getIntegrationBySlug(conn.slug)
+  const label = integration?.name ?? conn.slug
+  const logoUrl = integration?.logoUrl
+  if (conn.status === "CONNECTED") return { id: conn.slug, label, logoUrl, state: "connected" }
+  if (conn.status === "ERROR") return { id: conn.slug, label, logoUrl, state: "expiring", meta: "needs attention" }
+  return { id: conn.slug, label, logoUrl, state: "disconnected" }
 }
 
-/** Cap the grid so one heavily-connected org doesn't push the rest of the
- *  dashboard off-screen — the overflow is reported as a count instead. */
-const MAX_ROWS = 6
+const stateClasses: Record<Row["state"], { row: string; meta: string; icon: string }> = {
+  connected:     { row: "border-border bg-card", meta: "text-muted-foreground", icon: "text-[color:var(--vq-green)]" },
+  disconnected:  { row: "border-border bg-card", meta: "text-muted-foreground", icon: "text-muted-foreground" },
+  expiring:      { row: "border-border bg-muted/50", meta: "text-muted-foreground", icon: "text-destructive" },
+  "coming-soon": { row: "border-border bg-muted/30", meta: "text-muted-foreground", icon: "text-muted-foreground" },
+}
 
 export function IntegrationHealth() {
   const { data: activeOrg } = authClient.useActiveOrganization()
@@ -80,49 +74,34 @@ export function IntegrationHealth() {
 
   if (!data) {
     return (
-      <div className="rounded-2xl border border-[var(--vq-line-2)] bg-card p-5 shadow-[var(--vq-shadow)]">
-        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          [ integrations ]
+      <div className="rounded-[var(--vq-r)] border border-border bg-card p-5 shadow-[var(--vq-shadow-sm)]">
+        <div className="mb-3 font-head text-2xl text-foreground">
+          {isError ? "Connection status unavailable" : "Checking connections..."}
         </div>
-        <div className="mt-0.5 font-display text-[26px] tracking-tight text-foreground">
-          {isError ? "status unavailable" : "checking connections…"}
-        </div>
-        <p className="mt-2 font-body text-xs text-muted-foreground">
-          {isError
-            ? "Your connections are unchanged; this dashboard card could not refresh them."
-            : "Loading your connected tools."}
-        </p>
-        {isError && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={() => void refetch()}
-          >
-            Retry
-          </Button>
+        {isError ? (
+          <DashboardEmptyState
+            icon={AlertTriangle}
+            title="Could not refresh connections"
+            description="Your saved connections are unchanged. Retry to reload their dashboard status."
+            action={{ label: "Retry", onClick: () => void refetch() }}
+            tone="danger"
+          />
+        ) : (
+          <p className="font-body text-xs text-muted-foreground">Loading your connected tools.</p>
         )}
-        {isPending && <div className="mt-4 h-12 animate-pulse rounded-lg bg-muted" />}
+        {isPending && <div className="mt-4 h-12 animate-pulse rounded-[var(--vq-r-sm)] bg-muted" />}
       </div>
     )
   }
 
   const accounts = data?.accounts ?? []
   const mcpConnections = data?.mcpConnections ?? []
-
-  // Native OAuth platforms and MCP connections are separate systems (see the
-  // Legacy vs. catalog split in settings/integrations), so both are listed —
-  // previously this widget showed only the two native rows and told an org
-  // with eight live MCP connections that it had two integrations.
   const allRows: Row[] = [
     platformRow("twitter", "Twitter", "TWITTER", accounts),
     platformRow("linkedin", "LinkedIn", "LINKEDIN", accounts),
+    platformRow("instagram", "Instagram", "INSTAGRAM", accounts),
     ...mcpConnections.map(mcpRow),
   ]
-
-  // Connected first, then anything needing attention — a disconnected row is
-  // the least urgent thing here and shouldn't consume the visible slots.
   const rank: Record<Row["state"], number> = {
     expiring: 0,
     connected: 1,
@@ -133,53 +112,63 @@ export function IntegrationHealth() {
   const rows = sorted.slice(0, MAX_ROWS)
   const hiddenCount = sorted.length - rows.length
   const connectedCount = allRows.filter((r) => r.state === "connected").length
+  const attentionCount = allRows.filter((r) => r.state === "expiring").length
+  const visibleRows = connectedCount === 0 && attentionCount === 0 ? [] : rows
 
   return (
-    <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
-      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        [ integrations ]
-      </div>
-      <div className="font-display text-[26px] tracking-tight text-foreground mt-0.5 mb-3">
-        {connectedCount > 0 ? `${connectedCount} connected` : "plugged in?"}
+    <div className="rounded-[var(--vq-r)] border border-border bg-card p-5 shadow-[var(--vq-shadow-sm)]">
+      <div className="mb-3">
+        <div className="font-head text-2xl text-foreground">
+          {attentionCount > 0
+            ? `${connectedCount} connected, ${attentionCount} needs attention`
+            : connectedCount > 0
+              ? `${connectedCount} connected`
+              : "No tools connected"}
+        </div>
+        <p className="m-0 mt-1 text-xs text-muted-foreground">OAuth and app connections.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {rows.map((r) => {
+        {connectedCount === 0 && (
+          <div className="sm:col-span-2">
+            <DashboardEmptyState
+              icon={Plug}
+              title="Connect your first tool"
+              description="Give agents access to Gmail, Calendar, LinkedIn, Instagram, Notion, and more."
+              action={{ label: "Manage integrations", href: "/settings/integrations" }}
+              compact
+            />
+          </div>
+        )}
+        {visibleRows.map((r) => {
           const cls = stateClasses[r.state]
           return (
             <div
               key={r.id}
-              className={`flex items-center gap-2 px-2.5 py-2 border rounded-lg ${cls.row}`}
+              className={`flex items-center gap-2 rounded-[var(--vq-r-sm)] border px-2.5 py-2 ${cls.row}`}
             >
-              {r.state === "connected"    && <CheckCircle2 className="size-3.5 shrink-0 text-green-700" />}
-              {r.state === "disconnected" && <XCircle className="size-3.5 shrink-0 text-muted-foreground" />}
-              {r.state === "expiring"     && <AlertTriangle className="size-3.5 shrink-0 text-amber-700" />}
-              <div className="flex-1 min-w-0">
-                <div className="font-mono text-[11px] uppercase tracking-[0.15em] text-foreground">
-                  {r.label}
-                </div>
-                {r.meta && (
-                  <div className={cn("font-mono text-[9px] truncate", cls.meta)}>
-                    {r.meta}
-                  </div>
-                )}
+              <IntegrationLogo name={r.label} logoUrl={r.logoUrl} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-medium text-foreground">{r.label}</div>
+                {r.meta && <div className={cn("truncate text-[11px]", cls.meta)}>{r.meta}</div>}
                 {r.state === "coming-soon" && (
-                  <div className={cn("font-mono text-[9px] tracking-widest", cls.meta)}>
-                    coming soon
-                  </div>
+                  <div className={cn("text-[11px]", cls.meta)}>coming soon</div>
                 )}
               </div>
+              {r.state === "connected" && <CheckCircle2 className={cn("size-3.5 shrink-0", cls.icon)} />}
+              {r.state === "disconnected" && <XCircle className={cn("size-3.5 shrink-0", cls.icon)} />}
+              {r.state === "expiring" && <AlertTriangle className={cn("size-3.5 shrink-0", cls.icon)} />}
             </div>
           )
         })}
       </div>
 
-      <div className="mt-4 pt-3.5 border-t-2 border-foreground/10 flex items-center justify-between gap-2">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3.5">
+        <div className="text-[11px] text-muted-foreground">
           {hiddenCount > 0 ? `+${hiddenCount} more` : ""}
         </div>
         <Button asChild variant="brand-ghost" size="brand-sm">
-          <Link href="/settings/integrations">manage →</Link>
+          <Link href="/settings/integrations">Manage</Link>
         </Button>
       </div>
     </div>

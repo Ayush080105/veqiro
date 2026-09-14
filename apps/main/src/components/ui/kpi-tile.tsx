@@ -17,7 +17,7 @@ const tileVariants = cva(
       shape: {
         default: "rounded-[var(--vq-r)] border border-[var(--vq-line)] p-3",
         brand:
-          "rounded-[var(--vq-r-lg)] border border-[var(--vq-line-2)] p-4 shadow-[var(--vq-shadow)]",
+          "rounded-[var(--vq-r)] border border-border p-4 shadow-[var(--vq-shadow-sm)]",
       },
     },
     defaultVariants: {
@@ -49,9 +49,9 @@ interface KpiTileProps
 }
 
 const TREND_VAR = {
-  up: "var(--vq-green)",
+  up: "var(--foreground)",
   down: "var(--destructive)",
-  flat: "var(--accent)",
+  flat: "var(--muted-foreground)",
 } as const
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
@@ -103,14 +103,14 @@ export function KpiTile({
   const accentColor = TREND_VAR[delta?.trend ?? "flat"]
   return (
     <div className={cn(tileVariants({ tone, shape }), className)} {...rest}>
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] opacity-70">
+      <div className="font-body text-xs font-medium text-muted-foreground">
         {label}
       </div>
       <div className="flex items-baseline gap-1.5">
         <span
           className={cn(
-            "font-display tracking-tight",
-            shape === "brand" ? "text-[clamp(1.5rem,3vw,2rem)]" : "text-xl"
+            "font-head tracking-normal",
+            shape === "brand" ? "text-3xl" : "text-xl"
           )}
         >
           {value}
@@ -123,7 +123,7 @@ export function KpiTile({
         <Sparkline values={sparkline} color={accentColor} />
       )}
       {delta && (
-        <div className="flex items-center gap-1 font-mono text-[11px] opacity-80 [&>svg]:size-3">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground [&>svg]:size-3">
           {TrendIcon && <TrendIcon />}
           <span>{delta.value}</span>
         </div>

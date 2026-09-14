@@ -14,11 +14,7 @@ export function TrialBanner() {
   const sub = billing?.subscription
 
   if (!sub) return null
-  // sub.status is the legacy Subscription.status column — it can never be
-  // "TRIALING" (trial state lives on Entitlement rows now; see
-  // deriveStatusFields's doc comment in billing.controller.ts), so gating on
-  // it here meant this banner never rendered for any trialing org. Mirrors
-  // settings/billing/page.tsx's isTrialing derivation.
+  // Trial state lives on Entitlement rows; Subscription.status is legacy.
   const isTrialing = sub.entitlements?.some((e) => e.source === "TRIAL") ?? false
   if (!isTrialing) return null
 
@@ -26,14 +22,14 @@ export function TrialBanner() {
 
   return (
     <div className="ml-auto flex items-center gap-2.5 text-xs">
-      <span className="text-muted-foreground hidden sm:inline">
+      <span className="hidden text-muted-foreground sm:inline">
         <strong className="text-foreground">{days}</strong> {days === 1 ? "day" : "days"} left
       </span>
       <Link
         href="/settings/billing"
-        className="inline-flex items-center rounded-full bg-primary px-3 py-1 font-bold text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
+        className="inline-flex whitespace-nowrap rounded-full bg-primary px-3 py-1 font-bold text-primary-foreground hover:bg-primary/90"
       >
-        Upgrade now →
+        Upgrade now
       </Link>
     </div>
   )

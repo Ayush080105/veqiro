@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { Brain } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState"
 import { authClient } from "@/lib/auth-client"
 import { useBrandKit } from "@/lib/api/brain"
 import type { BrandKit } from "@/lib/types"
@@ -34,29 +36,22 @@ function filledFields(kit: BrandKit | null | undefined): FieldKey[] {
   if (kit.industry?.trim()) out.push("industry")
   if (kit.brandVoice?.trim()) out.push("brandVoice")
   if (kit.targetAudience?.trim()) out.push("targetAudience")
-  if (Array.isArray(kit.competitors) && kit.competitors.length > 0)
-    out.push("competitors")
+  if (Array.isArray(kit.competitors) && kit.competitors.length > 0) out.push("competitors")
   if (kit.keyDifferentiators?.trim()) out.push("keyDifferentiators")
   if (kit.websiteUrl?.trim()) out.push("websiteUrl")
   return out
 }
 
 function progressColor(pct: number): string {
-  if (pct >= 100) return "var(--vq-green)"
-  if (pct >= 30) return "var(--vq-yellow)"
-  return "var(--destructive)"
+  return pct >= 30 ? "var(--foreground)" : "var(--destructive)"
 }
 
 function ShellHeader() {
   return (
-    <>
-      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        [ brand - at a glance ]
-      </div>
-      <div className="font-display text-[26px] tracking-tight text-foreground mt-0.5 mb-3">
-        your brain
-      </div>
-    </>
+    <div className="mb-3">
+      <div className="font-head text-2xl text-foreground">Your brain</div>
+      <p className="m-0 mt-1 text-xs text-muted-foreground">Brand context your crew can reuse.</p>
+    </div>
   )
 }
 
@@ -67,7 +62,7 @@ export function BrandSnapshot() {
 
   if (isPending) {
     return (
-      <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
+      <div className="flex flex-1 flex-col rounded-[var(--vq-r)] border border-border bg-card p-5 shadow-[var(--vq-shadow-sm)]">
         <ShellHeader />
         <div className="flex flex-col gap-2.5">
           <Skeleton className="h-6 w-40" />
@@ -82,19 +77,14 @@ export function BrandSnapshot() {
 
   if (isEmpty) {
     return (
-      <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
+      <div className="flex flex-1 flex-col rounded-[var(--vq-r)] border border-border bg-card p-5 shadow-[var(--vq-shadow-sm)]">
         <ShellHeader />
-        <div className="px-3.5 py-4 bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-body text-[13px] text-foreground flex flex-col gap-3 items-start">
-          <span className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground">
-            {"// no brand kit yet"}
-          </span>
-          <span>
-            Set up your brand kit so your crew knows your voice, tone, and audience.
-          </span>
-          <Button asChild variant="brand-dark" size="brand-sm">
-            <Link href="/onboarding">run onboarding -&gt;</Link>
-          </Button>
-        </div>
+        <DashboardEmptyState
+          icon={Brain}
+          title="Brand brain is empty"
+          description="Add your voice, audience, differentiators, and website so every agent can stay on brand."
+          action={{ label: "Run onboarding", href: "/onboarding" }}
+        />
       </div>
     )
   }
@@ -104,55 +94,47 @@ export function BrandSnapshot() {
   const pct = Math.round((filled.length / total) * 100)
   const missing = (Object.keys(FIELD_LABELS) as FieldKey[]).filter((k) => !filled.includes(k))
   const palette = [
-    kit!.brandColors?.primary,
-    kit!.brandColors?.secondary,
-    kit!.brandColors?.accent,
+    kit.brandColors?.primary,
+    kit.brandColors?.secondary,
+    kit.brandColors?.accent,
   ].filter(Boolean) as string[]
 
   return (
-    <div className="flex flex-1 flex-col bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
+    <div className="flex flex-1 flex-col rounded-[var(--vq-r)] border border-border bg-card p-5 shadow-[var(--vq-shadow-sm)]">
       <ShellHeader />
 
       <div className="flex flex-1 flex-col gap-3.5">
-        {/* Company name + chips */}
         <div>
-          <div className="font-head text-xl tracking-tight text-foreground truncate">
-            {kit!.companyName}
+          <div className="truncate font-head text-xl tracking-tight text-foreground">
+            {kit.companyName}
           </div>
-          <div className="flex gap-1.5 flex-wrap mt-1.5">
-            {kit!.industry && (
-              <span
-                className="font-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 border border-[var(--vq-line-2)] rounded-full text-foreground"
-                style={{ background: "var(--vq-blue)" }}
-              >
-                {kit!.industry}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {kit.industry && (
+              <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-foreground">
+                {kit.industry}
               </span>
             )}
-            {kit!.brandVoice && (
-              <span
-                className="font-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 border border-[var(--vq-line-2)] rounded-full text-foreground"
-                style={{ background: "var(--vq-pink)" }}
-              >
-                {kit!.brandVoice}
+            {kit.brandVoice && (
+              <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-foreground">
+                {kit.brandVoice}
               </span>
             )}
           </div>
         </div>
 
-        {/* Color palette */}
         {palette.length > 0 && (
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
-              palette
+            <div className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+              Palette
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex gap-2">
               {palette.map((c, i) => (
                 <div key={i} className="flex-1">
                   <div
-                    className="h-9 border border-[var(--vq-line-2)] rounded-md"
+                    className="h-3 rounded-sm border border-border"
                     style={{ background: c }}
                   />
-                  <div className="font-mono text-[9px] text-muted-foreground mt-1 text-center">
+                  <div className="mt-1 text-center text-[10px] text-muted-foreground">
                     {c}
                   </div>
                 </div>
@@ -161,38 +143,33 @@ export function BrandSnapshot() {
           </div>
         )}
 
-        {/* Completeness */}
         <div>
-          <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
-            <span>completeness</span>
-            <span className="text-foreground font-head text-[12px]">
+          <div className="mb-1.5 flex justify-between text-[11px] font-medium text-muted-foreground">
+            <span>Completeness</span>
+            <span className="font-head text-[12px] text-foreground">
               {filled.length} / {total}
             </span>
           </div>
-          <div className="h-3.5 bg-white border border-[var(--vq-line-2)] rounded-md overflow-hidden">
+          <div className="h-2.5 overflow-hidden rounded-full border border-border bg-muted">
             <div
               style={{
-                width: `${pct}%`,
+                width: "100%",
                 height: "100%",
+                transform: `scaleX(${pct / 100})`,
+                transformOrigin: "left",
                 background: progressColor(pct),
-                transition: "width 300ms ease",
+                transition: "transform 300ms ease",
               }}
             />
           </div>
         </div>
 
-        {/* Missing field pills */}
         {missing.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {missing.map((k) => (
               <span
                 key={k}
-                className="font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full"
-                style={{
-                  background: "color-mix(in srgb, var(--vq-yellow) 25%, var(--card))",
-                  border: "1px solid color-mix(in srgb, var(--vq-yellow) 55%, transparent)",
-                  color: "color-mix(in srgb, var(--vq-yellow) 65%, black)",
-                }}
+                className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
               >
                 + {FIELD_LABELS[k]}
               </span>
@@ -200,9 +177,9 @@ export function BrandSnapshot() {
           </div>
         )}
 
-        <div className="mt-auto pt-3.5 border-t border-foreground/10 flex justify-end">
+        <div className="mt-auto flex justify-end border-t border-border pt-3.5">
           <Button asChild variant="brand-ghost" size="brand-sm">
-            <Link href="/brain">edit brain →</Link>
+            <Link href="/brain">Edit brain</Link>
           </Button>
         </div>
       </div>

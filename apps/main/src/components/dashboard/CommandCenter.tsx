@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, CheckCircle2, Inbox, Plug } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertTriangle, ArrowRight, CheckCircle2, Inbox, Plug } from "lucide-react"
 import { useCommandCenter } from "@/lib/api/mcp"
+import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState"
+import { Button } from "@/components/ui/button"
 
 /**
  * What needs you, and what your agents have been doing.
@@ -26,21 +27,27 @@ export function CommandCenter() {
   const recent = data?.recentActionCount ?? 0
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold">Your team</CardTitle>
-        <CardDescription className="text-xs">
+    <section className="rounded-[var(--vq-r)] border border-border bg-card p-4 shadow-[var(--vq-shadow-sm)]">
+      <div className="mb-3">
+        <h2 className="m-0 text-sm font-semibold text-foreground">Your team</h2>
+        <p className="m-0 mt-1 text-xs text-muted-foreground">
           {connected === 0
             ? "Connect a tool and your agents can start working in it."
             : `Working across ${connected} connected ${connected === 1 ? "tool" : "tools"}.`}
-        </CardDescription>
-      </CardHeader>
+        </p>
+      </div>
 
-      <CardContent className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         {isLoading ? (
-          <p className="text-xs text-muted-foreground">Loading…</p>
+          <p className="text-xs text-muted-foreground">Loading...</p>
         ) : isError ? (
-          <p className="text-xs text-destructive">Couldn&apos;t load this right now.</p>
+          <DashboardEmptyState
+            icon={AlertTriangle}
+            title="Could not load team status"
+            description="The approval queue is unchanged. Refresh the page to retry."
+            compact
+            tone="danger"
+          />
         ) : (
           <>
             {/* The queue leads, because it is the only thing here that needs a
@@ -48,7 +55,7 @@ export function CommandCenter() {
             {pending > 0 ? (
               <Link
                 href="/assistants"
-                className="flex items-center justify-between gap-3 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5 hover:bg-background transition-colors"
+                className="flex items-center justify-between gap-3 rounded-[var(--vq-r-sm)] border border-border bg-muted/35 px-3 py-2.5 transition-colors hover:bg-muted"
               >
                 <span className="flex items-center gap-2">
                   <Inbox className="size-4 shrink-0 text-foreground" />
@@ -59,8 +66,8 @@ export function CommandCenter() {
                 <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
               </Link>
             ) : (
-              <div className="flex items-center gap-2 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5">
-                <CheckCircle2 className="size-4 shrink-0 text-chart-2" />
+              <div className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border bg-muted/35 px-3 py-2.5">
+                <CheckCircle2 className="size-4 shrink-0 text-foreground" />
                 <span className="text-xs text-muted-foreground">
                   Nothing waiting on you.
                 </span>
@@ -75,18 +82,17 @@ export function CommandCenter() {
                 See the activity log
               </Link>
               {connected === 0 && (
-                <Link
-                  href="/settings/integrations"
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  <Plug className="size-3" />
-                  Connect a tool
-                </Link>
+                <Button asChild variant="brand-dark" size="brand-sm" className="h-8">
+                  <Link href="/settings/integrations" className="flex items-center gap-1">
+                    <Plug className="size-3" />
+                    Connect a tool
+                  </Link>
+                </Button>
               )}
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }

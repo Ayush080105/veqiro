@@ -101,8 +101,8 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0" style={{ borderRightWidth: 0 }}>
-      <SidebarHeader className="gap-1.5 px-3 pt-1 pb-2">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="gap-2 px-3 pt-2 pb-3">
         <a
           href={LANDING_URL}
           onClick={closeMobileSidebar}
@@ -152,7 +152,7 @@ export function AppSidebar() {
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    background: "var(--vq-green)",
+                    background: "var(--primary)",
                     flexShrink: 0,
                   }}
                 />
@@ -178,18 +178,15 @@ export function AppSidebar() {
                     padding: "2px 6px",
                     border: "1px solid var(--vq-line-2)",
                     borderRadius: 999,
-                    background: "var(--vq-yellow)",
-                    color: "var(--foreground)",
+                    background: "var(--accent)",
+                    color: "var(--accent-foreground)",
                   }}
                 >
                   Free
                 </span>
                 <ChevronDown className="size-3 text-foreground/70" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-64 border border-[var(--vq-line-2)] bg-popover p-1 shadow-[var(--vq-shadow-lg)]"
-              >
+              <DropdownMenuContent align="start" className="w-64 p-1">
                 {organizations?.map((organization) => {
                   const isCurrent = organization.id === visibleActiveOrg.id
                   const isSwitching = switchingId === organization.id
@@ -231,7 +228,7 @@ export function AppSidebar() {
                     </DropdownMenuItem>
                   )
                 })}
-                <DropdownMenuSeparator className="my-1 bg-foreground/20" />
+                <DropdownMenuSeparator className="my-1" />
                 <DropdownMenuItem
                   disabled={!!switchingId}
                   onClick={() => void createOrg()}
@@ -343,14 +340,14 @@ export function AppSidebar() {
               width: 32,
               height: 32,
               borderRadius: "50%",
-              background: "var(--vq-yellow)",
+              background: "var(--accent)",
               border: "1px solid var(--vq-line-2)",
               boxShadow: "var(--vq-shadow-sm)",
               display: "grid",
               placeItems: "center",
               fontFamily: FONT.head,
               fontSize: 13,
-              color: "var(--foreground)",
+              color: "var(--accent-foreground)",
               flexShrink: 0,
               overflow: "hidden",
             }}

@@ -74,15 +74,15 @@ export function PageHeader({
     >
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         {kicker && (
-          <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-muted-foreground">
-            [ {kicker} ]
+          <span className="text-xs leading-none text-muted-foreground">
+            {kicker}
           </span>
         )}
         <h1
           className={cn(
-            "m-0 font-display leading-[0.95] tracking-tight text-foreground",
-            size === "lg" && "text-[clamp(2.125rem,4vw,3.25rem)]",
-            size === "md" && "text-[clamp(1.625rem,3vw,2.25rem)]"
+            "m-0 font-head leading-tight tracking-normal text-foreground",
+            size === "lg" && "text-[clamp(2rem,3vw,2.75rem)]",
+            size === "md" && "text-3xl"
           )}
         >
           {title}

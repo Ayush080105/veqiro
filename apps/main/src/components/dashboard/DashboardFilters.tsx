@@ -22,27 +22,19 @@ type Props = {
 
 function formatRangeLabel(range: Range): string {
   if (range.kind !== "custom") return ""
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
   return `${fmt(range.from)} - ${fmt(range.to)}`
 }
 
 function formatDateChip(date: Date | undefined): string {
   if (!date) return "Select date"
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
 function agentButtonLabel(agents: AgentSlug[]): string {
   if (agents.length === ALL_SLUGS.length) return "All agents"
   if (agents.length === 0) return "No agents"
-  if (agents.length === 1) {
-    const a = AGENTS.find((x) => x.id === agents[0])
-    return a?.name ?? "1 agent"
-  }
+  if (agents.length === 1) return AGENTS.find((x) => x.id === agents[0])?.name ?? "1 agent"
   return `${agents.length} agents`
 }
 
@@ -61,30 +53,18 @@ export function DashboardFilters({
   const [agentsOpen, setAgentsOpen] = useState(false)
   const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined)
   const today = new Date()
-  // End of the current month — limits navigation but shows the full month grid
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
 
   const allSelected = agents.length === ALL_SLUGS.length
-  const toggleGroupValue: string[] =
-    range.kind === "custom" ? [] : [range.kind]
+  const toggleGroupValue: string[] = range.kind === "custom" ? [] : [range.kind]
 
   const toggleAgent = (slug: AgentSlug) => {
-    onAgentsChange(
-      agents.includes(slug)
-        ? agents.filter((a) => a !== slug)
-        : [...agents, slug],
-    )
-  }
-
-  const toggleAll = () => {
-    onAgentsChange(allSelected ? [] : [...ALL_SLUGS])
+    onAgentsChange(agents.includes(slug) ? agents.filter((a) => a !== slug) : [...agents, slug])
   }
 
   const onToggleGroupChange = (values: string[]) => {
     const value = values[0]
-    if (value === "24h" || value === "7d" || value === "30d") {
-      onRangeChange({ kind: value as RangeKind })
-    }
+    if (value === "24h" || value === "7d" || value === "30d") onRangeChange({ kind: value as RangeKind })
   }
 
   const onCustomSelect = (picked: DateRange | undefined) => {
@@ -92,17 +72,12 @@ export function DashboardFilters({
       setDraftRange({ from: picked.from, to: undefined })
       return
     }
-
     setDraftRange(picked)
   }
 
   const onCalendarOpenChange = (open: boolean) => {
     setCalendarOpen(open)
-    if (open) {
-      setDraftRange(
-        range.kind === "custom" ? { from: range.from, to: range.to } : undefined,
-      )
-    }
+    if (open) setDraftRange(range.kind === "custom" ? { from: range.from, to: range.to } : undefined)
   }
 
   const clearCustom = () => {
@@ -119,31 +94,22 @@ export function DashboardFilters({
   }
 
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
       <ToggleGroup
         value={toggleGroupValue}
         onValueChange={onToggleGroupChange}
         aria-label="Dashboard date range"
-        className="h-11 overflow-hidden rounded-full border border-[var(--vq-line-2)] bg-card p-0 shadow-[var(--vq-shadow-sm)]"
+        className="h-9 overflow-hidden rounded-[var(--vq-r-sm)] border border-border bg-card p-0"
       >
-        <ToggleGroupItem
-          value="24h"
-          className="h-full min-w-12 rounded-none border-0 bg-card px-3 py-0 font-mono text-xs uppercase text-foreground hover:bg-background data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-none"
-        >
-          24h
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="7d"
-          className="h-full min-w-12 rounded-none border-0 border-l border-[var(--vq-line-2)] bg-card px-3 py-0 font-mono text-xs uppercase text-foreground hover:bg-background data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-none"
-        >
-          7d
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="30d"
-          className="h-full min-w-12 rounded-none border-0 border-l border-[var(--vq-line-2)] bg-card px-3 py-0 font-mono text-xs uppercase text-foreground hover:bg-background data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-none"
-        >
-          30d
-        </ToggleGroupItem>
+        {(["24h", "7d", "30d"] as const).map((value) => (
+          <ToggleGroupItem
+            key={value}
+            value={value}
+            className="h-full min-w-11 rounded-none border-0 border-l border-border bg-card px-3 py-0 text-xs font-medium text-muted-foreground first:border-l-0 hover:bg-muted data-[state=on]:bg-muted data-[state=on]:text-foreground data-[state=on]:shadow-none"
+          >
+            {value}
+          </ToggleGroupItem>
+        ))}
       </ToggleGroup>
 
       <Popover open={calendarOpen} onOpenChange={onCalendarOpenChange}>
@@ -152,7 +118,7 @@ export function DashboardFilters({
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 rounded-full border border-[var(--vq-line-2)] bg-card px-3 font-mono text-xs uppercase shadow-[var(--vq-shadow-sm)] hover:bg-background"
+              className="h-9 rounded-[var(--vq-r-sm)] border-border bg-card px-3 text-xs font-medium shadow-none hover:bg-muted"
             />
           }
         >
@@ -160,36 +126,23 @@ export function DashboardFilters({
           {range.kind === "custom" ? formatRangeLabel(range) : "Custom"}
         </PopoverTrigger>
         <PopoverContent
-          className="w-[min(calc(100vw-1rem),21.5rem)] overflow-hidden rounded-md border border-[var(--vq-line-2)] bg-card p-0 shadow-[var(--vq-shadow)]"
+          className="w-[min(calc(100vw-1rem),21.5rem)] overflow-hidden rounded-[var(--vq-r)] border border-border bg-popover p-0 shadow-[var(--vq-shadow-lg)]"
           align="end"
           sideOffset={8}
         >
-          <div className="border-b border-[var(--vq-line-2)] bg-card px-3 py-2.5">
+          <div className="border-b border-border bg-popover px-3 py-2.5">
             <div className="grid grid-cols-2 gap-2">
-              <div className="min-w-0 rounded-md border border-[var(--vq-line-2)] bg-card px-2.5 py-2">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Start
+              {([
+                ["Start", draftRange?.from],
+                ["End", isSameCalendarDay(draftRange?.from, draftRange?.to) ? undefined : draftRange?.to],
+              ] as Array<[string, Date | undefined]>).map(([label, date]) => (
+                <div key={label} className="min-w-0 rounded-[var(--vq-r-sm)] border border-border bg-card px-2.5 py-2">
+                  <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+                  <div className="mt-1 truncate text-xs text-foreground">{formatDateChip(date)}</div>
                 </div>
-                <div className="mt-1 truncate font-mono text-xs text-foreground">
-                  {formatDateChip(draftRange?.from)}
-                </div>
-              </div>
-              <div className="min-w-0 rounded-md border border-[var(--vq-line-2)] bg-card px-2.5 py-2">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  End
-                </div>
-                <div className="mt-1 truncate font-mono text-xs text-foreground">
-                  {formatDateChip(
-                    isSameCalendarDay(draftRange?.from, draftRange?.to)
-                      ? undefined
-                      : draftRange?.to,
-                  )}
-                </div>
-              </div>
+              ))}
             </div>
-            <p className="m-0 mt-2 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-              Choose start and end, then apply.
-            </p>
+            <p className="m-0 mt-2 text-[11px] text-muted-foreground">Choose start and end, then apply.</p>
           </div>
           <Calendar
             mode="range"
@@ -200,66 +153,43 @@ export function DashboardFilters({
             defaultMonth={range.kind === "custom" ? range.from : today}
             numberOfMonths={1}
             fixedWeeks
-            className="relative w-full bg-card px-3 py-2.5 [--cell-size:1.95rem]"
+            className="relative w-full bg-popover px-3 py-2.5 [--cell-size:1.95rem]"
             classNames={{
               root: "relative w-full",
               months: "flex w-full flex-col",
               month: "w-full gap-1.5",
-              month_caption:
-                "flex h-9 w-full items-center justify-center px-10 font-mono text-sm uppercase tracking-wider text-foreground",
-              caption_label: "font-mono text-[13px] font-semibold text-foreground",
+              month_caption: "flex h-9 w-full items-center justify-center px-10 text-sm font-semibold text-foreground",
+              caption_label: "text-sm font-semibold text-foreground",
               nav: "absolute inset-x-3 top-2.5 flex items-center justify-between",
-              button_previous:
-                "size-7 rounded-md border border-[var(--vq-line-2)] bg-card p-0 text-foreground shadow-[var(--vq-shadow-sm)] hover:bg-background",
-              button_next:
-                "size-7 rounded-md border border-[var(--vq-line-2)] bg-card p-0 text-foreground shadow-[var(--vq-shadow-sm)] hover:bg-background disabled:opacity-35",
+              button_previous: "size-7 rounded-[var(--vq-r-sm)] border border-border bg-card p-0 text-foreground hover:bg-muted",
+              button_next: "size-7 rounded-[var(--vq-r-sm)] border border-border bg-card p-0 text-foreground hover:bg-muted disabled:opacity-35",
               month_grid: "w-full",
               weeks: "w-full",
               weekdays: "grid grid-cols-7 gap-0.5",
-              weekday:
-                "grid h-6 place-items-center rounded-sm font-mono text-[10px] uppercase tracking-wider text-muted-foreground",
+              weekday: "grid h-6 place-items-center rounded-sm text-[11px] font-medium text-muted-foreground",
               week: "mt-0.5 grid grid-cols-7 gap-0.5",
               day: "relative grid aspect-square min-w-0 place-items-center rounded-sm p-0 text-center",
               outside: "text-muted-foreground opacity-20",
-              today:
-                "font-bold text-foreground after:absolute after:bottom-1 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-foreground",
+              today: "font-bold text-foreground after:absolute after:bottom-1 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-foreground",
               disabled: "pointer-events-none",
               range_start: "rounded-l-md bg-accent",
               range_middle: "rounded-none bg-accent/40",
               range_end: "rounded-r-md bg-accent",
             }}
           />
-          <div className="flex items-center justify-between gap-2 border-t border-[var(--vq-line-2)] bg-card px-3 py-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="brand-sm"
-              onClick={() => setDraftRange(undefined)}
-              className="h-9 border border-[var(--vq-line-2)] bg-card px-3 text-[11px] shadow-[var(--vq-shadow-sm)]"
-            >
+          <div className="flex items-center justify-between gap-2 border-t border-border bg-popover px-3 py-2.5">
+            <Button type="button" variant="outline" size="brand-sm" onClick={() => setDraftRange(undefined)} className="h-9 border-border bg-card px-3 text-[11px] shadow-none">
               Clear
             </Button>
-            <Button
-              type="button"
-              variant="brand-dark"
-              size="brand-sm"
-              disabled={!draftRange?.from || !draftRange.to}
-              onClick={applyCustom}
-              className="h-9 px-4 text-[11px] disabled:border-foreground disabled:bg-muted-foreground disabled:text-white disabled:shadow-none disabled:opacity-65"
-            >
+            <Button type="button" variant="brand-dark" size="brand-sm" disabled={!draftRange?.from || !draftRange.to} onClick={applyCustom} className="h-9 px-4 text-[11px] disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:opacity-65">
               Apply range
             </Button>
           </div>
         </PopoverContent>
       </Popover>
+
       {range.kind === "custom" && (
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label="Clear custom range"
-          onClick={clearCustom}
-          className="size-10 rounded-full p-0"
-        >
+        <Button variant="ghost" size="sm" aria-label="Clear custom range" onClick={clearCustom} className="size-9 rounded-[var(--vq-r-sm)] p-0">
           <X className="size-3.5" />
         </Button>
       )}
@@ -270,7 +200,7 @@ export function DashboardFilters({
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 rounded-full border border-[var(--vq-line-2)] bg-card px-3 font-mono text-xs uppercase shadow-[var(--vq-shadow-sm)] hover:bg-background"
+              className="h-9 rounded-[var(--vq-r-sm)] border-border bg-card px-3 text-xs font-medium shadow-none hover:bg-muted"
             />
           }
         >
@@ -281,38 +211,24 @@ export function DashboardFilters({
           <div className="flex flex-col">
             <button
               type="button"
-              onClick={toggleAll}
-              className="flex min-h-11 items-center justify-between border-b border-[var(--vq-line)] px-3 py-2 text-left font-mono text-xs uppercase tracking-wider hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => onAgentsChange(allSelected ? [] : [...ALL_SLUGS])}
+              className="flex min-h-11 items-center justify-between border-b border-border px-3 py-2 text-left text-xs font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span>{allSelected ? "Clear all" : "Select all"}</span>
-              <span className="text-muted-foreground">
-                {agents.length}/{ALL_SLUGS.length}
-              </span>
+              <span className="text-muted-foreground">{agents.length}/{ALL_SLUGS.length}</span>
             </button>
             <ul className="flex flex-col py-1">
-              {AGENTS.map((a) => {
-                const checked = agents.includes(a.id)
-                return (
-                  <li key={a.id}>
-                    <label className="flex min-h-10 cursor-pointer items-center gap-2 px-3 py-1.5 text-xs hover:bg-background">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={() => toggleAgent(a.id)}
-                      />
-                      <span
-                        aria-hidden
-                        className="size-2.5 shrink-0 rounded-full border border-[var(--vq-line-2)]"
-                        style={{ background: a.color }}
-                      />
-                      <span className="flex-1 font-mono uppercase tracking-wider">
-                        {a.name}
-                      </span>
-                    </label>
-                  </li>
-                )
-              })}
+              {AGENTS.map((a) => (
+                <li key={a.id}>
+                  <label className="flex min-h-10 cursor-pointer items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted">
+                    <Checkbox checked={agents.includes(a.id)} onCheckedChange={() => toggleAgent(a.id)} />
+                    <span aria-hidden className="size-2 shrink-0 rounded-full border border-border" style={{ background: a.color }} />
+                    <span className="flex-1 font-medium">{a.name}</span>
+                  </label>
+                </li>
+              ))}
             </ul>
-            <p className="border-t border-[var(--vq-line)] px-3 py-2 font-mono text-[10px] leading-snug text-muted-foreground">
+            <p className="border-t border-border px-3 py-2 text-[11px] leading-snug text-muted-foreground">
               Applies to assistant activity. Post counts show all agents.
             </p>
           </div>

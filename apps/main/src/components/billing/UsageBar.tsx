@@ -18,10 +18,11 @@ export function UsageBar({
   const pct = resource.limit === 0 ? 0 : Math.min(100, Math.round((resource.used / resource.limit) * 100))
   const isNearLimit = pct >= 80
   const isExhausted = resource.remaining === 0
+  const unitLabel = unit ? ` ${unit}` : ""
 
   let barColor = "var(--primary)"
   if (isExhausted) barColor = "var(--destructive)"
-  else if (isNearLimit) barColor = "var(--vq-yellow)"
+  else if (isNearLimit) barColor = "var(--foreground)"
 
   return (
     <div className="flex flex-col gap-2">
@@ -31,7 +32,7 @@ export function UsageBar({
           {label}
         </span>
         <span className="text-muted-foreground tabular-nums">
-          {resource.remaining}{unit ? ` ${unit}` : ""} remaining
+          {resource.used}{unitLabel} used / {resource.remaining}{unitLabel} remaining
           {isExhausted && (
             <Badge variant="destructive" className="ml-2 text-[10px]">Exhausted</Badge>
           )}

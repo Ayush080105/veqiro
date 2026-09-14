@@ -4,12 +4,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function MayaUsageCardSkeleton() {
   return (
-    <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5">
-      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        [ maya - at a glance ]
-      </div>
-      <div className="font-display text-[26px] tracking-tight text-foreground mt-0.5 mb-3">
-        credits
+    <div className="rounded-[var(--vq-r)] border border-border bg-card p-5 shadow-[var(--vq-shadow-sm)]">
+      <div className="mb-3">
+        <div className="font-head text-2xl text-foreground">Credits</div>
+        <p className="m-0 mt-1 text-xs text-muted-foreground">Maya image and video usage.</p>
       </div>
       <div className="flex flex-col gap-4">
         <Skeleton className="h-10 w-full" />

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import QueryProvider from "@/app/providers/QueryProvider";
+import { ThemeProvider } from "@/app/providers/ThemeProvider";
 import { Agentation } from "agentation";
 
 // Inter Tight carries headings/CTAs, Inter carries body copy — matches
@@ -36,12 +37,14 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <QueryProvider>
-          <TooltipProvider>
-            {children}
-          </TooltipProvider>
-        </QueryProvider>
-        <Toaster />
+        <ThemeProvider>
+          <QueryProvider>
+            <TooltipProvider>
+              {children}
+            </TooltipProvider>
+          </QueryProvider>
+          <Toaster />
+        </ThemeProvider>
         {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>

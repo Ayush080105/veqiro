@@ -49,74 +49,73 @@
 }
 
 :root {
-  /* Veqiro palette */
-  --vq-bg: #EFE7D6;
-  --vq-ink: #111111;
-  --vq-cream: #FFF9ED;
-  --vq-red: #F06464;
-  --vq-yellow: #F5C518;
-  --vq-green: #1DBC87;
-  --vq-pink: #F79FD4;
-  --vq-violet: #8A8AF0;
-  --vq-blue: #6FCDE8;
+  --vq-bg: #f6f5f4;
+  --vq-ink: #1f1f1d;
+  --vq-cream: #ffffff;
+  --vq-red: #d64545;
+  --vq-yellow: #f3c94a;
+  --vq-green: #1f9d63;
+  --vq-pink: #f06abf;
+  --vq-violet: #9a7be8;
+  --vq-blue: #1677d2;
 
   /* Surfaces (professional B2B pass — see apps/landing/src/app/globals.css) */
-  --vq-surface: #FBF7EF;
-  --vq-surface-2: #F5EEE0;
+  --vq-surface: #ffffff;
+  --vq-surface-2: #efeeeb;
 
   /* Ink scale */
-  --vq-ink-2: #56514A;
-  --vq-ink-3: #8B857A;
+  --vq-ink-2: #55514c;
+  --vq-ink-3: #817a72;
 
   /* Hairlines — replace the old solid #111 borders */
-  --vq-line: rgba(17, 17, 17, 0.10);
-  --vq-line-2: rgba(17, 17, 17, 0.17);
+  --vq-line: rgba(31, 31, 29, 0.08);
+  --vq-line-2: rgba(31, 31, 29, 0.13);
 
   /* Elevation — replace the old hard offset shadows */
-  --vq-shadow-sm: 0 1px 2px rgba(17, 17, 17, 0.05);
-  --vq-shadow: 0 1px 3px rgba(17, 17, 17, 0.05), 0 8px 24px -6px rgba(17, 17, 17, 0.09);
-  --vq-shadow-lg: 0 2px 6px rgba(17, 17, 17, 0.06), 0 24px 48px -12px rgba(17, 17, 17, 0.14);
+  --vq-shadow-sm: 0 1px 2px rgba(31, 31, 29, 0.04);
+  --vq-shadow: 0 1px 2px rgba(31, 31, 29, 0.04), 0 8px 24px -10px rgba(31, 31, 29, 0.12);
+  --vq-shadow-lg: 0 2px 6px rgba(31, 31, 29, 0.06), 0 24px 52px -18px rgba(31, 31, 29, 0.18);
 
   /* Radii */
   --vq-r-sm: 8px;
   --vq-r: 12px;
   --vq-r-lg: 16px;
-  --vq-r-xl: 22px;
+  --vq-r-xl: 20px;
 
   /* shadcn tokens tuned to Veqiro */
-  --background: #EFE7D6;
-  --foreground: #111111;
-  --card: #FFF9ED;
-  --card-foreground: #111111;
-  --popover: #FFF9ED;
-  --popover-foreground: #111111;
-  --primary: #111111;
-  --primary-foreground: #EFE7D6;
-  --secondary: #FFF9ED;
-  --secondary-foreground: #111111;
-  --muted: #FFF9ED;
-  --muted-foreground: #555555;
-  --accent: #F5C518;
-  --accent-foreground: #111111;
-  --destructive: #F06464;
+  --background: var(--vq-bg);
+  --foreground: var(--vq-ink);
+  --card: var(--vq-surface);
+  --card-foreground: var(--vq-ink);
+  --popover: var(--vq-surface);
+  --popover-foreground: var(--vq-ink);
+  --primary: var(--vq-ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--vq-surface);
+  --secondary-foreground: var(--vq-ink);
+  --muted: var(--vq-surface-2);
+  --muted-foreground: var(--vq-ink-2);
+  --accent: rgba(22, 119, 210, 0.1);
+  --accent-foreground: var(--vq-blue);
+  --destructive: var(--vq-red);
   --border: var(--vq-line-2);
-  --input: var(--vq-line-2);
-  --ring: rgba(17, 17, 17, 0.35);
-  --chart-1: #F06464;
-  --chart-2: #1DBC87;
-  --chart-3: #F5C518;
-  --chart-4: #F79FD4;
-  --chart-5: #8A8AF0;
-  --chart-6: #6FCDE8;
+  --input: rgba(31, 31, 29, 0.16);
+  --ring: rgba(22, 119, 210, 0.42);
+  --chart-1: #1677d2;
+  --chart-2: #1f9d63;
+  --chart-3: #d18b00;
+  --chart-4: #9a7be8;
+  --chart-5: #e45ba7;
+  --chart-6: #2a9d99;
   --radius: 0.75rem;
-  --sidebar: #EFE7D6;
-  --sidebar-foreground: #111111;
-  --sidebar-primary: #111111;
-  --sidebar-primary-foreground: #EFE7D6;
-  --sidebar-accent: #FFF9ED;
-  --sidebar-accent-foreground: #111111;
-  --sidebar-border: var(--vq-line-2);
-  --sidebar-ring: rgba(17, 17, 17, 0.35);
+  --sidebar: #fbfaf8;
+  --sidebar-foreground: var(--vq-ink);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 
   /* FONT.head (lib/fonts.ts) reads --font-archivo directly via inline style;
      alias it to the same Inter Tight loaded under --font-bagel instead of
@@ -124,15 +123,82 @@
   --font-archivo: var(--font-bagel);
 }
 
+.dark {
+  --vq-bg: #111110;
+  --vq-ink: #f5f3ee;
+  --vq-cream: #1b1a18;
+  --vq-red: #ff7777;
+  --vq-yellow: #ffd86b;
+  --vq-green: #67d391;
+  --vq-pink: #ff8fd1;
+  --vq-violet: #b7a1ff;
+  --vq-blue: #78bdf8;
+  --vq-surface: #1d1c1a;
+  --vq-surface-2: #2a2824;
+  --vq-ink-2: #d4cec4;
+  --vq-ink-3: #aaa298;
+  --vq-line: rgba(245, 243, 238, 0.1);
+  --vq-line-2: rgba(245, 243, 238, 0.18);
+  --vq-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --vq-shadow: 0 1px 2px rgba(0, 0, 0, 0.26), 0 12px 28px -14px rgba(0, 0, 0, 0.72);
+  --vq-shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.34), 0 28px 64px -22px rgba(0, 0, 0, 0.82);
+  --background: var(--vq-bg);
+  --foreground: var(--vq-ink);
+  --card: var(--vq-surface);
+  --card-foreground: var(--vq-ink);
+  --popover: #24221f;
+  --popover-foreground: var(--vq-ink);
+  --primary: var(--vq-ink);
+  --primary-foreground: #10100f;
+  --secondary: var(--vq-surface-2);
+  --secondary-foreground: var(--vq-ink);
+  --muted: var(--vq-surface-2);
+  --muted-foreground: var(--vq-ink-2);
+  --accent: rgba(120, 189, 248, 0.14);
+  --accent-foreground: #b8ddff;
+  --destructive: var(--vq-red);
+  --border: var(--vq-line-2);
+  --input: rgba(245, 243, 238, 0.18);
+  --ring: rgba(120, 189, 248, 0.48);
+  --chart-1: #78bdf8;
+  --chart-2: #67d391;
+  --chart-3: #ffd86b;
+  --chart-4: #b7a1ff;
+  --chart-5: #ff8fd1;
+  --chart-6: #63d3cf;
+  --sidebar: #0e0e0d;
+  --sidebar-foreground: var(--vq-ink);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: rgba(245, 243, 238, 0.07);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body;
+    color-scheme: light;
   }
   html {
-    @apply font-mono;
+    @apply font-body;
+    scrollbar-color: var(--vq-ink-3) transparent;
+  }
+  .dark body {
+    color-scheme: dark;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+    color: var(--foreground);
+  }
+  input,
+  textarea,
+  select {
+    caret-color: var(--primary);
   }
 }
 
