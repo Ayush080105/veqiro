@@ -1183,7 +1183,7 @@ export default function AssistantChatPage() {
         <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
       ) : (
         <div
-          className="relative flex-1 min-h-0 bg-background"
+          className="vq-chat-bg relative flex-1 min-h-0"
         >
           <div
             ref={chatScrollRef}

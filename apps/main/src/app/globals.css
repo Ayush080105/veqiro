@@ -246,6 +246,22 @@ html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
   animation-delay: calc(var(--vq-stagger-i, 0) * 40ms);
 }
 
+.vq-chat-bg {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(rgba(246, 245, 244, 0.84), rgba(246, 245, 244, 0.84)),
+    url("/chat-bg.webp");
+  background-repeat: repeat;
+  background-size: auto, 560px auto;
+}
+
+.dark .vq-chat-bg {
+  background-image:
+    linear-gradient(rgba(17, 17, 16, 0.86), rgba(17, 17, 16, 0.86)),
+    url("/chat-bg.webp");
+  background-blend-mode: normal, screen;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vq-stagger-item {
     animation: none;

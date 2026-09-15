@@ -113,7 +113,7 @@ export default function TeamPage() {
       {/* Thread */}
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto bg-background px-3 py-4 sm:px-5"
+        className="vq-chat-bg min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5"
       >
         {!enoughForATeam && !teamLoading ? (
           <EmptyTeam count={agents.length} />
