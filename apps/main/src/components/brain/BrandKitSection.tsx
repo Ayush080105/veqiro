@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Field, FieldGroup, FieldError } from "@/components/ui/field"
+import { Field, FieldGroup, FieldError, FieldLabel } from "@/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -52,20 +52,14 @@ import { BRAND_KIT_MINS } from "@/lib/schemas/brand-kit"
 function VqSectionCard({
   title,
   description,
-  shadow,
   children,
 }: {
   title: string
   description?: string
-  shadow?: string
   children: React.ReactNode
 }) {
   return (
-    <Card
-      variant="brand"
-      className="mt-4 px-5"
-      style={shadow ? { boxShadow: `5px 5px 0 ${shadow}` } : undefined}
-    >
+    <Card variant="brand" className="mt-4 px-5">
       <div
         className={`font-head text-lg tracking-tight text-foreground ${
           description ? "mb-1" : "mb-4"
@@ -85,9 +79,9 @@ function VqSectionCard({
 
 function VqFieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+    <FieldLabel className="mb-1.5 text-xs font-medium text-foreground">
       {children}
-    </div>
+    </FieldLabel>
   )
 }
 
@@ -221,7 +215,6 @@ export function BrandKitSection({
           <VqSectionCard
             title="Company Identity"
             description="Core facts about your business."
-            shadow="var(--vq-red)"
           >
             <FieldGroup>
               <Field>
@@ -385,7 +378,6 @@ export function BrandKitSection({
           <VqSectionCard
             title="Target Audience"
             description="Who your agents are writing and selling to."
-            shadow="var(--vq-pink)"
           >
             <FieldGroup>
               <Field>
@@ -423,7 +415,6 @@ export function BrandKitSection({
           <VqSectionCard
             title="Brand Voice & Tone"
             description="How your brand communicates across channels."
-            shadow="var(--vq-violet)"
           >
             <FieldGroup>
               <Field>
@@ -520,7 +511,6 @@ export function BrandKitSection({
           <VqSectionCard
             title="Visual Identity"
             description="Brand colours used in generated assets."
-            shadow="var(--vq-blue)"
           >
             <FieldGroup>
               <Controller
@@ -568,7 +558,6 @@ export function BrandKitSection({
           <VqSectionCard
             title="Logo, Mascot & Letterhead"
             description="Maya pulls logo and mascot into generated images. Letterhead is stamped on Lex document exports. PNG, JPEG, WebP, or SVG; under 5MB (10MB for letterhead)."
-            shadow="var(--vq-green)"
           >
             <FieldGroup>
               <Field>
@@ -660,7 +649,6 @@ export function BrandKitSection({
           <VqSectionCard
             title="Competitors & Differentiators"
             description="Help your agents position you correctly."
-            shadow="var(--vq-yellow)"
           >
             <FieldGroup>
               <Field>
@@ -749,10 +737,9 @@ export function BrandKitSection({
           <VqSectionCard
             title="Site Context"
             description="What we pulled from your site. Agents read this to sound like you."
-            shadow="var(--card)"
           >
             <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="text-xs font-medium text-foreground">
                 Crawled summary (used in prompts)
               </span>
               <Button
@@ -789,8 +776,8 @@ export function BrandKitSection({
               />
             </Field>
 
-            <details className="mt-4 rounded-md border border-[var(--vq-line-2)] bg-background/60 p-3">
-              <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
+            <details className="mt-4 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] bg-background/60 p-3">
+              <summary className="cursor-pointer text-xs font-medium text-foreground">
                 Raw crawled content (read-only)
               </summary>
               <Controller

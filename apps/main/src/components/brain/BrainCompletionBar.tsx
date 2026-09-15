@@ -107,17 +107,17 @@ export function BrainCompletionBar({ values }: BrainCompletionBarProps) {
         : "var(--vq-red)"
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card p-4 shadow-[var(--vq-shadow-sm)]">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
-          brand kit completion
+        <span className="text-sm font-semibold text-foreground">
+          Brand kit completion
         </span>
-        <span className="font-head text-sm text-foreground">
+        <span className="font-head text-sm tabular-nums text-foreground">
           {percentage}%
         </span>
       </div>
 
-      <div className="h-3.5 w-full overflow-hidden rounded-full border border-(--vq-line-2) bg-card">
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
           className="h-full transition-[width] duration-500 ease-out"
           style={{ background: fillColor, width: `${percentage}%` }}
@@ -125,8 +125,8 @@ export function BrainCompletionBar({ values }: BrainCompletionBarProps) {
       </div>
 
       {percentage < 100 && suggestion && (
-        <p className="m-0 font-mono text-[11px] leading-relaxed text-muted-foreground">
-          {`// ${suggestion}`}
+        <p className="m-0 mt-3 text-sm leading-relaxed text-muted-foreground">
+          {suggestion}
         </p>
       )}
     </div>

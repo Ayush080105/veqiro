@@ -47,16 +47,16 @@ export function AgentReadiness({ values }: AgentReadinessProps) {
   )
 
   return (
-    <div className="rounded-(--vq-r) border border-(--vq-line-2) bg-card p-3.5 shadow-(--vq-shadow-sm)">
-      <p className="m-0 mb-3 font-mono text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
-        agent readiness
+    <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card p-4 shadow-[var(--vq-shadow-sm)]">
+      <p className="m-0 mb-3 text-sm font-semibold text-foreground">
+        Agent readiness
       </p>
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3">
         {readiness.map((agent) => (
-          <div key={agent.id} className="flex flex-col items-center gap-1">
+          <div key={agent.id} className="flex min-w-16 flex-col items-center gap-1.5">
             <div className="relative">
               <div
-                className="grid size-9 place-items-center rounded-full border border-(--vq-line-2) font-head text-[11px] text-foreground"
+                className="grid size-10 place-items-center rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] font-head text-xs font-semibold text-foreground"
                 style={{ background: agent.color }}
               >
                 {agent.initials}
@@ -66,7 +66,7 @@ export function AgentReadiness({ values }: AgentReadinessProps) {
                 style={{ background: agent.ready ? "var(--vq-green)" : "var(--vq-yellow)" }}
               />
             </div>
-            <span className="font-mono text-[10px] tracking-wide text-foreground/80 uppercase">
+            <span className="text-xs font-medium text-muted-foreground">
               {agent.name}
             </span>
           </div>

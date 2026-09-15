@@ -291,8 +291,7 @@ export default function BrainPage() {
       <div className="mx-auto w-full min-w-0 max-w-4xl pb-8">
         <div className="mb-6">
           <PageHeader
-            kicker="your crew's memory"
-            title="brain"
+            title="Brain"
             subtitle="The single source of truth every agent reads before they speak."
           />
         </div>
@@ -309,23 +308,23 @@ export default function BrainPage() {
       {/* Header */}
       <div className="mb-6">
         <PageHeader
-          kicker="your crew's memory"
-          title="brain"
+          title="Brain"
           subtitle="The single source of truth every agent reads before they speak."
         />
       </div>
 
       {/* Backend unavailable notice */}
       {backendUnavailable && (
-        <div className="mb-4 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-accent px-3 py-2.5 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-foreground shadow-[var(--vq-shadow-sm)] sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-[0.1em]">
-          {"// Brand Kit storage isn't reachable — your changes save locally and will sync when the backend is back."}
+        <div className="mb-4 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground shadow-[var(--vq-shadow-sm)]">
+          Brand Kit storage is not reachable. Your changes are saved locally and will sync
+          when the backend is back.
         </div>
       )}
 
       {/* Seeded-from-onboarding hint (shown once after completing onboarding) */}
       {seededHint && !isEmpty && (
-        <div className="mb-4 rounded-(--vq-r) border border-chart-2/30 bg-(--vq-green)/10 px-3 py-2.5 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-[color-mix(in_srgb,var(--vq-green)_60%,black)] shadow-(--vq-shadow-sm) sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-widest">
-          {"// Seeded from onboarding — edit anything and it auto-saves."}
+        <div className="mb-4 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground shadow-[var(--vq-shadow-sm)]">
+          Seeded from onboarding. Edit anything here and it auto-saves.
         </div>
       )}
 
@@ -336,7 +335,8 @@ export default function BrainPage() {
             Brain is empty
           </div>
           <div className="font-body text-sm leading-relaxed text-muted-foreground">
-            The fastest way to populate this is by running the onboarding flow — it collects everything your crew needs.
+            The fastest way to populate this is by running onboarding. It collects
+            everything your crew needs.
           </div>
           <div>
             <Button type="button" variant="brand" size="brand-sm" onClick={() => router.push("/onboarding")}>
@@ -367,13 +367,13 @@ export default function BrainPage() {
       >
         <span
           aria-live="polite"
-          className={`font-mono text-[10px] uppercase tracking-[0.14em] sm:text-[11px] ${
+          className={`text-sm ${
             hasPending ? "text-[color-mix(in_srgb,var(--vq-yellow)_65%,black)]" : "text-muted-foreground"
           }`}
         >
           {hasPending
-            ? "unsaved changes..."
-            : `changes auto-saved${lastSavedAt ? ` · ${formatLastSaved(lastSavedAt)}` : ""}`}
+            ? "Unsaved changes..."
+            : `Changes auto-saved${lastSavedAt ? ` at ${formatLastSaved(lastSavedAt)}` : ""}`}
         </span>
         <Button type="submit" variant="brand" size="brand" disabled={saving}>
           {saving ? "Saving..." : "Save brain"}

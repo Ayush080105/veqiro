@@ -12,8 +12,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,26 +117,26 @@ export function BrandImagesTab() {
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-foreground">Brand Images</div>
-          <p className="mt-0.5 font-mono text-[11px] tracking-[0.03em] text-muted-foreground">
+          <div className="text-base font-semibold text-foreground">Brand Images</div>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Save up to {MAX_BRAND_IMAGES} images to use as references in Maya posts.
           </p>
         </div>
-        <Badge variant={atMax ? "destructive" : "outline"} className="shrink-0">
+        <StatusPill level={atMax ? "warn" : "info"} icon={null}>
           {images.length} / {MAX_BRAND_IMAGES}
-        </Badge>
+        </StatusPill>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 font-mono text-[11px] text-destructive">
+        <div className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Loading */}
       {isLoading && (
-        <div className="flex justify-center py-8">
+        <div className="flex justify-center rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card py-8">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
       )}
@@ -147,10 +147,10 @@ export function BrandImagesTab() {
           {images.map((img) => (
             <div
               key={img.id}
-              className="flex flex-col overflow-hidden rounded-(--vq-r) border border-(--vq-line-2) bg-card shadow-(--vq-shadow-sm)"
+              className="flex flex-col overflow-hidden rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card shadow-[var(--vq-shadow-sm)]"
             >
               {/* Thumbnail */}
-              <div className="flex aspect-square w-full items-center justify-center overflow-hidden border-b border-(--vq-line-2) bg-white">
+              <div className="flex aspect-square w-full items-center justify-center overflow-hidden border-b border-[var(--vq-line-2)] bg-white">
                 <img
                   src={img.url}
                   alt={img.name || "Brand image"}
@@ -159,7 +159,7 @@ export function BrandImagesTab() {
               </div>
 
               {/* Name + actions */}
-              <div className="flex flex-1 flex-col gap-1.5 p-2.5">
+              <div className="flex flex-1 flex-col gap-2 p-3">
                 {editingId === img.id ? (
                   <Input
                     autoFocus
@@ -178,7 +178,7 @@ export function BrandImagesTab() {
                     type="button"
                     onClick={() => startEdit(img)}
                     title="Click to rename"
-                    className="w-full cursor-text truncate text-left font-body text-xs text-foreground"
+                    className="w-full cursor-text truncate text-left text-sm font-medium text-foreground"
                   >
                     {img.name || <span className="text-muted-foreground">Unnamed</span>}
                   </button>
@@ -211,14 +211,14 @@ export function BrandImagesTab() {
 
       {/* Pending upload card */}
       {pending && (
-        <div className="flex items-start gap-3 rounded-(--vq-r) border border-chart-2/40 bg-[color-mix(in_srgb,var(--chart-2)_8%,var(--card))] p-3.5">
+        <div className="flex items-start gap-3 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card p-4 shadow-[var(--vq-shadow-sm)]">
           <img
             src={pending.previewUrl}
             alt="preview"
-            className="size-18 shrink-0 rounded-lg border border-(--vq-line-2) object-cover"
+            className="size-18 shrink-0 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] object-cover"
           />
           <div className="flex flex-1 flex-col gap-2">
-            <div className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+            <div className="text-xs font-medium text-foreground">
               Name this image
             </div>
             <Input
@@ -272,7 +272,7 @@ export function BrandImagesTab() {
           className={cn("self-start", atMax && "opacity-60")}
         >
           <Plus className="size-3.5" />
-          Add Image
+          Add image
         </Button>
       )}
 
