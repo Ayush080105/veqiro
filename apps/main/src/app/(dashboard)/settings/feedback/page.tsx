@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ComponentProps } from "react"
 import { toast } from "sonner"
 import {
   Plus,
@@ -24,7 +24,6 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -55,6 +54,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 
 import {
   useAdminFeedbackList,
@@ -72,14 +73,14 @@ import {
 
 const STATUS_CONFIG: Record<
   FeedbackStatus,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+  { label: string }
 > = {
-  NEW:          { label: "New",          variant: "secondary" },
-  UNDER_REVIEW: { label: "Under Review", variant: "default" },
-  PLANNED:      { label: "Planned",      variant: "default" },
-  IN_PROGRESS:  { label: "In Progress",  variant: "default" },
-  LAUNCHED:     { label: "Launched",     variant: "default" },
-  DECLINED:     { label: "Declined",     variant: "destructive" },
+  NEW:          { label: "New" },
+  UNDER_REVIEW: { label: "Under Review" },
+  PLANNED:      { label: "Planned" },
+  IN_PROGRESS:  { label: "In Progress" },
+  LAUNCHED:     { label: "Launched" },
+  DECLINED:     { label: "Declined" },
 }
 
 const STATUS_OPTIONS: FeedbackStatus[] = [
@@ -90,6 +91,13 @@ const STATUS_OPTIONS: FeedbackStatus[] = [
   "LAUNCHED",
   "DECLINED",
 ]
+
+function statusLevel(status: FeedbackStatus): ComponentProps<typeof StatusPill>["level"] {
+  if (status === "LAUNCHED") return "ok"
+  if (status === "DECLINED") return "danger"
+  if (status === "UNDER_REVIEW" || status === "IN_PROGRESS" || status === "PLANNED") return "warn"
+  return "info"
+}
 
 // ─── Category labels ──────────────────────────────────────────────────────────
 
@@ -175,7 +183,7 @@ function AdminReplyPanel({ post, onClose }: AdminReplyPanelProps) {
           onClick={handleSave}
           disabled={updateStatus.isPending}
         >
-          {updateStatus.isPending ? "Saving…" : "Save reply"}
+          {updateStatus.isPending ? "Saving..." : "Save reply"}
         </Button>
       </div>
     </div>
@@ -215,24 +223,24 @@ function FeedbackRow({ post, expanded, onToggleExpand }: FeedbackRowProps) {
               {post.title}
             </span>
             {post.agentSlug && (
-              <span className="text-[10px] text-muted-foreground font-mono uppercase">
+              <span className="text-[11px] text-muted-foreground">
                 {post.agentSlug}
               </span>
             )}
           </div>
         </TableCell>
         <TableCell className="py-2.5">
-          <Badge variant="outline" className="text-[10px] font-mono uppercase">
+          <StatusPill level="info" icon={null}>
             {CATEGORY_LABELS[post.category] ?? post.category}
-          </Badge>
+          </StatusPill>
         </TableCell>
         <TableCell className="py-2.5">
           <Select value={post.status} onValueChange={handleStatusChange}>
             <SelectTrigger className="h-7 text-xs w-[130px]">
               <SelectValue>
-                <Badge variant={cfg.variant} className="text-[10px]">
+                <StatusPill level={statusLevel(post.status)} icon={null}>
                   {cfg.label}
-                </Badge>
+                </StatusPill>
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -425,7 +433,7 @@ function AgentDialog({ open, onClose, editing }: AgentDialogProps) {
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isPending}>
-            {isPending ? "Saving…" : editing ? "Save changes" : "Create agent"}
+            {isPending ? "Saving..." : editing ? "Save changes" : "Create agent"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -477,10 +485,8 @@ export default function FeedbackAdminPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="settings"
-        title="feedback"
+        title="Feedback"
         subtitle="Manage user feedback, update statuses, write replies, and curate upcoming agents."
-        sticker={{ label: "community", rot: -3, color: "var(--vq-violet)" }}
       />
 
       <SettingsNav />
@@ -491,7 +497,7 @@ export default function FeedbackAdminPage() {
           <h2 className="text-sm font-semibold text-foreground">All feedback posts</h2>
           <p className="text-xs text-muted-foreground">
             {feedbackLoading
-              ? "Loading…"
+              ? "Loading..."
               : `${feedbackPosts?.length ?? 0} post${feedbackPosts?.length !== 1 ? "s" : ""}, sorted by votes`}
           </p>
         </div>
@@ -522,9 +528,14 @@ export default function FeedbackAdminPage() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="text-center text-xs text-muted-foreground py-8"
+                    className="py-8"
                   >
-                    No feedback posts yet.
+                    <EmptyState
+                      tone="plain"
+                      icon={<MessageSquare />}
+                      title="No feedback posts yet"
+                      description="New feedback will appear here as customers submit ideas."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -548,7 +559,7 @@ export default function FeedbackAdminPage() {
           <h2 className="text-sm font-semibold text-foreground">Upcoming agents</h2>
           <p className="text-xs text-muted-foreground">
             {agentsLoading
-              ? "Loading…"
+              ? "Loading..."
               : `${upcomingAgents?.length ?? 0} agent${upcomingAgents?.length !== 1 ? "s" : ""} on the roadmap`}
           </p>
         </div>
@@ -583,9 +594,15 @@ export default function FeedbackAdminPage() {
                 <TableRow>
                   <TableCell
                     colSpan={4}
-                    className="text-center text-xs text-muted-foreground py-8"
+                    className="py-8"
                   >
-                    No upcoming agents yet. Add one to show on the public roadmap.
+                    <EmptyState
+                      tone="plain"
+                      icon={<Plus />}
+                      title="No upcoming agents yet"
+                      description="Add one to show on the public roadmap."
+                      action={{ label: "Add agent", onClick: () => setAgentDialog({ open: true, editing: null }), variant: "brand-dark" }}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

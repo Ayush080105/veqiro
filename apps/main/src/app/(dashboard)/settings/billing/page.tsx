@@ -17,6 +17,7 @@ import { AgentEntitlementRow } from "@/components/billing/AgentEntitlementRow"
 import { AgentBuyCard } from "@/components/billing/AgentBuyCard"
 import { BillingAgent, dismissPendingCheckout, openBillingPortal, useBillingCatalog, useBillingStatus } from "@/lib/api/billing"
 import { qk } from "@/lib/query-keys"
+import { EmptyState } from "@/components/ui/empty-state"
 
 const ALL_AGENTS: BillingAgent[] = ["MAYA", "SAGE", "LEX", "REX", "SCOUT", "VEGA"]
 
@@ -215,10 +216,8 @@ export default function BillingPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="preferences"
-        title="billing"
+        title="Billing"
         subtitle="Each agent bills on its own — buy here, manage cancellation and payment through the billing portal."
-        sticker={{ label: "agent billing", rot: -6, color: "var(--vq-blue)" }}
       />
 
       <SettingsNav />
@@ -297,7 +296,7 @@ export default function BillingPage() {
 
       {!dataReady ? (
         <Card variant="brand">
-          <CardContent className="py-6 text-sm text-muted-foreground">Loading your agents...</CardContent>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">Loading your agents...</CardContent>
         </Card>
       ) : (
         <>
@@ -308,7 +307,12 @@ export default function BillingPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {entitlements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No agents yet — buy one below to get started.</p>
+                <EmptyState
+                  tone="plain"
+                  icon={<CreditCard />}
+                  title="No agents yet"
+                  description="Buy an agent below to start the workspace."
+                />
               ) : (
                 entitlements.map((entitlement) => (
                   // Overlapping rows for the same agent are legal (e.g. a

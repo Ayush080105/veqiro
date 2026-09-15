@@ -37,8 +37,10 @@ export function SettingsNav() {
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              padding: "8px 14px",
-              borderRadius: 999,
+              minWidth: 132,
+              minHeight: 40,
+              padding: "9px 16px",
+              borderRadius: "var(--vq-r-sm)",
               border: `1px solid ${active ? "var(--vq-line-2)" : "var(--vq-line)"}`,
               background: active
                 ? `color-mix(in srgb, ${color} 16%, var(--card))`

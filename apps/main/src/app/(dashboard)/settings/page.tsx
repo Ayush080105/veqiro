@@ -12,9 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { PageHeader } from "@/components/ui/page-header"
+import { StatusPill } from "@/components/ui/status-pill"
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -144,17 +144,15 @@ export default function SettingsProfilePage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="preferences"
-        title="settings"
+        title="Settings"
         subtitle="Manage your account and organization preferences."
-        sticker={{ label: "your space", rot: 4, color: "var(--vq-yellow)" }}
       />
 
       <SettingsNav />
 
       {/* ── Personal information ── */}
       <form onSubmit={handleProfileSubmit(onSaveProfile)} className="flex flex-col gap-4">
-        <Card>
+        <Card variant="brand">
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Personal information</CardTitle>
           </CardHeader>
@@ -171,9 +169,9 @@ export default function SettingsProfilePage() {
               <Label htmlFor="email" className="text-xs font-medium">Email</Label>
               <div className="flex items-center gap-2">
                 <Input id="email" value={user?.email ?? ""} placeholder="you@example.com" disabled readOnly />
-                <Badge variant="secondary" className="shrink-0">
+                <StatusPill level={user?.emailVerified ? "ok" : "warn"} icon={null}>
                   {user?.emailVerified ? "Verified" : "Unverified"}
-                </Badge>
+                </StatusPill>
               </div>
               <p className="text-[10px] text-muted-foreground">
                 Email changes require verification. Contact support to update.
@@ -185,14 +183,14 @@ export default function SettingsProfilePage() {
         <div className="flex justify-end">
           <Button type="submit" disabled={savingProfile || !profileDirty}>
             <Save className="size-3.5" />
-            {savingProfile ? "Saving…" : "Save changes"}
+            {savingProfile ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </form>
 
       {/* ── Workspace ── */}
       <form onSubmit={handleOrgSubmit(onSaveOrg)} className="flex flex-col gap-4">
-        <Card>
+        <Card variant="brand">
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Workspace</CardTitle>
           </CardHeader>
@@ -210,21 +208,21 @@ export default function SettingsProfilePage() {
         <div className="flex justify-end">
           <Button type="submit" disabled={savingOrg || !orgDirty}>
             <Save className="size-3.5" />
-            {savingOrg ? "Saving…" : "Save changes"}
+            {savingOrg ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </form>
 
       {/* ── Change password ── */}
       <form onSubmit={handlePasswordSubmit(onSavePassword)} className="flex flex-col gap-4">
-        <Card>
+        <Card variant="brand">
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Change password</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="currentPassword" className="text-xs font-medium">Current password</Label>
-              <Input id="currentPassword" type="password" {...regPassword("currentPassword")} placeholder="••••••••" />
+              <Input id="currentPassword" type="password" {...regPassword("currentPassword")} placeholder="********" />
               {passwordErrors.currentPassword && (
                 <p className="text-xs text-destructive">{passwordErrors.currentPassword.message}</p>
               )}
@@ -232,7 +230,7 @@ export default function SettingsProfilePage() {
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="newPassword" className="text-xs font-medium">New password</Label>
-              <Input id="newPassword" type="password" {...regPassword("newPassword")} placeholder="••••••••" />
+              <Input id="newPassword" type="password" {...regPassword("newPassword")} placeholder="********" />
               {passwordErrors.newPassword && (
                 <p className="text-xs text-destructive">{passwordErrors.newPassword.message}</p>
               )}
@@ -240,7 +238,7 @@ export default function SettingsProfilePage() {
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="confirmPassword" className="text-xs font-medium">Confirm new password</Label>
-              <Input id="confirmPassword" type="password" {...regPassword("confirmPassword")} placeholder="••••••••" />
+              <Input id="confirmPassword" type="password" {...regPassword("confirmPassword")} placeholder="********" />
               {passwordErrors.confirmPassword && (
                 <p className="text-xs text-destructive">{passwordErrors.confirmPassword.message}</p>
               )}
@@ -251,7 +249,7 @@ export default function SettingsProfilePage() {
         <div className="flex justify-end">
           <Button type="submit" disabled={savingPassword || !passwordDirty}>
             <Save className="size-3.5" />
-            {savingPassword ? "Saving…" : "Update password"}
+            {savingPassword ? "Saving..." : "Update password"}
           </Button>
         </div>
       </form>

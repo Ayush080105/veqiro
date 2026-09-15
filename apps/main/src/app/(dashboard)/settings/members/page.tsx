@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { UserPlus, Trash2, Crown, Shield, User, Mail, X } from "lucide-react"
+import { UserPlus, Trash2, Crown, Shield, User, Mail, X, Users } from "lucide-react"
 import { toast } from "sonner"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -43,6 +43,7 @@ import {
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { PageHeader } from "@/components/ui/page-header"
 import { RhfField } from "@/components/forms/RhfField"
+import { EmptyState } from "@/components/ui/empty-state"
 import {
   inviteMemberSchema,
   type InviteMemberValues,
@@ -291,10 +292,8 @@ export default function MembersPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="preferences"
-        title="members"
+        title="Members"
         subtitle="Invite teammates and manage their roles."
-        sticker={{ label: "your crew", rot: 5, color: "var(--vq-green)" }}
       />
 
       <SettingsNav />
@@ -304,7 +303,7 @@ export default function MembersPage() {
           <h2 className="text-sm font-semibold text-foreground">Team members</h2>
           <p className="text-xs text-muted-foreground">
             {loading
-              ? "Loading…"
+              ? "Loading..."
               : `${memberCount} member${memberCount !== 1 ? "s" : ""} in your organization`}
           </p>
         </div>
@@ -328,7 +327,12 @@ export default function MembersPage() {
             {!loading && members.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">
-                  No members yet.
+                  <EmptyState
+                    tone="plain"
+                    icon={<Users />}
+                    title="No members yet"
+                    description="Invite teammates when you're ready to share this workspace."
+                  />
                 </TableCell>
               </TableRow>
             )}

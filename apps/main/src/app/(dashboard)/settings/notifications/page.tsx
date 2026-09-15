@@ -74,10 +74,8 @@ export default function NotificationsPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="preferences"
-        title="notifications"
+        title="Notifications"
         subtitle="Choose when and how your team keeps you in the loop."
-        sticker={{ label: "ping me", rot: 6, color: "var(--vq-pink)" }}
       />
 
       <SettingsNav />
@@ -108,7 +106,7 @@ export default function NotificationsPage() {
                   id={id}
                   type="time"
                   aria-invalid={invalid}
-                  className="h-8 w-36 rounded-none border border-input bg-transparent px-2.5 text-xs text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50 aria-invalid:border-destructive"
+                  className="h-9 w-36 rounded-[var(--vq-r-sm)] border border-input bg-transparent px-2.5 text-xs text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50 aria-invalid:border-destructive"
                 />
               )}
             </RhfField>
@@ -185,8 +183,8 @@ export default function NotificationsPage() {
         </Card>
 
         <div className="flex items-center justify-end gap-3">
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Notification preferences · coming soon
+          <span className="text-xs text-muted-foreground">
+            Notification preferences are coming soon
           </span>
           <Button type="submit" disabled>
             <Save className="size-3.5" />

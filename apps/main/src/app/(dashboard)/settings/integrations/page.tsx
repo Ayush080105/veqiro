@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { CheckCircle2, XCircle, ExternalLink, UserCircle2, Search } from "lucide-react"
+import { CheckCircle2, XCircle, ExternalLink, UserCircle2, Search, Plug } from "lucide-react"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -33,6 +33,7 @@ import { IntegrationCatalogCard, IntegrationLogo } from "@/components/integratio
 import { LEGACY_MCP_SLUGS } from "@/lib/config/legacy-integrations"
 import { qk } from "@/lib/query-keys"
 import { PageHeader } from "@/components/ui/page-header"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // ─── Legacy (native) integrations — X/LinkedIn/Instagram connect through their
 // original mechanism (the bespoke SocialAccount OAuth module). Instagram is
@@ -241,10 +242,8 @@ export default function IntegrationsPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="preferences"
-        title="integrations"
+        title="Integrations"
         subtitle="Connect external tools to unlock the full power of your AI team."
-        sticker={{ label: "plug it in", rot: -4, color: "var(--vq-yellow)" }}
       />
 
       <SettingsNav />
@@ -287,9 +286,13 @@ export default function IntegrationsPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed border-[var(--vq-line-2)] px-4 py-5 text-center text-xs text-muted-foreground">
-            No integrations connected yet. Choose one below to get started.
-          </div>
+          <EmptyState
+            tone="plain"
+            className="rounded-[var(--vq-r)] border border-border bg-card"
+            icon={<Plug />}
+            title="No integrations connected"
+            description="Choose one below to give your agents a tool they can use."
+          />
         )}
       </section>
 
@@ -345,9 +348,12 @@ export default function IntegrationsPage() {
         </div>
 
         {disconnectedLegacy.length + filteredDisconnectedCatalog.length === 0 && (
-          <p className="py-8 text-center text-xs text-muted-foreground">
-            No integrations match “{search}”.
-          </p>
+          <EmptyState
+            tone="plain"
+            icon={<Search />}
+            title="No matching integrations"
+            description={`Nothing matched "${search}". Try a different name or category.`}
+          />
         )}
       </section>
     </div>

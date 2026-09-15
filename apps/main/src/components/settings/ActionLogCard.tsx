@@ -3,9 +3,10 @@
 import { useState } from "react"
 import { CheckCircle2, XCircle, PenLine, Eye } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useActionLog, type ActionLogFilters } from "@/lib/api/mcp"
+import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 
 /**
  * The record of what agents did in the customer's own systems — the answer to
@@ -89,20 +90,28 @@ export function ActionLogCard() {
         </div>
 
         {isLoading ? (
-          <p className="text-xs text-muted-foreground">Loading…</p>
+          <p className="text-xs text-muted-foreground">Loading...</p>
         ) : isError ? (
-          <p className="text-xs text-destructive">
-            Couldn&apos;t load the log: {error instanceof Error ? error.message : "Unknown error"}
-          </p>
+          <EmptyState
+            tone="plain"
+            icon={<XCircle />}
+            title="Couldn't load activity"
+            description={error instanceof Error ? error.message : "Try again in a moment."}
+            className="rounded-[var(--vq-r)] border border-destructive/30 bg-destructive/5"
+          />
         ) : entries.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            Nothing here yet. Actions appear once an agent uses a connected tool.
-          </p>
+          <EmptyState
+            tone="plain"
+            icon={<Eye />}
+            title="No recorded actions"
+            description="Actions appear once an agent uses a connected tool."
+            className="rounded-[var(--vq-r)] border border-border bg-card"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr className="text-[11px] text-muted-foreground">
                   <th className="pb-2 pr-3 font-medium">What</th>
                   <th className="pb-2 pr-3 font-medium">Tool</th>
                   <th className="pb-2 pr-3 font-medium">Agent</th>
@@ -131,9 +140,7 @@ export function ActionLogCard() {
                     <td className="py-2 pr-3 text-muted-foreground">{entry.integration}</td>
                     <td className="py-2 pr-3">
                       {entry.agent ? (
-                        <Badge variant="outline" className="text-[10px] uppercase">
-                          {entry.agent.toLowerCase()}
-                        </Badge>
+                        <StatusPill level="info" icon={null}>{entry.agent.toLowerCase()}</StatusPill>
                       ) : (
                         <span className="text-muted-foreground/60">—</span>
                       )}

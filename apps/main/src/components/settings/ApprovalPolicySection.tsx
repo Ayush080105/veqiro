@@ -5,7 +5,9 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { ShieldCheck, Trash2 } from "lucide-react"
 import { getIntegrationBySlug } from "@repo/integrations-catalog"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 import {
   Select,
   SelectContent,
@@ -108,16 +110,17 @@ export function ApprovalPolicySection() {
       </div>
 
       {isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <p className="text-xs text-muted-foreground">Loading...</p>
       ) : (
         <div className="flex flex-col gap-2">
           {policies.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5">
-              <ShieldCheck className="size-3.5 shrink-0 text-chart-2" />
-              <p className="text-[11px] text-muted-foreground">
-                No rules. Every change asks you first.
-              </p>
-            </div>
+            <EmptyState
+              tone="plain"
+              className="rounded-[var(--vq-r)] border border-border bg-card"
+              icon={<ShieldCheck />}
+              title="Every change asks first"
+              description="Add a rule only for tools you trust enough to relax."
+            />
           ) : (
             policies.map((policy) => (
               <div
@@ -131,9 +134,9 @@ export function ApprovalPolicySection() {
                         ? "Every tool"
                         : displayName(policy.integrationSlug)}
                     </span>
-                    <Badge variant="outline" className="text-[10px]">
+                    <StatusPill level={policy.mode === "NEVER" ? "danger" : policy.mode === "AUTO_RUN" ? "warn" : "info"} icon={null}>
                       {MODE_LABELS[policy.mode]}
-                    </Badge>
+                    </StatusPill>
                   </div>
                   <p className="text-[11px] text-muted-foreground">{MODE_HELP[policy.mode]}</p>
                 </div>
@@ -149,7 +152,7 @@ export function ApprovalPolicySection() {
             ))
           )}
 
-          <div className="flex flex-col gap-2 rounded-lg border border-dashed border-(--vq-line-2) px-3 py-2.5 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 rounded-[var(--vq-r)] border border-border bg-card p-3 sm:flex-row sm:items-center">
             <Select value={draftSlug} onValueChange={(v) => setDraftSlug(v ?? "*")}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Which tool" />
@@ -180,13 +183,15 @@ export function ApprovalPolicySection() {
               </SelectContent>
             </Select>
 
-            <button
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
               onClick={handleAdd}
               disabled={busy}
-              className="rounded-md border border-(--vq-line-2) bg-card px-3 py-1.5 text-xs font-medium hover:bg-background transition-colors disabled:opacity-60"
             >
               Add rule
-            </button>
+            </Button>
           </div>
 
           {draftMode === "AUTO_RUN" && (

@@ -7,14 +7,15 @@ import { isNoMayaSubscription } from "@/components/billing/entitlement-errors"
 import { PageHeader } from "@/components/ui/page-header"
 import { SettingsNav } from "@/components/settings/SettingsNav"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { UsageBar } from "@/components/billing/UsageBar"
 import { AgentPeriodList } from "@/components/billing/AgentPeriodList"
 import { MayaTopUpButton } from "@/components/agents/maya/topup-dialog"
-import { Info, Sparkles } from "lucide-react"
+import { Info, Sparkles, CreditCard } from "lucide-react"
 import { ValueReportCard } from "@/components/dashboard/ValueReportCard"
 import { ActionLogCard } from "@/components/settings/ActionLogCard"
+import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 
 type AugmentedSession = {
   activeOrganization?: { id?: string } | null
@@ -71,10 +72,8 @@ export default function UsagePage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="preferences"
-        title="usage"
+        title="Usage"
         subtitle="Maya image and video generation for the current billing period."
-        sticker={{ label: "maya limits", rot: 4, color: "var(--vq-green)" }}
       />
 
       <SettingsNav />
@@ -89,17 +88,18 @@ export default function UsagePage() {
       {isLoading && (
         <Card variant="brand">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Loading usage data…
+            Loading usage data...
           </CardContent>
         </Card>
       )}
 
       {!isLoading && isNoSubscription && (
-        <Card variant="brand">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No active usage period. Start your trial or subscribe to see your limits.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<CreditCard />}
+          title="No active usage period"
+          description="Start your trial or subscribe to see your limits."
+          action={{ label: "Open billing", href: "/settings/billing", variant: "brand-dark" }}
+        />
       )}
 
       {!isLoading && error && !isNoSubscription && (
@@ -114,11 +114,12 @@ export default function UsagePage() {
       )}
 
       {!isLoading && !error && !data && (
-        <Card variant="brand">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No active usage period. Start your trial or subscribe to see your limits.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<CreditCard />}
+          title="No active usage period"
+          description="Start your trial or subscribe to see your limits."
+          action={{ label: "Open billing", href: "/settings/billing", variant: "brand-dark" }}
+        />
       )}
 
       {data && !error && (
@@ -126,7 +127,7 @@ export default function UsagePage() {
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle className="text-sm font-semibold">Maya · Current period</CardTitle>
+                <CardTitle className="text-sm font-semibold">Maya current period</CardTitle>
                 <CardDescription>
                   {formatDate(data.periodStart)} – {formatDate(data.periodEnd)}
                 </CardDescription>
@@ -148,7 +149,7 @@ export default function UsagePage() {
                 )}
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <Badge variant="secondary">{TIER_LABELS[data.tier]}</Badge>
+                <StatusPill level="info" icon={null}>{TIER_LABELS[data.tier]}</StatusPill>
                 {organizationId && <MayaTopUpButton organizationId={organizationId} />}
               </div>
             </div>
