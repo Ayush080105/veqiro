@@ -1998,7 +1998,7 @@ async def generate_video_endpoint(request: GenerateVideoRequest):
     segment_prompts = compile_segment_prompts(
         plan,
         aspect_ratio=request.aspect_ratio,
-        has_product_references=False,
+        product_reference_count=0,
         logo_attached=logo is not None,
         references_on_extensions=extension_images_enabled(),
     )
@@ -2080,7 +2080,7 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
     segment_prompts = compile_segment_prompts(
         plan,
         aspect_ratio=request.aspect_ratio,
-        has_product_references=bool(product_images),
+        product_reference_count=len(product_images),
         logo_attached=logo is not None,
         references_on_extensions=extension_images_enabled(),
     )

@@ -45,32 +45,68 @@ def _line(label: str, *parts: str | None) -> str | None:
 # ── Single-source instruction blocks ─────────────────────────────────────────
 
 
-def product_fidelity_block(*, opening: bool, logo_attached: bool, images_attached: bool = True) -> str:
+def reference_tags(product_count: int) -> str:
+    """Omni's own role tags for the product photos, in attachment order."""
+    return ", ".join(f"<IMAGE_REF_{i}>" for i in range(product_count))
+
+
+def references_header(product_count: int, logo_attached: bool) -> str | None:
+    """Explicit image -> role mapping, the declaration form the Omni docs describe. Without a
+    role the model decides for itself how literally to use an image, and treats a product
+    photo as loose inspiration."""
+    total = product_count + (1 if logo_attached else 0)
+    if total == 0:
+        return None
+    mapping = " ".join(f"<IMAGE_REF_{i}>@Image{i + 1}" for i in range(total))
+    return f"[# References {mapping}]"
+
+
+def product_fidelity_block(*, opening: bool, product_count: int, images_attached: bool = True) -> str:
     """The one product-fidelity instruction. It names the attached photos only when this take
     actually carries them: always the opening, and extensions when images ride along too."""
-    which = (
-        "The attached reference photos (every image except the last, which is the logo)"
-        if logo_attached
-        else "The attached reference photos"
-    )
+    tags = reference_tags(product_count)
     if opening:
         return (
-            f"PRODUCT FIDELITY: {which} show the real product. Reproduce it exactly in every "
-            "frame: shape, proportions, colours, materials, finish, logo and printed text. "
-            "Never redesign, relabel or simplify it; ignore the photos' own lighting, background "
-            "and angle."
+            f"PRODUCT FIDELITY: The attached reference photos {tags} show the real product: the "
+            "exact physical object to put on screen. Reproduce it identically in every frame, "
+            "down to the smallest detail: shape, proportions, colours, materials, finish, every "
+            "printed or painted element (faces, eyes, expressions, figures, patterns), logo and "
+            "text. Never redesign, relabel, simplify, correct, improve or animate anything on it; "
+            "ignore only the photos' own lighting, background and camera angle."
         )
     if images_attached:
         return (
-            f"PRODUCT FIDELITY: {which} show the real product and are an identity reference "
-            "only: do not cut to them or restage the shot around them. Keep the product exactly "
-            "as they show it and identical to how it already appears in the footage so far: "
-            "shape, proportions, colours, materials, logo and printed text. No drift."
+            f"PRODUCT FIDELITY: The attached reference photos {tags} show the real product and "
+            "are an identity reference only: do not cut to them or restage the shot around them. "
+            "Keep the product exactly as they show it, down to the smallest printed or painted "
+            "detail, and identical to how it already appears in the footage so far. No drift."
         )
     return (
         "PRODUCT FIDELITY: Keep the product identical to how it already appears in the footage "
-        "so far: same shape, proportions, colours, materials, logo and printed text. No drift."
+        "so far, down to the smallest printed or painted detail: same shape, proportions, "
+        "colours, materials, logo and text. No drift."
     )
+
+
+def exact_details_block(plan: VideoPlan) -> str | None:
+    """The director's detail lock, stated on every take. Generic fidelity wording loses to the
+    model's priors on exactly the details that matter most — it "corrects" closed eyes to open
+    ones and animates a painted face — so those details are named, one by one."""
+    product = plan.product
+    if not product:
+        return None
+    parts = []
+    if product.static_artwork:
+        parts.append(
+            "everything painted, printed or pictured on the product is still artwork: its faces, "
+            "eyes, expressions, figures and scenery never move, blink, open, speak or change"
+        )
+    parts.extend(product.detail_lock)
+    if not parts:
+        return None
+    return "EXACT DETAILS (identical in every frame, never altered): " + "; ".join(
+        p.rstrip(".") for p in parts
+    ) + "."
 
 
 def text_block(*, has_product: bool, logo_attached: bool) -> str:
@@ -87,14 +123,15 @@ def text_block(*, has_product: bool, logo_attached: bool) -> str:
     )
 
 
-def logo_block(*, opening: bool, images_attached: bool = True) -> str:
+def logo_block(*, opening: bool, product_count: int, images_attached: bool = True) -> str:
+    tag = f"<IMAGE_REF_{product_count}>"
     if opening:
         return (
-            "LOGO: The last attached image is the brand logo. Show it as a small watermark in the "
-            "bottom-right corner, about 10% of the frame width, reproduced exactly in shape, "
-            "colour and spelling, never covering the subject."
+            f"LOGO: {tag} is the brand logo. Show it as a small watermark in the bottom-right "
+            "corner, about 10% of the frame width, reproduced exactly in shape, colour and "
+            "spelling, never covering the subject."
         )
-    reference = " The last attached image is that logo, for reference." if images_attached else ""
+    reference = f" {tag} is that logo, for reference." if images_attached else ""
     return (
         "LOGO: Keep the brand logo watermark exactly as it already appears in the footage: same "
         f"corner, size, colours and spelling.{reference}"
@@ -185,7 +222,7 @@ def compile_segment_prompt(
     index: int,
     *,
     aspect_ratio: str,
-    has_product_references: bool,
+    product_reference_count: int,
     logo_attached: bool,
     references_on_extensions: bool = True,
 ) -> str:
@@ -194,6 +231,7 @@ def compile_segment_prompt(
     opening = index == 0
     final = index == total - 1
     label = _FORMAT_LABEL.get(plan.format, "commercial")
+    has_product_references = product_reference_count > 0
     has_product = bool(plan.product and plan.product.description) or has_product_references
     # Whether THIS take carries the reference images: the opening always does; extensions do
     # when llm.generate_video re-attaches them (llm.extension_images_enabled()).
@@ -207,7 +245,10 @@ def compile_segment_prompt(
             f"{total * VIDEO_SEGMENT_SECONDS}-second {label}."
         )
 
-    lines: list[str | None] = [shot]
+    lines: list[str | None] = []
+    if images_attached:
+        lines.append(references_header(product_reference_count, logo_attached))
+    lines.append(shot)
     if opening:
         lines.append(_line("CONCEPT", plan.concept))
         lines.append(_line("OPENS ON", seg.start_state))
@@ -224,8 +265,11 @@ def compile_segment_prompt(
         lines.append(_line("PRODUCT", f"state: {seg.product_state}"))
     if has_product_references:
         lines.append(product_fidelity_block(
-            opening=opening, logo_attached=logo_attached, images_attached=images_attached,
+            opening=opening,
+            product_count=product_reference_count,
+            images_attached=images_attached,
         ))
+    lines.append(exact_details_block(plan))
 
     lines.append(_line("ACTION (the single action of this take)", seg.primary_action))
     vertical = (
@@ -254,7 +298,9 @@ def compile_segment_prompt(
     ))
     lines.append(text_block(has_product=has_product, logo_attached=logo_attached))
     if logo_attached:
-        lines.append(logo_block(opening=opening, images_attached=images_attached))
+        lines.append(logo_block(
+            opening=opening, product_count=product_reference_count, images_attached=images_attached,
+        ))
     lines.append(audio_block(
         ambience=plan.audio.ambience,
         music=plan.audio.music,
@@ -272,7 +318,7 @@ def compile_segment_prompts(
     plan: VideoPlan,
     *,
     aspect_ratio: str,
-    has_product_references: bool,
+    product_reference_count: int,
     logo_attached: bool,
     references_on_extensions: bool = True,
 ) -> list[str]:
@@ -281,7 +327,7 @@ def compile_segment_prompts(
         compile_segment_prompt(
             plan, i,
             aspect_ratio=aspect_ratio,
-            has_product_references=has_product_references,
+            product_reference_count=product_reference_count,
             logo_attached=logo_attached,
             references_on_extensions=references_on_extensions,
         )

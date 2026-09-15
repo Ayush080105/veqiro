@@ -54,7 +54,7 @@ def _compile(num_segments=3, *, refs=True, logo=False, aspect="9:16", ext_refs=T
     return compile_segment_prompts(
         _plan(num_segments, **plan_kwargs),
         aspect_ratio=aspect,
-        has_product_references=refs,
+        product_reference_count=2 if refs else 0,
         logo_attached=logo,
         references_on_extensions=ext_refs,
     )
@@ -98,6 +98,7 @@ def test_extensions_without_images_never_refer_to_attached_images(logo):
         assert "attached" not in lowered
         assert "reference photo" not in lowered
         assert "reference image" not in lowered
+        assert "<IMAGE_REF_" not in prompt
 
 
 @pytest.mark.parametrize("logo", [False, True])
@@ -123,7 +124,9 @@ def test_final_segment_ends_and_earlier_segments_hand_off():
 
 def test_single_segment_is_a_complete_take_with_an_ending():
     (only,) = _compile(1)
-    assert only.startswith("SHOT:")
+    # Line 0 declares the reference images; the shot comes straight after.
+    assert only.splitlines()[0].startswith("[# References")
+    assert only.splitlines()[1].startswith("SHOT:")
     assert "ENDING:" in only and "HANDOFF:" not in only
     assert "CONTINUITY:" not in only
 
@@ -161,12 +164,13 @@ def test_text_rule_forbids_generated_captions_once():
 def test_logo_instruction_appears_once_and_only_when_attached():
     opening, extension = _compile(2, logo=True)
     assert opening.count("LOGO:") == 1 and extension.count("LOGO:") == 1
-    assert "last attached image is the brand logo" in opening
+    # Two product photos are <IMAGE_REF_0> and <IMAGE_REF_1>; the logo, attached last, is 2.
+    assert "<IMAGE_REF_2> is the brand logo" in opening
     assert "already appears in the footage" in extension
-    assert "last attached image is that logo" in extension
-    assert "every image except the last" in opening
+    assert "<IMAGE_REF_2> is that logo" in extension
     _opening, text_only_extension = _compile(2, logo=True, ext_refs=False)
     assert "attached" not in text_only_extension.lower()
+    assert "<IMAGE_REF_" not in text_only_extension
     for prompt in _compile(2, logo=False):
         assert "LOGO:" not in prompt
         assert "logo watermark" not in prompt
@@ -181,14 +185,14 @@ def test_camera_speed_is_not_repeated():
     (only,) = compile_segment_prompts(
         validate_plan({"segments": [{"primary_action": "x", "camera_movement": "slow push-in",
                                      "movement_speed": "slow"}]}, 1),
-        aspect_ratio="16:9", has_product_references=False, logo_attached=False,
+        aspect_ratio="16:9", product_reference_count=0, logo_attached=False,
     )
     assert "CAMERA: slow push-in." in only
 
     (locked,) = compile_segment_prompts(
         validate_plan({"segments": [{"primary_action": "x", "camera_movement": "locked-off",
                                      "movement_speed": "still"}]}, 1),
-        aspect_ratio="16:9", has_product_references=False, logo_attached=False,
+        aspect_ratio="16:9", product_reference_count=0, logo_attached=False,
     )
     assert "CAMERA: locked-off." in locked
 
@@ -196,7 +200,7 @@ def test_camera_speed_is_not_repeated():
 def test_empty_fields_are_skipped_not_padded():
     (only,) = compile_segment_prompts(
         validate_plan({"segments": [{"primary_action": "steam rises from a coffee cup"}]}, 1),
-        aspect_ratio="16:9", has_product_references=False, logo_attached=False,
+        aspect_ratio="16:9", product_reference_count=0, logo_attached=False,
     )
     for label in ("LENS & FOCUS", "LIGHTING", "MATERIALS & PHYSICS", "CAMERA", "PRODUCT"):
         assert label not in only
@@ -213,6 +217,45 @@ def test_logo_animation_prompt_states_audio_and_ending_once():
     assert "LOGO FIDELITY" in prompt
     with pytest.raises(ValueError):
         build_logo_animation_prompt(len(LOGO_ANIMATION_STYLES) + 1, "9:16")
+
+
+def test_images_are_declared_with_omni_reference_roles():
+    """Untagged images leave the model to decide how literally to copy them."""
+    opening, extension = _compile(2, logo=True)
+    for prompt in (opening, extension):
+        assert prompt.startswith(
+            "[# References <IMAGE_REF_0>@Image1 <IMAGE_REF_1>@Image2 <IMAGE_REF_2>@Image3]"
+        )
+        assert "<IMAGE_REF_0>, <IMAGE_REF_1>" in prompt
+    (no_images,) = _compile(1, refs=False)
+    assert "[# References" not in no_images
+
+
+def _plan_with_detail_lock(num_segments: int, *, static_artwork: bool):
+    plan = _plan(num_segments)
+    plan.product.detail_lock = ["the woman's eyes are fully closed", "exactly three gold leaves, top-left"]
+    plan.product.static_artwork = static_artwork
+    return plan
+
+
+@pytest.mark.parametrize("static_artwork", [False, True])
+def test_detail_lock_is_stated_on_every_segment(static_artwork):
+    prompts = compile_segment_prompts(
+        _plan_with_detail_lock(3, static_artwork=static_artwork),
+        aspect_ratio="9:16", product_reference_count=1, logo_attached=False,
+    )
+    for prompt in prompts:
+        assert prompt.count("EXACT DETAILS") == 1
+        assert "the woman's eyes are fully closed" in prompt
+        assert "exactly three gold leaves, top-left" in prompt
+        # Named details come right after the fidelity instruction, before the action.
+        assert prompt.index("PRODUCT FIDELITY") < prompt.index("EXACT DETAILS") < prompt.index("ACTION")
+        assert ("never move, blink, open" in prompt) is static_artwork
+
+
+def test_no_detail_lock_line_when_the_plan_has_none():
+    for prompt in _compile(2):
+        assert "EXACT DETAILS" not in prompt
 
 
 # ── route wiring: storyboard sheets never reach Omni ─────────────────────────

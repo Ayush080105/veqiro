@@ -291,3 +291,21 @@ def test_director_prompt_carries_the_core_directing_rules():
         "start_state must describe exactly where",
     ):
         assert rule in system
+
+
+def test_detail_lock_is_validated_and_capped():
+    raw = _raw(1)
+    raw["product"]["detail_lock"] = ["eyes closed", "  ", "N/A"] + [f"detail {i}" for i in range(40)]
+    raw["product"]["static_artwork"] = "true"
+    plan = validate_plan(raw, 1)
+    assert plan.product.detail_lock[0] == "eyes closed"
+    assert "N/A" not in plan.product.detail_lock
+    assert len(plan.product.detail_lock) <= 24
+    assert plan.product.static_artwork is True
+
+
+def test_director_prompt_requires_a_micro_detail_lock_and_product_safe_shots():
+    system = video_director.build_director_system(20, 2)
+    for rule in ("MICRO-DETAIL LOCK", "detail_lock", "static_artwork", "PRODUCT-SAFE CINEMATOGRAPHY",
+                 "only from angles the photos actually show"):
+        assert rule in system

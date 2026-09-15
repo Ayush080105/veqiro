@@ -115,6 +115,13 @@ class DialogueLine(_PlanModel):
 class ProductSpec(_PlanModel):
     description: str | None = None
     identity_cues: list[str] = Field(default_factory=list)
+    # Fine details read from the reference photos that must survive into every frame — the
+    # ones a video model "corrects" or animates (closed eyes opened, a painted face made to
+    # move). Named one by one because generic fidelity wording loses to the model's priors.
+    detail_lock: list[str] = Field(default_factory=list)
+    # The product carries depicted imagery (a painting, print, illustration, photo, character
+    # art) that must stay still artwork rather than come to life.
+    static_artwork: bool = False
 
     @field_validator("description", mode="before")
     @classmethod
@@ -127,6 +134,18 @@ class ProductSpec(_PlanModel):
         if not isinstance(v, list):
             return []
         return [c for c in (_clip(x, _SHORT) for x in v[:8]) if c]
+
+    @field_validator("detail_lock", mode="before")
+    @classmethod
+    def _details(cls, v):
+        if not isinstance(v, list):
+            return []
+        return [d for d in (_clip(x, 220) for x in v[:24]) if d]
+
+    @field_validator("static_artwork", mode="before")
+    @classmethod
+    def _static(cls, v):
+        return v is True or str(v).strip().lower() in ("true", "yes", "1")
 
 
 class LookSpec(_PlanModel):
@@ -443,7 +462,32 @@ The reference images are the source of truth. In product.description and identit
 ONLY what is visible in them — shape, colours, materials, cap/closure, label layout, printed
 brand text. Never invent packaging, colours, proportions, logos, materials or features, and never
 claim benefits the brief does not state. Keep the product in a state the references show (closed,
-open, poured) and say which in product_state."""
+open, poured) and say which in product_state.
+
+MICRO-DETAIL LOCK. The video model redraws the product from the photos and "corrects" what it
+thinks is wrong: it opens closed eyes, turns a neutral expression into a smile, straightens a
+deliberate asymmetry, adds or drops small elements, re-spells text. When reference photos are
+given, study them at full detail and fill product.detail_lock with every fine detail a viewer
+could notice changing, each as one short, literal, checkable statement. Cover, where present:
+faces and figures (eyes open or closed, gaze direction, expression, mouth, pose, hand
+positions), how many of each element there are and where they sit, orientation and which way
+things face, colours of specific regions, patterns and textures, borders and edges, printed text
+verbatim, and anything unusual. Good: "the woman's eyes are fully closed", "exactly three gold
+leaves, top-left corner", "brand text reads 'Aster & Co.' in white script". Set
+product.static_artwork = true when the product carries a painting, print, illustration,
+photograph or character art: that imagery is still artwork and must never come to life.
+
+PRODUCT-SAFE CINEMATOGRAPHY, whenever reference photos are given. Every frame the model has to
+invent is a frame where the product can drift, so plan shots that ask it to invent as little of
+the product as possible:
+- Show the product only from angles the photos actually show. No full orbits, turntable spins or
+  reveals of a side, back or inside the photos do not cover.
+- The product itself stays physically unchanged and still unless the brief needs it used. Put the
+  motion in the camera, the light, reflections and the environment.
+- Keep the details in detail_lock clearly visible and at a scale the photos support; do not push a
+  macro lens onto a detail the photos do not show sharply.
+- No hands, props, steam or foreground elements covering the key details, and no transformations,
+  melting, morphing or stylised effects applied to the product."""
 
 
 _FORMAT_DEFAULTS = """\
@@ -496,7 +540,8 @@ OUTPUT: ONLY a JSON object with this shape. Omit any optional field that would n
 {
   "format": "product_film|lifestyle|ugc|demo|narrative|atmospheric",
   "concept": "one sentence: the idea of the film",
-  "product": {"description": "visible facts only", "identity_cues": ["short cue", "..."]} | null,
+  "product": {"description": "visible facts only", "identity_cues": ["short cue", "..."],
+              "detail_lock": ["one literal fine detail", "..."], "static_artwork": false} | null,
   "cast": "exact recurring person description" | null,
   "setting": "location, time of day" | null,
   "look": {"color_treatment": "...", "lighting_style": "..."},
@@ -597,14 +642,16 @@ def _build_user_prompt(
     if num_product_images:
         sections.append(
             f"The first {num_product_images} attached image(s) are photos of the REAL product, "
-            "possibly rough snapshots from different angles. Study all of them before planning."
+            "possibly rough snapshots from different angles. Study all of them at full detail "
+            "before planning, fill product.detail_lock from what you see, and follow the "
+            "product-safe cinematography rules."
         )
     else:
         sections.append(
             "No product photos are provided. Describe any product only as the brief states it. "
             "Do not invent its packaging, colours, shape, label design or printed text; leave "
-            "product.identity_cues empty, and frame the product so no label text needs to be "
-            "read."
+            "product.identity_cues and product.detail_lock empty, and frame the product so no "
+            "label text needs to be read."
         )
     if storyboard_beats:
         beats = "\n".join(f"- {b}" for b in storyboard_beats)

@@ -96,7 +96,7 @@ def test_director_prompt_states_the_tail_at_every_duration(duration):
 def _prompts_for(num_segments: int) -> list[str]:
     plan = video_director.fallback_plan("a bottle of cold brew", num_segments, has_product=True)
     return compile_segment_prompts(
-        plan, aspect_ratio="9:16", has_product_references=True, logo_attached=False
+        plan, aspect_ratio="9:16", product_reference_count=1, logo_attached=False
     )
 
 
