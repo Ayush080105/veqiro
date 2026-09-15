@@ -1,5 +1,6 @@
 "use client"
 
+import type { ComponentProps } from "react"
 import Link from "next/link"
 import {
   Building2,
@@ -12,12 +13,10 @@ import { type Lead, type LeadStatus } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import { PageHeader } from "@/components/ui/page-header"
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-// TODO: Connect to GET /api/v1/leads?organizationId=xxx (via Scout)
+import { StatusPill } from "@/components/ui/status-pill"
 
 const MOCK_LEADS: Lead[] = [
   {
@@ -72,49 +71,42 @@ const MOCK_LEADS: Lead[] = [
   },
 ]
 
-
 const MOCK_TRENDS = [
   {
     topic: "AI agents for SMBs",
     summary:
-      "Search volume up 38% month-over-month. Multiple think-pieces being published by VCs. High opportunity for content targeting this keyword cluster.",
+      "Search volume up 38% month-over-month. Multiple think-pieces are being published by VCs. High opportunity for content targeting this keyword cluster.",
     date: "2026-04-01",
   },
   {
     topic: "Founder-led sales automation",
     summary:
-      "Reddit and LinkedIn seeing increased discussion around automating outbound without sacrificing authenticity. Strong fit with Veqiro's positioning.",
+      "Reddit and LinkedIn are seeing increased discussion around automating outbound without sacrificing authenticity. Strong fit with Veqiro's positioning.",
     date: "2026-03-31",
   },
   {
     topic: "AI workforce cost comparison",
     summary:
-      "Comparison articles between AI employee cost vs. traditional hires gaining traction. Good angle for a Veqiro blog post or LinkedIn thread.",
+      "Comparison articles between AI employee cost and traditional hires are gaining traction. Good angle for a Veqiro blog post or LinkedIn thread.",
     date: "2026-03-30",
   },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function icpBadge(score: number) {
-  const variant =
-    score >= 80 ? "default" : score >= 60 ? "secondary" : "outline"
-  return (
-    <Badge variant={variant} className="font-mono">
-      {score}
-    </Badge>
-  )
+  const level: ComponentProps<typeof StatusPill>["level"] =
+    score >= 80 ? "ok" : score >= 60 ? "warn" : "info"
+  return <StatusPill level={level}>{score}</StatusPill>
 }
 
 function statusBadge(status: LeadStatus) {
-  const map: Record<LeadStatus, { variant: "default" | "secondary" | "outline"; label: string }> = {
-    new: { variant: "outline", label: "New" },
-    contacted: { variant: "secondary", label: "Contacted" },
-    qualified: { variant: "default", label: "Qualified" },
-    closed: { variant: "outline", label: "Closed" },
+  const map: Record<LeadStatus, { level: ComponentProps<typeof StatusPill>["level"]; label: string }> = {
+    new: { level: "info", label: "New" },
+    contacted: { level: "warn", label: "Contacted" },
+    qualified: { level: "ok", label: "Qualified" },
+    closed: { level: "info", label: "Closed" },
   }
-  const { variant, label } = map[status]
-  return <Badge variant={variant}>{label}</Badge>
+  const { level, label } = map[status]
+  return <StatusPill level={level}>{label}</StatusPill>
 }
 
 function formatDate(iso: string) {
@@ -124,34 +116,26 @@ function formatDate(iso: string) {
   })
 }
 
-// ─── Pipeline Tab ─────────────────────────────────────────────────────────────
-
 function PipelineTab() {
   if (MOCK_LEADS.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-12">
-          <User className="size-8 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">No leads yet</p>
-          <p className="text-xs text-muted-foreground">
-            Chat with Scout to start sourcing leads for your ICP.
-          </p>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/assistants/scout">Ask Scout</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={<User />}
+        title="No leads yet"
+        description="Ask Scout to source leads for your ICP and they will appear here."
+        action={{ label: "Ask Scout", href: "/assistants/scout", variant: "outline" }}
+      />
     )
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Company</TableHead>
             <TableHead>Contact</TableHead>
-            <TableHead className="text-center">ICP Score</TableHead>
+            <TableHead className="text-center">ICP score</TableHead>
             <TableHead>Source</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Added</TableHead>
@@ -164,14 +148,14 @@ function PipelineTab() {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Building2 className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-xs font-medium text-foreground">{lead.company}</span>
+                  <span className="text-sm font-medium text-foreground">{lead.company}</span>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-foreground">{lead.contact}</span>
+                  <span className="text-sm text-foreground">{lead.contact}</span>
                   {lead.email && (
-                    <span className="text-[10px] text-muted-foreground font-mono">{lead.email}</span>
+                    <span className="text-xs text-muted-foreground">{lead.email}</span>
                   )}
                 </div>
               </TableCell>
@@ -200,23 +184,25 @@ function PipelineTab() {
   )
 }
 
-// ─── Trends Tab ───────────────────────────────────────────────────────────────
-
 function TrendsTab() {
   return (
-    <div className="flex flex-col gap-4">
-      {MOCK_TRENDS.map((trend, i) => (
-        <Card key={i}>
+    <div className="grid gap-3">
+      {MOCK_TRENDS.map((trend) => (
+        <Card key={trend.topic} variant="brand">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <TrendingUp className="size-3.5 text-primary" />
-              <CardTitle className="text-sm font-semibold">{trend.topic}</CardTitle>
+              <span className="grid size-8 place-items-center rounded-[var(--vq-r-sm)] border border-border bg-muted/35 text-muted-foreground">
+                <TrendingUp className="size-4" />
+              </span>
+              <div>
+                <CardTitle className="text-sm font-semibold">{trend.topic}</CardTitle>
+                <CardDescription>{formatDate(`${trend.date}T00:00:00Z`)}</CardDescription>
+              </div>
             </div>
-            <CardDescription>{formatDate(trend.date + "T00:00:00Z")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <p className="text-xs/relaxed text-muted-foreground">{trend.summary}</p>
-            <div className="flex gap-2">
+            <p className="text-sm leading-relaxed text-muted-foreground">{trend.summary}</p>
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link href="/workspace/content">Create content</Link>
               </Button>
@@ -231,16 +217,12 @@ function TrendsTab() {
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function LeadsPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="powered by scout & sage"
-        title="leads & research"
-        subtitle="Lead pipeline, competitor monitoring, and market trends — all in one place."
-        sticker={{ label: "hunt & gather", rot: 5, color: "var(--vq-green)" }}
+        title="Leads & research"
+        subtitle="Lead pipeline, competitor monitoring, and market trends in one place."
         right={
           <Button variant="outline" size="sm" asChild>
             <Link href="/assistants/scout">Ask Scout to find leads</Link>
@@ -248,23 +230,18 @@ export default function LeadsPage() {
         }
       />
 
-      {/* Tabs */}
-      <Tabs defaultValue="pipeline">
-        <TabsList>
+      <Tabs defaultValue="pipeline" className="gap-4">
+        <TabsList className="border border-[var(--vq-line-2)] bg-card">
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="trends">Market Trends</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pipeline">
-          <div className="pt-4">
-            <PipelineTab />
-          </div>
+          <PipelineTab />
         </TabsContent>
 
         <TabsContent value="trends">
-          <div className="pt-4">
-            <TrendsTab />
-          </div>
+          <TrendsTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import type { ComponentProps, ElementType } from "react"
 import { useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,6 +22,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Input } from "@/components/ui/input"
+import { StatusPill } from "@/components/ui/status-pill"
 import {
   Select,
   SelectContent,
@@ -29,8 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PageHeader } from "@/components/ui/page-header"
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const MOCK_CONTENT: ContentItem[] = [
   {
@@ -45,7 +47,7 @@ const MOCK_CONTENT: ContentItem[] = [
   {
     id: "2",
     platform: "twitter",
-    headline: "Ship faster with an AI team behind you 🚀",
+    headline: "Ship faster with an AI team behind you",
     content: "Your AI crew never sleeps...",
     status: "scheduled",
     scheduledAt: "2026-04-03T09:00:00Z",
@@ -86,23 +88,21 @@ const UPCOMING_POSTS = [
   { platform: "instagram" as ContentPlatform, date: "Apr 5, 2:00 PM", headline: "Behind the build: 30-day launch" },
 ]
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 const PLATFORM_CONSTRAINTS: Record<ContentPlatform, string> = {
-  linkedin: "Max 3,000 chars · Professional tone · 3–5 hashtags",
-  twitter: "Max 280 chars · Punchy · 1–3 hashtags",
-  instagram: "Max 2,200 chars · Visual-first · 15–30 hashtags",
+  linkedin: "Max 3,000 chars. Professional tone. 3-5 hashtags.",
+  twitter: "Max 280 chars. Punchy. 1-3 hashtags.",
+  instagram: "Max 2,200 chars. Visual-first. 15-30 hashtags.",
 }
 
 function platformBadge(platform: ContentPlatform) {
-  const map: Record<ContentPlatform, { label: string; Icon: React.ElementType }> = {
-    linkedin: { label: "LI", Icon: AtSign },
+  const map: Record<ContentPlatform, { label: string; Icon: ElementType }> = {
+    linkedin: { label: "LinkedIn", Icon: AtSign },
     twitter: { label: "X", Icon: TwitterX },
-    instagram: { label: "IG", Icon: Camera },
+    instagram: { label: "Instagram", Icon: Camera },
   }
   const { label, Icon } = map[platform]
   return (
-    <Badge variant="outline" className="gap-1 font-mono">
+    <Badge variant="outline" className="gap-1">
       <Icon className="size-3" />
       {label}
     </Badge>
@@ -110,13 +110,13 @@ function platformBadge(platform: ContentPlatform) {
 }
 
 function statusBadge(status: ContentStatus) {
-  const map: Record<ContentStatus, { variant: "outline" | "secondary" | "default"; label: string }> = {
-    draft: { variant: "outline", label: "Draft" },
-    scheduled: { variant: "secondary", label: "Scheduled" },
-    published: { variant: "default", label: "Published" },
+  const map: Record<ContentStatus, { level: ComponentProps<typeof StatusPill>["level"]; label: string }> = {
+    draft: { level: "info", label: "Draft" },
+    scheduled: { level: "warn", label: "Scheduled" },
+    published: { level: "ok", label: "Published" },
   }
-  const { variant, label } = map[status]
-  return <Badge variant={variant}>{label}</Badge>
+  const { level, label } = map[status]
+  return <StatusPill level={level}>{label}</StatusPill>
 }
 
 function formatDate(iso: string) {
@@ -126,8 +126,6 @@ function formatDate(iso: string) {
     year: "numeric",
   })
 }
-
-// ─── Generate Form Schema ─────────────────────────────────────────────────────
 
 const generateSchema = z.object({
   platform: z.enum(["linkedin", "twitter", "instagram"]),
@@ -139,32 +137,26 @@ type GenerateForm = z.infer<typeof generateSchema>
 
 const MOCK_GENERATED: Record<ContentPlatform, string> = {
   linkedin:
-    "The future of lean startups isn't hiring faster — it's building smarter. An AI workforce gives you the output of a 10-person team on a 2-person budget. Here's how we're doing it at Veqiro. #AI #Startups #ProductLed",
+    "The future of lean startups isn't hiring faster. It's building smarter. An AI workforce gives you the output of a 10-person team on a 2-person budget. Here's how we're doing it at Veqiro. #AI #Startups #ProductLed",
   twitter:
-    "Most founders hire too early. We built an AI team instead. Same output. 1/10th the cost. 🧵 #AIWorkforce #Founders",
+    "Most founders hire too early. We built an AI team instead. Same output. 1/10th the cost. #AIWorkforce #Founders",
   instagram:
-    "Behind every great product launch is a team that works around the clock. Ours just happens to be AI. ✨ Here's how we shipped in 30 days with a 2-person crew. Swipe to see the stack. #AI #Startup #BuildInPublic #Founder #Tech #ProductHunt",
+    "Behind every great product launch is a team that works around the clock. Ours just happens to be AI. Here's how we shipped in 30 days with a 2-person crew. Swipe to see the stack. #AI #Startup #BuildInPublic #Founder #Tech #ProductHunt",
 }
-
-// ─── Library Tab ──────────────────────────────────────────────────────────────
 
 function LibraryTab() {
   if (MOCK_CONTENT.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-12">
-          <FileText className="size-8 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">No content yet</p>
-          <p className="text-xs text-muted-foreground">
-            Generate your first post in the Generate tab.
-          </p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={<FileText />}
+        title="No content yet"
+        description="Generate your first post with Maya and it will appear here."
+      />
     )
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -180,7 +172,7 @@ function LibraryTab() {
             <TableRow key={item.id}>
               <TableCell>{platformBadge(item.platform)}</TableCell>
               <TableCell className="max-w-xs">
-                <p className="truncate text-xs text-foreground">{item.headline}</p>
+                <p className="truncate text-sm font-medium text-foreground">{item.headline}</p>
               </TableCell>
               <TableCell>{statusBadge(item.status)}</TableCell>
               <TableCell className="text-muted-foreground">
@@ -206,8 +198,6 @@ function LibraryTab() {
   )
 }
 
-// ─── Generate Tab ─────────────────────────────────────────────────────────────
-
 function GenerateTab() {
   const [result, setResult] = useState<string | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<ContentPlatform | null>(null)
@@ -232,7 +222,7 @@ function GenerateTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
+      <Card variant="brand">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Generate content</CardTitle>
           <CardDescription>
@@ -241,7 +231,6 @@ function GenerateTab() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            {/* Platform */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-foreground">Platform</label>
               <Controller
@@ -267,20 +256,14 @@ function GenerateTab() {
               )}
             </div>
 
-            {/* Topic */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-foreground">Topic</label>
-              <input
-                {...register("topic")}
-                placeholder="What's the topic?"
-                className="h-8 w-full rounded-none border border-input bg-transparent px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50 disabled:opacity-50"
-              />
+              <Input {...register("topic")} placeholder="What's the topic?" />
               {errors.topic && (
                 <p className="text-xs text-destructive">{errors.topic.message}</p>
               )}
             </div>
 
-            {/* Tone */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-foreground">Tone</label>
               <Controller
@@ -304,14 +287,14 @@ function GenerateTab() {
 
             <Button type="submit" className="self-start" disabled={isSubmitting}>
               <Sparkles className="size-3.5" />
-              {isSubmitting ? "Generating…" : "Generate"}
+              {isSubmitting ? "Generating..." : "Generate"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       {result && selectedPlatform && (
-        <Card>
+        <Card variant="brand">
           <CardHeader>
             <div className="flex items-center gap-2">
               <CardTitle className="text-sm font-semibold">Generated content</CardTitle>
@@ -322,8 +305,8 @@ function GenerateTab() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="rounded-none border border-border bg-muted/40 p-3">
-              <p className="text-xs/relaxed text-foreground">{result}</p>
+            <div className="rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] bg-muted/40 p-4">
+              <p className="text-sm leading-relaxed text-foreground">{result}</p>
             </div>
             <div className="flex gap-2">
               <Button variant="default" size="sm">
@@ -342,27 +325,23 @@ function GenerateTab() {
   )
 }
 
-// ─── Calendar Tab ─────────────────────────────────────────────────────────────
-
 function CalendarTab() {
   return (
     <div className="flex flex-col gap-4">
-      <Card>
+      <Card variant="brand">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold">Content Calendar</CardTitle>
-          <CardDescription>
-            Content calendar coming soon — your scheduled posts will appear here.
-          </CardDescription>
+          <CardTitle className="text-sm font-semibold">Content calendar</CardTitle>
+          <CardDescription>Your scheduled posts appear here.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {UPCOMING_POSTS.map((post, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 rounded-none border border-border px-3 py-2.5"
+              className="flex items-center gap-3 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] bg-card px-3 py-2.5"
             >
               {platformBadge(post.platform)}
-              <span className="text-xs text-muted-foreground shrink-0">{post.date}</span>
-              <span className="truncate text-xs text-foreground">{post.headline}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{post.date}</span>
+              <span className="truncate text-sm font-medium text-foreground">{post.headline}</span>
             </div>
           ))}
         </CardContent>
@@ -371,14 +350,12 @@ function CalendarTab() {
   )
 }
 
-// ─── Brand Voice Tab ──────────────────────────────────────────────────────────
-
 function BrandVoiceTab() {
   return (
     <div className="flex flex-col gap-4">
-      <Card>
+      <Card variant="brand">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold">Brand Voice</CardTitle>
+          <CardTitle className="text-sm font-semibold">Brand voice</CardTitle>
           <CardDescription>
             Your brand voice guides how Maya writes content across every platform.
           </CardDescription>
@@ -386,15 +363,15 @@ function BrandVoiceTab() {
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Current preset:</span>
-            <Badge variant="secondary">Professional</Badge>
+            <StatusPill level="info" icon={null}>Professional</StatusPill>
           </div>
-          <p className="text-xs/relaxed text-muted-foreground">
-            Your brand voice is configured in the Brain page. Head there to update your tone,
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Your brand voice is configured in Brain. Head there to update tone,
             personality traits, and platform-specific guidelines.
           </p>
           <div>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/brain">Edit Brand Voice</Link>
+              <Link href="/brain">Edit brand voice</Link>
             </Button>
           </div>
         </CardContent>
@@ -403,21 +380,16 @@ function BrandVoiceTab() {
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function ContentPage() {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        kicker="powered by maya"
-        title="content hub"
+        title="Content hub"
         subtitle="Create, schedule, and manage content across every platform."
-        sticker={{ label: "maya's desk", rot: -4, color: "var(--vq-red)" }}
       />
 
-      {/* Tabs */}
-      <Tabs defaultValue="library">
-        <TabsList>
+      <Tabs defaultValue="library" className="gap-4">
+        <TabsList className="border border-[var(--vq-line-2)] bg-card">
           <TabsTrigger value="library">Library</TabsTrigger>
           <TabsTrigger value="generate">Generate</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
@@ -425,27 +397,19 @@ export default function ContentPage() {
         </TabsList>
 
         <TabsContent value="library">
-          <div className="pt-4">
-            <LibraryTab />
-          </div>
+          <LibraryTab />
         </TabsContent>
 
         <TabsContent value="generate">
-          <div className="pt-4">
-            <GenerateTab />
-          </div>
+          <GenerateTab />
         </TabsContent>
 
         <TabsContent value="calendar">
-          <div className="pt-4">
-            <CalendarTab />
-          </div>
+          <CalendarTab />
         </TabsContent>
 
         <TabsContent value="brand-voice">
-          <div className="pt-4">
-            <BrandVoiceTab />
-          </div>
+          <BrandVoiceTab />
         </TabsContent>
       </Tabs>
     </div>
