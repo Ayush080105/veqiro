@@ -6,20 +6,21 @@ import { toast } from "sonner"
 import { AlertTriangle, CalendarClock, Play } from "lucide-react"
 import { getIntegrationBySlug } from "@repo/integrations-catalog"
 import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 import { qk } from "@/lib/query-keys"
 import { usePlays, setPlayEnabled, runPlayNow, type McpPlay } from "@/lib/api/mcp"
 
 /**
- * Plays are the unit customers think in — "handle my Monday", not "an agent
- * with Gmail access". Each row leads with the outcome and says when it happens;
- * which integrations it uses is secondary, and only surfaces when one is
- * missing and the play therefore can't run.
+ * Plays are the unit customers think in: "handle my Monday", not "an agent
+ * with Gmail access". Each row leads with the outcome and says when it happens.
  */
 export function PlaysSection() {
   const { data: plays = [], isLoading, isError, error } = usePlays()
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<string | null>(null)
+  const enabledCount = plays.filter((play) => play.enabled).length
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: qk.mcpPlays() })
   const displayName = (slug: string) => getIntegrationBySlug(slug)?.name ?? slug
@@ -28,7 +29,7 @@ export function PlaysSection() {
     setBusyId(play.id)
     try {
       await setPlayEnabled(play.id, next)
-      toast.success(next ? `On — ${play.scheduleLabel.toLowerCase()}` : "Turned off")
+      toast.success(next ? `On: ${play.scheduleLabel.toLowerCase()}` : "Turned off")
       await refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't change that")
@@ -41,7 +42,7 @@ export function PlaysSection() {
     setBusyId(play.id)
     try {
       await runPlayNow(play.id)
-      toast.success(`Ran — check ${play.agent.toLowerCase()} for the result`)
+      toast.success(`Ran: check ${play.agent.toLowerCase()} for the result`)
       await refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't run that")
@@ -51,68 +52,87 @@ export function PlaysSection() {
   }
 
   return (
-    <div className="flex flex-col gap-3 pt-2">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-sm font-semibold text-foreground">Recurring work</h2>
-        <p className="text-xs text-muted-foreground">
-          Jobs that run on a schedule and leave the result with the agent that
-          did it. As with everything else, nothing is sent without your approval.
-        </p>
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="text-base font-semibold text-foreground">Recurring work</h2>
+          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            Scheduled jobs that leave the finished draft, brief, or analysis with the agent
+            that did it. Nothing is sent without your approval.
+          </p>
+        </div>
+        {!isLoading && !isError && plays.length > 0 && (
+          <StatusPill level={enabledCount > 0 ? "ok" : "info"} icon={null}>
+            {enabledCount} of {plays.length} on
+          </StatusPill>
+        )}
       </div>
 
       {isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card px-4 py-5 text-sm text-muted-foreground">
+          Loading recurring work...
+        </div>
       ) : isError ? (
-        <p className="text-xs text-destructive">
-          Couldn&apos;t load these: {error instanceof Error ? error.message : "Unknown error"}
-        </p>
+        <div className="rounded-[var(--vq-r)] border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          Could not load recurring work: {error instanceof Error ? error.message : "Unknown error"}
+        </div>
+      ) : plays.length === 0 ? (
+        <EmptyState
+          icon={<CalendarClock />}
+          title="No recurring work yet"
+          description="Connect tools and turn on a play when there is a repeatable workflow worth delegating."
+        />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-2">
           {plays.map((play) => (
             <div
               key={play.id}
-              className="flex items-center justify-between gap-4 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5"
+              className="grid gap-4 rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card px-4 py-4 shadow-[var(--vq-shadow-xs)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
             >
-              <div className="flex min-w-0 flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="truncate text-xs font-medium">{play.name}</span>
-                  <Badge variant="outline" className="text-[10px] uppercase">
-                    {play.agent.toLowerCase()}
-                  </Badge>
+              <div className="flex min-w-0 gap-3">
+                <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-[var(--vq-r-sm)] border border-border bg-muted/35 text-muted-foreground">
+                  <CalendarClock className="size-4" />
+                </span>
+                <div className="min-w-0 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">{play.name}</h3>
+                    <StatusPill level="info" icon={null} className="capitalize">
+                      {play.agent.toLowerCase()}
+                    </StatusPill>
+                  </div>
+                  <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                    {play.description}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span>{play.scheduleLabel}</span>
+                    {play.lastRunAt && !play.lastError && (
+                      <span>Last ran {new Date(play.lastRunAt).toLocaleString()}</span>
+                    )}
+                  </div>
+                  {play.missing.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Needs {play.missing.map(displayName).join(" and ")}.
+                    </p>
+                  )}
+                  {play.lastError && (
+                    <p className="flex items-center gap-1.5 text-xs text-destructive">
+                      <AlertTriangle className="size-3.5 shrink-0" />
+                      Last run failed: {play.lastError}
+                    </p>
+                  )}
                 </div>
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  {play.description}
-                </p>
-                <p className="text-[11px] text-muted-foreground/70">{play.scheduleLabel}</p>
-
-                {play.missing.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground/70">
-                    Needs {play.missing.map(displayName).join(" and ")}.
-                  </p>
-                )}
-                {play.lastError && (
-                  <p className="flex items-center gap-1 text-[11px] text-destructive">
-                    <AlertTriangle className="size-3 shrink-0" />
-                    Last run failed: {play.lastError}
-                  </p>
-                )}
-                {play.lastRunAt && !play.lastError && (
-                  <p className="text-[11px] text-muted-foreground/70">
-                    Last ran {new Date(play.lastRunAt).toLocaleString()}
-                  </p>
-                )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
-                <button
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleRunNow(play)}
                   disabled={!play.available || busyId === play.id}
-                  className="flex items-center gap-1 rounded-md border border-(--vq-line-2) px-2 py-1 text-[11px] hover:bg-background transition-colors disabled:opacity-50"
                 >
-                  <Play className="size-3" />
+                  <Play className="size-3.5" />
                   Run now
-                </button>
+                </Button>
                 <Switch
                   checked={play.enabled}
                   disabled={!play.available || busyId === play.id}
@@ -124,6 +144,6 @@ export function PlaysSection() {
           ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }

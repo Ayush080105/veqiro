@@ -3,10 +3,12 @@
 import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { AlertTriangle, Search, Zap } from "lucide-react"
+import { AlertTriangle, ChevronDown, Search, Zap } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
+import { StatusPill } from "@/components/ui/status-pill"
 import { qk } from "@/lib/query-keys"
 import {
   useMcpTriggers,
@@ -19,14 +21,8 @@ import {
 /**
  * Everything the org's connected tools can wake an agent for.
  *
- * Discovered rather than curated: the provider publishes what each toolkit can
- * trigger on, and hiding all but a hand-picked seven meant most of what was
- * possible was invisible. Measured across the catalogue — 21 of 46 integrations
- * expose triggers, 191 types between them.
- *
- * That volume is why this groups by integration and offers a filter. A flat
- * list of everything Confluence alone can emit is 23 rows, and the customer is
- * looking for one of them.
+ * Triggers are discovered from provider catalogues, so grouping by integration
+ * keeps the list scannable without hiding what is available.
  */
 export function TriggersSection() {
   const { data: triggers = [], isLoading, isError, error } = useMcpTriggers()
@@ -43,7 +39,7 @@ export function TriggersSection() {
         await (trigger.subscribed
           ? setMcpTriggerEnabled(trigger.id, true)
           : subscribeMcpTrigger(trigger.id))
-        toast.success(`On — ${trigger.label.toLowerCase()}`)
+        toast.success(`On: ${trigger.label.toLowerCase()}`)
       } else {
         await setMcpTriggerEnabled(trigger.id, false)
         toast.success("Turned off")
@@ -73,127 +69,147 @@ export function TriggersSection() {
     const needle = query.trim().toLowerCase()
     const matched = needle
       ? triggers.filter(
-          (t) =>
-            t.label.toLowerCase().includes(needle) ||
-            t.integrationName.toLowerCase().includes(needle),
+          (trigger) =>
+            trigger.label.toLowerCase().includes(needle) ||
+            trigger.integrationName.toLowerCase().includes(needle),
         )
       : triggers
 
     const byIntegration = new Map<string, McpTrigger[]>()
-    for (const t of matched) {
-      const list = byIntegration.get(t.integrationName) ?? []
-      list.push(t)
-      byIntegration.set(t.integrationName, list)
+    for (const trigger of matched) {
+      const list = byIntegration.get(trigger.integrationName) ?? []
+      list.push(trigger)
+      byIntegration.set(trigger.integrationName, list)
     }
+
     return {
       groups: [...byIntegration.entries()],
-      activeCount: triggers.filter((t) => t.enabled).length,
+      activeCount: triggers.filter((trigger) => trigger.enabled).length,
     }
   }, [triggers, query])
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-sm font-semibold text-foreground">Act without being asked</h2>
-        <p className="text-xs text-muted-foreground">
-          Let an agent respond when something happens in a connected tool. Nothing
-          is ever sent on your behalf — every action waits for your approval.
-        </p>
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="text-base font-semibold text-foreground">Act without being asked</h2>
+          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            Let an agent respond when something happens in a connected tool. Nothing is ever
+            sent on your behalf; every action waits for your approval.
+          </p>
+        </div>
+        {!isLoading && !isError && triggers.length > 0 && (
+          <StatusPill level={activeCount > 0 ? "ok" : "info"} icon={null}>
+            {activeCount} of {triggers.length} on
+          </StatusPill>
+        )}
       </div>
 
       {isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card px-4 py-5 text-sm text-muted-foreground">
+          Loading triggers...
+        </div>
       ) : isError ? (
-        <p className="text-xs text-destructive">
-          Couldn&apos;t load these: {error instanceof Error ? error.message : "Unknown error"}
-        </p>
+        <div className="rounded-[var(--vq-r)] border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          Could not load triggers: {error instanceof Error ? error.message : "Unknown error"}
+        </div>
       ) : triggers.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          None of your connected tools publish events yet. Connect something like
-          Gmail, Slack or Linear and its triggers appear here.
-        </p>
+        <EmptyState
+          icon={<Zap />}
+          title="No triggers available"
+          description="Connect a tool like Gmail, Slack, or Linear and its trigger catalogue will appear here."
+        />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-50 flex-1">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search triggers…"
-                className="pl-8"
-              />
-            </div>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              {activeCount} on · {triggers.length} available
-            </span>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search triggers..."
+              className="pl-8"
+            />
           </div>
 
           {groups.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Nothing matches that.</p>
+            <EmptyState
+              tone="plain"
+              icon={<Search />}
+              title="No matching triggers"
+              description="Try another integration, event name, or agent."
+              className="rounded-[var(--vq-r)] border border-dashed border-[var(--vq-line-2)] bg-card"
+            />
           ) : (
             groups.map(([integrationName, items]) => (
               <details
                 key={integrationName}
-                // Open where something is already switched on, so the things
-                // actually running are visible without hunting for them.
-                open={items.some((t) => t.enabled) || Boolean(query.trim())}
-                className="rounded-lg border border-(--vq-line-2)"
+                open={items.some((trigger) => trigger.enabled) || Boolean(query.trim())}
+                className="group rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card shadow-[var(--vq-shadow-xs)]"
               >
-                <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium">
-                  {integrationName}
-                  <span className="font-mono text-[10px] text-muted-foreground">
-                    {items.filter((t) => t.enabled).length}/{items.length}
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground marker:hidden [&::-webkit-details-marker]:hidden">
+                  <span>{integrationName}</span>
+                  <span className="flex items-center gap-2">
+                    <StatusPill
+                      level={items.some((trigger) => trigger.enabled) ? "ok" : "info"}
+                      icon={null}
+                    >
+                      {items.filter((trigger) => trigger.enabled).length}/{items.length}
+                    </StatusPill>
+                    <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
                   </span>
                 </summary>
 
-                <div className="flex flex-col gap-2 px-3 pb-3">
+                <div className="border-t border-[var(--vq-line-2)]">
                   {items.map((trigger) => (
                     <div
                       key={trigger.id}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-(--vq-line-2) bg-card px-3 py-2.5"
+                      className="grid gap-4 border-b border-[var(--vq-line-2)] px-4 py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                     >
-                      <div className="flex min-w-0 flex-col gap-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Zap className="size-3.5 shrink-0 text-muted-foreground" />
-                          <span className="truncate text-xs font-medium">{trigger.label}</span>
-                          <Badge variant="outline" className="text-[10px] uppercase">
-                            {trigger.agent.toLowerCase()}
-                          </Badge>
+                      <div className="flex min-w-0 gap-3">
+                        <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-[var(--vq-r-sm)] border border-border bg-muted/35 text-muted-foreground">
+                          <Zap className="size-4" />
+                        </span>
+                        <div className="min-w-0 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-sm font-semibold text-foreground">
+                              {trigger.label}
+                            </h3>
+                            <StatusPill level="info" icon={null} className="capitalize">
+                              {trigger.agent.toLowerCase()}
+                            </StatusPill>
+                          </div>
+                          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                            {trigger.description}
+                          </p>
+                          {!trigger.curated && (
+                            <p className="text-xs text-muted-foreground">
+                              General handling: the agent judges what to do.
+                            </p>
+                          )}
+                          {trigger.lastError && (
+                            <p className="flex items-center gap-1.5 text-xs text-destructive">
+                              <AlertTriangle className="size-3.5 shrink-0" />
+                              {trigger.lastError}
+                            </p>
+                          )}
+                          {trigger.enabled && trigger.lastEventAt && (
+                            <p className="text-xs text-muted-foreground">
+                              Last fired {new Date(trigger.lastEventAt).toLocaleString()}
+                            </p>
+                          )}
                         </div>
-                        <p className="text-[11px] leading-relaxed text-muted-foreground">
-                          {trigger.description}
-                        </p>
-                        {/* Says plainly which of these have a hand-written
-                            instruction and which fall back to the generic one,
-                            since that materially changes how well they behave. */}
-                        {!trigger.curated && (
-                          <p className="text-[11px] text-muted-foreground/60">
-                            General handling — the agent judges what to do.
-                          </p>
-                        )}
-                        {trigger.lastError && (
-                          <p className="flex items-center gap-1 text-[11px] text-destructive">
-                            <AlertTriangle className="size-3 shrink-0" />
-                            {trigger.lastError}
-                          </p>
-                        )}
-                        {trigger.enabled && trigger.lastEventAt && (
-                          <p className="text-[11px] text-muted-foreground/70">
-                            Last fired {new Date(trigger.lastEventAt).toLocaleString()}
-                          </p>
-                        )}
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex items-center justify-between gap-3 sm:justify-end">
                         {trigger.subscribed && !trigger.enabled && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleRemove(trigger)}
                             disabled={busyId === trigger.id}
-                            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
                           >
                             Remove
-                          </button>
+                          </Button>
                         )}
                         <Switch
                           checked={trigger.enabled}
@@ -210,6 +226,6 @@ export function TriggersSection() {
           )}
         </>
       )}
-    </div>
+    </section>
   )
 }
