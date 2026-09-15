@@ -1231,7 +1231,6 @@ class LLMClient:
         segment_prompts: list[str],
         images: list[tuple[bytes, str]] | None = None,
         aspect_ratio: str = "16:9",
-        generate_audio: bool = True,
     ) -> bytes:
         """Video generation via Gemini Omni (`interactions.create`).
 
@@ -1240,6 +1239,10 @@ class LLMClient:
         Extensions are chained with `previous_interaction_id` (which needs `store=True` on
         the interaction it points at), and each extension returns the CUMULATIVE video — so
         the final interaction's output is the whole clip, not just the last segment.
+
+        Each prompt is sent VERBATIM. Audio, continuity and ending direction are placed once
+        by core/video_prompt_compiler.py; appending them here too is what used to bury the
+        visual direction under three copies of the same rules.
 
         `images` (list of (bytes, mime_type) pairs, up to 5 + an optional logo) present =
         image-to-video, absent = text-to-video. They are attached to the opening segment
@@ -1286,7 +1289,6 @@ class LLMClient:
                         "aspect_ratio": aspect_ratio,
                         "duration_seconds": duration_seconds,
                         "num_segments": len(segment_prompts),
-                        "generate_audio": generate_audio,
                     },
                 )
             except Exception:
@@ -1302,29 +1304,6 @@ class LLMClient:
                 duration_seconds,
             )
 
-            # Restated on EVERY segment, not just the last: the audio is cut dead at each
-            # seam too, so a line still running when an extension takes over loses its final
-            # word in the middle of the finished film, not only at its end. The tail is
-            # required to stay *audible* (ambience, score) so a speech-free close reads as a
-            # held ending rather than the sound failing.
-            audio_note = (
-                (
-                    "AUDIO: include natural ambient/sync audio, and keep it running "
-                    "continuously through the very last frame — never let the sound stop, "
-                    "dip, or fall silent before the picture does. Deliver any spoken words "
-                    "at a relaxed, natural, unhurried pace, and finish them EARLY: the last "
-                    "word must be fully out of the speaker's mouth by about "
-                    f"{SPEECH_CUTOFF_SECONDS:g} seconds in, leaving the final "
-                    f"{SPEECH_TAIL_SECONDS:g} seconds with no speech in them at all — only "
-                    "ambience, room tone, and score under the closing action. If a line "
-                    "cannot be finished that early at a natural pace, SPEAK FEWER WORDS: drop "
-                    "words from it rather than talking faster or letting it run to the edge. "
-                    "A shortened line delivered whole and unhurried is correct; the full line "
-                    "clipped mid-word, or rattled off at speed to squeeze it in, is a failure."
-                )
-                if generate_audio
-                else "No audio."
-            )
             image_parts: list[dict] = [
                 {
                     "type": "image",
@@ -1350,22 +1329,8 @@ class LLMClient:
                 if is_opening:
                     response_format["aspect_ratio"] = aspect_ratio
 
-                if is_opening:
-                    full_prompt = f"{segment_prompt}\n\nVideo aspect ratio: {aspect_ratio}. {audio_note}"
-                    segment_input = image_parts + [{"type": "text", "text": full_prompt}]
-                else:
-                    full_prompt = (
-                        f"{segment_prompt}\n\nContinue seamlessly from the final frame of the "
-                        f"footage so far, holding the same subject, wardrobe, setting, lighting, "
-                        f"colour grade, camera language, and sound world. The preceding footage "
-                        f"deliberately ended on a wordless beat with its ambience still running, "
-                        f"so carry that sound world in unbroken from the very first frame and let "
-                        f"the action re-establish before anyone speaks. Never open mid-sentence, "
-                        f"and never try to complete, repeat, or salvage a line from the previous "
-                        f"segment — any speech here is a NEW line that starts and finishes inside "
-                        f"this segment. {audio_note}"
-                    )
-                    segment_input = [{"type": "text", "text": full_prompt}]
+                text_part = {"type": "text", "text": segment_prompt}
+                segment_input = image_parts + [text_part] if is_opening else [text_part]
 
                 create_kwargs: dict = {
                     "model": _OMNI_VIDEO_MODEL,
@@ -1476,9 +1441,12 @@ class LLMClient:
         self,
         files: list[tuple[bytes, str]],
         prompt: str,
+        json_mode: bool = False,
     ) -> str:
         """Same as complete_with_vision but grounds the response in multiple reference
-        images/files at once (e.g. several product photos from different angles)."""
+        images/files at once (e.g. several product photos from different angles).
+
+        `json_mode` asks Gemini for a JSON body; the caller still parses (and validates) it."""
         if settings.MOCK_MODE:
             return "[Mock vision extraction: all contract text, tables, and clauses extracted successfully]"
 
@@ -1491,7 +1459,14 @@ class LLMClient:
         response = await client.aio.models.generate_content(
             model="gemini-2.5-flash",
             contents=parts,
+            config=(
+                types.GenerateContentConfig(response_mime_type="application/json")
+                if json_mode
+                else None
+            ),
         )
+        if response.text is None:
+            raise LLMError("Gemini vision returned no text")
         return response.text
 
     def count_tokens(self, text: str, model: str = "gpt-4.1-mini") -> int:

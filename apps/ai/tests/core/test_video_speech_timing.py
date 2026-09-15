@@ -17,6 +17,9 @@ defect if it drifts:
     still yields a clipped seam;
   * the tail is speech-free, not silent: ambience has to run through the final frame, or the
     ending trades a clipped word for the sound dropping out.
+
+Since the structured-plan pipeline, the planner is core/video_director.py and the render
+prompts come from core/video_prompt_compiler.py; LLMClient.generate_video sends them verbatim.
 """
 
 import asyncio
@@ -25,7 +28,7 @@ import base64
 import pytest
 
 from core import llm as llm_module
-from core import video_gen
+from core import video_director
 from core.llm import (
     LLMClient,
     MAX_WORDS_PER_LINE,
@@ -38,6 +41,7 @@ from core.llm import (
     VIDEO_DURATION_OPTIONS,
     VIDEO_SEGMENT_SECONDS,
 )
+from core.video_prompt_compiler import compile_segment_prompts
 
 
 # ── the budget has to be physically speakable ────────────────────────────────
@@ -66,50 +70,34 @@ def test_word_budget_fits_the_window_at_an_unhurried_pace():
 
 @pytest.mark.parametrize("duration", VIDEO_DURATION_OPTIONS)
 def test_film_budget_never_exceeds_what_the_segments_can_carry(duration):
-    segments = video_gen.segments_for(duration)
-    words, lines = video_gen._speech_budget(segments)
+    segments = video_director.segments_for(duration)
+    words, lines = video_director._speech_budget(segments)
     assert words <= MAX_WORDS_PER_SEGMENT * segments
     assert lines >= 1
 
 
-# ── the planner is told the same numbers, at every duration ──────────────────
+# ── the director is told the same numbers, at every duration ─────────────────
 
 @pytest.mark.parametrize("duration", VIDEO_DURATION_OPTIONS)
-def test_planner_prompt_states_the_tail_at_every_duration(duration):
-    segments = video_gen.segments_for(duration)
-    system = video_gen._build_scene_plan_system(duration, segments)
-    tail = f"{SPEECH_TAIL_SECONDS:g} second"
-    assert tail in system
+def test_director_prompt_states_the_tail_at_every_duration(duration):
+    segments = video_director.segments_for(duration)
+    system = video_director.build_director_system(duration, segments)
+    assert f"{SPEECH_TAIL_SECONDS:g} second" in system
     assert f"{SPEECH_CUTOFF_SECONDS:g}-second mark" in system
     assert str(MAX_WORDS_PER_LINE) in system
     # "Finish sooner" without "use fewer words" is an instruction to speed-read, which reads
     # as abrupt for a different reason. Both halves have to be in the brief.
     assert "faster" in system.lower()
-
-
-@pytest.mark.parametrize("duration", VIDEO_DURATION_OPTIONS)
-def test_duration_instruction_states_the_tail(duration):
-    segments = video_gen.segments_for(duration)
-    instruction = video_gen._build_duration_instruction(duration, segments)
-    assert f"{SPEECH_TAIL_SECONDS:g} second" in instruction
+    assert f"EXACTLY {segments} segment" in system
 
 
 # ── the RENDER prompts carry it too, on every segment ────────────────────────
 
 def _prompts_for(num_segments: int) -> list[str]:
-    result = asyncio.run(
-        video_gen.generate_maya_video(
-            LLMClient(),
-            segment_prompts=[f"segment {i + 1}" for i in range(num_segments)],
-            aspect_ratio="9:16",
-        )
+    plan = video_director.fallback_plan("a bottle of cold brew", num_segments, has_product=True)
+    return compile_segment_prompts(
+        plan, aspect_ratio="9:16", has_product_references=True, logo_attached=False
     )
-    return result.prompt_used.split("\n\n--- SEGMENT BREAK ---\n\n")
-
-
-@pytest.fixture(autouse=True)
-def mocked_render(monkeypatch):
-    monkeypatch.setattr(llm_module.settings, "MOCK_MODE", True, raising=False)
 
 
 def test_every_segment_is_told_to_stop_speaking_before_it_ends():
@@ -117,17 +105,18 @@ def test_every_segment_is_told_to_stop_speaking_before_it_ends():
     prompts = _prompts_for(4)
     assert len(prompts) == 4
     for prompt in prompts:
-        assert f"{SPEECH_TAIL_SECONDS:g} second" in prompt
+        assert f"{SPEECH_TAIL_SECONDS:g} seconds carry no speech" in prompt
+        assert f"{SPEECH_CUTOFF_SECONDS:g} seconds in" in prompt
 
     # The final segment resolves; the earlier ones hand off mid-motion but must still have
-    # finished talking. Both guardrails say so, in their own words.
+    # finished talking.
     *earlier, final = prompts
-    assert "ENDING — NON-NEGOTIABLE" in final
+    assert "ENDING:" in final
     assert "HARD AUDIO CUT" not in final
     for prompt in earlier:
         assert "DO NOT END HERE" in prompt
         assert "HARD AUDIO CUT" in prompt
-        assert f"{SPEECH_CUTOFF_SECONDS:g} seconds in" in prompt
+        assert "ENDING:" not in prompt
 
 
 def test_final_segment_requires_sound_through_the_last_frame():
@@ -138,6 +127,16 @@ def test_final_segment_requires_sound_through_the_last_frame():
     # Shortening the line is the sanctioned fix; speeding it up is explicitly not.
     assert "SHORTEN" in final
     assert "double speed" in final
+
+
+def test_extensions_start_a_new_line_rather_than_finishing_the_previous_one():
+    """The previous segment stopped talking early on purpose — the extension must not try to
+    pick that sentence back up, which would render as a stutter across the join."""
+    _opening, *extensions = _prompts_for(3)
+    assert "NEW line" not in _opening
+    for prompt in extensions:
+        assert "never open mid-sentence" in prompt
+        assert "NEW line that starts and finishes inside this take" in prompt
 
 
 # ── the API call itself, where the model actually reads it ───────────────────
@@ -172,9 +171,12 @@ class _FakeClient:
         self.aio = type("_Aio", (), {"interactions": interactions, "files": None})()
 
 
-def _sent_prompts(monkeypatch, segments: int) -> list[str]:
+def test_compiled_prompts_reach_the_model_verbatim(monkeypatch):
+    """generate_video must not append its own audio/continuity text on top of the compiled
+    prompt: that is how the same rules used to reach the model three times over."""
     monkeypatch.setattr(llm_module.settings, "MOCK_MODE", False, raising=False)
     monkeypatch.setattr(llm_module.settings, "GEMINI_API_KEY", "test-key", raising=False)
+    prompts = _prompts_for(3)
     fake = _FakeInteractions()
     import google.genai as genai
 
@@ -183,52 +185,18 @@ def _sent_prompts(monkeypatch, segments: int) -> list[str]:
     try:
         asyncio.run(
             LLMClient().generate_video(
-                segment_prompts=[f"segment {i + 1}" for i in range(segments)],
+                segment_prompts=prompts,
+                images=[(b"img", "image/png")],
                 aspect_ratio="9:16",
             )
         )
     finally:
         genai.Client = original
-    return [call["input"][-1]["text"] for call in fake.calls]
 
-
-def test_audio_contract_reaches_the_model_on_the_opening_shot_and_every_extension(monkeypatch):
-    prompts = _sent_prompts(monkeypatch, 3)
-    assert len(prompts) == 3
-    for prompt in prompts:
-        assert "AUDIO:" in prompt
-        assert f"{SPEECH_CUTOFF_SECONDS:g} seconds in" in prompt
-        assert f"{SPEECH_TAIL_SECONDS:g} seconds with no speech" in prompt
-        assert "SPEAK FEWER WORDS" in prompt
-
-
-def test_extensions_start_a_new_line_rather_than_finishing_the_previous_one(monkeypatch):
-    """The previous segment stopped talking early on purpose — the extension must not try to
-    pick that sentence back up, which would render as a stutter across the join."""
-    _opening, *extensions = _sent_prompts(monkeypatch, 3)
-    for prompt in extensions:
-        assert "Never open mid-sentence" in prompt
-        assert "NEW line that starts and finishes inside this segment" in prompt
-
-
-def test_audio_can_still_be_switched_off(monkeypatch):
-    monkeypatch.setattr(llm_module.settings, "MOCK_MODE", False, raising=False)
-    monkeypatch.setattr(llm_module.settings, "GEMINI_API_KEY", "test-key", raising=False)
-    fake = _FakeInteractions()
-    import google.genai as genai
-
-    original = genai.Client
-    genai.Client = lambda **_kwargs: _FakeClient(fake)
-    try:
-        asyncio.run(
-            LLMClient().generate_video(
-                segment_prompts=["only segment"],
-                aspect_ratio="9:16",
-                generate_audio=False,
-            )
-        )
-    finally:
-        genai.Client = original
-    prompt = fake.calls[0]["input"][-1]["text"]
-    assert "No audio." in prompt
-    assert "AUDIO:" not in prompt
+    assert len(fake.calls) == 3
+    sent = [call["input"][-1]["text"] for call in fake.calls]
+    assert sent == prompts
+    # Images ride on the opening only; extensions are text alone.
+    assert fake.calls[0]["input"][0]["type"] == "image"
+    for call in fake.calls[1:]:
+        assert [part["type"] for part in call["input"]] == ["text"]

@@ -14,21 +14,20 @@ from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse, ImageResult, VideoResult
 from core.streaming import sse_format, stream_chat_sync_response
+from core.video_director import (
+    parse_client_plan,
+    plan_display_segments,
+    plan_video,
+    segments_for,
+)
 from core.video_gen import (
-    build_video_prompt,
     build_logo_animation_prompt,
     generate_maya_video,
     generate_video_storyboard,
-    plan_video_scenes,
-    plan_video_scenes_with_images,
-    plan_video_scenes_from_storyboard,
-    add_logo_instruction,
-    add_product_fidelity_guardrail,
-    build_segment_prompts,
-    segments_for,
     BEATS_PER_SEGMENT,
     LOGO_ANIMATION_STYLES,
 )
+from core.video_prompt_compiler import compile_segment_prompts
 from core.llm import (
     MAX_VIDEO_SECONDS,
     VIDEO_SEGMENT_SECONDS,
@@ -1810,8 +1809,16 @@ async def create_campaign(request: CampaignRequest):
 
 
 # ── Video Generation ──────────────────────────────────────────────────────────
+#
+# Every video flow is the same three steps: the director plans (one text call), the compiler
+# turns the plan into one prompt per 10-second segment, and Omni renders the chain. The
+# director and compiler live in core/video_director.py and core/video_prompt_compiler.py.
 
 _VIDEO_ASPECT_RATIOS = "^(16:9|9:16)$"
+
+# A serialized VideoPlan. Kept as a JSON string on the wire on purpose: Node camelizes nested
+# request objects, and the plan's snake_case fields must survive the round trip untouched.
+_VIDEO_PLAN_MAX_CHARS = 60_000
 
 
 class GenerateVideoRequest(BaseModel):
@@ -1852,11 +1859,9 @@ class CampaignVideoRequest(BaseModel):
     storyboard_image_urls: list[str] | None = Field(
         None, max_length=MAX_VIDEO_SECONDS // VIDEO_SEGMENT_SECONDS
     )
-    # A plan already returned by /campaign-video/plan and shown to the user. When present the
-    # planning step is skipped so the rendered video matches the text they approved.
-    segment_narratives: list[str] | None = Field(
-        None, max_length=MAX_VIDEO_SECONDS // VIDEO_SEGMENT_SECONDS
-    )
+    # The plan returned by /campaign-video/plan and shown to the user. When it is valid for
+    # this duration the director is skipped, so the render matches what they read.
+    video_plan: str | None = Field(None, max_length=_VIDEO_PLAN_MAX_CHARS)
 
 
 class CampaignVideoResponse(BaseModel):
@@ -1915,6 +1920,23 @@ async def _fetch_logo_image(brand_kit) -> tuple[bytes, str] | None:
         return None
 
 
+async def _fetch_images(urls: list[str] | None) -> list[tuple[bytes, str]]:
+    if not urls or settings.MOCK_MODE:
+        return []
+    fetched = await asyncio.gather(*[_fetch_image_with_mime(u) for u in urls])
+    return [f for f in fetched if f is not None]
+
+
+async def _load_brand_kit_safe(organization_id: str, route: str):
+    if not organization_id:
+        return None
+    try:
+        return await load_brand_kit(organization_id)
+    except Exception as bk_err:
+        logger.warning("%s brand_kit load failed | org=%s error=%s", route, organization_id, bk_err)
+        return None
+
+
 # Ceiling on how long a single video request may hold a worker. A clean 40s render is ~400s;
 # this leaves room for retries without letting a pathological case tie up a worker for over
 # an hour (which no browser or proxy would wait for anyway).
@@ -1960,35 +1982,34 @@ async def _generate_video_guarded(
 
 @router.post("/generate-video", response_model=GenerateVideoResponse)
 async def generate_video_endpoint(request: GenerateVideoRequest):
-    brand_kit = None
-    if request.organization_id:
-        try:
-            brand_kit = await load_brand_kit(request.organization_id)
-        except Exception as bk_err:
-            logger.warning("generate-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+    brand_kit = await _load_brand_kit_safe(request.organization_id, "generate-video")
 
-    concept = build_video_prompt(request.prompt, request.platform, brand_kit)
-    narratives = await plan_video_scenes(
-        _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
+    plan = await plan_video(
+        _llm,
+        brief=request.prompt,
+        duration_seconds=request.duration_seconds,
+        aspect_ratio=request.aspect_ratio,
+        platform=request.platform,
+        brand_kit=brand_kit,
     )
-    segment_prompts = build_segment_prompts(concept, narratives)
 
-    images: list[tuple[bytes, str]] = []
-    if request.use_logo:
-        logo = await _fetch_logo_image(brand_kit)
-        if logo:
-            images.append(logo)
-            segment_prompts = add_logo_instruction(segment_prompts)
+    logo = await _fetch_logo_image(brand_kit) if request.use_logo else None
+    segment_prompts = compile_segment_prompts(
+        plan,
+        aspect_ratio=request.aspect_ratio,
+        has_product_references=False,
+        logo_attached=logo is not None,
+    )
 
     video = await _generate_video_guarded(
         segment_prompts=segment_prompts,
-        images=images or None,
+        images=[logo] if logo else None,
         aspect_ratio=request.aspect_ratio,
     )
 
     logger.info(
-        "generate-video done | user=%s platform=%s duration=%ss",
-        request.user_id, request.platform, request.duration_seconds,
+        "generate-video done | user=%s platform=%s duration=%ss format=%s",
+        request.user_id, request.platform, request.duration_seconds, plan.format,
     )
     return GenerateVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
 
@@ -1998,12 +2019,9 @@ def _build_campaign_video_concept(
     brand_kit,
     num_images: int,
 ) -> str:
-    """Build the video concept for a campaign video. Unlike _build_campaign_style_lock
-    (a photography lighting/consistency spec built for N still photos sharing one look),
-    this keeps the campaign brief front and center so the narrative-planning LLM grounds
-    its visual metaphor and reveal in what the brief actually asks for, and is told to use
-    every reference image — not a rigid lighting/grading template that biases the result
-    toward a generic "product floating in a clean studio" shot."""
+    """The concept handed to the storyboard beat planner. (Video planning folds the same brand
+    context in itself — see core/video_director.py.) Keeps the brief front and centre and
+    tells the planner to use every reference image, not just the first."""
     parts = [
         f"Turn these {num_images} reference product image(s) into a short cinematic "
         f"product campaign video. Ground every part of the narrative — the visual "
@@ -2025,62 +2043,43 @@ def _build_campaign_video_concept(
 
 @router.post("/campaign-video", response_model=CampaignVideoResponse)
 async def campaign_video_endpoint(request: CampaignVideoRequest):
-    brand_kit = None
-    if request.organization_id:
-        try:
-            brand_kit = await load_brand_kit(request.organization_id)
-        except Exception as bk_err:
-            logger.warning("campaign-video brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+    brand_kit = await _load_brand_kit_safe(request.organization_id, "campaign-video")
+    num_segments = segments_for(request.duration_seconds)
+    product_images = await _fetch_images(request.product_image_urls)
 
-    concept = _build_campaign_video_concept(
-        request.campaign_brief, brand_kit, len(request.product_image_urls),
+    # The plan the user already read, when it is still valid for this request. Otherwise plan
+    # now — the storyboard, if there is one, informs the DIRECTOR only. Sheets are never sent
+    # to Omni: a 3x3 collage is not a reference for a single frame of a 9:16 video, and the
+    # product must match the product photos, not a drawing of it.
+    plan = parse_client_plan(request.video_plan, num_segments)
+    if plan is None:
+        storyboard_images = (
+            await _fetch_images(request.storyboard_image_urls)
+            if request.storyboard_beats else []
+        )
+        plan = await plan_video(
+            _llm,
+            brief=request.campaign_brief,
+            duration_seconds=request.duration_seconds,
+            aspect_ratio=request.aspect_ratio,
+            platform=request.platform,
+            brand_kit=brand_kit,
+            product_images=product_images,
+            storyboard_beats=request.storyboard_beats,
+            storyboard_images=storyboard_images,
+        )
+
+    # Only the opening segment is sent images; extensions inherit the look from the footage.
+    images = list(product_images)
+    logo = await _fetch_logo_image(brand_kit) if request.use_logo else None
+    if logo:
+        images.append(logo)  # must stay LAST — the logo instruction names it that way
+    segment_prompts = compile_segment_prompts(
+        plan,
+        aspect_ratio=request.aspect_ratio,
+        has_product_references=bool(product_images),
+        logo_attached=logo is not None,
     )
-
-    product_images: list[tuple[bytes, str]] = []
-    storyboard_images: list[tuple[bytes, str]] = []
-    if not settings.MOCK_MODE:
-        fetched = await asyncio.gather(
-            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
-        )
-        product_images = [f for f in fetched if f is not None]
-        if request.storyboard_image_urls:
-            fetched_sheets = await asyncio.gather(
-                *[_fetch_image_with_mime(u) for u in request.storyboard_image_urls]
-            )
-            storyboard_images = [f for f in fetched_sheets if f is not None]
-
-    has_storyboard = bool(storyboard_images and request.storyboard_beats)
-    if request.segment_narratives:
-        # Already planned and shown to the user by /campaign-video/plan — rendering the same
-        # text they were shown, rather than re-planning into something slightly different.
-        narratives = request.segment_narratives
-    elif has_storyboard:
-        narratives = await plan_video_scenes_from_storyboard(
-            _llm, concept, request.storyboard_beats, storyboard_images, product_images,
-            request.duration_seconds, request.aspect_ratio, request.platform,
-        )
-    elif product_images:
-        narratives = await plan_video_scenes_with_images(
-            _llm, concept, product_images,
-            request.duration_seconds, request.aspect_ratio, request.platform,
-        )
-    else:
-        narratives = await plan_video_scenes(
-            _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
-        )
-
-    segment_prompts = build_segment_prompts(concept, narratives)
-    if product_images:
-        segment_prompts = add_product_fidelity_guardrail(segment_prompts)
-
-    # Only the opening segment is sent images; the storyboard sheets go with it so the very
-    # first frames lock the look, and the extensions inherit it from the footage itself.
-    images = list(product_images) + storyboard_images
-    if request.use_logo:
-        logo = await _fetch_logo_image(brand_kit)
-        if logo:
-            images.append(logo)
-            segment_prompts = add_logo_instruction(segment_prompts)
 
     video = await _generate_video_guarded(
         segment_prompts=segment_prompts,
@@ -2089,9 +2088,8 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
     )
 
     logger.info(
-        "campaign-video done | user=%s platform=%s duration=%ss segments=%d",
-        request.user_id, request.platform, request.duration_seconds,
-        segments_for(request.duration_seconds),
+        "campaign-video done | user=%s platform=%s duration=%ss segments=%d format=%s",
+        request.user_id, request.platform, request.duration_seconds, num_segments, plan.format,
     )
     return CampaignVideoResponse(video=video, tokens_used=0, model_used=_agent.default_model)
 
@@ -2110,79 +2108,57 @@ class CampaignVideoPlanRequest(BaseModel):
 
 
 class CampaignVideoPlanResponse(BaseModel):
-    """One narrative per 10-second segment, in order — cheap enough to show the user before
-    committing to the render, and handed straight back on /campaign-video so what they read
-    is what gets shot."""
+    """The shot plan, cheap enough to show the user before committing to the render.
+    `segments` is one readable line per 10-second segment for display; `video_plan` is the
+    full structured plan, handed straight back on /campaign-video so what they read is what
+    gets shot."""
     segments: list[str]
+    video_plan: str
     model_used: str
 
 
 @router.post("/campaign-video/plan", response_model=CampaignVideoPlanResponse)
 async def campaign_video_plan_endpoint(request: CampaignVideoPlanRequest):
-    brand_kit = None
-    if request.organization_id:
-        try:
-            brand_kit = await load_brand_kit(request.organization_id)
-        except Exception as bk_err:
-            logger.warning("campaign-video-plan brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
-
-    concept = _build_campaign_video_concept(
-        request.campaign_brief, brand_kit, len(request.product_image_urls),
-    )
-
-    product_images: list[tuple[bytes, str]] = []
-    if not settings.MOCK_MODE:
-        fetched = await asyncio.gather(
-            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
-        )
-        product_images = [f for f in fetched if f is not None]
+    brand_kit = await _load_brand_kit_safe(request.organization_id, "campaign-video-plan")
+    product_images = await _fetch_images(request.product_image_urls)
 
     try:
-        if product_images:
-            narratives = await asyncio.wait_for(
-                plan_video_scenes_with_images(
-                    _llm, concept, product_images,
-                    request.duration_seconds, request.aspect_ratio, request.platform,
-                ),
-                timeout=90,
-            )
-        else:
-            narratives = await asyncio.wait_for(
-                plan_video_scenes(
-                    _llm, concept, request.duration_seconds, request.aspect_ratio, request.platform,
-                ),
-                timeout=90,
-            )
+        # plan_video never fails on a bad plan (it falls back); the timeout guards a hung call.
+        plan = await asyncio.wait_for(
+            plan_video(
+                _llm,
+                brief=request.campaign_brief,
+                duration_seconds=request.duration_seconds,
+                aspect_ratio=request.aspect_ratio,
+                platform=request.platform,
+                brand_kit=brand_kit,
+                product_images=product_images,
+            ),
+            timeout=120,
+        )
     except Exception as err:
         logger.warning("campaign-video-plan failed | user=%s error=%s", request.user_id, err)
         raise HTTPException(status_code=502, detail=f"Video planning failed: {err}")
 
     logger.info(
-        "campaign-video-plan done | user=%s platform=%s segments=%d",
-        request.user_id, request.platform, len(narratives),
+        "campaign-video-plan done | user=%s platform=%s segments=%d format=%s",
+        request.user_id, request.platform, len(plan.segments), plan.format,
     )
-    return CampaignVideoPlanResponse(segments=narratives, model_used=_agent.default_model)
+    return CampaignVideoPlanResponse(
+        segments=plan_display_segments(plan),
+        video_plan=plan.model_dump_json(),
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/campaign-video/storyboard", response_model=StoryboardResponse)
 async def campaign_video_storyboard_endpoint(request: StoryboardRequest):
-    brand_kit = None
-    if request.organization_id:
-        try:
-            brand_kit = await load_brand_kit(request.organization_id)
-        except Exception as bk_err:
-            logger.warning("campaign-video-storyboard brand_kit load failed | org=%s error=%s", request.organization_id, bk_err)
+    brand_kit = await _load_brand_kit_safe(request.organization_id, "campaign-video-storyboard")
 
     concept = _build_campaign_video_concept(
         request.campaign_brief, brand_kit, len(request.product_image_urls),
     )
-
-    product_images: list[tuple[bytes, str]] = []
-    if not settings.MOCK_MODE:
-        fetched = await asyncio.gather(
-            *[_fetch_image_with_mime(u) for u in request.product_image_urls]
-        )
-        product_images = [f for f in fetched if f is not None]
+    product_images = await _fetch_images(request.product_image_urls)
 
     logo_image: tuple[bytes, str] | None = None
     if request.use_logo:

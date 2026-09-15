@@ -1849,7 +1849,7 @@ export const createCampaignVideo = async (
         use_logo: input.useLogo,
         storyboard_beats: input.storyboardBeats,
         storyboard_image_urls: input.storyboardImageUrls,
-        segment_narratives: input.segmentNarratives,
+        video_plan: input.videoPlan,
       },
     }),
     draftVideoCaption(userId, organizationId, input.campaignBrief, input.platform),

@@ -1,26 +1,22 @@
+"""Maya video generation: storyboard sheets, the render call, and logo animation.
+
+Planning lives in core/video_director.py (brief -> structured shot plan) and prompt assembly
+in core/video_prompt_compiler.py (plan -> one prompt per 10-second segment). This module keeps
+what sits around them: the optional storyboard collage, the thin wrapper that hands compiled
+prompts to Gemini Omni, and the hardcoded logo-animation styles.
+"""
+
 import asyncio
 import base64
 import logging
 import math
 
-from core.brand_kit import BrandKit, get_platform_tone
 from core.image_gen import product_identity_instructions
-from core.llm import (
-    LLMClient,
-    GEMINI_FLASH,
-    MAX_VIDEO_SECONDS,
-    MAX_WORDS_PER_LINE,
-    MAX_WORDS_PER_SEGMENT,
-    SPEECH_CUTOFF_SECONDS,
-    SPEECH_LEAD_IN_SECONDS,
-    SPEECH_TAIL_SECONDS,
-    SPEECH_WINDOW_SECONDS,
-    SPEECH_WORDS_PER_SECOND,
-    VIDEO_DURATION_OPTIONS,
-    VIDEO_SEGMENT_SECONDS,
-)
+from core.llm import GEMINI_FLASH, LLMClient, VIDEO_SEGMENT_SECONDS
 from core.logo_animation_styles import LOGO_STYLE_DATA
 from core.models import VideoResult
+from core.video_director import segments_for
+from core.video_prompt_compiler import audio_block
 
 logger = logging.getLogger("video_gen")
 
@@ -28,426 +24,11 @@ logger = logging.getLogger("video_gen")
 # 40s video is planned as four sheets of nine beats rather than nine beats stretched thin.
 BEATS_PER_SEGMENT = 9
 
-
-def segments_for(duration_seconds: int) -> int:
-    """How many 10-second renders make up a video of this length."""
-    return max(1, math.ceil(duration_seconds / VIDEO_SEGMENT_SECONDS))
-
-
-_TEXT_ACCURACY_GUARDRAIL = (
-    "TEXT ACCURACY — NON-NEGOTIABLE: Any text that appears anywhere in the video — on the "
-    "product, on the brand logo, in on-screen captions, or on any label, sign, or package — "
-    "must be spelled correctly and rendered legibly, with every character matching its "
-    "source exactly. No garbled, duplicated, invented, or misspelled characters. A single "
-    "spelling or typography error is a failure. If a piece of text cannot be rendered "
-    "clearly and correctly, keep it soft-focus or out of frame rather than guessing at it."
+_STORYBOARD_PRODUCT_FIDELITY = (
+    "PRODUCT FIDELITY: where the product appears, reproduce it exactly as the reference images "
+    "show it — shape, proportions, colours, materials, finish, logo and printed text. Never "
+    "redesign or reimagine it."
 )
-
-_ENDING_GUARDRAIL = f"""\
-ENDING — NON-NEGOTIABLE: The video must end deliberately, never feel cut off, in PICTURE AND IN
-SOUND. All action, camera movement, and every spoken word must fully resolve BEFORE the final
-{SPEECH_TAIL_SECONDS:g} seconds. Those last {SPEECH_TAIL_SECONDS:g} seconds are a held, settled
-closing shot with NO speech in them at all: the subject at rest, the camera still or drifting to
-a stop, nothing new beginning, nobody starting or finishing a sentence.
-
-THE LAST WORD OF THE FILM IS THE THING MOST OFTEN GOT WRONG. It must be completely out of the
-speaker's mouth at least {SPEECH_TAIL_SECONDS:g} seconds before the last frame, spoken at a
-relaxed, unhurried pace. If the closing line cannot finish that early at a natural pace, SHORTEN
-IT — drop words until it does. A short line delivered whole is correct; the full line clipped
-mid-word is a failure, and so is the full line rattled off at double speed to squeeze it in.
-Never end mid-motion, mid-gesture, mid-word, mid-syllable, or mid-camera-move; the final frame
-should look like an intentional closing frame a viewer could pause on.
-
-THE SOUND RUNS TO THE VERY END. Ambience, room tone, and any music hold steady through the
-closing seconds and through the final frame — the speech stops early, the audio never does. A
-film whose sound drops out, goes abruptly silent, or ends before the picture does is a failure.
-Never fade out, dip, or cut to black: the very last frame must still be the fully lit, composed
-image — a black or half-faded final frame is a failure, and it is also the frame the video is
-thumbnailed on."""
-
-_CONTINUATION_GUARDRAIL = (
-    "DO NOT END HERE — NON-NEGOTIABLE: This is NOT the end of the video; more footage "
-    "continues immediately from this segment's final frame. It must end IN MOTION, "
-    "mid-development — the camera still moving, the action still unfolding, on a beat that "
-    "visibly wants the next moment. Never settle, hold, come to rest, fade out, cut to "
-    "black, land on a composed 'final' frame, or resolve the story here. Leave the subject, "
-    "framing, and motion in a state the next segment can pick up from without a visible seam. "
-    "Any spoken line here must still be FINISHED inside this segment, and finished EARLY: the "
-    f"last word is out of the speaker's mouth by about {SPEECH_CUTOFF_SECONDS:g} seconds in, and "
-    f"the final {SPEECH_TAIL_SECONDS:g} seconds carry no speech at all — only the action "
-    "continuing, with ambience and score running unbroken underneath. The cut into the next "
-    "segment is a HARD AUDIO CUT: a line still being spoken when it arrives is chopped mid-word "
-    "in the middle of the finished film, exactly as it would be at the very end. Never trail a "
-    "line off, never start a line you cannot finish in time, never break one across the cut, and "
-    "never speed the delivery up to make it fit — cut words instead. Ending on continuing MOTION "
-    "is the hand-off; ending on a half-spoken sentence is a defect."
-)
-
-_PRODUCT_FIDELITY_GUARDRAIL = (
-    "PRODUCT FIDELITY — NON-NEGOTIABLE: Before rendering, study the reference image(s) "
-    "closely — its exact shape, proportions, colors, materials, finish, logo placement, "
-    "and every piece of on-package text — and hold that exact mental model for the entire "
-    "shot. Reproduce the product from the reference image(s) EXACTLY as shown, in every "
-    "frame. Do not alter its shape, proportions, colors, materials, finish, or design "
-    "details. Do not add, remove, resize, or reposition any part of it. The product must "
-    "look like the same physical object throughout, not a redesigned or reimagined version "
-    "of it."
-)
-
-# Extension segments get no reference images of their own — they inherit the product
-# through the interaction chain — so the guardrail points at the established footage.
-_PRODUCT_FIDELITY_CONTINUED = (
-    "PRODUCT FIDELITY — NON-NEGOTIABLE: Recall the exact product established in the footage "
-    "so far — its shape, proportions, colors, materials, finish, logo, and typography — and "
-    "hold that same mental model here. The product must stay EXACTLY as it appeared in "
-    "earlier segments. Do not redesign, restyle, relabel, or subtly drift it as the shot "
-    "continues; it is the same physical object in every frame of the finished video, not a "
-    "fresh interpretation of it."
-)
-
-def _speech_budget(num_segments: int) -> tuple[int, int]:
-    """Roughly how much spoken language a film of this length can actually carry.
-
-    Budgeted off the per-segment SPEECH WINDOW rather than the raw runtime, because the
-    runtime is not all speakable: every 10-second render opens with a lead-in and closes with
-    a mandatory speech-free tail (core/llm.py), and words budgeted into that tail are words
-    the renderer clips mid-syllable. Derived rather than hardcoded so it scales with whatever
-    durations the product offers.
-    """
-    words = max(6, MAX_WORDS_PER_SEGMENT * num_segments)
-    lines = max(1, round(words / MAX_WORDS_PER_LINE))
-    return words, lines
-
-
-# The timing contract, in the planner's own words. Quotes the same figures core/llm.py puts in
-# front of the render model, so the plan cannot be written to a budget the renderer will not
-# honour. Every dialogue direction below includes this verbatim.
-_SPEECH_TIMING_RULES = f"""\
-SPEECH TIMING — READ THIS BEFORE WRITING A SINGLE LINE. The single most common defect in this
-format is audio cut off mid-word while the picture ends fine. The film is rendered in
-{VIDEO_SEGMENT_SECONDS}-second stretches and the sound is chopped dead at the end of every one of
-them — at a join between stretches just as hard as at the end of the film. So each stretch has a
-speech window and a silent tail, and they are not negotiable:
-
-- Nobody speaks in the first {SPEECH_LEAD_IN_SECONDS:g} second of a stretch; the shot establishes
-  itself first.
-- All speech in a stretch is finished by the {SPEECH_CUTOFF_SECONDS:g}-second mark, leaving the
-  final {SPEECH_TAIL_SECONDS:g} seconds with no spoken words in them at all.
-- That leaves about {SPEECH_WINDOW_SECONDS:g} seconds of usable speech per stretch. At an
-  unhurried, natural {SPEECH_WORDS_PER_SECOND:g} words per second — real speech with breath and
-  pauses in it, not a fast read — that is at most {MAX_WORDS_PER_SEGMENT} spoken words in any one
-  stretch, and no single unbroken line longer than {MAX_WORDS_PER_LINE} words.
-- COUNT THE WORDS of every line you write, and count them again for the closing line. A line
-  over {MAX_WORDS_PER_LINE} words is not a style choice, it is a line that will be clipped.
-- NEVER fix a too-long line by having it delivered faster. A rushed line is as bad an ending as
-  a clipped one — the brief here is unhurried, not compressed. Cut words until it fits at a
-  relaxed pace. Two short lines with a beat between them are better than one long one.
-- The silent tail is never silent-SOUNDING: ambience, room tone, and score keep running through
-  it and through the very last frame. What stops early is the talking, not the audio.
-- Prefer plain, short, self-contained sentences. A line with a subordinate clause, a list, or a
-  dash in the middle of it is a line whose second half gets lost."""
-
-
-_SCENE_PLAN_OPENING_SHORT = """\
-You are an award-winning commercial director and cinematographer writing a single
-continuous action description for a world-class, premium AI-generated video advertisement.
-Output ONLY that description — no preamble, no markdown, no headings, no shot numbers, and
-NEVER any timestamps or time ranges (do not write things like "0-2s:", "first half", "at
-the 3 second mark", etc.).
-
-Write it as one flowing, richly specific passage of natural language — the way a skilled
-director would narrate a continuous take to a cinematographer. Use concrete, vivid
-production vocabulary throughout: specific camera work, specific lighting, specific
-texture/material detail, and specific color and mood. Always choose the most vivid,
-concrete word available — never vague or generic language."""
-
-
-_SCENE_PLAN_OPENING_LONG = """\
-You are an award-winning commercial director writing a broadcast television commercial —
-the kind that runs in a prime-time break or as a paid social film, and that people actually
-remember. Output ONLY the shooting narrative — no preamble, no markdown, no headings, no
-shot numbers, and NEVER any timestamps or time ranges (do not write things like "0-2s:",
-"first half", "at the 3 second mark", etc.).
-
-Write it as flowing, richly specific natural language — the way a director narrates the
-film to a cinematographer and a cast. Use concrete, vivid production vocabulary throughout:
-specific camera work, specific lighting, specific texture and material detail, specific
-colour and mood. Always choose the most vivid, concrete word available — never vague or
-generic language.
-
-THIS IS A STORY, NOT A MONTAGE — THE MOST IMPORTANT RULE HERE. At this length, a sequence
-of handsome camera moves around the product is a FAILURE, however beautiful each shot is.
-Drifting around a product, pouring it, stirring it, and cutting to a pack shot is product
-photography in motion, not an advertisement. A real commercial has someone in it who wants
-something, a moment where that want is felt, a turn where the product changes the situation,
-and a visibly different state at the end. Write THAT, and let the photography serve it.
-
-CAST THE FILM. Decide on a specific person and commit to them: approximate age, build, hair,
-skin tone, wardrobe, and — most importantly — who they are in this moment and what they
-want. They must appear as a whole human being with a readable face, not a disembodied pair
-of hands. A film in which the only human presence is an anonymous hand entering frame is a
-failure. Give them at least one genuine, unmistakable reaction the audience can read: relief,
-delight, surprise, quiet pride, recognition.
-
-Adapt the human stake to the category — never force a lifestyle cliché onto something that
-does not fit. A consumer product usually has a user; a professional tool has an operator or
-the person whose day it rescues; an enterprise or industrial product has the decision-maker,
-technician, or team who live with the consequences; a service has the person on the
-receiving end of it. If a category genuinely has no human user, follow a process that has
-human stakes and show the people at either end of it.
-
-THE BRIEF OUTRANKS EVERY DEFAULT ABOVE. What is written above is the default shape of a
-commercial at this length, not a template to impose on every brief. When the brief asks for a
-particular treatment or format, follow the brief exactly and drop whichever defaults conflict
-with it — a brand that asked for one thing and received another has been badly served, however
-well made the result.
-
-In particular: a brief asking for a studio product film, hero product cinematography, a pure
-design or craft showcase, a texture or materials study, an abstract or graphic treatment, or
-any explicitly product-only piece wants EXACTLY that — light, motion, surface, and detail on
-the product itself, on the set it describes. Do not invent a cast, a storyline, or a slice of
-life it did not ask for, and do not relocate it out of the studio. A brief asking for a
-specific format — testimonial, creator/UGC, unboxing, demonstration, founder-to-camera,
-before-and-after — wants the conventions of that format, including its camera, its lighting,
-and its way of speaking, even where those are deliberately unpolished.
-
-What still holds no matter the treatment: something must DEVELOP across the film rather than
-repeating. In a product-only film the development is the product revealed with rising
-intensity — a detail, then the form, then the whole object landing as a hero — with the light,
-framing, and energy escalating shot to shot. Four handsome angles of the same static object,
-in any order, is still a failure."""
-
-
-_SCENE_PLAN_CRAFT = f"""\
-THE FIRST FRAME IS THE HOOK: social feeds decide in half a second. The very first frame
-must already be visually magnetic — motion in progress, a striking detail, a face, light
-doing something deliberate. Never open on an empty establishing beat, a blank surface, or
-a slow fade-in from nothing; the video starts mid-life, not at rest.
-
-CAMERA MOTION: name at least one deliberate, specific camera move in the narrative — a
-slow push-in, an orbital drift, a rack focus pull, a rise or descend, a whip-cut settle,
-a handheld drift — rather than implying a static tripod. The camera is a storyteller, not
-a security camera; but keep the movement motivated and smooth, never frantic.
-
-SOUND SIGNATURE: the video is generated WITH audio. Include one short clause describing
-the ambient/sync sound world — the fizz, the pour, the room tone, the fabric rustle, a
-low warm score — folded naturally into the narrative, matching the register of the
-concept. Never leave the soundscape unplanned.
-
-Choose the visual style, lighting, mood, and pacing that genuinely fit THIS product/
-category and brief — do not default to one fixed "luxury/glamour" look for everything.
-For example: a pharmaceutical or health product calls for clinical precision, trustworthy
-scientific visualization, and calm reassurance, not perfume-ad glamour or opulent jewelry
-lighting. A fragrance or luxury good calls for glamour and opulence. A tech product calls
-for clean, minimal, futuristic precision. A food product calls for warm, appetizing,
-tactile detail. Infer the right register from the concept below and commit to it fully —
-never let one generic "premium cinematic" template override what the concept actually
-calls for.
-
-Where the concept describes a specific problem, benefit, or process (e.g. a health
-condition, a use case, an emotional pain point), invent one clear visual metaphor that
-dramatizes exactly that — grounded in what the concept literally asks for, not a generic
-substitute (e.g. if the concept is about a digestive or internal process, show that
-process and the product visibly resolving it — do not fall back to a generic "product
-floating in a clean studio" shot instead). Ground the metaphor in plausible physical
-imagery; never depict impossible effects or make exaggerated, false, or misleading claims
-about what the product/service actually does — symbolize the benefit, don't overstate it."""
-
-
-_PRODUCT_FIDELITY_NOTE = """\
-If reference images are provided, every detail of the real subject's appearance, packaging,
-logo, typography, colour, and proportions — drawn from ALL of the images provided, not just
-one — must be reproduced with total fidelity, never redesigned, simplified, or altered."""
-
-
-_PRODUCT_PRESENCE_SHORT = f"""\
-Always build toward a clear reveal of the product/subject, in whatever register fits its
-category and mood, ending on a sharp, well-composed final shot.
-
-{_PRODUCT_FIDELITY_NOTE}"""
-
-
-_PRODUCT_PRESENCE_LONG = f"""\
-THE PRODUCT IS THE LEAD, NOT THE CAMEO. Saving it for a pack shot at the end wastes the
-film: a viewer who drops out early never learns what is being sold. It must be clearly
-identifiable EARLY — recognisable in the opening stretch, not teased in shadow — present
-and doing something through the middle, and held clean and legible at the very end. It is
-what the person in the film is actually using, and the story should not work without it.
-
-Show the product being genuinely USED, not merely displayed: opened, applied, worn, poured,
-operated, worked with, relied on — whatever real use looks like for this category. The
-single most valuable shot in the film is the moment of use landing on a human reaction, and
-the film must contain that moment.
-
-Close on an end frame worthy of a broadcast spot: the product hero and unmistakable, its
-packaging, label, and brand mark sharp and readable if reference images provide them, the
-scene resolved and at rest.
-
-{_PRODUCT_FIDELITY_NOTE}"""
-
-
-_DIALOGUE_SHORT = f"""\
-DIALOGUE & ON-SCREEN SPEECH: Only include spoken dialogue or on-screen speech if the concept
-genuinely calls for it — never invent a line just to have one. When you do include one, keep it
-to a single short, natural line — a handful of words, not a full sentence — so it can be spoken
-completely and unhurriedly and still land with clear air before the video ends.
-
-{_SPEECH_TIMING_RULES}
-
-At this length that means ONE short line, {MAX_WORDS_PER_LINE} words or fewer — two at the very
-most, and never a paragraph or a back-and-forth exchange. Place it in the opening or middle of the
-action, never on the closing beat: the last thing the viewer hears should be followed by a held,
-wordless image, not by the video running out. A shorter line spoken cleanly always beats a longer
-one that loses its last word.
-
-Fold the line into the flowing narrative exactly as a director would describe it being delivered
-in the moment (e.g. "...she exhales and says, 'Relief, finally.'") — never introduce it as a
-separate timed cue (no "at 3 seconds she says..." phrasing)."""
-
-
-def _dialogue_direction(duration_seconds: int, num_segments: int) -> str:
-    """How much the film may speak, and what the speech has to accomplish.
-
-    The short-form wording is deliberately suppressive — at 10 seconds a spare line is
-    usually right. At broadcast lengths that same wording starves the film, so the budget is
-    derived from the speakable window instead of asserted.
-    """
-    if num_segments == 1:
-        return _DIALOGUE_SHORT
-    words, lines = _speech_budget(num_segments)
-    return f"""\
-DIALOGUE — THIS FILM SPEAKS. A {duration_seconds}-second commercial carries real spoken
-language, and silence broken only by two slogan fragments is a wasted spot. But it speaks in
-short, unhurried lines with air around them, because the sound is cut dead at every
-{VIDEO_SEGMENT_SECONDS}-second boundary. Budget about {words} spoken words across the whole film —
-roughly {lines} lines — and never more than {MAX_WORDS_PER_SEGMENT} words inside any one
-{VIDEO_SEGMENT_SECONDS}-second stretch. Treat that as a ceiling to write toward, not a quota to
-pad: every line must earn its place, and the film still needs to breathe between them.
-
-SPREAD THE SPEECH ACROSS THE WHOLE FILM. This is the rule most often got wrong: a film that
-runs silent and then delivers two short lines near the end has NOT written dialogue, it has
-written a slogan. Where the film speaks at all, there should be spoken language in the
-opening {VIDEO_SEGMENT_SECONDS}-second stretch and in most stretches after it — it talks
-throughout, the way a broadcast spot does.
-
-TWO EXCEPTIONS, AND THEY OVERRIDE THE BUDGET. First, if the brief asks for a treatment that
-does not speak — a studio product film, an atmospheric or purely visual piece, a music-led
-montage, or anything the brief describes without people — then write no dialogue at all and
-let sound design and score carry it. Silence chosen on purpose is far stronger than a line
-invented to satisfy a quota. When you make that choice, state it outright by ending the block
-with the sentence "No dialogue." so the renderer is told explicitly rather than left to infer
-it. Second, only give a line to someone physically able to deliver
-it in that moment: a person mid-sprint, mid-lift, straining, laughing, eating, underwater, or
-across a noisy room cannot speak a considered sentence, and writing one for them reads as
-false instantly. Let those stretches play on breath, effort, and sound instead.
-
-Write lines a real person would say out loud, in their own voice — not advertising copy read
-aloud. "This is going to be a good day" is dialogue; "Premium quality for the modern
-lifestyle" is a slogan pretending to be one. Contractions, hesitations, and plain words are
-good.
-
-SERIOUSLY CONSIDER A SECOND CHARACTER. One person alone in a room can only murmur to
-themselves or be narrated over; two people can actually talk — a partner, a colleague, a
-friend, a child, a customer and whoever serves them. An exchange, even two or three traded
-lines, plays far better than a lone character thinking out loud, and far better than a
-disembodied narrator. Use one character alone only when the concept truly calls for
-solitude.
-
-Across the film the speech should do three jobs: open by pulling the viewer in (a line of
-dialogue, a question, something overheard); somewhere in the middle name the real benefit
-the way a person would actually describe it, not as a feature list; and close with one
-clean, confident line that lands the brand and could be the last thing heard in a TV break.
-A brand or product name spoken naturally in the closing line is usually right.
-
-THE CLOSING LINE IS THE ONE THAT GETS CLIPPED, SO WRITE IT SHORTEST. Make the final line of the
-film shorter than every other line in it — {max(3, MAX_WORDS_PER_LINE - 3)} words or fewer — and
-place it early enough in the last stretch that the closing images play on after it in silence. A
-brand name landing cleanly with a held, wordless beat after it is worth far more than a longer
-sign-off that loses its last syllable. Never make the last line the last thing that happens.
-
-Never write speech that cannot finish. Each spoken line belongs to ONE continuous
-{VIDEO_SEGMENT_SECONDS}-second stretch and must start and finish inside it, with air on either
-side. A line that runs past the end of its stretch is not carried over into the next one — it is
-cut off mid-word, and the finished film has an audible chop in the middle of it.
-
-{_SPEECH_TIMING_RULES}
-
-Fold every line into the flowing narrative exactly as a director would describe it being
-delivered in the moment (e.g. "...she exhales, half laughing, and says, 'Finally.'") — never
-as a separate timed cue, a script block, or a "VO:" label."""
-
-
-_SCENE_PLAN_RULES = f"""\
-Rules:
-- The FINISHED VIDEO must feel like a complete, self-contained piece with a clear
-  beginning, a middle development, and a deliberate closing beat that resolves the action
-  (a settle, a hold, a button moment, dialogue reaching its final line). It must never end
-  mid-action, mid-sentence, mid-word, or feel cut off, whatever its target duration — and
-  that applies to the SOUND as much as to the picture: the last spoken word lands at least
-  {SPEECH_TAIL_SECONDS:g} seconds before the final frame, and the ambience carries the rest.
-  When the video is planned as several consecutive segments, this applies to the arc as a
-  whole — only the FINAL segment carries that closing beat, and every earlier one
-  deliberately does not.
-- If the aspect ratio is 9:16 (vertical), compose for vertical viewing: keep the subject
-  and key action in the middle band of the frame, with clean headroom at the top and
-  bottom thirds where platform UI (captions, buttons) overlays — never place critical
-  detail at the extreme top or bottom edge.
-- Any dialogue or on-screen speech must be short enough to finish completely, at an
-  unhurried pace, with at least {SPEECH_TAIL_SECONDS:g} seconds of wordless screen time
-  after it — never trail off, get cut short, get rushed to fit, or leave a line unfinished.
-  When a line will not fit, shorten the line; never speed it up.
-- Keep continuity — the subject, setting, and style stay consistent throughout unless the
-  concept explicitly calls for a scene change.
-- End your description — each segment block separately, when the plan is split into
-  segments — with one final line starting with "Style:" listing comma-separated
-  production/technical descriptors that match THIS concept's actual category and mood (not
-  a fixed luxury template) — e.g. clinical and trustworthy medical visualization for a
-  health product, or hyper-realistic glamour lighting for a fragrance — plus any fidelity
-  constraints that apply (e.g. preserve every logo, color, texture, and design element
-  exactly as provided, across all reference images; no misleading or exaggerated claims).
-
-{_TEXT_ACCURACY_GUARDRAIL}
-"""
-
-
-_SCENE_PLAN_IMAGE_NOTE = f"""
-You are given one or more reference images of the actual product/subject, optionally from
-different angles. Study them closely first — its exact shape, proportions, colors,
-materials, finish, logo placement, and every piece of on-package text — before writing a
-single word of the narrative. Ground every part of the narrative in exactly what you see —
-across ALL of the images provided, not just the first one — and do not invent or guess at
-details none of the images clearly show. Describe the same, consistent product in every
-segment of the narrative — it must read as one physical object throughout, not a slightly
-different one shot to shot.
-
-{_PRODUCT_FIDELITY_GUARDRAIL}
-"""
-
-
-def _build_scene_plan_system(
-    duration_seconds: int, num_segments: int, with_images: bool = False
-) -> str:
-    """Assemble the narrative planner's system prompt for this runtime.
-
-    A ten-second spot and a forty-second spot are different crafts, not the same craft at
-    two lengths. Short form keeps the proven single-continuous-take direction; anything
-    longer is briefed as a scripted television commercial — cast, story turn, and a real
-    speaking budget — because at broadcast length the short-form wording reliably produces
-    a handsome product montage with two slogan fragments instead of an advertisement.
-    """
-    opening = _SCENE_PLAN_OPENING_SHORT if num_segments == 1 else _SCENE_PLAN_OPENING_LONG
-    presence = _PRODUCT_PRESENCE_SHORT if num_segments == 1 else _PRODUCT_PRESENCE_LONG
-    parts = [
-        opening,
-        _SCENE_PLAN_CRAFT,
-        presence,
-        _dialogue_direction(duration_seconds, num_segments),
-        _SCENE_PLAN_RULES,
-    ]
-    system = "\n\n".join(parts)
-    if with_images:
-        system += _SCENE_PLAN_IMAGE_NOTE
-    return system
 
 _STORYBOARD_ARC_SINGLE = """\
 Beat 1 (hook): an opening that earns attention — an intriguing detail, an establishing shot of the
@@ -565,236 +146,8 @@ paragraphs with a line containing only three dashes (---) and nothing else. Do n
 beats, and do not add headings, labels, or any text other than the {total_beats} beat paragraphs
 and the dash separators.
 
-{_PRODUCT_FIDELITY_GUARDRAIL}
+{_STORYBOARD_PRODUCT_FIDELITY}
 """
-
-_STORYBOARD_MATCH_INSTRUCTION = (
-    "This storyboard image and the beats below are the APPROVED plan for this video — do not "
-    "invent a different concept, setting, or product treatment. Write ONE continuous cinematic "
-    "narrative (no timestamps, no shot labels) that flows through these beats in this exact "
-    "order, using the same product, styling, setting, and mood shown in the storyboard image. "
-    "The beats are the narrative arc, not equal timed slots — early and middle beats may pass "
-    "quickly, but the FINAL beat must be given generous room: all action resolves before the "
-    "end, and the video closes by settling and holding on that final resolved frame in complete "
-    "stillness, so it ends deliberately rather than feeling cut off mid-motion. Any speech in "
-    "the final beat finishes early enough that this closing hold plays with no words in it — "
-    "ambience and score still running underneath — so the audio resolves as deliberately as the "
-    "picture does."
-)
-
-# Mirrors the wording used for logo compositing in image generation (core/image_gen.py) —
-# same "mandatory, faithful reproduction, corner placement" pattern, adapted for video.
-_LOGO_INSTRUCTION = (
-    "MANDATORY: The LAST reference image provided is the brand logo. You MUST include it "
-    "in the video — its absence is a failure. Reproduce it with EXACT accuracy: identical "
-    "shape, colors, and proportions — do not simplify, redraw, or reinterpret it. If the logo "
-    "contains any text, reproduce every character exactly as shown; a misspelled or altered "
-    "logo is a failure, not a stylistic variation. Composite it as a subtle corner watermark "
-    "(bottom-right preferred), occupying roughly 8-12% of the frame width and unmistakably "
-    "readable by the time the video closes. It must never obscure or compete with the main "
-    "subject."
-)
-
-# Extensions are sent no images, so the logo has to be described as already on screen.
-_LOGO_INSTRUCTION_CONTINUED = (
-    "MANDATORY: Keep the brand logo watermark exactly as it already appears in the footage — "
-    "same corner, same size, same colors, same spelling — for the whole of this segment. Do "
-    "not drop it, move it, resize it, redraw it, or let it drift; it is the same composited "
-    "mark, unchanged."
-)
-
-
-def build_video_prompt(
-    prompt: str,
-    platform: str,
-    brand_kit: BrandKit | None = None,
-) -> str:
-    """Enrich a raw user prompt with brand voice/tone context for text-to-video generation."""
-    tone = get_platform_tone(brand_kit, platform) if brand_kit else None
-    parts = [
-        "Professional short-form commercial video. Camera work, lighting, and mood should "
-        "match the product category and concept described below — not a fixed template.",
-        f"Scene: {prompt}",
-    ]
-    if tone:
-        parts.append(f"Tone and mood: {tone}.")
-    if brand_kit and brand_kit.brand_voice:
-        parts.append(f"Brand voice: {brand_kit.brand_voice}.")
-    return " ".join(parts)
-
-
-def add_logo_instruction(segment_prompts: list[str]) -> list[str]:
-    """Append the mandatory logo-compositing instruction to every segment of a video plan.
-    Call this only when a logo image is being appended as the LAST entry in the images
-    list. Only the opening segment is sent the image itself, so later segments are told to
-    carry forward the watermark already established rather than to look for a reference."""
-    return [
-        f"{p}\n\n{_LOGO_INSTRUCTION if i == 0 else _LOGO_INSTRUCTION_CONTINUED}"
-        for i, p in enumerate(segment_prompts)
-    ]
-
-
-def add_product_fidelity_guardrail(segment_prompts: list[str]) -> list[str]:
-    """Append the mandatory product-fidelity instruction to every segment of a video plan.
-    Call this whenever real product reference images are included in the images list."""
-    return [
-        f"{p}\n\n{_PRODUCT_FIDELITY_GUARDRAIL if i == 0 else _PRODUCT_FIDELITY_CONTINUED}"
-        for i, p in enumerate(segment_prompts)
-    ]
-
-
-def build_segment_prompts(concept: str, narratives: list[str]) -> list[str]:
-    """Prefix each planned segment narrative with the concept to make the prompt actually sent
-    to the video model. Kept separate from planning so a narrative can be shown to the user,
-    handed back on the follow-up request, and rendered without being re-planned."""
-    return [f"{concept}\n\n{n.strip()}" for n in narratives]
-
-
-def _build_duration_instruction(duration_seconds: int, num_segments: int) -> str:
-    """The timing contract handed to the narrative planner.
-
-    One segment = the old single-narrative behaviour. More than one = the video is
-    rendered as consecutive 10-second extensions, so the planner must split the arc into
-    blocks that hand off cleanly and place the resolution in the last one.
-    """
-    if num_segments == 1:
-        return (
-            f"This video will run for exactly {duration_seconds} seconds — write a narrative "
-            f"that naturally fills that time and reaches a satisfying, resolved conclusion "
-            f"BEFORE the end. Budget it so the last {SPEECH_TAIL_SECONDS:g} seconds are a held, "
-            f"settled closing frame with no speech in them: every spoken word is finished by "
-            f"about the {SPEECH_CUTOFF_SECONDS:g}-second mark, and the action resolves into "
-            f"stillness rather than cutting off mid-motion. Do not mention seconds, timestamps, "
-            f"or any timing markers anywhere in your description."
-        )
-    return (
-        f"This video runs for exactly {duration_seconds} seconds and is rendered as "
-        f"{num_segments} consecutive {VIDEO_SEGMENT_SECONDS}-second segments: an opening shot, "
-        f"then {num_segments - 1} extensions that each continue the previous footage from its "
-        f"final frame. Plan ONE story that spans the full {duration_seconds} seconds, then "
-        f"write it out as exactly {num_segments} blocks — one per segment, in order — "
-        f"separated by a line containing only three dashes (---) and nothing else.\n\n"
-        f"Pace a STORY across the segments, not a series of angles: segment 1 opens on the "
-        f"person and their situation and establishes what they want or what is in their way; "
-        f"the middle segments bring the product in and let it visibly change that situation, "
-        f"shown through use and reaction rather than description; segment {num_segments} pays "
-        f"it off — the person visibly better off than they started — and closes on the product "
-        f"held clean and legible. If nothing has changed for anyone between segment 1 and "
-        f"segment {num_segments}, the film has no story and must be rewritten.\n\n"
-        f"Every segment except the last must END IN MOTION — mid-gesture, mid-move, on a beat "
-        f"that visibly wants the next moment. Never let a non-final segment settle, hold, fade, "
-        f"come to rest, land on a composed 'final' frame, or finish a line of dialogue on its "
-        f"last beat: another {VIDEO_SEGMENT_SECONDS} seconds follows immediately and must pick "
-        f"up without a seam. Ending in motion is a PICTURE instruction only — the sound still "
-        f"has to land: each segment stops speaking about {SPEECH_TAIL_SECONDS:g} seconds before "
-        f"it ends, because the join is a hard audio cut and a line still running when it arrives "
-        f"is chopped mid-word inside the finished film. Segment {num_segments} is the only one "
-        f"that resolves in picture — its action and dialogue all finish with time to spare and "
-        f"it closes on a held, settled frame.\n\n"
-        f"Each block is read on its own by a model that can see the preceding footage but not "
-        f"the other blocks. So open every block with a short clause naming the subject, "
-        f"setting, and look before describing the new action — continuity must never depend on "
-        f"the other blocks' wording. Each block covers only "
-        f"{VIDEO_SEGMENT_SECONDS} seconds of screen time: one or two developments, not a whole "
-        f"story.\n\n"
-        f"Because every block is read on its own, the recurring person must be re-described in "
-        f"the SAME concrete terms every time they appear — age, build, hair, skin tone, "
-        f"wardrobe. A block that says only \"she\" or \"the woman\" will be cast as a different "
-        f"person and the film will visibly change actor mid-scene.\n\n"
-        f"Unless the concept genuinely calls for silence, EVERY block should carry at least one "
-        f"spoken line, including the first — do not save all the talking for the final block. "
-        f"Each line must begin and finish inside its own block, at most "
-        f"{MAX_WORDS_PER_LINE} words long, with at most {MAX_WORDS_PER_SEGMENT} spoken words in "
-        f"a block altogether, and with the block's last word done about "
-        f"{SPEECH_TAIL_SECONDS:g} seconds before the block ends. A block whose speech runs to "
-        f"its edge loses its final word. Since each block is written to be delivered whole, "
-        f"never split one sentence across two blocks and never have a block finish a thought "
-        f"the previous one started — write a new, complete, short line instead.\n\n"
-        f"Do not mention seconds, timestamps, segment numbers, or any timing markers inside the "
-        f"blocks themselves."
-    )
-
-
-def _split_segments(raw: str, num_segments: int) -> list[str]:
-    """Split a planner response into exactly `num_segments` segment prompts.
-
-    Falls back to blank-line splitting, then to repeating what we got, so a planner that
-    ignores the separator still yields a renderable plan rather than a 502.
-    """
-    text = raw.strip()
-    if num_segments == 1:
-        return [text]
-
-    blocks = [b.strip() for b in text.split("---") if b.strip()]
-    if len(blocks) != num_segments:
-        blocks = [b.strip() for b in text.split("\n\n") if b.strip()]
-    if not blocks:
-        blocks = [text]
-    if len(blocks) < num_segments:
-        logger.warning(
-            "video segment plan came back short | got=%d want=%d", len(blocks), num_segments
-        )
-        blocks = blocks + [blocks[-1]] * (num_segments - len(blocks))
-    return blocks[:num_segments]
-
-
-async def plan_video_scenes(
-    llm: LLMClient,
-    concept: str,
-    duration_seconds: int,
-    aspect_ratio: str,
-    platform: str,
-) -> list[str]:
-    """Turn a video concept into one continuous natural-language narrative (no
-    timestamps or shot labels) so the generated video fills the full target duration
-    with a deliberate ending instead of cutting off abruptly.
-
-    Returns one narrative per 10-second render segment — a single-element list for a 10s
-    video, four for a 40s one. Wrap with build_segment_prompts() before rendering."""
-    num_segments = segments_for(duration_seconds)
-    prompt = (
-        f"Video concept: {concept}\n"
-        f"{_build_duration_instruction(duration_seconds, num_segments)}\n"
-        f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
-    )
-    narrative = await llm.complete(
-        *GEMINI_FLASH,
-        system=_build_scene_plan_system(duration_seconds, num_segments),
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=1000 * num_segments,
-    )
-    return _split_segments(narrative, num_segments)
-
-
-async def plan_video_scenes_with_images(
-    llm: LLMClient,
-    concept: str,
-    images: list[tuple[bytes, str]],
-    duration_seconds: int,
-    aspect_ratio: str,
-    platform: str,
-) -> list[str]:
-    """Same as plan_video_scenes, but grounds the narrative in one or more reference
-    images (e.g. product photos from different angles) so the description matches the
-    real subject, not a guessed one. Do not pass the brand logo here — this is for the
-    product/subject references only; logo compositing is handled separately."""
-    num_segments = segments_for(duration_seconds)
-    prompt = (
-        f"Video concept: {concept}\n"
-        f"{_build_duration_instruction(duration_seconds, num_segments)}\n"
-        f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
-    )
-    full_prompt = f"{_build_scene_plan_system(duration_seconds, num_segments, with_images=True)}\n\n{prompt}"
-    if len(images) == 1:
-        narrative = await llm.complete_with_vision(
-            file_bytes=images[0][0],
-            prompt=full_prompt,
-            mime_type=images[0][1],
-        )
-    else:
-        narrative = await llm.complete_with_vision_multi(files=images, prompt=full_prompt)
-    return _split_segments(narrative, num_segments)
 
 
 async def plan_storyboard_beats(
@@ -992,96 +345,27 @@ async def generate_video_storyboard(
     return list(sheets), beats
 
 
-async def plan_video_scenes_from_storyboard(
-    llm: LLMClient,
-    concept: str,
-    beats: list[str],
-    storyboard_images: list[tuple[bytes, str]],
-    product_images: list[tuple[bytes, str]],
-    duration_seconds: int,
-    aspect_ratio: str,
-    platform: str,
-) -> list[str]:
-    """Same as plan_video_scenes_with_images, but anchors the narrative to an already-generated
-    storyboard (sheets + beats) instead of freely reinventing one, so the final video visually
-    and narratively matches what the user saw in the storyboard step.
-
-    Beats are grouped 9 per segment in story order, and each segment's narrative is written
-    from its own group so segment k renders the beats the user approved for segment k."""
-    num_segments = segments_for(duration_seconds)
-    if num_segments > 1:
-        beats_block = "\n\n".join(
-            "\n".join(
-                f"Beat {i + 1}: {b}"
-                for i, b in list(enumerate(beats))[
-                    seg * BEATS_PER_SEGMENT : (seg + 1) * BEATS_PER_SEGMENT
-                ]
-            )
-            for seg in range(num_segments)
-        )
-        beats_block = (
-            f"The {len(beats)} approved beats, in order — beats 1-{BEATS_PER_SEGMENT} are "
-            f"segment 1, the next {BEATS_PER_SEGMENT} are segment 2, and so on, one storyboard "
-            f"sheet per segment in the same order:\n\n{beats_block}"
-        )
-    else:
-        beats_block = "\n".join(f"Beat {i + 1}: {b}" for i, b in enumerate(beats))
-    prompt = (
-        f"Video concept: {concept}\n\n"
-        f"{_STORYBOARD_MATCH_INSTRUCTION}\n\n"
-        f"{beats_block}\n\n"
-        f"{_build_duration_instruction(duration_seconds, num_segments)}\n"
-        f"Aspect ratio: {aspect_ratio}. Platform: {platform}."
-    )
-    full_prompt = f"{_build_scene_plan_system(duration_seconds, num_segments, with_images=True)}\n\n{prompt}"
-    narrative = await llm.complete_with_vision_multi(
-        files=storyboard_images + product_images, prompt=full_prompt
-    )
-    return _split_segments(narrative, num_segments)
-
-
 async def generate_maya_video(
     llm: LLMClient,
     segment_prompts: list[str],
     images: list[tuple[bytes, str]] | None = None,
     aspect_ratio: str = "16:9",
 ) -> VideoResult:
-    """Call Gemini Omni and wrap the result as a VideoResult (base64-encoded, ready for the
-    API response). One prompt per 10-second segment; the clip runs 10s x len(segment_prompts).
+    """Render already-compiled segment prompts with Gemini Omni and wrap the result.
 
-    The ending guardrail goes on the LAST segment only — that is the one that has to resolve.
-    Every earlier segment gets the opposite instruction, so it hands off mid-motion and the
-    extension picks up without a seam."""
-    final_prompts: list[str] = []
-    for index, segment_prompt in enumerate(segment_prompts):
-        is_final = index == len(segment_prompts) - 1
-        # Applied directly to the final generation prompt (not just the planning-stage system
-        # prompt) so the model that actually renders the video sees the hard constraints too.
-        parts = [
-            segment_prompt,
-            _TEXT_ACCURACY_GUARDRAIL,
-            _ENDING_GUARDRAIL if is_final else _CONTINUATION_GUARDRAIL,
-        ]
-        if images:
-            # Callers (e.g. campaign-video) already fold a product-fidelity guardrail into
-            # the narrative earlier in segment_prompt when real reference images are in play
-            # — but that puts it in the middle of a long prompt. Restating it here, as the
-            # LAST thing the model reads before rendering, is the one part of this most
-            # prone to drift across chained extensions, so it gets the closing word too.
-            parts.append(_PRODUCT_FIDELITY_GUARDRAIL if index == 0 else _PRODUCT_FIDELITY_CONTINUED)
-        final_prompts.append("\n\n".join(parts))
-
+    One prompt per 10-second segment; the clip runs 10s x len(segment_prompts). The prompts are
+    sent exactly as given — every instruction was placed once by the compiler, and appending
+    guardrails here is how the old pipeline ended up stating product fidelity twice."""
     video_bytes = await llm.generate_video(
-        segment_prompts=final_prompts,
+        segment_prompts=segment_prompts,
         images=images,
         aspect_ratio=aspect_ratio,
     )
     return VideoResult(
         video_base64=base64.b64encode(video_bytes).decode(),
         content_type="video/mp4",
-        # Return the prompts actually sent to the model (incl. guardrails) so
-        # before/after debugging sees the real input, not a truncated one.
-        prompt_used="\n\n--- SEGMENT BREAK ---\n\n".join(final_prompts),
+        # The prompts actually sent to the model, so debugging sees the real input.
+        prompt_used="\n\n--- SEGMENT BREAK ---\n\n".join(segment_prompts),
     )
 
 
@@ -1138,6 +422,13 @@ def build_logo_animation_prompt(style_id: int, aspect_ratio: str) -> tuple[str, 
     style_name = LOGO_ANIMATION_STYLES[style_id - 1]["name"]
     aspect_note = _LOGO_ANIM_ASPECT_NOTE.get(aspect_ratio, _LOGO_ANIM_ASPECT_NOTE["9:16"])
     final_prompt = "\n\n".join([
-        core_action, _LOGO_ANIM_FIDELITY_GUARDRAIL, _LOGO_ANIM_ENDING_GUARDRAIL, aspect_note,
+        core_action,
+        _LOGO_ANIM_FIDELITY_GUARDRAIL,
+        aspect_note,
+        # The same audio contract every Maya render gets, stated once. The style prompt names
+        # the sound world; this adds the timing. The logo-specific ending below is the only
+        # ending instruction.
+        audio_block(dialogue_mode="none"),
+        _LOGO_ANIM_ENDING_GUARDRAIL,
     ])
     return final_prompt, style_name

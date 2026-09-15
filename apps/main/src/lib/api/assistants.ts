@@ -173,8 +173,10 @@ export interface CampaignVideoStoryboardResult {
 }
 
 export interface CampaignVideoPlanResult {
-  /** One narrative per 10-second segment, in order. */
+  /** One readable shot line per 10-second segment, in order, for display. */
   segments: string[]
+  /** The structured shot plan (opaque JSON string), handed back on the render request. */
+  video_plan?: string
   model_used: string
 }
 

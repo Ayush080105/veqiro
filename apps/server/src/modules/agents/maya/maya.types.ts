@@ -222,8 +222,10 @@ export interface CampaignVideoResponse {
 }
 
 export interface CampaignVideoPlanResponse {
-  /** One narrative per 10-second segment, in order. */
+  /** One readable shot line per 10-second segment, in order, for display. */
   segments: string[];
+  /** The structured shot plan as a JSON string; sent back as videoPlan on the render. */
+  video_plan: string;
   model_used: string;
 }
 

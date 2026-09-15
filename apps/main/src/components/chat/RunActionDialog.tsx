@@ -128,9 +128,10 @@ const campaignVideoSpec: ActionSpec = {
     // comes from the footage chain, not from a drawing. The standalone storyboard action
     // still exists for when someone wants the sheets themselves, and "Turn into video"
     // from that card passes its beats through below.
-    let segments: string[] | undefined = v.segment_narratives
+    let segments: string[] | undefined
+    let videoPlan: string | undefined = v.video_plan
 
-    if (!segments?.length && !v.storyboard_beats?.length) {
+    if (!videoPlan && !v.storyboard_beats?.length) {
       onStage?.({ label: "Planning the shots…" })
       try {
         const plan = await generateCampaignVideoPlan(
@@ -145,6 +146,7 @@ const campaignVideoSpec: ActionSpec = {
           conversationId
         )
         segments = plan.segments
+        videoPlan = plan.video_plan
       } catch {
         // The plan is a preview, not a prerequisite — if it fails, let the video endpoint
         // do its own planning rather than blocking the user.
@@ -154,7 +156,7 @@ const campaignVideoSpec: ActionSpec = {
     return runAgentAction(
       "maya:campaign-video",
       organizationId,
-      { ...v, segment_narratives: segments },
+      { ...v, video_plan: videoPlan },
       conversationId
     )
   },

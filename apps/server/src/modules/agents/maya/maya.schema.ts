@@ -124,11 +124,10 @@ export const campaignVideoSchema = z.object({
     .array(z.string().url())
     .max(MAX_VIDEO_SECONDS / VIDEO_SEGMENT_SECONDS)
     .optional(),
-  // A plan already returned by /campaign-video/plan and shown to the user; skips re-planning.
-  segmentNarratives: z
-    .array(z.string().max(8000))
-    .max(MAX_VIDEO_SECONDS / VIDEO_SEGMENT_SECONDS)
-    .optional(),
+  // The structured shot plan returned by /campaign-video/plan and shown to the user, as an
+  // opaque JSON string: kept a string so camelizeBody cannot rewrite its snake_case fields.
+  // apps/ai validates it and re-plans if it is invalid, so it is never trusted as-is.
+  videoPlan: z.string().max(60_000).optional(),
 });
 
 export const campaignVideoPlanSchema = z.object({
