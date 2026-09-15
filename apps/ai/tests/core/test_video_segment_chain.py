@@ -77,9 +77,11 @@ def live_video(monkeypatch):
     # asyncio.sleep by name would recurse into its own patch.
     real_sleep = asyncio.sleep
     monkeypatch.setattr(llm_module.asyncio, "sleep", lambda *_a, **_k: real_sleep(0))
+    # Process-wide memory of "the API refused images on extensions" must not leak across tests.
+    monkeypatch.setattr(llm_module, "_extension_images_rejected", False)
 
 
-def _run(fake_interactions, segments=4):
+def _run(fake_interactions, segments=4, images=None):
     client = _FakeClient(fake_interactions)
     import google.genai as genai
 
@@ -89,6 +91,7 @@ def _run(fake_interactions, segments=4):
         return asyncio.run(
             LLMClient().generate_video(
                 segment_prompts=[f"segment {i + 1}" for i in range(segments)],
+                images=images,
                 aspect_ratio="9:16",
             )
         )
@@ -143,3 +146,76 @@ def test_segment_failure_gives_up_without_restarting_the_chain(live_video):
     # Every attempt resumed from the opening shot rather than re-rendering it.
     for call in fake.calls[1:]:
         assert call["previous_interaction_id"] == "id-seg-1"
+
+
+# ── reference images on every segment ───────────────────────────────────────
+
+_IMAGES = [(b"product-front", "image/jpeg"), (b"logo", "image/png")]
+
+
+def _image_count(call: dict) -> int:
+    return sum(1 for part in call["input"] if part.get("type") == "image")
+
+
+class _RejectsExtensionImages(_FakeInteractions):
+    """Behaves like an API that refuses images on an extension with a 400."""
+
+    async def create(self, **kwargs):
+        if kwargs.get("previous_interaction_id") and any(
+            part.get("type") == "image" for part in kwargs["input"]
+        ):
+            self.calls.append(kwargs)
+            raise RuntimeError("400 INVALID_ARGUMENT: images are not supported when extending")
+        return await super().create(**kwargs)
+
+
+def test_reference_images_ride_on_every_segment(live_video):
+    """Extensions keep the real product as a reference, not just the footage so far."""
+    fake = _FakeInteractions()
+    _run(fake, segments=3, images=_IMAGES)
+    assert len(fake.calls) == 3
+    assert [_image_count(c) for c in fake.calls] == [2, 2, 2]
+    # Images first, prompt text last, on every segment.
+    for call in fake.calls:
+        assert call["input"][-1]["type"] == "text"
+
+
+def test_extension_that_rejects_images_retries_without_them_and_remembers(live_video):
+    """A 400 on images is not a render: retry the same segment text-only, straight away and
+    without spending an attempt, then stop sending images to later extensions."""
+    fake = _RejectsExtensionImages()
+    video = _run(fake, segments=3, images=_IMAGES)
+
+    assert video == b"segment-3"
+    # opening, rejected ext-2 with images, ext-2 text-only, ext-3 text-only — no wasted retries.
+    assert len(fake.calls) == 4
+    assert [_image_count(c) for c in fake.calls] == [2, 2, 0, 0]
+    # The text-only retry still resumes from the opening shot.
+    assert fake.calls[2]["previous_interaction_id"] == "id-seg-1"
+    assert llm_module.extension_images_enabled() is False
+
+
+def test_non_image_failures_on_an_extension_keep_the_images(live_video):
+    """A transient failure is not evidence the API refuses images."""
+    fake = _FakeInteractions(fail_on={1: 1})
+    _run(fake, segments=2, images=_IMAGES)
+    assert [_image_count(c) for c in fake.calls] == [2, 2, 2]
+    assert llm_module.extension_images_enabled() is True
+
+
+def test_opening_shot_bad_request_is_not_mistaken_for_an_image_refusal(live_video):
+    """The opening shot always needs its images; a 400 there must never strip them."""
+
+    class _RejectsOpening(_FakeInteractions):
+        async def create(self, **kwargs):
+            if not kwargs.get("previous_interaction_id"):
+                self.calls.append(kwargs)
+                raise RuntimeError("400 INVALID_ARGUMENT: bad opening")
+            return await super().create(**kwargs)
+
+    fake = _RejectsOpening()
+    with pytest.raises(llm_module.LLMError, match="segment 1/2"):
+        _run(fake, segments=2, images=_IMAGES)
+    assert len(fake.calls) == llm_module.VIDEO_SEGMENT_ATTEMPTS
+    assert all(_image_count(c) == 2 for c in fake.calls)
+    assert llm_module.extension_images_enabled() is True

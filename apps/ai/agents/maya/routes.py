@@ -29,6 +29,7 @@ from core.video_gen import (
 )
 from core.video_prompt_compiler import compile_segment_prompts
 from core.llm import (
+    extension_images_enabled,
     MAX_VIDEO_SECONDS,
     VIDEO_SEGMENT_SECONDS,
     VIDEO_SEGMENT_ATTEMPTS,
@@ -1999,6 +2000,7 @@ async def generate_video_endpoint(request: GenerateVideoRequest):
         aspect_ratio=request.aspect_ratio,
         has_product_references=False,
         logo_attached=logo is not None,
+        references_on_extensions=extension_images_enabled(),
     )
 
     video = await _generate_video_guarded(
@@ -2069,7 +2071,8 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
             storyboard_images=storyboard_images,
         )
 
-    # Only the opening segment is sent images; extensions inherit the look from the footage.
+    # Every segment is sent these images (llm.generate_video), so each extension keeps the real
+    # product as a reference instead of relying on the footage alone.
     images = list(product_images)
     logo = await _fetch_logo_image(brand_kit) if request.use_logo else None
     if logo:
@@ -2079,6 +2082,7 @@ async def campaign_video_endpoint(request: CampaignVideoRequest):
         aspect_ratio=request.aspect_ratio,
         has_product_references=bool(product_images),
         logo_attached=logo is not None,
+        references_on_extensions=extension_images_enabled(),
     )
 
     video = await _generate_video_guarded(

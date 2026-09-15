@@ -176,6 +176,7 @@ def test_compiled_prompts_reach_the_model_verbatim(monkeypatch):
     prompt: that is how the same rules used to reach the model three times over."""
     monkeypatch.setattr(llm_module.settings, "MOCK_MODE", False, raising=False)
     monkeypatch.setattr(llm_module.settings, "GEMINI_API_KEY", "test-key", raising=False)
+    monkeypatch.setattr(llm_module, "_extension_images_rejected", False)
     prompts = _prompts_for(3)
     fake = _FakeInteractions()
     import google.genai as genai
@@ -196,7 +197,6 @@ def test_compiled_prompts_reach_the_model_verbatim(monkeypatch):
     assert len(fake.calls) == 3
     sent = [call["input"][-1]["text"] for call in fake.calls]
     assert sent == prompts
-    # Images ride on the opening only; extensions are text alone.
-    assert fake.calls[0]["input"][0]["type"] == "image"
-    for call in fake.calls[1:]:
-        assert [part["type"] for part in call["input"]] == ["text"]
+    # The reference image rides on every segment, ahead of that segment's prompt.
+    for call in fake.calls:
+        assert [part["type"] for part in call["input"]] == ["image", "text"]

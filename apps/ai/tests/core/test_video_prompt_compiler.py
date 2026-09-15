@@ -50,12 +50,13 @@ def _plan(num_segments: int, *, dialogue: bool = False, cast: str | None = None)
     }, num_segments)
 
 
-def _compile(num_segments=3, *, refs=True, logo=False, aspect="9:16", **plan_kwargs):
+def _compile(num_segments=3, *, refs=True, logo=False, aspect="9:16", ext_refs=True, **plan_kwargs):
     return compile_segment_prompts(
         _plan(num_segments, **plan_kwargs),
         aspect_ratio=aspect,
         has_product_references=refs,
         logo_attached=logo,
+        references_on_extensions=ext_refs,
     )
 
 
@@ -88,14 +89,27 @@ def test_no_fidelity_instruction_without_product_references():
 
 
 @pytest.mark.parametrize("logo", [False, True])
-def test_extensions_never_refer_to_attached_images(logo):
-    opening, *extensions = _compile(4, logo=logo)
+def test_extensions_without_images_never_refer_to_attached_images(logo):
+    """When the API refuses images on extensions, their prompts must not claim any."""
+    opening, *extensions = _compile(4, logo=logo, ext_refs=False)
     assert "attached reference photos" in opening
     for prompt in extensions:
         lowered = prompt.lower()
         assert "attached" not in lowered
         assert "reference photo" not in lowered
         assert "reference image" not in lowered
+
+
+@pytest.mark.parametrize("logo", [False, True])
+def test_extensions_with_images_use_them_as_identity_reference_only(logo):
+    """Re-attached photos anchor the product, but must not read as a cue to cut to a new shot."""
+    opening, *extensions = _compile(3, logo=logo, ext_refs=True)
+    for prompt in extensions:
+        assert prompt.count("PRODUCT FIDELITY") == 1
+        assert "attached reference photos" in prompt
+        assert "identity reference only" in prompt
+        assert "already appears in the footage so far" in prompt
+    assert "identity reference only" not in opening
 
 
 def test_final_segment_ends_and_earlier_segments_hand_off():
@@ -149,7 +163,10 @@ def test_logo_instruction_appears_once_and_only_when_attached():
     assert opening.count("LOGO:") == 1 and extension.count("LOGO:") == 1
     assert "last attached image is the brand logo" in opening
     assert "already appears in the footage" in extension
+    assert "last attached image is that logo" in extension
     assert "every image except the last" in opening
+    _opening, text_only_extension = _compile(2, logo=True, ext_refs=False)
+    assert "attached" not in text_only_extension.lower()
     for prompt in _compile(2, logo=False):
         assert "LOGO:" not in prompt
         assert "logo watermark" not in prompt

@@ -222,6 +222,25 @@ MAX_WORDS_PER_SEGMENT = int(SPEECH_WINDOW_SECONDS * 0.8 * SPEECH_WORDS_PER_SECON
 VIDEO_SEGMENT_ATTEMPTS = 3
 VIDEO_SEGMENT_TIMEOUT = 300
 
+# Reference images are re-attached to every extension, not only the opening shot: without
+# them an extension sees only the footage so far, and any product detail the opening frames
+# did not show clearly (the back of a pack, small label text) drifts. Google Flow accepts
+# images when extending, but the API has not been confirmed to — so if an extension carrying
+# images is rejected as a bad request and the same segment then renders WITHOUT them, the
+# API evidently refuses them, and this process stops sending them. A rejected request is not
+# a render and is not billed.
+_extension_images_rejected = False
+
+
+def extension_images_enabled() -> bool:
+    """Whether extensions are currently sent the reference images too."""
+    return not _extension_images_rejected
+
+
+def _is_bad_request(err: BaseException) -> bool:
+    text = str(err)
+    return "400" in text or "INVALID_ARGUMENT" in text.upper()
+
 # A minimal 1-second black H.264 MP4 (64x64), used as the MOCK_MODE response for generate_video.
 _MOCK_VIDEO_MP4_B64 = (
     "AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMVbW9vdgAAAGxtdmhkAAAAAAAAAAAA"
@@ -1193,9 +1212,17 @@ class LLMClient:
         Scoped to a single segment on purpose: each one is an independent billed render, and
         the caller's `previous_interaction_id` still refers to the last SUCCESSFUL segment,
         so a retry continues the existing footage rather than starting the video over.
+
+        If an EXTENSION carrying reference images is rejected as a bad request, it is retried
+        once straight away without the images (that retry does not use up an attempt). If the
+        image-free retry succeeds, images on extensions are switched off for this process —
+        see `_extension_images_rejected`.
         """
+        global _extension_images_rejected
         last_err: BaseException | None = None
-        for attempt in range(VIDEO_SEGMENT_ATTEMPTS):
+        dropped_images = False
+        attempt = 0
+        while attempt < VIDEO_SEGMENT_ATTEMPTS:
             if attempt:
                 # Rate limits need real breathing room; anything else is likely transient.
                 is_rate_limited = "429" in str(last_err) or "RESOURCE_EXHAUSTED" in str(last_err).upper()
@@ -1209,12 +1236,41 @@ class LLMClient:
                     raise LLMError(
                         f"Gemini Omni interaction did not complete: status={interaction.status}"
                     )
+                if dropped_images and not _extension_images_rejected:
+                    _extension_images_rejected = True
+                    logger.error(
+                        "video_pipeline_degraded=extension_images | the API rejected reference "
+                        "images on an extension; later extensions will be sent text only"
+                    )
                 return interaction
             except Exception as err:
+                has_images = any(
+                    isinstance(part, dict) and part.get("type") == "image"
+                    for part in create_kwargs.get("input", [])
+                )
+                if (
+                    index > 0
+                    and has_images
+                    and not dropped_images
+                    and _is_bad_request(err)
+                ):
+                    logger.warning(
+                        "generate_video | segment %d/%d rejected with images; retrying without "
+                        "them | error=%s",
+                        index + 1, total, err,
+                    )
+                    create_kwargs["input"] = [
+                        part for part in create_kwargs["input"]
+                        if not (isinstance(part, dict) and part.get("type") == "image")
+                    ]
+                    dropped_images = True
+                    last_err = err
+                    continue
                 last_err = err
+                attempt += 1
                 logger.warning(
                     "generate_video | segment %d/%d attempt %d/%d failed | error=%s",
-                    index + 1, total, attempt + 1, VIDEO_SEGMENT_ATTEMPTS, err,
+                    index + 1, total, attempt, VIDEO_SEGMENT_ATTEMPTS, err,
                 )
         logger.error(
             "generate_video | segment %d/%d failed after %d attempts | %d segment(s) already "
@@ -1245,8 +1301,9 @@ class LLMClient:
         visual direction under three copies of the same rules.
 
         `images` (list of (bytes, mime_type) pairs, up to 5 + an optional logo) present =
-        image-to-video, absent = text-to-video. They are attached to the opening segment
-        only; later segments inherit them through the interaction chain."""
+        image-to-video, absent = text-to-video. They are attached to EVERY segment, so each
+        extension keeps the real product as a reference rather than only the footage so far
+        — unless the API has refused images on extensions (see extension_images_enabled())."""
         if not segment_prompts:
             raise LLMError("generate_video requires at least one segment prompt")
         duration_seconds = len(segment_prompts) * VIDEO_SEGMENT_SECONDS
@@ -1330,7 +1387,8 @@ class LLMClient:
                     response_format["aspect_ratio"] = aspect_ratio
 
                 text_part = {"type": "text", "text": segment_prompt}
-                segment_input = image_parts + [text_part] if is_opening else [text_part]
+                attach_images = is_opening or extension_images_enabled()
+                segment_input = (image_parts if attach_images else []) + [text_part]
 
                 create_kwargs: dict = {
                     "model": _OMNI_VIDEO_MODEL,
