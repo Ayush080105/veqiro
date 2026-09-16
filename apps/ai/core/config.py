@@ -35,9 +35,9 @@ class Settings(BaseSettings):
 
     SAGE_MODEL: str = Field(default="gpt-5.6-luna")
 
-    # Image generation model — override in .env to A/B test a higher tier
-    # (e.g. GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview, ~3.4x cost per image)
-    GEMINI_IMAGE_MODEL: str = Field(default="gemini-2.5-flash-image")
+    # Image generation model (Nano Banana 2 Lite) — override in .env to A/B test another tier
+    # (e.g. GEMINI_IMAGE_MODEL=gemini-3.1-flash-image or gemini-3-pro-image)
+    GEMINI_IMAGE_MODEL: str = Field(default="gemini-3.1-flash-lite-image")
 
     # Asset fetching (R2 / CDN)
     R2_FETCH_TIMEOUT: int = Field(default=10)

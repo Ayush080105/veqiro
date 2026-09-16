@@ -85,8 +85,9 @@ def product_identity_instructions(count: int) -> str:
         f"awkward angle, blur, glare, and clutter. Never invent or substitute label text: if the "
         f"label would be too small to read at this shot's scale, render it soft and out of focus "
         f"with the right colours, never as fake or garbled characters. Do NOT copy the reference's "
-        f"composition, angle, pose, or background — render the same product from a noticeably "
-        f"different perspective, inferring its full form where the reference shows one side."
+        f"background, lighting, or framing — stage the unchanged product in the new scene from the "
+        f"angle the shot calls for, inferring unseen sides conservatively. Any picture, artwork, "
+        f"face, or character on the product is part of it and is reproduced exactly, never redrawn."
     )
 
 
