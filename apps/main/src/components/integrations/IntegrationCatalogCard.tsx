@@ -5,8 +5,8 @@ import { CheckCircle2, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { StatusPill } from "@/components/ui/status-pill"
 import type { IntegrationCatalogEntry } from "@repo/integrations-catalog"
 import { useDisconnectMcp } from "@/lib/api/mcp"
 import { ConnectIntegrationModal } from "./ConnectIntegrationModal"
@@ -89,9 +89,9 @@ export function IntegrationCatalogCard({
       <CardContent className="flex items-center justify-between gap-4">
         <div className="flex flex-wrap gap-1">
           {entry.agents.map((agent) => (
-            <Badge key={agent} variant="outline" className="text-[10px]">
+            <StatusPill key={agent} level="info" icon={null}>
               {AGENT_LABEL[agent] ?? agent}
-            </Badge>
+            </StatusPill>
           ))}
         </div>
         <Button
@@ -101,7 +101,7 @@ export function IntegrationCatalogCard({
           disabled={!isConnectable || disconnect.isPending}
           title={!isConnectable ? "Coming soon" : undefined}
         >
-          {disconnect.isPending ? "…" : connected ? "Disconnect" : isConnectable ? "Connect" : "Coming soon"}
+          {disconnect.isPending ? "..." : connected ? "Disconnect" : isConnectable ? "Connect" : "Coming soon"}
         </Button>
       </CardContent>
 

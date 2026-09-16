@@ -1,8 +1,8 @@
 "use client"
 
 import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { StatusPill } from "@/components/ui/status-pill"
 import type { AgentEntitlement } from "@/lib/api/billing"
 import { money } from "@/lib/format"
 
@@ -31,8 +31,8 @@ export function AgentEntitlementRow({ entitlement }: { entitlement: AgentEntitle
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold capitalize">{agent.toLowerCase()}</span>
-              {source === "TRIAL" && <Badge variant="secondary">Trial</Badge>}
-              {status === "PAST_DUE" && <Badge variant="destructive">Payment failed</Badge>}
+              {source === "TRIAL" && <StatusPill level="info" icon={null}>Trial</StatusPill>}
+              {status === "PAST_DUE" && <StatusPill level="danger" icon={null}>Payment failed</StatusPill>}
             </div>
             <p className="text-xs text-muted-foreground">
               {cancelAtPeriodEnd

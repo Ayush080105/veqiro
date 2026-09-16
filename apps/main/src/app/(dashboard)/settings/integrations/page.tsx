@@ -7,7 +7,6 @@ import { CheckCircle2, XCircle, ExternalLink, UserCircle2, Search, Plug } from "
 import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -34,6 +33,7 @@ import { LEGACY_MCP_SLUGS } from "@/lib/config/legacy-integrations"
 import { qk } from "@/lib/query-keys"
 import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 
 // ─── Legacy (native) integrations — X/LinkedIn/Instagram connect through their
 // original mechanism (the bespoke SocialAccount OAuth module). Instagram is
@@ -56,7 +56,7 @@ const LEGACY_INTEGRATIONS: LegacyIntegrationDef[] = [
     id: "twitter",
     name: "Twitter / X",
     description:
-      "Publish Maya's drafts straight to X — tweets, threads, and posts with generated images.",
+      "Publish Maya's drafts straight to X: tweets, threads, and posts with generated images.",
     requiredBy: ["Maya"],
     platformSlug: "twitter",
     logoUrl: "https://logos.composio.dev/api/twitter",
@@ -138,8 +138,8 @@ function LegacyIntegrationCard({
       </CardHeader>
 
       {connected && accountDisplay && (
-        <div className="px-6 pb-3">
-          <div className="flex items-center gap-2 rounded-md border border-chart-2/20 bg-chart-2/8 px-2.5 py-1.5">
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border bg-muted/35 px-2.5 py-1.5">
             <UserCircle2 className="size-3.5 shrink-0 text-chart-2" />
             <span className="truncate text-[11px] font-medium text-foreground">{accountDisplay}</span>
           </div>
@@ -149,9 +149,9 @@ function LegacyIntegrationCard({
       <CardContent className="flex items-center justify-between gap-4">
         <div className="flex flex-wrap gap-1">
           {integration.requiredBy.map((agent) => (
-            <Badge key={agent} variant="outline" className="text-[10px]">
+            <StatusPill key={agent} level="info" icon={null}>
               {agent}
-            </Badge>
+            </StatusPill>
           ))}
         </div>
         <Button
@@ -161,7 +161,7 @@ function LegacyIntegrationCard({
           disabled={loading || !isWired}
           title={!isWired ? "Coming soon" : undefined}
         >
-          {loading ? "…" : connected ? "Disconnect" : isWired ? "Connect" : "Coming soon"}
+          {loading ? "..." : connected ? "Disconnect" : isWired ? "Connect" : "Coming soon"}
         </Button>
       </CardContent>
     </Card>
@@ -312,7 +312,7 @@ export default function IntegrationsPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search integrations…"
+              placeholder="Search integrations..."
               className="pl-8"
             />
           </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import { StatusPill } from "@/components/ui/status-pill"
 import type { UsageResource } from "@/lib/api/billing"
 import type { ImageIcon } from "lucide-react"
 
@@ -34,10 +34,10 @@ export function UsageBar({
         <span className="text-muted-foreground tabular-nums">
           {resource.used}{unitLabel} used / {resource.remaining}{unitLabel} remaining
           {isExhausted && (
-            <Badge variant="destructive" className="ml-2 text-[10px]">Exhausted</Badge>
+            <StatusPill level="danger" icon={null} className="ml-2">Exhausted</StatusPill>
           )}
           {!isExhausted && isNearLimit && (
-            <Badge variant="secondary" className="ml-2 text-[10px]">Running low</Badge>
+            <StatusPill level="warn" icon={null} className="ml-2">Running low</StatusPill>
           )}
         </span>
       </div>

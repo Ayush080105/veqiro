@@ -41,15 +41,15 @@ function ProofPanel({
 }) {
   if (proof.isLoading) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-[var(--vq-r)] border bg-muted/40 p-4 text-sm text-muted-foreground">
         <Loader2 className="size-4 shrink-0 animate-spin" />
-        Looking inside {name}…
+        Looking inside {name}...
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-4">
+    <div className="flex flex-col gap-2 rounded-[var(--vq-r)] border bg-muted/40 p-4">
       <div className="flex items-start gap-2">
         <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
         <div className="flex flex-col gap-1">
@@ -73,7 +73,7 @@ function ProofPanel({
           <span className="font-medium tabular-nums text-foreground">
             {proof.data.toolCount}
           </span>{" "}
-          {name} {proof.data.toolCount === 1 ? "action" : "actions"} — ask for one in chat.
+          {name} {proof.data.toolCount === 1 ? "action" : "actions"}. Ask for one in chat.
         </p>
       ) : null}
     </div>
@@ -135,7 +135,7 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
         // way for the user to complete this from here. Surface it as an
         // error instead of an infinite, unrecoverable "waiting" state.
         setErrorMessage(
-          `${name} needs further setup that isn't available yet — no connection link was returned. Try again in a moment, or contact support if this keeps happening.`
+          `${name} needs further setup that isn't available yet. No connection link was returned. Try again in a moment, or contact support if this keeps happening.`
         )
         return
       }
@@ -187,15 +187,15 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
           <DialogDescription>
             {connected
               ? proof.isLoading
-                ? `Checking what Veqiro can see in ${name}…`
+                ? `Checking what Veqiro can see in ${name}...`
                 : `Here's what Veqiro can see in ${name} right now.`
               : awaitingAuth
-                ? `Click below to finish connecting — this updates automatically once ${name} is connected.`
+                ? `Click below to finish connecting. This updates automatically once ${name} is connected.`
                 : hasFields
                   ? `Enter the details ${name} needs to connect.`
                   : errorMessage
                     ? `Something went wrong connecting ${name}.`
-                    : `Connecting to ${name}…`}
+                    : `Connecting to ${name}...`}
           </DialogDescription>
         </DialogHeader>
 
@@ -224,11 +224,11 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
           <div className="flex flex-col gap-3">
             <Button asChild>
               <a href={setupUrl} target="_blank" rel="noopener noreferrer">
-                Connect {name} →
+                Connect {name}
               </a>
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Opens in a new tab. Come back here once you&apos;re done — we&apos;ll show you what{" "}
+              Opens in a new tab. Come back here once you&apos;re done. We&apos;ll show you what{" "}
               {name} shared.
             </p>
           </div>
@@ -244,7 +244,7 @@ export function ConnectIntegrationModal({ slug, name, open, onOpenChange }: Conn
           ) : (
             showManualConnectButton && (
               <Button onClick={handleSubmit} disabled={schemaLoading || connect.isPending}>
-                {connect.isPending ? "Connecting…" : errorMessage ? "Retry" : "Connect"}
+                {connect.isPending ? "Connecting..." : errorMessage ? "Retry" : "Connect"}
               </Button>
             )
           )}

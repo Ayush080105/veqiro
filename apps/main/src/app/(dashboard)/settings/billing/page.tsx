@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import { CreditCard } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SettingsNav } from "@/components/settings/SettingsNav"
@@ -18,6 +17,7 @@ import { AgentBuyCard } from "@/components/billing/AgentBuyCard"
 import { BillingAgent, dismissPendingCheckout, openBillingPortal, useBillingCatalog, useBillingStatus } from "@/lib/api/billing"
 import { qk } from "@/lib/query-keys"
 import { EmptyState } from "@/components/ui/empty-state"
+import { StatusPill } from "@/components/ui/status-pill"
 
 const ALL_AGENTS: BillingAgent[] = ["MAYA", "SAGE", "LEX", "REX", "SCOUT", "VEGA"]
 
@@ -217,15 +217,15 @@ export default function BillingPage() {
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
         title="Billing"
-        subtitle="Each agent bills on its own — buy here, manage cancellation and payment through the billing portal."
+        subtitle="Each agent bills on its own. Buy here, manage cancellation and payment through the billing portal."
       />
 
       <SettingsNav />
 
       {pastDueAgents.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-[var(--vq-r-sm)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Payment failed for {pastDueAgents.map((e) => e.agent.toLowerCase()).join(", ")}. You still have access
-          through the paid-for period — update your payment method via &quot;Manage billing&quot; below to keep it renewing.
+          through the paid-for period. Update your payment method via &quot;Manage billing&quot; below to keep it renewing.
         </div>
       )}
 
@@ -238,7 +238,7 @@ export default function BillingPage() {
                 {sub ? "Each agent below is its own subscription." : "You haven't purchased any agents yet."}
               </CardDescription>
             </div>
-            <Badge variant={hasActiveAccess ? "default" : "secondary"}>{statusLabel}</Badge>
+            <StatusPill level={hasActiveAccess ? "ok" : "info"} icon={null}>{statusLabel}</StatusPill>
           </div>
         </CardHeader>
         {(sub?.pendingCheckout || canManageBilling) && (
@@ -246,9 +246,9 @@ export default function BillingPage() {
             {sub?.pendingCheckout && (
               <div className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary" className="w-fit">
+                  <StatusPill level="warn" icon={null} className="w-fit">
                     Checkout syncing
-                  </Badge>
+                  </StatusPill>
                   {/* Not gated on syncStalled alone — a pendingCheckout row can
                       also be stale on a completely fresh page load (no active
                       polling session ever started), which previously left this
@@ -266,8 +266,8 @@ export default function BillingPage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {pendingCheckoutStuck
-                    ? "This checkout has been syncing for a while — if you didn't complete it, dismiss it and start again."
-                    : "We're waiting for payment confirmation — this usually takes a few seconds."}
+                    ? "This checkout has been syncing for a while. If you didn't complete it, dismiss it and start again."
+                    : "We're waiting for payment confirmation. This usually takes a few seconds."}
                 </p>
               </div>
             )}
@@ -280,7 +280,7 @@ export default function BillingPage() {
                     <div>
                       <p className="text-sm font-medium">Manage billing</p>
                       <p className="text-xs text-muted-foreground">
-                        View invoices, update your payment method, or cancel any agent — all through Dodo&apos;s secure billing portal.
+                        View invoices, update your payment method, or cancel any agent through Dodo&apos;s secure billing portal.
                       </p>
                     </div>
                   </div>
@@ -331,7 +331,7 @@ export default function BillingPage() {
             <Card variant="brand">
               <CardHeader>
                 <CardTitle className="text-base">Add agents</CardTitle>
-                <CardDescription>Each purchase is its own checkout — no bundling required.</CardDescription>
+                <CardDescription>Each purchase is its own checkout. No bundling required.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {unownedAgents.map((agent) => (
