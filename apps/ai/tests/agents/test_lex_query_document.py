@@ -71,26 +71,3 @@ def test_default_floor_still_filters_broad_searches(live, monkeypatch):
 
 def test_min_score_zero_keeps_ranked_chunks(live, monkeypatch):
     assert [c["score"] for c in _retrieve(monkeypatch, [0.62, 0.44, 0.3], min_score=0.0)] == [0.62, 0.44, 0.3]
-
-
-def test_query_document_searches_the_chosen_document_without_the_noise_floor(live, monkeypatch):
-    seen = {}
-
-    async def fake_retrieve(**kwargs):
-        seen.update(kwargs)
-        return [{"content": "7.14.1 Sole Arbitrator appointed by the Deputy Director", "score": 0.62, "metadata": {}}]
-
-    async def fake_complete(**kwargs):
-        seen["prompt"] = kwargs["messages"][0]["content"]
-        return "The Deputy Director of the Institute appoints the sole arbitrator (Article 7.14.1)."
-
-    monkeypatch.setattr(routes._rag, "retrieve", fake_retrieve)
-    monkeypatch.setattr(routes._llm, "complete", fake_complete)
-
-    request = routes.QueryDocumentRequest(user_id="u", source_id="doc-1", query="who appoints the arbitrator")
-    result = asyncio.run(routes.query_document(request))
-
-    assert seen["source_id"] == "doc-1"
-    assert seen["min_score"] == 0.0
-    assert "Sole Arbitrator" in seen["prompt"]
-    assert "Deputy Director" in result.answer

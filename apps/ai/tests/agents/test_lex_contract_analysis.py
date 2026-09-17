@@ -1,6 +1,9 @@
-"""Covers Lex contract analysis: the failure that showed "Unknown · score 0/10 · Parsing
-failed" on a long contract, and the item-level repair that keeps one bad entry from failing the
-whole analysis.
+"""Covers the verdict-first contract review (v2).
+
+v1 returned six overlapping lists that restated the same problems and failed outright on long
+contracts. v2 returns a verdict, key facts, one de-duplicated issue list with quotes and
+send-back wording, and key dates — normalised item by item, with the v1 fields derived so
+older clients and saved messages still render.
 """
 
 import asyncio
@@ -11,83 +14,105 @@ from agents.lex import contract_analysis as ca
 from agents.lex.routes import ContractAnalysis
 
 
-def _good() -> dict:
+def _raw() -> dict:
     return {
-        "document_type": "Mess Services Agreement",
+        "document_type": "Mess services agreement",
         "parties": ["IIT Kanpur (Institute)", "Service Provider"],
-        "effective_date": "October 1, 2012",
+        "perspective": "Service Provider",
+        "counterparty": "IIT Kanpur",
+        "verdict": {"action": "Negotiate", "headline": "Don't sign as-is",
+                    "summary": "The Institute can fine you and keep your deposit on its own say."},
+        "favours": {"party": "IIT Kanpur", "lean": "140"},
+        "risk_level": "critical",
+        "risk_score": "9",
+        "key_facts": [{"label": "Deposit", "value": "₹5,00,000"}, {"label": "Term"}, "junk"],
+        "issues": [
+            {"severity": "medium", "kind": "ambiguous", "title": "Satisfaction of the Institute",
+             "section": "3", "quote": "\"to the satisfaction of the Institute\"",
+             "what_it_means": "Performance is judged subjectively.", "send_back": "Define objective service levels."},
+            {"severity": "critical", "kind": "risk", "title": "They choose the arbitrator", "section": "7.14.1",
+             "quote": "appointed by the Deputy Director", "what_it_means": "The other side picks the judge.",
+             "send_back": "A mutually agreed sole arbitrator."},
+            {"severity": "extreme", "kind": "weird", "title": "Deposit forfeiture", "section": "6.1",
+             "quote": "", "what_it_means": "Any lapse forfeits the deposit.", "send_back": ""},
+            {"severity": "high", "kind": "missing", "title": "No penalty cap", "section": "",
+             "quote": "", "what_it_means": "Fines are unlimited.", "send_back": "Cap penalties at 5% of monthly fees."},
+            {"title": "no meaning"},
+            "junk",
+        ],
+        "key_dates": [
+            {"when": "Within 10 days of signing", "what": "Start work", "section": "4.11",
+             "recurrence": "once", "days_from_start": "10"},
+            {"when": "Every month", "what": "Submit bills", "section": "5.4", "recurrence": "Monthly", "days_from_start": None},
+            {"when": "Every 6 months", "what": "Medical certificates", "recurrence": "half-yearly", "days_from_start": -3},
+            {"what": "missing when"},
+        ],
+        "clauses": [{"section": "7.14", "title": "Arbitration", "summary": "Sole arbitrator.", "risk_level": "HIGH"}, 7],
+        "key_terms": {"HEC": "Hostel Executive Committee", "": "x"},
+        "effective_date": None,
         "governing_law": "Laws of India",
         "jurisdiction": "Courts at Kanpur",
-        "executive_summary": "A one-sided services contract.",
-        "risk_level": "high",
-        "risk_score": "8",
-        "score_breakdown": {"critical": 9, "high": 9},
-        "risks": [
-            {"clause": "6.2 Termination", "risk": "Termination for any reason on 30 days.",
-             "severity": "HIGH", "recommendation": "Add mutual termination.", "confidence": "high",
-             "basis": "Indian Contract Act s.73"},
-            {"clause": "3.5", "risk": "Cost cap borne by provider.", "severity": "extreme",
-             "recommendation": "Add escalation."},
-            "not a dict",
-            {"clause": "missing risk text"},
-        ],
-        "clause_breakdown": [{"section": "7.14", "title": "Arbitration", "summary": "Sole arbitrator.",
-                              "risk_level": "high", "notes": None}, 42],
-        "key_terms": {"HEC": "Hostel Executive Committee", "Empanelment": ["2 years", "extendable"], "": "x"},
-        "obligations_structured": [
-            {"party": "Service Provider", "items": [
-                {"action": "Deposit Rs 5 lakh security", "deadline": None},
-                "Pay minimum wages",
-                {"deadline": "no action"},
-            ]},
-            {"party": "", "items": [{"action": "orphan"}]},
-        ],
-        "ambiguous_clauses": [{"clause": "to the satisfaction of the Institute", "section": 3}],
-        "negotiation_points": [{"priority": "urgent", "clause": "6.2", "issue": "One-sided",
-                                "suggested_change": "Mutual 60-day notice"}],
-        "overall_assessment": "Negotiate before signing.",
-        "recommended_action": "Negotiate",
     }
 
 
-def test_normalized_output_always_satisfies_the_response_model():
-    data = ca.normalize_analysis(_good())
+def test_normalized_review_satisfies_the_response_model():
+    data = ca.normalize_analysis(_raw())
     analysis = ContractAnalysis(**data)
-    assert analysis.risk_score == 8
-    assert analysis.recommended_action == "negotiate"
+    assert analysis.version == 2
+    assert analysis.verdict["action"] == "negotiate"
+    assert analysis.verdict["headline"] == "Don't sign as-is"
+    assert analysis.favours == {"party": "IIT Kanpur", "lean": 100}
+    assert analysis.risk_score == 9
+    assert analysis.effective_date == "Not specified"
 
 
-def test_bad_items_are_dropped_not_the_whole_analysis():
-    data = ca.normalize_analysis(_good())
-    assert [r["clause"] for r in data["risks"]] == ["6.2 Termination", "3.5"]
-    assert data["risks"][0]["severity"] == "high"
-    assert data["risks"][1]["severity"] == "medium"  # unknown severity repaired
-    assert len(data["clause_breakdown"]) == 1
-    assert data["negotiation_points"][0]["priority"] == "medium"
-    assert data["key_terms"] == {"HEC": "Hostel Executive Committee", "Empanelment": "2 years; extendable"}
+def test_issues_are_repaired_sorted_and_malformed_ones_dropped():
+    issues = ca.normalize_analysis(_raw())["issues"]
+    assert [i["title"] for i in issues] == [
+        "They choose the arbitrator", "No penalty cap", "Satisfaction of the Institute", "Deposit forfeiture",
+    ]
+    forfeiture = issues[-1]
+    assert forfeiture["severity"] == "medium" and forfeiture["kind"] == "risk"
+    assert issues[2]["quote"] == "to the satisfaction of the Institute"
 
 
-def test_score_breakdown_is_counted_from_kept_risks():
-    data = ca.normalize_analysis(_good())
-    assert data["score_breakdown"] == {"critical": 0, "high": 1, "medium": 1, "low": 0}
+def test_key_facts_and_dates_are_cleaned():
+    data = ca.normalize_analysis(_raw())
+    assert data["key_facts"] == [{"label": "Deposit", "value": "₹5,00,000"}]
+    dates = data["key_dates"]
+    assert len(dates) == 3
+    assert dates[0]["days_from_start"] == 10
+    assert dates[1]["recurrence"] == "monthly"
+    assert dates[2]["recurrence"] == "half_yearly" and dates[2]["days_from_start"] is None
 
 
-def test_plain_obligations_are_derived_from_structured():
-    data = ca.normalize_analysis(_good())
-    assert data["obligations_structured"] == [{"party": "Service Provider", "items": [
-        {"action": "Deposit Rs 5 lakh security", "deadline": None, "condition": None, "consequence": None},
-        {"action": "Pay minimum wages", "deadline": None, "condition": None, "consequence": None},
-    ]}]
-    assert data["obligations"] == {"Service Provider": ["Deposit Rs 5 lakh security", "Pay minimum wages"]}
+def test_legacy_fields_are_derived_from_issues():
+    data = ca.normalize_analysis(_raw())
+    assert data["recommended_action"] == "negotiate"
+    assert data["executive_summary"] == data["verdict"]["summary"]
+    assert data["score_breakdown"] == {"critical": 1, "high": 1, "medium": 2, "low": 0}
+    assert [r["clause"] for r in data["risks"]][0] == "§7.14.1 They choose the arbitrator"
+    assert all(r["clause"] != "No penalty cap" for r in data["risks"])
+    assert data["missing_protections"] == ["No penalty cap — Fines are unlimited."]
+    assert data["ambiguous_clauses"][0]["clause"] == "to the satisfaction of the Institute"
+    assert data["clause_breakdown"][0]["risk_level"] == "high"
+
+
+def test_missing_verdict_is_inferred_from_the_worst_issue():
+    raw = _raw()
+    raw["verdict"] = None
+    data = ca.normalize_analysis(raw)
+    assert data["verdict"]["action"] == "negotiate"
+    assert data["verdict"]["headline"] == "Negotiate before signing"
 
 
 def test_lists_are_capped():
-    raw = _good()
-    raw["risks"] = [{"clause": f"c{i}", "risk": "r", "severity": "low", "recommendation": "x"} for i in range(40)]
-    raw["clause_breakdown"] = [{"section": str(i), "title": "t", "summary": "s"} for i in range(60)]
+    raw = _raw()
+    raw["issues"] = [{"title": f"t{i}", "what_it_means": "m", "severity": "low"} for i in range(40)]
+    raw["clauses"] = [{"section": str(i), "title": "t", "summary": "s"} for i in range(60)]
     data = ca.normalize_analysis(raw)
-    assert len(data["risks"]) == ca.MAX_RISKS
-    assert len(data["clause_breakdown"]) == ca.MAX_CLAUSE_SECTIONS
+    assert len(data["issues"]) == ca.MAX_ISSUES
+    assert len(data["clauses"]) == ca.MAX_CLAUSES
 
 
 def test_non_object_output_is_rejected():
@@ -95,12 +120,13 @@ def test_non_object_output_is_rejected():
         ca.normalize_analysis(["not", "an", "object"])
 
 
-def test_prompt_bounds_the_output_and_no_longer_asks_for_obligations_twice():
-    prompt = ca.build_analysis_prompt("CONTRACT TEXT")
-    assert f"at most {ca.MAX_CLAUSE_SECTIONS}" in prompt
-    assert "obligations_structured" in prompt
-    assert "\nobligations (" not in prompt
-    assert "analyze EVERY numbered section" not in prompt
+def test_prompt_uses_perspective_focus_and_company():
+    prompt = ca.build_analysis_prompt("TEXT", perspective="the service provider", focus=["penalties"])
+    assert "Review it for: the service provider" in prompt
+    assert "penalties" in prompt
+    inferred = ca.build_analysis_prompt("TEXT", company_name="Klyvora Clothing")
+    assert "'Klyvora Clothing'" in inferred
+    assert "issues:" in prompt and "send_back" in prompt and "key_dates" in prompt
 
 
 class _LLM:
@@ -115,24 +141,25 @@ class _LLM:
         return self.result
 
 
-def _run(llm):
-    return asyncio.run(ca.analyze_contract_text(
-        llm, provider="openai", model="m", system="sys", full_text="text"))
+def _run(llm, **kw):
+    return asyncio.run(ca.analyze_contract_text(llm, provider="openai", model="m", system="sys", full_text="text", **kw))
 
 
-def test_analysis_uses_json_mode_helper_with_a_roomy_budget():
-    llm = _LLM(_good())
-    data = _run(llm)
+def test_review_uses_json_mode_helper_with_a_roomy_budget():
+    llm = _LLM(_raw())
+    data = _run(llm, perspective="Service Provider")
     assert llm.calls[0]["max_tokens"] == ca.ANALYSIS_MAX_TOKENS >= 16000
-    assert data["document_type"] == "Mess Services Agreement"
+    assert "Review it for: Service Provider" in llm.calls[0]["messages"][0]["content"]
+    assert data["document_type"] == "Mess services agreement"
 
 
-def test_empty_model_response_returns_an_explicit_failure_card_and_logs(caplog):
+def test_failed_review_returns_an_explicit_card_and_logs(caplog):
     from core.llm import LLMError
     llm = _LLM(LLMError("complete_json got an empty response from m even at max_tokens=48000"))
     with caplog.at_level("ERROR", logger="lex.contract_analysis"):
         data = _run(llm)
     ContractAnalysis(**data)
-    assert data["document_type"] == "Analysis unavailable"
+    assert data["failed"] is True
+    assert data["verdict"]["headline"] == "Review didn't finish"
     assert "uploaded correctly" in data["executive_summary"]
     assert "empty response" in caplog.text

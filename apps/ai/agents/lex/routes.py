@@ -1,4 +1,6 @@
 import io
+import asyncio
+import logging
 import re
 import base64
 import json
@@ -17,9 +19,11 @@ from core.config import settings
 from core.streaming import sse_format, stream_chat_sync_response
 from core.utils import strip_json_fences, safe_json_loads
 from agents.lex.agent import LexAgent
+from agents.lex import services as lex_services
 from agents.lex.contract_analysis import analyze_contract_text
 
 router = APIRouter(prefix="/ai/lex", tags=["Lex"])
+logger = logging.getLogger("lex.routes")
 
 from agents.registry import register_agent
 
@@ -66,7 +70,12 @@ class IngestDocumentResponse(BaseModel):
 class AnalyzeContractRequest(BaseModel):
     user_id: str
     organization_id: str = ""
-    source_id: str
+    source_id: str | None = None
+    # Pasted text, used when no uploaded document is chosen.
+    contract_text: str = ""
+    # Which party to review for; inferred from the brand kit and the document when empty.
+    perspective: str = ""
+    analysis_focus: list[str] = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
@@ -160,6 +169,18 @@ class ContractAnalysis(BaseModel):
     obligations_structured: list[PartyObligations] | None = None
     ambiguous_clauses: list[AmbiguousClause] | None = None
 
+    # Version 2 — verdict-first review (see agents/lex/contract_analysis.py)
+    version: int = 1
+    failed: bool = False
+    perspective: str = ""
+    counterparty: str = ""
+    verdict: dict | None = None
+    favours: dict | None = None
+    key_facts: list[dict] = Field(default_factory=list)
+    issues: list[dict] = Field(default_factory=list)
+    key_dates: list[dict] = Field(default_factory=list)
+    clauses: list[dict] = Field(default_factory=list)
+
 
 class AnalyzeContractResponse(BaseModel):
     analysis: ContractAnalysis
@@ -193,8 +214,15 @@ class QueryDocumentChunk(BaseModel):
     metadata: dict = {}
 
 
+class QueryDocumentCitation(BaseModel):
+    section: str = ""
+    quote: str
+
+
 class QueryDocumentResponse(BaseModel):
     answer: str
+    found: bool = True
+    citations: list[QueryDocumentCitation] = Field(default_factory=list)
     sources: list[QueryDocumentChunk]
     tokens_used: int = 0
     model_used: str = ""
@@ -216,7 +244,7 @@ class DraftDocumentRequest(BaseModel):
     organization_id: str = ""
     document_type: str
     requirements: str
-    jurisdiction: str = "United States (Delaware)"
+    jurisdiction: str = ""
     additional_clauses: list[str] = []
     metadata: dict = Field(default_factory=dict)
 
@@ -226,7 +254,7 @@ class DraftDocumentRequest(BaseModel):
                 "user_id": "user_123",
                 "document_type": "mutual_nda",
                 "requirements": "Mutual NDA between two SaaS companies for a potential partnership discussion. 2-year term, covers product roadmap and customer data.",
-                "jurisdiction": "United States (Delaware)",
+                "jurisdiction": "India",
                 "additional_clauses": ["data_protection", "ip_assignment_exclusion"],
             }
         }
@@ -236,6 +264,8 @@ class DraftDocumentRequest(BaseModel):
 class DraftDocumentResponse(BaseModel):
     document: str
     review_notes: list[str]
+    document_type: str = ""
+    jurisdiction: str = ""
     tokens_used: int = 0
     model_used: str = ""
 
@@ -271,7 +301,7 @@ class LegalResearchRequest(BaseModel):
     user_id: str
     organization_id: str = ""
     query: str
-    jurisdiction: str = "United States"
+    jurisdiction: str = ""
     legal_areas: list[str] = []
     metadata: dict = Field(default_factory=dict)
 
@@ -287,14 +317,21 @@ class LegalResearchRequest(BaseModel):
     )
 
 
+class LegalResearchSource(BaseModel):
+    title: str = ""
+    url: str
+
+
 class LegalResearchResponse(BaseModel):
-    summary: str
-    applicable_laws: list[str]
-    key_requirements: list[str]
-    relevant_cases: list[str]
-    practical_guidance: list[str]
-    jurisdiction_notes: str
-    confidence_level: str
+    answer: str
+    sections: list[dict] = Field(default_factory=list)
+    references: list[str] = Field(default_factory=list)
+    relevant_cases: list[str] = Field(default_factory=list)
+    jurisdiction_notes: str = ""
+    confidence_level: str = "medium"
+    jurisdiction: str = ""
+    sources: list[LegalResearchSource] = Field(default_factory=list)
+    failed: bool = False
     tokens_used: int = 0
     model_used: str = ""
 
@@ -303,8 +340,9 @@ class ComplianceCheckRequest(BaseModel):
     user_id: str
     organization_id: str = ""
     description: str
-    frameworks: list[str]
+    frameworks: list[str] = Field(default_factory=list)
     business_context: str = ""
+    jurisdiction: str = ""
     metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
@@ -325,6 +363,33 @@ class ComplianceCheckResponse(BaseModel):
     critical_gaps: list[str]
     remediation_steps: list[dict]
     estimated_effort: str
+    jurisdiction: str = ""
+    failed: bool = False
+
+
+class DraftReplyRequest(BaseModel):
+    user_id: str
+    organization_id: str = ""
+    analysis: dict
+    sender: str = ""
+    tone: str = "firm but friendly"
+    metadata: dict = Field(default_factory=dict)
+
+
+class DraftReplyChange(BaseModel):
+    section: str = ""
+    current: str
+    proposed: str
+    reason: str = ""
+
+
+class DraftReplyResponse(BaseModel):
+    subject: str
+    email: str
+    changes: list[DraftReplyChange]
+    counterparty: str = ""
+    changes_document: str = ""
+    model_used: str = ""
     tokens_used: int = 0
     model_used: str = ""
 
@@ -373,20 +438,18 @@ async def lex_chat_stream(request: ChatRequest) -> StreamingResponse:
 
 @router.post("/ingest-document", response_model=IngestDocumentResponse, summary="Ingest legal document")
 async def ingest_document(request: IngestDocumentRequest) -> IngestDocumentResponse:
-    """Upload and process a legal document (PDF) for RAG-powered analysis."""
+    """Upload and process a legal document (PDF) for review and Q&A."""
     if settings.MOCK_MODE:
-        source_id = f"doc_{str(uuid.uuid4())[:8]}"
         return IngestDocumentResponse(
-            source_id=source_id,
+            source_id=f"doc_{str(uuid.uuid4())[:8]}",
             chunks_created=8,
             page_count=4,
             summary=(
-                "This document is a Mutual Non-Disclosure Agreement between two parties. "
-                "It covers confidentiality obligations, permitted disclosures, intellectual property ownership, "
-                "and dispute resolution. Duration is 5 years with Delaware governing law."
+                "A mutual NDA between two companies exploring a partnership. It runs for 5 years and "
+                "includes a residuals clause that lets the other side reuse what they remember."
             ),
-            key_topics=["confidentiality", "intellectual_property", "non_solicitation", "term_and_termination", "dispute_resolution"],
-            document_type_detected="mutual_nda",
+            key_topics=["Confidentiality", "Residuals", "Term", "Dispute resolution"],
+            document_type_detected="nda",
         )
 
     import asyncio
@@ -412,7 +475,6 @@ async def ingest_document(request: IngestDocumentRequest) -> IngestDocumentRespo
 
     from core.pdf_reader import extract_text_with_vision, extract_pages
 
-    # Extract text once — reused for both ingestion and metadata
     try:
         full_text = await extract_text_with_vision(pdf_bytes, _llm)
     except Exception:
@@ -423,254 +485,108 @@ async def ingest_document(request: IngestDocumentRequest) -> IngestDocumentRespo
     source_id = f"doc_{str(uuid.uuid4())[:8]}"
     meta = {"document_name": request.document_name, "document_type": request.document_type}
 
-    async def _extract_metadata():
-        raw = await _llm.complete(
-            provider=_agent.default_provider,
-            model=_agent.default_model,
-            system="You are a legal document analyst. Be precise and concise.",
-            messages=[{"role": "user", "content": (
-                f"Analyze this legal document and return ONLY a JSON object (no markdown fences) with exactly these keys:\n"
-                f"- summary: 2-3 sentence overview of what the document is, who the parties are, and its main purpose\n"
-                f"- key_topics: list of 4-8 specific legal topic strings (e.g. confidentiality, ip_assignment, termination, governing_law)\n"
-                f"- document_type_detected: one of nda, mou, employment_agreement, service_agreement, partnership_agreement, "
-                f"shareholder_agreement, lease_agreement, loan_agreement, settlement_agreement, other\n\n"
-                f"Document:\n{full_text[:12000]}"
-            )}],
-            max_tokens=512,
-        )
-        return raw
-
-    # Run ingestion and metadata extraction in parallel
-    chunks_count, meta_raw = await asyncio.gather(
+    chunks_count, summary = await asyncio.gather(
         _rag.ingest(request.user_id, full_text, "pdf", source_id, "lex", meta),
-        _extract_metadata(),
+        lex_services.summarize_document(
+            _llm, provider=_agent.default_provider, model=_agent.default_model,
+            full_text=full_text, fallback_type=request.document_type,
+        ),
     )
-
-    tokens_used = _llm.count_tokens(meta_raw)
-    try:
-        meta_data = json.loads(strip_json_fences(meta_raw))
-        summary = meta_data.get("summary", "")
-        key_topics = meta_data.get("key_topics", [])
-        document_type_detected = meta_data.get("document_type_detected", request.document_type)
-    except Exception:
-        summary = meta_raw[:300]
-        key_topics = []
-        document_type_detected = request.document_type
-
     return IngestDocumentResponse(
         source_id=source_id,
         chunks_created=chunks_count,
         page_count=page_count,
-        summary=summary,
-        key_topics=key_topics,
-        document_type_detected=document_type_detected,
-        tokens_used=tokens_used,
+        summary=summary["summary"],
+        key_topics=summary["key_topics"],
+        document_type_detected=summary["document_type_detected"],
         model_used=_agent.default_model,
     )
 
 
+_MOCK_REVIEW = {
+    "document_type": "Mutual NDA",
+    "parties": ["Acme Corp (Disclosing Party)", "Beta Inc (Receiving Party)"],
+    "perspective": "Beta Inc (Receiving Party)",
+    "counterparty": "Acme Corp",
+    "verdict": {"action": "negotiate", "headline": "Sign after 2 changes",
+                "summary": "The residuals clause lets Acme reuse anything its staff remember, which undercuts the NDA. Remove it and cap the term at 3 years."},
+    "favours": {"party": "Acme Corp", "lean": 70},
+    "risk_level": "high", "risk_score": 6,
+    "key_facts": [
+        {"label": "Term", "value": "5 years"}, {"label": "Survival", "value": "Indefinite after termination"},
+        {"label": "Exit", "value": "30 days' written notice"}, {"label": "Disputes", "value": "Courts at Mumbai"},
+    ],
+    "issues": [
+        {"severity": "high", "kind": "risk", "title": "They can reuse what they remember", "section": "7",
+         "quote": "Nothing shall restrict use of information retained in the unaided memory of personnel.",
+         "what_it_means": "Anything Acme's team remembers from your product or pricing can be used freely, which empties the NDA.",
+         "send_back": "Delete Section 7."},
+        {"severity": "medium", "kind": "unusual", "title": "Five-year term is long", "section": "5",
+         "quote": "This Agreement shall remain in force for a period of five (5) years.",
+         "what_it_means": "You carry confidentiality duties well beyond a normal evaluation period.",
+         "send_back": "This Agreement shall remain in force for three (3) years from the Effective Date."},
+        {"severity": "medium", "kind": "missing", "title": "No return-or-destroy deadline", "section": "",
+         "quote": "", "what_it_means": "Nothing forces Acme to hand back or delete your information when talks end.",
+         "send_back": "Within 15 days of written request, the Receiving Party shall return or destroy all Confidential Information."},
+    ],
+    "key_dates": [
+        {"when": "Within 15 days of request", "what": "Return or destroy confidential information", "section": "9", "recurrence": "once", "days_from_start": None},
+        {"when": "5 years after signing", "what": "Agreement ends; survival clauses continue", "section": "5", "recurrence": "once", "days_from_start": 1825},
+    ],
+    "clauses": [
+        {"section": "1", "title": "Purpose", "summary": "Information is shared only to evaluate a partnership.", "risk_level": "low"},
+        {"section": "7", "title": "Residuals", "summary": "Remembered information is free to use.", "risk_level": "high"},
+    ],
+    "key_terms": {"Residuals": "Information kept in someone's memory without notes or copies."},
+    "effective_date": "1 January 2026", "governing_law": "Laws of India", "jurisdiction": "Courts at Mumbai",
+}
+
+
 @router.post("/analyze-contract", response_model=AnalyzeContractResponse, summary="Analyze contract")
 async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractResponse:
-    """Fetch all chunks for source_id and perform a full structured contract analysis."""
+    """Review a contract: verdict, key facts, issues with send-back wording, and key dates."""
+    from fastapi import HTTPException
+    from agents.lex.contract_analysis import normalize_analysis
+
     if settings.MOCK_MODE:
-        return AnalyzeContractResponse(
-            analysis=ContractAnalysis(
-                document_type="Mutual Non-Disclosure Agreement",
-                parties=["Acme Corp (Disclosing Party)", "Beta Inc (Receiving Party)"],
-                effective_date="January 1, 2025",
-                governing_law="Delaware General Corporation Law",
-                jurisdiction="United States (Delaware)",
-                executive_summary=(
-                    "A mutual NDA between two technology companies for partnership evaluation. "
-                    "The agreement is broadly written with several one-sided provisions favoring the disclosing party, "
-                    "most notably a residuals clause that creates IP leakage risk."
-                ),
-                risk_level="medium",
-                risk_score=6,
-                risks=[
-                    ClauseRisk(
-                        clause="Definition of Confidential Information (Section 2)",
-                        risk="Overly broad — includes all verbal communications with no follow-up written confirmation requirement, making scope unmanageable.",
-                        severity="medium",
-                        recommendation="Add a requirement that verbal disclosures be confirmed in writing within 10 business days to be considered Confidential Information.",
-                        confidence="high",
-                        basis="Courts require written confirmation of verbal disclosures to be enforceable under the Uniform Trade Secrets Act § 1(4)(i).",
-                    ),
-                    ClauseRisk(
-                        clause="Residuals Clause (Section 7)",
-                        risk="Allows the receiving party to use residual knowledge retained in unaided memory — creates IP leakage risk for your product roadmap and technical architecture.",
-                        severity="high",
-                        recommendation="Remove entirely or limit to generic industry knowledge, explicitly excluding product roadmap, source code, and customer data.",
-                        confidence="high",
-                        basis="Delaware courts have repeatedly invalidated residuals clauses lacking explicit scope limitations as incompatible with DTSA protections.",
-                    ),
-                    ClauseRisk(
-                        clause="Duration (Section 5)",
-                        risk="5-year term is 2× the industry standard of 2–3 years for startup-stage NDAs.",
-                        severity="low",
-                        recommendation="Renegotiate to 2–3 years with a survival clause limited to 1 year post-termination for specific categories.",
-                        confidence="medium",
-                        basis="Typical NDA enforceability period in Delaware startup practice is 2–3 years per consistent market precedent.",
-                    ),
-                    ClauseRisk(
-                        clause="Unilateral Termination (Section 9)",
-                        risk="Disclosing party can terminate with 30 days notice, but confidentiality obligations survive indefinitely — your obligations continue even after termination.",
-                        severity="medium",
-                        recommendation="Cap survival of obligations to 2 years post-termination and require mutual consent for early termination.",
-                        confidence="high",
-                        basis="Indefinite post-termination survival clauses have been found commercially unreasonable in multiple Delaware chancery court rulings.",
-                    ),
-                ],
-                unusual_clauses=[
-                    "Residuals clause (Section 7) — rare in mutual NDAs, typically found only in one-sided agreements favoring large enterprises",
-                    "No limitation on injunctive relief scope — allows either party to seek unlimited injunctive relief without bond",
-                    "No carve-out for information independently developed — standard protection is missing",
-                ],
-                missing_protections=[
-                    "Dispute resolution mechanism — arbitration vs. litigation not specified",
-                    "Data protection / GDPR compliance obligations — no mention despite potential EU data exchange",
-                    "Limitation of liability — no cap on damages beyond injunctive relief",
-                    "Carve-out for information independently developed without reference to confidential information",
-                    "Return or destruction of materials clause upon termination",
-                ],
-                clause_breakdown=[
-                    {"section": "1", "title": "Purpose", "summary": "Defines the scope of the relationship as partnership evaluation.", "risk_level": "low", "notes": "Standard. No issues."},
-                    {"section": "2", "title": "Definition of Confidential Information", "summary": "Broadly defines all information, including verbal disclosures, as confidential.", "risk_level": "medium", "notes": "Verbal inclusion without written confirmation requirement is problematic."},
-                    {"section": "3", "title": "Obligations", "summary": "Standard confidentiality obligations — hold in confidence, restrict access, use only for Purpose.", "risk_level": "low", "notes": "Standard. No issues."},
-                    {"section": "5", "title": "Term", "summary": "5-year confidentiality period from Effective Date.", "risk_level": "low", "notes": "Above industry standard. Negotiate down."},
-                    {"section": "7", "title": "Residuals", "summary": "Permits use of retained knowledge in unaided memory for any purpose.", "risk_level": "high", "notes": "Significant IP risk. Should be removed or heavily restricted."},
-                    {"section": "9", "title": "Termination", "summary": "Either party may terminate with 30 days written notice. Obligations survive.", "risk_level": "medium", "notes": "Indefinite survival of obligations post-termination is unusual."},
-                ],
-                key_terms={
-                    "duration": "5 years",
-                    "governing_law": "Delaware, United States",
-                    "scope": "Product roadmap, customer data, financial projections, technical architecture",
-                    "permitted_disclosures": "Legal counsel and advisors who are themselves bound by NDA",
-                    "dispute_resolution": "Not specified",
-                    "termination_notice": "30 days written notice",
-                    "survival": "Indefinite post-termination",
-                },
-                obligations={
-                    "Acme Corp": [
-                        "Hold Beta's Confidential Information in strict confidence",
-                        "Limit access to employees with need-to-know",
-                        "Use information solely for the Purpose",
-                        "Notify Beta immediately of any unauthorized disclosure",
-                    ],
-                    "Beta Inc": [
-                        "Hold Acme's Confidential Information in strict confidence",
-                        "Limit access to employees with need-to-know",
-                        "Use information solely for the Purpose",
-                        "Notify Acme immediately of any unauthorized disclosure",
-                    ],
-                },
-                negotiation_points=[
-                    NegotiationPoint(
-                        priority="high",
-                        clause="Residuals Clause (Section 7)",
-                        issue="Permits unrestricted use of retained knowledge — directly undermines the NDA's purpose.",
-                        suggested_change="Delete Section 7 entirely, or restrict to generic industry knowledge explicitly excluding product IP, source code, and customer data.",
-                    ),
-                    NegotiationPoint(
-                        priority="medium",
-                        clause="Definition of Confidential Information (Section 2)",
-                        issue="Verbal communications without written confirmation create enforcement ambiguity.",
-                        suggested_change="Add: 'Verbal disclosures must be confirmed in writing within 10 business days to constitute Confidential Information.'",
-                    ),
-                    NegotiationPoint(
-                        priority="medium",
-                        clause="Termination / Survival (Section 9)",
-                        issue="Indefinite survival of obligations is commercially unusual and burdensome.",
-                        suggested_change="Cap survival at 3 years post-termination for general confidentiality; allow indefinite survival only for trade secrets.",
-                    ),
-                    NegotiationPoint(
-                        priority="low",
-                        clause="Duration (Section 5)",
-                        issue="5-year term exceeds market standard.",
-                        suggested_change="Reduce to 2–3 years.",
-                    ),
-                ],
-                overall_assessment=(
-                    "This NDA is weighted toward the disclosing party and contains one high-risk clause (residuals) "
-                    "that should be a hard blocker. The agreement is otherwise workable with targeted modifications. "
-                    "Do not sign as-is."
-                ),
-                recommended_action="negotiate",
-                score_breakdown=ScoreBreakdown(critical=0, high=1, medium=2, low=1),
-                obligations_structured=[
-                    PartyObligations(
-                        party="Acme Corp",
-                        items=[
-                            ObligationItem(action="Hold Beta's Confidential Information in strict confidence", deadline=None, condition=None, consequence="Injunctive relief and damages"),
-                            ObligationItem(action="Limit access to employees with need-to-know", deadline=None, condition=None, consequence=None),
-                            ObligationItem(action="Use information solely for the Purpose", deadline=None, condition=None, consequence="Termination of agreement"),
-                            ObligationItem(action="Notify Beta immediately of any unauthorized disclosure", deadline="Immediately upon discovery", condition="Unauthorized disclosure occurs", consequence="Breach of agreement if not notified"),
-                        ],
-                    ),
-                    PartyObligations(
-                        party="Beta Inc",
-                        items=[
-                            ObligationItem(action="Hold Acme's Confidential Information in strict confidence", deadline=None, condition=None, consequence="Injunctive relief and damages"),
-                            ObligationItem(action="Return or destroy all Confidential Information upon request", deadline="10 business days after written request", condition="Either party terminates or requests return", consequence="Material breach if not complied"),
-                        ],
-                    ),
-                ],
-                ambiguous_clauses=[
-                    AmbiguousClause(
-                        clause="reasonable efforts",
-                        section="Section 3",
-                        issue="'Reasonable efforts' is legally undefined and courts apply it inconsistently — some treat it as equivalent to 'best efforts' requiring maximum exertion; others treat it as a lower standard.",
-                        interpretation="Delaware courts generally treat 'reasonable efforts' as less demanding than 'best efforts' but require demonstrable good-faith steps toward the obligation's objective.",
-                    ),
-                    AmbiguousClause(
-                        clause="promptly",
-                        section="Section 8",
-                        issue="'Promptly' has no defined timeframe in this agreement, creating ambiguity for notice and cure obligations.",
-                        interpretation="Without a defined period, Delaware courts apply a reasonableness standard — typically interpreted as within 3–5 business days for notice obligations in commercial contracts.",
-                    ),
-                ],
-            ),
-        )
+        return AnalyzeContractResponse(analysis=ContractAnalysis(**normalize_analysis(_MOCK_REVIEW)))
 
-    chunks = await _rag.retrieve_by_source(request.user_id, request.source_id)
-    if not chunks:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail=f"No document found for source_id '{request.source_id}'")
+    if request.source_id:
+        full_text = await _rag.source_text(request.user_id, request.source_id)
+        if not full_text:
+            raise HTTPException(status_code=404, detail=f"No document found for source_id '{request.source_id}'")
+    elif request.contract_text.strip():
+        full_text = request.contract_text.strip()
+    else:
+        raise HTTPException(status_code=422, detail="Provide a source_id or contract_text")
 
-    full_text = "\n\n".join(c.get("content", "") for c in chunks)
-
-    system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+    system, company_name = await asyncio.gather(
+        _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False),
+        lex_services.org_company_name(request.organization_id),
+    )
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
     data = await analyze_contract_text(
         _llm, provider=_agent.default_provider, model=_agent.default_model,
-        system=system, full_text=full_text,
+        system=system, full_text=full_text, perspective=request.perspective,
+        company_name=company_name, focus=request.analysis_focus,
     )
     return AnalyzeContractResponse(analysis=ContractAnalysis(**data), model_used=_agent.default_model)
 
 
 @router.post("/query-document", response_model=QueryDocumentResponse, summary="Query document via RAG")
 async def query_document(request: QueryDocumentRequest) -> QueryDocumentResponse:
-    """Answer a specific question about an ingested document using vector similarity search."""
+    """Answer a question about one uploaded document, quoting the passages it relies on."""
     if settings.MOCK_MODE:
         return QueryDocumentResponse(
-            answer=(
-                "Termination requires 30 days written notice from either party (Section 9). "
-                "Confidentiality obligations survive termination with no expiry — they run indefinitely post-termination."
-            ),
-            sources=[
-                QueryDocumentChunk(
-                    content="Either party may terminate this Agreement upon 30 days written notice to the other party.",
-                    score=0.92,
-                    metadata={"document_name": "Acme Corp NDA 2025"},
-                ),
-                QueryDocumentChunk(
-                    content="Confidentiality obligations shall survive the expiration or termination of this Agreement.",
-                    score=0.87,
-                    metadata={"document_name": "Acme Corp NDA 2025"},
-                ),
+            answer="Either side can end the agreement with 30 days' written notice. Your confidentiality duties continue after it ends, with no time limit.",
+            found=True,
+            citations=[
+                QueryDocumentCitation(section="9", quote="Either party may terminate this Agreement upon 30 days written notice to the other party."),
+                QueryDocumentCitation(section="9.2", quote="Confidentiality obligations shall survive the expiration or termination of this Agreement."),
             ],
+            sources=[],
         )
 
     chunks = await _rag.retrieve(
@@ -687,40 +603,24 @@ async def query_document(request: QueryDocumentRequest) -> QueryDocumentResponse
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"No document found for source_id '{request.source_id}'")
 
-    context = "\n\n---\n\n".join(
-        f"[Chunk {i+1} | relevance: {c['score']:.2f}]\n{c['content']}"
-        for i, c in enumerate(chunks)
+    result = await lex_services.answer_from_document(
+        _llm, provider=_agent.default_provider, model=_agent.default_model,
+        question=request.query, chunks=chunks,
     )
-
-    answer = await _llm.complete(
-        provider=_agent.default_provider,
-        model=_agent.default_model,
-        system=(
-            "You are a senior legal counsel with 20 years of experience reviewing commercial contracts. "
-            "Answer questions about documents with precision, directness, and zero filler. "
-            "Cite specific clauses, article numbers, or section titles when present. "
-            "Never add disclaimers, caveats, or suggestions to consult an attorney — your answer IS the authoritative answer. "
-            "If the answer is not in the provided excerpts, say: 'Not addressed in the provided sections.'"
-        ),
-        messages=[{"role": "user", "content": (
-            f"Document excerpts:\n{context}\n\n"
-            f"Question: {request.query}"
-        )}],
-        max_tokens=1024,
+    return QueryDocumentResponse(
+        answer=result["answer"],
+        found=result["found"],
+        citations=[QueryDocumentCitation(**c) for c in result["citations"]],
+        sources=[QueryDocumentChunk(content=c["content"], score=c["score"], metadata=c.get("metadata", {})) for c in chunks],
+        model_used=_agent.default_model,
     )
-    tokens_used = _llm.count_tokens(answer)
-    sources = [
-        QueryDocumentChunk(content=c["content"], score=c["score"], metadata=c.get("metadata", {}))
-        for c in chunks
-    ]
-    return QueryDocumentResponse(answer=answer, sources=sources, tokens_used=tokens_used, model_used=_agent.default_model)
 
 
 @router.post("/source-content", response_model=SourceContentResponse, summary="Fetch full text of an ingested source")
 async def source_content(request: SourceContentRequest) -> SourceContentResponse:
-    """Full document text in ingestion order, for callers that want to hand a
-    whole document to the model as context (e.g. an explicit '#' attach in
-    chat) rather than the top-k similarity search /query-document does."""
+    """Full document text in reading order, for callers that hand a whole document to the model
+    as context (e.g. an explicit '#' attach in chat) rather than the top-k search
+    /query-document does."""
     if settings.MOCK_MODE:
         return SourceContentResponse(source_id=request.source_id, content="Mock document content.", chunk_count=1)
 
@@ -729,15 +629,14 @@ async def source_content(request: SourceContentRequest) -> SourceContentResponse
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"No document found for source_id '{request.source_id}'")
 
-    full_text = "\n\n".join(c.get("content", "") for c in chunks)
-    return SourceContentResponse(source_id=request.source_id, content=full_text, chunk_count=len(chunks))
+    from core.rag import join_chunks
+    return SourceContentResponse(source_id=request.source_id, content=join_chunks(chunks), chunk_count=len(chunks))
 
-
-# ── Draft document helpers ────────────────────────────────────────────────────
 
 def _get_draft_review_notes(document_type: str, jurisdiction: str, additional_clauses: list[str]) -> list[str]:
     doc_lower = document_type.lower()
     notes: list[str] = []
+    in_india = "india" in jurisdiction.lower()
 
     # ── Binding legal documents ────────────────────────────────────────────────
     is_binding = any(k in doc_lower for k in (
@@ -789,18 +688,22 @@ def _get_draft_review_notes(document_type: str, jurisdiction: str, additional_cl
     # ── Contracts & agreements ────────────────────────────────────────────────
     elif any(k in doc_lower for k in ("nda", "non-disclosure", "confidentiality")):
         notes += [
-            "Fill in full legal names and entity types (LLC, Inc., Ltd.) for both parties",
+            "Fill in full legal names and entity types (Pvt Ltd, LLP, proprietorship) for both parties"
+            if in_india else "Fill in full legal names and entity types (LLC, Inc., Ltd.) for both parties",
             "Specify the exact confidentiality period — standard range is 2–5 years",
             "Define the scope of 'Confidential Information' to match what you'll actually share",
-            "Add a DPA clause if sharing personal data (GDPR/CCPA may apply)",
+            "Add a data-protection clause if sharing personal data (DPDP Act, 2023)"
+            if in_india else "Add a DPA clause if sharing personal data (GDPR/CCPA may apply)",
             "Confirm the governing law matches where your business is registered",
         ]
     elif any(k in doc_lower for k in ("employment contract", "employment agreement")):
         notes += [
             "Confirm compensation, start date, and role title are accurate",
-            "Verify IP assignment clause compliance with your state's law",
-            "Review non-compete scope — many US states (CA, MN, ND) restrict or ban them",
-            "Confirm at-will / probation language matches your local employment law",
+            "Confirm the IP assignment covers work created during employment",
+            "Post-employment non-competes are void in India (Contract Act s.27) — keep restrictions to the employment period"
+            if in_india else "Review non-compete scope — many US states (CA, MN, ND) restrict or ban them",
+            "Check probation, notice period and gratuity terms against your state's Shops and Establishments Act"
+            if in_india else "Confirm at-will / probation language matches your local employment law",
             "Add equity or bonus details referencing a separate option plan if applicable",
         ]
     elif any(k in doc_lower for k in ("saas", "software", "service agreement", "subscription")):
@@ -836,7 +739,8 @@ def _get_draft_review_notes(document_type: str, jurisdiction: str, additional_cl
         notes += [
             "Have a lawyer review before publishing — policy documents can create legal obligations",
             "Confirm data types collected and retention periods are accurately described",
-            "Verify compliance with applicable regulations (GDPR, CCPA, etc.) for your user base",
+            "Verify compliance with the DPDP Act, 2023 and IT Rules (and GDPR if you serve EU users)"
+            if in_india else "Verify compliance with applicable regulations (GDPR, CCPA, etc.) for your user base",
             "Keep a version history and update the 'last updated' date whenever you change the policy",
         ]
 
@@ -859,7 +763,7 @@ def _get_draft_review_notes(document_type: str, jurisdiction: str, additional_cl
         )
 
     if is_binding:
-        if "india" in jurisdiction.lower():
+        if in_india:
             notes.append("Indian law document — confirm stamp duty requirements for your state before execution")
         elif "uk" in jurisdiction.lower() or "england" in jurisdiction.lower():
             notes.append("UK law document — confirm post-Brexit cross-border implications if any EU parties are involved")
@@ -1066,105 +970,49 @@ def _generate_pdf(document_text: str, document_type: str, letterhead_bytes: byte
 
 @router.post("/draft-document", response_model=DraftDocumentResponse, summary="Draft legal document")
 async def draft_document(request: DraftDocumentRequest) -> DraftDocumentResponse:
-    """Draft a legal document template based on requirements."""
+    """Draft a complete document for the user's jurisdiction (their organisation's, else India)."""
+    from fastapi import HTTPException
+
+    location = await lex_services.org_location(request.organization_id) if not settings.MOCK_MODE else ""
+    jurisdiction = lex_services.resolve_jurisdiction(request.jurisdiction, location)
+    notes = _get_draft_review_notes(request.document_type, jurisdiction, request.additional_clauses)
+
     if settings.MOCK_MODE:
         return DraftDocumentResponse(
-            document=f"""MUTUAL NON-DISCLOSURE AGREEMENT
-
-This Mutual Non-Disclosure Agreement ("Agreement") is entered into as of [DATE] by and between:
-
-Party A: [COMPANY NAME], a Delaware corporation ("Company A")
-Party B: [COMPANY NAME], a Delaware corporation ("Company B")
-
-(Each a "Party" and collectively the "Parties")
-
-1. PURPOSE
-The Parties wish to explore a potential business relationship ("Purpose") and may need to disclose certain confidential information to each other.
-
-2. DEFINITION OF CONFIDENTIAL INFORMATION
-"Confidential Information" means any information disclosed by either Party to the other Party, either directly or indirectly, in writing, orally, or by inspection of tangible objects, that is designated as "Confidential" at the time of disclosure.
-
-Confidential Information does NOT include information that:
-(a) Is or becomes publicly available through no breach of this Agreement
-(b) Was rightfully known to the Receiving Party before disclosure
-(c) Is independently developed by the Receiving Party without use of Confidential Information
-(d) Is required to be disclosed by law or court order
-
-3. OBLIGATIONS
-Each Party agrees to: (a) hold the other's Confidential Information in strict confidence; (b) not disclose it to third parties without prior written consent; (c) use it solely for the Purpose; (d) limit access to employees with a need to know.
-
-4. TERM
-This Agreement shall remain in effect for two (2) years from the Effective Date, unless earlier terminated by either Party with 30 days written notice.
-
-5. GOVERNING LAW
-This Agreement shall be governed by the laws of the State of {request.jurisdiction.split('(')[-1].rstrip(')') if '(' in request.jurisdiction else 'Delaware'}, without regard to its conflict of laws provisions.
-
-6. ENTIRE AGREEMENT
-This Agreement constitutes the entire agreement between the Parties with respect to the subject matter hereof.
-
-IN WITNESS WHEREOF, the Parties have executed this Agreement as of the date first written above.
-
-COMPANY A                               COMPANY B
-By: _______________________             By: _______________________
-Name: _____________________            Name: _____________________
-Title: _____________________           Title: _____________________
-Date: ______________________           Date: ______________________
-""",
-            review_notes=[
-                "TEMPLATE ONLY – requires customization before use",
-                "Insert full legal names and entity types in the header",
-                "Add specific description of the business purpose in Section 1",
-                "Adjust the definition scope in Section 2 based on your actual sharing needs",
-                "Consider adding a data protection clause if sharing personal data (GDPR/CCPA implications)",
-            ],
+            document=(
+                "MUTUAL NON-DISCLOSURE AGREEMENT\n\n"
+                "This Mutual Non-Disclosure Agreement is made on [DATE] between [PARTY A NAME], a company "
+                "incorporated under the Companies Act, 2013 (\"Party A\"), and [PARTY B NAME] (\"Party B\").\n\n"
+                "1. PURPOSE\nThe Parties wish to share confidential information to evaluate [PURPOSE].\n\n"
+                "2. GOVERNING LAW\nThis Agreement is governed by the laws of India. The courts at [CITY] have "
+                "exclusive jurisdiction."
+            ),
+            review_notes=notes,
+            document_type=request.document_type,
+            jurisdiction=jurisdiction,
         )
 
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
-    doc_prompt = (
-        f"Draft a complete, professional {request.document_type}.\n\n"
-        f"REQUIREMENTS:\n{request.requirements}\n\n"
-        f"JURISDICTION: {request.jurisdiction}\n"
-        f"ADDITIONAL ELEMENTS: {', '.join(request.additional_clauses) if request.additional_clauses else 'None'}\n\n"
-        "CRITICAL RULE: Use the format that is natural and standard for this specific document type.\n"
-        "Do NOT impose a legal contract structure on every document. Match the format to what the document actually is:\n\n"
-        "• Letter (resignation, offer, demand, cover, recommendation):\n"
-        "  - Standard letter format: sender info, date, recipient info, subject line, greeting, body paragraphs, closing, signature\n"
-        "  - Do NOT use numbered clauses. Do NOT write 'by and between' preambles. Write naturally like a real letter.\n\n"
-        "• Legal agreement or contract (NDA, employment contract, SaaS agreement, shareholder agreement, vendor contract):\n"
-        "  - Title in ALL CAPS, 'by and between' party preamble, numbered sections with ALL-CAPS headings\n"
-        "  - Full two-party signature block at the end\n\n"
-        "• Policy document (privacy policy, terms of service, code of conduct, refund policy):\n"
-        "  - Numbered or headed sections, formal but readable prose, no bilateral party preamble\n\n"
-        "• Notice or memo (termination notice, eviction notice, board resolution, HR memo):\n"
-        "  - Appropriate header (To / From / Date / Re:), concise factual body, single-signature block if needed\n\n"
-        "• Any other document: use whatever format professionals in that field actually use.\n\n"
-        "ALWAYS:\n"
-        "- Write complete, substantive content — not stubs or one-liners\n"
-        "- Use [BRACKETS] only for specific details the user must fill in (names, dates, amounts)\n"
-        "- Output ONLY the document itself — no intro line, no closing comment, no markdown fences"
-    )
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system,
-        messages=[{"role": "user", "content": doc_prompt}],
-        max_tokens=4096,
-    )
-    document_text = raw.strip()
-    tokens_used = _llm.count_tokens(document_text)
+    try:
+        document = await lex_services.draft_document(
+            _llm, provider=_agent.default_provider, model=_agent.default_model, system=system,
+            document_type=request.document_type, requirements=request.requirements,
+            jurisdiction=jurisdiction, additional_clauses=request.additional_clauses,
+        )
+    except Exception as err:
+        logger.error("draft failed | type=%s error=%s: %s", request.document_type, type(err).__name__, str(err)[:300])
+        raise HTTPException(status_code=502, detail="Lex couldn't finish this draft. Try again.")
     return DraftDocumentResponse(
-        document=document_text,
-        review_notes=_get_draft_review_notes(
-            request.document_type, request.jurisdiction, request.additional_clauses
-        ),
-        tokens_used=tokens_used,
+        document=document,
+        review_notes=notes,
+        document_type=request.document_type,
+        jurisdiction=jurisdiction,
         model_used=_agent.default_model,
     )
 
-
-# ── Export document ───────────────────────────────────────────────────────────
 
 class ExportDocumentRequest(BaseModel):
     document: str
@@ -1372,32 +1220,14 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
     if settings.MOCK_MODE:
         return ExplainResponse(
             explanation=(
-                "In plain English: You must keep the other party's confidential information completely private "
-                "and not share it with anyone else. You can only get their permission to share it, and that "
-                "permission must be in writing. This is a standard confidentiality obligation found in most NDAs.\n\n"
-                "What this means for you: Once you sign this, sharing anything they've told you (product plans, "
-                "financials, customer lists, etc.) with anyone else – even your own investors or advisors – "
-                "requires their explicit written approval first."
+                "You must keep the other side's confidential information private and can only share it "
+                "with their written permission, given before you share."
             ),
-            key_terms={
-                "Receiving Party": "The person or company receiving the confidential information (likely you)",
-                "Confidential Information": "Any information marked or identified as confidential during disclosure",
-                "Third Party": "Anyone other than the two parties signing this agreement",
-                "Prior Written Consent": "Written permission obtained BEFORE the disclosure, not after",
-                "Disclosing Party": "The party sharing their confidential information with you",
-            },
-            related_concepts=[
-                "Trade secret protection",
-                "Attorney-client privilege (exception to NDA obligations)",
-                "Carve-outs for publicly available information",
-                "Return or destruction of confidential information upon termination",
-            ],
+            key_terms={"Prior written consent": "Permission in writing, obtained before the disclosure."},
+            related_concepts=["Carve-outs for public information"],
             practical_implications=[
-                "You cannot share their information with your investors without getting written approval first",
-                "Internal team members who don't need to know should NOT be briefed on their confidential details",
-                "Keep records of all confidential disclosures – document what was shared and when",
-                "If you're subpoenaed, you may have a legal obligation to disclose – notify the disclosing party immediately",
-                "Verbal disclosures also count if marked confidential at the time",
+                "Get written approval before briefing your investors on their details.",
+                "Keep a record of what was shared and when.",
             ],
         )
 
@@ -1405,205 +1235,119 @@ async def explain_legal_text(request: ExplainRequest) -> ExplainResponse:
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system,
-        messages=[{"role": "user", "content": (
-            f"Explain this legal text in plain English:\n\n{request.text}\n\n"
-            f"Context: {request.context or 'None'}\n\n"
-            "Return JSON with fields: explanation, key_terms (dict), related_concepts (list), practical_implications (list)"
-        )}],
+    data = await lex_services.explain_text(
+        _llm, provider=_agent.default_provider, model=_agent.default_model, system=system,
+        text=request.text, context=request.context,
     )
-    tokens_used = _llm.count_tokens(raw)
-    try:
-        data = json.loads(strip_json_fences(raw))
-        return ExplainResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
-    except Exception:
-        return ExplainResponse(
-            explanation=raw,
-            key_terms={},
-            related_concepts=[],
-            practical_implications=[],
-            tokens_used=tokens_used,
-            model_used=_agent.default_model,
-        )
+    return ExplainResponse(**data, model_used=_agent.default_model)
 
 
 @router.post("/legal-research", response_model=LegalResearchResponse, summary="Research legal questions")
 async def legal_research(request: LegalResearchRequest) -> LegalResearchResponse:
-    """Research laws, regulations, and case precedents for a legal question."""
+    """Answer a legal question from current web sources, with the sources listed."""
     if settings.MOCK_MODE:
         return LegalResearchResponse(
-            summary=(
-                "GDPR Article 7 sets strict requirements for consent. Consent must be freely given, specific, "
-                "informed, and unambiguous. Pre-ticked boxes, bundled consent, and vague language are explicitly prohibited. "
-                "Organizations must be able to demonstrate that consent was properly obtained."
+            answer=(
+                "An LLP converts to a private limited company by registering it under Section 366 of the "
+                "Companies Act, 2013 through the SPICe+ form on the MCA portal [1]. Plan for 3-6 weeks."
             ),
-            applicable_laws=[
-                "GDPR Article 7 (Conditions for consent)",
-                "GDPR Recital 32 (Affirmative consent requirement)",
-                "GDPR Article 4(11) (Definition of consent)",
-                "ePrivacy Directive (for cookies and electronic communications)",
-                "GDPR Article 17 (Right to erasure — consent withdrawal triggers this)",
+            sections=[
+                {"title": "Steps", "type": "ordered", "items": [
+                    "Get consent from all partners and settle any creditor objections.",
+                    "Reserve the company name through SPICe+ Part A.",
+                    "File SPICe+ Part B with URC-1 and the conversion documents.",
+                ]},
+                {"title": "Documents needed", "type": "bullets", "items": [
+                    "LLP agreement and partner consents", "Statement of assets and liabilities", "No-objection from creditors",
+                ]},
             ],
-            key_requirements=[
-                "Consent must be a clear affirmative act (no pre-ticked boxes or silence)",
-                "Granular consent required — separate consent per distinct processing purpose",
-                "As easy to withdraw consent as to give it",
-                "Maintain records of consent: timestamp, IP address, consent version, method",
-                "Children under 16 require parental consent (age threshold varies by EU member state: 13-16)",
-                "No bundled consent — consent for services cannot be conditioned on unrelated data processing",
-            ],
-            relevant_cases=[
-                "Planet49 GmbH v Bundesverband (CJEU C-673/17, 2019) — pre-ticked boxes invalid",
-                "Fashion ID GmbH v Verbraucherzentrale NRW (CJEU C-40/17, 2019) — joint controller liability",
-                "CNIL enforcement actions (France, 2022-2023) — cookie consent dark patterns fined",
-                "DSK (Germany) — guidance on valid consent for analytics tracking",
-            ],
-            practical_guidance=[
-                "Implement a proper Consent Management Platform (CMP) with granular opt-in toggles",
-                "Store consent records server-side with timestamp, IP, consent version, and method",
-                "Provide a dedicated privacy settings page where users can withdraw individual consents",
-                "Refresh consent if processing purpose changes significantly",
-                "Avoid pre-checked boxes, confusing UX, or consent walls that block access",
-                "Conduct a Legitimate Interest Assessment (LIA) as an alternative basis where consent is impractical",
-            ],
-            jurisdiction_notes="EU-wide requirement under GDPR. Individual member states may impose stricter requirements (e.g., Germany's TTDSG for cookies, France's CNIL guidelines).",
-            confidence_level="high — based on GDPR text, CJEU case law, and supervisory authority guidance",
+            references=["Companies Act, 2013, Section 366", "Companies (Authorised to Register) Rules, 2014"],
+            relevant_cases=[],
+            jurisdiction_notes="Fees and form versions change — check the MCA portal before filing.",
+            confidence_level="high",
+            jurisdiction="India",
+            sources=[LegalResearchSource(title="Conversion of LLP into company — MCA", url="https://www.mca.gov.in")],
         )
 
+    location = await lex_services.org_location(request.organization_id)
+    jurisdiction = lex_services.resolve_jurisdiction(request.jurisdiction, location)
     system = await _agent.build_system_prompt(request.user_id, request.organization_id)
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system,
-        messages=[{"role": "user", "content": (
-            f"Research this legal question:\n{request.query}\n\n"
-            f"Jurisdiction: {request.jurisdiction}\n"
-            f"Legal areas: {', '.join(request.legal_areas) if request.legal_areas else 'general'}\n\n"
-            "Return ONLY a JSON object (no markdown fences) — be concise:\n"
-            "summary (2-3 sentences), "
-            "applicable_laws (list of strings, max 6), "
-            "key_requirements (list of strings, max 6), "
-            "relevant_cases (list of strings, max 4), "
-            "practical_guidance (list of strings, max 5), "
-            "jurisdiction_notes (1 sentence), "
-            "confidence_level (exactly one word: high, medium, or low)"
-        )}],
-        max_tokens=1200,
+    data = await lex_services.research(
+        _llm, provider=_agent.default_provider, model=_agent.default_model, system=system,
+        query=request.query, jurisdiction=jurisdiction, legal_areas=request.legal_areas,
     )
-    tokens_used = _llm.count_tokens(raw)
-    try:
-        data = safe_json_loads(strip_json_fences(raw))
-        # Guard: if summary looks like JSON (LLM nested the response), re-parse it
-        if isinstance(data.get("summary"), str) and data["summary"].strip().startswith("{"):
-            try:
-                inner = safe_json_loads(data["summary"])
-                if isinstance(inner, dict) and "summary" in inner:
-                    data = inner
-            except Exception:
-                pass
-        # Normalise confidence_level to a single word
-        cl = str(data.get("confidence_level", "medium")).lower().split()[0]
-        data["confidence_level"] = cl if cl in ("high", "medium", "low") else "medium"
-        return LegalResearchResponse(**{k: v for k, v in data.items() if k in LegalResearchResponse.model_fields}, tokens_used=tokens_used, model_used=_agent.default_model)
-    except Exception:
-        return LegalResearchResponse(
-            summary="Legal research completed. See guidance below.",
-            applicable_laws=[], key_requirements=[], relevant_cases=[],
-            practical_guidance=[raw[:400]] if raw else [],
-            jurisdiction_notes=request.jurisdiction,
-            confidence_level="medium",
-            tokens_used=tokens_used,
-            model_used=_agent.default_model,
-        )
+    return LegalResearchResponse(**data, model_used=_agent.default_model)
 
 
 @router.post("/compliance-check", response_model=ComplianceCheckResponse, summary="Check regulatory compliance")
 async def compliance_check(request: ComplianceCheckRequest) -> ComplianceCheckResponse:
-    """Evaluate compliance against GDPR, CCPA, SOC2, HIPAA and other frameworks."""
+    """Check a practice or document against the laws that apply — India-first unless told otherwise."""
     if settings.MOCK_MODE:
         return ComplianceCheckResponse(
             overall_status="partial",
-            framework_results=[
-                {
-                    "framework": "GDPR",
-                    "status": "non_compliant",
-                    "gaps": [
-                        "No explicit consent flow for data collection",
-                        "EU data stored on US servers without valid transfer mechanism (SCCs or adequacy decision required)",
-                        "90-day retention not documented or justified under storage limitation principle",
-                    ],
-                    "requirements": [
-                        "Article 7 — valid consent mechanism",
-                        "Chapter V — lawful EU-to-US data transfer mechanism",
-                        "Article 5(1)(e) — storage limitation with defined retention policy",
-                        "Article 13/14 — privacy notice with processing purposes",
-                    ],
-                },
-                {
-                    "framework": "CCPA",
-                    "status": "partial",
-                    "gaps": [
-                        "No 'Do Not Sell or Share My Personal Information' opt-out link",
-                        "Privacy notice does not describe categories of data collected or purposes",
-                    ],
-                    "requirements": [
-                        "CCPA Section 1798.120 — right to opt out of sale/sharing",
-                        "Section 1798.100 — right to know what data is collected",
-                        "Section 1798.130 — designated methods for submitting requests",
-                    ],
-                },
-            ],
-            critical_gaps=[
-                "Storing EU personal data on US servers without SCCs — active GDPR violation",
-                "No consent mechanism — GDPR Article 7 violation with fines up to 4% of global revenue",
-                "No opt-out mechanism for California residents — CCPA violation",
-            ],
+            framework_results=[{
+                "framework": "Digital Personal Data Protection Act, 2023", "status": "partial",
+                "gaps": ["No notice telling users what personal data you collect and why"],
+                "requirements": ["Give a clear notice before collecting personal data", "Let users withdraw consent as easily as they gave it"],
+            }],
+            critical_gaps=["Collecting phone numbers at checkout without a consent notice"],
             remediation_steps=[
-                {"priority": "high", "action": "Execute Standard Contractual Clauses (SCCs) for EU→US data transfers, or migrate EU data to EU-based infrastructure within 30 days"},
-                {"priority": "high", "action": "Implement a consent management platform with GDPR-compliant granular consent flows for each processing purpose"},
-                {"priority": "high", "action": "Add 'Do Not Sell or Share My Personal Information' link to footer and implement opt-out mechanism for California residents"},
-                {"priority": "medium", "action": "Update privacy notice to describe data categories, purposes, retention periods, and user rights"},
-                {"priority": "medium", "action": "Document and justify the 90-day retention period or reduce it to minimum necessary"},
+                {"priority": "high", "action": "Add a consent notice to checkout explaining what you collect and why."},
+                {"priority": "medium", "action": "Publish a grievance contact on the privacy policy page."},
             ],
-            estimated_effort="2-4 weeks for critical compliance items, 2-3 months for full implementation and documentation",
+            estimated_effort="1-2 weeks, mostly policy and checkout copy",
+            jurisdiction="India",
         )
 
+    location = await lex_services.org_location(request.organization_id)
+    jurisdiction = lex_services.resolve_jurisdiction(request.jurisdiction, location)
     system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system,
-        messages=[{"role": "user", "content": (
-            f"Evaluate the regulatory compliance of this practice or document:\n{request.description}\n\n"
-            f"Business context: {request.business_context or 'Not provided'}\n"
-            f"Check against: {', '.join(request.frameworks)}\n\n"
-            "Return ONLY a JSON object (no markdown fences) with keys: "
-            "overall_status (compliant/partial/non_compliant), "
-            "framework_results (list of {framework, status, gaps, requirements}), "
-            "critical_gaps (list of strings), "
-            "remediation_steps (list of {priority: high/medium/low, action: string}), "
-            "estimated_effort (string)"
-        )}],
+    data = await lex_services.compliance(
+        _llm, provider=_agent.default_provider, model=_agent.default_model, system=system,
+        description=request.description, frameworks=request.frameworks,
+        business_context=request.business_context, jurisdiction=jurisdiction,
     )
-    tokens_used = _llm.count_tokens(raw)
-    try:
-        data = json.loads(strip_json_fences(raw))
-        return ComplianceCheckResponse(**data, tokens_used=tokens_used, model_used=_agent.default_model)
-    except Exception:
-        return ComplianceCheckResponse(
-            overall_status="unknown",
-            framework_results=[], critical_gaps=[],
-            remediation_steps=[],
-            estimated_effort="Manual review required",
-            tokens_used=tokens_used,
-            model_used=_agent.default_model,
-        )
+    return ComplianceCheckResponse(**data, model_used=_agent.default_model)
+
+
+@router.post("/draft-reply", response_model=DraftReplyResponse, summary="Draft a reply to the counterparty from a review")
+async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
+    """Turn a contract review into an email to the other side plus a schedule of proposed changes."""
+    from fastapi import HTTPException
+
+    if settings.MOCK_MODE:
+        reply = {
+            "subject": "Proposed changes to the Mutual NDA",
+            "email": "Hi team,\n\nThanks for sending the NDA over. Before we sign, we'd like two changes:\n\n1. Section 7 — remove the residuals clause.\n2. Section 5 — reduce the term to three years.\n\nHappy to discuss on a quick call.\n\nBest,\n[YOUR NAME]",
+            "changes": [
+                {"section": "7", "current": "Nothing shall restrict use of information retained in unaided memory.", "proposed": "Delete Section 7.", "reason": "It lets remembered information be used freely."},
+            ],
+            "counterparty": "Acme Corp",
+        }
+    else:
+        system = await _agent.build_system_prompt(request.user_id, request.organization_id, use_brand_kit=False)
+        try:
+            reply = await lex_services.draft_reply(
+                _llm, provider=_agent.default_provider, model=_agent.default_model, system=system,
+                analysis=request.analysis, sender=request.sender, tone=request.tone,
+            )
+        except ValueError as err:
+            raise HTTPException(status_code=422, detail=str(err))
+        except Exception as err:
+            logger.error("draft reply failed | error=%s: %s", type(err).__name__, str(err)[:300])
+            raise HTTPException(status_code=502, detail="Lex couldn't draft the reply. Try again.")
+
+    return DraftReplyResponse(
+        **reply,
+        changes_document=lex_services.changes_document(reply, str(request.analysis.get("document_type") or "Contract")),
+        model_used=_agent.default_model,
+    )
 
 
 @router.post("/delete-source", response_model=DeleteSourceResponse, summary="Delete an ingested document")

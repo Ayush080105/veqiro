@@ -3,12 +3,12 @@ import json
 import logging
 
 from agents.base import BaseAgent
+from agents.lex import services as lex_services
 from agents.lex.contract_analysis import analyze_contract_text
-from core.llm import LLMClient, JSON_COMPLETION_MAX_TOKENS
+from core.llm import LLMClient
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolParameter
-from core.utils import safe_json_loads
 
 logger = logging.getLogger("lex")
 
@@ -42,7 +42,7 @@ class LexAgent(BaseAgent):
             "- ANY legal question in ANY language or jurisdiction: how-to, procedures, company formation, "
             "conversions (LLP→Pvt Ltd, etc.), government schemes/subsidies/grants, rights, obligations, "
             "regulations, licensing, compliance, employment, IP, taxes with legal angle → `legal_research`\n"
-            "- Compliance framework check (GDPR, CCPA, SOC2, HIPAA, etc.) → `compliance_check`\n"
+            "- Compliance check (DPDP Act, IT Rules, consumer protection, GDPR where relevant) → `compliance_check`\n"
             "- Draft a legal document → `draft_document`\n"
             "- Explain a legal clause or passage → `explain_legal`\n"
             "RULE: Never say a legal question is outside your expertise without first calling `legal_research`. "
@@ -94,7 +94,8 @@ class LexAgent(BaseAgent):
             "- Startup legal: incorporation, equity, IP assignment, founder agreements\n"
             "- Company structure & conversions: LLP → Pvt Ltd, sole proprietorship → LLP, OPC conversions, "
             "winding up, mergers — any change in corporate form is your job\n"
-            "- Compliance: GDPR, CCPA, SOC 2, terms of service, privacy policies\n"
+            "- Compliance: India first — DPDP Act 2023, IT Rules, consumer protection, GST and FSSAI where relevant; "
+            "GDPR/CCPA when the business serves those users; terms of service and privacy policies\n"
             "- Document drafting: letters, agreements, policies (non-binding templates)\n"
             "- Government schemes, subsidies, and grants: the legal eligibility criteria, "
             "application process, compliance obligations, and regulatory requirements for any "
@@ -194,9 +195,10 @@ class LexAgent(BaseAgent):
             ),
             ToolDefinition(
                 name="analyze_contract",
-                description="Perform a full structured analysis of a previously ingested contract. Fetches all document chunks by source_id and returns detailed risk assessment, clause breakdown, obligations, and negotiation guidance.",
+                description="Review a previously uploaded contract: a sign/negotiate verdict, key facts, the issues to push back on with replacement wording, and the dates the user must act on.",
                 parameters=[
                     ToolParameter(name="source_id", type="string", description="ID returned by ingest-document for the contract to analyze", required=True),
+                    ToolParameter(name="perspective", type="string", description="Which party the user is (e.g. 'the service provider', 'the employee'), if the conversation makes it clear. Leave empty to infer.", required=False, default=""),
                 ],
             ),
             ToolDefinition(
@@ -205,7 +207,7 @@ class LexAgent(BaseAgent):
                 parameters=[
                     ToolParameter(name="document_type", type="string", description="Type of document (e.g., mutual_nda, employment_agreement, terms_of_service, privacy_policy, saas_agreement)", required=True),
                     ToolParameter(name="requirements", type="string", description="Specific requirements and context for the document", required=True),
-                    ToolParameter(name="jurisdiction", type="string", description="Legal jurisdiction", required=False, default="United States (Delaware)"),
+                    ToolParameter(name="jurisdiction", type="string", description="Jurisdiction, if the user named one. Leave empty to use the organisation's location (India by default).", required=False, default=""),
                     ToolParameter(name="additional_clauses", type="array", description="Additional clauses to include", required=False, items_type="string"),
                 ],
             ),
@@ -235,10 +237,10 @@ class LexAgent(BaseAgent):
             ),
             ToolDefinition(
                 name="compliance_check",
-                description="Evaluate whether a practice, document, or business process meets regulatory compliance requirements (GDPR, CCPA, SOC2, HIPAA, PCI-DSS, etc.). Returns compliance status, gaps, and remediation steps.",
+                description="Check whether a practice, policy or business process complies with the laws that apply to the user — India first (DPDP Act 2023, IT Rules, consumer protection, sector rules), GDPR/CCPA etc. when they serve those users. Returns status, gaps and remediation steps.",
                 parameters=[
                     ToolParameter(name="description", type="string", description="Description of the practice, policy, or document to evaluate", required=True),
-                    ToolParameter(name="frameworks", type="array", description="Compliance frameworks to check against (e.g., GDPR, CCPA, SOC2, HIPAA)", required=True, items_type="string"),
+                    ToolParameter(name="frameworks", type="array", description="Laws or frameworks the user named. Leave empty to let Lex pick the ones that apply.", required=False, items_type="string"),
                     ToolParameter(name="business_context", type="string", description="Business type and context (e.g., 'B2B SaaS handling EU customer data')", required=False, default=""),
                 ],
             ),
@@ -272,195 +274,61 @@ class LexAgent(BaseAgent):
 
         if name == "analyze_contract":
             source_id = arguments.get("source_id", "")
-
-            chunks = await self.rag.retrieve_by_source(user_id, source_id)
-            if not chunks:
+            full_text = await self.rag.source_text(user_id, source_id)
+            if not full_text:
                 return json.dumps({"error": f"No document found for source_id '{source_id}'"})
-
-            full_text = "\n\n".join(c.get("content", "") for c in chunks)
-
             data = await analyze_contract_text(
                 self.llm, provider=self.default_provider, model=self.default_model,
                 system=system, full_text=full_text,
+                perspective=arguments.get("perspective", "") or "",
+                company_name=await lex_services.org_company_name(organization_id),
             )
             return json.dumps({"analysis": data}, default=str)
 
-        elif name == "draft_document":
+        if name == "draft_document":
+            location = await lex_services.org_location(organization_id)
+            jurisdiction = lex_services.resolve_jurisdiction(arguments.get("jurisdiction"), location)
             doc_type = arguments.get("document_type", "")
-            requirements = arguments.get("requirements", "")
-            jurisdiction = arguments.get("jurisdiction", "United States (Delaware)")
-            additional = arguments.get("additional_clauses", [])
-
-            prompt = (
-                f"Draft a {doc_type} with these requirements:\n{requirements}\n"
-                f"Jurisdiction: {jurisdiction}\n"
-                f"Additional clauses: {', '.join(additional) if additional else 'None'}\n\n"
-                "Include all standard sections. Mark areas needing customization with [BRACKETS]."
-            )
-            raw = await self.llm.complete(
-                provider=self.default_provider, model=self.default_model,
-                system=system, messages=[{"role": "user", "content": prompt}],
-                max_tokens=4096,
-            )
-            result = {
-                "document": raw,
-                "document_type": doc_type,
-                "jurisdiction": jurisdiction,
-                "review_notes": [
-                    "TEMPLATE ONLY — requires customization before use",
-                ],
-            }
-            return json.dumps(result, default=str)
-
-        elif name == "explain_legal":
-            text = arguments.get("text", "")
-            context = arguments.get("context", "")
-
-            prompt = (
-                f"Explain this legal text in plain English:\n\n{text}\n\n"
-                f"Context: {context or 'Not provided'}\n\n"
-                "Return ONLY a JSON object (no markdown fences) with keys: "
-                "explanation (string), key_terms (dict of string->string), "
-                "related_concepts (list of strings), practical_implications (list of strings)"
-            )
             try:
-                data = await self.llm.complete_json(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system, messages=[{"role": "user", "content": prompt}],
+                document = await lex_services.draft_document(
+                    self.llm, provider=self.default_provider, model=self.default_model, system=system,
+                    document_type=doc_type, requirements=arguments.get("requirements", ""),
+                    jurisdiction=jurisdiction, additional_clauses=arguments.get("additional_clauses") or [],
                 )
-            except Exception:
-                data = {
-                    "explanation": "Explanation generation failed — please retry.",
-                    "key_terms": {},
-                    "related_concepts": [],
-                    "practical_implications": [],
-                }
-            return json.dumps(data, default=str)
-
-        elif name == "legal_research":
-            query = arguments.get("query", "")
-            jurisdiction = arguments.get("jurisdiction", "United States")
-            legal_areas = arguments.get("legal_areas", [])
-
-            prompt = (
-                f"You are a sharp, founder-friendly legal advisor. Answer this legal question:\n{query}\n\n"
-                f"Jurisdiction context: {jurisdiction}\n"
-                f"Legal areas: {', '.join(legal_areas) if legal_areas else 'general'}\n\n"
-                "Return ONLY a valid JSON object (no markdown fences, no commentary outside JSON).\n\n"
-                "The JSON must have exactly these keys:\n\n"
-                "\"answer\": string — Your primary response. Write 2-4 clear paragraphs. "
-                "Be direct, concrete, and founder-friendly — no hedging, no filler. "
-                "Cover the key legal reality, the practical implications, and what the founder should actually do. "
-                "If the question is procedural, summarise the process and rough timeline/cost here. "
-                "If it is conceptual, explain clearly with a practical example.\n\n"
-                "\"sections\": array — Include ONLY sections that genuinely add value for this specific question. "
-                "Do not invent sections just to fill space. Each section is an object with:\n"
-                "  - \"title\": short label (e.g. \"Steps\", \"Required Documents\", \"Key Risks\", \"What to Watch Out For\")\n"
-                "  - \"type\": one of \"ordered\" (numbered list — use for sequential steps), "
-                "\"bullets\" (unordered — use for requirements, risks, items with no order), "
-                "or \"narrative\" (a paragraph — use when a list would feel forced)\n"
-                "  - \"items\": array of strings — each item is a full, specific sentence. "
-                "For \"ordered\" steps: each item is one complete action the founder takes. "
-                "For \"bullets\": each item is a concrete fact, not a vague category. "
-                "For \"narrative\": a single-element array with the paragraph text.\n\n"
-                "Good section examples for different question types:\n"
-                "- How-to/procedural → sections: [{\"Steps\", ordered}, {\"Required Documents\", bullets}, {\"Timeline & Costs\", bullets}]\n"
-                "- Risk/risk assessment → sections: [{\"Key Risks\", bullets}, {\"How to Mitigate\", ordered}]\n"
-                "- Conceptual/definitional → sections: [] (the answer field is sufficient)\n"
-                "- Compliance → sections: [{\"What You Must Do\", ordered}, {\"Common Mistakes\", bullets}]\n\n"
-                "\"references\": array of strings — statutes, acts, regulations, or standards that directly apply. "
-                "Be precise: e.g. 'LLP Act 2008 (India), Section 11' not just 'LLP Act'.\n\n"
-                "\"relevant_cases\": array of strings — notable case law if genuinely relevant, else empty array.\n\n"
-                "\"jurisdiction_notes\": string — a single concrete, specific caveat for this jurisdiction "
-                "(e.g. 'Forms and fees change frequently — verify on mca.gov.in before filing'). "
-                "Empty string if no specific caveat is needed.\n\n"
-                "\"confidence_level\": exactly one word — high, medium, or low."
-            )
-            try:
-                data = await self.llm.complete_json(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system, messages=[{"role": "user", "content": prompt}],
-                    max_tokens=JSON_COMPLETION_MAX_TOKENS,
-                )
-                # Guard: if answer field itself looks like nested JSON, re-parse it
-                if isinstance(data.get("answer"), str) and data["answer"].strip().startswith("{"):
-                    try:
-                        inner = safe_json_loads(data["answer"])
-                        if isinstance(inner, dict) and "answer" in inner:
-                            data = inner
-                    except Exception:
-                        pass
             except Exception as exc:
-                # This used to swallow the cause entirely, so a user-visible failure left
-                # nothing in the logs to debug from. The card below is still the graceful
-                # fallback, but the reason has to be recoverable.
-                logger.exception(
-                    "legal_research failed | user=%s org=%s query_len=%d jurisdiction=%s | %s",
-                    user_id, organization_id, len(query), jurisdiction, exc,
-                )
-                data = {
-                    "answer": "Legal research failed — please retry.",
-                    "sections": [],
-                    "references": [],
-                    "relevant_cases": [],
-                    "jurisdiction_notes": "",
-                    "confidence_level": "medium",
-                }
-            # Ensure required keys exist with safe defaults
-            data.setdefault("sections", [])
-            data.setdefault("references", [])
-            data.setdefault("relevant_cases", [])
-            data.setdefault("jurisdiction_notes", "")
-            # Normalise confidence_level to a single word
-            cl = str(data.get("confidence_level", "medium")).lower().split()[0]
-            data["confidence_level"] = cl if cl in ("high", "medium", "low") else "medium"
-            # Normalise each section: ensure title, type, items exist
-            cleaned_sections = []
-            for s in data.get("sections", []):
-                if not isinstance(s, dict):
-                    continue
-                s_type = s.get("type", "bullets")
-                if s_type not in ("ordered", "bullets", "narrative"):
-                    s_type = "bullets"
-                items = s.get("items", [])
-                if isinstance(items, list) and len(items) > 0:
-                    cleaned_sections.append({
-                        "title": str(s.get("title", "")),
-                        "type": s_type,
-                        "items": [str(i) for i in items],
-                    })
-            data["sections"] = cleaned_sections
+                logger.error("draft_document tool failed | type=%s | %s", doc_type, exc)
+                return json.dumps({"error": "Lex couldn't finish this draft. Ask the user to try again."})
+            from agents.lex.routes import _get_draft_review_notes
+            return json.dumps({
+                "document": document, "document_type": doc_type, "jurisdiction": jurisdiction,
+                "review_notes": _get_draft_review_notes(doc_type, jurisdiction, arguments.get("additional_clauses") or []),
+            }, default=str)
+
+        if name == "explain_legal":
+            data = await lex_services.explain_text(
+                self.llm, provider=self.default_provider, model=self.default_model, system=system,
+                text=arguments.get("text", ""), context=arguments.get("context"),
+            )
             return json.dumps(data, default=str)
 
-        elif name == "compliance_check":
-            description = arguments.get("description", "")
-            frameworks = arguments.get("frameworks", [])
-            context = arguments.get("business_context", "")
-
-            prompt = (
-                f"Evaluate the regulatory compliance of this practice or document:\n{description}\n\n"
-                f"Business context: {context or 'Not provided'}\n"
-                f"Check against: {', '.join(frameworks)}\n\n"
-                "Return ONLY a JSON object (no markdown fences) with keys:\n"
-                "overall_status (compliant/partial/non_compliant), "
-                "framework_results (list of {framework, status, gaps, requirements}), "
-                "critical_gaps (list of strings), "
-                "remediation_steps (list of {priority: high/medium/low, action: string}), "
-                "estimated_effort (string)"
+        if name == "legal_research":
+            location = await lex_services.org_location(organization_id)
+            data = await lex_services.research(
+                self.llm, provider=self.default_provider, model=self.default_model, system=system,
+                query=arguments.get("query", ""),
+                jurisdiction=lex_services.resolve_jurisdiction(arguments.get("jurisdiction"), location),
+                legal_areas=arguments.get("legal_areas") or [],
             )
-            try:
-                data = await self.llm.complete_json(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system, messages=[{"role": "user", "content": prompt}],
-                )
-            except Exception:
-                data = {
-                    "overall_status": "unknown",
-                    "framework_results": [],
-                    "critical_gaps": [],
-                    "remediation_steps": [],
-                    "estimated_effort": "Manual review required",
-                }
+            return json.dumps(data, default=str)
+
+        if name == "compliance_check":
+            location = await lex_services.org_location(organization_id)
+            data = await lex_services.compliance(
+                self.llm, provider=self.default_provider, model=self.default_model, system=system,
+                description=arguments.get("description", ""), frameworks=arguments.get("frameworks") or [],
+                business_context=arguments.get("business_context", "") or "",
+                jurisdiction=lex_services.resolve_jurisdiction(None, location),
+            )
             return json.dumps(data, default=str)
 
         raise ValueError(f"Unknown tool: {name}")
