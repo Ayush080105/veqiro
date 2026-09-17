@@ -43,7 +43,15 @@ class RAGService:
         source_types: list[str] | None = None,
         source_agent: str | None = None,
         source_id: str | None = None,
+        min_score: float = 0.70,
     ) -> list[dict]:
+        """Top-k chunks by cosine similarity, dropping any below `min_score`.
+
+        The 0.70 default is a noise floor for searches across everything a user has stored.
+        A search scoped to one chosen document should pass a much lower floor: with
+        text-embedding-3-small a short question against a 200-word chunk rarely scores
+        above ~0.6 even when the chunk holds the answer, so 0.70 filters out every result.
+        """
         if settings.MOCK_MODE:
             return []
 
@@ -74,7 +82,6 @@ class RAGService:
                 source_id,
             )
 
-        _MIN_SCORE = 0.70  # cosine similarity floor — below this the chunk is noise
         return [
             {
                 "id": str(row["id"]),
@@ -85,7 +92,7 @@ class RAGService:
                 "score": float(row["score"]),
             }
             for row in rows
-            if float(row["score"]) >= _MIN_SCORE
+            if float(row["score"]) >= min_score
         ]
 
     async def ingest(

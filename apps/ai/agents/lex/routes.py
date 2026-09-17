@@ -678,6 +678,10 @@ async def query_document(request: QueryDocumentRequest) -> QueryDocumentResponse
         query=request.query,
         top_k=request.top_k,
         source_id=request.source_id,
+        # Scoped to the one document the user picked, so every chunk is on-topic: rank by
+        # similarity and keep the best top_k. The default 0.70 floor rejected every chunk of
+        # real contracts (best match ~0.62) and turned each question into a 404.
+        min_score=0.0,
     )
     if not chunks:
         from fastapi import HTTPException
