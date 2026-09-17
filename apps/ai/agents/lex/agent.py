@@ -3,6 +3,7 @@ import json
 import logging
 
 from agents.base import BaseAgent
+from agents.lex.contract_analysis import analyze_contract_text
 from core.llm import LLMClient, JSON_COMPLETION_MAX_TOKENS
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
@@ -278,50 +279,10 @@ class LexAgent(BaseAgent):
 
             full_text = "\n\n".join(c.get("content", "") for c in chunks)
 
-            prompt = (
-                f"Perform a complete, detailed legal analysis of this contract:\n\n{full_text}\n\n"
-                "Return ONLY a JSON object (no markdown fences) with exactly these keys:\n"
-                "document_type (string), "
-                "parties (list of strings — 'Name (Role)'), "
-                "effective_date (string), "
-                "governing_law (string), "
-                "jurisdiction (string), "
-                "executive_summary (string — 2–3 sentences plain English), "
-                "risk_level (low/medium/high/critical), "
-                "risk_score (integer 1–10), "
-                "score_breakdown (object — fields: critical, high, medium, low — count of risks at each severity; must sum to total risk count), "
-                "risks (list of {clause, risk, severity: low/medium/high/critical, recommendation, "
-                "confidence: high/medium/low — certainty this is an enforceable risk based on case law or statute, "
-                "basis: string — one sentence citing the legal authority or precedent}), "
-                "unusual_clauses (list of strings), "
-                "missing_protections (list of strings), "
-                "clause_breakdown (list of {section, title, summary, risk_level, notes}), "
-                "key_terms (dict of string->string), "
-                "obligations (dict of party_name -> list of obligation strings), "
-                "obligations_structured (list of {party: string, items: list of {action: string, deadline: string or null, condition: string or null, consequence: string or null}}), "
-                "ambiguous_clauses (list of {clause: string, section: string or null, issue: string, interpretation: string — how courts in the governing jurisdiction typically read it}), "
-                "negotiation_points (list of {priority: high/medium/low, clause, issue, suggested_change}), "
-                "overall_assessment (string), "
-                "recommended_action (sign/negotiate/reject/legal_review_required)"
+            data = await analyze_contract_text(
+                self.llm, provider=self.default_provider, model=self.default_model,
+                system=system, full_text=full_text,
             )
-            try:
-                data = await self.llm.complete_json(
-                    provider=self.default_provider, model=self.default_model,
-                    system=system, messages=[{"role": "user", "content": prompt}],
-                    max_tokens=8000,
-                )
-            except Exception:
-                data = {
-                    "document_type": "Unknown", "parties": [], "effective_date": "",
-                    "governing_law": "", "jurisdiction": "",
-                    "executive_summary": "Automated analysis failed — manual review required.",
-                    "risk_level": "unknown", "risk_score": 0,
-                    "risks": [], "unusual_clauses": [], "missing_protections": [],
-                    "clause_breakdown": [], "key_terms": {}, "obligations": {},
-                    "negotiation_points": [],
-                    "overall_assessment": "Manual review recommended.",
-                    "recommended_action": "legal_review_required",
-                }
             return json.dumps({"analysis": data}, default=str)
 
         elif name == "draft_document":

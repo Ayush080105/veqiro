@@ -17,6 +17,7 @@ from core.config import settings
 from core.streaming import sse_format, stream_chat_sync_response
 from core.utils import strip_json_fences, safe_json_loads
 from agents.lex.agent import LexAgent
+from agents.lex.contract_analysis import analyze_contract_text
 
 router = APIRouter(prefix="/ai/lex", tags=["Lex"])
 
@@ -642,106 +643,11 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
-    raw = await _llm.complete(
-        provider=_agent.default_provider,
-        model=_agent.default_model,
-        system=system,
-        messages=[{"role": "user", "content": (
-            f"Perform a thorough, senior-attorney-level legal analysis of this contract. "
-            f"Be specific — quote exact clause language when relevant, name exact section numbers, "
-            f"and explain practical real-world impact, not just legal theory.\n\n"
-            f"CONTRACT:\n{full_text}\n\n"
-            "Return ONLY a valid JSON object (no markdown fences, no commentary) with EXACTLY these keys:\n\n"
-            "document_type (string — precise document type, e.g. 'Mutual Non-Disclosure Agreement'),\n"
-            "parties (list of strings — each entry: 'Full Legal Name (Role)', e.g. 'Acme Corp (Disclosing Party)'),\n"
-            "effective_date (string — exact date or 'Not specified'),\n"
-            "governing_law (string — state/country law that governs),\n"
-            "jurisdiction (string — courts where disputes must be filed),\n"
-            "executive_summary (string — 4–6 sentences: what the document is, who the parties are, "
-            "its main commercial purpose, overall balance/fairness, and your plain-English verdict on "
-            "whether it is founder-friendly or lopsided),\n"
-            "risk_level (string — one of: low/medium/high/critical),\n"
-            "risk_score (integer 1–10 where 1=essentially no risk, 10=do not sign),\n"
-            "score_breakdown (object — count of risks at each severity level, fields: critical (int), high (int), medium (int), low (int) — must sum to the total number of risks),\n"
-            "risks (list of objects — identify ALL material risks, minimum 3, with fields: "
-            "clause (exact section name/number), "
-            "risk (specific problem and its practical business impact — at least 2 sentences), "
-            "severity (low/medium/high/critical), "
-            "recommendation (specific actionable fix — proposed language change or deletion), "
-            "confidence (high/medium/low — how certain you are this is a real enforceable risk based on case law or statute), "
-            "basis (string — one sentence citing the specific legal authority or market precedent that supports this risk rating)),\n"
-            "unusual_clauses (list of strings — clauses that deviate from market standard; for each, "
-            "name the section and explain what is unusual and why it matters),\n"
-            "missing_protections (list of strings — standard protections absent from this agreement; "
-            "for each, name what is missing and the risk that creates),\n"
-            "clause_breakdown (list of objects — analyze EVERY numbered section/article; fields: "
-            "section (number/letter), title (clause title), "
-            "summary (2–3 sentences on what it does and its effect), "
-            "risk_level (low/medium/high/critical), "
-            "notes (specific issues, unusual language, or 'Standard — no issues')),\n"
-            "key_terms (dict string->string — important defined terms and their practical meaning, "
-            "minimum 5 entries),\n"
-            "obligations (dict — party_name -> list of specific obligation strings; be exhaustive, "
-            "list every obligation each party takes on),\n"
-            "obligations_structured (list of objects — same obligations in structured form, each: "
-            "party (string — exact party name matching the parties list), "
-            "items (list of objects, each with: "
-            "action (string — what the party must do), "
-            "deadline (string or null — human-readable deadline e.g. '30 days after termination', null if none), "
-            "condition (string or null — condition that triggers this obligation, null if unconditional), "
-            "consequence (string or null — consequence of non-performance, null if unspecified))),\n"
-            "ambiguous_clauses (list of objects — flag any legally vague or undefined terms that could create disputes; "
-            "focus on phrases like 'reasonable efforts', 'material adverse change', 'promptly', 'good faith', "
-            "'commercially reasonable', or any capitalized Defined Term that is used but not defined in this agreement; "
-            "fields: clause (string — the exact vague phrase or undefined term), "
-            "section (string or null — section number/name where it appears, null if it appears in multiple places), "
-            "issue (string — why this language creates legal uncertainty), "
-            "interpretation (string — how courts in the governing jurisdiction typically interpret this language)),\n"
-            "negotiation_points (list of objects — prioritized redline targets, minimum 3, fields: "
-            "priority (high/medium/low), clause (section name/number), "
-            "issue (what is wrong and why it must change), "
-            "suggested_change (exact proposed language or specific deletion instruction)),\n"
-            "overall_assessment (string — 3–4 sentences: concrete verdict on who this agreement "
-            "favors, what would change your recommendation, and whether to sign as-is),\n"
-            "recommended_action (string — one of: sign/negotiate/reject/legal_review_required)"
-        )}],
-        max_tokens=10000,
+    data = await analyze_contract_text(
+        _llm, provider=_agent.default_provider, model=_agent.default_model,
+        system=system, full_text=full_text,
     )
-    tokens_used = _llm.count_tokens(raw)
-    try:
-        data = json.loads(strip_json_fences(raw))
-        risks = [ClauseRisk(**r) for r in data.pop("risks", [])]
-        negotiation_points = [NegotiationPoint(**n) for n in data.pop("negotiation_points", [])]
-        raw_obligations_structured = data.pop("obligations_structured", [])
-        obligations_structured = [
-            PartyObligations(party=p["party"], items=[ObligationItem(**item) for item in p.get("items", [])])
-            for p in raw_obligations_structured
-        ] if raw_obligations_structured else None
-        raw_ambiguous = data.pop("ambiguous_clauses", [])
-        ambiguous_clauses = [AmbiguousClause(**c) for c in raw_ambiguous] if raw_ambiguous else None
-        raw_breakdown = data.pop("score_breakdown", None)
-        score_breakdown = ScoreBreakdown(**raw_breakdown) if raw_breakdown else None
-        analysis = ContractAnalysis(
-            **data,
-            risks=risks,
-            negotiation_points=negotiation_points,
-            obligations_structured=obligations_structured,
-            ambiguous_clauses=ambiguous_clauses,
-            score_breakdown=score_breakdown,
-        )
-    except Exception:
-        analysis = ContractAnalysis(
-            document_type="Unknown",
-            parties=[], effective_date="", governing_law="", jurisdiction="",
-            executive_summary=raw[:500],
-            risk_level="unknown", risk_score=0,
-            risks=[], unusual_clauses=[], missing_protections=[],
-            clause_breakdown=[], key_terms={}, obligations={},
-            negotiation_points=[],
-            overall_assessment="Parsing failed — manual review recommended.",
-            recommended_action="legal_review_required",
-        )
-    return AnalyzeContractResponse(analysis=analysis, tokens_used=tokens_used, model_used=_agent.default_model)
+    return AnalyzeContractResponse(analysis=ContractAnalysis(**data), model_used=_agent.default_model)
 
 
 @router.post("/query-document", response_model=QueryDocumentResponse, summary="Query document via RAG")
