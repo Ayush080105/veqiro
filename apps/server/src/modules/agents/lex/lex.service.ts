@@ -112,7 +112,10 @@ export const sendMessage = async (
     organizationId,
     CONTEXT_HISTORY_LIMIT
   );
-  const attached = await buildAttachedContext(userId, organizationId, input.sourceIds);
+  const [attached, memoryContext] = await Promise.all([
+    buildAttachedContext(userId, organizationId, input.sourceIds),
+    lexMemory.buildLegalMemoryContext(userId, organizationId).catch(() => ""),
+  ]);
   const userMessage = await lexRepository.createUserMessage({
     organizationId,
     userId,
@@ -138,7 +141,7 @@ export const sendMessage = async (
     userId,
     organizationId,
     conversationId: input.conversationId ?? userMessage.id,
-    userMessage: `${attached.contextBlock}${input.content}`,
+    userMessage: `${memoryContext}${attached.contextBlock}${input.content}`,
     rawHistory: history,
   }) as AssistantMessagePayload;
   if (!responseData) throw new BadRequestError("Failed to get response from AI");
@@ -199,7 +202,10 @@ export async function* streamMessage(
     organizationId,
     CONTEXT_HISTORY_LIMIT
   );
-  const attached = await buildAttachedContext(userId, organizationId, input.sourceIds);
+  const [attached, memoryContext] = await Promise.all([
+    buildAttachedContext(userId, organizationId, input.sourceIds),
+    lexMemory.buildLegalMemoryContext(userId, organizationId).catch(() => ""),
+  ]);
   const userMessage = await lexRepository.createUserMessage({
     organizationId,
     userId,
@@ -227,7 +233,7 @@ export async function* streamMessage(
     userId,
     organizationId,
     conversationId: input.conversationId ?? userMessage.id,
-    userMessage: `${attached.contextBlock}${input.content}`,
+    userMessage: `${memoryContext}${attached.contextBlock}${input.content}`,
     rawHistory: history,
   });
 
@@ -690,7 +696,12 @@ export const analyzeContract = async (
     },
   });
 
-  return data;
+  // The card links the review to its document (reminders, full review, Ask Lex) — the same
+  // identity the saved message carries in its input.
+  return {
+    ...data,
+    source: owned ? { sourceRowId, sourceName: owned.name, sourceId: owned.sourceId } : null,
+  };
 };
 
 export const draftDocument = async (

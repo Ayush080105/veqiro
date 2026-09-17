@@ -58,7 +58,9 @@ export const savePreferences = async (
 ) => {
   const fields = new Map(PREFERENCE_FIELDS.map((f) => [f.key, f]));
   const changed: string[] = [];
-  for (const [key, raw] of Object.entries(values)) {
+  for (const [rawKey, raw] of Object.entries(values)) {
+    // Clients send keys hyphenated ("payment-terms") so the body camelizer leaves them alone.
+    const key = rawKey.replace(/-/g, "_");
     const field = fields.get(key);
     if (!field) continue;
     const value = raw.trim().slice(0, 300);
@@ -639,4 +641,51 @@ export const saveSettings = async (organizationId: string, userId: string, input
     });
   }
   return getSettings(organizationId);
+};
+
+// ── Chat context ─────────────────────────────────────────────────────────────
+
+const CHAT_CONTEXT_CHARS = 3000;
+
+/**
+ * A compact, factual summary of the user's legal memory for Lex's chat turns, so questions like
+ * "what needs my attention?" or "what's due this month?" are answered from stored data rather
+ * than guessed. Built from the database — no model call.
+ */
+export const buildLegalMemoryContext = async (userId: string, organizationId: string) => {
+  const [watch, documents] = await Promise.all([
+    buildWatch(userId, organizationId),
+    prisma.lexSource.findMany({
+      where: { userId, organizationId, agent: Agent.LEX, status: "active" },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+      select: {
+        name: true, sourceId: true, counterparty: true, reviewHeadline: true, lastReviewedAt: true,
+        expiryDate: true, renewalDate: true, criticalCount: true, highCount: true, version: true,
+      },
+    }),
+  ]);
+  if (!documents.length) return "";
+  const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
+  const docLines = documents.map((d) => {
+    const bits = [
+      `"${d.name}" (source_id ${d.sourceId}${d.version > 1 ? `, v${d.version}` : ""})`,
+      d.counterparty ? `with ${d.counterparty}` : null,
+      d.lastReviewedAt ? `review: ${d.reviewHeadline ?? "done"}${d.criticalCount + d.highCount ? `, ${d.criticalCount + d.highCount} high-priority issues` : ""}` : "not reviewed",
+      d.expiryDate ? `expires ${day(d.expiryDate)}` : null,
+      d.renewalDate ? `renews ${day(d.renewalDate)}` : null,
+    ].filter(Boolean);
+    return `- ${bits.join("; ")}`;
+  });
+  const attention = watch.items
+    .filter((i) => i.severity !== "info")
+    .slice(0, 10)
+    .map((i) => `- ${i.documentName}: ${i.title}${i.dueDate ? ` (${i.dueDate.slice(0, 10)})` : ""}`);
+  const block = [
+    "## Lex legal memory (from the user's stored documents — use it for questions about their documents, deadlines and what needs attention; say so when something isn't in it)",
+    `Today: ${new Date().toISOString().slice(0, 10)}. ${watch.monitored} reviewed, ${documents.length} documents.`,
+    attention.length ? `Needs attention:\n${attention.join("\n")}` : "Needs attention: nothing right now.",
+    `Documents:\n${docLines.join("\n")}`,
+  ].join("\n");
+  return `${block.slice(0, CHAT_CONTEXT_CHARS)}\n\n---\n\n`;
 };

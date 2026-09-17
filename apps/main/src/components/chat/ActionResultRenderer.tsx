@@ -60,6 +60,7 @@ import {
   LegalResearchCard,
   ComplianceCheckCard,
   StampLetterheadCard,
+  DraftReplyCard,
 } from "@/components/agents/lex/cards"
 
 export interface ActionResultRendererProps {
@@ -172,9 +173,9 @@ export function ActionResultRenderer({ actionId, result, input, agentColor, onFo
     }
 
     case "lex:upload-source":
-      return <DocumentIngestCard result={r} />
+      return <DocumentIngestCard result={r} input={input as never} onFollowUpAction={onFollowUpAction} />
     case "lex:analyze-contract":
-      return <ContractAnalysisCard result={r} onFollowUpAction={onFollowUpAction} />
+      return <ContractAnalysisCard result={r} input={input as never} onFollowUpAction={onFollowUpAction} />
     case "lex:query-document":
       return <QueryDocumentCard result={r} />
     case "lex:draft-document":
@@ -187,6 +188,8 @@ export function ActionResultRenderer({ actionId, result, input, agentColor, onFo
       return <ComplianceCheckCard result={r} onFollowUpAction={onFollowUpAction} />
     case "lex:stamp-letterhead":
       return <StampLetterheadCard result={r} />
+    case "lex:draft-reply":
+      return <DraftReplyCard result={r} />
 
     default:
       return (

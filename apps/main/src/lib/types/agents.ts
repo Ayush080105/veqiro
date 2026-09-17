@@ -891,6 +891,168 @@ export interface LexSource {
   summary: string
   keyTopics: string[]
   createdAt: string
+  latestReview?: LexSourceReviewSummary | null
+  status?: string
+  counterparty?: string | null
+  expiryDate?: string | null
+  renewalDate?: string | null
+  noticeDeadline?: string | null
+  riskLevel?: string | null
+  lastReviewedAt?: string | null
+  version?: number
+  previousVersionId?: string | null
+  hasUnseenChanges?: boolean
+  nextDate?: { description: string; dueDate: string } | null
+}
+
+export interface LexSourceReviewSummary {
+  headline: string
+  action: string
+  riskLevel: string
+  issueCount: number
+  nextDate: string | null
+  reviewedAt: string
+}
+
+export type LexSeverity = "critical" | "high" | "medium" | "low"
+
+/** A v2 review finding — one per underlying problem. */
+export interface LexFinding {
+  severity: LexSeverity
+  kind: "risk" | "missing" | "ambiguous" | "unusual" | "preference_mismatch"
+  category: "document_risk" | "missing_information" | "company_preference_mismatch"
+  title: string
+  section: string
+  quote: string
+  what_it_means: string
+  send_back: string
+  preference?: string
+}
+
+export interface LexKeyDate {
+  when: string
+  what: string
+  owner: "you" | "counterparty" | "both"
+  section: string
+  recurrence: "once" | "monthly" | "quarterly" | "half_yearly" | "yearly"
+  date: string | null
+  days_from_start: number | null
+}
+
+export interface LexContractMeta {
+  effective_date: string | null
+  expiry_date: string | null
+  renewal_date: string | null
+  notice_deadline: string | null
+  auto_renewal: boolean | null
+  value: string | null
+  currency: string | null
+  payment_terms: string | null
+  dispute_resolution: string | null
+}
+
+export interface LexVerdict {
+  action: "sign" | "negotiate" | "reject" | "legal_review_required"
+  headline: string
+  summary: string
+}
+
+export interface LexObligation {
+  id: string
+  sourceRowId: string
+  owner: string
+  description: string
+  whenText: string
+  section: string
+  recurrence: string
+  dueDate: string | null
+  status: "open" | "done" | "dismissed"
+  reminderOn: boolean
+}
+
+export interface LexActivityEntry {
+  id: string
+  actor: "lex" | "user"
+  actorName: string | null
+  action: string
+  detail: string
+  createdAt: string
+}
+
+export interface LexVersionChange {
+  topic: string
+  section: string
+  before: string
+  after: string
+  severity: LexSeverity
+  why_it_matters: string
+  suggested_response: string
+}
+
+export interface LexVersionComparison {
+  summary: string
+  changes: LexVersionChange[]
+  previousName?: string
+  previousReviewedAt?: string | null
+  comparedAt?: string
+  failed?: boolean
+}
+
+export interface LexSourceDetail {
+  source: LexSource
+  review: LexAnalyzeContractResult["analysis"] | null
+  versionComparison: LexVersionComparison | null
+  findings: Array<{ id: string; severity: LexSeverity; category: string; kind: string; title: string; section: string; quote: string; explanation: string; suggestedWording: string; preference: string | null }>
+  obligations: LexObligation[]
+  activity: LexActivityEntry[]
+  versions: Array<{ id: string; name: string; version: number; previousVersionId: string | null; createdAt: string; lastReviewedAt: string | null; reviewHeadline: string | null }>
+}
+
+export interface LexWatchItem {
+  id: string
+  kind: "deadline" | "notice" | "renewal" | "expiry" | "new_version" | "needs_review"
+  severity: "critical" | "high" | "medium" | "info"
+  sourceRowId: string
+  documentName: string
+  title: string
+  dueDate: string | null
+  daysLeft: number | null
+}
+
+export interface LexWatch {
+  monitored: number
+  documents: number
+  attentionCount: number
+  items: LexWatchItem[]
+  recentlyReviewed: Array<{ sourceRowId: string; name: string; headline: string | null; action: string | null; seriousCount: number; reviewedAt: string }>
+}
+
+export interface LexBrief {
+  generatedAt: string
+  attentionCount: number
+  upcomingCount: number
+  reviewedThisWeek: number
+  monitored: number
+  attention: LexWatchItem[]
+  upcoming: LexWatchItem[]
+  clear: boolean
+}
+
+export interface LexPreference {
+  key: string
+  label: string
+  category: "commercial" | "legal" | "style"
+  placeholder: string
+  value: string
+  updatedAt: string | null
+}
+
+export interface LexDraftReplyResult {
+  subject: string
+  email: string
+  changes: Array<{ section: string; current: string; proposed: string; reason: string }>
+  counterparty: string
+  changes_document: string
 }
 
 /** Form value for the upload-source action — `file` is local-only (not serialised to JSON). */
@@ -922,6 +1084,9 @@ export interface LexQueryDocumentChunk {
 
 export interface LexQueryDocumentResult {
   answer: string
+  short_answer?: string
+  found?: boolean
+  citations?: Array<{ section: string; quote: string }>
   sources: LexQueryDocumentChunk[]
   tokens_used?: number
   model_used?: string
@@ -999,6 +1164,18 @@ export interface LexAnalyzeContractResult {
     score_breakdown?: LexScoreBreakdown
     obligations_structured?: LexPartyObligations[]
     ambiguous_clauses?: LexAmbiguousClause[]
+    // v2 — verdict-first review
+    version?: number
+    failed?: boolean
+    perspective?: string
+    counterparty?: string
+    verdict?: LexVerdict | null
+    favours?: { party: string; lean: number } | null
+    key_facts?: Array<{ label: string; value: string }>
+    issues?: LexFinding[]
+    key_dates?: LexKeyDate[]
+    contract?: LexContractMeta | null
+    clauses?: Array<{ section: string; title: string; summary: string; risk_level: string }>
   }
 }
 
@@ -1012,6 +1189,8 @@ export interface LexDraftDocumentRequest {
 export interface LexDraftDocumentResult {
   document: string
   review_notes: string[]
+  document_type?: string
+  jurisdiction?: string
 }
 
 export interface LexExplainRequest {
@@ -1045,6 +1224,9 @@ export interface LexLegalResearchResult {
   relevant_cases: string[]
   jurisdiction_notes: string
   confidence_level: string
+  jurisdiction?: string
+  sources?: Array<{ title: string; url: string; kind?: "statute" | "case_law" | "government_guidance" | "commentary"; date?: string }>
+  failed?: boolean
 }
 
 export interface LexComplianceCheckRequest {
@@ -1070,6 +1252,8 @@ export interface LexComplianceCheckResult {
   critical_gaps: string[]
   remediation_steps: Array<{ priority: "low" | "medium" | "high"; action: string }>
   estimated_effort: string
+  jurisdiction?: string
+  failed?: boolean
 }
 
 export interface SageBlogIdeaItem {
@@ -1256,6 +1440,9 @@ export type AgentActionId =
   | "lex:legal-research"
   | "lex:compliance-check"
   | "lex:stamp-letterhead"
+  | "lex:draft-reply"
+  /** Not a dialog: attaches a document to the composer with a suggested question. */
+  | "lex:ask-about"
 
 export interface ActionMessagePayload {
   actionId: AgentActionId

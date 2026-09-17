@@ -190,6 +190,7 @@ export interface AnalyzeContractResponse {
   analysis: ContractAnalysis;
   tokens_used?: number;
   model_used?: string;
+  source?: { sourceRowId: string | null; sourceName: string; sourceId: string } | null;
 }
 
 export interface DraftDocumentResponse {

@@ -71,8 +71,12 @@ import {
   LexLegalResearchForm,
   LexComplianceCheckForm,
   LexStampLetterheadForm,
+  LexDraftReplyForm,
+  composeDraftRequirements,
 } from "@/components/agents/lex/forms"
-import { uploadLexDocument, stampLexLetterhead } from "@/lib/api/lex"
+import { uploadLexDocument, stampLexLetterhead, draftLexReply } from "@/lib/api/lex"
+import type { LexAnalyzeContractResult } from "@/lib/types/agents"
+import type { LexDraftDocumentValues } from "@/lib/schemas/agents/lex"
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- heterogeneous form dispatch across agent actions */
 type FormComponent = React.ComponentType<{
@@ -162,7 +166,57 @@ const campaignVideoSpec: ActionSpec = {
   },
 }
 
-const SPECS: Record<AgentActionId, ActionSpec> = {
+/**
+ * Walks a long call through human-readable stages so a 60–120s review reads as progress, not a
+ * hang. Stages are time-based estimates of what the review is doing, not live server events.
+ */
+async function withStages<T>(
+  setStage: ((stage: ActionStage | null) => void) | undefined,
+  stages: Array<[number, string]>,
+  work: Promise<T>,
+): Promise<T> {
+  const timers = stages.map(([ms, label]) => setTimeout(() => setStage?.({ label }), ms))
+  try {
+    return await work
+  } finally {
+    timers.forEach(clearTimeout)
+  }
+}
+
+const REVIEW_STAGES: Array<[number, string]> = [
+  [0, "Reading the contract…"],
+  [12_000, "Checking liability, payment, termination and dispute terms…"],
+  [35_000, "Comparing against your usual terms…"],
+  [60_000, "Pulling out dates and obligations…"],
+  [85_000, "Writing the verdict…"],
+]
+
+async function runReview(
+  v: { source_id?: string; contract_text?: string; analysis_focus?: string[]; perspective?: string },
+  organizationId: string,
+  conversationId: string | undefined,
+  setStage?: (stage: ActionStage | null) => void,
+) {
+  return withStages(
+    setStage,
+    REVIEW_STAGES,
+    runAgentAction<Record<string, unknown>, LexAnalyzeContractResult>(
+      "lex:analyze-contract",
+      organizationId,
+      {
+        source_id: v.source_id || null,
+        contract_text: v.contract_text ?? "",
+        analysis_focus: v.analysis_focus ?? [],
+        perspective: v.perspective ?? "",
+      },
+      conversationId,
+    ),
+  )
+}
+
+type SpecId = Exclude<AgentActionId, "lex:ask-about">
+
+const SPECS: Record<SpecId, ActionSpec> = {
   "sage:keyword-research": {
     defaultValue: { seed_topic: "", count: 20 },
     Form: SageKeywordResearchForm,
@@ -541,7 +595,7 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
   },
 
   "lex:upload-source": {
-    defaultValue: { file: null, document_name: "", document_type: "contract" },
+    defaultValue: { file: null, document_name: "", document_type: "contract", review_now: true, perspective: "", previous_version_id: "" },
     Form: LexUploadSourceForm,
     validate: (v) =>
       !v.file
@@ -549,20 +603,31 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
         : !v.document_name?.trim()
           ? "Document name is required."
           : null,
-    customSubmit: async (v) =>
-      uploadLexDocument({
+    submitLabel: "Upload",
+    // With "Review it now" on, the action becomes a review: the chat shows the verdict card, and
+    // the upload itself is still saved to history as its own message by the server.
+    resolveActionId: (v) => ((v.review_now ?? true) ? "lex:analyze-contract" : "lex:upload-source"),
+    customSubmit: async (v, organizationId, conversationId, setStage) => {
+      setStage?.({ label: "Uploading and reading the document…" })
+      const source = await uploadLexDocument({
         file: v.file as File,
         documentName: v.document_name,
         documentType: v.document_type ?? "contract",
-      }),
+        previousVersionId: v.previous_version_id || null,
+      })
+      if (!(v.review_now ?? true)) return source
+      return runReview({ source_id: source.sourceId, perspective: v.perspective }, organizationId, conversationId, setStage)
+    },
   },
   "lex:analyze-contract": {
-    defaultValue: { source_id: "", contract_text: "", analysis_focus: [] },
+    defaultValue: { source_id: "", contract_text: "", analysis_focus: [], perspective: "" },
     Form: LexAnalyzeContractForm,
     validate: (v) =>
       v.source_id?.trim() || v.contract_text?.trim()
         ? null
         : "Pick a document or paste contract text.",
+    submitLabel: "Review",
+    customSubmit: (v, organizationId, conversationId, setStage) => runReview(v, organizationId, conversationId, setStage),
   },
   "lex:query-document": {
     defaultValue: { source_id: "", query: "" },
@@ -573,10 +638,17 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
         : !v.query?.trim()
           ? "Enter a question."
           : null,
+    submitLabel: "Ask",
   },
   "lex:draft-document": {
     defaultValue: {
       document_type: "",
+      other_type: "",
+      parties: "",
+      purpose: "",
+      duration: "",
+      commercial_terms: "",
+      protect: "",
       requirements: "",
       jurisdiction: "",
       additional_clauses: [],
@@ -584,10 +656,22 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     Form: LexDraftDocumentForm,
     validate: (v) =>
       !v.document_type?.trim()
-        ? "Document type is required."
-        : !v.requirements?.trim()
-          ? "Requirements are required."
+        ? "Pick a document type."
+        : v.document_type === "Other" && !v.other_type?.trim()
+          ? "Name the document type."
           : null,
+    submitLabel: "Create",
+    customSubmit: async (v: LexDraftDocumentValues, organizationId, conversationId, setStage) =>
+      withStages(
+        setStage,
+        [[0, "Drafting the document…"], [25_000, "Filling in clauses for your jurisdiction…"], [55_000, "Checking the draft…"]],
+        runAgentAction("lex:draft-document", organizationId, {
+          document_type: v.document_type === "Other" ? (v.other_type ?? "Document") : v.document_type,
+          requirements: composeDraftRequirements(v),
+          jurisdiction: v.jurisdiction ?? "",
+          additional_clauses: v.additional_clauses ?? [],
+        }, conversationId),
+      ),
   },
   "lex:explain": {
     defaultValue: { text: "", context: "" },
@@ -595,19 +679,20 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
     validate: (v) => (v.text?.trim() ? null : "Legal text is required."),
   },
   "lex:legal-research": {
-    defaultValue: { query: "", jurisdiction: "United States", legal_areas: [] },
+    defaultValue: { query: "", jurisdiction: "", legal_areas: [] },
     Form: LexLegalResearchForm,
     validate: (v) => (v.query?.trim() ? null : "Question is required."),
+    customSubmit: (v, organizationId, conversationId, setStage) =>
+      withStages(
+        setStage,
+        [[0, "Searching current sources…"], [10_000, "Reading statutes and government guidance…"], [30_000, "Writing the answer with sources…"]],
+        runAgentAction("lex:legal-research", organizationId, v, conversationId),
+      ),
   },
   "lex:compliance-check": {
     defaultValue: { description: "", frameworks: [], business_context: "" },
     Form: LexComplianceCheckForm,
-    validate: (v) =>
-      !v.description?.trim()
-        ? "Describe what you're checking."
-        : !v.frameworks?.length
-          ? "Add at least one framework."
-          : null,
+    validate: (v) => (v.description?.trim() ? null : "Describe what you're checking."),
   },
   "lex:stamp-letterhead": {
     defaultValue: { source_id: "", source_url: "", source_name: "" },
@@ -618,6 +703,29 @@ const SPECS: Record<AgentActionId, ActionSpec> = {
       const ext = (v.source_name as string).split(".").pop()?.toLowerCase() ?? ""
       const format = ext === "docx" ? "docx" : "pdf"
       return stampLexLetterhead({ fileUrl: v.source_url as string, filename: v.source_name as string, format })
+    },
+  },
+  "lex:draft-reply": {
+    defaultValue: { analysis: null, source_row_id: null, document_name: "", sender: "", tone: "firm but friendly" },
+    Form: LexDraftReplyForm,
+    validate: (v) => (v.analysis ? null : "Run a review first."),
+    submitLabel: "Draft email",
+    customSubmit: async (v, _organizationId, _conversationId, setStage) => {
+      const analysis = v.analysis as LexAnalyzeContractResult["analysis"]
+      const issues = analysis.issues ?? []
+      const chosen = (v.selected as number[] | undefined) ??
+        issues.map((_, i) => i).filter((i) => issues[i].send_back && (issues[i].severity === "critical" || issues[i].severity === "high"))
+      if (!chosen.length) throw new Error("Pick at least one change to request.")
+      return withStages(
+        setStage,
+        [[0, "Writing the email…"], [15_000, "Preparing the list of changes…"]],
+        draftLexReply({
+          analysis: { ...analysis, issues: chosen.map((i) => issues[i]).filter(Boolean) },
+          sourceRowId: v.source_row_id as string | null,
+          sender: v.sender,
+          tone: v.tone,
+        }),
+      )
     },
   },
 }
@@ -652,7 +760,7 @@ export function RunActionDialog({
 }: RunActionDialogProps) {
   if (!actionId) return null
   const meta = findAction(actionId)
-  const spec = SPECS[actionId]
+  const spec = actionId === "lex:ask-about" ? undefined : SPECS[actionId]
   if (!meta || !spec) return null
 
   const { Form, defaultValue, validate, customSubmit, resolveActionId, submitLabel } = spec

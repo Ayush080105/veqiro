@@ -25,6 +25,13 @@ export const qk = {
   chat: (agentSlug: string, organizationId: string) =>
     ["chat", agentSlug, organizationId] as const,
   lexSources: () => ["lex", "sources"] as const,
+  lexSourceSearch: (q: string) => ["lex", "sources", "search", q] as const,
+  lexSource: (id: string) => ["lex", "source", id] as const,
+  lexWatch: () => ["lex", "watch"] as const,
+  lexBrief: () => ["lex", "brief"] as const,
+  lexPreferences: () => ["lex", "preferences"] as const,
+  lexSettings: () => ["lex", "settings"] as const,
+  lexVersionCandidates: (name: string) => ["lex", "version-candidates", name] as const,
   pinnedMessages: (agentSlug: string, organizationId: string) =>
     ["pinned-messages", agentSlug, organizationId] as const,
   mayaPublishedPosts: (organizationId: string) =>

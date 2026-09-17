@@ -2,16 +2,20 @@
 
 import * as React from "react"
 import { Upload, Loader2 } from "lucide-react"
-import { Controller } from "react-hook-form"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { FieldGroup } from "@/components/ui/field"
 import { CountedTextarea, StringListInput } from "@/components/chat/ActionForm/fields"
 import { RhfField } from "@/components/forms/RhfField"
 import { useAgentForm } from "@/components/forms/useAgentForm"
-import { useLexSources } from "@/lib/api/lex"
+import { useLexSources, useLexVersionCandidates } from "@/lib/api/lex"
+import type { ActionStage } from "@/components/chat/ActionDialog"
+import type { LexAnalyzeContractResult, LexFinding } from "@/lib/types/agents"
 import {
+  LEX_DRAFT_TYPES,
   lexUploadSourceSchema,
   type LexUploadSourceValues,
   lexAnalyzeContractSchema,
@@ -26,26 +30,53 @@ import {
   type LexLegalResearchValues,
   lexComplianceCheckSchema,
   type LexComplianceCheckValues,
-  lexStampLetterheadSchema,
   type LexStampLetterheadValues,
+  type LexDraftReplyValues,
 } from "@/lib/schemas/agents/lex"
+import { SeverityTag } from "./review"
 
-const DOC_TYPES = ["contract", "agreement", "policy", "nda", "tos", "other"]
+const UPLOAD_TYPES = [
+  { value: "contract", label: "Contract" },
+  { value: "nda", label: "NDA" },
+  { value: "vendor_agreement", label: "Vendor agreement" },
+  { value: "employment_agreement", label: "Employment" },
+  { value: "legal_notice", label: "Legal notice" },
+  { value: "policy", label: "Policy" },
+  { value: "other", label: "Other" },
+]
+
+// ─── Progress while a review runs ────────────────────────────────────────────
+
+/** Shown in the dialog while a long Lex call runs, so ~90 seconds never reads as a hang. */
+export function LexProgress({ submitting, stage }: { submitting?: boolean; stage?: ActionStage | null }) {
+  if (!submitting) return null
+  return (
+    <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border bg-muted/40 px-3 py-2.5 text-xs">
+      <Loader2 className="size-3.5 shrink-0 animate-spin" />
+      <span>{stage?.label ?? "Working…"}</span>
+    </div>
+  )
+}
 
 // ─── Upload source ──────────────────────────────────────────────────────────
 
 export function LexUploadSourceForm({
   value,
   onChange,
+  submitting,
+  stage,
 }: {
   value: LexUploadSourceValues
   onChange: (patch: Partial<LexUploadSourceValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
 }) {
   const form = useAgentForm({
     schema: lexUploadSourceSchema,
     defaultValue: value,
     onChange,
   })
+  const { data: candidates = [] } = useLexVersionCandidates(value.document_name ?? "")
 
   return (
     <FieldGroup>
@@ -73,11 +104,7 @@ export function LexUploadSourceForm({
                   if (!f) return
                   field.onChange(f)
                   if (!form.getValues("document_name")) {
-                    form.setValue(
-                      "document_name",
-                      f.name.replace(/\.pdf$/i, ""),
-                      { shouldValidate: true }
-                    )
+                    form.setValue("document_name", f.name.replace(/\.pdf$/i, ""), { shouldValidate: true })
                   }
                 }}
               />
@@ -86,46 +113,83 @@ export function LexUploadSourceForm({
         }}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="document_name"
-        label="Document name"
-        required
-      >
+      <RhfField control={form.control} name="document_name" label="Document name" required>
         {({ field, invalid, id }) => (
-          <Input
-            {...field}
-            id={id}
-            placeholder="e.g. Acme MSA 2026"
-            aria-invalid={invalid}
-          />
+          <Input {...field} id={id} placeholder="e.g. Acme MSA 2026" aria-invalid={invalid} />
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="document_type"
-        label="Document type"
-      >
+      {candidates.length > 0 && (
+        <div className="flex flex-col gap-1.5 rounded-[var(--vq-r-sm)] border border-border bg-muted/30 p-2.5">
+          <span className="text-xs font-medium">Is this a new version of an earlier document?</span>
+          <div className="flex flex-wrap gap-1.5">
+            {candidates.map((c) => (
+              <Button
+                key={c.id}
+                type="button"
+                size="sm"
+                variant={value.previous_version_id === c.id ? "default" : "outline"}
+                onClick={() => onChange({ previous_version_id: c.id })}
+              >
+                {c.name}
+                {c.version > 1 ? ` · v${c.version}` : ""}
+              </Button>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant={!value.previous_version_id ? "default" : "outline"}
+              onClick={() => onChange({ previous_version_id: "" })}
+            >
+              No, it&apos;s new
+            </Button>
+          </div>
+          {value.previous_version_id && (
+            <span className="text-[11px] text-muted-foreground">Lex will compare the two and show what changed.</span>
+          )}
+        </div>
+      )}
+
+      <RhfField control={form.control} name="document_type" label="Document type">
         {({ field }) => (
           <div className="flex flex-wrap gap-1.5">
-            {DOC_TYPES.map((t) => (
+            {UPLOAD_TYPES.map((t) => (
               <Button
-                key={t}
+                key={t.value}
                 type="button"
-                variant={
-                  (field.value ?? "contract") === t ? "default" : "outline"
-                }
+                variant={(field.value ?? "contract") === t.value ? "default" : "outline"}
                 size="sm"
-                onClick={() => field.onChange(t)}
-                className="capitalize"
+                onClick={() => field.onChange(t.value)}
               >
-                {t}
+                {t.label}
               </Button>
             ))}
           </div>
         )}
       </RhfField>
+
+      <label className="flex items-center justify-between gap-3 rounded-[var(--vq-r-sm)] border border-border px-3 py-2.5">
+        <span className="flex flex-col">
+          <span className="text-xs font-medium">Review it now</span>
+          <span className="text-[11px] text-muted-foreground">Get the verdict, top issues and key dates (about a minute).</span>
+        </span>
+        <Switch checked={value.review_now ?? true} onCheckedChange={(v: boolean) => onChange({ review_now: v })} />
+      </label>
+
+      {(value.review_now ?? true) && (
+        <RhfField
+          control={form.control}
+          name="perspective"
+          label="Which side are you on?"
+          description="Optional — Lex works it out from your company name and the document."
+        >
+          {({ field, id }) => (
+            <Input {...field} id={id} value={field.value ?? ""} placeholder="e.g. the service provider, the vendor, the employee" />
+          )}
+        </RhfField>
+      )}
+
+      <LexProgress submitting={submitting} stage={stage} />
     </FieldGroup>
   )
 }
@@ -174,7 +238,7 @@ function SourcePicker({
       <option value="">Select a document…</option>
       {sources.map((s) => (
         <option key={s.id} value={s.sourceId}>
-          {s.name} · {s.pageCount}p
+          {s.name} · {s.pageCount}p{s.latestReview ? ` · ${s.latestReview.headline}` : ""}
         </option>
       ))}
     </select>
@@ -186,64 +250,70 @@ function SourcePicker({
 export function LexAnalyzeContractForm({
   value,
   onChange,
+  submitting,
+  stage,
 }: {
   value: LexAnalyzeContractValues
   onChange: (patch: Partial<LexAnalyzeContractValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
 }) {
   const form = useAgentForm({
     schema: lexAnalyzeContractSchema,
     defaultValue: value,
     onChange,
   })
+  const [pasteOpen, setPasteOpen] = React.useState(Boolean(value.contract_text))
 
   return (
     <FieldGroup>
-      <RhfField
-        control={form.control}
-        name="source_id"
-        label="Document"
-        description="Pick from your uploaded documents."
-      >
-        {({ field }) => (
-          <SourcePicker value={field.value ?? ""} onChange={field.onChange} />
-        )}
+      <RhfField control={form.control} name="source_id" label="Document" description="Pick from your uploaded documents.">
+        {({ field }) => <SourcePicker value={field.value ?? ""} onChange={field.onChange} />}
       </RhfField>
 
       <RhfField
         control={form.control}
-        name="contract_text"
-        label="Or paste contract text"
-        description="Use this if the contract isn't uploaded yet."
+        name="perspective"
+        label="Which side are you on?"
+        description="Optional — Lex works it out from your company name and the document."
       >
-        {({ field }) => (
-          <CountedTextarea
-            value={field.value}
-            rows={8}
-            onChange={field.onChange}
-            placeholder="Paste the contract text here…"
-          />
+        {({ field, id }) => (
+          <Input {...field} id={id} value={field.value ?? ""} placeholder="e.g. the service provider, the vendor, the employee" />
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="analysis_focus"
-        label="Analysis focus"
-        description="Areas Lex should pay extra attention to."
-      >
+      <RhfField control={form.control} name="analysis_focus" label="Anything to look at closely?" description="Optional.">
         {({ field }) => (
-          <StringListInput
-            value={field.value ?? []}
-            onChange={field.onChange}
-            placeholder="e.g. liability cap, IP assignment"
-          />
+          <StringListInput value={field.value ?? []} onChange={field.onChange} placeholder="e.g. liability cap, IP ownership" />
         )}
       </RhfField>
+
+      {pasteOpen ? (
+        <RhfField control={form.control} name="contract_text" label="Or paste contract text">
+          {({ field }) => (
+            <CountedTextarea value={field.value ?? ""} rows={8} onChange={field.onChange} placeholder="Paste the contract text here…" />
+          )}
+        </RhfField>
+      ) : (
+        <button type="button" className="self-start text-[11px] underline" onClick={() => setPasteOpen(true)}>
+          Paste contract text instead
+        </button>
+      )}
+
+      <LexProgress submitting={submitting} stage={stage} />
     </FieldGroup>
   )
 }
 
 // ─── Query document ─────────────────────────────────────────────────────────
+
+const QUESTION_PROMPTS = [
+  "Can I sign this?",
+  "What am I missing?",
+  "What should I negotiate?",
+  "What dates do I need to remember?",
+  "Is this different from our usual terms?",
+]
 
 export function LexQueryDocumentForm({
   value,
@@ -260,117 +330,133 @@ export function LexQueryDocumentForm({
 
   return (
     <FieldGroup>
-      <RhfField
-        control={form.control}
-        name="source_id"
-        label="Document"
-        required
-      >
-        {({ field }) => (
-          <SourcePicker required value={field.value} onChange={field.onChange} />
-        )}
+      <RhfField control={form.control} name="source_id" label="Document" required>
+        {({ field }) => <SourcePicker required value={field.value} onChange={field.onChange} />}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="query"
-        label="Question"
-        required
-      >
+      <RhfField control={form.control} name="query" label="Question" required>
         {({ field }) => (
           <CountedTextarea
             value={field.value}
-            rows={4}
+            rows={3}
             onChange={field.onChange}
-            placeholder="e.g. What are the termination conditions and notice periods?"
+            placeholder="e.g. What is the termination notice period?"
           />
         )}
       </RhfField>
 
+      <div className="flex flex-wrap gap-1.5">
+        {QUESTION_PROMPTS.map((q) => (
+          <Button key={q} type="button" size="sm" variant="outline" onClick={() => form.setValue("query", q, { shouldValidate: true })}>
+            {q}
+          </Button>
+        ))}
+      </div>
     </FieldGroup>
   )
 }
 
 // ─── Draft document ─────────────────────────────────────────────────────────
 
+const DRAFT_QUESTIONS: Record<string, { purpose: string; commercial: string; protect: string }> = {
+  NDA: { purpose: "e.g. Evaluating a manufacturing partnership", commercial: "Not usually needed", protect: "e.g. Designs, supplier pricing, customer lists" },
+  "Service Agreement": { purpose: "e.g. Monthly social media management", commercial: "e.g. ₹60,000 per month, invoiced monthly, Net 15", protect: "e.g. Deliverable quality, IP in the work, termination" },
+  "Vendor Agreement": { purpose: "e.g. Supply of cotton fabric", commercial: "e.g. Price per metre, delivery in 21 days, Net 30", protect: "e.g. Quality rejection rights, late-delivery penalties" },
+  "Employment Agreement": { purpose: "e.g. Senior designer, full-time, Bengaluru", commercial: "e.g. ₹12 LPA, 3-month probation, 30-day notice", protect: "e.g. Confidentiality, IP created at work" },
+  "Consultancy Agreement": { purpose: "e.g. Brand strategy engagement", commercial: "e.g. ₹2,00,000 fixed fee, 50% upfront", protect: "e.g. IP ownership, non-solicitation" },
+  "Legal Notice": { purpose: "e.g. Recovering ₹3,40,000 in unpaid invoices", commercial: "e.g. Amount due, invoice numbers, due dates", protect: "e.g. Deadline to pay, next steps if unpaid" },
+  "Privacy Policy": { purpose: "e.g. D2C clothing store collecting names, phones and addresses", commercial: "Not usually needed", protect: "e.g. Consent, data sharing with couriers, grievance officer" },
+  "Website Terms": { purpose: "e.g. Online store selling apparel across India", commercial: "e.g. Returns within 7 days, COD available", protect: "e.g. Limitation of liability, returns, IP in content" },
+}
+
 export function LexDraftDocumentForm({
   value,
   onChange,
+  submitting,
+  stage,
 }: {
   value: LexDraftDocumentValues
   onChange: (patch: Partial<LexDraftDocumentValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
 }) {
   const form = useAgentForm({
     schema: lexDraftDocumentSchema,
     defaultValue: value,
     onChange,
   })
+  const hints = DRAFT_QUESTIONS[value.document_type] ?? {
+    purpose: "What is this document for?",
+    commercial: "Money, payment timing, notice periods",
+    protect: "What matters most to you",
+  }
 
   return (
     <FieldGroup>
-      <RhfField
-        control={form.control}
-        name="document_type"
-        label="Document type"
-        required
-      >
-        {({ field, invalid, id }) => (
-          <Input
-            {...field}
-            id={id}
-            placeholder="e.g. mutual NDA"
-            aria-invalid={invalid}
-          />
-        )}
-      </RhfField>
-
-      <RhfField
-        control={form.control}
-        name="requirements"
-        label="Requirements"
-        required
-      >
+      <RhfField control={form.control} name="document_type" label="What do you need?" required>
         {({ field }) => (
-          <CountedTextarea
-            value={field.value}
-            rows={5}
-            onChange={field.onChange}
-            placeholder="What must this document cover?"
-          />
+          <div className="flex flex-wrap gap-1.5">
+            {LEX_DRAFT_TYPES.map((t) => (
+              <Button key={t} type="button" size="sm" variant={field.value === t ? "default" : "outline"} onClick={() => field.onChange(t)}>
+                {t}
+              </Button>
+            ))}
+          </div>
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="jurisdiction"
-        label="Jurisdiction"
-      >
-        {({ field, invalid, id }) => (
-          <Input
-            {...field}
-            id={id}
-            value={field.value ?? ""}
-            placeholder="e.g. Delaware, USA"
-            aria-invalid={invalid}
-          />
-        )}
-      </RhfField>
+      {value.document_type === "Other" && (
+        <RhfField control={form.control} name="other_type" label="Document type" required>
+          {({ field, id }) => <Input {...field} id={id} value={field.value ?? ""} placeholder="e.g. Shareholders' agreement" />}
+        </RhfField>
+      )}
 
-      <RhfField
-        control={form.control}
-        name="additional_clauses"
-        label="Additional clauses"
-      >
-        {({ field }) => (
-          <StringListInput
-            value={field.value ?? []}
-            onChange={field.onChange}
-            placeholder="e.g. non-solicit, arbitration"
-          />
-        )}
-      </RhfField>
+      {value.document_type && (
+        <>
+          <RhfField control={form.control} name="parties" label="Parties" description="Who is it between?">
+            {({ field, id }) => (
+              <Input {...field} id={id} value={field.value ?? ""} placeholder="e.g. Klyvora Clothing Pvt Ltd and Sri Balaji Textiles, Tiruppur" />
+            )}
+          </RhfField>
+          <RhfField control={form.control} name="purpose" label="Purpose">
+            {({ field, id }) => <Input {...field} id={id} value={field.value ?? ""} placeholder={hints.purpose} />}
+          </RhfField>
+          <RhfField control={form.control} name="duration" label="Duration">
+            {({ field, id }) => <Input {...field} id={id} value={field.value ?? ""} placeholder="e.g. 2 years from signing" />}
+          </RhfField>
+          <RhfField control={form.control} name="commercial_terms" label="Commercial terms">
+            {({ field, id }) => <Input {...field} id={id} value={field.value ?? ""} placeholder={hints.commercial} />}
+          </RhfField>
+          <RhfField control={form.control} name="protect" label="What should it protect?">
+            {({ field, id }) => <Input {...field} id={id} value={field.value ?? ""} placeholder={hints.protect} />}
+          </RhfField>
+          <RhfField control={form.control} name="requirements" label="Anything else?" description="Optional.">
+            {({ field }) => <CountedTextarea value={field.value ?? ""} rows={2} onChange={field.onChange} />}
+          </RhfField>
+          <RhfField control={form.control} name="jurisdiction" label="Jurisdiction" description="Leave empty to use your company's location (India by default).">
+            {({ field, invalid, id }) => (
+              <Input {...field} id={id} value={field.value ?? ""} placeholder="India" aria-invalid={invalid} />
+            )}
+          </RhfField>
+        </>
+      )}
+
+      <LexProgress submitting={submitting} stage={stage} />
     </FieldGroup>
   )
+}
+
+/** Turns the guided answers into the single requirements brief the drafting endpoint takes. */
+export function composeDraftRequirements(v: LexDraftDocumentValues): string {
+  const lines = [
+    v.parties && `Parties: ${v.parties}`,
+    v.purpose && `Purpose: ${v.purpose}`,
+    v.duration && `Duration: ${v.duration}`,
+    v.commercial_terms && `Commercial terms: ${v.commercial_terms}`,
+    v.protect && `It must protect: ${v.protect}`,
+    v.requirements && `Also: ${v.requirements}`,
+  ].filter(Boolean)
+  return lines.join("\n") || "Use sensible standard terms and mark details to fill in."
 }
 
 // ─── Explain ────────────────────────────────────────────────────────────────
@@ -390,35 +476,14 @@ export function LexExplainForm({
 
   return (
     <FieldGroup>
-      <RhfField
-        control={form.control}
-        name="text"
-        label="Legal text"
-        required
-      >
+      <RhfField control={form.control} name="text" label="Legal text" required>
         {({ field }) => (
-          <CountedTextarea
-            value={field.value}
-            rows={6}
-            onChange={field.onChange}
-            placeholder="Paste the clause or passage you want explained."
-          />
+          <CountedTextarea value={field.value} rows={6} onChange={field.onChange} placeholder="Paste the clause or passage you want explained." />
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="context"
-        label="Context"
-        description="Optional background so the explanation fits your situation."
-      >
-        {({ field }) => (
-          <CountedTextarea
-            value={field.value ?? ""}
-            rows={3}
-            onChange={field.onChange}
-          />
-        )}
+      <RhfField control={form.control} name="context" label="Context" description="Optional background so the explanation fits your situation.">
+        {({ field }) => <CountedTextarea value={field.value ?? ""} rows={3} onChange={field.onChange} />}
       </RhfField>
     </FieldGroup>
   )
@@ -429,9 +494,13 @@ export function LexExplainForm({
 export function LexLegalResearchForm({
   value,
   onChange,
+  submitting,
+  stage,
 }: {
   value: LexLegalResearchValues
   onChange: (patch: Partial<LexLegalResearchValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
 }) {
   const form = useAgentForm({
     schema: lexLegalResearchSchema,
@@ -441,52 +510,24 @@ export function LexLegalResearchForm({
 
   return (
     <FieldGroup>
-      <RhfField
-        control={form.control}
-        name="query"
-        label="Question"
-        required
-      >
+      <RhfField control={form.control} name="query" label="Question" required>
         {({ field }) => (
           <CountedTextarea
             value={field.value}
             rows={4}
             onChange={field.onChange}
-            placeholder="e.g. What are the GDPR requirements for valid consent?"
+            placeholder="e.g. How do I convert an LLP into a private limited company?"
           />
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="jurisdiction"
-        label="Jurisdiction"
-      >
+      <RhfField control={form.control} name="jurisdiction" label="Jurisdiction" description="Leave empty to use your company's location (India by default).">
         {({ field, invalid, id }) => (
-          <Input
-            {...field}
-            id={id}
-            value={field.value ?? ""}
-            placeholder="e.g. EU, United States, California"
-            aria-invalid={invalid}
-          />
+          <Input {...field} id={id} value={field.value ?? ""} placeholder="e.g. Maharashtra, India" aria-invalid={invalid} />
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="legal_areas"
-        label="Legal areas"
-        description="Optional tags to focus the research."
-      >
-        {({ field }) => (
-          <StringListInput
-            value={field.value ?? []}
-            onChange={field.onChange}
-            placeholder="e.g. data_privacy, consent"
-          />
-        )}
-      </RhfField>
+      <LexProgress submitting={submitting} stage={stage} />
     </FieldGroup>
   )
 }
@@ -508,50 +549,24 @@ export function LexComplianceCheckForm({
 
   return (
     <FieldGroup>
-      <RhfField
-        control={form.control}
-        name="description"
-        label="What are you checking?"
-        required
-      >
+      <RhfField control={form.control} name="description" label="What are you doing?" required>
         {({ field }) => (
           <CountedTextarea
             value={field.value}
             rows={5}
             onChange={field.onChange}
-            placeholder="e.g. We store EU user emails on US servers with no consent flow."
+            placeholder="e.g. We're launching an online clothing store in India and collect names, phone numbers and addresses at checkout."
           />
         )}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="frameworks"
-        label="Frameworks"
-        required
-        description="e.g. GDPR, CCPA, SOC2, HIPAA"
-      >
-        {({ field }) => (
-          <StringListInput
-            value={field.value}
-            onChange={field.onChange}
-            placeholder="Add a framework and press Enter"
-          />
-        )}
+      <RhfField control={form.control} name="business_context" label="About the business" description="Optional — industry, where customers are, what data you handle.">
+        {({ field }) => <CountedTextarea value={field.value ?? ""} rows={2} onChange={field.onChange} />}
       </RhfField>
 
-      <RhfField
-        control={form.control}
-        name="business_context"
-        label="Business context"
-        description="Optional — helps Lex calibrate recommendations."
-      >
+      <RhfField control={form.control} name="frameworks" label="Specific laws to check" description="Optional — leave empty and Lex works out which laws apply.">
         {({ field }) => (
-          <CountedTextarea
-            value={field.value ?? ""}
-            rows={3}
-            onChange={field.onChange}
-          />
+          <StringListInput value={field.value ?? []} onChange={field.onChange} placeholder="e.g. DPDP Act, GST" />
         )}
       </RhfField>
     </FieldGroup>
@@ -588,7 +603,7 @@ export function LexStampLetterheadForm({
           </div>
         ) : !sources?.length ? (
           <div className="border border-border bg-muted/20 px-2 py-2 text-[11px] text-muted-foreground">
-            No documents yet — upload one first via "Upload a document".
+            No documents yet — upload one first.
           </div>
         ) : (
           <select
@@ -613,5 +628,76 @@ export function LexStampLetterheadForm({
   )
 }
 
-// silence ts unused — Controller is exported via barrel sometimes
-void Controller
+// ─── Draft reply (negotiation email) ─────────────────────────────────────────
+
+const TONES = ["firm but friendly", "formal", "collaborative"]
+
+export function LexDraftReplyForm({
+  value,
+  onChange,
+  submitting,
+  stage,
+}: {
+  value: LexDraftReplyValues
+  onChange: (patch: Partial<LexDraftReplyValues>) => void
+  submitting?: boolean
+  stage?: ActionStage | null
+}) {
+  const analysis = value.analysis as LexAnalyzeContractResult["analysis"] | undefined
+  const issues: LexFinding[] = (analysis?.issues ?? []).filter((i) => i.send_back)
+  const all = analysis?.issues ?? []
+  const selected = new Set(value.selected ?? all.map((_, i) => i).filter((i) => all[i].send_back && (all[i].severity === "critical" || all[i].severity === "high")))
+
+  if (!analysis || issues.length === 0) {
+    return <p className="text-xs text-muted-foreground">This review has no suggested changes to send. Run a review first.</p>
+  }
+
+  return (
+    <FieldGroup>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Changes to request{analysis.counterparty ? ` from ${analysis.counterparty}` : ""}</span>
+        {all.map((issue, i) =>
+          issue.send_back ? (
+            <label key={i} className="flex cursor-pointer items-start gap-2.5 rounded-[var(--vq-r-sm)] border border-border p-2.5 hover:bg-muted/40">
+              <Checkbox
+                checked={selected.has(i)}
+                onCheckedChange={(v) => {
+                  const next = new Set(selected)
+                  if (v) next.add(i)
+                  else next.delete(i)
+                  onChange({ selected: [...next].sort((a, b) => a - b) })
+                }}
+                className="mt-0.5"
+              />
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="flex flex-wrap items-center gap-1.5 text-xs font-medium">
+                  {issue.title}
+                  <SeverityTag severity={issue.severity} />
+                </span>
+                <span className="text-[11px] text-muted-foreground">{issue.send_back}</span>
+              </span>
+            </label>
+          ) : null,
+        )}
+      </div>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Your name</span>
+        <Input value={value.sender ?? ""} onChange={(e) => onChange({ sender: e.target.value })} placeholder="Signs off the email" />
+      </label>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Tone</span>
+        <div className="flex flex-wrap gap-1.5">
+          {TONES.map((t) => (
+            <Button key={t} type="button" size="sm" variant={(value.tone ?? TONES[0]) === t ? "default" : "outline"} onClick={() => onChange({ tone: t })} className="capitalize">
+              {t}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <LexProgress submitting={submitting} stage={stage} />
+    </FieldGroup>
+  )
+}
