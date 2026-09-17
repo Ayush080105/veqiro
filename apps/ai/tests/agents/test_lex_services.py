@@ -99,21 +99,22 @@ def test_research_is_grounded_in_sources_and_matches_the_card_shape(monkeypatch)
     assert result["answer"].startswith("File SPICe+")
     assert result["sections"] == [{"title": "Steps", "type": "ordered", "items": ["Reserve name"]}]
     assert result["confidence_level"] == "high"
-    assert result["sources"] == [{"title": "MCA", "url": "https://mca.gov.in/a"}]
-    assert "[1] MCA" in _prompt(llm.json_calls[0])
+    assert result["sources"] == [{"title": "MCA", "url": "https://mca.gov.in/a", "kind": "government_guidance", "date": ""}]
+    assert "[1] (government guidance) MCA" in _prompt(llm.json_calls[0])
     routes.LegalResearchResponse(**result)
 
 
-def test_research_without_sources_is_low_confidence(monkeypatch):
+def test_research_without_sources_refuses_to_answer_from_memory(monkeypatch):
     llm = _LLM(json_result={"answer": "General answer.", "confidence_level": "high"})
     result = _research(monkeypatch, llm, [])
-    assert result["confidence_level"] == "low"
-    assert result["sources"] == []
+    assert llm.json_calls == []
+    assert "couldn't find current sources" in result["answer"]
+    assert result["failed"] is True and result["sources"] == []
 
 
 def test_research_failure_says_so_instead_of_an_empty_card(monkeypatch):
     llm = _LLM(json_result=RuntimeError("provider down"))
-    result = _research(monkeypatch, llm, [])
+    result = _research(monkeypatch, llm, [{"title": "t", "link": "https://indiacode.nic.in/x", "snippet": "s"}])
     assert result["failed"] is True
     assert "couldn't complete" in result["answer"]
 
@@ -147,6 +148,30 @@ def test_document_answer_returns_quoted_citations():
     assert result["citations"] == [{"section": "7.14.1", "quote": "appointed by the Deputy Director"}]
 
 
+def test_document_answer_without_citations_is_not_found():
+    llm = _LLM(json_result={"found": True, "short_answer": "30 days", "answer": "Probably 30 days.", "citations": []})
+    result = asyncio.run(svc.answer_from_document(llm, provider="p", model="m", question="notice?", chunks=[{"content": "x"}]))
+    assert result["found"] is False and result["short_answer"] == ""
+
+
+def test_compare_versions_orders_changes_by_severity():
+    llm = _LLM(json_result={"summary": "Riskier.", "changes": [
+        {"topic": "Payment", "before": "Net 30", "after": "Net 15", "severity": "medium"},
+        {"topic": "Liability", "before": "Capped", "after": "Unlimited", "severity": "critical"},
+        {"topic": ""},
+    ]})
+    result = asyncio.run(svc.compare_versions(llm, provider="p", model="m", previous_text="a", current_text="b"))
+    assert [c["topic"] for c in result["changes"]] == ["Liability", "Payment"]
+
+
+@pytest.mark.parametrize("url,kind", [
+    ("https://indiankanoon.org/doc/1", "case_law"), ("https://indiacode.nic.in/handle/1", "statute"),
+    ("https://www.mca.gov.in/content", "government_guidance"), ("https://cleartax.in/s/llp", "commentary"),
+])
+def test_source_kind(url, kind):
+    assert svc.source_kind(url) == kind
+
+
 def test_query_route_passes_no_floor_and_returns_citations(monkeypatch):
     monkeypatch.setattr(settings, "MOCK_MODE", False)
     seen = {}
@@ -157,7 +182,7 @@ def test_query_route_passes_no_floor_and_returns_citations(monkeypatch):
 
     async def fake_answer(llm, **kwargs):
         seen["question"] = kwargs["question"]
-        return {"answer": "The Deputy Director.", "found": True, "citations": [{"section": "7.14.1", "quote": "appointed by the Deputy Director"}]}
+        return {"answer": "The Deputy Director.", "short_answer": "Deputy Director", "found": True, "citations": [{"section": "7.14.1", "quote": "appointed by the Deputy Director"}]}
 
     monkeypatch.setattr(routes._rag, "retrieve", fake_retrieve)
     monkeypatch.setattr(svc, "answer_from_document", fake_answer)

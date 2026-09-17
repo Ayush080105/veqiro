@@ -159,9 +159,11 @@ async def answer_from_document(llm, *, provider: str, model: str, question: str,
             messages=[{"role": "user", "content": (
                 f"PASSAGES FROM THE DOCUMENT:\n{context}\n\nQUESTION: {question}\n\n"
                 "Return ONLY a JSON object with:\n"
-                "found: true if the passages answer the question, else false.\n"
-                "answer: 1-4 plain sentences. If not found, say what the passages do cover and suggest "
-                "running a full review.\n"
+                "found: true only if the passages actually answer the question, else false.\n"
+                "short_answer: the answer in at most 6 words, e.g. '30 days' or 'Yes, capped at ₹10 lakh'; "
+                "'' if not found.\n"
+                "answer: 1-3 plain sentences explaining it, naming the section. If not found, say exactly "
+                "'I couldn't find <the thing asked about> in this document.' and nothing invented.\n"
                 "citations: up to 3 objects {section: section number or '', quote: exact words from the "
                 "passages, at most 30 words} that support the answer; [] if not found."
             )}],
@@ -171,14 +173,16 @@ async def answer_from_document(llm, *, provider: str, model: str, question: str,
         for c in data.get("citations") or []:
             if isinstance(c, dict) and _text(c.get("quote")):
                 citations.append({"section": _text(c.get("section")), "quote": _text(c.get("quote")).strip("\"“”")})
+        found = bool(data.get("found")) and bool(_text(data.get("answer"))) and bool(citations)
         return {
             "answer": _text(data.get("answer")) or "I couldn't find that in this document.",
-            "found": bool(data.get("found")) and bool(_text(data.get("answer"))),
-            "citations": citations[:3],
+            "short_answer": _text(data.get("short_answer")) if found else "",
+            "found": found,
+            "citations": citations[:3] if found else [],
         }
     except Exception as err:
         logger.error("document answer failed | error=%s: %s", type(err).__name__, str(err)[:300])
-        return {"answer": "Lex couldn't answer that just now — try asking again.", "found": False, "citations": []}
+        return {"answer": "Lex couldn't answer that just now — try asking again.", "short_answer": "", "found": False, "citations": []}
 
 
 # ── Explain ──────────────────────────────────────────────────────────────────
@@ -213,6 +217,29 @@ async def explain_text(llm, *, provider: str, model: str, system: str, text: str
 
 
 # ── Research ─────────────────────────────────────────────────────────────────
+
+
+_CASE_LAW_HOSTS = ("indiankanoon.org", "scconline.com", "casemine.com", "main.sci.gov.in", "sci.gov.in",
+                   "judis.nic.in", "ecourts.gov.in", "courtlistener.com", "bailii.org", "curia.europa.eu")
+_STATUTE_HOSTS = ("indiacode.nic.in", "legislative.gov.in", "egazette.gov.in", "egazette.nic.in",
+                  "legislation.gov.uk", "eur-lex.europa.eu", "law.cornell.edu/uscode")
+_GOVERNMENT_SUFFIXES = (".gov.in", ".nic.in", ".gov", ".gov.uk", ".europa.eu", ".gc.ca", ".gov.au")
+
+
+def source_kind(url: str) -> str:
+    """Classify a source by its host, so answers can separate law from commentary."""
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url or "")
+    host = (parsed.netloc or "").lower().removeprefix("www.")
+    full = host + (parsed.path or "")
+    if any(h in full for h in _CASE_LAW_HOSTS):
+        return "case_law"
+    if any(h in full for h in _STATUTE_HOSTS):
+        return "statute"
+    if host.endswith(_GOVERNMENT_SUFFIXES) or any(host == s.lstrip(".") for s in _GOVERNMENT_SUFFIXES):
+        return "government_guidance"
+    return "commentary"
 
 
 async def _search(query: str, jurisdiction: str) -> list[dict]:
@@ -257,9 +284,25 @@ async def research(
 ) -> dict:
     """Answer a legal question from current web sources, citing them. Never raises."""
     sources = await _search(query, jurisdiction)
+    if not sources:
+        # The spec is explicit: when current sources can't be found, say so rather than answer
+        # from model memory, which is where fabricated fees, forms and case names come from.
+        logger.warning("research found no sources | jurisdiction=%s", jurisdiction)
+        return {
+            "answer": (
+                "I couldn't find current sources to verify an answer to this, so I'm not going to "
+                "guess. Try rephrasing the question, or check the relevant government portal directly."
+            ),
+            "sections": [], "references": [], "relevant_cases": [], "jurisdiction_notes": "",
+            "confidence_level": "low", "jurisdiction": jurisdiction, "sources": [], "failed": True,
+        }
+    for s in sources:
+        s["kind"] = source_kind(s.get("link", ""))
     source_block = "\n\n".join(
-        f"[{i + 1}] {s.get('title', '')}\n{s.get('link', '')}\n{s.get('snippet', '')}" for i, s in enumerate(sources)
-    ) or "No search results were available."
+        f"[{i + 1}] ({s['kind'].replace('_', ' ')}{', ' + s['date'] if s.get('date') else ''}) {s.get('title', '')}\n"
+        f"{s.get('link', '')}\n{s.get('snippet', '')}"
+        for i, s in enumerate(sources)
+    )
     try:
         data = await llm.complete_json(
             provider=provider, model=model, system=system,
@@ -267,10 +310,13 @@ async def research(
                 f"QUESTION: {query}\nJURISDICTION: {jurisdiction}\n"
                 + (f"AREAS: {', '.join(legal_areas)}\n" if legal_areas else "")
                 + f"\nCURRENT WEB SOURCES:\n{source_block}\n\n"
-                "Answer for a founder who is not a lawyer. Prefer the sources for anything that changes "
-                "over time — fees, forms, thresholds, deadlines — and cite them as [n]. If the sources do "
-                "not cover something and you rely on general knowledge, say so. Never invent case names, "
-                "section numbers, fees or form numbers.\n\n"
+                "Answer for a founder who is not a lawyer. Each source is labelled statute, case law, "
+                "government guidance or commentary — say which kind you rely on, prefer statute and "
+                "government guidance over commentary, and cite sources as [n]. For anything that changes "
+                "over time (fees, forms, thresholds, deadlines) use only the sources and mention how current "
+                "they are when a date is shown. If the sources don't cover a point, say you couldn't verify "
+                "it instead of filling the gap. Never invent case names, section numbers, fees or form numbers. "
+                "This is legal information, not legal advice.\n\n"
                 "Return ONLY a JSON object with:\n"
                 "answer: 2-4 short paragraphs — the direct answer first, then what to do.\n"
                 "sections: 0-4 objects {title, type: ordered|bullets|narrative, items: [strings]} — only "
@@ -291,9 +337,12 @@ async def research(
             "references": _strings(data.get("references"), 8),
             "relevant_cases": _strings(data.get("relevant_cases"), 4),
             "jurisdiction_notes": _text(data.get("jurisdiction_notes")),
-            "confidence_level": _confidence(data.get("confidence_level")) if sources else "low",
+            "confidence_level": _confidence(data.get("confidence_level")),
             "jurisdiction": jurisdiction,
-            "sources": [{"title": _text(s.get("title")), "url": s.get("link", "")} for s in sources],
+            "sources": [
+                {"title": _text(s.get("title")), "url": s.get("link", ""), "kind": s["kind"], "date": _text(s.get("date"))}
+                for s in sources
+            ],
         }
     except Exception as err:
         logger.error("research failed | jurisdiction=%s error=%s: %s", jurisdiction, type(err).__name__, str(err)[:300])
@@ -303,6 +352,63 @@ async def research(
             "confidence_level": "low", "jurisdiction": jurisdiction, "sources": [],
             "failed": True,
         }
+
+
+# ── Version comparison ───────────────────────────────────────────────────────
+
+_COMPARE_CHARS = 60000
+
+
+async def compare_versions(
+    llm, *, provider: str, model: str, previous_text: str, current_text: str,
+    perspective: str = "", preferences: list[dict] | None = None,
+) -> dict:
+    """The material changes between two versions of a contract. Never raises."""
+    prefs = [p for p in (preferences or []) if p.get("value")]
+    pref_block = (
+        "\nThe company's usual positions:\n" + "\n".join(f"- {p.get('label') or p.get('key')}: {p['value']}" for p in prefs) + "\n"
+        if prefs else ""
+    )
+    try:
+        data = await llm.complete_json(
+            provider=provider, model=model,
+            system="You compare contract versions for a founder who is not a lawyer. Only report differences that are actually in the text.",
+            messages=[{"role": "user", "content": (
+                f"Compare these two versions of the same contract{' for ' + perspective if perspective else ''}.{pref_block}\n"
+                f"PREVIOUS VERSION:\n{previous_text[:_COMPARE_CHARS]}\n\n"
+                f"NEW VERSION:\n{current_text[:_COMPARE_CHARS]}\n\n"
+                "Report only material changes to rights, money, dates, liability, termination, disputes, IP, "
+                "confidentiality or obligations — ignore formatting and renumbering. Return ONLY a JSON object with:\n"
+                "summary: at most 2 sentences on what the new version changes overall, for you.\n"
+                "changes: up to 12 objects, most severe first, each {topic (at most 4 words), section, "
+                "before (the old position, at most 12 words), after (the new position, at most 12 words), "
+                "severity (critical / high / medium / low — how much worse or better for you), "
+                "why_it_matters (at most 30 words), suggested_response (at most 40 words)}. "
+                "If nothing material changed, return an empty list."
+            )}],
+            max_tokens=JSON_BUDGET,
+        )
+        changes = []
+        for c in data.get("changes") or []:
+            if isinstance(c, dict) and _text(c.get("topic")):
+                sev = _text(c.get("severity")).lower()
+                changes.append({
+                    "topic": _text(c.get("topic")), "section": _text(c.get("section")),
+                    "before": _text(c.get("before")), "after": _text(c.get("after")),
+                    "severity": sev if sev in ("critical", "high", "medium", "low") else "medium",
+                    "why_it_matters": _text(c.get("why_it_matters")),
+                    "suggested_response": _text(c.get("suggested_response")),
+                })
+        rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        changes.sort(key=lambda c: rank[c["severity"]])
+        return {
+            "summary": _text(data.get("summary")) or ("No material changes found." if not changes else ""),
+            "changes": changes[:12],
+            "failed": False,
+        }
+    except Exception as err:
+        logger.error("version comparison failed | error=%s: %s", type(err).__name__, str(err)[:300])
+        return {"summary": "Lex couldn't compare these versions just now — try again.", "changes": [], "failed": True}
 
 
 # ── Compliance ───────────────────────────────────────────────────────────────
@@ -316,9 +422,11 @@ async def compliance(
     framework_line = (
         f"Check against: {', '.join(chosen)}."
         if chosen else
-        f"Pick the laws that actually apply to this business in {jurisdiction} (for India typically "
-        f"{'; '.join(INDIA_FRAMEWORKS)}, plus sector rules such as FSSAI, GST or RBI where relevant; "
-        "GDPR/CCPA only if they serve EU/California users). Check against those."
+        f"Work out which laws apply from the business type, geography, data handling and industry described, "
+        f"for {jurisdiction}. For India, consider {'; '.join(INDIA_FRAMEWORKS)}, and GST, FSSAI or RBI rules "
+        "only where the facts point to them; GDPR/CCPA only if they serve EU/California users. Do not say a "
+        "law applies unless the facts given support it — if a fact needed to decide is missing, say what you'd "
+        "need to know. Check against the laws that apply."
     )
     try:
         data = await llm.complete_json(

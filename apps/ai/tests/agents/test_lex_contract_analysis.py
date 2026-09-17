@@ -103,7 +103,7 @@ def test_missing_verdict_is_inferred_from_the_worst_issue():
     raw["verdict"] = None
     data = ca.normalize_analysis(raw)
     assert data["verdict"]["action"] == "negotiate"
-    assert data["verdict"]["headline"] == "Negotiate before signing"
+    assert data["verdict"]["headline"] == "Review before signing"
 
 
 def test_lists_are_capped():
@@ -163,3 +163,41 @@ def test_failed_review_returns_an_explicit_card_and_logs(caplog):
     assert data["verdict"]["headline"] == "Review didn't finish"
     assert "uploaded correctly" in data["executive_summary"]
     assert "empty response" in caplog.text
+
+
+def test_verdict_never_claims_a_contract_is_safe():
+    raw = _raw()
+    raw["issues"] = [{"title": "Minor typo", "what_it_means": "Cosmetic.", "severity": "low"}]
+    raw["verdict"] = {"action": "sign", "headline": "Safe to sign", "summary": "Fine."}
+    data = ca.normalize_analysis(raw)
+    assert data["verdict"]["headline"] == "No critical issues found"
+
+
+def test_sign_is_downgraded_when_high_findings_exist():
+    raw = _raw()
+    raw["verdict"] = {"action": "sign", "headline": "Looks fine", "summary": "x"}
+    assert ca.normalize_analysis(raw)["verdict"]["action"] == "negotiate"
+
+
+def test_preference_mismatch_and_contract_metadata():
+    raw = _raw()
+    raw["issues"].append({"severity": "high", "kind": "preference_mismatch", "title": "Net 15 payment",
+                          "what_it_means": "Shorter than you accept.", "preference": "Net 30"})
+    raw["contract"] = {"effective_date": "2026-10-01", "expiry_date": "30 Sep 2027", "auto_renewal": True,
+                       "value": "₹5,00,000 deposit", "payment_terms": "Monthly"}
+    raw["key_dates"][0]["owner"] = "Counterparty"
+    raw["key_dates"][0]["date"] = "2026-10-11"
+    with_prefs = ca.normalize_analysis(raw, preferences_given=True)
+    mismatch = next(i for i in with_prefs["issues"] if i["title"] == "Net 15 payment")
+    assert mismatch["category"] == "company_preference_mismatch" and mismatch["preference"] == "Net 30"
+    assert with_prefs["contract"]["effective_date"] == "2026-10-01"
+    assert with_prefs["contract"]["expiry_date"] is None
+    assert with_prefs["contract"]["auto_renewal"] is True
+    assert with_prefs["key_dates"][0]["owner"] == "counterparty" and with_prefs["key_dates"][0]["date"] == "2026-10-11"
+    without = ca.normalize_analysis(raw)
+    assert next(i for i in without["issues"] if i["title"] == "Net 15 payment")["kind"] == "risk"
+
+
+def test_prompt_includes_company_preferences():
+    prompt = ca.build_analysis_prompt("T", preferences=[{"key": "payment_terms", "label": "Payment terms", "value": "Net 30"}])
+    assert "Payment terms: Net 30" in prompt and "preference_mismatch" in prompt

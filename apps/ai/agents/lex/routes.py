@@ -76,6 +76,8 @@ class AnalyzeContractRequest(BaseModel):
     # Which party to review for; inferred from the brand kit and the document when empty.
     perspective: str = ""
     analysis_focus: list[str] = Field(default_factory=list)
+    # The company's usual positions ({key, label, value}); departures become findings.
+    preferences: list[dict] = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
 
     model_config = ConfigDict(
@@ -179,6 +181,7 @@ class ContractAnalysis(BaseModel):
     key_facts: list[dict] = Field(default_factory=list)
     issues: list[dict] = Field(default_factory=list)
     key_dates: list[dict] = Field(default_factory=list)
+    contract: dict | None = None
     clauses: list[dict] = Field(default_factory=list)
 
 
@@ -221,6 +224,7 @@ class QueryDocumentCitation(BaseModel):
 
 class QueryDocumentResponse(BaseModel):
     answer: str
+    short_answer: str = ""
     found: bool = True
     citations: list[QueryDocumentCitation] = Field(default_factory=list)
     sources: list[QueryDocumentChunk]
@@ -320,6 +324,9 @@ class LegalResearchRequest(BaseModel):
 class LegalResearchSource(BaseModel):
     title: str = ""
     url: str
+    # statute | case_law | government_guidance | commentary
+    kind: str = "commentary"
+    date: str = ""
 
 
 class LegalResearchResponse(BaseModel):
@@ -570,7 +577,7 @@ async def analyze_contract(request: AnalyzeContractRequest) -> AnalyzeContractRe
     data = await analyze_contract_text(
         _llm, provider=_agent.default_provider, model=_agent.default_model,
         system=system, full_text=full_text, perspective=request.perspective,
-        company_name=company_name, focus=request.analysis_focus,
+        company_name=company_name, focus=request.analysis_focus, preferences=request.preferences,
     )
     return AnalyzeContractResponse(analysis=ContractAnalysis(**data), model_used=_agent.default_model)
 
@@ -609,6 +616,7 @@ async def query_document(request: QueryDocumentRequest) -> QueryDocumentResponse
     )
     return QueryDocumentResponse(
         answer=result["answer"],
+        short_answer=result["short_answer"],
         found=result["found"],
         citations=[QueryDocumentCitation(**c) for c in result["citations"]],
         sources=[QueryDocumentChunk(content=c["content"], score=c["score"], metadata=c.get("metadata", {})) for c in chunks],
@@ -1348,6 +1356,65 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
         changes_document=lex_services.changes_document(reply, str(request.analysis.get("document_type") or "Contract")),
         model_used=_agent.default_model,
     )
+
+
+class CompareVersionsRequest(BaseModel):
+    previous_user_id: str
+    previous_source_id: str
+    current_user_id: str
+    current_source_id: str
+    perspective: str = ""
+    preferences: list[dict] = Field(default_factory=list)
+
+
+class VersionChange(BaseModel):
+    topic: str
+    section: str = ""
+    before: str = ""
+    after: str = ""
+    severity: str = "medium"
+    why_it_matters: str = ""
+    suggested_response: str = ""
+
+
+class CompareVersionsResponse(BaseModel):
+    summary: str
+    changes: list[VersionChange]
+    failed: bool = False
+    model_used: str = ""
+
+
+@router.post("/compare-versions", response_model=CompareVersionsResponse, summary="Compare two versions of a contract")
+async def compare_versions(request: CompareVersionsRequest) -> CompareVersionsResponse:
+    """What changed between two uploaded versions of the same contract, and why it matters."""
+    from fastapi import HTTPException
+
+    if settings.MOCK_MODE:
+        return CompareVersionsResponse(
+            summary="The new version shifts risk to you: liability is now uncapped and the notice period is halved.",
+            changes=[
+                VersionChange(topic="Liability", section="8.2", before="Capped at fees paid in 12 months", after="Unlimited",
+                              severity="critical", why_it_matters="Your exposure is no longer limited to the contract value.",
+                              suggested_response="Restore the cap at fees paid in the previous 12 months."),
+                VersionChange(topic="Termination notice", section="11.1", before="30 days", after="15 days",
+                              severity="high", why_it_matters="Less time to replace the business if they exit.",
+                              suggested_response="Keep 30 days' written notice."),
+            ],
+        )
+
+    previous_text, current_text = await asyncio.gather(
+        _rag.source_text(request.previous_user_id, request.previous_source_id),
+        _rag.source_text(request.current_user_id, request.current_source_id),
+    )
+    if not previous_text or not current_text:
+        raise HTTPException(status_code=404, detail="One of the versions could not be found")
+
+    data = await lex_services.compare_versions(
+        _llm, provider=_agent.default_provider, model=_agent.default_model,
+        previous_text=previous_text, current_text=current_text,
+        perspective=request.perspective, preferences=request.preferences,
+    )
+    return CompareVersionsResponse(**data, model_used=_agent.default_model)
 
 
 @router.post("/delete-source", response_model=DeleteSourceResponse, summary="Delete an ingested document")
