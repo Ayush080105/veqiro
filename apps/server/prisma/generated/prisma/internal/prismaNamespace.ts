@@ -419,6 +419,11 @@ export const ModelName = {
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
   LexSource: 'LexSource',
+  LexFinding: 'LexFinding',
+  LexObligation: 'LexObligation',
+  LexPreference: 'LexPreference',
+  LexActivity: 'LexActivity',
+  LexSettings: 'LexSettings',
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
@@ -457,7 +462,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3051,6 +3056,376 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    LexFinding: {
+      payload: Prisma.$LexFindingPayload<ExtArgs>
+      fields: Prisma.LexFindingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LexFindingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LexFindingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>
+        }
+        findFirst: {
+          args: Prisma.LexFindingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LexFindingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>
+        }
+        findMany: {
+          args: Prisma.LexFindingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>[]
+        }
+        create: {
+          args: Prisma.LexFindingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>
+        }
+        createMany: {
+          args: Prisma.LexFindingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LexFindingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>[]
+        }
+        delete: {
+          args: Prisma.LexFindingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>
+        }
+        update: {
+          args: Prisma.LexFindingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>
+        }
+        deleteMany: {
+          args: Prisma.LexFindingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LexFindingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LexFindingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>[]
+        }
+        upsert: {
+          args: Prisma.LexFindingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexFindingPayload>
+        }
+        aggregate: {
+          args: Prisma.LexFindingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLexFinding>
+        }
+        groupBy: {
+          args: Prisma.LexFindingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexFindingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LexFindingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexFindingCountAggregateOutputType> | number
+        }
+      }
+    }
+    LexObligation: {
+      payload: Prisma.$LexObligationPayload<ExtArgs>
+      fields: Prisma.LexObligationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LexObligationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LexObligationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>
+        }
+        findFirst: {
+          args: Prisma.LexObligationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LexObligationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>
+        }
+        findMany: {
+          args: Prisma.LexObligationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>[]
+        }
+        create: {
+          args: Prisma.LexObligationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>
+        }
+        createMany: {
+          args: Prisma.LexObligationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LexObligationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>[]
+        }
+        delete: {
+          args: Prisma.LexObligationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>
+        }
+        update: {
+          args: Prisma.LexObligationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>
+        }
+        deleteMany: {
+          args: Prisma.LexObligationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LexObligationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LexObligationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>[]
+        }
+        upsert: {
+          args: Prisma.LexObligationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexObligationPayload>
+        }
+        aggregate: {
+          args: Prisma.LexObligationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLexObligation>
+        }
+        groupBy: {
+          args: Prisma.LexObligationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexObligationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LexObligationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexObligationCountAggregateOutputType> | number
+        }
+      }
+    }
+    LexPreference: {
+      payload: Prisma.$LexPreferencePayload<ExtArgs>
+      fields: Prisma.LexPreferenceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LexPreferenceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LexPreferenceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>
+        }
+        findFirst: {
+          args: Prisma.LexPreferenceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LexPreferenceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>
+        }
+        findMany: {
+          args: Prisma.LexPreferenceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>[]
+        }
+        create: {
+          args: Prisma.LexPreferenceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>
+        }
+        createMany: {
+          args: Prisma.LexPreferenceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LexPreferenceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>[]
+        }
+        delete: {
+          args: Prisma.LexPreferenceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>
+        }
+        update: {
+          args: Prisma.LexPreferenceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>
+        }
+        deleteMany: {
+          args: Prisma.LexPreferenceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LexPreferenceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LexPreferenceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>[]
+        }
+        upsert: {
+          args: Prisma.LexPreferenceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexPreferencePayload>
+        }
+        aggregate: {
+          args: Prisma.LexPreferenceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLexPreference>
+        }
+        groupBy: {
+          args: Prisma.LexPreferenceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexPreferenceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LexPreferenceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexPreferenceCountAggregateOutputType> | number
+        }
+      }
+    }
+    LexActivity: {
+      payload: Prisma.$LexActivityPayload<ExtArgs>
+      fields: Prisma.LexActivityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LexActivityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LexActivityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>
+        }
+        findFirst: {
+          args: Prisma.LexActivityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LexActivityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>
+        }
+        findMany: {
+          args: Prisma.LexActivityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>[]
+        }
+        create: {
+          args: Prisma.LexActivityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>
+        }
+        createMany: {
+          args: Prisma.LexActivityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LexActivityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>[]
+        }
+        delete: {
+          args: Prisma.LexActivityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>
+        }
+        update: {
+          args: Prisma.LexActivityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>
+        }
+        deleteMany: {
+          args: Prisma.LexActivityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LexActivityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LexActivityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>[]
+        }
+        upsert: {
+          args: Prisma.LexActivityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexActivityPayload>
+        }
+        aggregate: {
+          args: Prisma.LexActivityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLexActivity>
+        }
+        groupBy: {
+          args: Prisma.LexActivityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexActivityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LexActivityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexActivityCountAggregateOutputType> | number
+        }
+      }
+    }
+    LexSettings: {
+      payload: Prisma.$LexSettingsPayload<ExtArgs>
+      fields: Prisma.LexSettingsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LexSettingsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LexSettingsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>
+        }
+        findFirst: {
+          args: Prisma.LexSettingsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LexSettingsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>
+        }
+        findMany: {
+          args: Prisma.LexSettingsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>[]
+        }
+        create: {
+          args: Prisma.LexSettingsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>
+        }
+        createMany: {
+          args: Prisma.LexSettingsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LexSettingsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>[]
+        }
+        delete: {
+          args: Prisma.LexSettingsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>
+        }
+        update: {
+          args: Prisma.LexSettingsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>
+        }
+        deleteMany: {
+          args: Prisma.LexSettingsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LexSettingsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LexSettingsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>[]
+        }
+        upsert: {
+          args: Prisma.LexSettingsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LexSettingsPayload>
+        }
+        aggregate: {
+          args: Prisma.LexSettingsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLexSettings>
+        }
+        groupBy: {
+          args: Prisma.LexSettingsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexSettingsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LexSettingsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LexSettingsCountAggregateOutputType> | number
+        }
+      }
+    }
     RexDataset: {
       payload: Prisma.$RexDatasetPayload<ExtArgs>
       fields: Prisma.RexDatasetFieldRefs
@@ -5363,10 +5738,112 @@ export const LexSourceScalarFieldEnum = {
   chunksCreated: 'chunksCreated',
   summary: 'summary',
   keyTopics: 'keyTopics',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  status: 'status',
+  counterparty: 'counterparty',
+  perspective: 'perspective',
+  effectiveDate: 'effectiveDate',
+  expiryDate: 'expiryDate',
+  renewalDate: 'renewalDate',
+  noticeDeadline: 'noticeDeadline',
+  autoRenewal: 'autoRenewal',
+  contractValue: 'contractValue',
+  currency: 'currency',
+  paymentTerms: 'paymentTerms',
+  governingLaw: 'governingLaw',
+  jurisdiction: 'jurisdiction',
+  disputeResolution: 'disputeResolution',
+  review: 'review',
+  reviewHeadline: 'reviewHeadline',
+  reviewAction: 'reviewAction',
+  riskLevel: 'riskLevel',
+  criticalCount: 'criticalCount',
+  highCount: 'highCount',
+  lastReviewedAt: 'lastReviewedAt',
+  version: 'version',
+  previousVersionId: 'previousVersionId',
+  versionComparison: 'versionComparison',
+  versionComparisonSeen: 'versionComparisonSeen'
 } as const
 
 export type LexSourceScalarFieldEnum = (typeof LexSourceScalarFieldEnum)[keyof typeof LexSourceScalarFieldEnum]
+
+
+export const LexFindingScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  severity: 'severity',
+  category: 'category',
+  kind: 'kind',
+  title: 'title',
+  section: 'section',
+  quote: 'quote',
+  explanation: 'explanation',
+  suggestedWording: 'suggestedWording',
+  preference: 'preference',
+  createdAt: 'createdAt'
+} as const
+
+export type LexFindingScalarFieldEnum = (typeof LexFindingScalarFieldEnum)[keyof typeof LexFindingScalarFieldEnum]
+
+
+export const LexObligationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  owner: 'owner',
+  description: 'description',
+  whenText: 'whenText',
+  section: 'section',
+  recurrence: 'recurrence',
+  dueDate: 'dueDate',
+  status: 'status',
+  reminderOn: 'reminderOn',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexObligationScalarFieldEnum = (typeof LexObligationScalarFieldEnum)[keyof typeof LexObligationScalarFieldEnum]
+
+
+export const LexPreferenceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  category: 'category',
+  key: 'key',
+  label: 'label',
+  value: 'value',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexPreferenceScalarFieldEnum = (typeof LexPreferenceScalarFieldEnum)[keyof typeof LexPreferenceScalarFieldEnum]
+
+
+export const LexActivityScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  actor: 'actor',
+  actorName: 'actorName',
+  action: 'action',
+  detail: 'detail',
+  createdAt: 'createdAt'
+} as const
+
+export type LexActivityScalarFieldEnum = (typeof LexActivityScalarFieldEnum)[keyof typeof LexActivityScalarFieldEnum]
+
+
+export const LexSettingsScalarFieldEnum = {
+  organizationId: 'organizationId',
+  weeklyBrief: 'weeklyBrief',
+  lastBriefAt: 'lastBriefAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexSettingsScalarFieldEnum = (typeof LexSettingsScalarFieldEnum)[keyof typeof LexSettingsScalarFieldEnum]
 
 
 export const RexDatasetScalarFieldEnum = {
@@ -6340,6 +6817,11 @@ export type GlobalOmitConfig = {
   mayaContentIdea?: Prisma.MayaContentIdeaOmit
   sageSavedKeyword?: Prisma.SageSavedKeywordOmit
   lexSource?: Prisma.LexSourceOmit
+  lexFinding?: Prisma.LexFindingOmit
+  lexObligation?: Prisma.LexObligationOmit
+  lexPreference?: Prisma.LexPreferenceOmit
+  lexActivity?: Prisma.LexActivityOmit
+  lexSettings?: Prisma.LexSettingsOmit
   rexDataset?: Prisma.RexDatasetOmit
   rexPinnedCard?: Prisma.RexPinnedCardOmit
   rexSettings?: Prisma.RexSettingsOmit

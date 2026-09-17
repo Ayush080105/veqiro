@@ -86,6 +86,11 @@ export const ModelName = {
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
   LexSource: 'LexSource',
+  LexFinding: 'LexFinding',
+  LexObligation: 'LexObligation',
+  LexPreference: 'LexPreference',
+  LexActivity: 'LexActivity',
+  LexSettings: 'LexSettings',
   RexDataset: 'RexDataset',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
@@ -698,10 +703,112 @@ export const LexSourceScalarFieldEnum = {
   chunksCreated: 'chunksCreated',
   summary: 'summary',
   keyTopics: 'keyTopics',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  status: 'status',
+  counterparty: 'counterparty',
+  perspective: 'perspective',
+  effectiveDate: 'effectiveDate',
+  expiryDate: 'expiryDate',
+  renewalDate: 'renewalDate',
+  noticeDeadline: 'noticeDeadline',
+  autoRenewal: 'autoRenewal',
+  contractValue: 'contractValue',
+  currency: 'currency',
+  paymentTerms: 'paymentTerms',
+  governingLaw: 'governingLaw',
+  jurisdiction: 'jurisdiction',
+  disputeResolution: 'disputeResolution',
+  review: 'review',
+  reviewHeadline: 'reviewHeadline',
+  reviewAction: 'reviewAction',
+  riskLevel: 'riskLevel',
+  criticalCount: 'criticalCount',
+  highCount: 'highCount',
+  lastReviewedAt: 'lastReviewedAt',
+  version: 'version',
+  previousVersionId: 'previousVersionId',
+  versionComparison: 'versionComparison',
+  versionComparisonSeen: 'versionComparisonSeen'
 } as const
 
 export type LexSourceScalarFieldEnum = (typeof LexSourceScalarFieldEnum)[keyof typeof LexSourceScalarFieldEnum]
+
+
+export const LexFindingScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  severity: 'severity',
+  category: 'category',
+  kind: 'kind',
+  title: 'title',
+  section: 'section',
+  quote: 'quote',
+  explanation: 'explanation',
+  suggestedWording: 'suggestedWording',
+  preference: 'preference',
+  createdAt: 'createdAt'
+} as const
+
+export type LexFindingScalarFieldEnum = (typeof LexFindingScalarFieldEnum)[keyof typeof LexFindingScalarFieldEnum]
+
+
+export const LexObligationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  owner: 'owner',
+  description: 'description',
+  whenText: 'whenText',
+  section: 'section',
+  recurrence: 'recurrence',
+  dueDate: 'dueDate',
+  status: 'status',
+  reminderOn: 'reminderOn',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexObligationScalarFieldEnum = (typeof LexObligationScalarFieldEnum)[keyof typeof LexObligationScalarFieldEnum]
+
+
+export const LexPreferenceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  category: 'category',
+  key: 'key',
+  label: 'label',
+  value: 'value',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexPreferenceScalarFieldEnum = (typeof LexPreferenceScalarFieldEnum)[keyof typeof LexPreferenceScalarFieldEnum]
+
+
+export const LexActivityScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  actor: 'actor',
+  actorName: 'actorName',
+  action: 'action',
+  detail: 'detail',
+  createdAt: 'createdAt'
+} as const
+
+export type LexActivityScalarFieldEnum = (typeof LexActivityScalarFieldEnum)[keyof typeof LexActivityScalarFieldEnum]
+
+
+export const LexSettingsScalarFieldEnum = {
+  organizationId: 'organizationId',
+  weeklyBrief: 'weeklyBrief',
+  lastBriefAt: 'lastBriefAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexSettingsScalarFieldEnum = (typeof LexSettingsScalarFieldEnum)[keyof typeof LexSettingsScalarFieldEnum]
 
 
 export const RexDatasetScalarFieldEnum = {

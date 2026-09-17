@@ -18,6 +18,8 @@ import {
   keyBelongsToOrg,
 } from "../../../common/utils/r2.js";
 import * as lexRepository from "./lex.repository.js";
+import * as lexMemory from "./lex.memory.js";
+import { prisma } from "../../../config/prisma.js";
 import { findBrandKit } from "../../brand-kit/brand-kit.repository.js";
 import type {
   SendMessageInput,
@@ -40,6 +42,9 @@ import type {
   SourceDTO,
   QueryDocumentInput,
   QueryDocumentResponse,
+  DraftReplyInput,
+  DraftReplyResponse,
+  SourceReviewSummary,
 } from "./lex.types.js";
 import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
 
@@ -85,6 +90,18 @@ async function buildAttachedContext(
     attached: matched.map((s) => ({ sourceId: s.sourceId, name: s.name })),
   };
 }
+
+/** A review run from chat (Lex's analyze_contract tool) is saved to legal memory like one run from the card. */
+const rememberChatReview = async (userId: string, organizationId: string, responseData: AssistantMessagePayload) => {
+  if (responseData.action_id !== "lex:analyze-contract") return;
+  const result = responseData.action_result as { analysis?: AnalyzeContractResponse["analysis"]; source_id?: string } | undefined;
+  if (!result?.analysis || !result.source_id) return;
+  try {
+    await lexMemory.saveReview({ organizationId, userId, sourceId: result.source_id, analysis: result.analysis, actor: "lex" });
+  } catch (err) {
+    console.warn("[lex] saving chat review failed", err);
+  }
+};
 
 export const sendMessage = async (
   userId: string,
@@ -139,6 +156,8 @@ export const sendMessage = async (
           : undefined,
     responseData.tool_trace,
   );
+
+  await rememberChatReview(userId, organizationId, responseData);
 
   const assistantMessage = await lexRepository.createAssistantMessage({
     organizationId,
@@ -234,6 +253,8 @@ export async function* streamMessage(
     responseData.tool_trace,
   );
 
+  await rememberChatReview(userId, organizationId, responseData);
+
   const assistantMessage = await lexRepository.createAssistantMessage({
     organizationId,
     userId,
@@ -265,20 +286,13 @@ export const listMessages = (
   opts: { before?: string; limit?: number } = {}
 ) => lexRepository.findAllLexMessages(organizationId, opts);
 
-const toSourceDTO = (row: {
-  id: string;
-  sourceId: string;
-  name: string;
-  type: string;
-  typeDetected: string | null;
-  r2Key: string;
-  sizeBytes: number;
-  pageCount: number;
-  chunksCreated: number;
-  summary: string;
-  keyTopics: string[];
-  createdAt: Date;
-}): SourceDTO => ({
+type SourceRow = Awaited<ReturnType<typeof lexRepository.findSourcesForUser>>[number];
+
+const toSourceDTO = (
+  row: SourceRow,
+  latestReview: SourceReviewSummary | null = null,
+  nextDate: SourceDTO["nextDate"] = null
+): SourceDTO => ({
   id: row.id,
   sourceId: row.sourceId,
   name: row.name,
@@ -292,7 +306,54 @@ const toSourceDTO = (row: {
   summary: row.summary,
   keyTopics: row.keyTopics,
   createdAt: row.createdAt.toISOString(),
+  latestReview:
+    row.lastReviewedAt && row.reviewHeadline
+      ? {
+          headline: row.reviewHeadline,
+          action: row.reviewAction ?? "",
+          riskLevel: row.riskLevel ?? "",
+          issueCount: row.criticalCount + row.highCount,
+          nextDate: nextDate ? `${nextDate.description}` : null,
+          reviewedAt: row.lastReviewedAt.toISOString(),
+        }
+      : latestReview,
+  status: row.status,
+  counterparty: row.counterparty,
+  expiryDate: row.expiryDate?.toISOString() ?? null,
+  renewalDate: row.renewalDate?.toISOString() ?? null,
+  noticeDeadline: row.noticeDeadline?.toISOString() ?? null,
+  riskLevel: row.riskLevel,
+  lastReviewedAt: row.lastReviewedAt?.toISOString() ?? null,
+  version: row.version,
+  previousVersionId: row.previousVersionId,
+  hasUnseenChanges: Boolean(row.versionComparison) && !row.versionComparisonSeen,
+  nextDate,
 });
+
+type ReviewMessage = { customInput: unknown; createdAt: Date };
+
+/** Latest review per sourceId, from saved analyze-contract messages (newest first). */
+const summariseReviews = (messages: ReviewMessage[]): Map<string, SourceReviewSummary> => {
+  const out = new Map<string, SourceReviewSummary>();
+  for (const m of messages) {
+    const ci = m.customInput as {
+      input?: { sourceId?: string | null };
+      result?: { analysis?: AnalyzeContractResponse["analysis"] };
+    } | null;
+    const sourceId = ci?.input?.sourceId;
+    const a = ci?.result?.analysis;
+    if (!sourceId || !a || out.has(sourceId) || a.failed) continue;
+    out.set(sourceId, {
+      headline: a.verdict?.headline ?? a.recommended_action.replace(/_/g, " "),
+      action: a.verdict?.action ?? a.recommended_action,
+      riskLevel: a.risk_level,
+      issueCount: a.issues?.length ?? a.risks?.length ?? 0,
+      nextDate: a.key_dates?.[0] ? `${a.key_dates[0].when} — ${a.key_dates[0].what}` : null,
+      reviewedAt: m.createdAt.toISOString(),
+    });
+  }
+  return out;
+};
 
 const MAX_LEX_PDF_BYTES = 25 * 1024 * 1024;
 
@@ -303,6 +364,7 @@ export const finalizeSource = async (
     key: string;
     documentName: string;
     documentType: string;
+    previousVersionId?: string | null;
   }
 ): Promise<SourceDTO> => {
   if (!isR2Configured()) {
@@ -358,7 +420,11 @@ export const finalizeSource = async (
     }
   );
 
-  const source = await lexRepository.createSource({
+  const previous = input.previousVersionId
+    ? await lexRepository.findSourceById(input.previousVersionId, userId, organizationId)
+    : null;
+
+  const created = await lexRepository.createSource({
     organizationId,
     userId,
     sourceId: data.source_id,
@@ -372,15 +438,37 @@ export const finalizeSource = async (
     summary: data.summary,
     keyTopics: data.key_topics,
   });
+  const source = previous
+    ? await prisma.lexSource.update({
+        where: { id: created.id },
+        data: { previousVersionId: previous.id, version: previous.version + 1, counterparty: previous.counterparty, perspective: previous.perspective },
+      })
+    : created;
 
-  const assistantContent = `Ingested ${data.page_count} pages (${data.chunks_created} chunks) — ${data.document_type_detected}`;
+  await lexMemory.logActivity({
+    organizationId,
+    sourceRowId: source.id,
+    actor: "user",
+    userId,
+    action: previous ? `Uploaded version ${source.version} of ${previous.name}` : `Uploaded ${source.name}`,
+    detail: `${data.page_count} pages`,
+  });
+  if (previous) {
+    // Comparison is one model call, cached on the new version; it runs in the background so
+    // the upload returns immediately and Legal Watch picks the result up when it lands.
+    void lexMemory
+      .compareWithPreviousVersion({ organizationId, userId, sourceRowId: source.id })
+      .catch((err) => console.warn("[lex] version comparison failed", err));
+  }
+
+  const assistantContent = `Uploaded "${input.documentName}" (${data.page_count} pages)${data.summary ? ` — ${data.summary}` : ""}`;
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
     content: assistantContent,
     tokensUsed: data.tokens_used,
     model: data.model_used,
-    customInput: { actionId: "lex:upload-source", result: { ...data, sourceRowId: source.id } },
+    customInput: { actionId: "lex:upload-source", result: { ...data, ...toSourceDTO(source), sourceRowId: source.id } },
   });
 
   void recordAgentTurnContext({
@@ -397,10 +485,42 @@ export const finalizeSource = async (
 
 export const listSources = async (
   userId: string,
-  organizationId: string
+  organizationId: string,
+  query: { q?: string } = {}
 ): Promise<SourceDTO[]> => {
-  const rows = await lexRepository.findSourcesForUser(userId, organizationId);
-  return rows.map(toSourceDTO);
+  const [rows, reviews, dates] = await Promise.all([
+    lexRepository.findSourcesForUser(userId, organizationId, query.q),
+    lexRepository.findRecentReviewMessages(organizationId).catch(() => []),
+    lexRepository.findUpcomingObligations(userId, organizationId),
+  ]);
+  // Reviews saved before legal memory existed live only in chat history.
+  const latest = summariseReviews(reviews);
+  const nextBySource = new Map<string, SourceDTO["nextDate"]>();
+  for (const d of dates) {
+    if (d.dueDate && !nextBySource.has(d.sourceRowId)) {
+      nextBySource.set(d.sourceRowId, { description: d.description, dueDate: d.dueDate.toISOString() });
+    }
+  }
+  return rows.map((row) => toSourceDTO(row, latest.get(row.sourceId) ?? null, nextBySource.get(row.id) ?? null));
+};
+
+export const getSourceDetail = async (userId: string, organizationId: string, id: string) => {
+  const row = await lexRepository.findSourceDetail(id, userId, organizationId);
+  if (!row) throw new NotFoundError("Document not found");
+  if (row.versionComparison && !row.versionComparisonSeen) {
+    await prisma.lexSource.update({ where: { id: row.id }, data: { versionComparisonSeen: true } });
+  }
+  const versions = await lexRepository.findVersionChain(row, userId, organizationId);
+  const { findings, obligations, activities, review, versionComparison, ...rest } = row;
+  return {
+    source: toSourceDTO(rest as SourceRow),
+    review,
+    versionComparison,
+    findings,
+    obligations: obligations.map((o) => ({ ...o, dueDate: o.dueDate?.toISOString() ?? null })),
+    activity: activities.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() })),
+    versions,
+  };
 };
 
 export const deleteSource = async (
@@ -428,6 +548,7 @@ export const deleteSource = async (
     // best-effort: orphaned R2 objects can be reaped offline
   }
 
+  await lexMemory.logActivity({ organizationId, actor: "user", userId, action: `Deleted ${source.name}` });
   await lexRepository.deleteSourceById(id);
   return { deleted: true };
 };
@@ -468,6 +589,9 @@ export const queryDocument = async (
   );
 
   const assistantContent = data.answer.slice(0, 500);
+  // Chunk text and similarity scores are retrieval internals — the card shows the answer and
+  // its quoted citations, so the saved message doesn't carry five raw passages.
+  const saved = { ...data, sources: [] };
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
@@ -476,8 +600,8 @@ export const queryDocument = async (
     model: data.model_used,
     customInput: {
       actionId: "lex:query-document",
-      input: { sourceId: input.sourceId, query: input.query },
-      result: data,
+      input: { sourceId: input.sourceId, sourceName: owned.name, query: input.query },
+      result: saved,
     },
   });
 
@@ -499,9 +623,13 @@ export const analyzeContract = async (
   input: AnalyzeContractInput
 ): Promise<AnalyzeContractResponse> => {
   const history = await lexRepository.findRecentMessages(organizationId, CONTEXT_HISTORY_LIMIT);
-  const userContent = input.sourceId
-    ? `Analyze ingested contract ${input.sourceId}`
-    : "Analyze contract text";
+  const owned = input.sourceId
+    ? (await lexRepository.findSourcesForUser(userId, organizationId)).find((s) => s.sourceId === input.sourceId)
+    : undefined;
+  if (input.sourceId && !owned) {
+    throw new NotFoundError("Document not found");
+  }
+  const userContent = owned ? `Review "${owned.name}"` : "Review pasted contract text";
   const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
@@ -511,11 +639,13 @@ export const analyzeContract = async (
       input: {
         sourceId: input.sourceId,
         analysisFocus: input.analysisFocus,
+        perspective: input.perspective,
         contractChars: input.contractText?.length ?? 0,
       },
     },
   });
 
+  const preferences = await lexMemory.activePreferences(organizationId);
   const data = await callAgentWithContext<AnalyzeContractResponse>({
     agentApiPath: "/ai/lex/analyze-contract",
     agentEnum: Agent.LEX,
@@ -529,20 +659,31 @@ export const analyzeContract = async (
       source_id: input.sourceId,
       contract_text: input.contractText,
       analysis_focus: input.analysisFocus,
+      perspective: input.perspective,
+      preferences,
     },
   });
+
+  const sourceRowId = input.sourceId
+    ? await lexMemory.saveReview({ organizationId, userId, sourceId: input.sourceId, analysis: data.analysis, actor: "user" })
+    : null;
 
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Risk level: ${data.analysis.risk_level} — ${data.analysis.risks.length} risks identified`,
+    content: data.analysis.verdict
+      ? `${data.analysis.verdict.headline} — ${data.analysis.verdict.summary}`
+      : `Risk level: ${data.analysis.risk_level} — ${data.analysis.risks.length} risks identified`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: {
       actionId: "lex:analyze-contract",
       input: {
         sourceId: input.sourceId,
+        sourceName: owned?.name,
+        sourceRowId,
         analysisFocus: input.analysisFocus,
+        perspective: input.perspective,
         contractChars: input.contractText?.length ?? 0,
       },
       result: data,
@@ -585,10 +726,58 @@ export const draftDocument = async (
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `Drafted ${input.documentType} (${data.document.length} chars)`,
+    content: `Drafted ${input.documentType}`,
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "lex:draft-document", input, result: data },
+  });
+
+  return data;
+};
+
+export const draftReply = async (
+  userId: string,
+  organizationId: string,
+  input: DraftReplyInput
+): Promise<DraftReplyResponse> => {
+  let analysis: Record<string, unknown>;
+  try {
+    analysis = JSON.parse(input.analysisJson) as Record<string, unknown>;
+  } catch {
+    throw new BadRequestError("The review couldn't be read. Run the review again.");
+  }
+  const counterparty = typeof analysis.counterparty === "string" ? analysis.counterparty : "";
+  const userContent = counterparty ? `Draft a reply to ${counterparty}` : "Draft a reply to the other side";
+  await lexRepository.createUserMessage({
+    organizationId,
+    userId,
+    content: userContent,
+    customInput: { actionId: "lex:draft-reply", input: { counterparty, tone: input.tone } },
+  });
+
+  const { data } = await aiService.post<DraftReplyResponse>("/ai/lex/draft-reply", {
+    user_id: userId,
+    organization_id: organizationId,
+    analysis,
+    sender: input.sender,
+    tone: input.tone,
+  });
+
+  await lexRepository.createAssistantMessage({
+    organizationId,
+    userId,
+    content: `Reply drafted: ${data.subject} (${data.changes.length} proposed changes)`,
+    model: data.model_used,
+    customInput: { actionId: "lex:draft-reply", input: { counterparty, tone: input.tone }, result: data },
+  });
+
+  await lexMemory.logActivity({
+    organizationId,
+    sourceRowId: input.sourceRowId ?? null,
+    actor: "user",
+    userId,
+    action: "Generated a negotiation draft",
+    detail: `${data.changes.length} proposed ${data.changes.length === 1 ? "change" : "changes"}${counterparty ? ` for ${counterparty}` : ""}`,
   });
 
   return data;
@@ -705,7 +894,7 @@ export const legalResearch = async (
   await lexRepository.createAssistantMessage({
     organizationId,
     userId,
-    content: `${data.sections?.length ?? 0} sections, ${data.references?.length ?? 0} references (${data.confidence_level})`,
+    content: data.answer.slice(0, 500),
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "lex:legal-research", input, result: data },
@@ -723,7 +912,7 @@ export const complianceCheck = async (
   const userMsg = await lexRepository.createUserMessage({
     organizationId,
     userId,
-    content: `Compliance check: ${input.frameworks.join(", ")}`,
+    content: `Compliance check: ${input.frameworks.length ? input.frameworks.join(", ") : input.description.slice(0, 80)}`,
     customInput: { actionId: "lex:compliance-check", input },
   });
 
@@ -734,12 +923,13 @@ export const complianceCheck = async (
     userId,
     organizationId,
     conversationId: userMsg.id,
-    userMessage: `Compliance check: ${input.frameworks.join(", ")}`,
+    userMessage: `Compliance check: ${input.frameworks.length ? input.frameworks.join(", ") : input.description.slice(0, 80)}`,
     rawHistory: history,
     topLevelPayload: {
       description: input.description,
       frameworks: input.frameworks,
       business_context: input.businessContext,
+      jurisdiction: input.jurisdiction,
     },
   });
 

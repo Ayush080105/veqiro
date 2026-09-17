@@ -90,6 +90,29 @@ async def org_company_name(organization_id: str) -> str:
         return ""
 
 
+async def org_preferences(organization_id: str) -> list[dict]:
+    """The company's saved legal preferences ({key, label, value}) from the server. Chat-run
+    reviews use these so they flag the same departures as reviews run from the card."""
+    from core.config import settings
+
+    if not organization_id or settings.MOCK_MODE or not settings.INTERNAL_API_KEY:
+        return []
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"{settings.BRAND_KIT_SERVICE_URL}/api/v1/internal/lex/preferences/{organization_id}",
+                headers={"x-internal-key": settings.INTERNAL_API_KEY},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        return [p for p in data if isinstance(p, dict) and p.get("value")] if isinstance(data, list) else []
+    except Exception as err:
+        logger.warning("legal preferences unavailable | org=%s error=%s", organization_id, err)
+        return []
+
+
 _MD_PATTERNS = [
     (re.compile(r"\*\*(.+?)\*\*", re.S), r"\1"),
     (re.compile(r"__(.+?)__", re.S), r"\1"),

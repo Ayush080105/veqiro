@@ -3,6 +3,7 @@ import authMiddleware from "./middlewares/auth.middleware.js";
 import { entitlementMiddleware, entitlementMiddlewareForAgent } from "./middlewares/entitlement.middleware.js";
 import { Agent } from "../prisma/generated/prisma/client.js";
 import { internalKeyMiddleware } from "./middlewares/internal.middleware.js";
+import { activePreferences as activeLexPreferences } from "./modules/agents/lex/lex.memory.js";
 import sageRouter from "./modules/agents/sage/sage.routes.js";
 import rexRouter, { publicRouter as rexPublicRouter } from "./modules/agents/rex/rex.routes.js";
 import scoutRouter from "./modules/agents/scout/scout.routes.js";
@@ -66,6 +67,9 @@ router.use("/brand-kit", authMiddleware, brandKitRouter);
 router.use("/brand-images", authMiddleware, brandImagesRouter);
 router.use("/internal/runs", runsInternalRouter);
 router.get("/internal/brand-kit/:organizationId", internalKeyMiddleware, getBrandKitInternal);
+router.get("/internal/lex/preferences/:organizationId", internalKeyMiddleware, async (req, res) => {
+  res.json(await activeLexPreferences(String(req.params.organizationId)));
+});
 router.post("/internal/cron/rex-weekly-digest", internalKeyMiddleware, (_req, res) => {
   void runWeeklyDigestNow().then(() => res.json({ ok: true }));
 });

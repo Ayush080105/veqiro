@@ -1376,10 +1376,151 @@ model LexSource {
   /// Creation timestamp.
   createdAt      DateTime @default(now())
 
+  // ── Contract memory (filled from the latest review; no extra model call) ──
+  /// active | archived.
+  status                String    @default("active")
+  /// Other main party, from the latest review.
+  counterparty          String?
+  /// Party the latest review was written for.
+  perspective           String?
+  effectiveDate         DateTime?
+  expiryDate            DateTime?
+  renewalDate           DateTime?
+  /// Last day to give notice (e.g. to stop auto-renewal).
+  noticeDeadline        DateTime?
+  autoRenewal           Boolean?
+  contractValue         String?
+  currency              String?
+  paymentTerms          String?
+  governingLaw          String?
+  jurisdiction          String?
+  disputeResolution     String?
+  /// Cached latest verdict-first review (the analyze-contract `analysis` object).
+  review                Json?
+  reviewHeadline        String?
+  reviewAction          String?
+  riskLevel             String?
+  criticalCount         Int       @default(0)
+  highCount             Int       @default(0)
+  lastReviewedAt        DateTime?
+  // ── Versions ──
+  version               Int       @default(1)
+  /// Row id of the version this one replaces.
+  previousVersionId     String?
+  /// Cached comparison against the previous version.
+  versionComparison     Json?
+  /// Whether the user has opened the comparison (drives Legal Watch).
+  versionComparisonSeen Boolean   @default(false)
+
+  findings    LexFinding[]
+  obligations LexObligation[]
+  activities  LexActivity[]
+
   @@unique([userId, sourceId])
   @@index([userId, organizationId, agent, createdAt])
   @@index([organizationId, agent, createdAt])
   @@map("lex_source")
+}
+
+/// One finding from a contract review, kept for search and Legal Watch.
+model LexFinding {
+  id               String    @id @default(cuid())
+  organizationId   String
+  sourceRowId      String
+  source           LexSource @relation(fields: [sourceRowId], references: [id], onDelete: Cascade)
+  /// critical | high | medium | low
+  severity         String
+  /// document_risk | company_preference_mismatch | missing_information
+  category         String
+  /// risk | missing | ambiguous | unusual | preference_mismatch
+  kind             String
+  title            String
+  section          String    @default("")
+  quote            String    @default("")
+  explanation      String    @default("")
+  suggestedWording String    @default("")
+  /// The company preference this finding departs from, if any.
+  preference       String?
+  createdAt        DateTime  @default(now())
+
+  @@index([organizationId])
+  @@index([sourceRowId])
+  @@map("lex_finding")
+}
+
+/// A date or duty extracted from a contract; drives reminders and Legal Watch.
+model LexObligation {
+  id             String    @id @default(cuid())
+  organizationId String
+  sourceRowId    String
+  source         LexSource @relation(fields: [sourceRowId], references: [id], onDelete: Cascade)
+  /// you | counterparty | both
+  owner          String    @default("you")
+  description    String
+  /// The contract's own wording of when, e.g. "Within 10 days of signing".
+  whenText       String
+  section        String    @default("")
+  /// once | monthly | quarterly | half_yearly | yearly
+  recurrence     String    @default("once")
+  /// Next due date when it can be worked out.
+  dueDate        DateTime?
+  /// open | done | dismissed
+  status         String    @default("open")
+  /// User asked Lex to remind them.
+  reminderOn     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([sourceRowId, description, whenText])
+  @@index([organizationId, status, dueDate])
+  @@map("lex_obligation")
+}
+
+/// A company's usual legal/commercial position, used to flag departures in reviews.
+model LexPreference {
+  id             String   @id @default(cuid())
+  organizationId String
+  /// commercial | legal | style
+  category       String
+  key            String
+  label          String
+  value          String
+  /// manual | suggested
+  source         String   @default("manual")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@map("lex_preference")
+}
+
+/// Audit trail of what Lex and the user did with legal documents.
+model LexActivity {
+  id             String     @id @default(cuid())
+  organizationId String
+  sourceRowId    String?
+  source         LexSource? @relation(fields: [sourceRowId], references: [id], onDelete: SetNull)
+  /// lex | user
+  actor          String
+  actorName      String?
+  action         String
+  detail         String     @default("")
+  createdAt      DateTime   @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([sourceRowId, createdAt])
+  @@map("lex_activity")
+}
+
+/// Per-organisation Lex settings.
+model LexSettings {
+  organizationId String    @id
+  /// Email the weekly Legal Brief.
+  weeklyBrief    Boolean   @default(false)
+  lastBriefAt    DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  @@map("lex_settings")
 }
 
 /// Rex metric dataset parsed from uploads or ingest API.

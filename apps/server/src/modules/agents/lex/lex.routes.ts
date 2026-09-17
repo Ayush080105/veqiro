@@ -14,6 +14,19 @@ import {
   legalResearch,
   complianceCheck,
   queryDocument,
+  draftReply,
+  getSource,
+  versionCandidates,
+  compareVersion,
+  addReminders,
+  updateObligation,
+  getWatch,
+  getBrief,
+  getPreferences,
+  putPreferences,
+  getSettings,
+  putSettings,
+  recordActivity,
 } from "./lex.controller.js";
 
 const router = Router();
@@ -26,10 +39,23 @@ router.get("/chat", getLexMessages);
 // and trigger ingestion.
 router.post("/sources/finalize", finalizeSource);
 router.get("/sources", listSources);
+router.get("/sources/version-candidates", versionCandidates);
+router.get("/sources/:id", getSource);
+router.post("/sources/:id/compare", compareVersion);
+router.post("/sources/:id/reminders", addReminders);
+router.patch("/obligations/:id", updateObligation);
+router.get("/watch", getWatch);
+router.get("/brief", getBrief);
+router.get("/preferences", getPreferences);
+router.put("/preferences", putPreferences);
+router.get("/settings", getSettings);
+router.put("/settings", putSettings);
+router.post("/activity", recordActivity);
 router.delete("/sources/:id", deleteSource);
 router.post("/analyze-contract", analyzeContract);
 router.post("/query-document", queryDocument);
 router.post("/draft-document", draftDocument);
+router.post("/draft-reply", draftReply);
 router.post("/export-document", exportDocument);
 router.post("/stamp-letterhead", stampLetterhead);
 router.post("/explain", explain);

@@ -11,6 +11,7 @@ import {
   legalResearchSchema,
   complianceCheckSchema,
   queryDocumentSchema,
+  draftReplySchema,
 } from "./lex.schema.js";
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
@@ -25,6 +26,7 @@ export type ExplainInput = z.infer<typeof explainSchema>;
 export type LegalResearchInput = z.infer<typeof legalResearchSchema>;
 export type ComplianceCheckInput = z.infer<typeof complianceCheckSchema>;
 export type QueryDocumentInput = z.infer<typeof queryDocumentSchema>;
+export type DraftReplyInput = z.infer<typeof draftReplySchema>;
 
 export interface AssistantMessagePayload {
   response: string;
@@ -63,6 +65,30 @@ export interface SourceDTO {
   summary: string;
   keyTopics: string[];
   createdAt: string;
+  /** Summary of the most recent review of this document, if one has been run. */
+  latestReview: SourceReviewSummary | null;
+  status: string;
+  counterparty: string | null;
+  expiryDate: string | null;
+  renewalDate: string | null;
+  noticeDeadline: string | null;
+  riskLevel: string | null;
+  lastReviewedAt: string | null;
+  version: number;
+  previousVersionId: string | null;
+  /** A comparison with the previous version exists and hasn't been opened. */
+  hasUnseenChanges: boolean;
+  /** Next open date the user owns, if any. */
+  nextDate: { description: string; dueDate: string } | null;
+}
+
+export interface SourceReviewSummary {
+  headline: string;
+  action: string;
+  riskLevel: string;
+  issueCount: number;
+  nextDate: string | null;
+  reviewedAt: string;
 }
 
 export interface QueryDocumentChunk {
@@ -73,6 +99,8 @@ export interface QueryDocumentChunk {
 
 export interface QueryDocumentResponse {
   answer: string;
+  found?: boolean;
+  citations?: { section: string; quote: string }[];
   sources: QueryDocumentChunk[];
   tokens_used?: number;
   model_used?: string;
@@ -149,6 +177,13 @@ export interface ContractAnalysis {
   score_breakdown?: ScoreBreakdown;
   obligations_structured?: PartyObligations[];
   ambiguous_clauses?: AmbiguousClause[];
+  version?: number;
+  failed?: boolean;
+  perspective?: string;
+  counterparty?: string;
+  verdict?: { action: string; headline: string; summary: string } | null;
+  issues?: { severity: string; title: string; section: string }[];
+  key_dates?: { when: string; what: string; section: string }[];
 }
 
 export interface AnalyzeContractResponse {
@@ -206,6 +241,15 @@ export interface FrameworkResult {
 export interface RemediationStep {
   priority: "high" | "medium" | "low";
   action: string;
+}
+
+export interface DraftReplyResponse {
+  subject: string;
+  email: string;
+  changes: { section: string; current: string; proposed: string; reason: string }[];
+  counterparty: string;
+  changes_document: string;
+  model_used?: string;
 }
 
 export interface ComplianceCheckResponse {

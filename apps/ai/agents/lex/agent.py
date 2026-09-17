@@ -277,13 +277,18 @@ class LexAgent(BaseAgent):
             full_text = await self.rag.source_text(user_id, source_id)
             if not full_text:
                 return json.dumps({"error": f"No document found for source_id '{source_id}'"})
+            company_name, preferences = await asyncio.gather(
+                lex_services.org_company_name(organization_id),
+                lex_services.org_preferences(organization_id),
+            )
             data = await analyze_contract_text(
                 self.llm, provider=self.default_provider, model=self.default_model,
                 system=system, full_text=full_text,
                 perspective=arguments.get("perspective", "") or "",
-                company_name=await lex_services.org_company_name(organization_id),
+                company_name=company_name, preferences=preferences,
             )
-            return json.dumps({"analysis": data}, default=str)
+            # source_id lets the server save this review to legal memory, like one run from the card.
+            return json.dumps({"analysis": data, "source_id": source_id}, default=str)
 
         if name == "draft_document":
             location = await lex_services.org_location(organization_id)

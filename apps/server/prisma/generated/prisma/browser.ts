@@ -276,6 +276,31 @@ export type SageSavedKeyword = Prisma.SageSavedKeywordModel
  */
 export type LexSource = Prisma.LexSourceModel
 /**
+ * Model LexFinding
+ * One finding from a contract review, kept for search and Legal Watch.
+ */
+export type LexFinding = Prisma.LexFindingModel
+/**
+ * Model LexObligation
+ * A date or duty extracted from a contract; drives reminders and Legal Watch.
+ */
+export type LexObligation = Prisma.LexObligationModel
+/**
+ * Model LexPreference
+ * A company's usual legal/commercial position, used to flag departures in reviews.
+ */
+export type LexPreference = Prisma.LexPreferenceModel
+/**
+ * Model LexActivity
+ * Audit trail of what Lex and the user did with legal documents.
+ */
+export type LexActivity = Prisma.LexActivityModel
+/**
+ * Model LexSettings
+ * Per-organisation Lex settings.
+ */
+export type LexSettings = Prisma.LexSettingsModel
+/**
  * Model RexDataset
  * Rex metric dataset parsed from uploads or ingest API.
  */
