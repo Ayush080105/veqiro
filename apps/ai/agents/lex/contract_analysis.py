@@ -89,8 +89,10 @@ def build_analysis_prompt(
     )
     prefs = [p for p in (preferences or []) if p.get("value")][:MAX_PREFERENCES]
     preference_block = (
-        "\nTHE COMPANY'S USUAL POSITIONS (compare the contract against these; where the contract departs "
-        "from one, add a finding with kind 'preference_mismatch' and put the preference in 'preference'):\n"
+        "\nTHE COMPANY'S USUAL POSITIONS (compare the contract against each one. Whenever a finding is about "
+        "a topic one of these positions covers and the contract departs from it — even if it is also a risk — "
+        "give that finding kind 'preference_mismatch' and copy the position into 'preference', rather than "
+        "listing it as a plain risk):\n"
         + "\n".join(f"- {p.get('label') or p.get('key')}: {p['value']}" for p in prefs)
         + "\n"
         if prefs else ""
@@ -104,7 +106,10 @@ def build_analysis_prompt(
         "safe, legally sound, binding or guaranteed.\n\n"
         f"{side}\n{focus_line}{preference_block}\n"
         f"CONTRACT:\n{full_text}\n\n"
-        "Return ONLY a JSON object with these keys:\n\n"
+        "Return ONLY one flat JSON object with exactly these top-level keys — every key is a sibling at "
+        "the top level; never nest issues, dates, facts or anything else inside `verdict` or another key:\n"
+        f"{_OUTPUT_SKELETON}\n\n"
+        "Field rules:\n\n"
         "document_type: short name, e.g. 'Mess services agreement', 'Mutual NDA'.\n"
         "parties: list of 'Name (Role)'; use the role alone where the name is blank.\n"
         "perspective: the party you reviewed for, as 'Name (Role)' or the role.\n"
@@ -150,6 +155,39 @@ def build_analysis_prompt(
         "(at most 20 words each).\n"
         "effective_date, governing_law, jurisdiction: short strings, 'Not specified' if absent."
     )
+
+
+_OUTPUT_SKELETON = (
+    '{"document_type": "", "parties": [], "perspective": "", "counterparty": "", '
+    '"verdict": {"action": "", "headline": "", "summary": ""}, '
+    '"favours": {"party": "", "lean": 50}, "risk_level": "", "risk_score": 5, '
+    '"key_facts": [{"label": "", "value": ""}], '
+    '"issues": [{"severity": "", "kind": "", "title": "", "section": "", "quote": "", "what_it_means": "", "send_back": "", "preference": ""}], '
+    '"key_dates": [{"when": "", "what": "", "owner": "", "section": "", "recurrence": "", "date": null, "days_from_start": null}], '
+    '"contract": {"effective_date": null, "expiry_date": null, "renewal_date": null, "notice_deadline": null, '
+    '"auto_renewal": null, "value": null, "currency": null, "payment_terms": null, "dispute_resolution": null}, '
+    '"clauses": [{"section": "", "title": "", "summary": "", "risk_level": ""}], '
+    '"key_terms": {}, "effective_date": "", "governing_law": "", "jurisdiction": ""}'
+)
+
+# Keys the model has been seen to nest inside `verdict` (it read the indented field list as
+# nesting); they are moved back to the top level before normalising.
+_TOP_LEVEL_KEYS = (
+    "favours", "risk_level", "risk_score", "key_facts", "issues", "key_dates", "contract",
+    "clauses", "key_terms", "effective_date", "governing_law", "jurisdiction",
+    "document_type", "parties", "perspective", "counterparty",
+)
+
+
+def _hoist_nested(data: dict) -> dict:
+    verdict = data.get("verdict")
+    if not isinstance(verdict, dict):
+        return data
+    moved = [k for k in _TOP_LEVEL_KEYS if k in verdict and k not in data]
+    if not moved:
+        return data
+    logger.info("contract analysis | hoisted %d keys out of verdict: %s", len(moved), ", ".join(moved))
+    return {**data, **{k: verdict[k] for k in moved}}
 
 
 # ── Normalisation ────────────────────────────────────────────────────────────
@@ -320,6 +358,7 @@ def normalize_analysis(data: object, *, preferences_given: bool = False) -> dict
     Raises ValueError only when the output is not an object at all."""
     if not isinstance(data, dict):
         raise ValueError(f"analysis is {type(data).__name__}, not a JSON object")
+    data = _hoist_nested(data)
 
     issues = _issues(data.get("issues"), preferences_given)
     worst = issues[0]["severity"] if issues else "low"

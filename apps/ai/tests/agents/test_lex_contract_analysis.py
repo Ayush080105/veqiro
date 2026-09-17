@@ -201,3 +201,20 @@ def test_preference_mismatch_and_contract_metadata():
 def test_prompt_includes_company_preferences():
     prompt = ca.build_analysis_prompt("T", preferences=[{"key": "payment_terms", "label": "Payment terms", "value": "Net 30"}])
     assert "Payment terms: Net 30" in prompt and "preference_mismatch" in prompt
+
+
+def test_fields_nested_inside_verdict_are_hoisted():
+    """Seen live: the model nested every field after verdict inside it, leaving 0 issues."""
+    raw = _raw()
+    verdict = raw.pop("verdict")
+    nested = {k: raw.pop(k) for k in ("issues", "key_dates", "key_facts", "clauses", "risk_level")}
+    raw["verdict"] = {**verdict, **nested}
+    data = ca.normalize_analysis(raw)
+    assert len(data["issues"]) == 4 and len(data["key_dates"]) == 3 and data["key_facts"]
+    assert data["verdict"]["headline"] == "Don't sign as-is"
+
+
+def test_prompt_shows_a_flat_output_skeleton():
+    prompt = ca.build_analysis_prompt("TEXT")
+    assert "never nest issues" in prompt
+    assert '"issues": [{"severity"' in prompt

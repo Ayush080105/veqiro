@@ -268,9 +268,11 @@ def source_kind(url: str) -> str:
 async def _search(query: str, jurisdiction: str) -> list[dict]:
     from agents.scout.scraper import serper_search
 
+    # Search engines drop long OR-chains of site: operators, which left every result as
+    # commentary; one plain query per official domain family actually returns them.
     queries = [f"{query} {jurisdiction}".strip()]
-    if jurisdiction.lower().startswith("india") or "india" in jurisdiction.lower():
-        queries.append(f"{query} site:gov.in OR site:mca.gov.in OR site:indiacode.nic.in")
+    if "india" in jurisdiction.lower():
+        queries += [f"{query} site:gov.in", f"{query} site:indiacode.nic.in", f"{query} site:indiankanoon.org"]
     else:
         queries.append(f"{query} {jurisdiction} official government guidance")
     batches = await asyncio.gather(*[serper_search(q) for q in queries], return_exceptions=True)
@@ -280,10 +282,17 @@ async def _search(query: str, jurisdiction: str) -> list[dict]:
             continue
         for r in batch:
             link = r.get("link", "")
-            if link and link not in seen and r.get("snippet"):
-                seen.add(link)
-                results.append(r)
+            if not link or link in seen or not r.get("snippet") or any(h in link for h in _LOW_VALUE_HOSTS):
+                continue
+            seen.add(link)
+            results.append(r)
+    # Primary sources first, so they survive the cap and anchor the answer.
+    rank = {"statute": 0, "government_guidance": 1, "case_law": 2, "commentary": 3}
+    results.sort(key=lambda r: rank[source_kind(r.get("link", ""))])
     return results[:8]
+
+
+_LOW_VALUE_HOSTS = ("youtube.com", "youtu.be", "facebook.com", "instagram.com", "quora.com", "reddit.com", "linkedin.com/posts")
 
 
 _SECTION_TYPES = {"ordered", "bullets", "narrative"}
