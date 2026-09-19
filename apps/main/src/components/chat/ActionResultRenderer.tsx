@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { AgentActionId, MayaDraftResult } from "@/lib/types/agents"
 import { AgentColorProvider } from "@/components/ui/agent-card"
+import { VegaBriefingCard } from "@/components/agents/vega/cards"
 
 // Sage
 import {
@@ -190,6 +191,9 @@ export function ActionResultRenderer({ actionId, result, input, agentColor, onFo
       return <StampLetterheadCard result={r} />
     case "lex:draft-reply":
       return <DraftReplyCard result={r} />
+
+    case "vega:daily-briefing":
+      return <VegaBriefingCard result={r} />
 
     default:
       return (

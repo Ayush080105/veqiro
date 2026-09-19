@@ -1443,6 +1443,7 @@ export type AgentActionId =
   | "lex:draft-reply"
   /** Not a dialog: attaches a document to the composer with a suggested question. */
   | "lex:ask-about"
+  | "vega:daily-briefing"
 
 export interface ActionMessagePayload {
   actionId: AgentActionId

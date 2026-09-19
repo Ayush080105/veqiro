@@ -432,7 +432,18 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       hideFromMenu: true,
     },
   ],
-  vega: [],
+  vega: [
+    {
+      id: "vega:daily-briefing",
+      agent: "vega",
+      endpoint: "briefing",
+      label: "Daily briefing",
+      description:
+        "What every employee is sitting on, what needs a decision today, and what just happened.",
+      icon: "Sunrise",
+      example: "Brief me on this morning",
+    },
+  ],
 }
 
 export function findAction(id: AgentActionId): AgentActionMeta | undefined {

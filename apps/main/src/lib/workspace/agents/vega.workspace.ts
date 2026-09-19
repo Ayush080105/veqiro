@@ -1,5 +1,7 @@
 import { lazy } from "react"
 
+import type { AgentActionId } from "@/lib/types/agents"
+
 import type { AgentWorkspaceSpec } from "../types"
 
 /**
@@ -10,10 +12,9 @@ import type { AgentWorkspaceSpec } from "../types"
  * acceptance criterion for Vega made literal — the whole workforce summarised
  * without opening a single other workspace.
  *
- * Still honestly incomplete. Vega has no entries in the action catalog, so its
- * Actions module is empty, and its own work objects (Initiatives, Decisions,
- * Delegations) wait on the Handoff protocol being driveable from the UI rather
- * than only from the API.
+ * Its one action is the daily briefing, which reads the same pulse and turns it
+ * into something a person can read over coffee. Its own work objects
+ * (Initiatives, Decisions, Delegations) are still to come.
  */
 export const vegaWorkspace: AgentWorkspaceSpec = {
   agent: "vega",
@@ -32,5 +33,6 @@ export const vegaWorkspace: AgentWorkspaceSpec = {
         ),
       },
     ],
+    quickActions: ["vega:daily-briefing" as AgentActionId],
   },
 }

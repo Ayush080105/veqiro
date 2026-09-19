@@ -728,6 +728,19 @@ const SPECS: Record<SpecId, ActionSpec> = {
       )
     },
   },
+
+  "vega:daily-briefing": {
+    // Nothing to ask for: the briefing is assembled from the workspace tables,
+    // so any field here would be a question whose answer the server already
+    // has. The dialog is one button.
+    defaultValue: { type: "MORNING", refresh: true },
+    Form: () => (
+      <p className="text-sm text-muted-foreground">
+        Vega will read what every employee is sitting on and write you a summary.
+      </p>
+    ),
+    submitLabel: "Write the briefing",
+  },
 }
 
 export interface RunActionDialogProps {
