@@ -12,6 +12,7 @@ import {
   getHandoffs,
   getInsights,
   getMemory,
+  getOutcomes,
   getOverview,
   getPulse,
   getWork,
@@ -45,6 +46,7 @@ const router = Router();
 /** Org-wide: seeing that Lex has three open findings is not opening Lex, so
  *  this takes the generic entitlement rather than a per-agent one. */
 router.get("/pulse", authMiddleware, entitlementMiddleware, getPulse);
+router.get("/outcomes", authMiddleware, entitlementMiddleware, getOutcomes);
 
 // Single records are addressed by id: their owning agent is a property of the
 // row, and re-deriving it from the URL would only create a way for the two to

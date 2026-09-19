@@ -467,3 +467,29 @@ export function useRespondToHandoff(agent: string, organizationId: string) {
     },
   })
 }
+
+// ─── Outcomes (PRD §15 success criteria) ─────────────────────────────────────
+
+export interface OutcomeMetrics {
+  periodDays: number
+  workCompleted: number
+  workNeedingAttention: number
+  insightsSurfaced: number
+  /** Null when nothing has been decided yet — not zero. */
+  actionRate: number | null
+  automationsEnabled: number
+  proactiveShare: number | null
+  handoffsCreated: number
+  handoffsCompleted: number
+  approvalMedianMinutes: number | null
+  approvalsPending: number
+}
+
+export function useOutcomes(organizationId: string, days = 30) {
+  return useQuery({
+    queryKey: qk.workspaceOutcomes(organizationId, days),
+    queryFn: () => apiFetch<OutcomeMetrics>(`/workspace/outcomes?days=${days}`),
+    enabled: Boolean(organizationId),
+    staleTime: 60_000,
+  })
+}

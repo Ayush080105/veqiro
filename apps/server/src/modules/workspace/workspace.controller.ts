@@ -8,6 +8,7 @@ import { listActivityEvents } from "../activity/activity-event.service.js";
 import * as insightsService from "./insights.service.js";
 import * as handoffsService from "./handoffs.service.js";
 import * as workspaceService from "./workspace.service.js";
+import { getOutcomeMetrics } from "./outcomes.service.js";
 import { reindexAll, reindexKind } from "./reindex.js";
 import {
   AGENT_BY_SLUG,
@@ -55,6 +56,18 @@ export const getPulse = async (req: Request, res: Response) => {
   const pulse = await workspaceService.getCompanyPulse(organizationId);
   res.set("Cache-Control", "no-store");
   res.status(StatusCodes.OK).json(pulse);
+};
+
+/**
+ * The PRD success criteria for this org. Not agent-scoped: "did the employees
+ * accomplish anything" is a question about all of them.
+ */
+export const getOutcomes = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 365);
+  const metrics = await getOutcomeMetrics(organizationId, days);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(metrics);
 };
 
 export const getActivity = async (req: Request, res: Response) => {

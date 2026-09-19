@@ -55,6 +55,7 @@ describe("workspace routes", () => {
 
   const literalRoutes = [
     "/pulse",
+    "/outcomes",
     "/insights/:id",
     "/memory-items/:id",
     "/handoffs",

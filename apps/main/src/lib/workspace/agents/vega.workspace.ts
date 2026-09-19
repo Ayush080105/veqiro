@@ -32,6 +32,15 @@ export const vegaWorkspace: AgentWorkspaceSpec = {
           })),
         ),
       },
+      {
+        id: "vega-outcomes",
+        span: "full",
+        Component: lazy(() =>
+          import("@/components/workspace/agents/vega/VegaOutcomes").then((m) => ({
+            default: m.VegaOutcomes,
+          })),
+        ),
+      },
     ],
     quickActions: ["vega:daily-briefing" as AgentActionId],
   },
