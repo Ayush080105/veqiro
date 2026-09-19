@@ -1,6 +1,7 @@
 "use client"
 
-import { Check, Sparkles, X } from "lucide-react"
+import { useState } from "react"
+import { ArrowRightLeft, Check, Sparkles, X } from "lucide-react"
 
 import {
   useSetInsightStatus,
@@ -14,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatusPill } from "@/components/ui/status-pill"
 import { useWorkspaceChat } from "../WorkspaceChatProvider"
+import { DelegateDialog } from "./DelegateDialog"
 
 const LEVEL: Record<InsightSeverity, "danger" | "warn" | "info"> = {
   CRITICAL: "danger",
@@ -44,6 +46,8 @@ export function InsightList({
 }) {
   const { openAction } = useWorkspaceChat()
   const setStatus = useSetInsightStatus(agent, organizationId)
+  // The finding being handed over, or null when the dialog is closed.
+  const [delegating, setDelegating] = useState<Insight | null>(null)
 
   if (loading) {
     return (
@@ -66,7 +70,8 @@ export function InsightList({
   }
 
   return (
-    <ul className="mt-2 flex flex-col divide-y divide-(--vq-line-2)">
+    <>
+      <ul className="mt-2 flex flex-col divide-y divide-(--vq-line-2)">
       {insights.map((insight) => {
         const action = insight.suggestedActionId
           ? findAction(insight.suggestedActionId as AgentActionId)
@@ -98,6 +103,19 @@ export function InsightList({
                   {action.label}
                 </Button>
               )}
+              {/*
+                Sage finds a search opportunity, Maya writes the content. The
+                PRD names that exact loop, and a finding is where it starts.
+              */}
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Hand to another employee"
+                title="Hand to another employee"
+                onClick={() => setDelegating(insight)}
+              >
+                <ArrowRightLeft className="size-4" />
+              </Button>
               <Button
                 size="icon"
                 variant="ghost"
@@ -120,6 +138,19 @@ export function InsightList({
           </li>
         )
       })}
-    </ul>
+      </ul>
+
+      {delegating && (
+        <DelegateDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setDelegating(null)
+          }}
+          objectKind={delegating.objectKind ?? undefined}
+          objectId={delegating.objectId ?? undefined}
+          defaultNote={delegating.title}
+        />
+      )}
+    </>
   )
 }

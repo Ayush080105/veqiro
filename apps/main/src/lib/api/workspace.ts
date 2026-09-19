@@ -77,6 +77,7 @@ export interface WorkspaceOverview {
   recentActivity: ActivityEvent[]
   pendingApprovals: number
   automations: { total: number; enabled: number; failing: number }
+  incomingHandoffs: IncomingHandoff[]
 }
 
 /**
@@ -386,5 +387,83 @@ export function useCompanyPulse(organizationId: string) {
     queryFn: () => apiFetch<CompanyPulse>("/workspace/pulse"),
     enabled: Boolean(organizationId),
     staleTime: 30_000,
+  })
+}
+
+// ─── Handoffs ────────────────────────────────────────────────────────────────
+
+export type HandoffStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "COMPLETED" | "CANCELLED"
+
+export interface Handoff {
+  id: string
+  fromAgent: string | null
+  toAgent: string
+  requestedActionId: string | null
+  requestedArgs: Record<string, unknown> | null
+  note: string
+  objectKind: string | null
+  objectId: string | null
+  status: HandoffStatus
+  runId: string | null
+  dueAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Work another employee has asked this one to do, as the overview returns it. */
+export interface IncomingHandoff {
+  id: string
+  fromAgent: string | null
+  note: string
+  requestedActionId: string | null
+  requestedArgs: Record<string, unknown> | null
+  objectKind: string | null
+  objectId: string | null
+  createdAt: string
+}
+
+export function useHandoffs(agent: string, direction: "in" | "out" = "in") {
+  return useQuery({
+    queryKey: qk.workspaceHandoffs(agent, direction),
+    queryFn: () =>
+      apiFetch<Handoff[]>(`/workspace/${agent}/handoffs?direction=${direction}`),
+    enabled: Boolean(agent),
+  })
+}
+
+/** Hand a piece of work to another employee. */
+export function useCreateHandoff(organizationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      fromAgent?: string
+      toAgent: string
+      requestedActionId?: string
+      requestedArgs?: Record<string, unknown>
+      note?: string
+      objectKind?: string
+      objectId?: string
+    }) => apiFetch<Handoff>("/workspace/handoffs", { method: "POST", body }),
+    onSuccess: (handoff) => {
+      // Both sides change: the sender's outbox and the receiver's overview.
+      void qc.invalidateQueries({ queryKey: ["workspace", "handoffs"] })
+      void qc.invalidateQueries({
+        queryKey: qk.workspaceOverview(handoff.toAgent.toLowerCase(), organizationId),
+      })
+      void qc.invalidateQueries({ queryKey: qk.companyPulse(organizationId) })
+    },
+  })
+}
+
+export function useRespondToHandoff(agent: string, organizationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "accept" | "decline" }) =>
+      apiFetch<Handoff>(`/workspace/handoffs/${id}/${action}`, { method: "POST" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["workspace", "handoffs"] })
+      void qc.invalidateQueries({ queryKey: qk.workspaceOverview(agent, organizationId) })
+      void qc.invalidateQueries({ queryKey: qk.companyPulse(organizationId) })
+    },
   })
 }

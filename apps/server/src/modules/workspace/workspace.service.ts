@@ -86,6 +86,17 @@ export interface WorkspaceOverview {
   recentActivity: ActivityEventEntry[];
   pendingApprovals: number;
   automations: { total: number; enabled: number; failing: number };
+  /** Work another employee has asked this one to do. */
+  incomingHandoffs: {
+    id: string;
+    fromAgent: Agent | null;
+    note: string;
+    requestedActionId: string | null;
+    requestedArgs: unknown;
+    objectKind: string | null;
+    objectId: string | null;
+    createdAt: string;
+  }[];
 }
 
 export async function getOverview(params: {
@@ -94,7 +105,8 @@ export async function getOverview(params: {
 }): Promise<WorkspaceOverview> {
   const { organizationId, agent } = params;
 
-  const [grouped, upcomingRows, insights, activity, pendingApprovals, plays] = await Promise.all([
+  const [grouped, upcomingRows, insights, activity, pendingApprovals, plays, handoffs] =
+    await Promise.all([
     prisma.workObjectIndex.groupBy({
       by: ["kind", "status"],
       where: { organizationId, agent },
@@ -120,6 +132,13 @@ export async function getOverview(params: {
     prisma.mcpPlay.findMany({
       where: { organizationId },
       select: { enabled: true, lastError: true },
+    }),
+    // Pending only: an accepted handoff is already being dealt with, and
+    // showing it as something that needs attention would be double-counting.
+    prisma.handoff.findMany({
+      where: { organizationId, toAgent: agent, status: HandoffStatus.PENDING },
+      orderBy: { createdAt: "desc" },
+      take: 10,
     }),
   ]);
 
@@ -151,6 +170,16 @@ export async function getOverview(params: {
       // stay quiet about — a silently broken automation is worse than none.
       failing: plays.filter((p) => p.lastError !== null).length,
     },
+    incomingHandoffs: handoffs.map((h) => ({
+      id: h.id,
+      fromAgent: h.fromAgent,
+      note: h.note,
+      requestedActionId: h.requestedActionId,
+      requestedArgs: h.requestedArgs,
+      objectKind: h.objectKind,
+      objectId: h.objectId,
+      createdAt: h.createdAt.toISOString(),
+    })),
   };
 }
 

@@ -14,6 +14,7 @@ import { StatusPill } from "@/components/ui/status-pill"
 import { useAgentWorkspace } from "../AgentWorkspaceContext"
 import { useWorkspaceChat } from "../WorkspaceChatProvider"
 import { InsightList } from "../panels/InsightList"
+import { IncomingHandoffs } from "../panels/IncomingHandoffs"
 import { ActivityFeed } from "../panels/ActivityFeed"
 
 /**
@@ -32,6 +33,8 @@ export function OverviewModule({ agent, organizationId }: ModuleProps) {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
+      <IncomingHandoffs handoffs={data?.incomingHandoffs} />
+
       {spec.overview.widgets.map((widget) => (
         <Suspense key={widget.id} fallback={<Skeleton className="h-64 rounded-[var(--vq-r)]" />}>
           <widget.Component agent={agent} organizationId={organizationId} />
