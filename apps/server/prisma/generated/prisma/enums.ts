@@ -61,10 +61,23 @@ export type McpPendingActionStatus = (typeof McpPendingActionStatus)[keyof typeo
 
 export const McpActionSource = {
   CHAT: 'CHAT',
-  TRIGGER: 'TRIGGER'
+  TRIGGER: 'TRIGGER',
+  PLAY: 'PLAY',
+  HANDOFF: 'HANDOFF'
 } as const
 
 export type McpActionSource = (typeof McpActionSource)[keyof typeof McpActionSource]
+
+
+export const ApprovalKind = {
+  MCP_TOOL: 'MCP_TOOL',
+  AGENT_ACTION: 'AGENT_ACTION',
+  WORK_OBJECT_MUTATION: 'WORK_OBJECT_MUTATION',
+  PUBLISH: 'PUBLISH',
+  OUTBOUND_MESSAGE: 'OUTBOUND_MESSAGE'
+} as const
+
+export type ApprovalKind = (typeof ApprovalKind)[keyof typeof ApprovalKind]
 
 
 export const McpApprovalMode = {
@@ -167,6 +180,60 @@ export const ActivityAction = {
 } as const
 
 export type ActivityAction = (typeof ActivityAction)[keyof typeof ActivityAction]
+
+
+export const ActorKind = {
+  USER: 'USER',
+  AGENT: 'AGENT',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type ActorKind = (typeof ActorKind)[keyof typeof ActorKind]
+
+
+export const WorkObjectStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  NEEDS_REVIEW: 'NEEDS_REVIEW',
+  BLOCKED: 'BLOCKED',
+  DONE: 'DONE',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type WorkObjectStatus = (typeof WorkObjectStatus)[keyof typeof WorkObjectStatus]
+
+
+export const InsightSeverity = {
+  INFO: 'INFO',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL'
+} as const
+
+export type InsightSeverity = (typeof InsightSeverity)[keyof typeof InsightSeverity]
+
+
+export const InsightStatus = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  ACTED: 'ACTED',
+  DISMISSED: 'DISMISSED',
+  EXPIRED: 'EXPIRED'
+} as const
+
+export type InsightStatus = (typeof InsightStatus)[keyof typeof InsightStatus]
+
+
+export const HandoffStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  DECLINED: 'DECLINED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type HandoffStatus = (typeof HandoffStatus)[keyof typeof HandoffStatus]
 
 
 export const CheckoutKind = {

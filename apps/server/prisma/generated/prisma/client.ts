@@ -445,3 +445,50 @@ export type AgentRun = Prisma.AgentRunModel
  * One node in a run's DAG.
  */
 export type AgentRunStep = Prisma.AgentRunStepModel
+/**
+ * Model ActivityEvent
+ * A significant thing that happened, in human-readable form.
+ * 
+ * Separate from ActivityLog rather than an extension of it: ActivityLog
+ * requires a userId and an agent working on a schedule has no acting user,
+ * its ActivityAction is a closed enum that would need a migration per new
+ * verb, and it backs the admin portal's feed.
+ */
+export type ActivityEvent = Prisma.ActivityEventModel
+/**
+ * Model WorkObjectIndex
+ * A flat index over the agents' typed work tables.
+ * 
+ * The typed table is the truth; this is derived and rebuildable
+ * (POST /internal/work-objects/reindex). It exists because the framework
+ * needs two things the typed tables cannot give it: "list and count work for
+ * agent X, newest first" across heterogeneous kinds, and a single target for
+ * ActivityEvent/Insight/Handoff pointers.
+ * 
+ * Deliberately NOT a polymorphic home for the objects themselves. LexSource
+ * alone has ~15 typed, indexed columns that lex.cron.ts queries by date, and
+ * a `data Json` blob would forfeit those indexes, the FK cascades and every
+ * existing query. `preview` is for display only — never read it to make a
+ * decision, re-read the typed row instead.
+ */
+export type WorkObjectIndex = Prisma.WorkObjectIndexModel
+/**
+ * Model Insight
+ * Something an agent noticed that the customer did not ask about — the
+ * "Maya noticed..." card. An anomaly, a deadline, a risk or an opportunity.
+ * 
+ * The point of the model is that an insight is actionable and dismissible:
+ * suggestedActionId names an action from the frontend catalog, so the finding
+ * and the fix are one click apart.
+ */
+export type Insight = Prisma.InsightModel
+/**
+ * Model Handoff
+ * One agent asking another to do a concrete piece of work.
+ * 
+ * Today a handoff is a client-side router.push with query params: nothing is
+ * persisted, the receiving agent has no inbox and there is no audit trail.
+ * Accepting one creates an AgentRun — this table is the request and the
+ * result, never a second executor.
+ */
+export type Handoff = Prisma.HandoffModel

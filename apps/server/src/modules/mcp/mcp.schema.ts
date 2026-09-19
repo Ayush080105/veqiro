@@ -48,10 +48,12 @@ export const actionLogQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
-/** Omitting integrationSlug/toolName means "applies to everything". */
+/** Omitting integrationSlug/toolName/agentScope means "applies to everything". */
 export const approvalPolicyBodySchema = z.object({
   integrationSlug: z.string().min(1).optional(),
   toolName: z.string().min(1).optional(),
+  /** An Agent name, or omitted / "*" for every agent. */
+  agentScope: z.union([z.nativeEnum(Agent), z.literal("*")]).optional(),
   mode: z.nativeEnum(McpApprovalMode),
 });
 

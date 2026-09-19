@@ -55,6 +55,28 @@ enum McpPendingActionStatus {
 enum McpActionSource {
   CHAT
   TRIGGER
+  /// Proposed by a scheduled McpPlay run.
+  PLAY
+  /// Proposed while carrying out a Handoff from another agent.
+  HANDOFF
+}
+
+/// What kind of operation a staged approval covers. McpPendingAction started
+/// life as "an MCP tool call awaiting a click", but publishing a post or
+/// exporting a document deserve the same staging, policy and audit treatment
+/// without involving an MCP connection at all. MCP_TOOL is the default so
+/// every existing row and writer keeps its exact meaning.
+enum ApprovalKind {
+  /// A provider tool call through an MCP connection. Requires connectionId.
+  MCP_TOOL
+  /// A native agent action from the frontend action catalog.
+  AGENT_ACTION
+  /// A create/update/delete against one of the agent's own work objects.
+  WORK_OBJECT_MUTATION
+  /// Publishing to an external audience.
+  PUBLISH
+  /// Sending an outbound message on the customer's behalf.
+  OUTBOUND_MESSAGE
 }
 
 /// What happens when an agent proposes a write.
@@ -142,6 +164,53 @@ enum ActivityAction {
   GENERATED_VIDEO
   GENERATED_STORYBOARD
   CREDITS_USED
+}
+
+/// Who performed an ActivityEvent. The reason ActivityEvent exists separately
+/// from ActivityLog: an agent acting on a schedule has no acting user at all.
+enum ActorKind {
+  USER
+  AGENT
+  SYSTEM
+}
+
+/// Lifecycle shared by every work object, whatever its typed table. Mirrors
+/// the PRD's common object states so one status chip works everywhere.
+enum WorkObjectStatus {
+  DRAFT
+  ACTIVE
+  /// Blocked on the customer — the "Waiting for you" queue.
+  NEEDS_REVIEW
+  /// Blocked on an external party.
+  BLOCKED
+  DONE
+  ARCHIVED
+}
+
+enum InsightSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum InsightStatus {
+  OPEN
+  ACKNOWLEDGED
+  /// The customer ran the suggested action.
+  ACTED
+  DISMISSED
+  /// Aged out via expiresAt without anyone acting.
+  EXPIRED
+}
+
+enum HandoffStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
 }
 
 /// Better Auth user plus admin flags.
@@ -296,6 +365,12 @@ model Organization {
   /// Opt-in to the planner + DAG run engine. Off means every turn takes the
   /// existing single-pass path, so the feature can be rolled out per org.
   plannedRunsEnabled   Boolean               @default(false)
+  /// Opt-in to the agent workspace UI. Off means /assistants/:id keeps serving
+  /// the chat page, so the migration rolls out per org and rolls back by
+  /// flipping one boolean. Which agents have workspaces is a code-level
+  /// decision (WORKSPACE_MIGRATED in apps/main/src/lib/workspace/registry.ts),
+  /// not a per-org one.
+  workspaceUiEnabled   Boolean               @default(false)
   /// Users belonging to this organization.
   members              Member[]
   /// Pending invitations for this organization.
@@ -324,6 +399,14 @@ model Organization {
   mayaUsages           MayaUsage[]
   /// Checkout sessions awaiting provider confirmation.
   pendingCheckouts     PendingCheckout[]
+  /// Workspace activity feed.
+  activityEvents       ActivityEvent[]
+  /// Flat index over this org's typed work objects.
+  workObjects          WorkObjectIndex[]
+  /// Proactive findings surfaced by the agents.
+  insights             Insight[]
+  /// Cross-agent work requests.
+  handoffs             Handoff[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -870,12 +953,27 @@ model McpPendingAction {
   messageId       String?
   /// Owning message relation.
   message         Message?               @relation(fields: [messageId], references: [id], onDelete: SetNull)
-  /// McpConnection.connectionId the tool call targets.
-  connectionId    String
+  /// What sort of operation is staged. Defaults to MCP_TOOL so every row
+  /// written before this column existed keeps its original meaning.
+  kind            ApprovalKind           @default(MCP_TOOL)
+  /// McpConnection.connectionId the tool call targets. Nullable only so
+  /// non-MCP kinds can be staged; still REQUIRED for kind = MCP_TOOL, which
+  /// the Zod schema and approvals.service assert rather than the database.
+  connectionId    String?
   /// Catalog slug, denormalized for cheap frontend display (icon/name).
+  /// Native (non-MCP) actions use the sentinel "native" so the existing
+  /// McpApprovalPolicy lookup works unchanged for them.
   integrationSlug String
   /// Real provider-side tool/action slug (e.g. Composio's GMAIL_SEND_EMAIL).
+  /// For native kinds this holds the frontend AgentActionId instead, which is
+  /// what makes one approval-policy table cover both.
   toolName        String
+  /// Frontend AgentActionId, when a native action staged this.
+  actionId        String?
+  /// Work object this action would affect, for linking back from the queue.
+  objectKind      String?
+  /// Id within that object's own typed table.
+  objectId        String?
   /// Arguments the LLM proposed calling the tool with.
   arguments       Json
   /// Human-readable summary shown in the confirm/reject UI.
@@ -1108,8 +1206,15 @@ model McpApprovalPolicy {
   organizationId  String
   /// Catalog slug this applies to, or "*" for every integration.
   integrationSlug String          @default("*")
-  /// Provider tool slug this applies to, or "*" for every tool.
+  /// Provider tool slug this applies to, or "*" for every tool. For native
+  /// (non-MCP) approvals this holds the frontend AgentActionId, which is how
+  /// one policy table governs both MCP calls and native actions.
   toolName        String          @default("*")
+  /// Agent this applies to as an Agent enum name, or "*" for every agent —
+  /// "auto-run everything Sage proposes" is the rule customers actually ask
+  /// for. A String, not a nullable Agent, for the NULL reason above: the
+  /// wildcard has to participate in the unique key.
+  agentScope      String          @default("*")
   /// What to do when a write matching this rule is proposed.
   mode            McpApprovalMode
   /// User who set the rule — an audit question people actually ask.
@@ -1119,7 +1224,9 @@ model McpApprovalPolicy {
   /// Update timestamp.
   updatedAt       DateTime        @updatedAt
 
-  @@unique([organizationId, integrationSlug, toolName])
+  // Named explicitly: the generated name would be 74 characters and Postgres
+  // silently truncates identifiers at 63, which shows up later as schema drift.
+  @@unique([organizationId, integrationSlug, toolName, agentScope], map: "mcp_approval_policy_scope_key")
   @@index([organizationId])
   @@map("mcp_approval_policy")
 }
@@ -2340,4 +2447,204 @@ model AgentRunStep {
   @@unique([runId, key])
   @@index([runId, status])
   @@map("agent_run_step")
+}
+
+// ─── Workspace framework ──────────────────────────────────────────────────────
+// Four org-scoped tables shared by every agent workspace. They are deliberately
+// generic where the domain tables are deliberately typed: these exist so one
+// Activity feed, one Insight queue and one Handoff protocol work across all six
+// agents without each one growing its own parallel version.
+
+/// A significant thing that happened, in human-readable form.
+///
+/// Separate from ActivityLog rather than an extension of it: ActivityLog
+/// requires a userId and an agent working on a schedule has no acting user,
+/// its ActivityAction is a closed enum that would need a migration per new
+/// verb, and it backs the admin portal's feed.
+model ActivityEvent {
+  /// Event id.
+  id              String       @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// Owning organization relation.
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Agent responsible, or null for org-level and cross-agent events.
+  agent           Agent?
+  /// Who acted.
+  actorKind       ActorKind
+  /// Acting user, when actorKind is USER.
+  actorUserId     String?
+  /// Dotted verb, e.g. "lex.contract.reviewed" or "maya.post.published".
+  /// A String and not an enum on purpose: every later phase adds verbs, and
+  /// none of them should need a migration.
+  verb            String
+  /// Pre-rendered one-line summary. Written at event time because it has to
+  /// stay true to what happened even after the object it describes changes.
+  summary         String
+  /// Work object this concerns — matches WorkObjectIndex.kind.
+  objectKind      String?
+  /// Id within that object's own typed table.
+  objectId        String?
+  /// Provenance: which run, play, approval or message produced this, so the
+  /// feed can answer "why did this happen?" and not only "what happened".
+  runId           String?
+  playId          String?
+  pendingActionId String?
+  messageId       String?
+  /// Extra structured context for rendering.
+  metadata        Json?
+  /// Event timestamp.
+  createdAt       DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, agent, createdAt])
+  @@index([objectKind, objectId, createdAt])
+  @@map("activity_event")
+}
+
+/// A flat index over the agents' typed work tables.
+///
+/// The typed table is the truth; this is derived and rebuildable
+/// (POST /internal/work-objects/reindex). It exists because the framework
+/// needs two things the typed tables cannot give it: "list and count work for
+/// agent X, newest first" across heterogeneous kinds, and a single target for
+/// ActivityEvent/Insight/Handoff pointers.
+///
+/// Deliberately NOT a polymorphic home for the objects themselves. LexSource
+/// alone has ~15 typed, indexed columns that lex.cron.ts queries by date, and
+/// a `data Json` blob would forfeit those indexes, the FK cascades and every
+/// existing query. `preview` is for display only — never read it to make a
+/// decision, re-read the typed row instead.
+model WorkObjectIndex {
+  /// Index row id.
+  id              String           @id @default(uuid())
+  /// Owning organization id.
+  organizationId  String
+  /// Owning organization relation.
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Owning agent.
+  agent           Agent
+  /// Dotted type, e.g. "lex.contract" or "maya.post".
+  kind            String
+  /// Primary key in the owning typed table.
+  sourceId        String
+  /// Display title.
+  title           String
+  /// Shared lifecycle state.
+  status          WorkObjectStatus @default(ACTIVE)
+  /// Next date this needs a human, if any. Drives "what happens next".
+  dueAt           DateTime?
+  /// Responsible user, when one is assigned.
+  ownerUserId     String?
+  /// Small display-only payload for list rows. Not a source of truth.
+  preview         Json?
+  /// updatedAt of the typed row this was projected from, used to spot drift.
+  sourceUpdatedAt DateTime
+  /// Creation timestamp.
+  createdAt       DateTime         @default(now())
+  /// Update timestamp.
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([kind, sourceId])
+  // Named explicitly for the same 63-character reason as above.
+  @@index([organizationId, agent, status, sourceUpdatedAt], map: "work_object_index_org_agent_status_idx")
+  @@index([organizationId, dueAt])
+  @@map("work_object_index")
+}
+
+/// Something an agent noticed that the customer did not ask about — the
+/// "Maya noticed..." card. An anomaly, a deadline, a risk or an opportunity.
+///
+/// The point of the model is that an insight is actionable and dismissible:
+/// suggestedActionId names an action from the frontend catalog, so the finding
+/// and the fix are one click apart.
+model Insight {
+  /// Insight id.
+  id                   String          @id @default(uuid())
+  /// Owning organization id.
+  organizationId       String
+  /// Owning organization relation.
+  organization         Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Agent that found it.
+  agent                Agent
+  /// Stable key so a re-detect updates in place instead of stacking duplicates.
+  ///
+  /// MUST carry a period segment, e.g. "lex.renewal:{sourceId}:2026-Q1". A key
+  /// without one makes a dismissal permanent: the nightly scan upserts onto the
+  /// dismissed row forever and the customer never sees the item again.
+  dedupeKey            String
+  /// Dotted detector name, e.g. "lex.renewal-due".
+  kind                 String
+  /// One-line finding.
+  title                String
+  /// Supporting detail and evidence.
+  body                 String          @default("")
+  severity             InsightSeverity @default(MEDIUM)
+  status               InsightStatus   @default(OPEN)
+  /// Frontend AgentActionId offered as the next step.
+  suggestedActionId    String?
+  /// Prefill for that action's form.
+  suggestedArgs        Json?
+  /// Work object this concerns — matches WorkObjectIndex.kind.
+  objectKind           String?
+  objectId             String?
+  /// Run that produced it, when a planned run did.
+  runId                String?
+  /// When this stops being worth showing.
+  expiresAt            DateTime?
+  acknowledgedAt       DateTime?
+  acknowledgedByUserId String?
+  metadata             Json?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, agent, status, severity])
+  @@index([organizationId, status, createdAt])
+  @@map("insight")
+}
+
+/// One agent asking another to do a concrete piece of work.
+///
+/// Today a handoff is a client-side router.push with query params: nothing is
+/// persisted, the receiving agent has no inbox and there is no audit trail.
+/// Accepting one creates an AgentRun — this table is the request and the
+/// result, never a second executor.
+model Handoff {
+  /// Handoff id.
+  id                String        @id @default(uuid())
+  /// Owning organization id.
+  organizationId    String
+  /// Owning organization relation.
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Sending agent, or null when a human delegated directly.
+  fromAgent         Agent?
+  /// Receiving agent.
+  toAgent           Agent
+  /// User the work is done on behalf of.
+  createdByUserId   String
+  /// Frontend AgentActionId being requested.
+  requestedActionId String?
+  /// Arguments for it.
+  requestedArgs     Json?
+  /// What the sender wants, in words.
+  note              String        @default("")
+  /// Originating work object, so the result can link back to it.
+  objectKind        String?
+  objectId          String?
+  status            HandoffStatus @default(PENDING)
+  /// Run spawned on accept.
+  runId             String?
+  /// Message the request came from.
+  sourceMessageId   String?
+  /// Message carrying the result.
+  resultMessageId   String?
+  /// When the receiving agent is expected to be done.
+  dueAt             DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([organizationId, toAgent, status, createdAt])
+  @@index([organizationId, fromAgent, status, createdAt])
+  @@map("handoff")
 }

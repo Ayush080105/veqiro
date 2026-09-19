@@ -33,6 +33,7 @@ export type OrganizationMinAggregateOutputType = {
   metadata: string | null
   onboarded: boolean | null
   plannedRunsEnabled: boolean | null
+  workspaceUiEnabled: boolean | null
   subscriptionStatus: $Enums.SubscriptionStatus | null
   entitlementExpiresAt: Date | null
   trialStartedAt: Date | null
@@ -47,6 +48,7 @@ export type OrganizationMaxAggregateOutputType = {
   metadata: string | null
   onboarded: boolean | null
   plannedRunsEnabled: boolean | null
+  workspaceUiEnabled: boolean | null
   subscriptionStatus: $Enums.SubscriptionStatus | null
   entitlementExpiresAt: Date | null
   trialStartedAt: Date | null
@@ -61,6 +63,7 @@ export type OrganizationCountAggregateOutputType = {
   metadata: number
   onboarded: number
   plannedRunsEnabled: number
+  workspaceUiEnabled: number
   subscriptionStatus: number
   entitlementExpiresAt: number
   unlockedAgents: number
@@ -78,6 +81,7 @@ export type OrganizationMinAggregateInputType = {
   metadata?: true
   onboarded?: true
   plannedRunsEnabled?: true
+  workspaceUiEnabled?: true
   subscriptionStatus?: true
   entitlementExpiresAt?: true
   trialStartedAt?: true
@@ -92,6 +96,7 @@ export type OrganizationMaxAggregateInputType = {
   metadata?: true
   onboarded?: true
   plannedRunsEnabled?: true
+  workspaceUiEnabled?: true
   subscriptionStatus?: true
   entitlementExpiresAt?: true
   trialStartedAt?: true
@@ -106,6 +111,7 @@ export type OrganizationCountAggregateInputType = {
   metadata?: true
   onboarded?: true
   plannedRunsEnabled?: true
+  workspaceUiEnabled?: true
   subscriptionStatus?: true
   entitlementExpiresAt?: true
   unlockedAgents?: true
@@ -194,6 +200,7 @@ export type OrganizationGroupByOutputType = {
   metadata: string | null
   onboarded: boolean
   plannedRunsEnabled: boolean
+  workspaceUiEnabled: boolean
   subscriptionStatus: $Enums.SubscriptionStatus | null
   entitlementExpiresAt: Date | null
   unlockedAgents: $Enums.Agent[]
@@ -230,6 +237,7 @@ export type OrganizationWhereInput = {
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
   onboarded?: Prisma.BoolFilter<"Organization"> | boolean
   plannedRunsEnabled?: Prisma.BoolFilter<"Organization"> | boolean
+  workspaceUiEnabled?: Prisma.BoolFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
   unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
@@ -244,6 +252,10 @@ export type OrganizationWhereInput = {
   tasks?: Prisma.TaskListRelationFilter
   mayaUsages?: Prisma.MayaUsageListRelationFilter
   pendingCheckouts?: Prisma.PendingCheckoutListRelationFilter
+  activityEvents?: Prisma.ActivityEventListRelationFilter
+  workObjects?: Prisma.WorkObjectIndexListRelationFilter
+  insights?: Prisma.InsightListRelationFilter
+  handoffs?: Prisma.HandoffListRelationFilter
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -255,6 +267,7 @@ export type OrganizationOrderByWithRelationInput = {
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   onboarded?: Prisma.SortOrder
   plannedRunsEnabled?: Prisma.SortOrder
+  workspaceUiEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   unlockedAgents?: Prisma.SortOrder
@@ -269,6 +282,10 @@ export type OrganizationOrderByWithRelationInput = {
   tasks?: Prisma.TaskOrderByRelationAggregateInput
   mayaUsages?: Prisma.MayaUsageOrderByRelationAggregateInput
   pendingCheckouts?: Prisma.PendingCheckoutOrderByRelationAggregateInput
+  activityEvents?: Prisma.ActivityEventOrderByRelationAggregateInput
+  workObjects?: Prisma.WorkObjectIndexOrderByRelationAggregateInput
+  insights?: Prisma.InsightOrderByRelationAggregateInput
+  handoffs?: Prisma.HandoffOrderByRelationAggregateInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -283,6 +300,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
   onboarded?: Prisma.BoolFilter<"Organization"> | boolean
   plannedRunsEnabled?: Prisma.BoolFilter<"Organization"> | boolean
+  workspaceUiEnabled?: Prisma.BoolFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
   unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
@@ -297,6 +315,10 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   tasks?: Prisma.TaskListRelationFilter
   mayaUsages?: Prisma.MayaUsageListRelationFilter
   pendingCheckouts?: Prisma.PendingCheckoutListRelationFilter
+  activityEvents?: Prisma.ActivityEventListRelationFilter
+  workObjects?: Prisma.WorkObjectIndexListRelationFilter
+  insights?: Prisma.InsightListRelationFilter
+  handoffs?: Prisma.HandoffListRelationFilter
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -308,6 +330,7 @@ export type OrganizationOrderByWithAggregationInput = {
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   onboarded?: Prisma.SortOrder
   plannedRunsEnabled?: Prisma.SortOrder
+  workspaceUiEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   unlockedAgents?: Prisma.SortOrder
@@ -329,6 +352,7 @@ export type OrganizationScalarWhereWithAggregatesInput = {
   metadata?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
   onboarded?: Prisma.BoolWithAggregatesFilter<"Organization"> | boolean
   plannedRunsEnabled?: Prisma.BoolWithAggregatesFilter<"Organization"> | boolean
+  workspaceUiEnabled?: Prisma.BoolWithAggregatesFilter<"Organization"> | boolean
   subscriptionStatus?: Prisma.EnumSubscriptionStatusNullableWithAggregatesFilter<"Organization"> | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Organization"> | Date | string | null
   unlockedAgents?: Prisma.EnumAgentNullableListFilter<"Organization">
@@ -344,6 +368,7 @@ export type OrganizationCreateInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -358,6 +383,10 @@ export type OrganizationCreateInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -369,6 +398,7 @@ export type OrganizationUncheckedCreateInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -383,6 +413,10 @@ export type OrganizationUncheckedCreateInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -394,6 +428,7 @@ export type OrganizationUpdateInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -408,6 +443,10 @@ export type OrganizationUpdateInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -419,6 +458,7 @@ export type OrganizationUncheckedUpdateInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -433,6 +473,10 @@ export type OrganizationUncheckedUpdateInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -444,6 +488,7 @@ export type OrganizationCreateManyInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -459,6 +504,7 @@ export type OrganizationUpdateManyMutationInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -474,6 +520,7 @@ export type OrganizationUncheckedUpdateManyInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -497,6 +544,7 @@ export type OrganizationCountOrderByAggregateInput = {
   metadata?: Prisma.SortOrder
   onboarded?: Prisma.SortOrder
   plannedRunsEnabled?: Prisma.SortOrder
+  workspaceUiEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrder
   unlockedAgents?: Prisma.SortOrder
@@ -512,6 +560,7 @@ export type OrganizationMaxOrderByAggregateInput = {
   metadata?: Prisma.SortOrder
   onboarded?: Prisma.SortOrder
   plannedRunsEnabled?: Prisma.SortOrder
+  workspaceUiEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrder
   trialStartedAt?: Prisma.SortOrder
@@ -526,6 +575,7 @@ export type OrganizationMinOrderByAggregateInput = {
   metadata?: Prisma.SortOrder
   onboarded?: Prisma.SortOrder
   plannedRunsEnabled?: Prisma.SortOrder
+  workspaceUiEnabled?: Prisma.SortOrder
   subscriptionStatus?: Prisma.SortOrder
   entitlementExpiresAt?: Prisma.SortOrder
   trialStartedAt?: Prisma.SortOrder
@@ -689,6 +739,62 @@ export type OrganizationUpdateOneRequiredWithoutMayaUsagesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutMayaUsagesInput, Prisma.OrganizationUpdateWithoutMayaUsagesInput>, Prisma.OrganizationUncheckedUpdateWithoutMayaUsagesInput>
 }
 
+export type OrganizationCreateNestedOneWithoutActivityEventsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutActivityEventsInput, Prisma.OrganizationUncheckedCreateWithoutActivityEventsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutActivityEventsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutActivityEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutActivityEventsInput, Prisma.OrganizationUncheckedCreateWithoutActivityEventsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutActivityEventsInput
+  upsert?: Prisma.OrganizationUpsertWithoutActivityEventsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutActivityEventsInput, Prisma.OrganizationUpdateWithoutActivityEventsInput>, Prisma.OrganizationUncheckedUpdateWithoutActivityEventsInput>
+}
+
+export type OrganizationCreateNestedOneWithoutWorkObjectsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutWorkObjectsInput, Prisma.OrganizationUncheckedCreateWithoutWorkObjectsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutWorkObjectsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutWorkObjectsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutWorkObjectsInput, Prisma.OrganizationUncheckedCreateWithoutWorkObjectsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutWorkObjectsInput
+  upsert?: Prisma.OrganizationUpsertWithoutWorkObjectsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutWorkObjectsInput, Prisma.OrganizationUpdateWithoutWorkObjectsInput>, Prisma.OrganizationUncheckedUpdateWithoutWorkObjectsInput>
+}
+
+export type OrganizationCreateNestedOneWithoutInsightsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutInsightsInput, Prisma.OrganizationUncheckedCreateWithoutInsightsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutInsightsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutInsightsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutInsightsInput, Prisma.OrganizationUncheckedCreateWithoutInsightsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutInsightsInput
+  upsert?: Prisma.OrganizationUpsertWithoutInsightsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutInsightsInput, Prisma.OrganizationUpdateWithoutInsightsInput>, Prisma.OrganizationUncheckedUpdateWithoutInsightsInput>
+}
+
+export type OrganizationCreateNestedOneWithoutHandoffsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutHandoffsInput, Prisma.OrganizationUncheckedCreateWithoutHandoffsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutHandoffsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutHandoffsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutHandoffsInput, Prisma.OrganizationUncheckedCreateWithoutHandoffsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutHandoffsInput
+  upsert?: Prisma.OrganizationUpsertWithoutHandoffsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutHandoffsInput, Prisma.OrganizationUpdateWithoutHandoffsInput>, Prisma.OrganizationUncheckedUpdateWithoutHandoffsInput>
+}
+
 export type OrganizationCreateWithoutSubscriptionInput = {
   id: string
   name: string
@@ -698,6 +804,7 @@ export type OrganizationCreateWithoutSubscriptionInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -711,6 +818,10 @@ export type OrganizationCreateWithoutSubscriptionInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
@@ -722,6 +833,7 @@ export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -735,6 +847,10 @@ export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutSubscriptionInput = {
@@ -762,6 +878,7 @@ export type OrganizationUpdateWithoutSubscriptionInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -775,6 +892,10 @@ export type OrganizationUpdateWithoutSubscriptionInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
@@ -786,6 +907,7 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -799,6 +921,10 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutEntitlementsInput = {
@@ -810,6 +936,7 @@ export type OrganizationCreateWithoutEntitlementsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -823,6 +950,10 @@ export type OrganizationCreateWithoutEntitlementsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutEntitlementsInput = {
@@ -834,6 +965,7 @@ export type OrganizationUncheckedCreateWithoutEntitlementsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -847,6 +979,10 @@ export type OrganizationUncheckedCreateWithoutEntitlementsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutEntitlementsInput = {
@@ -874,6 +1010,7 @@ export type OrganizationUpdateWithoutEntitlementsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -887,6 +1024,10 @@ export type OrganizationUpdateWithoutEntitlementsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutEntitlementsInput = {
@@ -898,6 +1039,7 @@ export type OrganizationUncheckedUpdateWithoutEntitlementsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -911,6 +1053,10 @@ export type OrganizationUncheckedUpdateWithoutEntitlementsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutBillingSubscriptionsInput = {
@@ -922,6 +1068,7 @@ export type OrganizationCreateWithoutBillingSubscriptionsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -935,6 +1082,10 @@ export type OrganizationCreateWithoutBillingSubscriptionsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutBillingSubscriptionsInput = {
@@ -946,6 +1097,7 @@ export type OrganizationUncheckedCreateWithoutBillingSubscriptionsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -959,6 +1111,10 @@ export type OrganizationUncheckedCreateWithoutBillingSubscriptionsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutBillingSubscriptionsInput = {
@@ -986,6 +1142,7 @@ export type OrganizationUpdateWithoutBillingSubscriptionsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -999,6 +1156,10 @@ export type OrganizationUpdateWithoutBillingSubscriptionsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutBillingSubscriptionsInput = {
@@ -1010,6 +1171,7 @@ export type OrganizationUncheckedUpdateWithoutBillingSubscriptionsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1023,6 +1185,10 @@ export type OrganizationUncheckedUpdateWithoutBillingSubscriptionsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutPendingCheckoutsInput = {
@@ -1034,6 +1200,7 @@ export type OrganizationCreateWithoutPendingCheckoutsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1047,6 +1214,10 @@ export type OrganizationCreateWithoutPendingCheckoutsInput = {
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutPendingCheckoutsInput = {
@@ -1058,6 +1229,7 @@ export type OrganizationUncheckedCreateWithoutPendingCheckoutsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1071,6 +1243,10 @@ export type OrganizationUncheckedCreateWithoutPendingCheckoutsInput = {
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutPendingCheckoutsInput = {
@@ -1098,6 +1274,7 @@ export type OrganizationUpdateWithoutPendingCheckoutsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1111,6 +1288,10 @@ export type OrganizationUpdateWithoutPendingCheckoutsInput = {
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutPendingCheckoutsInput = {
@@ -1122,6 +1303,7 @@ export type OrganizationUncheckedUpdateWithoutPendingCheckoutsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1135,6 +1317,10 @@ export type OrganizationUncheckedUpdateWithoutPendingCheckoutsInput = {
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutMembersInput = {
@@ -1146,6 +1332,7 @@ export type OrganizationCreateWithoutMembersInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1159,6 +1346,10 @@ export type OrganizationCreateWithoutMembersInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -1170,6 +1361,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1183,6 +1375,10 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -1210,6 +1406,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1223,6 +1420,10 @@ export type OrganizationUpdateWithoutMembersInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -1234,6 +1435,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1247,6 +1449,10 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -1258,6 +1464,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1271,6 +1478,10 @@ export type OrganizationCreateWithoutInvitationsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -1282,6 +1493,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1295,6 +1507,10 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -1322,6 +1538,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1335,6 +1552,10 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -1346,6 +1567,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1359,6 +1581,10 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutAgentMemoryInput = {
@@ -1370,6 +1596,7 @@ export type OrganizationCreateWithoutAgentMemoryInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1383,6 +1610,10 @@ export type OrganizationCreateWithoutAgentMemoryInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
@@ -1394,6 +1625,7 @@ export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1407,6 +1639,10 @@ export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutAgentMemoryInput = {
@@ -1434,6 +1670,7 @@ export type OrganizationUpdateWithoutAgentMemoryInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1447,6 +1684,10 @@ export type OrganizationUpdateWithoutAgentMemoryInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
@@ -1458,6 +1699,7 @@ export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1471,6 +1713,10 @@ export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutOrgMemoryInput = {
@@ -1482,6 +1728,7 @@ export type OrganizationCreateWithoutOrgMemoryInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1495,6 +1742,10 @@ export type OrganizationCreateWithoutOrgMemoryInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
@@ -1506,6 +1757,7 @@ export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1519,6 +1771,10 @@ export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutOrgMemoryInput = {
@@ -1546,6 +1802,7 @@ export type OrganizationUpdateWithoutOrgMemoryInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1559,6 +1816,10 @@ export type OrganizationUpdateWithoutOrgMemoryInput = {
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
@@ -1570,6 +1831,7 @@ export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1583,6 +1845,10 @@ export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutTasksInput = {
@@ -1594,6 +1860,7 @@ export type OrganizationCreateWithoutTasksInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1607,6 +1874,10 @@ export type OrganizationCreateWithoutTasksInput = {
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutTasksInput = {
@@ -1618,6 +1889,7 @@ export type OrganizationUncheckedCreateWithoutTasksInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1631,6 +1903,10 @@ export type OrganizationUncheckedCreateWithoutTasksInput = {
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutTasksInput = {
@@ -1658,6 +1934,7 @@ export type OrganizationUpdateWithoutTasksInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1671,6 +1948,10 @@ export type OrganizationUpdateWithoutTasksInput = {
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutTasksInput = {
@@ -1682,6 +1963,7 @@ export type OrganizationUncheckedUpdateWithoutTasksInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1695,6 +1977,10 @@ export type OrganizationUncheckedUpdateWithoutTasksInput = {
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutMayaUsagesInput = {
@@ -1706,6 +1992,7 @@ export type OrganizationCreateWithoutMayaUsagesInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1719,6 +2006,10 @@ export type OrganizationCreateWithoutMayaUsagesInput = {
   orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMayaUsagesInput = {
@@ -1730,6 +2021,7 @@ export type OrganizationUncheckedCreateWithoutMayaUsagesInput = {
   metadata?: string | null
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Date | string | null
   unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
@@ -1743,6 +2035,10 @@ export type OrganizationUncheckedCreateWithoutMayaUsagesInput = {
   orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMayaUsagesInput = {
@@ -1770,6 +2066,7 @@ export type OrganizationUpdateWithoutMayaUsagesInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1783,6 +2080,10 @@ export type OrganizationUpdateWithoutMayaUsagesInput = {
   orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMayaUsagesInput = {
@@ -1794,6 +2095,7 @@ export type OrganizationUncheckedUpdateWithoutMayaUsagesInput = {
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
   plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
   entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
@@ -1807,6 +2109,538 @@ export type OrganizationUncheckedUpdateWithoutMayaUsagesInput = {
   orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
   pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutActivityEventsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutActivityEventsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementUncheckedCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutActivityEventsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutActivityEventsInput, Prisma.OrganizationUncheckedCreateWithoutActivityEventsInput>
+}
+
+export type OrganizationUpsertWithoutActivityEventsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutActivityEventsInput, Prisma.OrganizationUncheckedUpdateWithoutActivityEventsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutActivityEventsInput, Prisma.OrganizationUncheckedCreateWithoutActivityEventsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutActivityEventsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutActivityEventsInput, Prisma.OrganizationUncheckedUpdateWithoutActivityEventsInput>
+}
+
+export type OrganizationUpdateWithoutActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUncheckedUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutWorkObjectsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutWorkObjectsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementUncheckedCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutWorkObjectsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutWorkObjectsInput, Prisma.OrganizationUncheckedCreateWithoutWorkObjectsInput>
+}
+
+export type OrganizationUpsertWithoutWorkObjectsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutWorkObjectsInput, Prisma.OrganizationUncheckedUpdateWithoutWorkObjectsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutWorkObjectsInput, Prisma.OrganizationUncheckedCreateWithoutWorkObjectsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutWorkObjectsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutWorkObjectsInput, Prisma.OrganizationUncheckedUpdateWithoutWorkObjectsInput>
+}
+
+export type OrganizationUpdateWithoutWorkObjectsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutWorkObjectsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUncheckedUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutInsightsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutInsightsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementUncheckedCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutInsightsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutInsightsInput, Prisma.OrganizationUncheckedCreateWithoutInsightsInput>
+}
+
+export type OrganizationUpsertWithoutInsightsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutInsightsInput, Prisma.OrganizationUncheckedUpdateWithoutInsightsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutInsightsInput, Prisma.OrganizationUncheckedCreateWithoutInsightsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutInsightsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutInsightsInput, Prisma.OrganizationUncheckedUpdateWithoutInsightsInput>
+}
+
+export type OrganizationUpdateWithoutInsightsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutInsightsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUncheckedUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutHandoffsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutHandoffsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementUncheckedCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutHandoffsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutHandoffsInput, Prisma.OrganizationUncheckedCreateWithoutHandoffsInput>
+}
+
+export type OrganizationUpsertWithoutHandoffsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutHandoffsInput, Prisma.OrganizationUncheckedUpdateWithoutHandoffsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutHandoffsInput, Prisma.OrganizationUncheckedCreateWithoutHandoffsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutHandoffsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutHandoffsInput, Prisma.OrganizationUncheckedUpdateWithoutHandoffsInput>
+}
+
+export type OrganizationUpdateWithoutHandoffsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutHandoffsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUncheckedUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 
@@ -1823,6 +2657,10 @@ export type OrganizationCountOutputType = {
   tasks: number
   mayaUsages: number
   pendingCheckouts: number
+  activityEvents: number
+  workObjects: number
+  insights: number
+  handoffs: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1834,6 +2672,10 @@ export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   tasks?: boolean | OrganizationCountOutputTypeCountTasksArgs
   mayaUsages?: boolean | OrganizationCountOutputTypeCountMayaUsagesArgs
   pendingCheckouts?: boolean | OrganizationCountOutputTypeCountPendingCheckoutsArgs
+  activityEvents?: boolean | OrganizationCountOutputTypeCountActivityEventsArgs
+  workObjects?: boolean | OrganizationCountOutputTypeCountWorkObjectsArgs
+  insights?: boolean | OrganizationCountOutputTypeCountInsightsArgs
+  handoffs?: boolean | OrganizationCountOutputTypeCountHandoffsArgs
 }
 
 /**
@@ -1902,6 +2744,34 @@ export type OrganizationCountOutputTypeCountPendingCheckoutsArgs<ExtArgs extends
   where?: Prisma.PendingCheckoutWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountActivityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ActivityEventWhereInput
+}
+
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountWorkObjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WorkObjectIndexWhereInput
+}
+
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountInsightsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InsightWhereInput
+}
+
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountHandoffsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.HandoffWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1912,6 +2782,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   metadata?: boolean
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
@@ -1926,6 +2797,10 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   tasks?: boolean | Prisma.Organization$tasksArgs<ExtArgs>
   mayaUsages?: boolean | Prisma.Organization$mayaUsagesArgs<ExtArgs>
   pendingCheckouts?: boolean | Prisma.Organization$pendingCheckoutsArgs<ExtArgs>
+  activityEvents?: boolean | Prisma.Organization$activityEventsArgs<ExtArgs>
+  workObjects?: boolean | Prisma.Organization$workObjectsArgs<ExtArgs>
+  insights?: boolean | Prisma.Organization$insightsArgs<ExtArgs>
+  handoffs?: boolean | Prisma.Organization$handoffsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -1938,6 +2813,7 @@ export type OrganizationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   metadata?: boolean
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
@@ -1953,6 +2829,7 @@ export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   metadata?: boolean
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
@@ -1968,13 +2845,14 @@ export type OrganizationSelectScalar = {
   metadata?: boolean
   onboarded?: boolean
   plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
   subscriptionStatus?: boolean
   entitlementExpiresAt?: boolean
   unlockedAgents?: boolean
   trialStartedAt?: boolean
 }
 
-export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata" | "onboarded" | "plannedRunsEnabled" | "subscriptionStatus" | "entitlementExpiresAt" | "unlockedAgents" | "trialStartedAt", ExtArgs["result"]["organization"]>
+export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata" | "onboarded" | "plannedRunsEnabled" | "workspaceUiEnabled" | "subscriptionStatus" | "entitlementExpiresAt" | "unlockedAgents" | "trialStartedAt", ExtArgs["result"]["organization"]>
 export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
@@ -1986,6 +2864,10 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   tasks?: boolean | Prisma.Organization$tasksArgs<ExtArgs>
   mayaUsages?: boolean | Prisma.Organization$mayaUsagesArgs<ExtArgs>
   pendingCheckouts?: boolean | Prisma.Organization$pendingCheckoutsArgs<ExtArgs>
+  activityEvents?: boolean | Prisma.Organization$activityEventsArgs<ExtArgs>
+  workObjects?: boolean | Prisma.Organization$workObjectsArgs<ExtArgs>
+  insights?: boolean | Prisma.Organization$insightsArgs<ExtArgs>
+  handoffs?: boolean | Prisma.Organization$handoffsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -2034,6 +2916,22 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * Checkout sessions awaiting provider confirmation.
      */
     pendingCheckouts: Prisma.$PendingCheckoutPayload<ExtArgs>[]
+    /**
+     * Workspace activity feed.
+     */
+    activityEvents: Prisma.$ActivityEventPayload<ExtArgs>[]
+    /**
+     * Flat index over this org's typed work objects.
+     */
+    workObjects: Prisma.$WorkObjectIndexPayload<ExtArgs>[]
+    /**
+     * Proactive findings surfaced by the agents.
+     */
+    insights: Prisma.$InsightPayload<ExtArgs>[]
+    /**
+     * Cross-agent work requests.
+     */
+    handoffs: Prisma.$HandoffPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
@@ -2069,6 +2967,14 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * existing single-pass path, so the feature can be rolled out per org.
      */
     plannedRunsEnabled: boolean
+    /**
+     * Opt-in to the agent workspace UI. Off means /assistants/:id keeps serving
+     * the chat page, so the migration rolls out per org and rolls back by
+     * flipping one boolean. Which agents have workspaces is a code-level
+     * decision (WORKSPACE_MIGRATED in apps/main/src/lib/workspace/registry.ts),
+     * not a per-org one.
+     */
+    workspaceUiEnabled: boolean
     /**
      * Fast entitlement status used by middleware.
      */
@@ -2489,6 +3395,10 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   tasks<T extends Prisma.Organization$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   mayaUsages<T extends Prisma.Organization$mayaUsagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$mayaUsagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MayaUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   pendingCheckouts<T extends Prisma.Organization$pendingCheckoutsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$pendingCheckoutsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PendingCheckoutPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  activityEvents<T extends Prisma.Organization$activityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$activityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  workObjects<T extends Prisma.Organization$workObjectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$workObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkObjectIndexPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  insights<T extends Prisma.Organization$insightsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$insightsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InsightPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  handoffs<T extends Prisma.Organization$handoffsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$handoffsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HandoffPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2526,6 +3436,7 @@ export interface OrganizationFieldRefs {
   readonly metadata: Prisma.FieldRef<"Organization", 'String'>
   readonly onboarded: Prisma.FieldRef<"Organization", 'Boolean'>
   readonly plannedRunsEnabled: Prisma.FieldRef<"Organization", 'Boolean'>
+  readonly workspaceUiEnabled: Prisma.FieldRef<"Organization", 'Boolean'>
   readonly subscriptionStatus: Prisma.FieldRef<"Organization", 'SubscriptionStatus'>
   readonly entitlementExpiresAt: Prisma.FieldRef<"Organization", 'DateTime'>
   readonly unlockedAgents: Prisma.FieldRef<"Organization", 'Agent[]'>
@@ -3150,6 +4061,102 @@ export type Organization$pendingCheckoutsArgs<ExtArgs extends runtime.Types.Exte
   take?: number
   skip?: number
   distinct?: Prisma.PendingCheckoutScalarFieldEnum | Prisma.PendingCheckoutScalarFieldEnum[]
+}
+
+/**
+ * Organization.activityEvents
+ */
+export type Organization$activityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ActivityEvent
+   */
+  select?: Prisma.ActivityEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ActivityEvent
+   */
+  omit?: Prisma.ActivityEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ActivityEventInclude<ExtArgs> | null
+  where?: Prisma.ActivityEventWhereInput
+  orderBy?: Prisma.ActivityEventOrderByWithRelationInput | Prisma.ActivityEventOrderByWithRelationInput[]
+  cursor?: Prisma.ActivityEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ActivityEventScalarFieldEnum | Prisma.ActivityEventScalarFieldEnum[]
+}
+
+/**
+ * Organization.workObjects
+ */
+export type Organization$workObjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WorkObjectIndex
+   */
+  select?: Prisma.WorkObjectIndexSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WorkObjectIndex
+   */
+  omit?: Prisma.WorkObjectIndexOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WorkObjectIndexInclude<ExtArgs> | null
+  where?: Prisma.WorkObjectIndexWhereInput
+  orderBy?: Prisma.WorkObjectIndexOrderByWithRelationInput | Prisma.WorkObjectIndexOrderByWithRelationInput[]
+  cursor?: Prisma.WorkObjectIndexWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.WorkObjectIndexScalarFieldEnum | Prisma.WorkObjectIndexScalarFieldEnum[]
+}
+
+/**
+ * Organization.insights
+ */
+export type Organization$insightsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Insight
+   */
+  select?: Prisma.InsightSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Insight
+   */
+  omit?: Prisma.InsightOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InsightInclude<ExtArgs> | null
+  where?: Prisma.InsightWhereInput
+  orderBy?: Prisma.InsightOrderByWithRelationInput | Prisma.InsightOrderByWithRelationInput[]
+  cursor?: Prisma.InsightWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InsightScalarFieldEnum | Prisma.InsightScalarFieldEnum[]
+}
+
+/**
+ * Organization.handoffs
+ */
+export type Organization$handoffsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Handoff
+   */
+  select?: Prisma.HandoffSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Handoff
+   */
+  omit?: Prisma.HandoffOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HandoffInclude<ExtArgs> | null
+  where?: Prisma.HandoffWhereInput
+  orderBy?: Prisma.HandoffOrderByWithRelationInput | Prisma.HandoffOrderByWithRelationInput[]
+  cursor?: Prisma.HandoffWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.HandoffScalarFieldEnum | Prisma.HandoffScalarFieldEnum[]
 }
 
 /**

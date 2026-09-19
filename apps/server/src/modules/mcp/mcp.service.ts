@@ -1,6 +1,6 @@
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
-import { Agent, McpActionSource, McpApprovalMode, McpConnectionStatus, McpPendingActionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
+import { Agent, ApprovalKind, McpActionSource, McpApprovalMode, McpConnectionStatus, McpPendingActionStatus, McpProvider } from "../../../prisma/generated/prisma/client.js";
 import { aiService } from "../../common/utils/aiService.js";
 import { prisma } from "../../config/prisma.js";
 import * as repo from "./mcp.repository.js";
@@ -584,6 +584,8 @@ export interface ApprovalPolicyEntry {
   id: string;
   integrationSlug: string;
   toolName: string;
+  /** An Agent name, or "*" for every agent. */
+  agentScope: string;
   mode: McpApprovalMode;
   createdAt: string;
 }
@@ -602,10 +604,18 @@ export const resolveApprovalMode = async (
   organizationId: string,
   integrationSlug: string,
   toolName: string,
+  /**
+   * Which agent proposed the write. Rules can be scoped to one agent ("auto-run
+   * everything Sage proposes"); omitting it considers only agent-wide rules.
+   */
+  agent?: Agent,
 ): Promise<McpApprovalMode> => {
   const rules = await prisma.mcpApprovalPolicy.findMany({
     where: {
       organizationId,
+      // A rule scoped to a different agent must not apply here. Without this
+      // filter an agent-specific AUTO_RUN would leak to every other agent.
+      agentScope: { in: agent ? [agent, WILDCARD] : [WILDCARD] },
       OR: [
         { integrationSlug, toolName },
         { integrationSlug, toolName: WILDCARD },
@@ -615,8 +625,12 @@ export const resolveApprovalMode = async (
   });
   if (rules.length === 0) return McpApprovalMode.ALWAYS_ASK;
 
-  const specificity = (r: { integrationSlug: string; toolName: string }) =>
-    (r.integrationSlug === WILDCARD ? 0 : 2) + (r.toolName === WILDCARD ? 0 : 1);
+  // Integration beats tool beats agent, so a rule naming this exact tool still
+  // wins over a broad "anything from Sage" one.
+  const specificity = (r: { integrationSlug: string; toolName: string; agentScope: string }) =>
+    (r.integrationSlug === WILDCARD ? 0 : 4) +
+    (r.toolName === WILDCARD ? 0 : 2) +
+    (r.agentScope === WILDCARD ? 0 : 1);
   return rules.sort((a, b) => specificity(b) - specificity(a))[0]!.mode;
 };
 
@@ -625,12 +639,13 @@ export const listApprovalPolicies = async (
 ): Promise<ApprovalPolicyEntry[]> => {
   const rows = await prisma.mcpApprovalPolicy.findMany({
     where: { organizationId },
-    orderBy: [{ integrationSlug: "asc" }, { toolName: "asc" }],
+    orderBy: [{ integrationSlug: "asc" }, { toolName: "asc" }, { agentScope: "asc" }],
   });
   return rows.map((r) => ({
     id: r.id,
     integrationSlug: r.integrationSlug,
     toolName: r.toolName,
+    agentScope: r.agentScope,
     mode: r.mode,
     createdAt: r.createdAt.toISOString(),
   }));
@@ -641,22 +656,26 @@ export const setApprovalPolicy = async (params: {
   userId: string;
   integrationSlug?: string;
   toolName?: string;
+  agentScope?: string;
   mode: McpApprovalMode;
 }): Promise<ApprovalPolicyEntry> => {
   const integrationSlug = params.integrationSlug ?? WILDCARD;
   const toolName = params.toolName ?? WILDCARD;
+  const agentScope = params.agentScope ?? WILDCARD;
   const row = await prisma.mcpApprovalPolicy.upsert({
     where: {
-      organizationId_integrationSlug_toolName: {
+      organizationId_integrationSlug_toolName_agentScope: {
         organizationId: params.organizationId,
         integrationSlug,
         toolName,
+        agentScope,
       },
     },
     create: {
       organizationId: params.organizationId,
       integrationSlug,
       toolName,
+      agentScope,
       mode: params.mode,
       createdByUserId: params.userId,
     },
@@ -666,6 +685,7 @@ export const setApprovalPolicy = async (params: {
     id: row.id,
     integrationSlug: row.integrationSlug,
     toolName: row.toolName,
+    agentScope: row.agentScope,
     mode: row.mode,
     createdAt: row.createdAt.toISOString(),
   };
@@ -923,7 +943,7 @@ export const stagePendingActions = async (params: {
   await Promise.all(
     params.pendingActions.map(async (a) => {
       const integrationSlug = integrationSlugByConnectionId.get(a.connection_id) ?? "";
-      const mode = await resolveApprovalMode(params.organizationId, integrationSlug, a.tool_name);
+      const mode = await resolveApprovalMode(params.organizationId, integrationSlug, a.tool_name, params.agent);
       if (mode === McpApprovalMode.ALWAYS_ASK) return;
 
       if (mode === McpApprovalMode.NEVER) {
@@ -987,6 +1007,15 @@ export const confirmPendingAction = async (
   id: string
 ): Promise<McpPendingActionSummary> => {
   const row = await requirePendingAction(organizationId, id);
+  // connectionId is nullable at the database level only, so non-MCP approval
+  // kinds can be staged in this same queue. Anything that reaches the provider
+  // path must still have one; this is the assertion the schema cannot make.
+  if (row.kind !== ApprovalKind.MCP_TOOL || !row.connectionId) {
+    throw new BadRequestError(
+      `Pending action ${id} is not an MCP tool call and cannot be executed here`,
+    );
+  }
+  const connectionId = row.connectionId;
   const MAX_RATE_LIMIT_RETRIES = 2;
   const MAX_AUTO_WAIT_MS = 15_000; // don't hold the request open longer than this per wait
 
@@ -994,7 +1023,7 @@ export const confirmPendingAction = async (
     try {
       const result = await callTool(
         organizationId,
-        row.connectionId,
+        connectionId,
         row.toolName,
         row.arguments as Record<string, unknown>
       );

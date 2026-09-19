@@ -125,6 +125,7 @@ export const executeWrite = async (
     run.organizationId,
     connection.integrationSlug,
     input.toolName,
+    step.agent,
   );
 
   // An explicit NEVER outbids plan approval: the user blocked this integration

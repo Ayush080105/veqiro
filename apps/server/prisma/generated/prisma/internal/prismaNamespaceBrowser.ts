@@ -113,7 +113,11 @@ export const ModelName = {
   MayaUsage: 'MayaUsage',
   Settlement: 'Settlement',
   AgentRun: 'AgentRun',
-  AgentRunStep: 'AgentRunStep'
+  AgentRunStep: 'AgentRunStep',
+  ActivityEvent: 'ActivityEvent',
+  WorkObjectIndex: 'WorkObjectIndex',
+  Insight: 'Insight',
+  Handoff: 'Handoff'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -205,6 +209,7 @@ export const OrganizationScalarFieldEnum = {
   metadata: 'metadata',
   onboarded: 'onboarded',
   plannedRunsEnabled: 'plannedRunsEnabled',
+  workspaceUiEnabled: 'workspaceUiEnabled',
   subscriptionStatus: 'subscriptionStatus',
   entitlementExpiresAt: 'entitlementExpiresAt',
   unlockedAgents: 'unlockedAgents',
@@ -474,9 +479,13 @@ export const McpPendingActionScalarFieldEnum = {
   userId: 'userId',
   agent: 'agent',
   messageId: 'messageId',
+  kind: 'kind',
   connectionId: 'connectionId',
   integrationSlug: 'integrationSlug',
   toolName: 'toolName',
+  actionId: 'actionId',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
   arguments: 'arguments',
   summary: 'summary',
   source: 'source',
@@ -574,6 +583,7 @@ export const McpApprovalPolicyScalarFieldEnum = {
   organizationId: 'organizationId',
   integrationSlug: 'integrationSlug',
   toolName: 'toolName',
+  agentScope: 'agentScope',
   mode: 'mode',
   createdByUserId: 'createdByUserId',
   createdAt: 'createdAt',
@@ -1170,6 +1180,95 @@ export const AgentRunStepScalarFieldEnum = {
 } as const
 
 export type AgentRunStepScalarFieldEnum = (typeof AgentRunStepScalarFieldEnum)[keyof typeof AgentRunStepScalarFieldEnum]
+
+
+export const ActivityEventScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  actorKind: 'actorKind',
+  actorUserId: 'actorUserId',
+  verb: 'verb',
+  summary: 'summary',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
+  runId: 'runId',
+  playId: 'playId',
+  pendingActionId: 'pendingActionId',
+  messageId: 'messageId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type ActivityEventScalarFieldEnum = (typeof ActivityEventScalarFieldEnum)[keyof typeof ActivityEventScalarFieldEnum]
+
+
+export const WorkObjectIndexScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  kind: 'kind',
+  sourceId: 'sourceId',
+  title: 'title',
+  status: 'status',
+  dueAt: 'dueAt',
+  ownerUserId: 'ownerUserId',
+  preview: 'preview',
+  sourceUpdatedAt: 'sourceUpdatedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WorkObjectIndexScalarFieldEnum = (typeof WorkObjectIndexScalarFieldEnum)[keyof typeof WorkObjectIndexScalarFieldEnum]
+
+
+export const InsightScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  dedupeKey: 'dedupeKey',
+  kind: 'kind',
+  title: 'title',
+  body: 'body',
+  severity: 'severity',
+  status: 'status',
+  suggestedActionId: 'suggestedActionId',
+  suggestedArgs: 'suggestedArgs',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
+  runId: 'runId',
+  expiresAt: 'expiresAt',
+  acknowledgedAt: 'acknowledgedAt',
+  acknowledgedByUserId: 'acknowledgedByUserId',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type InsightScalarFieldEnum = (typeof InsightScalarFieldEnum)[keyof typeof InsightScalarFieldEnum]
+
+
+export const HandoffScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  fromAgent: 'fromAgent',
+  toAgent: 'toAgent',
+  createdByUserId: 'createdByUserId',
+  requestedActionId: 'requestedActionId',
+  requestedArgs: 'requestedArgs',
+  note: 'note',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
+  status: 'status',
+  runId: 'runId',
+  sourceMessageId: 'sourceMessageId',
+  resultMessageId: 'resultMessageId',
+  dueAt: 'dueAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HandoffScalarFieldEnum = (typeof HandoffScalarFieldEnum)[keyof typeof HandoffScalarFieldEnum]
 
 
 export const SortOrder = {

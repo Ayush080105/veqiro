@@ -33,9 +33,13 @@ export type McpPendingActionMinAggregateOutputType = {
   userId: string | null
   agent: $Enums.Agent | null
   messageId: string | null
+  kind: $Enums.ApprovalKind | null
   connectionId: string | null
   integrationSlug: string | null
   toolName: string | null
+  actionId: string | null
+  objectKind: string | null
+  objectId: string | null
   summary: string | null
   source: $Enums.McpActionSource | null
   triggerEventId: string | null
@@ -52,9 +56,13 @@ export type McpPendingActionMaxAggregateOutputType = {
   userId: string | null
   agent: $Enums.Agent | null
   messageId: string | null
+  kind: $Enums.ApprovalKind | null
   connectionId: string | null
   integrationSlug: string | null
   toolName: string | null
+  actionId: string | null
+  objectKind: string | null
+  objectId: string | null
   summary: string | null
   source: $Enums.McpActionSource | null
   triggerEventId: string | null
@@ -71,9 +79,13 @@ export type McpPendingActionCountAggregateOutputType = {
   userId: number
   agent: number
   messageId: number
+  kind: number
   connectionId: number
   integrationSlug: number
   toolName: number
+  actionId: number
+  objectKind: number
+  objectId: number
   arguments: number
   summary: number
   source: number
@@ -94,9 +106,13 @@ export type McpPendingActionMinAggregateInputType = {
   userId?: true
   agent?: true
   messageId?: true
+  kind?: true
   connectionId?: true
   integrationSlug?: true
   toolName?: true
+  actionId?: true
+  objectKind?: true
+  objectId?: true
   summary?: true
   source?: true
   triggerEventId?: true
@@ -113,9 +129,13 @@ export type McpPendingActionMaxAggregateInputType = {
   userId?: true
   agent?: true
   messageId?: true
+  kind?: true
   connectionId?: true
   integrationSlug?: true
   toolName?: true
+  actionId?: true
+  objectKind?: true
+  objectId?: true
   summary?: true
   source?: true
   triggerEventId?: true
@@ -132,9 +152,13 @@ export type McpPendingActionCountAggregateInputType = {
   userId?: true
   agent?: true
   messageId?: true
+  kind?: true
   connectionId?: true
   integrationSlug?: true
   toolName?: true
+  actionId?: true
+  objectKind?: true
+  objectId?: true
   arguments?: true
   summary?: true
   source?: true
@@ -226,9 +250,13 @@ export type McpPendingActionGroupByOutputType = {
   userId: string
   agent: $Enums.Agent
   messageId: string | null
-  connectionId: string
+  kind: $Enums.ApprovalKind
+  connectionId: string | null
   integrationSlug: string
   toolName: string
+  actionId: string | null
+  objectKind: string | null
+  objectId: string | null
   arguments: runtime.JsonValue
   summary: string
   source: $Enums.McpActionSource
@@ -268,9 +296,13 @@ export type McpPendingActionWhereInput = {
   userId?: Prisma.StringFilter<"McpPendingAction"> | string
   agent?: Prisma.EnumAgentFilter<"McpPendingAction"> | $Enums.Agent
   messageId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
-  connectionId?: Prisma.StringFilter<"McpPendingAction"> | string
+  kind?: Prisma.EnumApprovalKindFilter<"McpPendingAction"> | $Enums.ApprovalKind
+  connectionId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   integrationSlug?: Prisma.StringFilter<"McpPendingAction"> | string
   toolName?: Prisma.StringFilter<"McpPendingAction"> | string
+  actionId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
+  objectKind?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
+  objectId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   arguments?: Prisma.JsonFilter<"McpPendingAction">
   summary?: Prisma.StringFilter<"McpPendingAction"> | string
   source?: Prisma.EnumMcpActionSourceFilter<"McpPendingAction"> | $Enums.McpActionSource
@@ -291,9 +323,13 @@ export type McpPendingActionOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
   messageId?: Prisma.SortOrderInput | Prisma.SortOrder
-  connectionId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrderInput | Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  actionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  objectKind?: Prisma.SortOrderInput | Prisma.SortOrder
+  objectId?: Prisma.SortOrderInput | Prisma.SortOrder
   arguments?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   source?: Prisma.SortOrder
@@ -317,9 +353,13 @@ export type McpPendingActionWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringFilter<"McpPendingAction"> | string
   agent?: Prisma.EnumAgentFilter<"McpPendingAction"> | $Enums.Agent
   messageId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
-  connectionId?: Prisma.StringFilter<"McpPendingAction"> | string
+  kind?: Prisma.EnumApprovalKindFilter<"McpPendingAction"> | $Enums.ApprovalKind
+  connectionId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   integrationSlug?: Prisma.StringFilter<"McpPendingAction"> | string
   toolName?: Prisma.StringFilter<"McpPendingAction"> | string
+  actionId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
+  objectKind?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
+  objectId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   arguments?: Prisma.JsonFilter<"McpPendingAction">
   summary?: Prisma.StringFilter<"McpPendingAction"> | string
   source?: Prisma.EnumMcpActionSourceFilter<"McpPendingAction"> | $Enums.McpActionSource
@@ -340,9 +380,13 @@ export type McpPendingActionOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
   messageId?: Prisma.SortOrderInput | Prisma.SortOrder
-  connectionId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrderInput | Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  actionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  objectKind?: Prisma.SortOrderInput | Prisma.SortOrder
+  objectId?: Prisma.SortOrderInput | Prisma.SortOrder
   arguments?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   source?: Prisma.SortOrder
@@ -367,9 +411,13 @@ export type McpPendingActionScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringWithAggregatesFilter<"McpPendingAction"> | string
   agent?: Prisma.EnumAgentWithAggregatesFilter<"McpPendingAction"> | $Enums.Agent
   messageId?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
-  connectionId?: Prisma.StringWithAggregatesFilter<"McpPendingAction"> | string
+  kind?: Prisma.EnumApprovalKindWithAggregatesFilter<"McpPendingAction"> | $Enums.ApprovalKind
+  connectionId?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
   integrationSlug?: Prisma.StringWithAggregatesFilter<"McpPendingAction"> | string
   toolName?: Prisma.StringWithAggregatesFilter<"McpPendingAction"> | string
+  actionId?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
+  objectKind?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
+  objectId?: Prisma.StringNullableWithAggregatesFilter<"McpPendingAction"> | string | null
   arguments?: Prisma.JsonWithAggregatesFilter<"McpPendingAction">
   summary?: Prisma.StringWithAggregatesFilter<"McpPendingAction"> | string
   source?: Prisma.EnumMcpActionSourceWithAggregatesFilter<"McpPendingAction"> | $Enums.McpActionSource
@@ -387,9 +435,13 @@ export type McpPendingActionCreateInput = {
   organizationId: string
   userId: string
   agent: $Enums.Agent
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -409,9 +461,13 @@ export type McpPendingActionUncheckedCreateInput = {
   userId: string
   agent: $Enums.Agent
   messageId?: string | null
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -429,9 +485,13 @@ export type McpPendingActionUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -451,9 +511,13 @@ export type McpPendingActionUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -472,9 +536,13 @@ export type McpPendingActionCreateManyInput = {
   userId: string
   agent: $Enums.Agent
   messageId?: string | null
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -492,9 +560,13 @@ export type McpPendingActionUpdateManyMutationInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -512,9 +584,13 @@ export type McpPendingActionUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -543,9 +619,13 @@ export type McpPendingActionCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  actionId?: Prisma.SortOrder
+  objectKind?: Prisma.SortOrder
+  objectId?: Prisma.SortOrder
   arguments?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   source?: Prisma.SortOrder
@@ -564,9 +644,13 @@ export type McpPendingActionMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  actionId?: Prisma.SortOrder
+  objectKind?: Prisma.SortOrder
+  objectId?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   source?: Prisma.SortOrder
   triggerEventId?: Prisma.SortOrder
@@ -583,9 +667,13 @@ export type McpPendingActionMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   agent?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  actionId?: Prisma.SortOrder
+  objectKind?: Prisma.SortOrder
+  objectId?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   source?: Prisma.SortOrder
   triggerEventId?: Prisma.SortOrder
@@ -636,6 +724,10 @@ export type McpPendingActionUncheckedUpdateManyWithoutMessageNestedInput = {
   update?: Prisma.McpPendingActionUpdateWithWhereUniqueWithoutMessageInput | Prisma.McpPendingActionUpdateWithWhereUniqueWithoutMessageInput[]
   updateMany?: Prisma.McpPendingActionUpdateManyWithWhereWithoutMessageInput | Prisma.McpPendingActionUpdateManyWithWhereWithoutMessageInput[]
   deleteMany?: Prisma.McpPendingActionScalarWhereInput | Prisma.McpPendingActionScalarWhereInput[]
+}
+
+export type EnumApprovalKindFieldUpdateOperationsInput = {
+  set?: $Enums.ApprovalKind
 }
 
 export type EnumMcpActionSourceFieldUpdateOperationsInput = {
@@ -693,9 +785,13 @@ export type McpPendingActionCreateWithoutMessageInput = {
   organizationId: string
   userId: string
   agent: $Enums.Agent
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -713,9 +809,13 @@ export type McpPendingActionUncheckedCreateWithoutMessageInput = {
   organizationId: string
   userId: string
   agent: $Enums.Agent
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -763,9 +863,13 @@ export type McpPendingActionScalarWhereInput = {
   userId?: Prisma.StringFilter<"McpPendingAction"> | string
   agent?: Prisma.EnumAgentFilter<"McpPendingAction"> | $Enums.Agent
   messageId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
-  connectionId?: Prisma.StringFilter<"McpPendingAction"> | string
+  kind?: Prisma.EnumApprovalKindFilter<"McpPendingAction"> | $Enums.ApprovalKind
+  connectionId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   integrationSlug?: Prisma.StringFilter<"McpPendingAction"> | string
   toolName?: Prisma.StringFilter<"McpPendingAction"> | string
+  actionId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
+  objectKind?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
+  objectId?: Prisma.StringNullableFilter<"McpPendingAction"> | string | null
   arguments?: Prisma.JsonFilter<"McpPendingAction">
   summary?: Prisma.StringFilter<"McpPendingAction"> | string
   source?: Prisma.EnumMcpActionSourceFilter<"McpPendingAction"> | $Enums.McpActionSource
@@ -783,9 +887,13 @@ export type McpPendingActionCreateWithoutRunStepInput = {
   organizationId: string
   userId: string
   agent: $Enums.Agent
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -804,9 +912,13 @@ export type McpPendingActionUncheckedCreateWithoutRunStepInput = {
   userId: string
   agent: $Enums.Agent
   messageId?: string | null
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -849,9 +961,13 @@ export type McpPendingActionCreateManyMessageInput = {
   organizationId: string
   userId: string
   agent: $Enums.Agent
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -869,9 +985,13 @@ export type McpPendingActionUpdateWithoutMessageInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -889,9 +1009,13 @@ export type McpPendingActionUncheckedUpdateWithoutMessageInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -909,9 +1033,13 @@ export type McpPendingActionUncheckedUpdateManyWithoutMessageInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -930,9 +1058,13 @@ export type McpPendingActionCreateManyRunStepInput = {
   userId: string
   agent: $Enums.Agent
   messageId?: string | null
-  connectionId: string
+  kind?: $Enums.ApprovalKind
+  connectionId?: string | null
   integrationSlug: string
   toolName: string
+  actionId?: string | null
+  objectKind?: string | null
+  objectId?: string | null
   arguments: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary: string
   source?: $Enums.McpActionSource
@@ -949,9 +1081,13 @@ export type McpPendingActionUpdateWithoutRunStepInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -970,9 +1106,13 @@ export type McpPendingActionUncheckedUpdateWithoutRunStepInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -990,9 +1130,13 @@ export type McpPendingActionUncheckedUpdateManyWithoutRunStepInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.EnumApprovalKindFieldUpdateOperationsInput | $Enums.ApprovalKind
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  actionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   arguments?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   source?: Prisma.EnumMcpActionSourceFieldUpdateOperationsInput | $Enums.McpActionSource
@@ -1012,9 +1156,13 @@ export type McpPendingActionSelect<ExtArgs extends runtime.Types.Extensions.Inte
   userId?: boolean
   agent?: boolean
   messageId?: boolean
+  kind?: boolean
   connectionId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  actionId?: boolean
+  objectKind?: boolean
+  objectId?: boolean
   arguments?: boolean
   summary?: boolean
   source?: boolean
@@ -1035,9 +1183,13 @@ export type McpPendingActionSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   userId?: boolean
   agent?: boolean
   messageId?: boolean
+  kind?: boolean
   connectionId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  actionId?: boolean
+  objectKind?: boolean
+  objectId?: boolean
   arguments?: boolean
   summary?: boolean
   source?: boolean
@@ -1058,9 +1210,13 @@ export type McpPendingActionSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   userId?: boolean
   agent?: boolean
   messageId?: boolean
+  kind?: boolean
   connectionId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  actionId?: boolean
+  objectKind?: boolean
+  objectId?: boolean
   arguments?: boolean
   summary?: boolean
   source?: boolean
@@ -1081,9 +1237,13 @@ export type McpPendingActionSelectScalar = {
   userId?: boolean
   agent?: boolean
   messageId?: boolean
+  kind?: boolean
   connectionId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  actionId?: boolean
+  objectKind?: boolean
+  objectId?: boolean
   arguments?: boolean
   summary?: boolean
   source?: boolean
@@ -1096,7 +1256,7 @@ export type McpPendingActionSelectScalar = {
   runStepId?: boolean
 }
 
-export type McpPendingActionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "messageId" | "connectionId" | "integrationSlug" | "toolName" | "arguments" | "summary" | "source" | "triggerEventId" | "status" | "resultJson" | "errorMessage" | "createdAt" | "updatedAt" | "runStepId", ExtArgs["result"]["mcpPendingAction"]>
+export type McpPendingActionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "messageId" | "kind" | "connectionId" | "integrationSlug" | "toolName" | "actionId" | "objectKind" | "objectId" | "arguments" | "summary" | "source" | "triggerEventId" | "status" | "resultJson" | "errorMessage" | "createdAt" | "updatedAt" | "runStepId", ExtArgs["result"]["mcpPendingAction"]>
 export type McpPendingActionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   message?: boolean | Prisma.McpPendingAction$messageArgs<ExtArgs>
   runStep?: boolean | Prisma.McpPendingAction$runStepArgs<ExtArgs>
@@ -1144,17 +1304,40 @@ export type $McpPendingActionPayload<ExtArgs extends runtime.Types.Extensions.In
      */
     messageId: string | null
     /**
-     * McpConnection.connectionId the tool call targets.
+     * What sort of operation is staged. Defaults to MCP_TOOL so every row
+     * written before this column existed keeps its original meaning.
      */
-    connectionId: string
+    kind: $Enums.ApprovalKind
+    /**
+     * McpConnection.connectionId the tool call targets. Nullable only so
+     * non-MCP kinds can be staged; still REQUIRED for kind = MCP_TOOL, which
+     * the Zod schema and approvals.service assert rather than the database.
+     */
+    connectionId: string | null
     /**
      * Catalog slug, denormalized for cheap frontend display (icon/name).
+     * Native (non-MCP) actions use the sentinel "native" so the existing
+     * McpApprovalPolicy lookup works unchanged for them.
      */
     integrationSlug: string
     /**
      * Real provider-side tool/action slug (e.g. Composio's GMAIL_SEND_EMAIL).
+     * For native kinds this holds the frontend AgentActionId instead, which is
+     * what makes one approval-policy table cover both.
      */
     toolName: string
+    /**
+     * Frontend AgentActionId, when a native action staged this.
+     */
+    actionId: string | null
+    /**
+     * Work object this action would affect, for linking back from the queue.
+     */
+    objectKind: string | null
+    /**
+     * Id within that object's own typed table.
+     */
+    objectId: string | null
     /**
      * Arguments the LLM proposed calling the tool with.
      */
@@ -1627,9 +1810,13 @@ export interface McpPendingActionFieldRefs {
   readonly userId: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly agent: Prisma.FieldRef<"McpPendingAction", 'Agent'>
   readonly messageId: Prisma.FieldRef<"McpPendingAction", 'String'>
+  readonly kind: Prisma.FieldRef<"McpPendingAction", 'ApprovalKind'>
   readonly connectionId: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly integrationSlug: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly toolName: Prisma.FieldRef<"McpPendingAction", 'String'>
+  readonly actionId: Prisma.FieldRef<"McpPendingAction", 'String'>
+  readonly objectKind: Prisma.FieldRef<"McpPendingAction", 'String'>
+  readonly objectId: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly arguments: Prisma.FieldRef<"McpPendingAction", 'Json'>
   readonly summary: Prisma.FieldRef<"McpPendingAction", 'String'>
   readonly source: Prisma.FieldRef<"McpPendingAction", 'McpActionSource'>
