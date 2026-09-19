@@ -10,6 +10,7 @@ import { prisma } from "../../../config/prisma.js";
 import { Agent, Prisma } from "../../../../prisma/generated/prisma/client.js";
 import { aiService } from "../../../common/utils/aiService.js";
 import type { AnalyzeContractResponse } from "./lex.types.js";
+import { mirrorLexActivity, projectLexSource } from "./lex.workspace.js";
 
 type Analysis = AnalyzeContractResponse["analysis"];
 
@@ -118,6 +119,10 @@ export const logActivity = async (input: {
         detail: (input.detail ?? "").slice(0, 500),
       },
     });
+    // Dual-write into the shared workspace feed. LexActivity stays the reader
+    // for Lex's own list and the weekly brief until the workspace feed is the
+    // only consumer, at which point this row gets backfilled and dropped.
+    await mirrorLexActivity(input);
   } catch (err) {
     // The audit trail must never fail the action it records.
     console.warn("[lex] activity log failed", err);
@@ -303,6 +308,9 @@ export const saveReview = async (input: {
       detail: issues.filter((i) => i.severity === "critical" || i.severity === "high").map((i) => i.title).join("; "),
     });
   }
+  // A review is what fills in the dates, risk counts and headline the workspace
+  // Work list shows, so this is the write point worth projecting from.
+  await projectLexSource(source.id);
   return source.id;
 };
 

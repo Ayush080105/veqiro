@@ -1,0 +1,167 @@
+import { prisma } from "../../config/prisma.js";
+import {
+  Agent,
+  WorkObjectStatus,
+  type Prisma,
+} from "../../../prisma/generated/prisma/client.js";
+
+/**
+ * Projection into WorkObjectIndex.
+ *
+ * The contract, and the thing that keeps this from rotting: **the typed table
+ * is the truth and this index is derived**. Nothing may read the index to make
+ * a decision — list rows, yes; anything load-bearing re-reads the typed row.
+ * That way drift is a stale list, never a wrong answer.
+ *
+ * Call these from the owning *service* write points, never from a controller:
+ * controllers are not the only writer (crons and the AI service also write), so
+ * projecting at the controller guarantees gaps. Deletes must project inside the
+ * same transaction as the typed delete, or a failed delete leaves a ghost row.
+ *
+ * When it does drift anyway, POST /internal/work-objects/reindex rebuilds a
+ * kind from scratch. Treat that as the escape hatch it is.
+ */
+
+/** Dotted kinds. Kept here so the strings have exactly one home. */
+export const WORK_OBJECT_KINDS = {
+  lexContract: "lex.contract",
+} as const;
+
+export type WorkObjectKind = (typeof WORK_OBJECT_KINDS)[keyof typeof WORK_OBJECT_KINDS];
+
+export interface ProjectInput {
+  organizationId: string;
+  agent: Agent;
+  kind: string;
+  sourceId: string;
+  title: string;
+  status?: WorkObjectStatus;
+  dueAt?: Date | null;
+  ownerUserId?: string | null;
+  /** Display-only. Never read this to decide anything. */
+  preview?: Prisma.InputJsonValue;
+  sourceUpdatedAt: Date;
+}
+
+export async function projectWorkObject(input: ProjectInput): Promise<void> {
+  const data = {
+    organizationId: input.organizationId,
+    agent: input.agent,
+    title: input.title,
+    status: input.status ?? WorkObjectStatus.ACTIVE,
+    dueAt: input.dueAt ?? null,
+    ownerUserId: input.ownerUserId ?? null,
+    preview: input.preview,
+    sourceUpdatedAt: input.sourceUpdatedAt,
+  };
+  try {
+    await prisma.workObjectIndex.upsert({
+      where: { kind_sourceId: { kind: input.kind, sourceId: input.sourceId } },
+      create: { kind: input.kind, sourceId: input.sourceId, ...data },
+      update: data,
+    });
+  } catch (err) {
+    // Non-fatal by design: a missing index row degrades a list, while throwing
+    // here would fail the contract upload that triggered it.
+    console.error("[work-objects] projection failed", input.kind, input.sourceId, err);
+  }
+}
+
+/**
+ * Remove an object from the index.
+ *
+ * Pass the transaction client when deleting the typed row inside one, so the
+ * index entry cannot survive a rolled-back delete.
+ */
+export async function unprojectWorkObject(
+  kind: string,
+  sourceId: string,
+  client: Pick<typeof prisma, "workObjectIndex"> = prisma,
+): Promise<void> {
+  await client.workObjectIndex.deleteMany({ where: { kind, sourceId } });
+}
+
+/** Map Lex's own status string onto the shared lifecycle. */
+export function lexStatusToWorkObjectStatus(
+  status: string,
+  hasUnreviewedRisk: boolean,
+): WorkObjectStatus {
+  if (status === "archived") return WorkObjectStatus.ARCHIVED;
+  if (status === "draft") return WorkObjectStatus.DRAFT;
+  if (hasUnreviewedRisk) return WorkObjectStatus.NEEDS_REVIEW;
+  return WorkObjectStatus.ACTIVE;
+}
+
+/**
+ * Rebuild every index row for one kind from its typed table.
+ *
+ * Deletes rows whose source has vanished, so it repairs ghosts as well as
+ * gaps. Returns counts so the caller can log what it actually fixed rather
+ * than reporting a reassuring "ok".
+ */
+export async function reindexKind(
+  kind: string,
+  organizationId?: string,
+): Promise<{ kind: string; projected: number; removed: number }> {
+  if (kind !== WORK_OBJECT_KINDS.lexContract) {
+    throw new Error(`No reindexer registered for kind "${kind}"`);
+  }
+
+  const sources = await prisma.lexSource.findMany({
+    where: organizationId ? { organizationId } : undefined,
+  });
+
+  for (const source of sources) {
+    await projectWorkObject(lexSourceToWorkObject(source));
+  }
+
+  const liveIds = new Set(sources.map((s) => s.id));
+  const indexed = await prisma.workObjectIndex.findMany({
+    where: { kind, ...(organizationId ? { organizationId } : {}) },
+    select: { sourceId: true },
+  });
+  const stale = indexed.filter((row) => !liveIds.has(row.sourceId)).map((r) => r.sourceId);
+  if (stale.length > 0) {
+    await prisma.workObjectIndex.deleteMany({ where: { kind, sourceId: { in: stale } } });
+  }
+
+  return { kind, projected: sources.length, removed: stale.length };
+}
+
+type LexSourceRow = Awaited<ReturnType<typeof prisma.lexSource.findMany>>[number];
+
+/**
+ * The one place that knows how a LexSource becomes an index row, so the
+ * incremental projection and the bulk reindex cannot disagree.
+ */
+export function lexSourceToWorkObject(source: LexSourceRow): ProjectInput {
+  // The soonest date that needs a human. Notice deadlines come before the
+  // renewal they protect, which is exactly why they are listed first.
+  const candidates = [source.noticeDeadline, source.renewalDate, source.expiryDate].filter(
+    (d): d is Date => d instanceof Date,
+  );
+  const dueAt = candidates.length > 0 ? new Date(Math.min(...candidates.map((d) => d.getTime()))) : null;
+
+  const hasUnreviewedRisk = source.criticalCount > 0 || source.highCount > 0;
+
+  return {
+    organizationId: source.organizationId,
+    agent: Agent.LEX,
+    kind: WORK_OBJECT_KINDS.lexContract,
+    sourceId: source.id,
+    title: source.name,
+    status: lexStatusToWorkObjectStatus(source.status, hasUnreviewedRisk),
+    dueAt,
+    ownerUserId: source.userId,
+    preview: {
+      counterparty: source.counterparty,
+      riskLevel: source.riskLevel,
+      reviewHeadline: source.reviewHeadline,
+      criticalCount: source.criticalCount,
+      highCount: source.highCount,
+      contractValue: source.contractValue,
+      type: source.typeDetected ?? source.type,
+    },
+    sourceUpdatedAt: source.lastReviewedAt ?? source.createdAt,
+  };
+}

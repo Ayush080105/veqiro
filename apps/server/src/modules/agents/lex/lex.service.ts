@@ -47,6 +47,7 @@ import type {
   SourceReviewSummary,
 } from "./lex.types.js";
 import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
+import { projectLexSource, unprojectLexSource } from "./lex.workspace.js";
 
 /**
  * Fetches full text for sources explicitly attached via the composer's "#"
@@ -459,6 +460,10 @@ export const finalizeSource = async (
     action: previous ? `Uploaded version ${source.version} of ${previous.name}` : `Uploaded ${source.name}`,
     detail: `${data.page_count} pages`,
   });
+  // The document exists now, so it belongs in the Work list immediately — an
+  // unreviewed upload is exactly the kind of thing the workspace should show
+  // rather than hiding until someone runs a review.
+  await projectLexSource(source.id);
   if (previous) {
     // Comparison is one model call, cached on the new version; it runs in the background so
     // the upload returns immediately and Legal Watch picks the result up when it lands.
@@ -556,6 +561,9 @@ export const deleteSource = async (
 
   await lexMemory.logActivity({ organizationId, actor: "user", userId, action: `Deleted ${source.name}` });
   await lexRepository.deleteSourceById(id);
+  // After the typed delete, never before: a failed delete must not leave the
+  // Work list claiming the document is gone.
+  await unprojectLexSource(id);
   return { deleted: true };
 };
 

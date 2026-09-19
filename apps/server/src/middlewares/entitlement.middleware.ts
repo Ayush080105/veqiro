@@ -63,3 +63,27 @@ export function entitlementMiddlewareForAgent(agent?: Agent) {
 }
 
 export const entitlementMiddleware = entitlementMiddlewareForAgent();
+
+/**
+ * Same gate, but for routes whose agent is a URL parameter rather than fixed at
+ * mount time (/workspace/:agent/*). The existing factory takes a static agent,
+ * which every /agents/* mount can supply and the workspace router cannot.
+ *
+ * Unknown slugs are rejected here rather than passed through, so a typo cannot
+ * reach a handler that would treat "undefined" as "no agent filter" and return
+ * another agent's work.
+ */
+export function entitlementForAgentParam(param = "agent") {
+  return async function entitlementParamMiddleware(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    const slug = String(req.params[param] ?? "").toUpperCase();
+    const agent = (Agent as Record<string, Agent>)[slug];
+    if (!agent) {
+      return res.status(StatusCodes.NOT_FOUND).json({ error: "Unknown agent" });
+    }
+    return entitlementMiddlewareForAgent(agent)(req, res, next);
+  };
+}

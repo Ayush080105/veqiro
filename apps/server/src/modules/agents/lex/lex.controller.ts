@@ -22,6 +22,7 @@ import {
 import * as lexMemory from "./lex.memory.js";
 import { NotFoundError } from "../../../common/errors/notFound.js";
 import * as lexService from "./lex.service.js";
+import { syncLexInsights } from "./lex.workspace.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
 import { UnauthenticatedError } from "../../../common/errors/unauthenticated.js";
 
@@ -134,7 +135,12 @@ export const updateObligation = async (req: Request, res: Response) => {
 
 export const getWatch = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
-  res.status(StatusCodes.OK).json(await lexMemory.buildWatch(userId, organizationId));
+  const watch = await lexMemory.buildWatch(userId, organizationId);
+  res.status(StatusCodes.OK).json(watch);
+  // Mirror the same findings into Insights so the workspace overview can show
+  // and act on them. After the response, and swallowing its own errors, so the
+  // watch endpoint behaves exactly as it did before.
+  void syncLexInsights(organizationId, watch.items);
 };
 
 export const getBrief = async (req: Request, res: Response) => {

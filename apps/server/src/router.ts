@@ -20,6 +20,7 @@ import integrationsProtectedRouter, {
   integrationsPublicRouter,
 } from "./modules/integrations/integrations.routes.js";
 import mcpRouter, { mcpInternalRouter } from "./modules/mcp/mcp.routes.js";
+import workspaceRouter, { workspaceInternalRouter } from "./modules/workspace/workspace.routes.js";
 import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
 import { getBrandKitInternal } from "./modules/brand-kit/brand-kit.controller.js";
 import brandImagesRouter from "./modules/brand-images/brand-images.routes.js";
@@ -90,5 +91,11 @@ router.use("/integrations", integrationsProtectedRouter);
 router.use("/mcp", mcpRouter);
 // apps/ai's only path to Composio — Node holds the master API key exclusively.
 router.use("/internal/mcp", mcpInternalRouter);
+
+// Agent workspaces. Auth and per-agent entitlement are applied inside this
+// router rather than here, because the agent is a URL parameter rather than
+// fixed at mount time the way every /agents/* mount above is.
+router.use("/workspace", workspaceRouter);
+router.use("/internal", workspaceInternalRouter);
 
 export default router;
