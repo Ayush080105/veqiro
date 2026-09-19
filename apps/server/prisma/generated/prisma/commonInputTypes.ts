@@ -1007,6 +1007,40 @@ export type EnumMemoryOriginWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel>
 }
 
+export type EnumSeoIssueSeverityFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueSeverity | Prisma.EnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueSeverityFilter<$PrismaModel> | $Enums.SeoIssueSeverity
+}
+
+export type EnumSeoIssueStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueStatus | Prisma.EnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueStatusFilter<$PrismaModel> | $Enums.SeoIssueStatus
+}
+
+export type EnumSeoIssueSeverityWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueSeverity | Prisma.EnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueSeverityWithAggregatesFilter<$PrismaModel> | $Enums.SeoIssueSeverity
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSeoIssueSeverityFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSeoIssueSeverityFilter<$PrismaModel>
+}
+
+export type EnumSeoIssueStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueStatus | Prisma.EnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueStatusWithAggregatesFilter<$PrismaModel> | $Enums.SeoIssueStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSeoIssueStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSeoIssueStatusFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1946,6 +1980,40 @@ export type NestedEnumMemoryOriginWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel>
   _max?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel>
+}
+
+export type NestedEnumSeoIssueSeverityFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueSeverity | Prisma.EnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueSeverityFilter<$PrismaModel> | $Enums.SeoIssueSeverity
+}
+
+export type NestedEnumSeoIssueStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueStatus | Prisma.EnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueStatusFilter<$PrismaModel> | $Enums.SeoIssueStatus
+}
+
+export type NestedEnumSeoIssueSeverityWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueSeverity | Prisma.EnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueSeverity[] | Prisma.ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueSeverityWithAggregatesFilter<$PrismaModel> | $Enums.SeoIssueSeverity
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSeoIssueSeverityFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSeoIssueSeverityFilter<$PrismaModel>
+}
+
+export type NestedEnumSeoIssueStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SeoIssueStatus | Prisma.EnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SeoIssueStatus[] | Prisma.ListEnumSeoIssueStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSeoIssueStatusWithAggregatesFilter<$PrismaModel> | $Enums.SeoIssueStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSeoIssueStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSeoIssueStatusFilter<$PrismaModel>
 }
 
 

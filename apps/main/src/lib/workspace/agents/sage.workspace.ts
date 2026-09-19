@@ -6,10 +6,11 @@ import type { AgentWorkspaceSpec } from "../types"
 /**
  * Sage — SEO.
  *
- * Saved keywords are the only thing Sage persists today; the audits are
- * stateless endpoints. Making those durable (SeoPage / SeoIssue, so an audit
- * becomes a tracked issue queue rather than a one-off answer) is the PRD's
- * "continuous monitoring" work and belongs to the proactive phase, not here.
+ * Two work types: keywords, and the pages Sage watches. Pages are the
+ * interesting one — an audit used to be a score that scrolled away, so there
+ * was no way to know whether last month's work helped. Now the page keeps its
+ * score history and its issues keep their status, which is what turns an audit
+ * into monitoring.
  */
 export const sageWorkspace: AgentWorkspaceSpec = {
   agent: "sage",
@@ -26,6 +27,26 @@ export const sageWorkspace: AgentWorkspaceSpec = {
         })),
       ),
       createActions: ["sage:keyword-research" as AgentActionId],
+    },
+    {
+      slug: "pages",
+      label: "Pages",
+      labelSingular: "Page",
+      kind: "sage.page",
+      List: lazy(() =>
+        import("@/components/workspace/agents/sage/SagePagesWork").then((m) => ({
+          default: m.SagePagesWork,
+        })),
+      ),
+      Detail: lazy(() =>
+        import("@/components/workspace/agents/sage/SagePageDetail").then((m) => ({
+          default: m.SagePageDetail,
+        })),
+      ),
+      createActions: [
+        "sage:page-seo-audit" as AgentActionId,
+        "sage:site-audit" as AgentActionId,
+      ],
     },
   ],
 

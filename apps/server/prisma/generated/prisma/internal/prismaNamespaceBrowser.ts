@@ -122,7 +122,9 @@ export const ModelName = {
   ResearchProject: 'ResearchProject',
   ResearchSource: 'ResearchSource',
   ResearchFinding: 'ResearchFinding',
-  MemoryItem: 'MemoryItem'
+  MemoryItem: 'MemoryItem',
+  SeoPage: 'SeoPage',
+  SeoIssue: 'SeoIssue'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1366,6 +1368,39 @@ export const MemoryItemScalarFieldEnum = {
 } as const
 
 export type MemoryItemScalarFieldEnum = (typeof MemoryItemScalarFieldEnum)[keyof typeof MemoryItemScalarFieldEnum]
+
+
+export const SeoPageScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  url: 'url',
+  title: 'title',
+  targetKeyword: 'targetKeyword',
+  score: 'score',
+  previousScore: 'previousScore',
+  summary: 'summary',
+  nextMove: 'nextMove',
+  lastAuditedAt: 'lastAuditedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SeoPageScalarFieldEnum = (typeof SeoPageScalarFieldEnum)[keyof typeof SeoPageScalarFieldEnum]
+
+
+export const SeoIssueScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  pageId: 'pageId',
+  severity: 'severity',
+  description: 'description',
+  status: 'status',
+  firstSeenAt: 'firstSeenAt',
+  lastSeenAt: 'lastSeenAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type SeoIssueScalarFieldEnum = (typeof SeoIssueScalarFieldEnum)[keyof typeof SeoIssueScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -371,3 +371,22 @@ export const MemoryOrigin = {
 } as const
 
 export type MemoryOrigin = (typeof MemoryOrigin)[keyof typeof MemoryOrigin]
+
+
+export const SeoIssueSeverity = {
+  CRITICAL: 'CRITICAL',
+  HIGH: 'HIGH',
+  MEDIUM: 'MEDIUM',
+  QUICK_WIN: 'QUICK_WIN'
+} as const
+
+export type SeoIssueSeverity = (typeof SeoIssueSeverity)[keyof typeof SeoIssueSeverity]
+
+
+export const SeoIssueStatus = {
+  OPEN: 'OPEN',
+  FIXED: 'FIXED',
+  IGNORED: 'IGNORED'
+} as const
+
+export type SeoIssueStatus = (typeof SeoIssueStatus)[keyof typeof SeoIssueStatus]

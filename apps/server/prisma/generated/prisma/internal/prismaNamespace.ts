@@ -455,7 +455,9 @@ export const ModelName = {
   ResearchProject: 'ResearchProject',
   ResearchSource: 'ResearchSource',
   ResearchFinding: 'ResearchFinding',
-  MemoryItem: 'MemoryItem'
+  MemoryItem: 'MemoryItem',
+  SeoPage: 'SeoPage',
+  SeoIssue: 'SeoIssue'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -471,7 +473,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign" | "researchProject" | "researchSource" | "researchFinding" | "memoryItem"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign" | "researchProject" | "researchSource" | "researchFinding" | "memoryItem" | "seoPage" | "seoIssue"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5803,6 +5805,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SeoPage: {
+      payload: Prisma.$SeoPagePayload<ExtArgs>
+      fields: Prisma.SeoPageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SeoPageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SeoPageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>
+        }
+        findFirst: {
+          args: Prisma.SeoPageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SeoPageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>
+        }
+        findMany: {
+          args: Prisma.SeoPageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>[]
+        }
+        create: {
+          args: Prisma.SeoPageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>
+        }
+        createMany: {
+          args: Prisma.SeoPageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SeoPageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>[]
+        }
+        delete: {
+          args: Prisma.SeoPageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>
+        }
+        update: {
+          args: Prisma.SeoPageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>
+        }
+        deleteMany: {
+          args: Prisma.SeoPageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SeoPageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SeoPageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>[]
+        }
+        upsert: {
+          args: Prisma.SeoPageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoPagePayload>
+        }
+        aggregate: {
+          args: Prisma.SeoPageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSeoPage>
+        }
+        groupBy: {
+          args: Prisma.SeoPageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoPageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SeoPageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoPageCountAggregateOutputType> | number
+        }
+      }
+    }
+    SeoIssue: {
+      payload: Prisma.$SeoIssuePayload<ExtArgs>
+      fields: Prisma.SeoIssueFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SeoIssueFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SeoIssueFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>
+        }
+        findFirst: {
+          args: Prisma.SeoIssueFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SeoIssueFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>
+        }
+        findMany: {
+          args: Prisma.SeoIssueFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>[]
+        }
+        create: {
+          args: Prisma.SeoIssueCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>
+        }
+        createMany: {
+          args: Prisma.SeoIssueCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SeoIssueCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>[]
+        }
+        delete: {
+          args: Prisma.SeoIssueDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>
+        }
+        update: {
+          args: Prisma.SeoIssueUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>
+        }
+        deleteMany: {
+          args: Prisma.SeoIssueDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SeoIssueUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SeoIssueUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>[]
+        }
+        upsert: {
+          args: Prisma.SeoIssueUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeoIssuePayload>
+        }
+        aggregate: {
+          args: Prisma.SeoIssueAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSeoIssue>
+        }
+        groupBy: {
+          args: Prisma.SeoIssueGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoIssueGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SeoIssueCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeoIssueCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -7069,6 +7219,39 @@ export const MemoryItemScalarFieldEnum = {
 export type MemoryItemScalarFieldEnum = (typeof MemoryItemScalarFieldEnum)[keyof typeof MemoryItemScalarFieldEnum]
 
 
+export const SeoPageScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  url: 'url',
+  title: 'title',
+  targetKeyword: 'targetKeyword',
+  score: 'score',
+  previousScore: 'previousScore',
+  summary: 'summary',
+  nextMove: 'nextMove',
+  lastAuditedAt: 'lastAuditedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SeoPageScalarFieldEnum = (typeof SeoPageScalarFieldEnum)[keyof typeof SeoPageScalarFieldEnum]
+
+
+export const SeoIssueScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  pageId: 'pageId',
+  severity: 'severity',
+  description: 'description',
+  status: 'status',
+  firstSeenAt: 'firstSeenAt',
+  lastSeenAt: 'lastSeenAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type SeoIssueScalarFieldEnum = (typeof SeoIssueScalarFieldEnum)[keyof typeof SeoIssueScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7689,6 +7872,34 @@ export type EnumMemoryOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
 export type ListEnumMemoryOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MemoryOrigin[]'>
     
 
+
+/**
+ * Reference to a field of type 'SeoIssueSeverity'
+ */
+export type EnumSeoIssueSeverityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoIssueSeverity'>
+    
+
+
+/**
+ * Reference to a field of type 'SeoIssueSeverity[]'
+ */
+export type ListEnumSeoIssueSeverityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoIssueSeverity[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SeoIssueStatus'
+ */
+export type EnumSeoIssueStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoIssueStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'SeoIssueStatus[]'
+ */
+export type ListEnumSeoIssueStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SeoIssueStatus[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -7856,6 +8067,8 @@ export type GlobalOmitConfig = {
   researchSource?: Prisma.ResearchSourceOmit
   researchFinding?: Prisma.ResearchFindingOmit
   memoryItem?: Prisma.MemoryItemOmit
+  seoPage?: Prisma.SeoPageOmit
+  seoIssue?: Prisma.SeoIssueOmit
 }
 
 /* Types for Logging */

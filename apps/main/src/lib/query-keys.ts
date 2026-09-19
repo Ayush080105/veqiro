@@ -87,6 +87,8 @@ export const qk = {
   mayaCampaigns: (status: string) => ["maya", "campaigns", status] as const,
   scoutProjects: () => ["scout", "projects"] as const,
   scoutProject: (id: string) => ["scout", "project", id] as const,
+  sagePages: () => ["sage", "pages"] as const,
+  sagePage: (id: string) => ["sage", "page", id] as const,
   companyPulse: (organizationId: string) => ["workspace", "pulse", organizationId] as const,
   workspaceOutcomes: (organizationId: string, days: number) =>
     ["workspace", "outcomes", organizationId, days] as const,

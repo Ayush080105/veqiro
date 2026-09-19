@@ -413,6 +413,8 @@ model Organization {
   researchProjects     ResearchProject[]
   /// Durable facts with provenance.
   memoryItems          MemoryItem[]
+  /// Pages Sage watches.
+  seoPages             SeoPage[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -2913,4 +2915,93 @@ model MemoryItem {
   @@index([organizationId, agent, retiredAt])
   @@index([organizationId, kind])
   @@map("memory_item")
+}
+
+/// How serious an SEO issue is, in Sage's own terms.
+enum SeoIssueSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  /// Small and cheap — the "quick wins" bucket.
+  QUICK_WIN
+}
+
+enum SeoIssueStatus {
+  OPEN
+  /// The customer says it is handled; the next audit confirms or reopens it.
+  FIXED
+  /// Deliberately not doing this one.
+  IGNORED
+}
+
+/// A page Sage watches.
+///
+/// Audits were stateless: they produced a score and a list of problems that
+/// scrolled away, so there was no way to tell whether last month's work helped
+/// or whether a page got worse. Keeping the page keeps the score history, and
+/// a score history is what turns an audit into monitoring.
+model SeoPage {
+  /// Page row id.
+  id             String       @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// Owning organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  url            String
+  /// Page title as last seen.
+  title          String       @default("")
+  /// Keyword this page is meant to win.
+  targetKeyword  String       @default("")
+  /// Latest overall score, 0-100.
+  score          Int?
+  /// The score before the most recent audit, so movement is readable without
+  /// a separate history table. Two points is enough to say "better or worse";
+  /// a full time series is a reporting feature, not a monitoring one.
+  previousScore  Int?
+  /// Sage's one-line read on the page.
+  summary        String       @default("") @db.Text
+  /// What it says to do next.
+  nextMove       String       @default("") @db.Text
+  lastAuditedAt  DateTime?
+  issues         SeoIssue[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, url])
+  @@index([organizationId, score])
+  @@index([organizationId, lastAuditedAt])
+  @@map("seo_page")
+}
+
+/// One problem found on a page.
+///
+/// Issues are rows rather than a JSON array on the page because they have a
+/// life of their own: a customer fixes one, ignores another, and expects the
+/// next audit to notice. A blob cannot carry that, and re-deriving status from
+/// text every audit would lose every decision they made.
+model SeoIssue {
+  /// Issue id.
+  id             String           @id @default(uuid())
+  /// Owning organization id, denormalised so issues can be listed org-wide.
+  organizationId String
+  /// Owning page id.
+  pageId         String
+  /// Owning page relation.
+  page           SeoPage          @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  severity       SeoIssueSeverity
+  /// The problem, in Sage's words.
+  description    String           @db.Text
+  status         SeoIssueStatus   @default(OPEN)
+  /// First and most recent audit that reported it. An issue reported again
+  /// after being marked FIXED is the interesting case — it means the fix did
+  /// not take, and that is worth surfacing rather than silently reopening.
+  firstSeenAt    DateTime         @default(now())
+  lastSeenAt     DateTime         @default(now())
+  resolvedAt     DateTime?
+
+  /// Dedupe within a page: the same wording from a later audit is the same
+  /// issue, not a new one.
+  @@unique([pageId, description])
+  @@index([organizationId, status, severity])
+  @@map("seo_issue")
 }

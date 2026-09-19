@@ -493,3 +493,65 @@ export function useOutcomes(organizationId: string, days = 30) {
     staleTime: 60_000,
   })
 }
+
+// ─── Sage pages (SEO monitoring) ─────────────────────────────────────────────
+
+export type SeoIssueSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "QUICK_WIN"
+export type SeoIssueStatus = "OPEN" | "FIXED" | "IGNORED"
+
+export interface SeoPageSummary {
+  id: string
+  url: string
+  title: string
+  targetKeyword: string
+  score: number | null
+  previousScore: number | null
+  nextMove: string
+  openIssues: number
+  lastAuditedAt: string | null
+}
+
+export interface SeoIssue {
+  id: string
+  severity: SeoIssueSeverity
+  description: string
+  status: SeoIssueStatus
+  firstSeenAt: string
+  lastSeenAt: string
+}
+
+export interface SeoPageDetail extends Omit<SeoPageSummary, "openIssues"> {
+  summary: string
+  issues: SeoIssue[]
+}
+
+export function useSeoPages() {
+  return useQuery({
+    queryKey: qk.sagePages(),
+    queryFn: () => apiFetch<SeoPageSummary[]>("/agents/sage/pages"),
+  })
+}
+
+export function useSeoPage(id: string | undefined) {
+  return useQuery({
+    queryKey: qk.sagePage(id ?? ""),
+    queryFn: () => apiFetch<SeoPageDetail>(`/agents/sage/pages/${id}`),
+    enabled: Boolean(id),
+  })
+}
+
+export function useSetIssueStatus(organizationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: SeoIssueStatus }) =>
+      apiFetch<{ id: string; status: SeoIssueStatus }>(`/agents/sage/issues/${id}`, {
+        method: "PATCH",
+        body: { status },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["sage", "pages"] })
+      void qc.invalidateQueries({ queryKey: ["sage", "page"] })
+      void qc.invalidateQueries({ queryKey: qk.workspaceOverview("sage", organizationId) })
+    },
+  })
+}

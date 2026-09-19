@@ -546,3 +546,23 @@ export type ResearchFinding = Prisma.ResearchFindingModel
  * having one silently shadow the other.
  */
 export type MemoryItem = Prisma.MemoryItemModel
+/**
+ * Model SeoPage
+ * A page Sage watches.
+ * 
+ * Audits were stateless: they produced a score and a list of problems that
+ * scrolled away, so there was no way to tell whether last month's work helped
+ * or whether a page got worse. Keeping the page keeps the score history, and
+ * a score history is what turns an audit into monitoring.
+ */
+export type SeoPage = Prisma.SeoPageModel
+/**
+ * Model SeoIssue
+ * One problem found on a page.
+ * 
+ * Issues are rows rather than a JSON array on the page because they have a
+ * life of their own: a customer fixes one, ignores another, and expects the
+ * next audit to notice. A blob cannot carry that, and re-deriving status from
+ * text every audit would lose every decision they made.
+ */
+export type SeoIssue = Prisma.SeoIssueModel
