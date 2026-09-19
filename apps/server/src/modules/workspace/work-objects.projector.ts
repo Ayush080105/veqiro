@@ -78,7 +78,17 @@ export async function unprojectWorkObject(
   sourceId: string,
   client: Pick<typeof prisma, "workObjectIndex"> = prisma,
 ): Promise<void> {
-  await client.workObjectIndex.deleteMany({ where: { kind, sourceId } });
+  try {
+    await client.workObjectIndex.deleteMany({ where: { kind, sourceId } });
+  } catch (err) {
+    // Non-fatal, like projection. By the time this runs the typed row is
+    // already gone, so throwing would fail a delete that actually succeeded,
+    // and the worst case here is a ghost list row that reindex repairs.
+    // Callers needing the two to succeed or fail together pass a transaction
+    // client, which makes rollback the transaction's job rather than this
+    // function's.
+    console.error("[work-objects] unproject failed", kind, sourceId, err);
+  }
 }
 
 /** Map Lex's own status string onto the shared lifecycle. */

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 
-import { WORKSPACE_MIGRATED } from "@/lib/workspace/migrated"
 import { isWorkspaceUiEnabled } from "@/lib/workspace/flag"
+import { workspaceRedirectTarget } from "@/lib/workspace/redirect"
 
 /**
  * Sends migrated agents to their workspace.
@@ -27,19 +27,12 @@ export default async function AssistantRedirectLayout({
 }) {
   const { id } = await params
 
-  if ((await isWorkspaceUiEnabled()) && WORKSPACE_MIGRATED.has(id as never)) {
-    const resolved = (await searchParams) ?? {}
-    const qs = new URLSearchParams()
-    for (const [key, value] of Object.entries(resolved)) {
-      if (typeof value === "string") qs.set(key, value)
-      else if (Array.isArray(value) && value[0]) qs.set(key, value[0])
-    }
-    const query = qs.toString()
-    // An ?action= link opens the action, which belongs over the chat module
-    // rather than over an overview the customer did not ask for.
-    const target = query ? `/workspace/${id}/chat?${query}` : `/workspace/${id}/overview`
-    redirect(target)
-  }
+  const target = workspaceRedirectTarget({
+    agent: id,
+    enabled: await isWorkspaceUiEnabled(),
+    searchParams: await searchParams,
+  })
+  if (target) redirect(target)
 
   return <>{children}</>
 }
