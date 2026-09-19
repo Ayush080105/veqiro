@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAgentWorkspace } from "./AgentWorkspaceContext"
 import { OverviewModule } from "./modules/OverviewModule"
 import { ActionsModule } from "./modules/ActionsModule"
+import { AutomationsModule } from "./modules/AutomationsModule"
 import {
   ActivityModule,
   ApprovalsModule,
@@ -61,6 +62,8 @@ export function ModuleHost({ module }: { module: ModuleId }) {
       return <MemoryModule {...props} />
     case "integrations":
       return <IntegrationsModule {...props} />
+    case "automations":
+      return <AutomationsModule {...props} />
     case "work":
       return (
         <Suspense fallback={<ModuleSkeleton />}>

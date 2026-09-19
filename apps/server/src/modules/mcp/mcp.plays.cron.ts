@@ -69,7 +69,7 @@ export const matchesCron = (expression: string, at: Date): boolean => {
 export function startPlaysCron() {
   cron.schedule("* * * * *", () => {
     const now = new Date();
-    void runDuePlays((schedule) => matchesCron(schedule, now)).catch((err) => {
+    void runDuePlays((schedule) => matchesCron(schedule, now), now).catch((err) => {
       console.error("[plays-cron] tick failed", err);
     });
   });

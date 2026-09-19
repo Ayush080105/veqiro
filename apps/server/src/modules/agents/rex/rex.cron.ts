@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { aiService } from "../../../common/utils/aiService.js";
+import { recordRexAlertInsights } from "./rex.insights.js";
 import { resend } from "../../../lib/resend.js";
 import * as rexRepository from "./rex.repository.js";
 import type { AlertRule } from "./rex.schema.js";
@@ -141,7 +142,10 @@ function evaluateRule(rule: AlertRule, points: Array<{ date: string; value: numb
 }
 
 async function runDailyAlertsForOrg(organizationId: string, recipients: string[], rules: AlertRule[]) {
-  if (rules.length === 0 || recipients.length === 0) return;
+  // Recipients are only needed for the email. The rules themselves are
+  // evaluated whenever they exist, because a finding is worth recording
+  // whether or not anyone configured somewhere to send it.
+  if (rules.length === 0) return;
   try {
     const datasets = await rexRepository.findDatasets(organizationId);
     const fired: FiredAlert[] = [];
@@ -156,6 +160,13 @@ async function runDailyAlertsForOrg(organizationId: string, recipients: string[]
     }
 
     if (fired.length === 0) return;
+
+    // Record the finding before anything else. The old code returned early
+    // when there were no recipients, so an org running alert rules without a
+    // configured email was running rules that could never tell it anything.
+    await recordRexAlertInsights(organizationId, fired);
+
+    if (recipients.length === 0) return;
 
     const html = `
       <h2 style="margin:0 0 12px 0;font-family:system-ui,sans-serif;">REX alerts triggered (${fired.length})</h2>

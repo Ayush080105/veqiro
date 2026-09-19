@@ -445,7 +445,11 @@ export interface McpPlay {
   missing: string[]
   available: boolean
   enabled: boolean
+  /** The cron expression stored for this org. */
+  schedule: string
   lastRunAt: string | null
+  /** When it fires next, or null when switched off. */
+  nextRunAt: string | null
   lastError: string | null
 }
 

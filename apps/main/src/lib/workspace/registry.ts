@@ -54,7 +54,18 @@ export function resolveModules(spec: AgentWorkspaceSpec): ResolvedModule[] {
   return MODULE_ORDER.map((id) => {
     const override = overrides.get(id)
     const hasWork = id === "work" && spec.workTypes.length > 0
-    const alwaysReady = id === "overview" || id === "chat"
+    // Modules the framework can always render from data every agent already
+    // has: a chat thread, an overview, an action catalog, an approval queue,
+    // an activity feed, memory, integrations and automations.
+    const alwaysReady =
+      id === "overview" ||
+      id === "chat" ||
+      id === "actions" ||
+      id === "approvals" ||
+      id === "activity" ||
+      id === "memory" ||
+      id === "integrations" ||
+      id === "automations"
 
     return {
       id,
