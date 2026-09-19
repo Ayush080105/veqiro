@@ -468,3 +468,15 @@ export type Insight = Prisma.InsightModel
  * result, never a second executor.
  */
 export type Handoff = Prisma.HandoffModel
+/**
+ * Model Campaign
+ * A marketing campaign: the durable object around a generation run that
+ * previously left nothing behind but a PublishedPost.
+ * 
+ * Deliberately a thin wrapper, per the PRD's engineering rule. The generation
+ * itself still happens in apps/ai/core/campaign_director.py and is not
+ * touched: this records what was asked for, what came back, and what happened
+ * to it, so a campaign can be reopened, measured and reported on instead of
+ * scrolling back through a chat thread to find the images.
+ */
+export type Campaign = Prisma.CampaignModel

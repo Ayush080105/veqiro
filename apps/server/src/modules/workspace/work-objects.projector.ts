@@ -25,6 +25,8 @@ import {
 /** Dotted kinds. Kept here so the strings have exactly one home. */
 export const WORK_OBJECT_KINDS = {
   lexContract: "lex.contract",
+  mayaPost: "maya.post",
+  mayaCampaign: "maya.campaign",
 } as const;
 
 export type WorkObjectKind = (typeof WORK_OBJECT_KINDS)[keyof typeof WORK_OBJECT_KINDS];
@@ -91,41 +93,24 @@ export async function unprojectWorkObject(
   }
 }
 
-/** Map Lex's own status string onto the shared lifecycle. */
-export function lexStatusToWorkObjectStatus(
-  status: string,
-  hasUnreviewedRisk: boolean,
-): WorkObjectStatus {
-  if (status === "archived") return WorkObjectStatus.ARCHIVED;
-  if (status === "draft") return WorkObjectStatus.DRAFT;
-  if (hasUnreviewedRisk) return WorkObjectStatus.NEEDS_REVIEW;
-  return WorkObjectStatus.ACTIVE;
-}
-
 /**
- * Rebuild every index row for one kind from its typed table.
+ * Replace every index row for one kind, given the rows that should exist.
  *
- * Deletes rows whose source has vanished, so it repairs ghosts as well as
- * gaps. Returns counts so the caller can log what it actually fixed rather
- * than reporting a reassuring "ok".
+ * The generic half of a reindex: the caller supplies the projections (only it
+ * knows how to read its own typed table), and this sweeps away index rows whose
+ * source has since vanished. That is what makes reindex repair ghosts as well
+ * as gaps.
  */
-export async function reindexKind(
+export async function reprojectAll(
   kind: string,
+  rows: ProjectInput[],
   organizationId?: string,
 ): Promise<{ kind: string; projected: number; removed: number }> {
-  if (kind !== WORK_OBJECT_KINDS.lexContract) {
-    throw new Error(`No reindexer registered for kind "${kind}"`);
+  for (const row of rows) {
+    await projectWorkObject(row);
   }
 
-  const sources = await prisma.lexSource.findMany({
-    where: organizationId ? { organizationId } : undefined,
-  });
-
-  for (const source of sources) {
-    await projectWorkObject(lexSourceToWorkObject(source));
-  }
-
-  const liveIds = new Set(sources.map((s) => s.id));
+  const liveIds = new Set(rows.map((r) => r.sourceId));
   const indexed = await prisma.workObjectIndex.findMany({
     where: { kind, ...(organizationId ? { organizationId } : {}) },
     select: { sourceId: true },
@@ -135,43 +120,5 @@ export async function reindexKind(
     await prisma.workObjectIndex.deleteMany({ where: { kind, sourceId: { in: stale } } });
   }
 
-  return { kind, projected: sources.length, removed: stale.length };
-}
-
-type LexSourceRow = Awaited<ReturnType<typeof prisma.lexSource.findMany>>[number];
-
-/**
- * The one place that knows how a LexSource becomes an index row, so the
- * incremental projection and the bulk reindex cannot disagree.
- */
-export function lexSourceToWorkObject(source: LexSourceRow): ProjectInput {
-  // The soonest date that needs a human. Notice deadlines come before the
-  // renewal they protect, which is exactly why they are listed first.
-  const candidates = [source.noticeDeadline, source.renewalDate, source.expiryDate].filter(
-    (d): d is Date => d instanceof Date,
-  );
-  const dueAt = candidates.length > 0 ? new Date(Math.min(...candidates.map((d) => d.getTime()))) : null;
-
-  const hasUnreviewedRisk = source.criticalCount > 0 || source.highCount > 0;
-
-  return {
-    organizationId: source.organizationId,
-    agent: Agent.LEX,
-    kind: WORK_OBJECT_KINDS.lexContract,
-    sourceId: source.id,
-    title: source.name,
-    status: lexStatusToWorkObjectStatus(source.status, hasUnreviewedRisk),
-    dueAt,
-    ownerUserId: source.userId,
-    preview: {
-      counterparty: source.counterparty,
-      riskLevel: source.riskLevel,
-      reviewHeadline: source.reviewHeadline,
-      criticalCount: source.criticalCount,
-      highCount: source.highCount,
-      contractValue: source.contractValue,
-      type: source.typeDetected ?? source.type,
-    },
-    sourceUpdatedAt: source.lastReviewedAt ?? source.createdAt,
-  };
+  return { kind, projected: rows.length, removed: stale.length };
 }

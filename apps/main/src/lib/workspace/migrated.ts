@@ -14,4 +14,4 @@ import type { AgentSlug } from "@/lib/types"
  * deploy, not a per-customer setting. The per-customer switch is a separate
  * question and lives on Organization.workspaceUiEnabled.
  */
-export const WORKSPACE_MIGRATED: ReadonlySet<AgentSlug> = new Set<AgentSlug>(["lex"])
+export const WORKSPACE_MIGRATED: ReadonlySet<AgentSlug> = new Set<AgentSlug>(["lex", "maya"])

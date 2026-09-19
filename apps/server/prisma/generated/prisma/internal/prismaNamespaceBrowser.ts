@@ -117,7 +117,8 @@ export const ModelName = {
   ActivityEvent: 'ActivityEvent',
   WorkObjectIndex: 'WorkObjectIndex',
   Insight: 'Insight',
-  Handoff: 'Handoff'
+  Handoff: 'Handoff',
+  Campaign: 'Campaign'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -663,6 +664,7 @@ export const PublishedPostScalarFieldEnum = {
   publishedAt: 'publishedAt',
   scheduledAt: 'scheduledAt',
   failureNotifiedAt: 'failureNotifiedAt',
+  campaignId: 'campaignId',
   createdAt: 'createdAt'
 } as const
 
@@ -1269,6 +1271,29 @@ export const HandoffScalarFieldEnum = {
 } as const
 
 export type HandoffScalarFieldEnum = (typeof HandoffScalarFieldEnum)[keyof typeof HandoffScalarFieldEnum]
+
+
+export const CampaignScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  name: 'name',
+  brief: 'brief',
+  objective: 'objective',
+  audience: 'audience',
+  platform: 'platform',
+  status: 'status',
+  productImageUrls: 'productImageUrls',
+  assets: 'assets',
+  caption: 'caption',
+  approvedAt: 'approvedAt',
+  approvedByUserId: 'approvedByUserId',
+  scheduledFor: 'scheduledFor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
 
 
 export const SortOrder = {

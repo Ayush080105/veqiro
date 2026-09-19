@@ -1,12 +1,18 @@
 import { prisma } from "../../../config/prisma.js";
-import { Agent, ActorKind, InsightSeverity } from "../../../../prisma/generated/prisma/client.js";
+import {
+  ActorKind,
+  Agent,
+  InsightSeverity,
+  WorkObjectStatus,
+} from "../../../../prisma/generated/prisma/client.js";
 import { recordActivityEvent } from "../../activity/activity-event.service.js";
 import { upsertInsight } from "../../workspace/insights.service.js";
 import {
   WORK_OBJECT_KINDS,
-  lexSourceToWorkObject,
   projectWorkObject,
+  reprojectAll,
   unprojectWorkObject,
+  type ProjectInput,
 } from "../../workspace/work-objects.projector.js";
 
 /**
@@ -22,12 +28,19 @@ import {
 
 /** Project one LexSource into the index. Safe to call after any write to it. */
 export async function projectLexSource(sourceRowId: string): Promise<void> {
-  const source = await prisma.lexSource.findUnique({ where: { id: sourceRowId } });
-  if (!source) {
-    await unprojectWorkObject(WORK_OBJECT_KINDS.lexContract, sourceRowId);
-    return;
+  // projection-guard: the index is derived bookkeeping, so a failure here
+  // must never propagate into the publish or upload that triggered it.
+  try {
+    const source = await prisma.lexSource.findUnique({ where: { id: sourceRowId } });
+    if (!source) {
+      await unprojectWorkObject(WORK_OBJECT_KINDS.lexContract, sourceRowId);
+      return;
+    }
+    await projectWorkObject(lexSourceToWorkObject(source));
+
+  } catch (err) {
+    console.error("[lex] projection failed", err);
   }
-  await projectWorkObject(lexSourceToWorkObject(source));
 }
 
 export async function unprojectLexSource(sourceRowId: string): Promise<void> {
@@ -159,4 +172,68 @@ export async function syncLexInsights(
   } catch (err) {
     console.error("[lex] insight sync failed", err);
   }
+}
+
+// ─── Reindex ─────────────────────────────────────────────────────────────────
+
+type LexSourceRow = Awaited<ReturnType<typeof prisma.lexSource.findMany>>[number];
+
+/** Map Lex's own status string onto the shared lifecycle. */
+function lexStatusToWorkObjectStatus(
+  status: string,
+  hasUnreviewedRisk: boolean,
+): WorkObjectStatus {
+  if (status === "archived") return WorkObjectStatus.ARCHIVED;
+  if (status === "draft") return WorkObjectStatus.DRAFT;
+  if (hasUnreviewedRisk) return WorkObjectStatus.NEEDS_REVIEW;
+  return WorkObjectStatus.ACTIVE;
+}
+
+/**
+ * The one place that knows how a LexSource becomes an index row, so the
+ * incremental projection and the bulk reindex cannot disagree.
+ */
+export function lexSourceToWorkObject(source: LexSourceRow): ProjectInput {
+  // The soonest date that needs a human. Notice deadlines come before the
+  // renewal they protect, which is exactly why they are listed first.
+  const candidates = [source.noticeDeadline, source.renewalDate, source.expiryDate].filter(
+    (d): d is Date => d instanceof Date,
+  );
+  const dueAt =
+    candidates.length > 0 ? new Date(Math.min(...candidates.map((d) => d.getTime()))) : null;
+
+  const hasUnreviewedRisk = source.criticalCount > 0 || source.highCount > 0;
+
+  return {
+    organizationId: source.organizationId,
+    agent: Agent.LEX,
+    kind: WORK_OBJECT_KINDS.lexContract,
+    sourceId: source.id,
+    title: source.name,
+    status: lexStatusToWorkObjectStatus(source.status, hasUnreviewedRisk),
+    dueAt,
+    ownerUserId: source.userId,
+    preview: {
+      counterparty: source.counterparty,
+      riskLevel: source.riskLevel,
+      reviewHeadline: source.reviewHeadline,
+      criticalCount: source.criticalCount,
+      highCount: source.highCount,
+      contractValue: source.contractValue,
+      type: source.typeDetected ?? source.type,
+    },
+    sourceUpdatedAt: source.lastReviewedAt ?? source.createdAt,
+  };
+}
+
+/** Rebuild every contract index row from lex_source. */
+export async function reindexLexContracts(organizationId?: string) {
+  const sources = await prisma.lexSource.findMany({
+    where: organizationId ? { organizationId } : undefined,
+  });
+  return reprojectAll(
+    WORK_OBJECT_KINDS.lexContract,
+    sources.map(lexSourceToWorkObject),
+    organizationId,
+  );
 }

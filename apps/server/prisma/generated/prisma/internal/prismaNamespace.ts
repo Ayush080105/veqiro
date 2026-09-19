@@ -450,7 +450,8 @@ export const ModelName = {
   ActivityEvent: 'ActivityEvent',
   WorkObjectIndex: 'WorkObjectIndex',
   Insight: 'Insight',
-  Handoff: 'Handoff'
+  Handoff: 'Handoff',
+  Campaign: 'Campaign'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -466,7 +467,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5428,6 +5429,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Campaign: {
+      payload: Prisma.$CampaignPayload<ExtArgs>
+      fields: Prisma.CampaignFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CampaignFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CampaignFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
+        }
+        findFirst: {
+          args: Prisma.CampaignFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CampaignFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
+        }
+        findMany: {
+          args: Prisma.CampaignFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>[]
+        }
+        create: {
+          args: Prisma.CampaignCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
+        }
+        createMany: {
+          args: Prisma.CampaignCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CampaignCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>[]
+        }
+        delete: {
+          args: Prisma.CampaignDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
+        }
+        update: {
+          args: Prisma.CampaignUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
+        }
+        deleteMany: {
+          args: Prisma.CampaignDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CampaignUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CampaignUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>[]
+        }
+        upsert: {
+          args: Prisma.CampaignUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CampaignPayload>
+        }
+        aggregate: {
+          args: Prisma.CampaignAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCampaign>
+        }
+        groupBy: {
+          args: Prisma.CampaignGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CampaignGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CampaignCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CampaignCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -5994,6 +6069,7 @@ export const PublishedPostScalarFieldEnum = {
   publishedAt: 'publishedAt',
   scheduledAt: 'scheduledAt',
   failureNotifiedAt: 'failureNotifiedAt',
+  campaignId: 'campaignId',
   createdAt: 'createdAt'
 } as const
 
@@ -6602,6 +6678,29 @@ export const HandoffScalarFieldEnum = {
 export type HandoffScalarFieldEnum = (typeof HandoffScalarFieldEnum)[keyof typeof HandoffScalarFieldEnum]
 
 
+export const CampaignScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  name: 'name',
+  brief: 'brief',
+  objective: 'objective',
+  audience: 'audience',
+  platform: 'platform',
+  status: 'status',
+  productImageUrls: 'productImageUrls',
+  assets: 'assets',
+  caption: 'caption',
+  approvedAt: 'approvedAt',
+  approvedByUserId: 'approvedByUserId',
+  scheduledFor: 'scheduledFor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7166,6 +7265,20 @@ export type EnumHandoffStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
 export type ListEnumHandoffStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'HandoffStatus[]'>
     
 
+
+/**
+ * Reference to a field of type 'CampaignStatus'
+ */
+export type EnumCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'CampaignStatus[]'
+ */
+export type ListEnumCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignStatus[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -7328,6 +7441,7 @@ export type GlobalOmitConfig = {
   workObjectIndex?: Prisma.WorkObjectIndexOmit
   insight?: Prisma.InsightOmit
   handoff?: Prisma.HandoffOmit
+  campaign?: Prisma.CampaignOmit
 }
 
 /* Types for Logging */

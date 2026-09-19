@@ -57,7 +57,7 @@ import type {
   LogoAnimationStylesResponse,
 } from "./maya.types.js";
 import { prisma } from "../../../config/prisma.js";
-import { SocialPlatform, SocialAccount } from "../../../../prisma/generated/prisma/client.js";
+import { CampaignStatus, SocialPlatform, SocialAccount } from "../../../../prisma/generated/prisma/client.js";
 import {
   publishViaComposio,
   publishCarouselViaComposio,
@@ -71,6 +71,12 @@ import {
 } from "./maya.usage.service.js";
 import { imageCreditsFor, storyboardCreditsFor, videoCreditsFor } from "./maya.quotas.js";
 import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
+import {
+  MAYA_KINDS,
+  projectCampaign,
+  projectPublishedPost,
+  recordMayaEvent,
+} from "./maya.workspace.js";
 
 const platformToEnum: Record<string, SocialPlatform> = {
   twitter: SocialPlatform.TWITTER,
@@ -921,6 +927,7 @@ const markPublishFailed = async (postId: string, err: unknown): Promise<never> =
     where: { id: postId },
     data: { status: "failed", error: message.slice(0, 500) },
   });
+  await projectPublishedPost(postId);
   throw err;
 };
 
@@ -950,6 +957,7 @@ export const firePublishedPost = async (
         where: { id: post.id },
         data: { status: "success", platformPostId: result.platformPostId, publishedAt },
       });
+      await projectPublishedPost(post.id);
       return {
         platform: "instagram",
         platformPostId: result.platformPostId,
@@ -1003,6 +1011,7 @@ export const firePublishedPost = async (
         publishedAt: new Date(),
       },
     });
+    await projectPublishedPost(post.id);
 
     await mayaRepository.createAssistantMessage({
       organizationId: post.organizationId,
@@ -1027,6 +1036,7 @@ export const firePublishedPost = async (
       where: { id: post.id },
       data: { status: "failed", error: message },
     });
+    await projectPublishedPost(post.id);
     throw err;
   }
 };
@@ -1094,6 +1104,7 @@ export const publish = async (
       status: "pending",
     },
   });
+  await projectPublishedPost(pending.id);
 
   try {
     const result = await firePublishedPost(
@@ -1189,6 +1200,7 @@ export const schedulePost = async (
       scheduledAt: new Date(input.scheduledAt),
     },
   });
+  await projectPublishedPost(row.id);
 
   return { id: row.id, scheduledAt: row.scheduledAt!.toISOString(), platform: enumToPlatform[target.platform] };
 };
@@ -1199,7 +1211,9 @@ export const cancelScheduledPost = async (organizationId: string, id: string) =>
   if (post.status !== "scheduled") {
     throw new BadRequestError("Only scheduled posts can be cancelled");
   }
-  return prisma.publishedPost.update({ where: { id }, data: { status: "cancelled" } });
+  const cancelled = await prisma.publishedPost.update({ where: { id }, data: { status: "cancelled" } });
+  await projectPublishedPost(id);
+  return cancelled;
 };
 
 export const draftCarousel = async (
@@ -1440,6 +1454,7 @@ export const publishCarousel = async (
       status: "pending",
     },
   });
+  await projectPublishedPost(pending.id);
 
   try {
     return await firePublishedCarousel(
@@ -1491,8 +1506,16 @@ export const scheduleCarousel = async (
       scheduledAt: new Date(input.scheduledAt),
     },
   });
+  await projectPublishedPost(row.id);
 
   return { id: row.id, scheduledAt: row.scheduledAt!.toISOString(), platform: "instagram" };
+};
+
+/** A campaign is recognised by its brief, so the name comes from it rather than
+ *  a generated title nobody asked for. */
+const campaignNameFromBrief = (brief: string): string => {
+  const line = brief.split("\n").find((l) => l.trim().length > 0)?.trim() ?? "Campaign";
+  return line.length > 80 ? `${line.slice(0, 77)}...` : line;
 };
 
 export const createCampaign = async (
@@ -1573,6 +1596,38 @@ export const createCampaign = async (
     photos: hostedPhotos,
     caption,
   };
+
+  // Record the campaign as a durable object. The generation above is
+  // unchanged — this only gives the result somewhere to live other than a
+  // chat message, so it can be reopened, approved, scheduled and measured.
+  // Best-effort: a campaign that generated fine must not fail on bookkeeping.
+  try {
+    const campaign = await prisma.campaign.create({
+      data: {
+        organizationId,
+        userId,
+        name: campaignNameFromBrief(input.campaignBrief),
+        brief: input.campaignBrief,
+        platform: input.platform,
+        productImageUrls: input.productImageUrls,
+        status: CampaignStatus.REVIEW,
+        assets: { photos: hostedPhotos } as never,
+        caption: (caption ?? undefined) as never,
+      },
+    });
+    await projectCampaign(campaign.id);
+    await recordMayaEvent({
+      organizationId,
+      userId,
+      byAgent: true,
+      verb: "maya.campaign.generated",
+      summary: `Generated ${hostedPhotos.length} campaign ${hostedPhotos.length === 1 ? "asset" : "assets"} for ${input.platform}`,
+      objectKind: MAYA_KINDS.campaign,
+      objectId: campaign.id,
+    });
+  } catch (err) {
+    console.error("[maya] campaign persistence failed (continuing)", err);
+  }
 
   await mayaRepository.createAssistantMessage({
     organizationId,

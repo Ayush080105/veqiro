@@ -7,7 +7,7 @@ import { listActivityEvents } from "../activity/activity-event.service.js";
 import * as insightsService from "./insights.service.js";
 import * as handoffsService from "./handoffs.service.js";
 import * as workspaceService from "./workspace.service.js";
-import { reindexKind } from "./work-objects.projector.js";
+import { reindexAll, reindexKind } from "./reindex.js";
 import {
   AGENT_BY_SLUG,
   activityQuerySchema,
@@ -167,7 +167,12 @@ export const getMemory = async (req: Request, res: Response) => {
  */
 export const postReindex = async (req: Request, res: Response) => {
   const { kind, organizationId } = reindexBodySchema.parse(req.body);
-  const result = await reindexKind(kind, organizationId);
+  // "*" rebuilds every kind — the blunt option, for when drift is suspected
+  // broadly rather than in one place.
+  const result =
+    kind === "*"
+      ? await reindexAll(organizationId)
+      : await reindexKind(kind, organizationId);
   console.log("[work-objects] reindex", result);
   res.status(StatusCodes.OK).json(result);
 };

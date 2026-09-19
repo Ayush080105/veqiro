@@ -84,4 +84,5 @@ export const qk = {
     ["workspace", "insights", agent, status] as const,
   workspaceApprovals: (agent: string) => ["workspace", "approvals", agent] as const,
   workspaceMemory: (agent: string) => ["workspace", "memory", agent] as const,
+  mayaCampaigns: (status: string) => ["maya", "campaigns", status] as const,
 }

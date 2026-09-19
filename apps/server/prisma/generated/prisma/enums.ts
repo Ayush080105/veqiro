@@ -330,3 +330,15 @@ export const AgentRunTrigger = {
 } as const
 
 export type AgentRunTrigger = (typeof AgentRunTrigger)[keyof typeof AgentRunTrigger]
+
+
+export const CampaignStatus = {
+  BRIEF: 'BRIEF',
+  GENERATING: 'GENERATING',
+  REVIEW: 'REVIEW',
+  SCHEDULED: 'SCHEDULED',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type CampaignStatus = (typeof CampaignStatus)[keyof typeof CampaignStatus]

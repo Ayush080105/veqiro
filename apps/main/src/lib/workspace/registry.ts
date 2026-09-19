@@ -2,8 +2,8 @@ import type { AgentSlug } from "@/lib/types"
 import { MODULE_ORDER } from "./modules"
 import type { AgentWorkspaceSpec, ModuleId, ModuleSpec } from "./types"
 import { lexWorkspace } from "./agents/lex.workspace"
+import { mayaWorkspace } from "./agents/maya.workspace"
 import {
-  mayaWorkspace,
   rexWorkspace,
   sageWorkspace,
   scoutWorkspace,

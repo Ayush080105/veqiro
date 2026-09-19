@@ -40,6 +40,7 @@ export type PublishedPostMinAggregateOutputType = {
   publishedAt: Date | null
   scheduledAt: Date | null
   failureNotifiedAt: Date | null
+  campaignId: string | null
   createdAt: Date | null
 }
 
@@ -59,6 +60,7 @@ export type PublishedPostMaxAggregateOutputType = {
   publishedAt: Date | null
   scheduledAt: Date | null
   failureNotifiedAt: Date | null
+  campaignId: string | null
   createdAt: Date | null
 }
 
@@ -80,6 +82,7 @@ export type PublishedPostCountAggregateOutputType = {
   publishedAt: number
   scheduledAt: number
   failureNotifiedAt: number
+  campaignId: number
   createdAt: number
   _all: number
 }
@@ -101,6 +104,7 @@ export type PublishedPostMinAggregateInputType = {
   publishedAt?: true
   scheduledAt?: true
   failureNotifiedAt?: true
+  campaignId?: true
   createdAt?: true
 }
 
@@ -120,6 +124,7 @@ export type PublishedPostMaxAggregateInputType = {
   publishedAt?: true
   scheduledAt?: true
   failureNotifiedAt?: true
+  campaignId?: true
   createdAt?: true
 }
 
@@ -141,6 +146,7 @@ export type PublishedPostCountAggregateInputType = {
   publishedAt?: true
   scheduledAt?: true
   failureNotifiedAt?: true
+  campaignId?: true
   createdAt?: true
   _all?: true
 }
@@ -235,6 +241,7 @@ export type PublishedPostGroupByOutputType = {
   publishedAt: Date | null
   scheduledAt: Date | null
   failureNotifiedAt: Date | null
+  campaignId: string | null
   createdAt: Date
   _count: PublishedPostCountAggregateOutputType | null
   _min: PublishedPostMinAggregateOutputType | null
@@ -277,8 +284,10 @@ export type PublishedPostWhereInput = {
   publishedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
   failureNotifiedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
+  campaignId?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PublishedPost"> | Date | string
   socialAccount?: Prisma.XOR<Prisma.SocialAccountNullableScalarRelationFilter, Prisma.SocialAccountWhereInput> | null
+  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
 }
 
 export type PublishedPostOrderByWithRelationInput = {
@@ -299,8 +308,10 @@ export type PublishedPostOrderByWithRelationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   failureNotifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  campaignId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   socialAccount?: Prisma.SocialAccountOrderByWithRelationInput
+  campaign?: Prisma.CampaignOrderByWithRelationInput
 }
 
 export type PublishedPostWhereUniqueInput = Prisma.AtLeast<{
@@ -324,8 +335,10 @@ export type PublishedPostWhereUniqueInput = Prisma.AtLeast<{
   publishedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
   failureNotifiedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
+  campaignId?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PublishedPost"> | Date | string
   socialAccount?: Prisma.XOR<Prisma.SocialAccountNullableScalarRelationFilter, Prisma.SocialAccountWhereInput> | null
+  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
 }, "id">
 
 export type PublishedPostOrderByWithAggregationInput = {
@@ -346,6 +359,7 @@ export type PublishedPostOrderByWithAggregationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   failureNotifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  campaignId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.PublishedPostCountOrderByAggregateInput
   _max?: Prisma.PublishedPostMaxOrderByAggregateInput
@@ -373,6 +387,7 @@ export type PublishedPostScalarWhereWithAggregatesInput = {
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"PublishedPost"> | Date | string | null
   scheduledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"PublishedPost"> | Date | string | null
   failureNotifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"PublishedPost"> | Date | string | null
+  campaignId?: Prisma.StringNullableWithAggregatesFilter<"PublishedPost"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PublishedPost"> | Date | string
 }
 
@@ -395,6 +410,7 @@ export type PublishedPostCreateInput = {
   failureNotifiedAt?: Date | string | null
   createdAt?: Date | string
   socialAccount?: Prisma.SocialAccountCreateNestedOneWithoutPublishedPostsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutPublishedPostsInput
 }
 
 export type PublishedPostUncheckedCreateInput = {
@@ -415,6 +431,7 @@ export type PublishedPostUncheckedCreateInput = {
   publishedAt?: Date | string | null
   scheduledAt?: Date | string | null
   failureNotifiedAt?: Date | string | null
+  campaignId?: string | null
   createdAt?: Date | string
 }
 
@@ -437,6 +454,7 @@ export type PublishedPostUpdateInput = {
   failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   socialAccount?: Prisma.SocialAccountUpdateOneWithoutPublishedPostsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutPublishedPostsNestedInput
 }
 
 export type PublishedPostUncheckedUpdateInput = {
@@ -457,6 +475,7 @@ export type PublishedPostUncheckedUpdateInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -478,6 +497,7 @@ export type PublishedPostCreateManyInput = {
   publishedAt?: Date | string | null
   scheduledAt?: Date | string | null
   failureNotifiedAt?: Date | string | null
+  campaignId?: string | null
   createdAt?: Date | string
 }
 
@@ -519,6 +539,7 @@ export type PublishedPostUncheckedUpdateManyInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -558,6 +579,7 @@ export type PublishedPostCountOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   failureNotifiedAt?: Prisma.SortOrder
+  campaignId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -577,6 +599,7 @@ export type PublishedPostMaxOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   failureNotifiedAt?: Prisma.SortOrder
+  campaignId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -596,6 +619,7 @@ export type PublishedPostMinOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   failureNotifiedAt?: Prisma.SortOrder
+  campaignId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -659,6 +683,48 @@ export type PublishedPostUpdateimageUrlsInput = {
   push?: string | string[]
 }
 
+export type PublishedPostCreateNestedManyWithoutCampaignInput = {
+  create?: Prisma.XOR<Prisma.PublishedPostCreateWithoutCampaignInput, Prisma.PublishedPostUncheckedCreateWithoutCampaignInput> | Prisma.PublishedPostCreateWithoutCampaignInput[] | Prisma.PublishedPostUncheckedCreateWithoutCampaignInput[]
+  connectOrCreate?: Prisma.PublishedPostCreateOrConnectWithoutCampaignInput | Prisma.PublishedPostCreateOrConnectWithoutCampaignInput[]
+  createMany?: Prisma.PublishedPostCreateManyCampaignInputEnvelope
+  connect?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+}
+
+export type PublishedPostUncheckedCreateNestedManyWithoutCampaignInput = {
+  create?: Prisma.XOR<Prisma.PublishedPostCreateWithoutCampaignInput, Prisma.PublishedPostUncheckedCreateWithoutCampaignInput> | Prisma.PublishedPostCreateWithoutCampaignInput[] | Prisma.PublishedPostUncheckedCreateWithoutCampaignInput[]
+  connectOrCreate?: Prisma.PublishedPostCreateOrConnectWithoutCampaignInput | Prisma.PublishedPostCreateOrConnectWithoutCampaignInput[]
+  createMany?: Prisma.PublishedPostCreateManyCampaignInputEnvelope
+  connect?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+}
+
+export type PublishedPostUpdateManyWithoutCampaignNestedInput = {
+  create?: Prisma.XOR<Prisma.PublishedPostCreateWithoutCampaignInput, Prisma.PublishedPostUncheckedCreateWithoutCampaignInput> | Prisma.PublishedPostCreateWithoutCampaignInput[] | Prisma.PublishedPostUncheckedCreateWithoutCampaignInput[]
+  connectOrCreate?: Prisma.PublishedPostCreateOrConnectWithoutCampaignInput | Prisma.PublishedPostCreateOrConnectWithoutCampaignInput[]
+  upsert?: Prisma.PublishedPostUpsertWithWhereUniqueWithoutCampaignInput | Prisma.PublishedPostUpsertWithWhereUniqueWithoutCampaignInput[]
+  createMany?: Prisma.PublishedPostCreateManyCampaignInputEnvelope
+  set?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  disconnect?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  delete?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  connect?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  update?: Prisma.PublishedPostUpdateWithWhereUniqueWithoutCampaignInput | Prisma.PublishedPostUpdateWithWhereUniqueWithoutCampaignInput[]
+  updateMany?: Prisma.PublishedPostUpdateManyWithWhereWithoutCampaignInput | Prisma.PublishedPostUpdateManyWithWhereWithoutCampaignInput[]
+  deleteMany?: Prisma.PublishedPostScalarWhereInput | Prisma.PublishedPostScalarWhereInput[]
+}
+
+export type PublishedPostUncheckedUpdateManyWithoutCampaignNestedInput = {
+  create?: Prisma.XOR<Prisma.PublishedPostCreateWithoutCampaignInput, Prisma.PublishedPostUncheckedCreateWithoutCampaignInput> | Prisma.PublishedPostCreateWithoutCampaignInput[] | Prisma.PublishedPostUncheckedCreateWithoutCampaignInput[]
+  connectOrCreate?: Prisma.PublishedPostCreateOrConnectWithoutCampaignInput | Prisma.PublishedPostCreateOrConnectWithoutCampaignInput[]
+  upsert?: Prisma.PublishedPostUpsertWithWhereUniqueWithoutCampaignInput | Prisma.PublishedPostUpsertWithWhereUniqueWithoutCampaignInput[]
+  createMany?: Prisma.PublishedPostCreateManyCampaignInputEnvelope
+  set?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  disconnect?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  delete?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  connect?: Prisma.PublishedPostWhereUniqueInput | Prisma.PublishedPostWhereUniqueInput[]
+  update?: Prisma.PublishedPostUpdateWithWhereUniqueWithoutCampaignInput | Prisma.PublishedPostUpdateWithWhereUniqueWithoutCampaignInput[]
+  updateMany?: Prisma.PublishedPostUpdateManyWithWhereWithoutCampaignInput | Prisma.PublishedPostUpdateManyWithWhereWithoutCampaignInput[]
+  deleteMany?: Prisma.PublishedPostScalarWhereInput | Prisma.PublishedPostScalarWhereInput[]
+}
+
 export type PublishedPostCreateWithoutSocialAccountInput = {
   id?: string
   organizationId: string
@@ -677,6 +743,7 @@ export type PublishedPostCreateWithoutSocialAccountInput = {
   scheduledAt?: Date | string | null
   failureNotifiedAt?: Date | string | null
   createdAt?: Date | string
+  campaign?: Prisma.CampaignCreateNestedOneWithoutPublishedPostsInput
 }
 
 export type PublishedPostUncheckedCreateWithoutSocialAccountInput = {
@@ -696,6 +763,7 @@ export type PublishedPostUncheckedCreateWithoutSocialAccountInput = {
   publishedAt?: Date | string | null
   scheduledAt?: Date | string | null
   failureNotifiedAt?: Date | string | null
+  campaignId?: string | null
   createdAt?: Date | string
 }
 
@@ -746,7 +814,76 @@ export type PublishedPostScalarWhereInput = {
   publishedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
   failureNotifiedAt?: Prisma.DateTimeNullableFilter<"PublishedPost"> | Date | string | null
+  campaignId?: Prisma.StringNullableFilter<"PublishedPost"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PublishedPost"> | Date | string
+}
+
+export type PublishedPostCreateWithoutCampaignInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  platform: $Enums.SocialPlatform
+  platformPostId?: string | null
+  caption: string
+  hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
+  imageUrl?: string | null
+  videoUrl?: string | null
+  imageUrls?: Prisma.PublishedPostCreateimageUrlsInput | string[]
+  postType?: string | null
+  status?: string
+  error?: string | null
+  publishedAt?: Date | string | null
+  scheduledAt?: Date | string | null
+  failureNotifiedAt?: Date | string | null
+  createdAt?: Date | string
+  socialAccount?: Prisma.SocialAccountCreateNestedOneWithoutPublishedPostsInput
+}
+
+export type PublishedPostUncheckedCreateWithoutCampaignInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  socialAccountId?: string | null
+  platform: $Enums.SocialPlatform
+  platformPostId?: string | null
+  caption: string
+  hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
+  imageUrl?: string | null
+  videoUrl?: string | null
+  imageUrls?: Prisma.PublishedPostCreateimageUrlsInput | string[]
+  postType?: string | null
+  status?: string
+  error?: string | null
+  publishedAt?: Date | string | null
+  scheduledAt?: Date | string | null
+  failureNotifiedAt?: Date | string | null
+  createdAt?: Date | string
+}
+
+export type PublishedPostCreateOrConnectWithoutCampaignInput = {
+  where: Prisma.PublishedPostWhereUniqueInput
+  create: Prisma.XOR<Prisma.PublishedPostCreateWithoutCampaignInput, Prisma.PublishedPostUncheckedCreateWithoutCampaignInput>
+}
+
+export type PublishedPostCreateManyCampaignInputEnvelope = {
+  data: Prisma.PublishedPostCreateManyCampaignInput | Prisma.PublishedPostCreateManyCampaignInput[]
+  skipDuplicates?: boolean
+}
+
+export type PublishedPostUpsertWithWhereUniqueWithoutCampaignInput = {
+  where: Prisma.PublishedPostWhereUniqueInput
+  update: Prisma.XOR<Prisma.PublishedPostUpdateWithoutCampaignInput, Prisma.PublishedPostUncheckedUpdateWithoutCampaignInput>
+  create: Prisma.XOR<Prisma.PublishedPostCreateWithoutCampaignInput, Prisma.PublishedPostUncheckedCreateWithoutCampaignInput>
+}
+
+export type PublishedPostUpdateWithWhereUniqueWithoutCampaignInput = {
+  where: Prisma.PublishedPostWhereUniqueInput
+  data: Prisma.XOR<Prisma.PublishedPostUpdateWithoutCampaignInput, Prisma.PublishedPostUncheckedUpdateWithoutCampaignInput>
+}
+
+export type PublishedPostUpdateManyWithWhereWithoutCampaignInput = {
+  where: Prisma.PublishedPostScalarWhereInput
+  data: Prisma.XOR<Prisma.PublishedPostUpdateManyMutationInput, Prisma.PublishedPostUncheckedUpdateManyWithoutCampaignInput>
 }
 
 export type PublishedPostCreateManySocialAccountInput = {
@@ -766,6 +903,7 @@ export type PublishedPostCreateManySocialAccountInput = {
   publishedAt?: Date | string | null
   scheduledAt?: Date | string | null
   failureNotifiedAt?: Date | string | null
+  campaignId?: string | null
   createdAt?: Date | string
 }
 
@@ -787,6 +925,7 @@ export type PublishedPostUpdateWithoutSocialAccountInput = {
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  campaign?: Prisma.CampaignUpdateOneWithoutPublishedPostsNestedInput
 }
 
 export type PublishedPostUncheckedUpdateWithoutSocialAccountInput = {
@@ -806,6 +945,7 @@ export type PublishedPostUncheckedUpdateWithoutSocialAccountInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -813,6 +953,91 @@ export type PublishedPostUncheckedUpdateManyWithoutSocialAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  platformPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  caption?: Prisma.StringFieldUpdateOperationsInput | string
+  hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrls?: Prisma.PublishedPostUpdateimageUrlsInput | string[]
+  postType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type PublishedPostCreateManyCampaignInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  socialAccountId?: string | null
+  platform: $Enums.SocialPlatform
+  platformPostId?: string | null
+  caption: string
+  hashtags?: Prisma.PublishedPostCreatehashtagsInput | string[]
+  imageUrl?: string | null
+  videoUrl?: string | null
+  imageUrls?: Prisma.PublishedPostCreateimageUrlsInput | string[]
+  postType?: string | null
+  status?: string
+  error?: string | null
+  publishedAt?: Date | string | null
+  scheduledAt?: Date | string | null
+  failureNotifiedAt?: Date | string | null
+  createdAt?: Date | string
+}
+
+export type PublishedPostUpdateWithoutCampaignInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  platformPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  caption?: Prisma.StringFieldUpdateOperationsInput | string
+  hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrls?: Prisma.PublishedPostUpdateimageUrlsInput | string[]
+  postType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialAccount?: Prisma.SocialAccountUpdateOneWithoutPublishedPostsNestedInput
+}
+
+export type PublishedPostUncheckedUpdateWithoutCampaignInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  socialAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  platformPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  caption?: Prisma.StringFieldUpdateOperationsInput | string
+  hashtags?: Prisma.PublishedPostUpdatehashtagsInput | string[]
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrls?: Prisma.PublishedPostUpdateimageUrlsInput | string[]
+  postType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type PublishedPostUncheckedUpdateManyWithoutCampaignInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  socialAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   platformPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.StringFieldUpdateOperationsInput | string
@@ -849,8 +1074,10 @@ export type PublishedPostSelect<ExtArgs extends runtime.Types.Extensions.Interna
   publishedAt?: boolean
   scheduledAt?: boolean
   failureNotifiedAt?: boolean
+  campaignId?: boolean
   createdAt?: boolean
   socialAccount?: boolean | Prisma.PublishedPost$socialAccountArgs<ExtArgs>
+  campaign?: boolean | Prisma.PublishedPost$campaignArgs<ExtArgs>
 }, ExtArgs["result"]["publishedPost"]>
 
 export type PublishedPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -871,8 +1098,10 @@ export type PublishedPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   publishedAt?: boolean
   scheduledAt?: boolean
   failureNotifiedAt?: boolean
+  campaignId?: boolean
   createdAt?: boolean
   socialAccount?: boolean | Prisma.PublishedPost$socialAccountArgs<ExtArgs>
+  campaign?: boolean | Prisma.PublishedPost$campaignArgs<ExtArgs>
 }, ExtArgs["result"]["publishedPost"]>
 
 export type PublishedPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -893,8 +1122,10 @@ export type PublishedPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   publishedAt?: boolean
   scheduledAt?: boolean
   failureNotifiedAt?: boolean
+  campaignId?: boolean
   createdAt?: boolean
   socialAccount?: boolean | Prisma.PublishedPost$socialAccountArgs<ExtArgs>
+  campaign?: boolean | Prisma.PublishedPost$campaignArgs<ExtArgs>
 }, ExtArgs["result"]["publishedPost"]>
 
 export type PublishedPostSelectScalar = {
@@ -915,18 +1146,22 @@ export type PublishedPostSelectScalar = {
   publishedAt?: boolean
   scheduledAt?: boolean
   failureNotifiedAt?: boolean
+  campaignId?: boolean
   createdAt?: boolean
 }
 
-export type PublishedPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "socialAccountId" | "platform" | "platformPostId" | "caption" | "hashtags" | "imageUrl" | "videoUrl" | "imageUrls" | "postType" | "status" | "error" | "publishedAt" | "scheduledAt" | "failureNotifiedAt" | "createdAt", ExtArgs["result"]["publishedPost"]>
+export type PublishedPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "socialAccountId" | "platform" | "platformPostId" | "caption" | "hashtags" | "imageUrl" | "videoUrl" | "imageUrls" | "postType" | "status" | "error" | "publishedAt" | "scheduledAt" | "failureNotifiedAt" | "campaignId" | "createdAt", ExtArgs["result"]["publishedPost"]>
 export type PublishedPostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   socialAccount?: boolean | Prisma.PublishedPost$socialAccountArgs<ExtArgs>
+  campaign?: boolean | Prisma.PublishedPost$campaignArgs<ExtArgs>
 }
 export type PublishedPostIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   socialAccount?: boolean | Prisma.PublishedPost$socialAccountArgs<ExtArgs>
+  campaign?: boolean | Prisma.PublishedPost$campaignArgs<ExtArgs>
 }
 export type PublishedPostIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   socialAccount?: boolean | Prisma.PublishedPost$socialAccountArgs<ExtArgs>
+  campaign?: boolean | Prisma.PublishedPost$campaignArgs<ExtArgs>
 }
 
 export type $PublishedPostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -936,6 +1171,10 @@ export type $PublishedPostPayload<ExtArgs extends runtime.Types.Extensions.Inter
      * Connected account relation.
      */
     socialAccount: Prisma.$SocialAccountPayload<ExtArgs> | null
+    /**
+     * Owning campaign relation.
+     */
+    campaign: Prisma.$CampaignPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
@@ -1006,6 +1245,11 @@ export type $PublishedPostPayload<ExtArgs extends runtime.Types.Extensions.Inter
      * Set once a scheduled post's failure has been emailed/toasted, to avoid duplicate notifications.
      */
     failureNotifiedAt: Date | null
+    /**
+     * Campaign this post came out of, when it came from one. Nullable because
+     * most posts are one-offs and always will be.
+     */
+    campaignId: string | null
     /**
      * Local creation timestamp.
      */
@@ -1405,6 +1649,7 @@ readonly fields: PublishedPostFieldRefs;
 export interface Prisma__PublishedPostClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   socialAccount<T extends Prisma.PublishedPost$socialAccountArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PublishedPost$socialAccountArgs<ExtArgs>>): Prisma.Prisma__SocialAccountClient<runtime.Types.Result.GetResult<Prisma.$SocialAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  campaign<T extends Prisma.PublishedPost$campaignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PublishedPost$campaignArgs<ExtArgs>>): Prisma.Prisma__CampaignClient<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1451,6 +1696,7 @@ export interface PublishedPostFieldRefs {
   readonly publishedAt: Prisma.FieldRef<"PublishedPost", 'DateTime'>
   readonly scheduledAt: Prisma.FieldRef<"PublishedPost", 'DateTime'>
   readonly failureNotifiedAt: Prisma.FieldRef<"PublishedPost", 'DateTime'>
+  readonly campaignId: Prisma.FieldRef<"PublishedPost", 'String'>
   readonly createdAt: Prisma.FieldRef<"PublishedPost", 'DateTime'>
 }
     
@@ -1869,6 +2115,25 @@ export type PublishedPost$socialAccountArgs<ExtArgs extends runtime.Types.Extens
    */
   include?: Prisma.SocialAccountInclude<ExtArgs> | null
   where?: Prisma.SocialAccountWhereInput
+}
+
+/**
+ * PublishedPost.campaign
+ */
+export type PublishedPost$campaignArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Campaign
+   */
+  select?: Prisma.CampaignSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Campaign
+   */
+  omit?: Prisma.CampaignOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CampaignInclude<ExtArgs> | null
+  where?: Prisma.CampaignWhereInput
 }
 
 /**

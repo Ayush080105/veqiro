@@ -407,6 +407,8 @@ model Organization {
   insights             Insight[]
   /// Cross-agent work requests.
   handoffs             Handoff[]
+  /// Marketing campaigns.
+  campaigns            Campaign[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -1386,9 +1388,15 @@ model PublishedPost {
   scheduledAt       DateTime?
   /// Set once a scheduled post's failure has been emailed/toasted, to avoid duplicate notifications.
   failureNotifiedAt DateTime?
+  /// Campaign this post came out of, when it came from one. Nullable because
+  /// most posts are one-offs and always will be.
+  campaignId        String?
+  /// Owning campaign relation.
+  campaign          Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   /// Local creation timestamp.
   createdAt         DateTime       @default(now())
 
+  @@index([campaignId])
   @@index([organizationId, createdAt])
   @@index([organizationId, status, publishedAt])
   @@index([organizationId, status, createdAt])
@@ -2647,4 +2655,75 @@ model Handoff {
   @@index([organizationId, toAgent, status, createdAt])
   @@index([organizationId, fromAgent, status, createdAt])
   @@map("handoff")
+}
+
+/// Lifecycle of a marketing campaign, mirroring the PRD's signature workflow:
+/// brief -> plan -> assets -> approval -> schedule/publish -> measure.
+enum CampaignStatus {
+  /// Brief captured, nothing generated yet.
+  BRIEF
+  /// Assets are being generated.
+  GENERATING
+  /// Assets exist and are waiting on a human.
+  REVIEW
+  /// Approved, scheduled or partially published.
+  SCHEDULED
+  /// Everything in it has gone out.
+  PUBLISHED
+  ARCHIVED
+}
+
+/// A marketing campaign: the durable object around a generation run that
+/// previously left nothing behind but a PublishedPost.
+///
+/// Deliberately a thin wrapper, per the PRD's engineering rule. The generation
+/// itself still happens in apps/ai/core/campaign_director.py and is not
+/// touched: this records what was asked for, what came back, and what happened
+/// to it, so a campaign can be reopened, measured and reported on instead of
+/// scrolling back through a chat thread to find the images.
+model Campaign {
+  /// Campaign id.
+  id             String         @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// Owning organization relation.
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// User who started it.
+  userId         String
+  /// Display name; defaults to a trimmed version of the brief.
+  name           String
+  /// The brief as the customer wrote it. Kept verbatim — it is the thing they
+  /// recognise the campaign by, and rewriting it would lose their intent.
+  brief          String         @db.Text
+  /// What the campaign is for, when stated.
+  objective      String?
+  /// Who it targets, when stated.
+  audience       String?
+  /// Target platform.
+  platform       String         @default("instagram")
+  status         CampaignStatus @default(BRIEF)
+  /// Source product images the assets were generated from.
+  productImageUrls String[]     @default([])
+  /// Generated assets as the director returned them (photos, captions,
+  /// video). Stored whole rather than normalised: the shape is the AI
+  /// service's to change, and pinning it into columns here would make every
+  /// prompt revision a migration.
+  assets         Json?
+  /// Caption body/hashtags/cta chosen for the campaign.
+  caption        Json?
+  /// When the customer approved the assets.
+  approvedAt     DateTime?
+  approvedByUserId String?
+  /// When it should go out.
+  scheduledFor   DateTime?
+  /// Posts produced from this campaign, for the measure step.
+  publishedPosts PublishedPost[]
+  /// Creation timestamp.
+  createdAt      DateTime       @default(now())
+  /// Update timestamp.
+  updatedAt      DateTime       @updatedAt
+
+  @@index([organizationId, status, updatedAt])
+  @@index([organizationId, createdAt])
+  @@map("campaign")
 }

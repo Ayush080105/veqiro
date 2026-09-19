@@ -19,7 +19,6 @@ const pending = (agent: AgentWorkspaceSpec["agent"]): AgentWorkspaceSpec => ({
   overview: { widgets: [] },
 })
 
-export const mayaWorkspace = pending("maya")
 export const rexWorkspace = pending("rex")
 export const sageWorkspace = pending("sage")
 export const scoutWorkspace = pending("scout")

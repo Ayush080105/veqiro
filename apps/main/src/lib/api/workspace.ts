@@ -173,3 +173,71 @@ export function useSetInsightStatus(agent: string, organizationId: string) {
     },
   })
 }
+
+// ─── Maya campaigns ──────────────────────────────────────────────────────────
+// Campaigns live under /agents/maya rather than /workspace because they are a
+// Maya domain object, not a framework one. The workspace reads them through
+// the Work module like any other typed list.
+
+export type CampaignStatus =
+  | "BRIEF"
+  | "GENERATING"
+  | "REVIEW"
+  | "SCHEDULED"
+  | "PUBLISHED"
+  | "ARCHIVED"
+
+export interface CampaignPhoto {
+  image?: { image_url?: string }
+  composition_role?: string
+}
+
+export interface Campaign {
+  id: string
+  name: string
+  brief: string
+  objective: string | null
+  audience: string | null
+  platform: string
+  status: CampaignStatus
+  productImageUrls: string[]
+  assets: { photos?: CampaignPhoto[] } | null
+  caption: { body?: string; hashtags?: string[]; cta?: string } | null
+  approvedAt: string | null
+  scheduledFor: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export function useCampaigns(status?: CampaignStatus) {
+  const qs = status ? `?status=${status}` : ""
+  return useQuery({
+    queryKey: qk.mayaCampaigns(status ?? "all"),
+    queryFn: () => apiFetch<Campaign[]>(`/agents/maya/campaigns${qs}`),
+  })
+}
+
+/** Approve, schedule or archive — the human-control step of the campaign flow. */
+export function useCampaignAction(organizationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      action,
+      scheduledFor,
+    }: {
+      id: string
+      action: "approve" | "schedule" | "archive"
+      scheduledFor?: string
+    }) =>
+      apiFetch<Campaign>(`/agents/maya/campaigns/${id}/${action}`, {
+        method: "POST",
+        body: action === "schedule" ? { scheduledFor } : undefined,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["maya", "campaigns"] })
+      void qc.invalidateQueries({ queryKey: qk.workspaceOverview("maya", organizationId) })
+      void qc.invalidateQueries({ queryKey: ["workspace", "work", "maya"] })
+    },
+  })
+}
