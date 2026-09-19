@@ -411,6 +411,8 @@ model Organization {
   campaigns            Campaign[]
   /// Scout research projects.
   researchProjects     ResearchProject[]
+  /// Durable facts with provenance.
+  memoryItems          MemoryItem[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -2854,4 +2856,61 @@ model ResearchFinding {
   @@index([projectId, createdAt])
   @@index([organizationId, createdAt])
   @@map("research_finding")
+}
+
+/// Where a remembered fact came from.
+enum MemoryOrigin {
+  /// The customer typed it.
+  USER
+  /// An agent inferred it from a conversation.
+  AGENT
+  /// Derived from connected data or a document.
+  IMPORTED
+}
+
+/// One durable fact an employee works from, with its provenance.
+///
+/// AgentMemory already holds a running summary and a longTermFacts JSON array,
+/// and that is fine for feeding a prompt. It is not enough to show a customer:
+/// a list of assertions about their business with no indication of where each
+/// came from, when, or whether they ever agreed to it is not something anyone
+/// can sensibly edit or trust. The PRD asks for provenance, and provenance
+/// needs rows.
+///
+/// AgentMemory is NOT replaced. It stays the prompt-assembly path; this is the
+/// reviewable surface, and the two are reconciled deliberately rather than by
+/// having one silently shadow the other.
+model MemoryItem {
+  /// Memory item id.
+  id             String       @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// Owning organization relation.
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Agent this belongs to, or null for company-wide context every employee
+  /// should work from.
+  agent          Agent?
+  /// Grouping, e.g. "preference", "fact", "constraint".
+  kind           String       @default("fact")
+  /// The fact itself, in the customer's terms.
+  content        String       @db.Text
+  origin         MemoryOrigin @default(AGENT)
+  /// What it was learned from — a message, a document, a run.
+  sourceKind     String?
+  sourceId       String?
+  /// Whether a human has confirmed it. An unconfirmed inference and a stated
+  /// preference carry very different weight, and collapsing them is how an
+  /// agent ends up confidently wrong about a customer's business.
+  confirmed      Boolean      @default(false)
+  confirmedAt    DateTime?
+  confirmedByUserId String?
+  /// Set instead of deleting, so an agent can be told to stop believing
+  /// something without losing the record that it once did.
+  retiredAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, agent, retiredAt])
+  @@index([organizationId, kind])
+  @@map("memory_item")
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import type { AgentActionId } from "@/lib/types/agents"
-import type { WorkListProps } from "@/lib/workspace/types"
+
 import { SageSavedKeywordsTab } from "@/components/agents/sage/saved-keywords-tab"
 import { useWorkspaceChat } from "../../WorkspaceChatProvider"
 
@@ -12,7 +12,7 @@ import { useWorkspaceChat } from "../../WorkspaceChatProvider"
  * action there; in the workspace the dock never went away, so it just opens
  * the action with the keyword prefilled.
  */
-export function SageKeywordsWork(_props: WorkListProps) {
+export function SageKeywordsWork() {
   const { openAction } = useWorkspaceChat()
 
   return (

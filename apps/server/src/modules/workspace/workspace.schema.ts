@@ -82,3 +82,15 @@ export const reindexBodySchema = z.object({
   /** Omit to reindex every organization — slow, and normally not what you want. */
   organizationId: z.string().min(1).optional(),
 });
+
+export const memoryItemIdParamSchema = z.object({ id: z.string().min(1) });
+
+/** At least one of the two must be present, or the request does nothing. */
+export const memoryItemBodySchema = z
+  .object({
+    confirmed: z.boolean().optional(),
+    retired: z.boolean().optional(),
+  })
+  .refine((body) => body.confirmed !== undefined || body.retired !== undefined, {
+    message: "Provide confirmed or retired",
+  });

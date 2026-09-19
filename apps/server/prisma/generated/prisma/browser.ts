@@ -506,3 +506,19 @@ export type ResearchSource = Prisma.ResearchSourceModel
  * One evidence-backed conclusion.
  */
 export type ResearchFinding = Prisma.ResearchFindingModel
+/**
+ * Model MemoryItem
+ * One durable fact an employee works from, with its provenance.
+ * 
+ * AgentMemory already holds a running summary and a longTermFacts JSON array,
+ * and that is fine for feeding a prompt. It is not enough to show a customer:
+ * a list of assertions about their business with no indication of where each
+ * came from, when, or whether they ever agreed to it is not something anyone
+ * can sensibly edit or trust. The PRD asks for provenance, and provenance
+ * needs rows.
+ * 
+ * AgentMemory is NOT replaced. It stays the prompt-assembly path; this is the
+ * reviewable surface, and the two are reconciled deliberately rather than by
+ * having one silently shadow the other.
+ */
+export type MemoryItem = Prisma.MemoryItemModel

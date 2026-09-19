@@ -121,7 +121,8 @@ export const ModelName = {
   Campaign: 'Campaign',
   ResearchProject: 'ResearchProject',
   ResearchSource: 'ResearchSource',
-  ResearchFinding: 'ResearchFinding'
+  ResearchFinding: 'ResearchFinding',
+  MemoryItem: 'MemoryItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1345,6 +1346,26 @@ export const ResearchFindingScalarFieldEnum = {
 } as const
 
 export type ResearchFindingScalarFieldEnum = (typeof ResearchFindingScalarFieldEnum)[keyof typeof ResearchFindingScalarFieldEnum]
+
+
+export const MemoryItemScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  kind: 'kind',
+  content: 'content',
+  origin: 'origin',
+  sourceKind: 'sourceKind',
+  sourceId: 'sourceId',
+  confirmed: 'confirmed',
+  confirmedAt: 'confirmedAt',
+  confirmedByUserId: 'confirmedByUserId',
+  retiredAt: 'retiredAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MemoryItemScalarFieldEnum = (typeof MemoryItemScalarFieldEnum)[keyof typeof MemoryItemScalarFieldEnum]
 
 
 export const SortOrder = {

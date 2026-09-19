@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
+import { NotFoundError } from "../../common/errors/notFound.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
 import { McpPendingActionStatus } from "../../../prisma/generated/prisma/client.js";
 import { prisma } from "../../config/prisma.js";
@@ -18,6 +19,8 @@ import {
   insightIdParamSchema,
   insightStatusBodySchema,
   insightsQuerySchema,
+  memoryItemBodySchema,
+  memoryItemIdParamSchema,
   reindexBodySchema,
   workQuerySchema,
 } from "./workspace.schema.js";
@@ -143,11 +146,19 @@ export const getApprovals = async (req: Request, res: Response) => {
 export const getMemory = async (req: Request, res: Response) => {
   const { organizationId } = requireAuth(req);
   const agent = requireAgent(req);
-  const [memory, org] = await Promise.all([
+  const [memory, org, items] = await Promise.all([
     prisma.agentMemory.findUnique({
       where: { organizationId_agent: { organizationId, agent } },
     }),
     prisma.orgMemory.findUnique({ where: { organizationId } }),
+    // Company-wide items (agent null) come back too: they are context this
+    // employee works from, and hiding them here would make the page look like
+    // the agent knows less than it does.
+    prisma.memoryItem.findMany({
+      where: { organizationId, retiredAt: null, OR: [{ agent }, { agent: null }] },
+      orderBy: [{ confirmed: "desc" }, { createdAt: "desc" }],
+      take: 200,
+    }),
   ]);
   res.status(StatusCodes.OK).json({
     agent,
@@ -158,6 +169,17 @@ export const getMemory = async (req: Request, res: Response) => {
       runningSummary: org?.runningSummary ?? "",
       longTermFacts: org?.longTermFacts ?? [],
     },
+    items: items.map((item) => ({
+      id: item.id,
+      agent: item.agent,
+      kind: item.kind,
+      content: item.content,
+      origin: item.origin,
+      confirmed: item.confirmed,
+      sourceKind: item.sourceKind,
+      sourceId: item.sourceId,
+      createdAt: item.createdAt.toISOString(),
+    })),
   });
 };
 
@@ -175,4 +197,43 @@ export const postReindex = async (req: Request, res: Response) => {
       : await reindexKind(kind, organizationId);
   console.log("[work-objects] reindex", result);
   res.status(StatusCodes.OK).json(result);
+};
+
+/**
+ * Confirm or retire one remembered fact.
+ *
+ * Retiring sets a timestamp rather than deleting: an agent should be able to
+ * stop believing something without the record of it having believed it
+ * disappearing, which is the difference between correcting a mistake and
+ * pretending it never happened.
+ */
+export const patchMemoryItem = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const { id } = memoryItemIdParamSchema.parse(req.params);
+  const { confirmed, retired } = memoryItemBodySchema.parse(req.body);
+
+  const existing = await prisma.memoryItem.findUnique({ where: { id } });
+  if (!existing || existing.organizationId !== organizationId) {
+    throw new NotFoundError("Memory item not found");
+  }
+
+  const row = await prisma.memoryItem.update({
+    where: { id },
+    data: {
+      ...(confirmed !== undefined
+        ? {
+            confirmed,
+            confirmedAt: confirmed ? new Date() : null,
+            confirmedByUserId: confirmed ? userId : null,
+          }
+        : {}),
+      ...(retired !== undefined ? { retiredAt: retired ? new Date() : null } : {}),
+    },
+  });
+
+  res.status(StatusCodes.OK).json({
+    id: row.id,
+    confirmed: row.confirmed,
+    retired: row.retiredAt !== null,
+  });
 };

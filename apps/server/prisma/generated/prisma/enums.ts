@@ -362,3 +362,12 @@ export const FindingConfidence = {
 } as const
 
 export type FindingConfidence = (typeof FindingConfidence)[keyof typeof FindingConfidence]
+
+
+export const MemoryOrigin = {
+  USER: 'USER',
+  AGENT: 'AGENT',
+  IMPORTED: 'IMPORTED'
+} as const
+
+export type MemoryOrigin = (typeof MemoryOrigin)[keyof typeof MemoryOrigin]

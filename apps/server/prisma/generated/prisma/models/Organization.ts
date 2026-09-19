@@ -258,6 +258,7 @@ export type OrganizationWhereInput = {
   handoffs?: Prisma.HandoffListRelationFilter
   campaigns?: Prisma.CampaignListRelationFilter
   researchProjects?: Prisma.ResearchProjectListRelationFilter
+  memoryItems?: Prisma.MemoryItemListRelationFilter
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -290,6 +291,7 @@ export type OrganizationOrderByWithRelationInput = {
   handoffs?: Prisma.HandoffOrderByRelationAggregateInput
   campaigns?: Prisma.CampaignOrderByRelationAggregateInput
   researchProjects?: Prisma.ResearchProjectOrderByRelationAggregateInput
+  memoryItems?: Prisma.MemoryItemOrderByRelationAggregateInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -325,6 +327,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   handoffs?: Prisma.HandoffListRelationFilter
   campaigns?: Prisma.CampaignListRelationFilter
   researchProjects?: Prisma.ResearchProjectListRelationFilter
+  memoryItems?: Prisma.MemoryItemListRelationFilter
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -395,6 +398,7 @@ export type OrganizationCreateInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -427,6 +431,7 @@ export type OrganizationUncheckedCreateInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -459,6 +464,7 @@ export type OrganizationUpdateInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -491,6 +497,7 @@ export type OrganizationUncheckedUpdateInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -837,6 +844,20 @@ export type OrganizationUpdateOneRequiredWithoutResearchProjectsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutResearchProjectsInput, Prisma.OrganizationUpdateWithoutResearchProjectsInput>, Prisma.OrganizationUncheckedUpdateWithoutResearchProjectsInput>
 }
 
+export type OrganizationCreateNestedOneWithoutMemoryItemsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutMemoryItemsInput, Prisma.OrganizationUncheckedCreateWithoutMemoryItemsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutMemoryItemsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutMemoryItemsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutMemoryItemsInput, Prisma.OrganizationUncheckedCreateWithoutMemoryItemsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutMemoryItemsInput
+  upsert?: Prisma.OrganizationUpsertWithoutMemoryItemsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutMemoryItemsInput, Prisma.OrganizationUpdateWithoutMemoryItemsInput>, Prisma.OrganizationUncheckedUpdateWithoutMemoryItemsInput>
+}
+
 export type OrganizationCreateWithoutSubscriptionInput = {
   id: string
   name: string
@@ -866,6 +887,7 @@ export type OrganizationCreateWithoutSubscriptionInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
@@ -897,6 +919,7 @@ export type OrganizationUncheckedCreateWithoutSubscriptionInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutSubscriptionInput = {
@@ -944,6 +967,7 @@ export type OrganizationUpdateWithoutSubscriptionInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
@@ -975,6 +999,7 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutEntitlementsInput = {
@@ -1006,6 +1031,7 @@ export type OrganizationCreateWithoutEntitlementsInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutEntitlementsInput = {
@@ -1037,6 +1063,7 @@ export type OrganizationUncheckedCreateWithoutEntitlementsInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutEntitlementsInput = {
@@ -1084,6 +1111,7 @@ export type OrganizationUpdateWithoutEntitlementsInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutEntitlementsInput = {
@@ -1115,6 +1143,7 @@ export type OrganizationUncheckedUpdateWithoutEntitlementsInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutBillingSubscriptionsInput = {
@@ -1146,6 +1175,7 @@ export type OrganizationCreateWithoutBillingSubscriptionsInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutBillingSubscriptionsInput = {
@@ -1177,6 +1207,7 @@ export type OrganizationUncheckedCreateWithoutBillingSubscriptionsInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutBillingSubscriptionsInput = {
@@ -1224,6 +1255,7 @@ export type OrganizationUpdateWithoutBillingSubscriptionsInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutBillingSubscriptionsInput = {
@@ -1255,6 +1287,7 @@ export type OrganizationUncheckedUpdateWithoutBillingSubscriptionsInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutPendingCheckoutsInput = {
@@ -1286,6 +1319,7 @@ export type OrganizationCreateWithoutPendingCheckoutsInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutPendingCheckoutsInput = {
@@ -1317,6 +1351,7 @@ export type OrganizationUncheckedCreateWithoutPendingCheckoutsInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutPendingCheckoutsInput = {
@@ -1364,6 +1399,7 @@ export type OrganizationUpdateWithoutPendingCheckoutsInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutPendingCheckoutsInput = {
@@ -1395,6 +1431,7 @@ export type OrganizationUncheckedUpdateWithoutPendingCheckoutsInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutMembersInput = {
@@ -1426,6 +1463,7 @@ export type OrganizationCreateWithoutMembersInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -1457,6 +1495,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -1504,6 +1543,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -1535,6 +1575,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -1566,6 +1607,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -1597,6 +1639,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -1644,6 +1687,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -1675,6 +1719,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutAgentMemoryInput = {
@@ -1706,6 +1751,7 @@ export type OrganizationCreateWithoutAgentMemoryInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
@@ -1737,6 +1783,7 @@ export type OrganizationUncheckedCreateWithoutAgentMemoryInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutAgentMemoryInput = {
@@ -1784,6 +1831,7 @@ export type OrganizationUpdateWithoutAgentMemoryInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
@@ -1815,6 +1863,7 @@ export type OrganizationUncheckedUpdateWithoutAgentMemoryInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutOrgMemoryInput = {
@@ -1846,6 +1895,7 @@ export type OrganizationCreateWithoutOrgMemoryInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
@@ -1877,6 +1927,7 @@ export type OrganizationUncheckedCreateWithoutOrgMemoryInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutOrgMemoryInput = {
@@ -1924,6 +1975,7 @@ export type OrganizationUpdateWithoutOrgMemoryInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
@@ -1955,6 +2007,7 @@ export type OrganizationUncheckedUpdateWithoutOrgMemoryInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutTasksInput = {
@@ -1986,6 +2039,7 @@ export type OrganizationCreateWithoutTasksInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutTasksInput = {
@@ -2017,6 +2071,7 @@ export type OrganizationUncheckedCreateWithoutTasksInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutTasksInput = {
@@ -2064,6 +2119,7 @@ export type OrganizationUpdateWithoutTasksInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutTasksInput = {
@@ -2095,6 +2151,7 @@ export type OrganizationUncheckedUpdateWithoutTasksInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutMayaUsagesInput = {
@@ -2126,6 +2183,7 @@ export type OrganizationCreateWithoutMayaUsagesInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMayaUsagesInput = {
@@ -2157,6 +2215,7 @@ export type OrganizationUncheckedCreateWithoutMayaUsagesInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMayaUsagesInput = {
@@ -2204,6 +2263,7 @@ export type OrganizationUpdateWithoutMayaUsagesInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMayaUsagesInput = {
@@ -2235,6 +2295,7 @@ export type OrganizationUncheckedUpdateWithoutMayaUsagesInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutActivityEventsInput = {
@@ -2266,6 +2327,7 @@ export type OrganizationCreateWithoutActivityEventsInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutActivityEventsInput = {
@@ -2297,6 +2359,7 @@ export type OrganizationUncheckedCreateWithoutActivityEventsInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutActivityEventsInput = {
@@ -2344,6 +2407,7 @@ export type OrganizationUpdateWithoutActivityEventsInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutActivityEventsInput = {
@@ -2375,6 +2439,7 @@ export type OrganizationUncheckedUpdateWithoutActivityEventsInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutWorkObjectsInput = {
@@ -2406,6 +2471,7 @@ export type OrganizationCreateWithoutWorkObjectsInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutWorkObjectsInput = {
@@ -2437,6 +2503,7 @@ export type OrganizationUncheckedCreateWithoutWorkObjectsInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutWorkObjectsInput = {
@@ -2484,6 +2551,7 @@ export type OrganizationUpdateWithoutWorkObjectsInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutWorkObjectsInput = {
@@ -2515,6 +2583,7 @@ export type OrganizationUncheckedUpdateWithoutWorkObjectsInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInsightsInput = {
@@ -2546,6 +2615,7 @@ export type OrganizationCreateWithoutInsightsInput = {
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInsightsInput = {
@@ -2577,6 +2647,7 @@ export type OrganizationUncheckedCreateWithoutInsightsInput = {
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInsightsInput = {
@@ -2624,6 +2695,7 @@ export type OrganizationUpdateWithoutInsightsInput = {
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInsightsInput = {
@@ -2655,6 +2727,7 @@ export type OrganizationUncheckedUpdateWithoutInsightsInput = {
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutHandoffsInput = {
@@ -2686,6 +2759,7 @@ export type OrganizationCreateWithoutHandoffsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutHandoffsInput = {
@@ -2717,6 +2791,7 @@ export type OrganizationUncheckedCreateWithoutHandoffsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutHandoffsInput = {
@@ -2764,6 +2839,7 @@ export type OrganizationUpdateWithoutHandoffsInput = {
   insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutHandoffsInput = {
@@ -2795,6 +2871,7 @@ export type OrganizationUncheckedUpdateWithoutHandoffsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutCampaignsInput = {
@@ -2826,6 +2903,7 @@ export type OrganizationCreateWithoutCampaignsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutCampaignsInput = {
@@ -2857,6 +2935,7 @@ export type OrganizationUncheckedCreateWithoutCampaignsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutCampaignsInput = {
@@ -2904,6 +2983,7 @@ export type OrganizationUpdateWithoutCampaignsInput = {
   insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutCampaignsInput = {
@@ -2935,6 +3015,7 @@ export type OrganizationUncheckedUpdateWithoutCampaignsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutResearchProjectsInput = {
@@ -2966,6 +3047,7 @@ export type OrganizationCreateWithoutResearchProjectsInput = {
   insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
   handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutResearchProjectsInput = {
@@ -2997,6 +3079,7 @@ export type OrganizationUncheckedCreateWithoutResearchProjectsInput = {
   insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
   handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
+  memoryItems?: Prisma.MemoryItemUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutResearchProjectsInput = {
@@ -3044,6 +3127,7 @@ export type OrganizationUpdateWithoutResearchProjectsInput = {
   insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
   handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutResearchProjectsInput = {
@@ -3075,6 +3159,151 @@ export type OrganizationUncheckedUpdateWithoutResearchProjectsInput = {
   insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
   handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
+  memoryItems?: Prisma.MemoryItemUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutMemoryItemsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffCreateNestedManyWithoutOrganizationInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutOrganizationInput
+  researchProjects?: Prisma.ResearchProjectCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutMemoryItemsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  onboarded?: boolean
+  plannedRunsEnabled?: boolean
+  workspaceUiEnabled?: boolean
+  subscriptionStatus?: $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Date | string | null
+  unlockedAgents?: Prisma.OrganizationCreateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Date | string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  entitlements?: Prisma.EntitlementUncheckedCreateNestedManyWithoutOrganizationInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  subscription?: Prisma.SubscriptionUncheckedCreateNestedOneWithoutOrganizationInput
+  agentMemory?: Prisma.AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+  orgMemory?: Prisma.OrgMemoryUncheckedCreateNestedOneWithoutOrganizationInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOrganizationInput
+  mayaUsages?: Prisma.MayaUsageUncheckedCreateNestedManyWithoutOrganizationInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedCreateNestedManyWithoutOrganizationInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutOrganizationInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedCreateNestedManyWithoutOrganizationInput
+  insights?: Prisma.InsightUncheckedCreateNestedManyWithoutOrganizationInput
+  handoffs?: Prisma.HandoffUncheckedCreateNestedManyWithoutOrganizationInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutOrganizationInput
+  researchProjects?: Prisma.ResearchProjectUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutMemoryItemsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutMemoryItemsInput, Prisma.OrganizationUncheckedCreateWithoutMemoryItemsInput>
+}
+
+export type OrganizationUpsertWithoutMemoryItemsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutMemoryItemsInput, Prisma.OrganizationUncheckedUpdateWithoutMemoryItemsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutMemoryItemsInput, Prisma.OrganizationUncheckedCreateWithoutMemoryItemsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutMemoryItemsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutMemoryItemsInput, Prisma.OrganizationUncheckedUpdateWithoutMemoryItemsInput>
+}
+
+export type OrganizationUpdateWithoutMemoryItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUpdateManyWithoutOrganizationNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutOrganizationNestedInput
+  researchProjects?: Prisma.ResearchProjectUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutMemoryItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  onboarded?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  plannedRunsEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  workspaceUiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  subscriptionStatus?: Prisma.NullableEnumSubscriptionStatusFieldUpdateOperationsInput | $Enums.SubscriptionStatus | null
+  entitlementExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  unlockedAgents?: Prisma.OrganizationUpdateunlockedAgentsInput | $Enums.Agent[]
+  trialStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  entitlements?: Prisma.EntitlementUncheckedUpdateManyWithoutOrganizationNestedInput
+  billingSubscriptions?: Prisma.BillingSubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscription?: Prisma.SubscriptionUncheckedUpdateOneWithoutOrganizationNestedInput
+  agentMemory?: Prisma.AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+  orgMemory?: Prisma.OrgMemoryUncheckedUpdateOneWithoutOrganizationNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOrganizationNestedInput
+  mayaUsages?: Prisma.MayaUsageUncheckedUpdateManyWithoutOrganizationNestedInput
+  pendingCheckouts?: Prisma.PendingCheckoutUncheckedUpdateManyWithoutOrganizationNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutOrganizationNestedInput
+  workObjects?: Prisma.WorkObjectIndexUncheckedUpdateManyWithoutOrganizationNestedInput
+  insights?: Prisma.InsightUncheckedUpdateManyWithoutOrganizationNestedInput
+  handoffs?: Prisma.HandoffUncheckedUpdateManyWithoutOrganizationNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutOrganizationNestedInput
+  researchProjects?: Prisma.ResearchProjectUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 
@@ -3097,6 +3326,7 @@ export type OrganizationCountOutputType = {
   handoffs: number
   campaigns: number
   researchProjects: number
+  memoryItems: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3114,6 +3344,7 @@ export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   handoffs?: boolean | OrganizationCountOutputTypeCountHandoffsArgs
   campaigns?: boolean | OrganizationCountOutputTypeCountCampaignsArgs
   researchProjects?: boolean | OrganizationCountOutputTypeCountResearchProjectsArgs
+  memoryItems?: boolean | OrganizationCountOutputTypeCountMemoryItemsArgs
 }
 
 /**
@@ -3224,6 +3455,13 @@ export type OrganizationCountOutputTypeCountResearchProjectsArgs<ExtArgs extends
   where?: Prisma.ResearchProjectWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountMemoryItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MemoryItemWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -3255,6 +3493,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   handoffs?: boolean | Prisma.Organization$handoffsArgs<ExtArgs>
   campaigns?: boolean | Prisma.Organization$campaignsArgs<ExtArgs>
   researchProjects?: boolean | Prisma.Organization$researchProjectsArgs<ExtArgs>
+  memoryItems?: boolean | Prisma.Organization$memoryItemsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -3324,6 +3563,7 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   handoffs?: boolean | Prisma.Organization$handoffsArgs<ExtArgs>
   campaigns?: boolean | Prisma.Organization$campaignsArgs<ExtArgs>
   researchProjects?: boolean | Prisma.Organization$researchProjectsArgs<ExtArgs>
+  memoryItems?: boolean | Prisma.Organization$memoryItemsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -3396,6 +3636,10 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * Scout research projects.
      */
     researchProjects: Prisma.$ResearchProjectPayload<ExtArgs>[]
+    /**
+     * Durable facts with provenance.
+     */
+    memoryItems: Prisma.$MemoryItemPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
@@ -3865,6 +4109,7 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   handoffs<T extends Prisma.Organization$handoffsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$handoffsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HandoffPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   campaigns<T extends Prisma.Organization$campaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$campaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   researchProjects<T extends Prisma.Organization$researchProjectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$researchProjectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ResearchProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  memoryItems<T extends Prisma.Organization$memoryItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$memoryItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemoryItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4671,6 +4916,30 @@ export type Organization$researchProjectsArgs<ExtArgs extends runtime.Types.Exte
   take?: number
   skip?: number
   distinct?: Prisma.ResearchProjectScalarFieldEnum | Prisma.ResearchProjectScalarFieldEnum[]
+}
+
+/**
+ * Organization.memoryItems
+ */
+export type Organization$memoryItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MemoryItem
+   */
+  select?: Prisma.MemoryItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MemoryItem
+   */
+  omit?: Prisma.MemoryItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MemoryItemInclude<ExtArgs> | null
+  where?: Prisma.MemoryItemWhereInput
+  orderBy?: Prisma.MemoryItemOrderByWithRelationInput | Prisma.MemoryItemOrderByWithRelationInput[]
+  cursor?: Prisma.MemoryItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MemoryItemScalarFieldEnum | Prisma.MemoryItemScalarFieldEnum[]
 }
 
 /**

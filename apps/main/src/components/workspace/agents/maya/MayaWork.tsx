@@ -2,7 +2,7 @@
 
 import type { AgentActionId } from "@/lib/types/agents"
 import type { ContentPlanItem } from "@/lib/api/assistants"
-import type { WorkListProps } from "@/lib/workspace/types"
+
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import { MayaContentPlanTab } from "@/components/agents/maya/content-plan-tab"
 import { useWorkspaceChat } from "../../WorkspaceChatProvider"
@@ -16,11 +16,11 @@ import { useWorkspaceChat } from "../../WorkspaceChatProvider"
  * means opening the matching action rather than switching a tab.
  */
 
-export function MayaPostsWork(_props: WorkListProps) {
+export function MayaPostsWork() {
   return <MayaPublishedPostsTab />
 }
 
-export function MayaPlansWork(_props: WorkListProps) {
+export function MayaPlansWork() {
   const { openAction } = useWorkspaceChat()
 
   return (

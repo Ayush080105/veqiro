@@ -142,12 +142,49 @@ export function useWorkspaceApprovals(agent: string) {
   })
 }
 
+export type MemoryOrigin = "USER" | "AGENT" | "IMPORTED"
+
+export interface MemoryItem {
+  id: string
+  agent: string | null
+  kind: string
+  content: string
+  origin: MemoryOrigin
+  confirmed: boolean
+  sourceKind: string | null
+  sourceId: string | null
+  createdAt: string
+}
+
 export interface WorkspaceMemory {
   agent: string
   runningSummary: string
   longTermFacts: string[]
   messageCount: number
   org: { runningSummary: string; longTermFacts: string[] }
+  items: MemoryItem[]
+}
+
+/** Confirm a remembered fact, or retire one the agent should stop believing. */
+export function useUpdateMemoryItem(agent: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string
+      confirmed?: boolean
+      retired?: boolean
+    }) =>
+      apiFetch<{ id: string; confirmed: boolean; retired: boolean }>(
+        `/workspace/memory-items/${id}`,
+        { method: "PATCH", body },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.workspaceMemory(agent) })
+    },
+  })
 }
 
 export function useWorkspaceMemory(agent: string) {

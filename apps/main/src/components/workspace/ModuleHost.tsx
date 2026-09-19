@@ -8,12 +8,12 @@ import { useAgentWorkspace } from "./AgentWorkspaceContext"
 import { OverviewModule } from "./modules/OverviewModule"
 import { ActionsModule } from "./modules/ActionsModule"
 import { AutomationsModule } from "./modules/AutomationsModule"
+import { MemoryModule } from "./modules/MemoryModule"
 import {
   ActivityModule,
   ApprovalsModule,
   ComingSoonModule,
   IntegrationsModule,
-  MemoryModule,
 } from "./modules/SimpleModules"
 
 const WorkModule = lazy(() =>

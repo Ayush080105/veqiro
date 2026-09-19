@@ -5,11 +5,7 @@ import { Construction, Plug } from "lucide-react"
 
 import { getIntegrationsByAgent } from "@repo/integrations-catalog"
 import { useMcpConnections } from "@/lib/api/mcp"
-import {
-  useWorkspaceActivity,
-  useWorkspaceApprovals,
-  useWorkspaceMemory,
-} from "@/lib/api/workspace"
+import { useWorkspaceActivity, useWorkspaceApprovals } from "@/lib/api/workspace"
 import { MODULE_META } from "@/lib/workspace/modules"
 import type { ModuleId, ModuleProps } from "@/lib/workspace/types"
 import { Button } from "@/components/ui/button"
@@ -73,61 +69,6 @@ export function ApprovalsModule({ agent }: ModuleProps) {
         </li>
       ))}
     </ul>
-  )
-}
-
-export function MemoryModule({ agent }: ModuleProps) {
-  const { data, isLoading } = useWorkspaceMemory(agent)
-
-  if (isLoading) return <Skeleton className="h-40 rounded-[var(--vq-r)]" />
-
-  const facts = data?.longTermFacts ?? []
-  const orgFacts = data?.org.longTermFacts ?? []
-
-  return (
-    <div className="flex flex-col gap-4">
-      <section className="rounded-[var(--vq-r)] border border-border bg-card p-4">
-        <h2 className="font-head text-sm">What this employee remembers</h2>
-        {data?.runningSummary ? (
-          <p className="mt-2 text-sm text-muted-foreground">{data.runningSummary}</p>
-        ) : (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Nothing yet — context builds up as you work together.
-          </p>
-        )}
-        {facts.length > 0 && (
-          <ul className="mt-3 flex flex-col gap-1.5">
-            {facts.map((fact, i) => (
-              <li key={i} className="text-sm">
-                {fact}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="rounded-[var(--vq-r)] border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-head text-sm">Company context</h2>
-          <Link href="/brain" className="text-xs text-muted-foreground no-underline hover:text-foreground">
-            Edit in Brain
-          </Link>
-        </div>
-        {orgFacts.length > 0 ? (
-          <ul className="mt-3 flex flex-col gap-1.5">
-            {orgFacts.map((fact, i) => (
-              <li key={i} className="text-sm">
-                {fact}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Shared across every employee. Set it up in Brain.
-          </p>
-        )}
-      </section>
-    </div>
   )
 }
 

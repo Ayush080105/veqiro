@@ -990,6 +990,23 @@ export type EnumFindingConfidenceWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel>
 }
 
+export type EnumMemoryOriginFilter<$PrismaModel = never> = {
+  equals?: $Enums.MemoryOrigin | Prisma.EnumMemoryOriginFieldRefInput<$PrismaModel>
+  in?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel> | $Enums.MemoryOrigin
+}
+
+export type EnumMemoryOriginWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MemoryOrigin | Prisma.EnumMemoryOriginFieldRefInput<$PrismaModel>
+  in?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMemoryOriginWithAggregatesFilter<$PrismaModel> | $Enums.MemoryOrigin
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1912,6 +1929,23 @@ export type NestedEnumFindingConfidenceWithAggregatesFilter<$PrismaModel = never
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel>
+}
+
+export type NestedEnumMemoryOriginFilter<$PrismaModel = never> = {
+  equals?: $Enums.MemoryOrigin | Prisma.EnumMemoryOriginFieldRefInput<$PrismaModel>
+  in?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel> | $Enums.MemoryOrigin
+}
+
+export type NestedEnumMemoryOriginWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MemoryOrigin | Prisma.EnumMemoryOriginFieldRefInput<$PrismaModel>
+  in?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  notIn?: $Enums.MemoryOrigin[] | Prisma.ListEnumMemoryOriginFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMemoryOriginWithAggregatesFilter<$PrismaModel> | $Enums.MemoryOrigin
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMemoryOriginFilter<$PrismaModel>
 }
 
 

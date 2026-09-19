@@ -454,7 +454,8 @@ export const ModelName = {
   Campaign: 'Campaign',
   ResearchProject: 'ResearchProject',
   ResearchSource: 'ResearchSource',
-  ResearchFinding: 'ResearchFinding'
+  ResearchFinding: 'ResearchFinding',
+  MemoryItem: 'MemoryItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -470,7 +471,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign" | "researchProject" | "researchSource" | "researchFinding"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign" | "researchProject" | "researchSource" | "researchFinding" | "memoryItem"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5728,6 +5729,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MemoryItem: {
+      payload: Prisma.$MemoryItemPayload<ExtArgs>
+      fields: Prisma.MemoryItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MemoryItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MemoryItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>
+        }
+        findFirst: {
+          args: Prisma.MemoryItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MemoryItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>
+        }
+        findMany: {
+          args: Prisma.MemoryItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>[]
+        }
+        create: {
+          args: Prisma.MemoryItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>
+        }
+        createMany: {
+          args: Prisma.MemoryItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MemoryItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>[]
+        }
+        delete: {
+          args: Prisma.MemoryItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>
+        }
+        update: {
+          args: Prisma.MemoryItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.MemoryItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MemoryItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MemoryItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.MemoryItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoryItemPayload>
+        }
+        aggregate: {
+          args: Prisma.MemoryItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMemoryItem>
+        }
+        groupBy: {
+          args: Prisma.MemoryItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MemoryItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MemoryItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MemoryItemCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6974,6 +7049,26 @@ export const ResearchFindingScalarFieldEnum = {
 export type ResearchFindingScalarFieldEnum = (typeof ResearchFindingScalarFieldEnum)[keyof typeof ResearchFindingScalarFieldEnum]
 
 
+export const MemoryItemScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  kind: 'kind',
+  content: 'content',
+  origin: 'origin',
+  sourceKind: 'sourceKind',
+  sourceId: 'sourceId',
+  confirmed: 'confirmed',
+  confirmedAt: 'confirmedAt',
+  confirmedByUserId: 'confirmedByUserId',
+  retiredAt: 'retiredAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MemoryItemScalarFieldEnum = (typeof MemoryItemScalarFieldEnum)[keyof typeof MemoryItemScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7580,6 +7675,20 @@ export type EnumFindingConfidenceFieldRefInput<$PrismaModel> = FieldRefInputType
 export type ListEnumFindingConfidenceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FindingConfidence[]'>
     
 
+
+/**
+ * Reference to a field of type 'MemoryOrigin'
+ */
+export type EnumMemoryOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MemoryOrigin'>
+    
+
+
+/**
+ * Reference to a field of type 'MemoryOrigin[]'
+ */
+export type ListEnumMemoryOriginFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MemoryOrigin[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -7746,6 +7855,7 @@ export type GlobalOmitConfig = {
   researchProject?: Prisma.ResearchProjectOmit
   researchSource?: Prisma.ResearchSourceOmit
   researchFinding?: Prisma.ResearchFindingOmit
+  memoryItem?: Prisma.MemoryItemOmit
 }
 
 /* Types for Logging */
