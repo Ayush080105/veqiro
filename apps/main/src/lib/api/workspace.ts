@@ -360,3 +360,31 @@ export function useUpdateResearchProject(organizationId: string) {
     },
   })
 }
+
+// ─── Company pulse (Vega) ────────────────────────────────────────────────────
+
+export interface AgentPulse {
+  agent: string
+  openInsights: number
+  criticalInsights: number
+  pendingApprovals: number
+  needsReview: number
+  lastActivityAt: string | null
+}
+
+export interface CompanyPulse {
+  agents: AgentPulse[]
+  totals: { openInsights: number; pendingApprovals: number; needsReview: number }
+  topInsights: Insight[]
+  recentActivity: ActivityEvent[]
+  handoffsInFlight: number
+}
+
+export function useCompanyPulse(organizationId: string) {
+  return useQuery({
+    queryKey: qk.companyPulse(organizationId),
+    queryFn: () => apiFetch<CompanyPulse>("/workspace/pulse"),
+    enabled: Boolean(organizationId),
+    staleTime: 30_000,
+  })
+}

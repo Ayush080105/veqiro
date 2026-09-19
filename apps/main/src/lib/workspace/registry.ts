@@ -6,7 +6,7 @@ import { mayaWorkspace } from "./agents/maya.workspace"
 import { rexWorkspace } from "./agents/rex.workspace"
 import { sageWorkspace } from "./agents/sage.workspace"
 import { scoutWorkspace } from "./agents/scout.workspace"
-import { vegaWorkspace } from "./agents/pending.workspace"
+import { vegaWorkspace } from "./agents/vega.workspace"
 
 /**
  * Every agent's workspace spec.
