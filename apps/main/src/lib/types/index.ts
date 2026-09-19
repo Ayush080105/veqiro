@@ -174,33 +174,8 @@ export interface OrgInvite {
 // ─── Content Types ────────────────────────────────────────────────────────────
 
 export type ContentPlatform = "linkedin" | "twitter" | "instagram"
-export type ContentStatus = "draft" | "scheduled" | "published"
 
-export interface ContentItem {
-  id: string
-  platform: ContentPlatform
-  headline: string
-  content: string
-  status: ContentStatus
-  scheduledAt?: string | null
-  imageUrl?: string | null
-  createdAt: string
-}
-
-// ─── Lead Types ───────────────────────────────────────────────────────────────
-
-export type LeadStatus = "new" | "contacted" | "qualified" | "closed"
-
-export interface Lead {
-  id: string
-  company: string
-  contact: string
-  email?: string
-  icpScore: number
-  source: string
-  status: LeadStatus
-  createdAt: string
-}
+// ─── Competitor Types ─────────────────────────────────────────────────────────
 
 export interface Competitor {
   id: string

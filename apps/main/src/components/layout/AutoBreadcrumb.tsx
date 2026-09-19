@@ -23,13 +23,11 @@ const LABELS: Record<string, string> = {
   "/settings/integrations": "Integrations",
   "/settings/members": "Members",
   "/settings/notifications": "Notifications",
-  "/workspace/content": "Content",
-  "/workspace/leads": "Leads",
 }
 
-// `/workspace` is just a grouping prefix (briefing/calendar/content/inbox/leads
-// all live under it) — it isn't a page a user thinks of as a destination, so
-// it's dropped from the trail entirely rather than shown as a crumb.
+// `/workspace` is just a grouping prefix — every agent workspace lives under it
+// and there is no `/workspace` page, so it's dropped from the trail rather than
+// shown as a crumb that leads nowhere.
 const HIDDEN_SEGMENTS = new Set(["/workspace"])
 
 function titleCase(segment: string): string {
@@ -40,7 +38,8 @@ function titleCase(segment: string): string {
 }
 
 function resolveLabel(segment: string, href: string, parents: string[]): string {
-  if (parents[0] === "assistants" && parents.length === 1) {
+  // `/assistants/lex` and `/workspace/lex/...` both name an agent in that slot.
+  if ((parents[0] === "assistants" || parents[0] === "workspace") && parents.length === 1) {
     return getAgent(segment)?.name ?? titleCase(segment)
   }
   return LABELS[href] ?? titleCase(segment)

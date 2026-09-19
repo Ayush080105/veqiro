@@ -55,7 +55,7 @@ export function ContentPipeline({
           icon={Send}
           title="Content pipeline is empty"
           description="Create or schedule a post with Maya; drafts, scheduled work, and publishing results will collect here."
-          action={{ label: "Create content", href: "/workspace/content" }}
+          action={{ label: "Create content", href: "/assistants/maya" }}
           compact
           framed={false}
           className="w-full"
@@ -73,7 +73,7 @@ export function ContentPipeline({
             icon={Send}
             title="Nothing published yet"
             description="Published posts will be grouped by platform here."
-            action={{ label: "Create content", href: "/workspace/content" }}
+            action={{ label: "Create content", href: "/assistants/maya" }}
           />
         ) : (
           <div className="flex flex-col items-center gap-4 sm:flex-row">
